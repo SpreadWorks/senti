@@ -220,6 +220,129 @@ describe("finalize-cleanup robustness", () => {
     assert.ok(result.reasons.some(r => r.includes("Feature branch remains")));
   });
 
+  it("auto-rescue updates the base without changing the caller checkout, HEAD, or index", async () => {
+    const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-auto-rescue-isolated-");
+    initGitRepo(tmp);
+    const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
+    const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const featureBranch = "feature/isolated-rescue";
+    execFileSync("git", ["-C", tmp, "checkout", "-qb", featureBranch]);
+    fs.writeFileSync(path.join(tmp, "rescued.txt"), "rescued\n");
+    execFileSync("git", ["-C", tmp, "add", "rescued.txt"]);
+    execFileSync("git", ["-C", tmp, "commit", "-qm", "rescue me"]);
+    const before = {
+      branch: execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }),
+      head: execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }),
+      index: fs.readFileSync(path.join(tmp, ".git", "index")),
+    };
+
+    const result = runAutoRescue({
+      mainRepoPath: tmp,
+      baseBranch,
+      baseline,
+      featureBranch,
+      specId: "isolated-rescue",
+    });
+
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }), before.branch);
+    assert.equal(execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }), before.head);
+    assert.deepEqual(fs.readFileSync(path.join(tmp, ".git", "index")), before.index);
+    assert.equal(execFileSync("git", ["-C", tmp, "show", `${baseBranch}:rescued.txt`], { encoding: "utf8" }), "rescued\n");
+  });
+
+  it("auto-rescue materializes an updated base checkout and leaves its index clean", async () => {
+    const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-auto-rescue-base-checkout-");
+    initGitRepo(tmp);
+    const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
+    const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const featureBranch = "feature/materialized-rescue";
+    execFileSync("git", ["-C", tmp, "checkout", "-qb", featureBranch]);
+    fs.writeFileSync(path.join(tmp, "rescued.txt"), "rescued on base\n");
+    execFileSync("git", ["-C", tmp, "add", "rescued.txt"]);
+    execFileSync("git", ["-C", tmp, "commit", "-qm", "rescue materialized file"]);
+    execFileSync("git", ["-C", tmp, "checkout", "-q", baseBranch]);
+
+    const result = runAutoRescue({
+      mainRepoPath: tmp,
+      baseBranch,
+      baseline,
+      featureBranch,
+      specId: "materialized-rescue",
+    });
+
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(fs.readFileSync(path.join(tmp, "rescued.txt"), "utf8"), "rescued on base\n");
+    assert.equal(execFileSync("git", ["-C", tmp, "status", "--porcelain"], { encoding: "utf8" }), "");
+  });
+
+  it("auto-rescue exempts only its exact conflict audit from issue-log dirtiness", async () => {
+    const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-auto-rescue-issue-log-allowance-");
+    initGitRepo(tmp);
+    const specId = "issue-log-allowance";
+    const specDirectory = path.join(tmp, "specs", specId);
+    const issuePath = path.join(specDirectory, "issue-log.json");
+    fs.mkdirSync(specDirectory, { recursive: true });
+    fs.writeFileSync(path.join(specDirectory, "spec.json"), "{}\n");
+    execFileSync("git", ["-C", tmp, "add", `specs/${specId}`]);
+    execFileSync("git", ["-C", tmp, "commit", "-qm", "add issue log"]);
+    const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
+    const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const featureBranch = "feature/issue-log-allowance";
+    execFileSync("git", ["-C", tmp, "checkout", "-qb", featureBranch]);
+    fs.writeFileSync(path.join(tmp, "rescued.txt"), "rescue audit allowance\n");
+    execFileSync("git", ["-C", tmp, "add", "rescued.txt"]);
+    execFileSync("git", ["-C", tmp, "commit", "-qm", "add rescued file"]);
+    execFileSync("git", ["-C", tmp, "checkout", "-q", baseBranch]);
+
+    const ownedAudit = { reason: "owned conflict", issueLogId: "owned-conflict-audit" };
+    fs.writeFileSync(issuePath, `${JSON.stringify({ entries: [ownedAudit, { reason: "user edit" }] })}\n`);
+    const blocked = runAutoRescue({
+      mainRepoPath: tmp,
+      baseBranch,
+      baseline,
+      featureBranch,
+      specId,
+      allowedIssueLogId: ownedAudit.issueLogId,
+    });
+    assert.equal(blocked.ok, false);
+    assert.equal(blocked.code, "MAIN_REPO_DIRTY");
+    assert.deepEqual(blocked.dirtyFiles, [`specs/${specId}/issue-log.json`]);
+
+    fs.writeFileSync(issuePath, `${JSON.stringify({ entries: [ownedAudit] })}\n`);
+    const rescued = runAutoRescue({
+      mainRepoPath: tmp,
+      baseBranch,
+      baseline,
+      featureBranch,
+      specId,
+      allowedIssueLogId: ownedAudit.issueLogId,
+    });
+    assert.equal(rescued.ok, true, JSON.stringify(rescued));
+    assert.equal(fs.readFileSync(path.join(tmp, "rescued.txt"), "utf8"), "rescue audit allowance\n");
+    assert.deepEqual(JSON.parse(fs.readFileSync(issuePath, "utf8")).entries, [ownedAudit]);
+  });
+
+  it("auto-rescue fails closed when repository status cannot be established", async () => {
+    const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-auto-rescue-status-failure-");
+
+    const result = runAutoRescue({
+      mainRepoPath: tmp,
+      baseBranch: "main",
+      baseline: "1".repeat(40),
+      featureBranch: "feature/status-failure",
+      specId: "status-failure",
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "MAIN_REPO_STATUS_FAILED");
+    assert.match(result.message, /status probe failed/i);
+  });
+
   it("runTeardown fails if worktree remove fails (e.g. dirty)", async () => {
     tmp = createTmpDir("senti-teardown-fail-");
     const mainRoot = path.join(tmp, "main");
@@ -365,7 +488,7 @@ describe("finalize-cleanup robustness", () => {
     assert.equal(fs.statSync(issuePath).isDirectory(), true);
   });
 
-  it("forced teardown reports compensation failure with the original teardown failure and one audit entry", async () => {
+  it("forced teardown preserves commit and shared issue restore failures with one audit residue", async () => {
     const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
     tmp = createTmpDir("senti-finalize-audit-compensation-failure-");
     initGitRepo(tmp);
@@ -385,28 +508,28 @@ describe("finalize-cleanup robustness", () => {
     const issuePath = path.join(tmp, `specs/${specId}/issue-log.json`);
     fs.writeFileSync(issuePath, '{"entries":[]}\n');
     fs.writeFileSync(path.join(tmp, ".git", "hooks", "pre-commit"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
-    const originalCompensate = IssueLogStore.prototype.compensate;
-    IssueLogStore.prototype.compensate = () => {
-      const error = new Error("injected compensation failure");
+    const originalRestore = IssueLogStore.prototype.restoreOwnedMutation;
+    IssueLogStore.prototype.restoreOwnedMutation = () => {
+      const error = new Error("injected shared issue restore failure");
       error.code = "INJECTED_COMPENSATION_FAILURE";
       throw error;
     };
-    let result;
     try {
-      result = await new RunFinalizeCleanupCommand().execute({
-        root: tmp,
-        flowState: state,
-        flowManager: makeFlowManager(tmp),
-        force: true,
-      });
+      await assert.rejects(
+        () => new RunFinalizeCleanupCommand().execute({
+          root: tmp,
+          flowState: state,
+          flowManager: makeFlowManager(tmp),
+          force: true,
+        }),
+        (error) => error instanceof AggregateError
+          && error.errors[0].code === "COMMIT_FAILED"
+          && error.errors[1].code === "INJECTED_COMPENSATION_FAILURE"
+          && error.cause === error.errors[0],
+      );
     } finally {
-      IssueLogStore.prototype.compensate = originalCompensate;
+      IssueLogStore.prototype.restoreOwnedMutation = originalRestore;
     }
-
-    assert.equal(result.ok, false);
-    assert.equal(result.errors[0].code, "ISSUE_LOG_AUDIT_COMPENSATION_FAILED");
-    assert.equal(result.data.originalTeardown.errors[0].code, "COMMIT_FAILED");
-    assert.equal(result.data.causeCode, "INJECTED_COMPENSATION_FAILURE");
     const entries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
     assert.equal(entries.filter((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || "")).length, 1);
   });
@@ -414,7 +537,7 @@ describe("finalize-cleanup robustness", () => {
   it("post-commit teardown failures retain durable audit and active recovery until an idempotent retry succeeds", async () => {
     const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
     const failures = [
-      ["worktree-remove", "WORKTREE_REMOVE_FAILED", "commit-durable"],
+      ["worktree-remove", "WORKTREE_REMOVE_FAILED", "index-reconciled"],
       ["branch-delete", "BRANCH_DELETE_FAILED", "worktree-removed"],
       ["teardown-validation", "TEARDOWN_VALIDATION_FAILED", "branch-deleted"],
     ];

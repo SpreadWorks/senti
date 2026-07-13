@@ -286,9 +286,13 @@ describe("active-flow registry transaction", () => {
     }
   });
 
-  it("rejects dot and path-bearing spec IDs at add and load boundaries", () => {
+  it("rejects non-literal and path-bearing spec IDs at add and load boundaries", () => {
     root = createTmpDir("active-flow-spec-id-");
-    const invalid = [".", "..", "441/slash", "441\\backslash"];
+    const invalid = [
+      ".", "..", "441/slash", "441\\backslash", "441*glob", "441?glob",
+      "441[glob", "441:ref", "441~ref", "441^ref", "441@{ref", "-leading",
+      "a..b", "trailing.", "writer.lock",
+    ];
     for (const [index, spec] of invalid.entries()) {
       const addRoot = path.join(root, `add-${index}`);
       fs.mkdirSync(addRoot);
@@ -311,6 +315,28 @@ describe("active-flow registry transaction", () => {
       );
       assert.equal(fs.readFileSync(registryPath, "utf8"), bytes);
     }
+  });
+
+  it("rejects a glob-like stored spec before probing or mutating unrelated branches", () => {
+    root = createTmpDir("active-flow-spec-glob-branch-");
+    const git = (...args) => spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+    assert.equal(git("init", "-q").status, 0);
+    assert.equal(git("config", "user.email", "test@example.com").status, 0);
+    assert.equal(git("config", "user.name", "Test User").status, 0);
+    fs.writeFileSync(path.join(root, "tracked"), "initial\n");
+    assert.equal(git("add", "tracked").status, 0);
+    assert.equal(git("commit", "-qm", "initial").status, 0);
+    assert.equal(git("branch", "feature-unrelated").status, 0);
+    const registryPath = path.join(root, ".senti", ".active-flow");
+    fs.mkdirSync(path.dirname(registryPath), { recursive: true });
+    const bytes = `${JSON.stringify([{ spec: "feature-*", mode: "branch" }])}\n`;
+    fs.writeFileSync(registryPath, bytes);
+    const branchesBefore = git("for-each-ref", "--format=%(refname):%(objectname)", "refs/heads").stdout;
+
+    assert.throws(() => new ActiveFlowRegistry({ mainRoot: root }).cleanStale(), /spec ID|invalid/i);
+
+    assert.equal(fs.readFileSync(registryPath, "utf8"), bytes);
+    assert.equal(git("for-each-ref", "--format=%(refname):%(objectname)", "refs/heads").stdout, branchesBefore);
   });
 
   it("is idempotent only when an existing spec has the same mode", () => {

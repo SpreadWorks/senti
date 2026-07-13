@@ -9,11 +9,17 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { makeFlowManager, replaceFlowState, setupFlow } from "../../helpers/flow-setup.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import {
+  FinalizeBeforeImageRestorePolicy,
   RunFinalizeCleanupCommand,
   deleteFeatureBranchForCleanup,
 } from "../../../src/flow/lib/run-finalize-cleanup.js";
 import { ProcessOwnedLock } from "../../../src/lib/process-owned-lock.js";
 import { AtomicJsonFile } from "../../../src/lib/atomic-json-file.js";
+import {
+  RepositoryFlowOperationLock,
+  RepositoryMaintenanceLock,
+} from "../../../src/lib/repository-maintenance-lock.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 const finalizeModule = path.resolve("src/flow/lib/run-finalize-cleanup.js");
 const flowManagerModule = path.resolve("src/lib/flow-manager.js");
@@ -21,6 +27,37 @@ const flowManagerModule = path.resolve("src/lib/flow-manager.js");
 function git(root, args) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 }
+
+test("before-image policy reserves shared flow and issue authorities for their CAS writers", () => {
+  const policy = new FinalizeBeforeImageRestorePolicy("specs/441");
+  assert.equal(policy.usesSharedWriter("specs/441/flow.json"), true);
+  assert.equal(policy.usesSharedWriter("specs/441/issue-log.json"), true);
+  assert.equal(policy.allowsRawByteRestore("specs/441/plugin-artifacts/result.json"), true);
+  assert.equal(policy.allowsRawByteRestore("specs/441/plugin-artifacts/flow.json"), true);
+  assert.equal(policy.allowsRawByteRestore("specs/441/plugin-artifacts/issue-log.json"), true);
+  assert.equal(policy.allowsRawByteRestore("specs/441/flow.json"), false);
+});
+
+test("flow state writers borrow finalize repository authority and reject foreign mutation", () => {
+  const root = createTmpDir("finalize-flow-writer-barrier-");
+  try {
+    initGitRepo(root);
+    const specId = "441";
+    setupFinalizeFlow(root, specId);
+    const manager = makeFlowManager(root);
+    const repository = new RepositoryFlowOperationLock({ mainRoot: root });
+    const ownerToken = repository.acquire();
+    assert.throws(
+      () => manager.updateStepStatus("finalize-cleanup", "done", { specId }),
+      (error) => error.code === "REPOSITORY_FLOW_OPERATION_BUSY",
+    );
+    manager.updateStepStatus("finalize-cleanup", "done", { specId, operationOwnerToken: ownerToken });
+    repository.release();
+    assert.equal(findStepById(manager.loadReadOnly(specId).steps, "finalize-cleanup").status, "done");
+  } finally {
+    removeTmpDir(root);
+  }
+});
 
 function initGitRepo(root) {
   git(root, ["init", "--quiet"]);
@@ -105,9 +142,46 @@ function recoveryJournal(root) {
 
 function recoveryJournals(root) {
   const directory = path.join(root, ".senti", "recovery", "finalize-cleanup");
+  if (!fs.existsSync(directory)) return [];
   return fs.readdirSync(directory)
     .filter((entry) => entry.endsWith(".json"))
     .map((entry) => path.join(directory, entry));
+}
+
+function specTreeSnapshot(root, specId) {
+  const specRoot = path.join(root, "specs", specId);
+  const entries = [];
+  const visit = (directory) => {
+    const stat = fs.statSync(directory);
+    entries.push({ path: path.relative(specRoot, directory), directory: true, mode: stat.mode & 0o777 });
+    for (const name of fs.readdirSync(directory).sort()) {
+      const target = path.join(directory, name);
+      const targetStat = fs.statSync(target);
+      if (targetStat.isDirectory()) visit(target);
+      else entries.push({
+        path: path.relative(specRoot, target),
+        directory: false,
+        mode: targetStat.mode & 0o777,
+        bytes: fs.readFileSync(target).toString("base64"),
+      });
+    }
+  };
+  visit(specRoot);
+  return entries;
+}
+
+function preCommitSnapshot(root, specId) {
+  return {
+    head: git(root, ["rev-parse", "HEAD"]),
+    index: fs.readFileSync(path.join(root, ".git", "index")),
+    specTree: specTreeSnapshot(root, specId),
+  };
+}
+
+function assertPreCommitSnapshot(root, specId, expected) {
+  assert.equal(git(root, ["rev-parse", "HEAD"]), expected.head);
+  assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), expected.index);
+  assert.deepEqual(specTreeSnapshot(root, specId), expected.specTree);
 }
 
 function assertCompletedJournal(root) {
@@ -199,7 +273,7 @@ test("adopts a real post-commit SIGKILL boundary exactly once on retry", async (
     const childExit = waitForExit(child);
     await waitForFile(marker);
     const committedHead = git(root, ["rev-parse", "HEAD"]);
-    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "pre-commit");
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "prepared");
 
     child.kill("SIGKILL");
     fs.unlinkSync(blocker);
@@ -237,7 +311,7 @@ for (const tamper of ["missing-result", "mismatched-result-phase"]) {
       const value = JSON.parse(fs.readFileSync(journalPath, "utf8"));
       value.phase = "commit-durable";
       if (tamper === "missing-result") value.result = null;
-      else value.result.phase = "pre-commit";
+      else value.result.phase = "prepared";
       fs.writeFileSync(journalPath, `${JSON.stringify(value, null, 2)}\n`);
       const before = {
         head: git(root, ["rev-parse", "HEAD"]),
@@ -273,7 +347,7 @@ test("rejects a changed worktree HEAD before removing the worktree", async () =>
       flowState: fixture.state,
     });
     assert.equal(failed.errors[0].code, "WORKTREE_REMOVE_FAILED");
-    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "commit-durable");
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "index-reconciled");
     git(root, ["worktree", "unlock", fixture.worktreePath]);
     fs.writeFileSync(path.join(fixture.worktreePath, "after-journal.txt"), "divergent\n");
     git(fixture.worktreePath, ["add", "after-journal.txt"]);
@@ -450,7 +524,7 @@ test("two finalize CLI processes elect one transaction winner", async () => {
 
     assert.equal(results.filter((result) => result.value?.ok === true).length, 1, JSON.stringify(results));
     const loser = results.find((result) => result.value?.ok !== true);
-    assert.equal(loser?.value?.errors?.[0]?.code, "FINALIZE_REPOSITORY_BUSY", JSON.stringify(results));
+    assert.equal(loser?.value?.errors?.[0]?.code, "REPOSITORY_FLOW_OPERATION_BUSY", JSON.stringify(results));
     assert.equal(
       git(root, ["log", "--format=%s", "--all"]).split("\n").filter((line) => line === `chore: finalize ${specId}`).length,
       1,
@@ -600,7 +674,7 @@ test("different flow CLI processes share one repository finalize operation lock"
     fs.unlinkSync(hook);
     const firstValue = firstResult.stdout.trim() ? JSON.parse(firstResult.stdout) : null;
     assert.equal(secondValue?.ok, false, JSON.stringify(secondResult));
-    assert.equal(secondValue?.errors?.[0]?.code, "FINALIZE_REPOSITORY_BUSY", JSON.stringify(secondValue));
+    assert.equal(secondValue?.errors?.[0]?.code, "REPOSITORY_FLOW_OPERATION_BUSY", JSON.stringify(secondValue));
     assert.equal(afterSecond.head, beforeSecond.head);
     assert.equal(afterSecond.index, beforeSecond.index);
     assert.deepEqual(afterSecond.secondFlow, beforeSecond.secondFlow);
@@ -608,6 +682,69 @@ test("different flow CLI processes share one repository finalize operation lock"
     assert.equal(firstValue?.ok, true, JSON.stringify(firstResult));
     assert.equal(recoveryJournals(root).length, 1);
     assertCompletedJournal(root);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("maintenance and finalize actual processes stop the loser before repository mutation", async () => {
+  const root = createTmpDir("finalize-maintenance-barrier-");
+  try {
+    initGitRepo(root);
+    const firstSpec = "169";
+    setupFinalizeFlow(root, firstSpec);
+    const maintenance = new RepositoryMaintenanceLock({ mainRoot: root });
+    maintenance.acquire();
+    const beforeFinalize = {
+      head: git(root, ["rev-parse", "HEAD"]),
+      index: fs.readFileSync(path.join(root, ".git", "index")),
+      flow: fs.readFileSync(path.join(root, "specs", firstSpec, "flow.json")),
+      journals: recoveryJournals(root).map((filePath) => fs.readFileSync(filePath)),
+    };
+    const blockedFinalize = finalizeChild(root, firstSpec);
+    const blockedFinalizeResult = await childResult(blockedFinalize);
+    maintenance.release();
+    const finalizeValue = JSON.parse(blockedFinalizeResult.stdout);
+    assert.equal(finalizeValue.ok, false, JSON.stringify(finalizeValue));
+    assert.equal(finalizeValue.errors[0].code, "REPOSITORY_MAINTENANCE_BUSY");
+    assert.equal(git(root, ["rev-parse", "HEAD"]), beforeFinalize.head);
+    assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), beforeFinalize.index);
+    assert.deepEqual(fs.readFileSync(path.join(root, "specs", firstSpec, "flow.json")), beforeFinalize.flow);
+    assert.deepEqual(recoveryJournals(root).map((filePath) => fs.readFileSync(filePath)), beforeFinalize.journals);
+
+    const hook = path.join(root, ".git", "hooks", "pre-commit");
+    const blocker = path.join(root, "finalize-barrier-blocker");
+    const reached = path.join(root, "finalize-barrier-reached");
+    fs.writeFileSync(hook, `#!/bin/sh\ntouch ${JSON.stringify(reached)}\nwhile test -e ${JSON.stringify(blocker)}; do sleep 0.02; done\n`, { mode: 0o755 });
+    fs.writeFileSync(blocker, "block\n");
+    const runningFinalize = finalizeChild(root, firstSpec);
+    await waitForFile(reached);
+    const beforeMaintenance = {
+      head: git(root, ["rev-parse", "HEAD"]),
+      index: fs.readFileSync(path.join(root, ".git", "index")),
+      flow: fs.readFileSync(path.join(root, "specs", firstSpec, "flow.json")),
+      journals: recoveryJournals(root).map((filePath) => fs.readFileSync(filePath)),
+    };
+    const maintenanceScript = `
+      import { RepositoryMaintenanceLock } from ${JSON.stringify(pathToFileURL(path.resolve("src/lib/repository-maintenance-lock.js")).href)};
+      const lock = new RepositoryMaintenanceLock({ mainRoot: ${JSON.stringify(root)} });
+      try { lock.acquire(); process.stdout.write("ACQUIRED"); lock.release(); }
+      catch (error) { process.stdout.write(error.code || error.message); }
+    `;
+    const blockedMaintenance = spawn(process.execPath, ["--input-type=module", "-e", maintenanceScript], {
+      cwd: root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const maintenanceResult = await childResult(blockedMaintenance);
+    assert.equal(maintenanceResult.stdout, "REPOSITORY_FLOW_OPERATION_BUSY", maintenanceResult.stderr);
+    assert.equal(git(root, ["rev-parse", "HEAD"]), beforeMaintenance.head);
+    assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), beforeMaintenance.index);
+    assert.deepEqual(fs.readFileSync(path.join(root, "specs", firstSpec, "flow.json")), beforeMaintenance.flow);
+    assert.deepEqual(recoveryJournals(root).map((filePath) => fs.readFileSync(filePath)), beforeMaintenance.journals);
+    fs.unlinkSync(blocker);
+    const finalizeResult = await childResult(runningFinalize);
+    fs.unlinkSync(hook);
+    assert.equal(JSON.parse(finalizeResult.stdout).ok, true, finalizeResult.stderr);
   } finally {
     removeTmpDir(root);
   }
@@ -624,7 +761,7 @@ test("revalidates commit authority after the expectation journal becomes durable
     let changed = false;
     AtomicJsonFile.prototype.write = function writeThenChangeFeature(value) {
       const result = originalWrite.call(this, value);
-      if (!changed && value?.version === 2 && value.commitExpectation) {
+      if (!changed && value?.version === 3 && value.commitExpectation) {
         changed = true;
         const oldFeature = git(root, ["rev-parse", fixture.featureBranch]);
         const tree = git(root, ["rev-parse", `${oldFeature}^{tree}`]);
@@ -644,7 +781,7 @@ test("revalidates commit authority after the expectation journal becomes durable
 
     assert.equal(changed, true);
     assert.equal(git(root, ["rev-parse", "HEAD"]), headBefore);
-    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "pre-commit");
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "prepared");
   } finally {
     removeTmpDir(root);
   }
@@ -672,7 +809,7 @@ test("rejects finalize when HEAD is not the configured base branch", async () =>
   }
 });
 
-test("git add failure leaves no finalize journal or commit and restores flow state", async () => {
+test("a caller index lock defers reconciliation after isolated commit and retry completes cleanly", async () => {
   const root = createTmpDir("finalize-git-add-failure-");
   try {
     initGitRepo(root);
@@ -682,18 +819,407 @@ test("git add failure leaves no finalize journal or commit and restores flow sta
     fs.writeFileSync(indexLock, "busy\n");
     const before = {
       head: git(root, ["rev-parse", "HEAD"]),
-      flow: fs.readFileSync(path.join(root, "specs", specId, "flow.json")),
+      index: fs.readFileSync(path.join(root, ".git", "index")),
+      indexLock: fs.readFileSync(indexLock),
     };
+
+    const result = await runFinalize(root, specId);
+
+    assert.equal(result.ok, false, JSON.stringify(result));
+    assert.equal(result.errors[0].code, "FINALIZE_INDEX_RECONCILIATION_BUSY");
+    assert.notEqual(git(root, ["rev-parse", "HEAD"]), before.head);
+    assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), before.index);
+    assert.deepEqual(fs.readFileSync(indexLock), before.indexLock);
+    assert.equal(recoveryJournals(root).length, 1);
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "commit-durable");
+
+    fs.unlinkSync(indexLock);
+    const retried = await runFinalize(root, specId);
+    assert.equal(retried.ok, true, JSON.stringify(retried));
+    assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+  } finally {
+    fs.rmSync(path.join(root, ".git", "index.lock"), { force: true });
+    removeTmpDir(root);
+  }
+});
+
+test("pre-commit failure restores every file while preserving a preexisting staged blob", async () => {
+  const root = createTmpDir("finalize-isolated-index-failure-");
+  try {
+    initGitRepo(root);
+    const specId = "168";
+    setupFinalizeFlow(root, specId);
+    const flowRel = `specs/${specId}/flow.json`;
+    const flowPath = path.join(root, flowRel);
+    const originalFlow = fs.readFileSync(flowPath);
+    const stagedState = JSON.parse(originalFlow.toString("utf8"));
+    stagedState.callerStaged = "must-survive";
+    fs.writeFileSync(flowPath, `${JSON.stringify(stagedState, null, 2)}\n`);
+    git(root, ["add", flowRel]);
+    const stagedBlob = git(root, ["rev-parse", `:${flowRel}`]);
+    fs.writeFileSync(flowPath, originalFlow);
+    const indexBefore = fs.readFileSync(path.join(root, ".git", "index"));
+    const headBefore = git(root, ["rev-parse", "HEAD"]);
+    const hook = path.join(root, ".git", "hooks", "pre-commit");
+    fs.writeFileSync(hook, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
 
     const failed = await runFinalize(root, specId);
 
     assert.equal(failed.ok, false, JSON.stringify(failed));
-    assert.equal(failed.errors[0].code, "FINALIZE_GIT_ADD_FAILED");
-    assert.equal(git(root, ["rev-parse", "HEAD"]), before.head);
-    assert.deepEqual(fs.readFileSync(path.join(root, "specs", specId, "flow.json")), before.flow);
-    assert.equal(recoveryJournals(root).length, 0);
+    assert.equal(failed.errors[0].code, "COMMIT_FAILED");
+    assert.equal(git(root, ["rev-parse", "HEAD"]), headBefore);
+    assert.equal(git(root, ["rev-parse", `:${flowRel}`]), stagedBlob);
+    assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), indexBefore);
+    assert.deepEqual(fs.readFileSync(flowPath), originalFlow);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.phase, "prepared");
+    assert.deepEqual(journal.beforeImages, []);
   } finally {
-    fs.rmSync(path.join(root, ".git", "index.lock"), { force: true });
+    removeTmpDir(root);
+  }
+});
+
+test("successful isolated commit preserves a genuine preexisting staged blob", async () => {
+  const root = createTmpDir("finalize-isolated-index-staged-success-");
+  try {
+    initGitRepo(root);
+    const specId = "185";
+    setupFinalizeFlow(root, specId);
+    const flowRel = `specs/${specId}/flow.json`;
+    const flowPath = path.join(root, flowRel);
+    const originalFlow = fs.readFileSync(flowPath);
+    const stagedState = JSON.parse(originalFlow.toString("utf8"));
+    stagedState.callerStaged = "preserve-after-success";
+    fs.writeFileSync(flowPath, `${JSON.stringify(stagedState, null, 2)}\n`);
+    git(root, ["add", flowRel]);
+    const stagedBlob = git(root, ["rev-parse", `:${flowRel}`]);
+    fs.writeFileSync(flowPath, originalFlow);
+
+    const completed = await runFinalize(root, specId);
+
+    assert.equal(completed.ok, true, JSON.stringify(completed));
+    assert.equal(git(root, ["rev-parse", `:${flowRel}`]), stagedBlob);
+    assert.notEqual(git(root, ["rev-parse", `HEAD:${flowRel}`]), stagedBlob);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("post-commit isolated-index cleanup failure retains commit authority for retry", async () => {
+  const root = createTmpDir("finalize-post-commit-index-cleanup-");
+  try {
+    initGitRepo(root);
+    const specId = "186";
+    setupFinalizeFlow(root, specId);
+    const headBefore = git(root, ["rev-parse", "HEAD"]);
+    const originalUnlink = fs.unlinkSync;
+    let injected = false;
+    fs.unlinkSync = (target, ...args) => {
+      if (!injected && String(target).includes("senti-finalize-commit-index-")) {
+        injected = true;
+        throw Object.assign(new Error("injected isolated index cleanup failure"), { code: "EIO" });
+      }
+      return originalUnlink(target, ...args);
+    };
+    try {
+      await assert.rejects(
+        () => runFinalize(root, specId),
+        (error) => error instanceof AggregateError
+          && error.errors[0].message === "injected isolated index cleanup failure",
+      );
+    } finally {
+      fs.unlinkSync = originalUnlink;
+    }
+    assert.equal(injected, true);
+    assert.notEqual(git(root, ["rev-parse", "HEAD"]), headBefore);
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "commit-durable");
+
+    const retried = await runFinalize(root, specId);
+    assert.equal(retried.ok, true, JSON.stringify(retried));
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+for (const fault of ["first-journal", "before-images", "flow-write", "expectation-journal"]) {
+  test(`${fault} fault restores the prepared transaction and retries cleanly`, async () => {
+    const root = createTmpDir(`finalize-prepared-${fault}-`);
+    try {
+      initGitRepo(root);
+      const specId = `17${["first-journal", "before-images", "flow-write", "expectation-journal"].indexOf(fault)}`;
+      setupFinalizeFlow(root, specId);
+      const before = preCommitSnapshot(root, specId);
+      const originalWrite = AtomicJsonFile.prototype.write;
+      const flowManager = makeFlowManager(root);
+      const originalUpdate = flowManager.updateStepStatus.bind(flowManager);
+      let injected = false;
+      if (fault === "flow-write") {
+        flowManager.updateStepStatus = (...args) => {
+          const result = originalUpdate(...args);
+          if (!injected) {
+            injected = true;
+            throw new Error("injected flow write fault");
+          }
+          return result;
+        };
+      } else {
+        AtomicJsonFile.prototype.write = function injectPreparedFault(value) {
+          const isFinalizeJournal = this.filePath.includes(`${path.sep}recovery${path.sep}finalize-cleanup${path.sep}`);
+          const matches = isFinalizeJournal && (
+            (fault === "first-journal" && value?.beforeImages?.length === 0 && !value?.commitExpectation)
+            || (fault === "before-images" && value?.beforeImages?.length === 2 && !value?.commitExpectation)
+            || (fault === "expectation-journal" && value?.commitExpectation)
+          );
+          if (!injected && matches) {
+            injected = true;
+            if (fault === "expectation-journal") originalWrite.call(this, value);
+            throw new Error(`injected ${fault} fault`);
+          }
+          return originalWrite.call(this, value);
+        };
+      }
+      try {
+        await assert.rejects(() => runFinalize(root, specId, { flowManager }));
+      } finally {
+        AtomicJsonFile.prototype.write = originalWrite;
+      }
+      assert.equal(injected, true);
+      assertPreCommitSnapshot(root, specId, before);
+      if (recoveryJournals(root).length > 0) {
+        assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "prepared");
+      }
+      const retried = await runFinalize(root, specId);
+      assert.equal(retried.ok, true, JSON.stringify(retried));
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+}
+
+const FINALIZE_GIT_FAULTS = [
+  "expected-tree",
+  "isolated-read-tree",
+  "isolated-add",
+  "isolated-write-tree",
+];
+
+for (const fault of FINALIZE_GIT_FAULTS) {
+  test(`${fault} Git fault preserves caller state and retries through a fresh isolated index`, async () => {
+    const root = createTmpDir(`finalize-git-fault-${fault}-`);
+    const oldPath = process.env.PATH;
+    try {
+      initGitRepo(root);
+      const specId = `18${FINALIZE_GIT_FAULTS.indexOf(fault)}`;
+      setupFinalizeFlow(root, specId);
+      const before = preCommitSnapshot(root, specId);
+      const bin = path.join(root, "fault-bin");
+      fs.mkdirSync(bin);
+      const wrapper = path.join(bin, "git");
+      const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+      const indexSelector = fault === "expected-tree"
+        ? "*senti-finalize-index-*"
+        : "*senti-finalize-commit-index-*";
+      const commandSelector = fault === "isolated-read-tree"
+        ? "read-tree"
+        : fault === "isolated-add"
+          ? "add"
+          : "write-tree";
+      fs.writeFileSync(wrapper, [
+        "#!/bin/sh",
+        `case \"$GIT_INDEX_FILE\" in ${indexSelector})`,
+        `  case \" $* \" in *\" ${commandSelector} \"*) echo injected-${fault} >&2; exit 73;; esac`,
+        "esac",
+        `exec ${JSON.stringify(realGit)} \"$@\"`,
+        "",
+      ].join("\n"), { mode: 0o755 });
+      process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
+      let result = null;
+      let rejection = null;
+      try {
+        result = await runFinalize(root, specId);
+      } catch (error) {
+        rejection = error;
+      } finally {
+        process.env.PATH = oldPath;
+      }
+      assert.ok(rejection || result?.ok === false, JSON.stringify(result));
+      assertPreCommitSnapshot(root, specId, before);
+      const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+      assert.equal(journal.phase, "prepared");
+      assert.deepEqual(journal.beforeImages, []);
+      const retried = await runFinalize(root, specId);
+      assert.equal(retried.ok, true, JSON.stringify(retried));
+    } finally {
+      process.env.PATH = oldPath;
+      removeTmpDir(root);
+    }
+  });
+}
+
+test("isolated finalize index is private, temporary, and reconciles a clean caller index", async () => {
+  const root = createTmpDir("finalize-private-index-");
+  const oldPath = process.env.PATH;
+  try {
+    initGitRepo(root);
+    const specId = "184";
+    setupFinalizeFlow(root, specId);
+    const before = preCommitSnapshot(root, specId);
+    const bin = path.join(root, "index-observer-bin");
+    const marker = path.join(root, "isolated-index-observed");
+    fs.mkdirSync(bin);
+    const wrapper = path.join(bin, "git");
+    const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+    fs.writeFileSync(wrapper, [
+      "#!/bin/sh",
+      "case \"$GIT_INDEX_FILE\" in *senti-finalize-commit-index-*)",
+      "  case \" $* \" in *\" add \"*)",
+      "    test -f \"$GIT_INDEX_FILE\" || exit 74",
+      "    test \"$(stat -c %a \"$GIT_INDEX_FILE\")\" = 600 || exit 75",
+      `    printf '%s\\n' \"$GIT_INDEX_FILE\" > ${JSON.stringify(marker)}`,
+      "  ;; esac",
+      "esac",
+      `exec ${JSON.stringify(realGit)} "$@"`,
+      "",
+    ].join("\n"), { mode: 0o755 });
+    process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
+    const completed = await runFinalize(root, specId);
+    process.env.PATH = oldPath;
+
+    assert.equal(completed.ok, true, JSON.stringify(completed));
+    const tempIndex = fs.readFileSync(marker, "utf8").trim();
+    assert.equal(fs.existsSync(tempIndex), false);
+    assert.equal(fs.existsSync(`${tempIndex}.lock`), false);
+    assert.notDeepEqual(fs.readFileSync(path.join(root, ".git", "index")), before.index);
+    assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+  } finally {
+    process.env.PATH = oldPath;
+    removeTmpDir(root);
+  }
+});
+
+test("plugin artifact and retained metadata fault restores main and worktree trees exactly", async () => {
+  const root = createTmpDir("finalize-plugin-metadata-fault-");
+  try {
+    initGitRepo(root);
+    const specId = "183";
+    const fixture = setupWorktreeFinalizeFlow(root, specId);
+    const pluginId = "finalize-fault";
+    const pluginRoot = path.join(root, ".senti", "plugins", pluginId);
+    fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
+    fs.writeFileSync(path.join(root, ".senti", "config.json"), `${JSON.stringify({
+      plugin: { packages: [{ id: pluginId }] },
+    }, null, 2)}\n`);
+    fs.writeFileSync(path.join(pluginRoot, "hooks", "finalize.js"), `
+      export default function register(api) {
+        return class FinalizeFaultHook extends api.FlowCommandHook {
+          static command = "finalize-cleanup";
+          static hook = "pre";
+          async run(context) {
+            await context.artifacts.writeText("partial.txt", "partial plugin output");
+            await context.artifacts.writeText("flow.json", "nested plugin flow output");
+            await context.artifacts.writeText("issue-log.json", "nested plugin issue output");
+            return context.envelope.ok("plugin-hook", "finalize-cleanup", {});
+          }
+        };
+      }
+    `);
+    fixture.state.plugins = { flowCommandHooks: [{
+      apiVersion: 1,
+      pluginId,
+      module: "hooks/finalize.js",
+      className: "FinalizeFaultHook",
+      command: "finalize-cleanup",
+      hook: "pre",
+      priority: 0,
+    }] };
+    fixture.state.metrics = [{ name: "fault-metric", value: 1 }];
+    replaceFlowState(fixture.worktreePath, fixture.state, { specId });
+    git(fixture.worktreePath, ["add", `specs/${specId}/flow.json`]);
+    git(fixture.worktreePath, ["commit", "--quiet", "-m", "record plugin snapshot"]);
+    const nestedArtifactRoot = path.join(root, "specs", specId, "plugin-artifacts");
+    const nestedFlow = path.join(nestedArtifactRoot, "flow.json");
+    const nestedIssueLog = path.join(nestedArtifactRoot, "issue-log.json");
+    const cleanupSidecarRoot = path.join(
+      root,
+      ".senti",
+      "agent-work",
+      "finalize-cleanup",
+      specId,
+    );
+    fs.mkdirSync(nestedArtifactRoot, { recursive: true });
+    fs.writeFileSync(nestedFlow, "original nested flow\n");
+    fs.writeFileSync(nestedIssueLog, "original nested issue log\n");
+    const mainBefore = preCommitSnapshot(root, specId);
+    const worktreeBefore = specTreeSnapshot(fixture.worktreePath, specId);
+    const originalWrite = fs.writeFileSync;
+    let injected = false;
+    fs.writeFileSync = (target, ...args) => {
+      const result = originalWrite(target, ...args);
+      if (!injected && String(target).endsWith("agent-metrics.json")) {
+        injected = true;
+        originalWrite(nestedFlow, "mutated nested flow\n");
+        originalWrite(nestedIssueLog, "mutated nested issue log\n");
+        throw new Error("injected retained metadata fault");
+      }
+      return result;
+    };
+    try {
+      await assert.rejects(
+        () => runFinalize(root, specId, { flowManager: fixture.flowManager, flowState: fixture.state }),
+        /retained metadata fault/,
+      );
+    } finally {
+      fs.writeFileSync = originalWrite;
+    }
+    assert.equal(injected, true);
+    assertPreCommitSnapshot(root, specId, mainBefore);
+    assert.deepEqual(specTreeSnapshot(fixture.worktreePath, specId), worktreeBefore);
+    assert.equal(fs.existsSync(cleanupSidecarRoot), false);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.phase, "prepared");
+    assert.deepEqual(journal.beforeImages, []);
+    const retried = await runFinalize(root, specId, { flowManager: fixture.flowManager, flowState: fixture.state });
+    assert.equal(retried.ok, true, JSON.stringify(retried));
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("successful finalize keeps retained metadata in the durable sidecar and the spec tree clean", async () => {
+  const root = createTmpDir("finalize-retained-metadata-commit-");
+  try {
+    initGitRepo(root);
+    const specId = "187";
+    const fixture = setupWorktreeFinalizeFlow(root, specId);
+    fixture.state.metrics = [{ name: "committed-metric", value: 1 }];
+    replaceFlowState(fixture.worktreePath, fixture.state, { specId });
+    git(fixture.worktreePath, ["add", `specs/${specId}/flow.json`]);
+    git(fixture.worktreePath, ["commit", "--quiet", "-m", "record retained metadata"]);
+
+    const completed = await runFinalize(root, specId, {
+      flowManager: fixture.flowManager,
+      flowState: fixture.state,
+    });
+
+    assert.equal(completed.ok, true, JSON.stringify(completed));
+    assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+    assert.doesNotMatch(
+      git(root, ["ls-tree", "-r", "--name-only", "HEAD", `specs/${specId}`]),
+      /agent-metrics\.json/,
+    );
+    const sidecarPath = path.join(
+      root,
+      ".senti",
+      "agent-work",
+      "finalize-cleanup",
+      specId,
+      "agent-metrics.json",
+    );
+    assert.deepEqual(JSON.parse(fs.readFileSync(sidecarPath, "utf8")), {
+      version: 1,
+      entries: fixture.state.metrics,
+    });
+  } finally {
     removeTmpDir(root);
   }
 });
@@ -768,7 +1294,7 @@ test("retains a completed tombstone and makes completed retry idempotent", async
   }
 });
 
-test("preserves commit and flow-status rollback failures in primary-first order", async () => {
+test("preserves commit and exact-restore failures in primary-first order with durable residue", async () => {
   const root = createTmpDir("finalize-commit-rollback-order-");
   try {
     initGitRepo(root);
@@ -776,24 +1302,41 @@ test("preserves commit and flow-status rollback failures in primary-first order"
     setupFinalizeFlow(root, specId);
     const hook = path.join(root, ".git", "hooks", "pre-commit");
     fs.writeFileSync(hook, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
-    const flowManager = makeFlowManager(root);
-    const originalUpdate = flowManager.updateStepStatus.bind(flowManager);
-    flowManager.updateStepStatus = (stepId, status, options) => {
-      if (stepId === "finalize-cleanup" && status === "in_progress") {
-        throw new Error("injected flow status rollback failure");
+    const originalRename = fs.renameSync;
+    let injected = false;
+    let flowStateRenames = 0;
+    fs.renameSync = (source, target) => {
+      if (
+        path.basename(String(source)).startsWith(".flow.json.")
+        && path.basename(String(target)) === "flow.json"
+      ) {
+        flowStateRenames += 1;
       }
-      return originalUpdate(stepId, status, options);
+      if (!injected && flowStateRenames === 2) {
+        injected = true;
+        throw new Error("injected exact restore failure");
+      }
+      return originalRename(source, target);
     };
 
-    await assert.rejects(
-      () => runFinalize(root, specId, { flowManager }),
-      (error) => error instanceof AggregateError
-        && error.errors.length >= 2
-        && error.errors[0].code === "COMMIT_FAILED"
-        && error.errors[1].message === "injected flow status rollback failure"
-        && error.cause === error.errors[0],
-    );
-    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).result.code, "COMMIT_FAILED");
+    try {
+      await assert.rejects(
+        () => runFinalize(root, specId),
+        (error) => error instanceof AggregateError
+          && error.errors.length === 2
+          && error.errors[0].code === "COMMIT_FAILED"
+          && error.errors[1].message === "injected exact restore failure"
+          && error.cause === error.errors[0],
+      );
+    } finally {
+      fs.renameSync = originalRename;
+    }
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.phase, "prepared");
+    assert.equal(journal.beforeImages.length, 2);
+    fs.unlinkSync(hook);
+    const retried = await runFinalize(root, specId);
+    assert.equal(retried.ok, true, JSON.stringify(retried));
   } finally {
     removeTmpDir(root);
   }

@@ -288,14 +288,14 @@ export class FlowManager {
    * Clear the active-flow entry for a spec. If specId is omitted,
    * resolves it from the current context.
    */
-  clearFlowState(specId) {
+  clearFlowState(specId, options) {
     if (!specId) {
       const flows = this._activeFlows.load();
       const current = this._store._resolveCurrentFlow(flows);
       if (!current) return;
       specId = current.spec;
     }
-    this._activeFlows.remove(specId);
+    this._activeFlows.remove(specId, options);
   }
 
   // ── preparing flow (PreparingFlowStore) ─────────────────────────────────────

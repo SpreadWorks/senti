@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { FlowSpecId } from "../lib/flow-spec-id.js";
 import { FlowManager } from "../lib/flow-manager.js";
 import { RepositoryMaintenanceLock } from "../lib/repository-maintenance-lock.js";
 import { ONE_TO_ONE_STEP_RENAMES, renameFlowStateStepIds } from "../lib/step-id-rename.js";
@@ -235,8 +236,9 @@ function readActiveFlows(mainRoot) {
 }
 
 function flowStateExists(root, specId) {
+  const literalSpecId = FlowSpecId.from(specId).toString();
   try {
-    const stat = fs.lstatSync(path.join(root, "specs", specId, "flow.json"));
+    const stat = fs.lstatSync(path.join(root, "specs", literalSpecId, "flow.json"));
     return stat.isFile() && !stat.isSymbolicLink();
   } catch (error) {
     if (error.code === "ENOENT") return false;
@@ -367,7 +369,7 @@ function buildPlan(root, strict) {
   for (const entry of entries) {
     if (entry.isSymbolicLink()) throw new Error(`migration spec directory must not be a symlink: specs/${entry.name}`);
     if (!entry.isDirectory()) continue;
-    const id = entry.name;
+    const id = FlowSpecId.from(entry.name).toString();
     const dir = path.join(specsDir, id);
     plan.authority(dir, "directory");
     plan.snapshot(dir, MIGRATION_RELEVANT_SPEC_FILES);

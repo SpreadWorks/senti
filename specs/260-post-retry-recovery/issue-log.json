@@ -560,6 +560,55 @@
       "taskId": null,
       "timestamp": "2026-07-13T14:27:00Z",
       "issueLogId": "issue-441-candidate9-final-direct-audit"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Candidate10 reduced remaining recovery authority gaps in repository locking, flow spec identifiers, sink scanning, and offline migration generation ownership.",
+      "trigger": "High-effort final audit of candidate9 immutable tree 83c7747b.",
+      "resolution": "Flow-operation acquire cleanup is primary-first with residue, maintenance and finalize share an outer repository barrier with operation-specific locks inside, scanner capabilities propagate through node:fs/promises and fs.promises aliases, FlowSpecId enforces literal non-glob identifiers at registry and state-path boundaries, and offline migration records planned and rollback temp generations before rename so same-byte foreign inodes fail closed in staged, applying, and rolling-back recovery.",
+      "testCorrections": [
+        "Expanded the migration phase matrix with same-bytes foreign-inode replacements in staged, applying, and rolling-back states without relaxing any existing assertion.",
+        "Expanded the real two-process barrier fixture in both lock directions and asserted HEAD, index, flow bytes, and recovery journals are unchanged for the loser.",
+        "Expanded sink fixtures for node:fs/promises named imports and fs.promises aliases while retaining the exact two-path writer allowlist."
+      ],
+      "testEvidence": {
+        "m5M7Red": "/tmp/flow-441-candidate10-m5-m7-red.log",
+        "m5M7Green": "/tmp/flow-441-candidate10-m5-m7-green.log",
+        "migrationProgress": "/tmp/flow-441-candidate10-migration-progress.log",
+        "migrationGreen": "/tmp/flow-441-candidate10-migration-green-attempt.log",
+        "processBarrierGreen": "/tmp/flow-441-candidate10-barrier-green2.log",
+        "focusedGreen": "/tmp/flow-441-candidate10-all-focused-final5.log",
+        "firstUnionFailure": "/tmp/flow-441-candidate10-valid-union-precommit.log",
+        "unionFailureScopeGreen": "/tmp/flow-441-candidate10-union-failures-fixed2.log",
+        "validUnionGreen": "/tmp/flow-441-candidate10-valid-union-precommit-r2.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T15:25:01Z",
+      "issueLogId": "issue-441-candidate10-lock-id-scanner-migration-authority"
+    },
+    {
+      "step": "independent-audit-remediation",
+      "issue": 441,
+      "reason": "The independent candidate10 audit found a remaining offline-migration crash window between temporary-file creation and journal publication, incomplete cleanup generation authority, and closed-world gaps at flow-state directory and maintenance-script boundaries.",
+      "trigger": "Independent repository-wide authority review after candidate10 verification.",
+      "resolution": "Offline migration journal v6 first publishes a cryptographically unique same-directory path intent before filesystem mutation, then reserves and fsyncs an exclusive temp inode and publishes its device, inode, mode, final revision, and unprepared state before population. Commit requires a prepared generation; recovery cleans a never-created intent as a no-op and removes an interrupted reservation only through its durable transaction namespace plus recorded inode identity. FlowSpecId now provides one literal identifier invariant across registry, atomic state paths, FlowStore binding, and rename migration enumeration; the sink scanner follows both node:fs/promises named imports and fs.promises namespace aliases without widening its two authorized writers. Repository lock errors retain committed=false at the outer barrier and atomic flow writers acquire repository operation before their per-flow lock.",
+      "testCorrections": [
+        "Replaced a migration crash fixture's journal-rename count with the semantic applying/applyIndex=1 boundary because inode reservation intentionally adds journal publications.",
+        "Added separate crash-after-intent and crash-after-reservation fixtures proving the path claim precedes mutation and the durable unprepared inode is cleaned during recovery without target mutation.",
+        "Updated concurrency fixtures to identify the new outer repository-operation loser while retaining exact winner, audit, and no-unrelated-mutation checks."
+      ],
+      "testEvidence": {
+        "migrationReservation": "/tmp/flow-441-migration-intent-reservation.log",
+        "barrierAndClosedWorld": "/tmp/flow-441-closed-world-and-barriers.log",
+        "atomicWriterIntegration": "/tmp/flow-441-atomic-writer-integration-r4.log",
+        "auditFocused": "/tmp/flow-441-independent-audit-focused-final-v6.log",
+        "fullRegression": "/tmp/flow-441-independent-audit-npm-test-final-v6.log"
+      },
+      "result": "Migration transaction coverage passed 18/18, the combined audit matrix passed 170/170, and the canonical project regression passed unit 2276 plus integration 225.",
+      "taskId": null,
+      "timestamp": "2026-07-13T17:40:01Z",
+      "issueLogId": "issue-441-independent-audit-migration-closed-world-remediation"
     }
   ]
 }

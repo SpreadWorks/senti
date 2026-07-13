@@ -241,4 +241,31 @@ describe("repository maintenance lock", () => {
       flow.release();
     }
   });
+
+  it("preserves flow-operation acquire conflict, cleanup failure, and lock residue", () => {
+    tmp = createTmpDir("repository-flow-acquire-cleanup-");
+    const flow = new RepositoryFlowOperationLock({
+      mainRoot: tmp,
+      processIdentitySource: identitySource(),
+    });
+    const conflict = Object.assign(new Error("maintenance appeared after acquire"), {
+      code: "REPOSITORY_MAINTENANCE_BUSY",
+    });
+    let inspections = 0;
+    flow.maintenance.inspect = () => (++inspections === 1 ? null : { owner: true });
+    flow.maintenance.conflict = () => conflict;
+    flow.lock.release = () => {
+      throw new Error("flow acquire cleanup failed");
+    };
+
+    assert.throws(
+      () => flow.acquire(),
+      (error) => error instanceof AggregateError
+        && error.errors.length === 2
+        && error.errors[0] === conflict
+        && error.errors[1].message === "flow acquire cleanup failed"
+        && error.cause === conflict
+        && error.residue?.flowOperationLock === true,
+    );
+  });
 });

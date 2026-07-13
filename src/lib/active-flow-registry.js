@@ -21,6 +21,7 @@ import {
   RepositoryFlowOperationLock,
   resolveRepositoryLockRoot,
 } from "./repository-maintenance-lock.js";
+import { FlowSpecId } from "./flow-spec-id.js";
 
 const REGISTRY_LOCK_FILE = ".active-flow.lock";
 const VALID_MODES = new Set(["worktree", "branch", "local"]);
@@ -51,14 +52,9 @@ class ActiveFlowEntry {
   }
 
   static assertValidSpecId(spec) {
-    if (
-      typeof spec !== "string"
-      || spec.trim() === ""
-      || spec === "."
-      || spec === ".."
-      || spec.includes("/")
-      || spec.includes("\\")
-    ) {
+    try {
+      FlowSpecId.from(spec);
+    } catch {
       throw new Error("active-flow entry.spec is invalid");
     }
   }

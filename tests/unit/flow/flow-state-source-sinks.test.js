@@ -105,11 +105,25 @@ function collectSinkCapabilities(source) {
   };
   for (const match of source.matchAll(/import\s+([A-Za-z_$][\w$]*)\s*(?:,\s*\{[^}]+\})?\s*from\s*["'](?:node:)?fs["']/g)) {
     state.namespaces.add(match[1]);
+    state.namespaces.add(`${match[1]}.promises`);
   }
   for (const match of source.matchAll(/import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s*["'](?:node:)?fs["']/g)) {
     state.namespaces.add(match[1]);
+    state.namespaces.add(`${match[1]}.promises`);
+  }
+  for (const match of source.matchAll(/import\s+([A-Za-z_$][\w$]*)\s+from\s*["'](?:node:)?fs\/promises["']/g)) {
+    state.namespaces.add(match[1]);
+  }
+  for (const match of source.matchAll(/import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s*["'](?:node:)?fs\/promises["']/g)) {
+    state.namespaces.add(match[1]);
   }
   for (const match of source.matchAll(/import\s+(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([^}]+)\}\s*from\s*["'](?:node:)?fs["']/g)) {
+    for (const item of match[1].split(",")) {
+      const parts = item.trim().split(/\s+as\s+/);
+      if (sinkApis.has(parts[0])) state.aliases.add(parts[1] || parts[0]);
+    }
+  }
+  for (const match of source.matchAll(/import\s+(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([^}]+)\}\s*from\s*["'](?:node:)?fs\/promises["']/g)) {
     for (const item of match[1].split(",")) {
       const parts = item.trim().split(/\s+as\s+/);
       if (sinkApis.has(parts[0])) state.aliases.add(parts[1] || parts[0]);
@@ -464,6 +478,31 @@ const capabilityFixtures = new Map([
     import { flowStatePath } from "${allowedOwner}";
     const target = flowStatePath(root, id);
     await fs.promises.writeFile(target, "promises");
+  `],
+  ["promises-named-import", `
+    import { writeFile as persist } from "node:fs/promises";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    await persist(target, "named promises");
+  `],
+  ["promises-namespace-alias", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    const promises = fs.promises;
+    await promises.writeFile(target, "aliased promises");
+  `],
+  ["promises-default-import", `
+    import promises from "node:fs/promises";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    await promises.writeFile(target, "default promises");
+  `],
+  ["promises-namespace-import", `
+    import * as promises from "node:fs/promises";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    await promises.writeFile(target, "namespace promises");
   `],
   ["namespace-reassignment", `
     import fs from "node:fs";

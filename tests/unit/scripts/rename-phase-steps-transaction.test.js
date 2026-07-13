@@ -221,11 +221,14 @@ describe("rename-phase-steps migration transaction", () => {
     commitAll(root);
     const journalPath = path.join(root, JOURNAL);
     const originalRename = fs.renameSync;
-    let journalRenames = 0;
+    let journalBlocked = false;
     fs.renameSync = (from, to) => {
       if (path.resolve(String(to)) === journalPath) {
-        journalRenames += 1;
-        if (journalRenames >= 3) throw Object.assign(new Error("journal phase commit failed"), { code: "EIO" });
+        const next = JSON.parse(fs.readFileSync(from, "utf8"));
+        if (next.phase === "applying" && next.applyIndex === 1) {
+          journalBlocked = true;
+        }
+        if (journalBlocked) throw Object.assign(new Error("journal phase commit failed"), { code: "EIO" });
       }
       return originalRename(from, to);
     };
@@ -239,12 +242,172 @@ describe("rename-phase-steps migration transaction", () => {
     const interrupted = JSON.parse(fs.readFileSync(journalPath, "utf8"));
     assert.equal(interrupted.phase, "applying");
     assert.equal(interrupted.applyIndex, 0);
+    assert.equal(typeof interrupted.targets[0].plannedGeneration?.ino, "number");
 
     const resumed = applyMigration(root);
     assert.equal(resumed.changes.length, 0);
     assert.equal(fs.existsSync(journalPath), false);
     assert.match(fs.readFileSync(flowPath, "utf8"), /"spec-gate"/);
   });
+
+  it("journals a reserved temp inode before populating it and cleans it during recovery", () => {
+    const root = createTmpDir("rename-transaction-reserved-inode-crash-");
+    roots.push(root);
+    initRepository(root);
+    const specId = "441-reserved-inode";
+    const dir = seedSpec(root, specId, { issue: false, review: false });
+    const flowPath = path.join(dir, "flow.json");
+    const before = fs.readFileSync(flowPath);
+    commitAll(root);
+    const journalPath = path.join(root, JOURNAL);
+    const originalRename = fs.renameSync;
+    let journalBlocked = false;
+    fs.renameSync = (from, to) => {
+      if (path.resolve(String(to)) === journalPath) {
+        const next = JSON.parse(fs.readFileSync(from, "utf8"));
+        const reserved = next.targets?.find((target) => (
+          target.plannedGeneration?.reserved === true
+          && target.plannedGeneration.prepared === false
+        ));
+        if (reserved && !journalBlocked) {
+          originalRename(from, to);
+          journalBlocked = true;
+          throw Object.assign(new Error("crash after reserved generation journal"), { code: "EIO" });
+        }
+        if (journalBlocked) {
+          throw Object.assign(new Error("journal unavailable after crash"), { code: "EIO" });
+        }
+      }
+      return originalRename(from, to);
+    };
+    try {
+      assert.throws(
+        () => applyMigration(root),
+        (error) => error instanceof AggregateError
+          && error.errors.some((item) => /reserved generation journal/.test(item.message))
+          && error.errors.some((item) => /journal unavailable/.test(item.message)),
+      );
+    } finally {
+      fs.renameSync = originalRename;
+    }
+
+    const interrupted = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+    const generation = interrupted.targets.find((target) => target.plannedGeneration)?.plannedGeneration;
+    assert.equal(generation.prepared, false);
+    const tempPath = path.join(root, generation.relativeTempPath);
+    assert.equal(fs.statSync(tempPath).ino, generation.ino);
+    assert.deepEqual(fs.readFileSync(flowPath), before);
+
+    const recovered = OfflineMigrationTransaction.recover({
+      root,
+      name: "rename-phase-steps",
+      journalPath: JOURNAL,
+    });
+    assert.deepEqual(recovered, { recovered: true, completed: false });
+    assert.equal(fs.existsSync(tempPath), false);
+    assert.equal(fs.existsSync(journalPath), false);
+    assert.deepEqual(fs.readFileSync(flowPath), before);
+  });
+
+  it("journals the unique temp path intent before creating its inode", () => {
+    const root = createTmpDir("rename-transaction-path-intent-crash-");
+    roots.push(root);
+    initRepository(root);
+    const specId = "441-path-intent";
+    const dir = seedSpec(root, specId, { issue: false, review: false });
+    const flowPath = path.join(dir, "flow.json");
+    const before = fs.readFileSync(flowPath);
+    commitAll(root);
+    const journalPath = path.join(root, JOURNAL);
+    const originalRename = fs.renameSync;
+    let journalBlocked = false;
+    fs.renameSync = (from, to) => {
+      if (path.resolve(String(to)) === journalPath) {
+        const next = JSON.parse(fs.readFileSync(from, "utf8"));
+        const intent = next.targets?.find((target) => (
+          target.plannedGeneration?.reserved === false
+          && target.plannedGeneration.prepared === false
+        ));
+        if (intent && !journalBlocked) {
+          originalRename(from, to);
+          journalBlocked = true;
+          throw Object.assign(new Error("crash after generation intent journal"), { code: "EIO" });
+        }
+        if (journalBlocked) throw Object.assign(new Error("journal unavailable after intent crash"), { code: "EIO" });
+      }
+      return originalRename(from, to);
+    };
+    try {
+      assert.throws(
+        () => applyMigration(root),
+        (error) => error instanceof AggregateError
+          && error.errors.some((item) => /generation intent journal/.test(item.message))
+          && error.errors.some((item) => /journal unavailable/.test(item.message)),
+      );
+    } finally {
+      fs.renameSync = originalRename;
+    }
+
+    const interrupted = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+    const generation = interrupted.targets.find((target) => target.plannedGeneration)?.plannedGeneration;
+    assert.equal(generation.reserved, false);
+    assert.equal(generation.ino, null);
+    const tempPath = path.join(root, generation.relativeTempPath);
+    assert.equal(fs.existsSync(tempPath), false);
+    assert.deepEqual(fs.readFileSync(flowPath), before);
+
+    const recovered = OfflineMigrationTransaction.recover({
+      root,
+      name: "rename-phase-steps",
+      journalPath: JOURNAL,
+    });
+    assert.deepEqual(recovered, { recovered: true, completed: false });
+    assert.equal(fs.existsSync(journalPath), false);
+    assert.deepEqual(fs.readFileSync(flowPath), before);
+  });
+
+  for (const phase of ["staged", "applying", "rolling-back"]) {
+    it(`rejects a same-bytes foreign inode during ${phase} recovery`, () => {
+      const root = createTmpDir(`rename-transaction-foreign-inode-${phase}-`);
+      roots.push(root);
+      initRepository(root);
+      const specId = `441-foreign-${phase}`;
+      const dir = seedSpec(root, specId, { issue: false, review: false });
+      const flowPath = path.join(dir, "flow.json");
+      commitAll(root);
+      const journalPath = path.join(root, JOURNAL);
+      const originalRename = fs.renameSync;
+      let journalRenames = 0;
+      fs.renameSync = (from, to) => {
+        if (path.resolve(String(to)) === journalPath && ++journalRenames === 2) {
+          throw Object.assign(new Error("stop after staged journal"), { code: "EIO" });
+        }
+        return originalRename(from, to);
+      };
+      try {
+        assert.throws(() => applyMigration(root), /stop after staged journal/);
+      } finally {
+        fs.renameSync = originalRename;
+      }
+      const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+      journal.phase = phase;
+      if (phase === "rolling-back") journal.rollbackIndex = journal.targets.length - 1;
+      fs.writeFileSync(journalPath, `${JSON.stringify(journal, null, 2)}\n`);
+      const originalBytes = fs.readFileSync(flowPath);
+      const mode = fs.statSync(flowPath).mode & 0o777;
+      const originalIno = fs.statSync(flowPath).ino;
+      const replacement = path.join(dir, ".foreign-flow");
+      fs.writeFileSync(replacement, originalBytes, { mode });
+      fs.renameSync(replacement, flowPath);
+      assert.notEqual(fs.statSync(flowPath).ino, originalIno);
+
+      assert.throws(() => applyMigration(root), /foreign|identity|original/i);
+
+      assert.equal(fs.existsSync(journalPath), true);
+      assert.deepEqual(fs.readFileSync(flowPath), originalBytes);
+      assert.equal(fs.statSync(flowPath).mode & 0o777, mode);
+    });
+  }
 
   it("continues a durable rollback after rollback target replacement fails", () => {
     const root = createTmpDir("rename-transaction-rollback-resume-");

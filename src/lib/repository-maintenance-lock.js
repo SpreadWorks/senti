@@ -22,6 +22,7 @@ export class RepositoryLockError extends Error {
     this.name = "RepositoryLockError";
     this.code = code;
     this.lockPath = lockPath;
+    this.committed = false;
   }
 }
 
@@ -101,6 +102,16 @@ function inspectForeign(lock, allowedOwnerToken) {
   return lock.conflict(owner);
 }
 
+function acquisitionCleanupError(message, primaryError, cleanupError, residue) {
+  const error = new AggregateError(
+    [primaryError, cleanupError],
+    message,
+    { cause: primaryError },
+  );
+  error.residue = Object.freeze({ ...residue });
+  return error;
+}
+
 export function assertRepositoryMaintenanceAvailable({
   mainRoot,
   maintenanceOwnerToken = null,
@@ -152,10 +163,11 @@ export class RepositoryMaintenanceLock {
       try {
         this.lock.release();
       } catch (cleanupError) {
-        throw new AggregateError(
-          [primaryError, cleanupError],
+        throw acquisitionCleanupError(
           "repository maintenance acquisition and cleanup both failed",
-          { cause: primaryError },
+          primaryError,
+          cleanupError,
+          { maintenanceLock: true },
         );
       }
       throw primaryError;
@@ -209,9 +221,18 @@ export class RepositoryFlowOperationLock {
       const after = inspectForeign(this.maintenance, this.maintenanceOwnerToken);
       if (after) throw after;
       return token;
-    } catch (error) {
-      this.lock.release();
-      throw error;
+    } catch (primaryError) {
+      try {
+        this.lock.release();
+      } catch (cleanupError) {
+        throw acquisitionCleanupError(
+          "repository flow-operation acquisition and cleanup both failed",
+          primaryError,
+          cleanupError,
+          { flowOperationLock: true },
+        );
+      }
+      throw primaryError;
     }
   }
 

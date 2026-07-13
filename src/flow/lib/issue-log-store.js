@@ -34,6 +34,29 @@ function revisionOf(document) {
   return crypto.createHash("sha256").update(JSON.stringify(document.toJSON())).digest("hex");
 }
 
+function fsyncDirectory(directory) {
+  const descriptor = fs.openSync(directory, "r");
+  try {
+    fs.fsyncSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+function writeExactIssueLog(filePath, bytes, mode) {
+  const tempPath = path.join(path.dirname(filePath), `.${path.basename(filePath)}.${crypto.randomUUID()}.restore.tmp`);
+  const descriptor = fs.openSync(tempPath, "wx", mode);
+  try {
+    fs.writeFileSync(descriptor, bytes);
+    fs.fchmodSync(descriptor, mode);
+    fs.fsyncSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+  fs.renameSync(tempPath, filePath);
+  fsyncDirectory(path.dirname(filePath));
+}
+
 function assertSpecFileAuthority(resolvedSpec, spec) {
   let stat;
   try {
@@ -105,12 +128,14 @@ export class IssueLogStore {
     allowLegacyArray = false,
     mainRoot = null,
     maintenanceOwnerToken = null,
+    operationOwnerToken = null,
   } = {}) {
     this.root = path.resolve(requireAuthorityString(root, "issue-log root"));
     this.mainRoot = mainRoot == null
       ? resolveRepositoryLockRoot(this.root)
       : path.resolve(mainRoot);
     this.maintenanceOwnerToken = maintenanceOwnerToken;
+    this.operationOwnerToken = operationOwnerToken;
     this.processIdentitySource = processIdentitySource;
     this.spec = requireAuthorityString(spec, "issue-log spec");
     const resolvedSpec = path.resolve(this.root, this.spec);
@@ -196,6 +221,45 @@ export class IssueLogStore {
     });
   }
 
+  restoreOwnedMutation({ idempotencyKeys, before }) {
+    if (!Array.isArray(idempotencyKeys)) throw new Error("issue-log restore IDs must be an array");
+    if (
+      before == null
+      || typeof before !== "object"
+      || typeof before.exists !== "boolean"
+      || (before.exists && (typeof before.bytes !== "string" || !Number.isInteger(before.mode)))
+    ) {
+      throw new Error("issue-log restore before-image is invalid");
+    }
+    const beforeBytes = before.exists ? Buffer.from(before.bytes, "base64") : null;
+    const beforeDocument = new IssueLogDocument(
+      before.exists ? JSON.parse(beforeBytes.toString("utf8")) : { entries: [] },
+      { allowLegacyArray: this.allowLegacyArray },
+    );
+    return this.#withLock(() => {
+      const snapshot = this.#readFresh();
+      let removed = false;
+      for (const idempotencyKey of new Set(idempotencyKeys)) {
+        removed = snapshot.document.remove(idempotencyKey) || removed;
+      }
+      if (revisionOf(snapshot.document) === revisionOf(beforeDocument)) {
+        if (before.exists) {
+          writeExactIssueLog(this.filePath, beforeBytes, before.mode);
+        } else {
+          try {
+            fs.unlinkSync(this.filePath);
+            fsyncDirectory(this.directory);
+          } catch (error) {
+            if (error.code !== "ENOENT") throw error;
+          }
+        }
+      } else if (removed) {
+        this.file.write(snapshot.document.toJSON());
+      }
+      return { removed, exact: revisionOf(snapshot.document) === revisionOf(beforeDocument) };
+    });
+  }
+
   #readFresh() {
     return new IssueLogSnapshot(new IssueLogDocument(
       this.file.read({ entries: [] }),
@@ -207,6 +271,7 @@ export class IssueLogStore {
     const repositoryOperation = new RepositoryFlowOperationLock({
       mainRoot: this.mainRoot,
       maintenanceOwnerToken: this.maintenanceOwnerToken,
+      operationOwnerToken: this.operationOwnerToken,
       processIdentitySource: this.processIdentitySource,
     });
     let repositoryAcquired = false;

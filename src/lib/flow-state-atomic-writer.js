@@ -4,8 +4,8 @@ import path from "node:path";
 import { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
 import {
   RepositoryFlowOperationLock,
-  assertRepositoryMaintenanceAvailable,
 } from "./repository-maintenance-lock.js";
+import { FlowSpecId } from "./flow-spec-id.js";
 
 const LOCK_VERSION = 2;
 const LOCK_KIND = "flow-state-writer";
@@ -51,14 +51,9 @@ function pathMayExist(target) {
 }
 
 function assertBoundSpecId(boundSpecId) {
-  if (
-    typeof boundSpecId !== "string"
-    || boundSpecId === ""
-    || boundSpecId === "."
-    || boundSpecId === ".."
-    || boundSpecId.includes("/")
-    || boundSpecId.includes("\\")
-  ) {
+  try {
+    FlowSpecId.from(boundSpecId);
+  } catch {
     throw authorityError("atomic flow state replacement requires a bound specId");
   }
 }
@@ -659,6 +654,7 @@ export class AtomicFlowStateWriter {
     faultInjector = () => {},
     processIdentitySource = new ProcessIdentitySource(),
     maintenanceOwnerToken = null,
+    operationOwnerToken = null,
   }) {
     this.pathAuthority = new FlowStatePathAuthority({ root, boundSpecId });
     this.replacementAuthority = expectedOriginal == null && nextState == null
@@ -674,6 +670,11 @@ export class AtomicFlowStateWriter {
     this.mainRoot = mainRoot;
     this.maintenanceOwnerToken = maintenanceOwnerToken;
     this.processIdentitySource = processIdentitySource;
+    this.repositoryOperation = new RepositoryFlowOperationLock({
+      mainRoot,
+      maintenanceOwnerToken,
+      operationOwnerToken,
+    });
   }
 
   save() {
@@ -710,24 +711,36 @@ export class AtomicFlowStateWriter {
   }
 
   #replace(resolveAuthority, onFailure = null, passThroughError = null) {
-    assertRepositoryMaintenanceAvailable({
-      mainRoot: this.mainRoot,
-      maintenanceOwnerToken: this.maintenanceOwnerToken,
-      processIdentitySource: this.processIdentitySource,
-    });
+    this.repositoryOperation.acquire();
+    let result;
+    let primaryError = null;
+    try {
+      result = this.#replaceOwned(resolveAuthority, onFailure, passThroughError);
+    } catch (error) {
+      primaryError = error;
+    }
+    let releaseError = null;
+    try {
+      this.repositoryOperation.release();
+    } catch (error) {
+      releaseError = error;
+    }
+    if (primaryError && releaseError) {
+      throw new AggregateError(
+        [primaryError, releaseError],
+        "flow state mutation and repository barrier release both failed",
+        { cause: primaryError },
+      );
+    }
+    if (primaryError) throw primaryError;
+    if (releaseError) throw releaseError;
+    return result;
+  }
+
+  #replaceOwned(resolveAuthority, onFailure = null, passThroughError = null) {
     try {
       this.lock.acquire();
     } catch (error) {
-      throw error;
-    }
-    try {
-      assertRepositoryMaintenanceAvailable({
-        mainRoot: this.mainRoot,
-        maintenanceOwnerToken: this.maintenanceOwnerToken,
-        processIdentitySource: this.processIdentitySource,
-      });
-    } catch (error) {
-      this.lock.release();
       throw error;
     }
     let descriptor = null;

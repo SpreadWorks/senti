@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
 import { runDetachedAutoRescue } from "../../../src/flow/lib/run-finalize-cleanup.js";
+import { AtomicJsonFile } from "../../../src/lib/atomic-json-file.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,7 @@ function gitResult(ok, stdout = "", stderr = "") {
 }
 
 function rescueArgs(root, runGitFn, suffix) {
+  const gitDirPath = path.join(root, ".git", "worktrees", `fake-${suffix}`);
   return {
     mainRepoPath: root,
     baseBranch: "main",
@@ -34,8 +36,35 @@ function rescueArgs(root, runGitFn, suffix) {
     specId: "253-rescue",
     range: `${"0".repeat(40)}..feature/rescue`,
     runGitFn,
+    worktreeAuthoritySource: {
+      capture(_worktreePath, expectedHeadSha = null) {
+        return {
+          worktreeDev: 1,
+          worktreeIno: 2,
+          gitDirPath,
+          gitDirDev: 3,
+          gitDirIno: 4,
+          headSha: expectedHeadSha || OLD_BASE,
+        };
+      },
+      assertCurrent() {},
+      assertAbsent() {},
+    },
     tempWorktreePathFactory: () => path.join(os.tmpdir(), `senti-rescue-tmp-${suffix}`),
   };
+}
+
+function autoRescueJournalDirectory(root) {
+  return path.join(root, ".git", "senti", "recovery", "auto-rescue");
+}
+
+function assertCompletedAutoRescueJournal(root) {
+  const directory = autoRescueJournalDirectory(root);
+  const files = fs.readdirSync(directory);
+  assert.equal(files.length, 1);
+  const journal = JSON.parse(fs.readFileSync(path.join(directory, files[0]), "utf8"));
+  assert.equal(journal.phase, "completed");
+  return journal;
 }
 
 describe("R9: --auto-rescue cherry-picks safely with proper preconditions", () => {
@@ -70,12 +99,39 @@ describe("R9: --auto-rescue cherry-picks safely with proper preconditions", () =
     );
   });
   it("R9: detached rescue updates the base ref with the probed old OID as CAS authority", () => {
-    const src = readCleanupSrc();
-    assert.match(
-      src,
-      /"update-ref",[\s\S]{0,240}headRes\.stdout\.trim\(\),[\s\S]{0,80}expectedBaseSha/,
-      "auto-rescue must not overwrite a base ref that moved after its authority probe",
-    );
+    const root = createTmpDir("auto-rescue-cas-contract-");
+    let registered = false;
+    let currentBase = OLD_BASE;
+    const runGitFn = (args) => {
+      if (args.includes("--verify")) return gitResult(true, `${OLD_BASE}\n`);
+      if (args.includes("list") && args.includes("--porcelain")) {
+        return gitResult(true, registered ? `worktree ${path.join(os.tmpdir(), "senti-rescue-tmp-cas-contract")}\n` : "");
+      }
+      if (args.includes("add") && args.includes("--detach")) {
+        registered = true;
+        return gitResult(true);
+      }
+      if (args.includes("cherry-pick")) return gitResult(true);
+      if (args.includes("rev-parse") && args.includes("HEAD")) return gitResult(true, `${NEW_BASE}\n`);
+      if (args.includes("update-ref")) {
+        assert.equal(args.at(-2), NEW_BASE);
+        assert.equal(args.at(-1), OLD_BASE);
+        currentBase = MOVED_BASE;
+        return gitResult(false, "", "expected old OID mismatch");
+      }
+      if (args.includes("remove") && args.includes("--force")) {
+        registered = false;
+        return gitResult(true);
+      }
+      throw new Error(`unexpected git command: ${args.join(" ")}`);
+    };
+    try {
+      const result = runDetachedAutoRescue(rescueArgs(root, runGitFn, "cas-contract"));
+      assert.equal(result.code, "MAIN_REPO_LOCKED");
+      assert.equal(currentBase, MOVED_BASE);
+    } finally {
+      removeTmpDir(root);
+    }
   });
   it("R9: detached rescue journals and verifies temporary worktree cleanup", () => {
     const src = readCleanupSrc();
@@ -115,6 +171,107 @@ describe("R14: audit log durability and dirty-check exclusion", () => {
 });
 
 describe("R9: detached auto-rescue transaction authority", () => {
+  it("fails closed when the cherry-pick state probe itself fails", () => {
+    const root = createTmpDir("auto-rescue-state-probe-failure-");
+    const temp = path.join(os.tmpdir(), "senti-rescue-tmp-state-probe-failure");
+    let registered = false;
+    const runGitFn = (args) => {
+      if (args.includes("CHERRY_PICK_HEAD")) {
+        return { ...gitResult(false, "", "state probe failed"), status: 2 };
+      }
+      if (args.includes("--verify")) return gitResult(true, `${OLD_BASE}\n`);
+      if (args.includes("list") && args.includes("--porcelain")) {
+        return gitResult(true, registered ? `worktree ${temp}\n` : "");
+      }
+      if (args.includes("add") && args.includes("--detach")) {
+        registered = true;
+        return gitResult(true);
+      }
+      if (args.includes("--skip")) return gitResult(true);
+      if (args.includes("cherry-pick")) return gitResult(false, "", "nothing to commit");
+      throw new Error(`unexpected git command: ${args.join(" ")}`);
+    };
+    try {
+      assert.throws(
+        () => runDetachedAutoRescue(rescueArgs(root, runGitFn, "state-probe-failure")),
+        (error) => error.code === "AUTO_RESCUE_CHERRY_PICK_STATE_FAILED"
+          && /state probe failed/.test(error.message),
+      );
+      const journalDirectory = autoRescueJournalDirectory(root);
+      const journalPath = path.join(journalDirectory, fs.readdirSync(journalDirectory)[0]);
+      assert.equal(JSON.parse(fs.readFileSync(journalPath, "utf8")).phase, "worktree-added");
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  for (const crashPhase of ["ref-update-prepared", "base-updated"]) {
+    it(`resumes ${crashPhase} crash with exactly-once body and ref mutation`, () => {
+      const root = createTmpDir(`auto-rescue-ref-crash-${crashPhase}-`);
+      const temp = path.join(os.tmpdir(), `senti-rescue-tmp-ref-crash-${crashPhase}`);
+      let registered = false;
+      let currentBase = OLD_BASE;
+      let cherryPicks = 0;
+      let updates = 0;
+      const runGitFn = (args) => {
+        if (args.includes("--verify")) return gitResult(true, `${currentBase}\n`);
+        if (args.includes("list") && args.includes("--porcelain")) {
+          return gitResult(true, registered ? `worktree ${temp}\n` : "");
+        }
+        if (args.includes("add") && args.includes("--detach")) {
+          registered = true;
+          return gitResult(true);
+        }
+        if (args.includes("cherry-pick")) {
+          cherryPicks += 1;
+          return gitResult(true);
+        }
+        if (args.includes("rev-parse") && args.includes("HEAD")) return gitResult(true, `${NEW_BASE}\n`);
+        if (args.includes("update-ref")) {
+          updates += 1;
+          assert.equal(args.at(-2), NEW_BASE);
+          assert.equal(args.at(-1), OLD_BASE);
+          if (currentBase !== OLD_BASE) return gitResult(false, "", "old OID mismatch");
+          currentBase = NEW_BASE;
+          return gitResult(true);
+        }
+        if (args.includes("remove") && args.includes("--force")) {
+          registered = false;
+          return gitResult(true);
+        }
+        throw new Error(`unexpected git command: ${args.join(" ")}`);
+      };
+      const originalWrite = AtomicJsonFile.prototype.write;
+      let injected = false;
+      AtomicJsonFile.prototype.write = function injectRefCrash(value) {
+        if (!injected && value?.phase === crashPhase) {
+          injected = true;
+          if (crashPhase === "ref-update-prepared") originalWrite.call(this, value);
+          throw new Error(`crash at ${crashPhase}`);
+        }
+        return originalWrite.call(this, value);
+      };
+      try {
+        assert.throws(
+          () => runDetachedAutoRescue(rescueArgs(root, runGitFn, `ref-crash-${crashPhase}`)),
+          new RegExp(crashPhase),
+        );
+      } finally {
+        AtomicJsonFile.prototype.write = originalWrite;
+      }
+      try {
+        const resumed = runDetachedAutoRescue(rescueArgs(root, runGitFn, `ref-crash-${crashPhase}`));
+        assert.equal(resumed.ok, true, JSON.stringify(resumed));
+        assert.equal(currentBase, NEW_BASE);
+        assert.equal(cherryPicks, 1);
+        assert.equal(updates, 1);
+        assert.equal(registered, false);
+      } finally {
+        removeTmpDir(root);
+      }
+    });
+  }
+
   for (const scenario of [
     {
       name: "conflict abort",
@@ -201,7 +358,7 @@ describe("R9: detached auto-rescue transaction authority", () => {
         assert.equal(mutations.at(-1), "abort");
         assert.ok(!mutations.includes("update-ref"));
 
-        const journalDirectory = path.join(root, ".senti", "recovery", "auto-rescue");
+        const journalDirectory = autoRescueJournalDirectory(root);
         const journalPath = path.join(journalDirectory, fs.readdirSync(journalDirectory)[0]);
         const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
         assert.equal(journal.phase, "abort-failed");
@@ -216,7 +373,7 @@ describe("R9: detached auto-rescue transaction authority", () => {
         assert.equal(abortCalls, 1);
         assert.equal(cleanupCalls, 1);
         assert.equal(registered, false);
-        assert.deepEqual(fs.readdirSync(journalDirectory), []);
+        assert.equal(assertCompletedAutoRescueJournal(root).outcome.code, "CHERRY_PICK_CONFLICT");
       } finally {
         removeTmpDir(root);
       }
@@ -273,8 +430,9 @@ describe("R9: detached auto-rescue transaction authority", () => {
     let cleanupAttempts = 0;
     let cherryPicks = 0;
     let updates = 0;
+    let currentBase = OLD_BASE;
     const runGitFn = (args) => {
-      if (args.includes("--verify")) return gitResult(true, `${OLD_BASE}\n`);
+      if (args.includes("--verify")) return gitResult(true, `${currentBase}\n`);
       if (args.includes("list") && args.includes("--porcelain")) {
         return gitResult(true, registered ? `worktree ${temp}\n` : "");
       }
@@ -290,6 +448,8 @@ describe("R9: detached auto-rescue transaction authority", () => {
       if (args.includes("update-ref")) {
         updates += 1;
         assert.equal(args.at(-1), OLD_BASE);
+        assert.equal(currentBase, args.at(-1));
+        currentBase = NEW_BASE;
         return gitResult(true);
       }
       if (args.includes("remove") && args.includes("--force")) {
@@ -311,14 +471,18 @@ describe("R9: detached auto-rescue transaction authority", () => {
       assert.equal(updates, 1);
       assert.equal(cherryPicks, 1);
       assert.equal(registered, true);
-      assert.equal(fs.readdirSync(path.join(root, ".senti", "recovery", "auto-rescue")).length, 1);
+      assert.equal(fs.readdirSync(autoRescueJournalDirectory(root)).length, 1);
 
       const resumed = runDetachedAutoRescue(args);
       assert.equal(resumed.ok, true);
       assert.equal(updates, 1);
       assert.equal(cherryPicks, 1);
       assert.equal(registered, false);
-      assert.deepEqual(fs.readdirSync(path.join(root, ".senti", "recovery", "auto-rescue")), []);
+      assert.equal(assertCompletedAutoRescueJournal(root).outcome.ok, true);
+      const terminalRetry = runDetachedAutoRescue(args);
+      assert.equal(terminalRetry.ok, true);
+      assert.equal(updates, 1);
+      assert.equal(cherryPicks, 1);
     } finally {
       removeTmpDir(root);
     }
@@ -363,10 +527,10 @@ describe("R9: detached auto-rescue transaction authority", () => {
       assert.equal(dual.errors[1].cleanupAuthority.residue.journal, true);
       assert.match(dual.errors[1].cleanupAuthority.journalPath, /\.json$/);
       assert.equal(registered, true);
-      const journals = fs.readdirSync(path.join(root, ".senti", "recovery", "auto-rescue"));
+      const journals = fs.readdirSync(autoRescueJournalDirectory(root));
       assert.equal(journals.length, 1);
       const journal = JSON.parse(fs.readFileSync(
-        path.join(root, ".senti", "recovery", "auto-rescue", journals[0]),
+        path.join(autoRescueJournalDirectory(root), journals[0]),
         "utf8",
       ));
       assert.equal(journal.phase, "cleanup-failed");
@@ -385,12 +549,13 @@ describe("R9: detached auto-rescue transaction authority", () => {
     let probes = 0;
     let bodies = 0;
     let updates = 0;
+    let currentBase = OLD_BASE;
     const events = [];
     const runGitFn = (args) => {
       if (args.includes("--verify")) {
         probes += 1;
         events.push("probe");
-        return gitResult(true, `${OLD_BASE}\n`);
+        return gitResult(true, `${currentBase}\n`);
       }
       if (args.includes("list") && args.includes("--porcelain")) {
         return gitResult(true, registered ? `worktree ${temp}\n` : "");
@@ -410,6 +575,8 @@ describe("R9: detached auto-rescue transaction authority", () => {
       if (args.includes("update-ref")) {
         updates += 1;
         events.push("update");
+        assert.equal(currentBase, args.at(-1));
+        currentBase = NEW_BASE;
         return gitResult(true);
       }
       if (args.includes("remove") && args.includes("--force")) {
@@ -423,7 +590,7 @@ describe("R9: detached auto-rescue transaction authority", () => {
     const args = rescueArgs(root, runGitFn, "pre-outcome");
     try {
       assert.throws(() => runDetachedAutoRescue(args), /crash before outcome journal/);
-      const journalDirectory = path.join(root, ".senti", "recovery", "auto-rescue");
+      const journalDirectory = autoRescueJournalDirectory(root);
       const journalPath = path.join(journalDirectory, fs.readdirSync(journalDirectory)[0]);
       assert.equal(JSON.parse(fs.readFileSync(journalPath, "utf8")).phase, "worktree-added");
 
@@ -441,11 +608,11 @@ describe("R9: detached auto-rescue transaction authority", () => {
       const eventBoundary = events.length;
       const resumed = runDetachedAutoRescue(args);
       assert.equal(resumed.ok, true);
-      assert.equal(probes, 2);
+      assert.equal(probes, 3);
       assert.equal(bodies, 2);
       assert.equal(updates, 1);
       assert.ok(events.slice(eventBoundary).indexOf("cleanup") < events.slice(eventBoundary).indexOf("probe"));
-      assert.deepEqual(fs.readdirSync(journalDirectory), []);
+      assert.equal(assertCompletedAutoRescueJournal(root).outcome.ok, true);
     } finally {
       removeTmpDir(root);
     }
@@ -457,9 +624,10 @@ describe("R9: detached auto-rescue transaction authority", () => {
     let registered = false;
     let cleanupAttempts = 0;
     let gitCalls = 0;
+    let currentBase = OLD_BASE;
     const runGitFn = (args) => {
       gitCalls += 1;
-      if (args.includes("--verify")) return gitResult(true, `${OLD_BASE}\n`);
+      if (args.includes("--verify")) return gitResult(true, `${currentBase}\n`);
       if (args.includes("list") && args.includes("--porcelain")) {
         return gitResult(true, registered ? `worktree ${temp}\n` : "");
       }
@@ -469,7 +637,11 @@ describe("R9: detached auto-rescue transaction authority", () => {
       }
       if (args.includes("cherry-pick")) return gitResult(true);
       if (args.includes("rev-parse") && args.includes("HEAD")) return gitResult(true, `${NEW_BASE}\n`);
-      if (args.includes("update-ref")) return gitResult(true);
+      if (args.includes("update-ref")) {
+        assert.equal(currentBase, args.at(-1));
+        currentBase = NEW_BASE;
+        return gitResult(true);
+      }
       if (args.includes("remove") && args.includes("--force")) {
         cleanupAttempts += 1;
         return gitResult(false, "", "retain cleanup journal");
@@ -480,7 +652,7 @@ describe("R9: detached auto-rescue transaction authority", () => {
     try {
       assert.equal(runDetachedAutoRescue(args).code, "AUTO_RESCUE_CLEANUP_FAILED");
       assert.equal(cleanupAttempts, 1);
-      const directory = path.join(root, ".senti", "recovery", "auto-rescue");
+      const directory = autoRescueJournalDirectory(root);
       const journalPath = path.join(directory, fs.readdirSync(directory)[0]);
       const journalBytes = fs.readFileSync(journalPath);
       const external = path.join(root, "external-journal.json");

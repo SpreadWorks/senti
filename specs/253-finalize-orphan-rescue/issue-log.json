@@ -305,6 +305,64 @@
       "taskId": null,
       "timestamp": "2026-07-13T14:10:00Z",
       "issueLogId": "issue-441-candidate9-auto-rescue-abort-authority"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Candidate10 found that standard finalize mutated flow, issue, plugin metadata, and the caller Git index before durable rollback authority existed, while auto-rescue still preferred a direct main checkout route.",
+      "trigger": "Final transaction and rescue-route audit after candidate9 commit d654d794.",
+      "resolution": "Finalize now publishes a bounded prepared tree before-image before mutation, restores owned bytes/mode/path sets on every pre-commit failure, restores flow.json through AtomicFlowStateWriter CAS, and compensates issue-log entries by journaled stable IDs. It builds a private 0600 isolated index from the journaled expected parent without reading or mutating the caller index, and shares the repository maintenance barrier through borrowed owner tokens. Auto-rescue always uses the detached journal route and durably records the expected new OID before ref CAS.",
+      "guardrailCandidate": "A recovery journal must precede its first owned mutation, Git index operations must use an isolated authority, and every ref mutation must have both expected-old and expected-new OIDs durable before execution.",
+      "testCorrections": [
+        "Replaced the auto-rescue source-window CAS regex with a public detached-rescue behavior test that moves the base authority and proves update-ref cannot overwrite it.",
+        "Moved the ordered restore-failure injection from obsolete raw flow bytes to the second AtomicFlowStateWriter rename while retaining the exact primary-first AggregateError and durable-residue assertions.",
+        "Added a real-Git index observer that proves expected-parent read-tree creates a private 0600 index, cleanup removes index and lock, and caller index bytes remain unchanged."
+      ],
+      "testEvidence": {
+        "autoRescueRed": "/tmp/flow-441-candidate10-auto-rescue-red.log",
+        "indexRed": "/tmp/flow-441-candidate10-finalize-index-red.log",
+        "indexGreen": "/tmp/flow-441-candidate10-finalize-index-green.log",
+        "preparedMatrix": "/tmp/flow-441-candidate10-prepared-fault-matrix.log",
+        "preparedGitGreen": "/tmp/flow-441-candidate10-prepared-git-faults.log",
+        "pluginMetadataGreen": "/tmp/flow-441-candidate10-plugin-metadata-green.log",
+        "barrierRedGreen": "/tmp/flow-441-candidate10-barrier-redgreen.log",
+        "barrierGreen": "/tmp/flow-441-candidate10-barrier-green2.log",
+        "autoRescueGreen": "/tmp/flow-441-candidate10-auto-rescue-ref-crash.log",
+        "sharedRestoreGreen": "/tmp/flow-441-candidate10-shared-restore-final.log",
+        "isolatedIndexGreen": "/tmp/flow-441-candidate10-isolated-index-authority-final2.log",
+        "focusedGreen": "/tmp/flow-441-candidate10-all-focused-final5.log",
+        "firstUnionFailure": "/tmp/flow-441-candidate10-valid-union-precommit.log",
+        "unionFailureScopeGreen": "/tmp/flow-441-candidate10-union-failures-fixed2.log",
+        "validUnionGreen": "/tmp/flow-441-candidate10-valid-union-precommit-r2.log"
+      },
+      "unionFailure": "The first 100-file candidate10 union reported ten failures with one ENOENT root cause: legacy fake Git runners returned read-tree success without creating GIT_INDEX_FILE. Finalize now initializes the isolated index from the durable expected parent, applies mode 0600 when real Git creates it, and does not require a caller-index copy. The unchanged spec291/spec304 behavior tests then passed 19/19, the authority focused union passed 140/140, and the same 100-file manifest passed 1013/1013.",
+      "taskId": null,
+      "timestamp": "2026-07-13T15:25:00Z",
+      "issueLogId": "issue-441-candidate10-finalize-prepared-isolated-authority"
+    },
+    {
+      "step": "independent-audit-remediation",
+      "issue": 441,
+      "reason": "An independent post-candidate10 audit rejected merge because successful isolated commits left the caller index stale, checked-out base refs were not materialized, AtomicFlowStateWriter did not own the common repository barrier, shared issue-log and sidecar rollback were incomplete, and detached rescue cleanup trusted a temporary pathname without generation authority.",
+      "trigger": "Independent immutable-tree audit of candidate10 before commit.",
+      "resolution": "Finalize teardown journal v3 now commits an exact changed-path set, adopts a durable commit before reporting temp-index cleanup failure, reconciles only caller-index entries that still match the expected parent while preserving genuine staged entries, and defers reconciliation safely behind an existing index.lock. Prepared rollback covers exact spec and per-spec sidecar trees; shared flow and issue-log mutations use their writers while uncontended issue-log bytes, mode, and absence are restored exactly. Auto-rescue journal v5 keeps completed tombstones, records ref old/new authority, materializes a checked-out base worktree and index, and records worktree-directory plus Git-admin-directory inode identities and detached HEAD before cleanup. Dirty preflight exempts only the exact stable-ID conflict audit and all Git status or CHERRY_PICK_HEAD probe failures stop closed.",
+      "testCorrections": [
+        "Changed finalize journal fixture version checks from v2 to v3 and before-image cardinality from one spec tree to the exact spec plus sidecar trees.",
+        "Changed the retained-metadata success fixture from incorrectly requiring sidecar metrics in Git history to the established post-command-sidecar contract, while adding exact pre-commit sidecar rollback coverage.",
+        "Changed concurrent flow-writer loser expectations to the common outer REPOSITORY_FLOW_OPERATION_BUSY boundary while preserving committed=false and all winner-byte assertions.",
+        "Changed no behavioral assertions to accept partial success; every correction targets a newly explicit transaction boundary or journal schema."
+      ],
+      "testEvidence": {
+        "indexAndSidecar": "/tmp/flow-441-sidecar-rollback-r2.log",
+        "autoRescueV5": "/tmp/flow-441-auto-v5-full.log",
+        "authorizedAuditMaterialization": "/tmp/flow-441-auto-v5-authorized-materialization-absent.log",
+        "auditFocused": "/tmp/flow-441-independent-audit-focused-final-v6.log",
+        "fullRegression": "/tmp/flow-441-independent-audit-npm-test-final-v6.log"
+      },
+      "result": "The combined independent-audit matrix passed 170/170. The canonical project regression passed unit 2276 and integration 225.",
+      "taskId": null,
+      "timestamp": "2026-07-13T17:40:00Z",
+      "issueLogId": "issue-441-independent-audit-finalize-rescue-remediation"
     }
   ]
 }

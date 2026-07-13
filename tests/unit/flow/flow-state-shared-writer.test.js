@@ -284,7 +284,11 @@ describe("Issue #441 shared flow state writer", () => {
           : () => fm.mutate((current) => { current.marker = "loser"; });
         assert.throws(
           operation,
-          (error) => ["FLOW_STATE_ATOMIC_BUSY", "FLOW_STATE_ATOMIC_STALE"].includes(error.code),
+          (error) => [
+            "REPOSITORY_FLOW_OPERATION_BUSY",
+            "FLOW_STATE_ATOMIC_BUSY",
+            "FLOW_STATE_ATOMIC_STALE",
+          ].includes(error.code),
           `${holderOperation} -> ${loserOperation}`,
         );
         assert.deepEqual(bytes(statePath(tmp, OTHER_SPEC_ID)), otherBefore);

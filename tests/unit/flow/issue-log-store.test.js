@@ -123,3 +123,43 @@ test("IssueLogStore preserves both the operation and lock-release failures", () 
   assert.deepEqual(store.read().document.entries.map((entry) => entry.issueLogId), ["existing", "retry"]);
   assert.equal(fs.existsSync(lockPath), false);
 });
+
+test("IssueLogStore restores exact absence or bytes after compensating owned entries", () => {
+  const absent = makeStore();
+  const absentPath = path.join(absent.root, "specs/100/issue-log.json");
+  absent.store.append({ step: "finalize", reason: "owned" }, "owned-absent");
+  absent.store.restoreOwnedMutation({
+    idempotencyKeys: ["owned-absent"],
+    before: { exists: false, bytes: null, mode: null },
+  });
+  assert.equal(fs.existsSync(absentPath), false);
+
+  const exact = makeStore();
+  const exactPath = path.join(exact.root, "specs/100/issue-log.json");
+  const before = Buffer.from('{\n  "entries" : [ { "issueLogId" : "existing", "reason" : "kept" } ]\n}\n');
+  fs.writeFileSync(exactPath, before, { mode: 0o640 });
+  exact.store.append({ step: "finalize", reason: "owned" }, "owned-exact");
+  exact.store.restoreOwnedMutation({
+    idempotencyKeys: ["owned-exact"],
+    before: { exists: true, bytes: before.toString("base64"), mode: 0o640 },
+  });
+  assert.deepEqual(fs.readFileSync(exactPath), before);
+  assert.equal(fs.statSync(exactPath).mode & 0o777, 0o640);
+});
+
+test("IssueLogStore compensation preserves a concurrent append", () => {
+  const { root, store } = makeStore();
+  const issuePath = path.join(root, "specs/100/issue-log.json");
+  const before = Buffer.from('{"entries":[{"issueLogId":"existing","reason":"kept"}]}\n');
+  fs.writeFileSync(issuePath, before);
+  store.append({ step: "finalize", reason: "owned" }, "owned-concurrent");
+  store.append({ step: "other", reason: "concurrent" }, "concurrent");
+
+  const restored = store.restoreOwnedMutation({
+    idempotencyKeys: ["owned-concurrent"],
+    before: { exists: true, bytes: before.toString("base64"), mode: 0o644 },
+  });
+
+  assert.equal(restored.exact, false);
+  assert.deepEqual(store.read().document.entries.map((entry) => entry.issueLogId), ["existing", "concurrent"]);
+});

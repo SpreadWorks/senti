@@ -5,7 +5,7 @@ import path from "node:path";
 import { AtomicJsonFile } from "./atomic-json-file.js";
 import { RealDirectoryAuthority } from "./process-owned-lock.js";
 
-const VERSION = 3;
+const VERSION = 6;
 const PHASES = new Set(["staged", "applying", "rolling-back", "rolled-back", "applied"]);
 
 export class OfflineMigrationJournalRemovalError extends Error {
@@ -216,7 +216,10 @@ export class OfflineMigrationDirectorySnapshot {
       return authority;
     };
     const expected = this.entries.map(project);
-    const actual = current.entries.map(project);
+    const expectedNames = new Set(this.entries.map((entry) => entry.name));
+    const actual = current.entries
+      .filter((entry) => expectedNames.has(entry.name) || !mutable.has(path.posix.join(this.relativePath, entry.name)))
+      .map(project);
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       throw new Error(`migration closed-world snapshot changed after planning: ${this.relativePath}`);
     }
@@ -232,36 +235,152 @@ export class OfflineMigrationDirectorySnapshot {
   }
 }
 
+class OfflineMigrationGeneration {
+  constructor({ root, targetRelativePath, relativeTempPath, dev, ino, mode, revision, reserved, prepared }) {
+    this.root = path.resolve(root);
+    const target = withinRoot(this.root, path.join(this.root, targetRelativePath));
+    const temporary = withinRoot(this.root, path.join(this.root, relativeTempPath));
+    if (
+      typeof targetRelativePath !== "string"
+      || typeof relativeTempPath !== "string"
+      || !relativeTempPath.endsWith(".migration.tmp")
+      || path.dirname(temporary.resolved) !== path.dirname(target.resolved)
+      || !path.basename(relativeTempPath).startsWith(`.${path.basename(targetRelativePath)}.`)
+      || !Number.isSafeInteger(mode)
+      || !/^[a-f0-9]{64}$/.test(String(revision))
+      || typeof reserved !== "boolean"
+      || typeof prepared !== "boolean"
+      || (reserved && ![dev, ino].every(Number.isSafeInteger))
+      || (!reserved && (dev !== null || ino !== null || prepared))
+    ) {
+      throw new Error("migration generation authority is invalid");
+    }
+    this.targetRelativePath = targetRelativePath;
+    this.relativeTempPath = relativeTempPath;
+    this.dev = dev;
+    this.ino = ino;
+    this.mode = mode;
+    this.revision = revision;
+    this.reserved = reserved;
+    this.prepared = prepared;
+    Object.freeze(this);
+  }
+
+  static fromStored(root, value) {
+    exactKeys(
+      value,
+      ["targetRelativePath", "relativeTempPath", "dev", "ino", "mode", "revision", "reserved", "prepared"],
+      "migration generation",
+    );
+    return new OfflineMigrationGeneration({ root, ...value });
+  }
+
+  matchesIdentity(stat) {
+    return this.reserved
+      && stat.dev === this.dev
+      && stat.ino === this.ino
+      && (stat.mode & 0o777) === this.mode;
+  }
+
+  matches(stat, bytes) {
+    return this.prepared && this.matchesIdentity(stat) && hash(bytes) === this.revision;
+  }
+
+  asPrepared() {
+    return new OfflineMigrationGeneration({
+      root: this.root,
+      targetRelativePath: this.targetRelativePath,
+      relativeTempPath: this.relativeTempPath,
+      dev: this.dev,
+      ino: this.ino,
+      mode: this.mode,
+      revision: this.revision,
+      reserved: true,
+      prepared: true,
+    });
+  }
+
+  asReserved(stat) {
+    return new OfflineMigrationGeneration({
+      root: this.root,
+      targetRelativePath: this.targetRelativePath,
+      relativeTempPath: this.relativeTempPath,
+      dev: stat.dev,
+      ino: stat.ino,
+      mode: this.mode,
+      revision: this.revision,
+      reserved: true,
+      prepared: false,
+    });
+  }
+
+  toJSON() {
+    return {
+      relativeTempPath: this.relativeTempPath,
+      targetRelativePath: this.targetRelativePath,
+      dev: this.dev,
+      ino: this.ino,
+      mode: this.mode,
+      revision: this.revision,
+      reserved: this.reserved,
+      prepared: this.prepared,
+    };
+  }
+}
+
 class AtomicBytesFile {
-  constructor(filePath) {
+  constructor(root, filePath) {
+    this.root = path.resolve(root);
     this.filePath = filePath;
     this.directory = path.dirname(filePath);
     this.authority = new RealDirectoryAuthority(this.directory);
   }
 
-  write(bytes, mode) {
+  plan(bytes, mode) {
     this.authority.assertStable();
     const tempPath = path.join(this.directory, `.${path.basename(this.filePath)}.${crypto.randomUUID()}.migration.tmp`);
+    return new OfflineMigrationGeneration({
+      root: this.root,
+      targetRelativePath: withinRoot(this.root, this.filePath).relative,
+      relativeTempPath: withinRoot(this.root, tempPath).relative,
+      dev: null,
+      ino: null,
+      mode,
+      revision: hash(bytes),
+      reserved: false,
+      prepared: false,
+    });
+  }
+
+  reserve(generation) {
+    if (generation.reserved) return generation;
+    if (generation.targetRelativePath !== withinRoot(this.root, this.filePath).relative) {
+      throw new Error("migration generation intent targets a different file");
+    }
+    const tempPath = path.join(this.root, generation.relativeTempPath);
     let descriptor = null;
-    let renamed = false;
+    let created = false;
     try {
-      descriptor = fs.openSync(tempPath, "wx", mode);
-      fs.writeFileSync(descriptor, bytes);
-      fs.fchmodSync(descriptor, mode);
+      descriptor = fs.openSync(tempPath, "wx", generation.mode);
+      created = true;
+      fs.fchmodSync(descriptor, generation.mode);
       fs.fsyncSync(descriptor);
       fs.closeSync(descriptor);
       descriptor = null;
       this.authority.assertStable();
-      fs.renameSync(tempPath, this.filePath);
-      renamed = true;
+      const stat = statRealFile(tempPath, "migration prepared generation");
       fsyncDirectory(this.directory);
+      return generation.asReserved(stat);
     } catch (primary) {
       const cleanup = [];
       if (descriptor != null) {
         try { fs.closeSync(descriptor); } catch (error) { cleanup.push(error); }
       }
-      if (!renamed) {
-        try { fs.unlinkSync(tempPath); } catch (error) {
+      if (created) {
+        try {
+          fs.unlinkSync(tempPath);
+          fsyncDirectory(this.directory);
+        } catch (error) {
           if (error.code !== "ENOENT") cleanup.push(error);
         }
       }
@@ -270,6 +389,50 @@ class AtomicBytesFile {
       }
       throw primary;
     }
+  }
+
+  prepare(generation, bytes) {
+    if (generation.prepared) return generation;
+    if (!generation.reserved) throw new Error("migration generation intent is not reserved");
+    if (generation.targetRelativePath !== withinRoot(this.root, this.filePath).relative) {
+      throw new Error("migration reserved generation targets a different file");
+    }
+    const tempPath = path.join(this.root, generation.relativeTempPath);
+    const descriptor = fs.openSync(
+      tempPath,
+      fs.constants.O_WRONLY | (fs.constants.O_NOFOLLOW || 0),
+    );
+    try {
+      const opened = fs.fstatSync(descriptor);
+      if (!opened.isFile() || opened.nlink !== 1 || !generation.matchesIdentity(opened)) {
+        throw new Error("migration reserved generation identity changed before preparation");
+      }
+      fs.ftruncateSync(descriptor, 0);
+      fs.writeFileSync(descriptor, bytes);
+      fs.fchmodSync(descriptor, generation.mode);
+      fs.fsyncSync(descriptor);
+    } finally {
+      fs.closeSync(descriptor);
+    }
+    const stat = statRealFile(tempPath, "migration prepared generation");
+    if (!generation.matchesIdentity(stat) || hash(fs.readFileSync(tempPath)) !== generation.revision) {
+      throw new Error("migration reserved generation did not reach its planned revision");
+    }
+    return generation.asPrepared();
+  }
+
+  commit(generation) {
+    if (generation.targetRelativePath !== withinRoot(this.root, this.filePath).relative) {
+      throw new Error("migration prepared generation targets a different file");
+    }
+    if (!generation.prepared) throw new Error("migration generation is not prepared for commit");
+    const tempPath = path.join(this.root, generation.relativeTempPath);
+    const stat = statRealFile(tempPath, "migration prepared generation");
+    const bytes = fs.readFileSync(tempPath);
+    if (!generation.matches(stat, bytes)) throw new Error("migration prepared generation changed before rename");
+    this.authority.assertStable();
+    fs.renameSync(tempPath, this.filePath);
+    fsyncDirectory(this.directory);
   }
 }
 
@@ -338,7 +501,17 @@ export class OfflineMigrationAuthority {
 }
 
 export class OfflineMigrationTarget {
-  constructor({ root, relativePath, original, planned, mode, dev, ino }) {
+  constructor({
+    root,
+    relativePath,
+    original,
+    planned,
+    mode,
+    dev,
+    ino,
+    plannedGeneration = null,
+    rollbackGeneration = null,
+  }) {
     this.root = path.resolve(root);
     this.relativePath = relativePath;
     this.original = Buffer.from(original);
@@ -348,6 +521,16 @@ export class OfflineMigrationTarget {
     this.ino = ino;
     this.originalRevision = hash(this.original);
     this.plannedRevision = hash(this.planned);
+    this.plannedGeneration = plannedGeneration == null
+      ? null
+      : plannedGeneration instanceof OfflineMigrationGeneration
+        ? plannedGeneration
+        : OfflineMigrationGeneration.fromStored(this.root, plannedGeneration);
+    this.rollbackGeneration = rollbackGeneration == null
+      ? null
+      : rollbackGeneration instanceof OfflineMigrationGeneration
+        ? rollbackGeneration
+        : OfflineMigrationGeneration.fromStored(this.root, rollbackGeneration);
   }
 
   static capture(root, filePath, planned) {
@@ -368,7 +551,7 @@ export class OfflineMigrationTarget {
   static fromStored(root, value) {
     exactKeys(value, [
       "relativePath", "original", "planned", "mode", "dev", "ino",
-      "originalRevision", "plannedRevision",
+      "originalRevision", "plannedRevision", "plannedGeneration", "rollbackGeneration",
     ], "migration target");
     if (![value.mode, value.dev, value.ino].every(Number.isSafeInteger)) throw new Error("migration target identity is invalid");
     withinRoot(root, path.join(root, value.relativePath));
@@ -380,6 +563,8 @@ export class OfflineMigrationTarget {
       mode: value.mode,
       dev: value.dev,
       ino: value.ino,
+      plannedGeneration: value.plannedGeneration,
+      rollbackGeneration: value.rollbackGeneration,
     });
     if (target.originalRevision !== value.originalRevision || target.plannedRevision !== value.plannedRevision) {
       throw new Error(`migration target bytes do not match revisions: ${value.relativePath}`);
@@ -403,17 +588,75 @@ export class OfflineMigrationTarget {
     const stat = statRealFile(this.filePath, "migration target");
     if ((stat.mode & 0o777) !== this.mode) return "foreign";
     const bytes = fs.readFileSync(this.filePath);
-    if (bytes.equals(this.original)) return "original";
-    if (bytes.equals(this.planned)) return "planned";
+    if (
+      bytes.equals(this.original)
+      && (
+        (stat.dev === this.dev && stat.ino === this.ino)
+        || this.rollbackGeneration?.matches(stat, bytes)
+      )
+    ) return "original";
+    if (bytes.equals(this.planned) && this.plannedGeneration?.matches(stat, bytes)) return "planned";
     return "foreign";
   }
 
-  writeOriginal() {
-    new AtomicBytesFile(this.filePath).write(this.original, this.mode);
+  planOriginal() {
+    if (this.rollbackGeneration == null) {
+      this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath).plan(this.original, this.mode);
+    }
   }
 
-  writePlanned() {
-    new AtomicBytesFile(this.filePath).write(this.planned, this.mode);
+  reserveOriginal() {
+    this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath)
+      .reserve(this.rollbackGeneration);
+  }
+
+  prepareOriginal() {
+    this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath)
+      .prepare(this.rollbackGeneration, this.original);
+  }
+
+  commitOriginal() {
+    new AtomicBytesFile(this.root, this.filePath).commit(this.rollbackGeneration);
+  }
+
+  planPlanned() {
+    if (this.plannedGeneration == null) {
+      this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath).plan(this.planned, this.mode);
+    }
+  }
+
+  reservePlanned() {
+    this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath)
+      .reserve(this.plannedGeneration);
+  }
+
+  preparePlanned() {
+    this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath)
+      .prepare(this.plannedGeneration, this.planned);
+  }
+
+  commitPlanned() {
+    new AtomicBytesFile(this.root, this.filePath).commit(this.plannedGeneration);
+  }
+
+  cleanupPreparedGenerations() {
+    for (const generation of [this.plannedGeneration, this.rollbackGeneration]) {
+      if (generation == null) continue;
+      const tempPath = path.join(this.root, generation.relativeTempPath);
+      try {
+        const stat = statRealFile(tempPath, "migration cleanup generation");
+        if (
+          generation.targetRelativePath !== this.relativePath
+          || (generation.reserved && !generation.matchesIdentity(stat))
+        ) {
+          throw new Error("migration cleanup generation authority changed");
+        }
+        fs.unlinkSync(tempPath);
+        fsyncDirectory(path.dirname(tempPath));
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
   }
 
   toJSON() {
@@ -426,6 +669,8 @@ export class OfflineMigrationTarget {
       ino: this.ino,
       originalRevision: this.originalRevision,
       plannedRevision: this.plannedRevision,
+      plannedGeneration: this.plannedGeneration?.toJSON() ?? null,
+      rollbackGeneration: this.rollbackGeneration?.toJSON() ?? null,
     };
   }
 }
@@ -619,7 +864,13 @@ export class OfflineMigrationTransaction {
       for (let index = 0; index < this.journal.targets.length; index += 1) {
         const target = this.journal.targets[index];
         if (target.classify() !== "original") throw new Error(`migration target is not original: ${target.relativePath}`);
-        target.writePlanned();
+        target.planPlanned();
+        this.store.write(this.journal);
+        target.reservePlanned();
+        this.store.write(this.journal);
+        target.preparePlanned();
+        this.store.write(this.journal);
+        target.commitPlanned();
         if (target.classify() !== "planned") throw new Error(`migration target write was not durable: ${target.relativePath}`);
         this.journal.advance("applying", { applyIndex: index + 1 });
         this.store.write(this.journal);
@@ -647,7 +898,11 @@ export class OfflineMigrationTransaction {
 
   #recover() {
     for (const authority of this.journal.authorities) authority.assertUnchanged();
-    const mutablePaths = this.journal.targets.map((target) => target.relativePath);
+    const mutablePaths = this.journal.targets.flatMap((target) => [
+      target.relativePath,
+      target.plannedGeneration?.relativeTempPath,
+      target.rollbackGeneration?.relativeTempPath,
+    ].filter(Boolean));
     for (const snapshot of this.journal.snapshots) {
       snapshot.assertUnchanged({ identity: false, mutablePaths });
     }
@@ -723,11 +978,20 @@ export class OfflineMigrationTransaction {
       const target = this.journal.targets[index];
       const state = target.classify();
       if (state === "foreign") throw new Error(`migration rollback target is foreign: ${target.relativePath}`);
-      if (state === "planned") target.writeOriginal();
+      if (state === "planned") {
+        target.planOriginal();
+        this.store.write(this.journal);
+        target.reserveOriginal();
+        this.store.write(this.journal);
+        target.prepareOriginal();
+        this.store.write(this.journal);
+        target.commitOriginal();
+      }
       if (target.classify() !== "original") throw new Error(`migration rollback was not durable: ${target.relativePath}`);
       this.journal.advance("rolling-back", { rollbackIndex: index - 1 });
       this.store.write(this.journal);
     }
+    for (const target of this.journal.targets) target.cleanupPreparedGenerations();
     this.journal.advance("rolled-back", { applyIndex: 0, rollbackIndex: -1 });
     this.store.write(this.journal);
   }

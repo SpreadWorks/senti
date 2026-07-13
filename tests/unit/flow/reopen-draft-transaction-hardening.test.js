@@ -299,7 +299,7 @@ describe("Issue #441 bound atomic flow writer", () => {
     try {
       assert.throws(
         () => replacement(tmp, original, "loser"),
-        (err) => err.code === "FLOW_STATE_ATOMIC_BUSY" && err.committed === false,
+        (err) => err.code === "REPOSITORY_FLOW_OPERATION_BUSY" && err.committed === false,
       );
     } finally {
       fs.writeFileSync(release, "go");

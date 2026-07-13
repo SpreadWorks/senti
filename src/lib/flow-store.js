@@ -18,6 +18,7 @@ import {
 import { runGit } from "./git-helpers.js";
 import { sentiDir } from "./config.js";
 import { renameFlowStateStepIds } from "./step-id-rename.js";
+import { FlowSpecId } from "./flow-spec-id.js";
 import {
   AtomicFlowStateWriter,
   FlowStateCreator,
@@ -329,6 +330,10 @@ function parseCurrentFlowState(content, sourcePath) {
 
 function bindCurrentFlowState(state, content, sourcePath) {
   assertCurrentFlowStateSchema(state, sourcePath);
+  const boundSpecId = FlowSpecId.from(path.basename(path.dirname(sourcePath))).toString();
+  if (state.spec !== `specs/${boundSpecId}/spec.json`) {
+    throw schemaUnsupported(`flow-store: flow state spec does not match its bound directory. Path: ${sourcePath}.`);
+  }
   FLOW_STATE_REVISIONS.set(state, new FlowStateRevision(content));
   return state;
 }
@@ -494,6 +499,7 @@ export class FlowStore {
     faultInjector = () => {},
     processIdentitySource,
     maintenanceOwnerToken,
+    operationOwnerToken,
   } = {}) {
     const writer = new AtomicFlowStateWriter({
       root: this._root,
@@ -505,6 +511,7 @@ export class FlowStore {
       faultInjector,
       processIdentitySource,
       maintenanceOwnerToken,
+      operationOwnerToken,
     });
     assertCurrentFlowStateSchema(state, writer.pathAuthority.statePath);
     assertCurrentFlowStateSchema(expectedOriginal, writer.pathAuthority.statePath);
@@ -525,6 +532,7 @@ export class FlowStore {
       faultInjector: opts.faultInjector,
       processIdentitySource: opts.processIdentitySource,
       maintenanceOwnerToken: opts.maintenanceOwnerToken,
+      operationOwnerToken: opts.operationOwnerToken,
     }).mutate(mutator, {
       parseState: opts.stepIdMigration === true
         ? parseStepIdMigrationState
