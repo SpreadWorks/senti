@@ -13,7 +13,8 @@ import fs from "fs";
 import path from "path";
 import { sentiDir } from "./config.js";
 import { runGit } from "./git-helpers.js";
-import { ACTIVE_FLOW_FILE, STATE_FILE } from "./flow-helpers.js";
+import { ACTIVE_FLOW_FILE } from "./flow-helpers.js";
+import { flowStatePath } from "./flow-state-atomic-writer.js";
 
 function activeFlowPath(mainRoot) {
   return path.join(sentiDir(mainRoot), ACTIVE_FLOW_FILE);
@@ -113,7 +114,7 @@ export class ActiveFlowRegistry {
       } else if (entry.mode === "branch") {
         isStale = !branchExists(this._mainRoot, branch);
       } else {
-        isStale = !fs.existsSync(path.join(this._mainRoot, "specs", entry.spec, STATE_FILE));
+        isStale = !fs.existsSync(flowStatePath(this._mainRoot, entry.spec));
       }
 
       if (!isStale) valid.push(entry);

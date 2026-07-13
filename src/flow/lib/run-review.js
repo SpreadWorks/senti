@@ -304,6 +304,7 @@ export function checkReviewRetryBelowMax(ctx, phase) {
     throw err;
   }
   const max = resolveRecoveryMaxAttempts({
+    root: ctx.root,
     flowState,
     kind: "review",
     phase: persistedPhase,

@@ -255,6 +255,26 @@
       "step": "finalize-merge",
       "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
       "timestamp": "2026-05-19T04:45:05.372Z"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Candidate6 sole-authority review found that an in-flight pending recovery re-resolved configured maxAttempts, eligibility still consulted the derived flow.json recovery copy, SetRetryCommand omitted root authority during preflight max resolution, and issue-log reads still followed an unchecked path before atomic writes.",
+      "trigger": "Final diff audit after the initial focused and full regression passes.",
+      "resolution": "retry-recovery.json is now the persistence authority: a pending record's immutable request snapshot owns only that grant's resume budget, while committed records alone govern future maxAttempts and duplicate-evidence eligibility. SetRetryCommand propagates root explicitly; a missing root/spec authority fails closed. Artifact and issue-log reads/writes share real-directory and regular-file AtomicJsonFile authority and are preflighted before flow mutation. Configured max, flow.json retryRecovery, and symlink-following reads are never fallbacks.",
+      "testEvidence": {
+        "pendingSnapshotPreFixFailure": "/tmp/flow-441-candidate6-focused-r6.log",
+        "soleAuthorityPreFixFailure": "/tmp/flow-441-candidate6-sole-authority-prefix-fail.log",
+        "soleAuthorityPostFixPass": "/tmp/flow-441-candidate6-sole-authority-postfix-pass.log",
+        "cliAuthorityPreFixFailure": "/tmp/flow-441-candidate6-cli-authority-prefix-fail.log",
+        "cliAuthorityPostFixPass": "/tmp/flow-441-candidate6-cli-authority-postfix-pass.log",
+        "issueLogAuthorityPreFixFailure": "/tmp/flow-441-candidate6-issue-log-authority-prefix-fail.log",
+        "issueLogAuthorityPostFixPass": "/tmp/flow-441-candidate6-issue-log-authority-postfix-pass.log",
+        "postFixFocused": "/tmp/flow-441-candidate6-focused-r10.log",
+        "postFixRelated": "/tmp/flow-441-candidate6-related-r5.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T08:50:21Z"
     }
   ]
 }

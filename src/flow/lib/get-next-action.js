@@ -287,6 +287,7 @@ export default class GetNextActionCommand extends FlowCommand {
     if (reviewPhase) {
       const reviewAttempts = countReviewRetry(state.metrics, reviewPhase);
       const reviewMaxAttempts = resolveRecoveryMaxAttempts({
+        root: ctx.root,
         flowState: state,
         kind: "review",
         phase: reviewPhase,
@@ -310,6 +311,7 @@ export default class GetNextActionCommand extends FlowCommand {
     }
     const gateRecoveryDisplay = target.stepId.endsWith("-gate")
       ? resolveGateRecoveryDisplayPhase({
+          root: ctx.root,
           flowState: state,
           stepId: target.stepId,
           maxAttempts: derived.maxAttempts,

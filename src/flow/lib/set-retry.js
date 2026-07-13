@@ -95,6 +95,7 @@ export default class SetRetryCommand extends FlowCommand {
           });
       const attemptsBefore = countFn(ctx.flowState?.metrics, p);
       const maxAttempts = resolveRecoveryMaxAttempts({
+        root: ctx.root,
         flowState: ctx.flowState,
         kind,
         phase: p,

@@ -15,8 +15,8 @@
  */
 
 import fs from "fs";
-import path from "path";
-import { specIdFromPath, STATE_FILE } from "../../lib/flow-helpers.js";
+import { specIdFromPath } from "../../lib/flow-helpers.js";
+import { flowStatePath } from "../../lib/flow-state-atomic-writer.js";
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 
 const MISSING_PREPARING_FLOW_STATE = Object.freeze({});
@@ -108,7 +108,7 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
   if (inWorktree && cwdState.worktree && mainRoot) {
     const specId = specIdFromPath(cwdState.spec);
     if (specId) {
-      const mainFlowPath = path.join(mainRoot, "specs", specId, STATE_FILE);
+      const mainFlowPath = flowStatePath(mainRoot, specId);
       if (fs.existsSync(mainFlowPath)) {
         const mainFm = baseFlowManager.forRoot(mainRoot, { specId });
         const mainState = mainFm.load(specId);

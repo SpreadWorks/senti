@@ -18,7 +18,6 @@ import {
 } from "../flow/definition.js";
 import { flattenSteps } from "../flow/lib/step-tree.js";
 
-export const STATE_FILE = "flow.json";
 export const ACTIVE_FLOW_FILE = ".active-flow";
 export const PREPARING_PREFIX = ".active-flow.";
 export const PREPARING_SCAN_LIMIT = 100;

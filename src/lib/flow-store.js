@@ -22,9 +22,9 @@ import {
   AtomicFlowStateWriter,
   FlowStateCreator,
   FlowStateRevision,
+  flowStatePath,
 } from "./flow-state-atomic-writer.js";
 import {
-  STATE_FILE,
   specIdFromPath,
   TASK_ORIGINS,
   TASK_STATUSES,
@@ -47,7 +47,7 @@ const DRAFT_REVIEW_ARTIFACT_REWRITES = new Map(
 );
 
 function specFlowPath(root, specId) {
-  return path.join(root, "specs", specId, STATE_FILE);
+  return flowStatePath(root, specId);
 }
 
 function specIdFromBranch(root) {

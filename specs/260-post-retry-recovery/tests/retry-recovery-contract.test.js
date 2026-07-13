@@ -1,6 +1,6 @@
 // spec: R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../tests/helpers/tmp-dir.js";
 import { makeFlowManager, setupFlow, setupFlowConfig } from "../../../tests/helpers/flow-setup.js";
+import { ProcessIdentitySource } from "../../../src/lib/process-identity.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), "..", "..", "..");
@@ -163,6 +164,40 @@ function runSenti(root, args) {
   }
 }
 
+function waitFor(predicate, message, timeoutMs = 5000) {
+  const started = Date.now();
+  return new Promise((resolve, reject) => {
+    const poll = () => {
+      if (predicate()) return resolve();
+      if (Date.now() - started >= timeoutMs) return reject(new Error(message));
+      setTimeout(poll, 10);
+    };
+    poll();
+  });
+}
+
+function spawnSenti(root, args, { importFile, env = {} } = {}) {
+  const nodeArgs = [...(importFile ? ["--import", importFile] : []), sentiBin, ...args];
+  const child = spawn(process.execPath, nodeArgs, {
+    cwd: repoRoot,
+    env: { ...process.env, ...env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stdout = "";
+  let stderr = "";
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => { stdout += chunk; });
+  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  return new Promise((resolve) => {
+    child.on("close", (status) => resolve({
+      status,
+      envelope: JSON.parse(stdout || "{}"),
+      stderr,
+    }));
+  });
+}
+
 function assertNoMutation(root, before) {
   assert.equal(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"), before.flow);
   assert.equal(fs.readFileSync(path.join(root, issueLogPath), "utf8"), before.issueLog);
@@ -196,6 +231,64 @@ describe("retry recovery contract", () => {
   const cleanup = [];
   afterEach(() => {
     while (cleanup.length > 0) removeTmpDir(cleanup.pop());
+  });
+
+  it("uses the recovery artifact as the sole committed-grant authority", async () => {
+    const { buildRecoveryEligibilityForState, resolveRecoveryMaxAttempts } = await loadRecovery();
+    const root = setupRecoveryFixture({ recovered: true });
+    cleanup.push(root);
+    const flow = readJson(root, `specs/${specId}/flow.json`);
+    flow.retryRecovery.entries[0].maxAttempts = 9;
+    const initialEligibility = buildRecoveryEligibilityForState({
+      root,
+      flowState: flow,
+      kind: "gate",
+      phase: "task-impl",
+      attempts: 3,
+      maxAttempts: 3,
+    });
+    flow.retryRecovery.entries[0].changedEvidence.currentHash = initialEligibility.changedEvidence.currentHash;
+    writeJson(root, `specs/${specId}/flow.json`, flow);
+
+    assert.equal(resolveRecoveryMaxAttempts({
+      root,
+      flowState: flow,
+      kind: "gate",
+      phase: "task-impl",
+      attempts: 3,
+      resolvedMax: 3,
+    }), 3);
+    assert.equal(buildRecoveryEligibilityForState({
+      root,
+      flowState: flow,
+      kind: "gate",
+      phase: "task-impl",
+      attempts: 3,
+      maxAttempts: 3,
+    }).reason, "changed-evidence");
+  });
+
+  it("propagates artifact authority through the CLI and rejects a missing root authority", async () => {
+    const { resolveRecoveryMaxAttempts } = await loadRecovery();
+    const root = setupRecoveryFixture({ recovered: true });
+    cleanup.push(root);
+    const flow = readJson(root, `specs/${specId}/flow.json`);
+    flow.retryRecovery.entries[0].maxAttempts = 9;
+    writeJson(root, `specs/${specId}/flow.json`, flow);
+
+    const result = runSenti(root, [
+      "flow", "set", "retry", "reset", "gate", "task-impl",
+      "--reason", reason, "--yes",
+    ]);
+    assert.equal(result.status, 0, JSON.stringify(result));
+    assert.equal(readJson(root, artifactPath).entries[0].status, "committed");
+    assert.throws(() => resolveRecoveryMaxAttempts({
+      flowState: flow,
+      kind: "gate",
+      phase: "task-impl",
+      attempts: 3,
+      resolvedMax: 3,
+    }), /root authority is required/);
   });
 
   it("R1: TC-4 TC-5 TC-6 TC-7 TC-8 TC-9 TC-10: command input validates before side effects", async () => {
@@ -274,8 +367,12 @@ describe("retry recovery contract", () => {
       const recovery = readJson(root, artifactPath);
       const issueLog = readJson(root, issueLogPath);
       assert.equal(flow.retryRecovery.entries.length, 1, `${item.kind}/${item.phase} writes one flow recovery entry`);
-      assert.equal(recovery.entries.length, 0, "legacy artifact stays byte-independent from the grant");
-      assert.equal(issueLog.entries.length, 0, "issue-log stays byte-independent from the grant");
+      assert.equal(recovery.entries.length, 1, "artifact records one durable grant");
+      assert.equal(recovery.entries[0].status, "committed");
+      assert.equal(recovery.entries[0].grant.kind, item.kind);
+      assert.equal(recovery.entries[0].grant.phase, item.phase);
+      assert.equal(issueLog.entries.length, 1, "issue-log records one durable grant");
+      assert.equal(issueLog.entries[0].grantId, recovery.entries[0].grantId);
       assert.equal(flow.retryRecovery.entries[0].kind, item.kind);
       assert.equal(flow.retryRecovery.entries[0].phase, item.phase);
       assert.equal(flow.retryRecovery.entries[0].counterAfter, 2);
@@ -509,7 +606,7 @@ describe("retry recovery contract", () => {
     assert.equal(missingBaseline.reason, "missing-baseline");
   });
 
-  it("R5: TC-17: unchanged exhausted reset is rejected by CLI without byte changes", () => {
+  it("R5: TC-17: unchanged exhausted reset records rejection without flow or issue-log changes", () => {
     const root = setupRecoveryFixture({
       activeStep: "spec-review",
       kind: "review",
@@ -533,30 +630,230 @@ describe("retry recovery contract", () => {
     assert.notEqual(result.status, 0);
     assert.equal(result.envelope.ok, false);
     assert.equal(result.envelope.errors[0].code, "UNCHANGED_EVIDENCE");
-    assertNoMutation(root, before);
+    assert.equal(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"), before.flow);
+    assert.equal(fs.readFileSync(path.join(root, issueLogPath), "utf8"), before.issueLog);
+    const artifact = readJson(root, artifactPath);
+    assert.equal(artifact.entries.length, 1);
+    assert.equal(artifact.entries[0].status, "rejected");
+    assert.equal(artifact.entries[0].rejection.code, "UNCHANGED_EVIDENCE");
   });
 
-  it("two CLI processes grant one recovery and the stale request has no side effects", () => {
+  it("two CLI processes released from the same pre-lock barrier commit exactly one grant", async () => {
     const root = setupRecoveryFixture();
     cleanup.push(root);
     const command = [
       "flow", "set", "retry", "reset", "gate", "task-impl",
       "--reason", reason, "--yes",
     ];
-
-    const winner = runSenti(root, command);
-    assert.equal(winner.status, 0, JSON.stringify(winner));
-    const afterWinner = snapshotRecoveryFiles(root);
-    const loser = runSenti(root, command);
-
-    assert.notEqual(loser.status, 0);
-    assert.ok(["RECOVERY_ALREADY_GRANTED", "STALE_RECOVERY_REQUEST"].includes(loser.envelope.errors[0].code));
-    assertNoMutation(root, afterWinner);
+    const barrierDir = path.join(root, ".retry-barrier");
+    const releasePath = path.join(barrierDir, "release");
+    const hookPath = path.join(root, "retry-barrier-hook.mjs");
+    fs.mkdirSync(barrierDir);
+    fs.writeFileSync(hookPath, `
+      import fs from "node:fs";
+      import path from "node:path";
+      import { RetryRecoveryOperationLock } from ${JSON.stringify(pathToFileURL(recoveryPath).href)};
+      const original = RetryRecoveryOperationLock.prototype.acquire;
+      RetryRecoveryOperationLock.prototype.acquire = function acquireWithBarrier(...args) {
+        const dir = process.env.RETRY_BARRIER_DIR;
+        fs.writeFileSync(path.join(dir, process.pid + ".ready"), "ready");
+        const release = path.join(dir, "release");
+        const deadline = Date.now() + 5000;
+        while (!fs.existsSync(release)) {
+          if (Date.now() >= deadline) throw new Error("retry barrier timed out");
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+        }
+        return original.apply(this, args);
+      };
+    `);
+    const childOptions = { importFile: hookPath, env: { RETRY_BARRIER_DIR: barrierDir } };
+    const first = spawnSenti(root, command, childOptions);
+    const second = spawnSenti(root, command, childOptions);
+    await waitFor(
+      () => fs.readdirSync(barrierDir).filter((name) => name.endsWith(".ready")).length === 2,
+      "both retry CLI processes must reach the pre-lock barrier",
+    );
+    fs.writeFileSync(releasePath, "release");
+    const results = await Promise.all([first, second]);
+    const winners = results.filter((result) => result.status === 0);
+    const losers = results.filter((result) => result.status !== 0);
+    assert.equal(winners.length, 1, JSON.stringify(results));
+    assert.equal(losers.length, 1, JSON.stringify(results));
+    assert.ok(
+      ["RECOVERY_OPERATION_BUSY", "RECOVERY_ALREADY_GRANTED"].includes(losers[0].envelope.errors[0].code),
+      JSON.stringify(losers[0]),
+    );
     const flow = readJson(root, `specs/${specId}/flow.json`);
     assert.equal(flow.retryRecovery.entries.length, 1);
+    const recovery = readJson(root, artifactPath);
+    const issueLog = readJson(root, issueLogPath);
+    assert.equal(recovery.entries.length, 1);
+    assert.equal(recovery.entries[0].status, "committed");
+    assert.equal(issueLog.entries.length, 1);
+    assert.equal(issueLog.entries[0].grantId, recovery.entries[0].grantId);
+    const grantMetrics = flow.metrics.slice(3);
+    assert.equal(grantMetrics.filter((metric) => metric.reset === true).length, 1);
+    assert.equal(grantMetrics.filter((metric) => metric.delta === 2).length, 1);
   });
 
-  it("flow state is the single crash-atomic recovery authority", () => {
+  it("pending recovery resumes idempotently after each durable crash phase", async () => {
+    const { RetryRecoveryInput, applyRetryRecoveryGrant, resolveRecoveryMaxAttempts } = await loadRecovery();
+    const phases = ["after-pending", "after-flow-commit", "after-issue-log"];
+    for (const phase of phases) {
+      const root = setupRecoveryFixture();
+      cleanup.push(root);
+      const input = new RetryRecoveryInput({
+        action: "reset",
+        kind: "gate",
+        phase: "task-impl",
+        reason,
+        yes: true,
+      });
+      assert.throws(() => applyRetryRecoveryGrant({
+        ...recoveryGrantRequest(root, input, { attempts: 3, maxAttempts: 3 }),
+        recoveryFaultInjector(event) {
+          if (event.phase === phase) throw new Error(`crash:${phase}`);
+        },
+      }), new RegExp(`crash:${phase}`));
+
+      const pending = readJson(root, artifactPath);
+      assert.equal(pending.entries.length, 1, phase);
+      assert.equal(pending.entries[0].status, "pending", phase);
+      const pendingFlow = readJson(root, `specs/${specId}/flow.json`);
+      assert.equal(resolveRecoveryMaxAttempts({
+        root,
+        flowState: pendingFlow,
+        kind: "gate",
+        phase: "task-impl",
+        attempts: 3,
+        resolvedMax: 5,
+      }), 3, `${phase}: pending request snapshot owns the in-flight budget`);
+      const next = runSenti(root, ["flow", "get", "next-action"]);
+      assert.equal(next.envelope.data.retryRecovery.recoveryReason, "recovery-resume-required", phase);
+
+      const resumed = applyRetryRecoveryGrant(
+        recoveryGrantRequest(root, input, { attempts: 3, maxAttempts: 3 }),
+      );
+      assert.equal(resumed.id, pending.entries[0].grantId, phase);
+      const artifact = readJson(root, artifactPath);
+      const issueLog = readJson(root, issueLogPath);
+      const flow = readJson(root, `specs/${specId}/flow.json`);
+      assert.equal(artifact.entries.length, 1, phase);
+      assert.equal(artifact.entries[0].status, "committed", phase);
+      assert.equal(issueLog.entries.filter((entry) => entry.grantId === resumed.id).length, 1, phase);
+      assert.equal(flow.retryRecovery.entries.filter((entry) => entry.id === resumed.id).length, 1, phase);
+    }
+  });
+
+  it("a crash after artifact commit reports already granted without duplicate append", async () => {
+    const { RetryRecoveryInput, applyRetryRecoveryGrant } = await loadRecovery();
+    const root = setupRecoveryFixture();
+    cleanup.push(root);
+    const input = new RetryRecoveryInput({
+      action: "reset",
+      kind: "gate",
+      phase: "task-impl",
+      reason,
+      yes: true,
+    });
+    assert.throws(() => applyRetryRecoveryGrant({
+      ...recoveryGrantRequest(root, input, { attempts: 3, maxAttempts: 3 }),
+      recoveryFaultInjector(event) {
+        if (event.phase === "after-artifact-commit") throw new Error("crash:after-artifact-commit");
+      },
+    }), /crash:after-artifact-commit/);
+    const before = snapshotRecoveryFiles(root);
+    const result = runSenti(root, [
+      "flow", "set", "retry", "reset", "gate", "task-impl",
+      "--reason", reason, "--yes",
+    ]);
+    assert.notEqual(result.status, 0);
+    assert.equal(result.envelope.errors[0].code, "RECOVERY_ALREADY_GRANTED");
+    assertNoMutation(root, before);
+  });
+
+  it("explicit retry claims a stale recovery owner while unknown and corrupt owners fail closed", async () => {
+    const { RetryRecoveryInput, RetryRecoveryOperationLock, applyRetryRecoveryGrant } = await loadRecovery();
+    const root = setupRecoveryFixture();
+    cleanup.push(root);
+    const input = new RetryRecoveryInput({
+      action: "reset",
+      kind: "gate",
+      phase: "task-impl",
+      reason,
+      yes: true,
+    });
+    assert.throws(() => applyRetryRecoveryGrant({
+      ...recoveryGrantRequest(root, input, { attempts: 3, maxAttempts: 3 }),
+      recoveryFaultInjector(event) {
+        if (event.phase === "after-pending") throw new Error("crash leaves pending");
+      },
+    }), /crash leaves pending/);
+
+    const lockPath = path.join(root, "specs", specId, ".retry-recovery.lock");
+    const owner = {
+      version: 1,
+      kind: "retry-recovery-operation",
+      root: path.resolve(root),
+      spec: specPath,
+      artifactPath: path.join(root, artifactPath),
+      processIdentity: {
+        pid: process.pid,
+        bootIdentity: "definitely-stale-boot",
+        startFingerprint: "1",
+        ownerToken: "11111111-1111-4111-8111-111111111111",
+      },
+    };
+    fs.writeFileSync(lockPath, `${JSON.stringify(owner)}\n`);
+    const resumed = runSenti(root, [
+      "flow", "set", "retry", "reset", "gate", "task-impl",
+      "--reason", reason, "--yes",
+    ]);
+    assert.equal(resumed.status, 0, JSON.stringify(resumed));
+    assert.equal(readJson(root, artifactPath).entries[0].status, "committed");
+
+    const secondRoot = setupRecoveryFixture();
+    cleanup.push(secondRoot);
+    const secondLockPath = path.join(secondRoot, "specs", specId, ".retry-recovery.lock");
+    const liveOwner = {
+      ...owner,
+      root: path.resolve(secondRoot),
+      artifactPath: path.join(secondRoot, artifactPath),
+      processIdentity: {
+        ...owner.processIdentity,
+        bootIdentity: "boot",
+        startFingerprint: "100",
+      },
+    };
+    fs.writeFileSync(secondLockPath, `${JSON.stringify(liveOwner)}\n`);
+    const unknownSource = new ProcessIdentitySource({
+      platform: "linux",
+      pid: process.pid,
+      readBootIdentity() { throw Object.assign(new Error("unavailable"), { code: "EACCES" }); },
+      readProcessStartFingerprint() { return "100"; },
+    });
+    const unknownLock = new RetryRecoveryOperationLock({
+      root: secondRoot,
+      spec: specPath,
+      processIdentitySource: unknownSource,
+    });
+    const unknownBefore = fs.readFileSync(secondLockPath);
+    assert.throws(
+      () => unknownLock.acquire(),
+      (error) => error.code === "RECOVERY_OPERATION_LOCK_UNKNOWN",
+    );
+    assert.deepEqual(fs.readFileSync(secondLockPath), unknownBefore);
+
+    fs.writeFileSync(secondLockPath, "{broken\n");
+    const corruptBefore = fs.readFileSync(secondLockPath);
+    assert.throws(
+      () => new RetryRecoveryOperationLock({ root: secondRoot, spec: specPath }).acquire(),
+      (error) => error.code === "RECOVERY_OPERATION_LOCK_CORRUPT",
+    );
+    assert.deepEqual(fs.readFileSync(secondLockPath), corruptBefore);
+  });
+
+  it("R6: R11: artifact authority commits before success and agrees with issue-log and flow", () => {
     const root = setupRecoveryFixture();
     cleanup.push(root);
     const before = snapshotRecoveryFiles(root);
@@ -568,11 +865,18 @@ describe("retry recovery contract", () => {
     assert.equal(result.status, 0, JSON.stringify(result));
     const after = snapshotRecoveryFiles(root);
     assert.notEqual(after.flow, before.flow);
-    assert.equal(after.recovery, before.recovery);
-    assert.equal(after.issueLog, before.issueLog);
+    assert.notEqual(after.recovery, before.recovery);
+    assert.notEqual(after.issueLog, before.issueLog);
     const flow = JSON.parse(after.flow);
+    const artifact = JSON.parse(after.recovery);
+    const issueLog = JSON.parse(after.issueLog);
     assert.equal(flow.retryRecovery.entries.length, 1);
     assert.equal(flow.retryRecovery.entries[0].reason, reason);
+    assert.equal(artifact.entries.length, 1);
+    assert.equal(artifact.entries[0].status, "committed");
+    assert.equal(artifact.entries[0].grant.id, flow.retryRecovery.entries[0].id);
+    assert.equal(issueLog.entries.length, 1);
+    assert.equal(issueLog.entries[0].grantId, artifact.entries[0].grantId);
   });
 
   it("R5: R6: R7: TC-18 TC-19 TC-20: granted recovery appends audit artifacts after eligibility succeeds", async () => {
@@ -629,8 +933,13 @@ describe("retry recovery contract", () => {
     assert.equal(entry.maxAttempts, 4);
     assert.equal(entry.counterAfter, 3);
     assert.equal(entry.recoveryCommand, `senti flow set retry reset gate task-impl --reason "${reason}" --yes`);
-    assert.deepEqual(readJson(root, artifactPath), { version: 1, entries: [] });
-    assert.deepEqual(readJson(root, issueLogPath), { entries: [] });
+    const artifact = readJson(root, artifactPath);
+    const issueLog = readJson(root, issueLogPath);
+    assert.equal(artifact.entries.length, 1);
+    assert.equal(artifact.entries[0].status, "committed");
+    assert.equal(artifact.entries[0].grant.id, entry.id);
+    assert.equal(issueLog.entries.length, 1);
+    assert.equal(issueLog.entries[0].grantId, artifact.entries[0].grantId);
     assert.equal(lastMetric.counter, "gateRetry");
     assert.equal(lastMetric.delta, 3);
     assert.ok(new Date(lastMetric.ts) >= new Date(entry.createdAt), "metrics are appended after artifact creation");
@@ -682,11 +991,14 @@ describe("retry recovery contract", () => {
     const recovery = readJson(root, `specs/${specId}/flow.json`).retryRecovery;
     assert.deepEqual(recovery.entries.map((entry) => entry.kind), ["gate", "gate"]);
     assert.ok(recovery.entries[0].createdAt < recovery.entries[1].createdAt);
-    assert.deepEqual(readJson(root, artifactPath), { version: 1, entries: [] });
-    assert.deepEqual(readJson(root, issueLogPath), { entries: [] });
+    const artifact = readJson(root, artifactPath);
+    const issueLog = readJson(root, issueLogPath);
+    assert.deepEqual(artifact.entries.map((record) => record.status), ["committed", "committed"]);
+    assert.deepEqual(artifact.entries.map((record) => record.grant.kind), ["gate", "gate"]);
+    assert.deepEqual(issueLog.entries.map((entry) => entry.grantId), artifact.entries.map((record) => record.grantId));
   });
 
-  it("rolls artifact, issue-log, and flow bytes back when the atomic flow save fails", async () => {
+  it("marks the artifact rejected and leaves issue-log and flow bytes unchanged when flow save fails", async () => {
     const {
       ChangedEvidenceSummary,
       RetryRecoveryInput,
@@ -711,7 +1023,86 @@ describe("retry recovery contract", () => {
       },
     })), /injected flow save failure/);
 
-    assertNoMutation(root, before);
+    assert.equal(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"), before.flow);
+    assert.equal(fs.readFileSync(path.join(root, issueLogPath), "utf8"), before.issueLog);
+    const artifact = readJson(root, artifactPath);
+    assert.equal(artifact.entries.length, 1);
+    assert.equal(artifact.entries[0].status, "rejected");
+    assert.match(artifact.entries[0].rejection.message, /injected flow save failure/);
+  });
+
+  it("rejects a symlinked issue-log authority before mutation and releases the operation lock", async () => {
+    const { RetryRecoveryInput, applyRetryRecoveryGrant } = await loadRecovery();
+    const root = setupRecoveryFixture();
+    cleanup.push(root);
+    const external = createTmpDir("retry-recovery-external-issue-log-");
+    cleanup.push(external);
+    const externalIssueLog = path.join(external, "issue-log.json");
+    fs.writeFileSync(externalIssueLog, '{"entries":[]}\n');
+    const localIssueLog = path.join(root, issueLogPath);
+    fs.unlinkSync(localIssueLog);
+    fs.symlinkSync(externalIssueLog, localIssueLog);
+    const before = {
+      flow: fs.readFileSync(path.join(root, `specs/${specId}/flow.json`)),
+      artifact: fs.readFileSync(path.join(root, artifactPath)),
+      issueLog: fs.readFileSync(localIssueLog),
+      external: fs.readFileSync(externalIssueLog),
+    };
+    const input = new RetryRecoveryInput({
+      action: "reset",
+      kind: "gate",
+      phase: "task-impl",
+      reason,
+      yes: true,
+    });
+
+    assert.throws(
+      () => applyRetryRecoveryGrant(recoveryGrantRequest(root, input, { attempts: 3, maxAttempts: 3 })),
+      /JSON authority must be a regular real file/,
+    );
+    assert.deepEqual(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`)), before.flow);
+    assert.deepEqual(fs.readFileSync(path.join(root, artifactPath)), before.artifact);
+    assert.deepEqual(fs.readFileSync(localIssueLog), before.issueLog);
+    assert.deepEqual(fs.readFileSync(externalIssueLog), before.external);
+    assert.equal(fs.lstatSync(localIssueLog).isSymbolicLink(), true);
+    assert.equal(fs.existsSync(path.join(root, "specs", specId, ".retry-recovery.lock")), false);
+
+    fs.unlinkSync(localIssueLog);
+    fs.writeFileSync(localIssueLog, '{"entries":[]}\n');
+    const grant = applyRetryRecoveryGrant(
+      recoveryGrantRequest(root, input, { attempts: 3, maxAttempts: 3 }),
+    );
+    assert.equal(readJson(root, artifactPath).entries[0].status, "committed");
+    assert.equal(readJson(root, issueLogPath).entries[0].grantId, grant.id);
+    assert.deepEqual(fs.readFileSync(externalIssueLog), before.external);
+  });
+
+  it("direct recovery grant before exhaustion is rejected durably without flow or issue-log changes", async () => {
+    const { RetryRecoveryInput, applyRetryRecoveryGrant } = await loadRecovery();
+    const root = setupRecoveryFixture({
+      attempts: 2,
+      maxAttempts: 3,
+      baselineHash: "a".repeat(64),
+    });
+    cleanup.push(root);
+    const before = snapshotRecoveryFiles(root);
+    const input = new RetryRecoveryInput({
+      action: "reset",
+      kind: "gate",
+      phase: "task-impl",
+      reason,
+      yes: true,
+    });
+    assert.throws(
+      () => applyRetryRecoveryGrant(recoveryGrantRequest(root, input, { attempts: 2, maxAttempts: 3 })),
+      (error) => error.code === "RETRY_NOT_EXHAUSTED",
+    );
+    assert.equal(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"), before.flow);
+    assert.equal(fs.readFileSync(path.join(root, issueLogPath), "utf8"), before.issueLog);
+    const artifact = readJson(root, artifactPath);
+    assert.equal(artifact.entries.length, 1);
+    assert.equal(artifact.entries[0].status, "rejected");
+    assert.equal(artifact.entries[0].rejection.code, "RETRY_NOT_EXHAUSTED");
   });
 
   it("R6: requirement verification exposes the full recovery audit entry schema", async () => {
@@ -1041,8 +1432,12 @@ describe("retry recovery contract", () => {
     assert.equal(artifact.counterAfter, 4);
     assert.equal(artifact.createdAt, "2026-05-18T00:00:05.000Z");
     assert.equal(artifact.recoveryCommand, command);
-    assert.deepEqual(readJson(root, artifactPath), { version: 1, entries: [] });
-    assert.deepEqual(readJson(root, issueLogPath), { entries: [] });
+    const recoveryRecord = readJson(root, artifactPath).entries.at(-1);
+    const issueEntry = readJson(root, issueLogPath).entries.at(-1);
+    assert.equal(recoveryRecord.status, "committed");
+    assert.equal(recoveryRecord.grant.id, artifact.id);
+    assert.equal(issueEntry.grantId, recoveryRecord.grantId);
+    assert.equal(issueEntry.id, artifact.id);
     assert.equal(view.recoveryCommand, command);
   });
 

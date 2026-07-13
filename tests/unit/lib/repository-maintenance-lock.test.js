@@ -125,4 +125,45 @@ describe("repository maintenance lock", () => {
     assert.deepEqual(fs.readFileSync(flowPath), before);
     maintenance.release();
   });
+
+  it("rejects symlink, non-directory, and replaced .senti authorities without external writes", () => {
+    for (const Lock of [RepositoryMaintenanceLock, RepositoryFlowOperationLock]) {
+      const external = createTmpDir("repository-lock-external-");
+      const sentinel = path.join(external, "sentinel");
+      fs.writeFileSync(sentinel, "unchanged");
+      try {
+        const symlinkRoot = createTmpDir("repository-lock-symlink-");
+        fs.symlinkSync(external, path.join(symlinkRoot, ".senti"), "dir");
+        assert.throws(
+          () => new Lock({ mainRoot: symlinkRoot }).acquire(),
+          (error) => error.code === "REPOSITORY_LOCK_AUTHORITY_INVALID",
+        );
+        assert.deepEqual(fs.readdirSync(external), ["sentinel"]);
+        removeTmpDir(symlinkRoot);
+
+        const fileRoot = createTmpDir("repository-lock-file-");
+        fs.writeFileSync(path.join(fileRoot, ".senti"), "not-a-directory");
+        assert.throws(
+          () => new Lock({ mainRoot: fileRoot }).acquire(),
+          (error) => error.code === "REPOSITORY_LOCK_AUTHORITY_INVALID",
+        );
+        assert.equal(fs.readFileSync(path.join(fileRoot, ".senti"), "utf8"), "not-a-directory");
+        removeTmpDir(fileRoot);
+
+        const replacementRoot = createTmpDir("repository-lock-replaced-");
+        fs.mkdirSync(path.join(replacementRoot, ".senti"));
+        const lock = new Lock({ mainRoot: replacementRoot });
+        fs.renameSync(path.join(replacementRoot, ".senti"), path.join(replacementRoot, ".senti-original"));
+        fs.symlinkSync(external, path.join(replacementRoot, ".senti"), "dir");
+        assert.throws(
+          () => lock.acquire(),
+          (error) => error.code === "REPOSITORY_LOCK_AUTHORITY_INVALID",
+        );
+        assert.deepEqual(fs.readdirSync(external), ["sentinel"]);
+        removeTmpDir(replacementRoot);
+      } finally {
+        removeTmpDir(external);
+      }
+    }
+  });
 });

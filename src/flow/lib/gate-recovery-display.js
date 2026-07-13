@@ -19,12 +19,13 @@ export class GateRecoveryDisplayPhase {
   }
 }
 
-export function resolveGateRecoveryDisplayPhase({ flowState, stepId, maxAttempts }) {
+export function resolveGateRecoveryDisplayPhase({ root = null, flowState, stepId, maxAttempts }) {
   const phases = getFlowNode(stepId)?.gatePhase;
   const gatePhases = Array.isArray(phases) ? phases : [];
   for (const phase of gatePhases) {
     const attempts = countGateRetry(flowState.metrics, phase);
     const max = resolveRecoveryMaxAttempts({
+      root,
       flowState,
       kind: "gate",
       phase,
@@ -40,6 +41,7 @@ export function resolveGateRecoveryDisplayPhase({ flowState, stepId, maxAttempts
   if (!fallbackPhase) return null;
   const attempts = countGateRetry(flowState.metrics, fallbackPhase);
   const max = resolveRecoveryMaxAttempts({
+    root,
     flowState,
     kind: "gate",
     phase: fallbackPhase,

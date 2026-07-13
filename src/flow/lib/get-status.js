@@ -157,6 +157,7 @@ function buildStatusReviewViews(state, active, root) {
   if (resolvedMaxAttempts == null) return null;
   const attempts = countReviewRetry(state.metrics, reviewPhase);
   const recoveryMaxAttempts = resolveRecoveryMaxAttempts({
+    root,
     flowState: state,
     kind: "review",
     phase: reviewPhase,
@@ -209,6 +210,7 @@ function buildStatusGateViews(state, active, root) {
   const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
   if (resolvedMaxAttempts == null) return null;
   const gateRecoveryDisplay = resolveGateRecoveryDisplayPhase({
+    root,
     flowState: state,
     stepId: active.id,
     maxAttempts: resolvedMaxAttempts,

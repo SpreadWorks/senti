@@ -1037,18 +1037,6 @@ export async function discoverFlowCommandHooks(root = repoRoot()) {
   return plans.sort((a, b) => a.priority - b.priority || a.pluginId.localeCompare(b.pluginId) || a.module.localeCompare(b.module));
 }
 
-export function writeFlowCommandHookSnapshot(flowPath, plans) {
-  const state = readJson(flowPath);
-  state.plugins = state.plugins && typeof state.plugins === "object" ? state.plugins : {};
-  state.plugins.flowCommandHooks = plans.map((plan) => ({ ...plan }));
-  writeJson(flowPath, state);
-}
-
-export function loadFlowCommandHookSnapshot(flowPath) {
-  const state = readJson(flowPath);
-  return Array.isArray(state.plugins?.flowCommandHooks) ? state.plugins.flowCommandHooks : [];
-}
-
 function pluginConfigFor(root, pluginId) {
   try {
     return loadConfig(root).plugin?.config?.[pluginId] || {};

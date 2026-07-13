@@ -18,7 +18,8 @@ import { FlowStore } from "./flow-store.js";
 import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
-import { STATE_FILE, SCAN_FLOWS_LIMIT, PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
+import { SCAN_FLOWS_LIMIT, PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
+import { flowStatePath } from "./flow-state-atomic-writer.js";
 import { FlowTargetExpectation } from "./flow-target-guard.js";
 import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 
@@ -372,7 +373,7 @@ export class FlowManager {
       for (const entry of fs.readdirSync(specsDir, { withFileTypes: true })) {
         if (!entry.isDirectory() || !/^\d{3}-/.test(entry.name)) continue;
         if (results.length >= SCAN_FLOWS_LIMIT) { truncated = true; break; }
-        const fp = path.join(specsDir, entry.name, STATE_FILE);
+        const fp = flowStatePath(mainRoot, entry.name);
         if (fs.existsSync(fp)) {
           const state = JSON.parse(fs.readFileSync(fp, "utf8"));
           const mode = state.worktree ? "worktree" : (state.featureBranch && state.featureBranch !== state.baseBranch) ? "branch" : "local";
@@ -398,7 +399,7 @@ export class FlowManager {
               for (const entry of fs.readdirSync(wtSpecs, { withFileTypes: true })) {
                 if (!entry.isDirectory()) continue;
                 if (results.length >= SCAN_FLOWS_LIMIT) { truncated = true; break outer; }
-                const fp = path.join(wtSpecs, entry.name, STATE_FILE);
+                const fp = flowStatePath(wtPath, entry.name);
                 if (fs.existsSync(fp)) {
                   const state = JSON.parse(fs.readFileSync(fp, "utf8"));
                   results.push(new FlowScanEntry({ specId: entry.name, mode: "worktree", state, location: wtPath }));

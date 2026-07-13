@@ -74,6 +74,21 @@
       "trigger": "sdd-forge flow run finalize --mode all",
       "resolution": "rebase main in worktree to resolve",
       "timestamp": "2026-04-13T12:55:11.870Z"
+    },
+    {
+      "step": "contract-supersession",
+      "reason": "The original transparent runId migration and automatic 24-hour preparing-record deletion requirements are formally superseded; the historical spec remains unchanged as the audit source.",
+      "trigger": "Candidate6 direct audit of the current flow-state authority contract",
+      "resolution": "Current tests require read paths to remain byte-identical, runId-selected commands to preserve exact target identity, and aged preparing records to remain discoverable until an explicit lifecycle operation removes them.",
+      "evidence": [
+        "Issue #429 established read-only flow-state loading without transparent mutation.",
+        "Issue #431 established runId target guards and exact selected-record identity.",
+        "Issue #433 established preparing-record TTL preservation rather than age-based deletion.",
+        "The alpha policy removes obsolete compatibility behavior instead of retaining transparent migration paths.",
+        "The user invariant for this audit explicitly supersedes transparent migration and 24-hour cleanup while preserving the original spec as historical evidence."
+      ],
+      "testReplacement": "The scenario test was replaced because its former expectations required side effects now forbidden by the authoritative read no-mutation and target-identity contracts; replacement assertions strengthen byte equality, explicit runId inheritance, unrelated-record preservation, and aged-record discoverability.",
+      "timestamp": "2026-07-13T08:30:00.000Z"
     }
   ]
 }

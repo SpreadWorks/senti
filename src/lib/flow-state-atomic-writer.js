@@ -12,6 +12,8 @@ const LOCK_KIND = "flow-state-writer";
 const MAX_TEMP_ATTEMPTS = 3;
 const MAX_LOCK_BYTES = 64 * 1024;
 
+export const STATE_FILE = "flow.json";
+
 export { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
 
 function serializeState(state) {
@@ -59,6 +61,11 @@ function assertBoundSpecId(boundSpecId) {
   ) {
     throw authorityError("atomic flow state replacement requires a bound specId");
   }
+}
+
+export function flowStatePath(root, boundSpecId) {
+  assertBoundSpecId(boundSpecId);
+  return path.join(path.resolve(root), "specs", boundSpecId, STATE_FILE);
 }
 
 function assertRealDirectory(directory, label) {
@@ -160,7 +167,7 @@ export class FlowStatePathAuthority {
     this.spec = `specs/${boundSpecId}/spec.json`;
     this.specsDirectory = path.join(this.root, "specs");
     this.specDirectory = path.join(this.specsDirectory, boundSpecId);
-    this.statePath = path.join(this.specDirectory, "flow.json");
+    this.statePath = flowStatePath(this.root, boundSpecId);
     this.lockPath = path.join(this.specDirectory, ".flow.json.writer.lock");
     assertRealDirectory(this.specsDirectory, "specs directory");
     assertRealDirectory(this.specDirectory, "spec directory");
@@ -687,15 +694,16 @@ export class AtomicFlowStateWriter {
   } = {}) {
     if (typeof mutator !== "function") throw new Error("flow state mutator must be a function");
     return this.#replace((current) => {
+      const currentRevision = new FlowStateRevision(current);
       const expectedOriginal = parseState(current, this.pathAuthority.statePath);
       const nextState = structuredClone(expectedOriginal);
-      mutator(nextState);
+      mutator(nextState, { revisionDigest: currentRevision.digest });
       validateState(nextState, this.pathAuthority.statePath);
       return new FlowStateWriteAuthority({
         pathAuthority: this.pathAuthority,
         expectedOriginal,
         nextState,
-        expectedRevision: new FlowStateRevision(current),
+        expectedRevision: currentRevision,
         allowIssueTransition,
       });
     }, onFailure, passThroughError);

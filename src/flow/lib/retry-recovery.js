@@ -7,10 +7,16 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
+import { flowStatePath } from "../../lib/flow-state-atomic-writer.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
+import { ProcessIdentitySource } from "../../lib/process-identity.js";
+import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
+import { specIdFromPath } from "../../lib/flow-helpers.js";
 
 export const RECOVERY_REASON_MIN_LENGTH = 20;
 export const RECOVERY_REASON_MAX_LENGTH = 500;
+export const RECOVERY_ARTIFACT_FILE = "retry-recovery.json";
 
 const RECOVERY_ARTIFACT_VERSION = 1;
 const PERMITTED_REEVALUATION_COUNT = 1;
@@ -190,9 +196,22 @@ function appendRecoveryBaseline(state, baseline) {
   state.reviewRecoveryBaselines.push(baseline.toJSON());
 }
 
-export function resolveRecoveryMaxAttempts({ flowState, kind, phase, attempts, resolvedMax }) {
+function loadAuthoritativeRecoveryArtifact(root, flowState) {
+  if (typeof root !== "string" || root.trim() === "") {
+    throw new Error("retry recovery root authority is required");
+  }
+  if (typeof flowState?.spec !== "string" || flowState.spec.trim() === "") {
+    throw new Error("retry recovery spec authority is required");
+  }
+  return readRecoveryArtifact(new AtomicJsonFile(retryRecoveryArtifactPath(root, flowState.spec)));
+}
+
+export function resolveRecoveryMaxAttempts({ root, flowState, kind, phase, attempts, resolvedMax }) {
   const target = resolveRecoveryTarget(kind, phase);
-  const recovery = latestMatchingRecovery(flowState?.retryRecovery?.entries, kind, target.canonicalPhase);
+  const artifact = loadAuthoritativeRecoveryArtifact(root, flowState);
+  // Pending requests freeze the in-flight budget; only committed grants govern later attempts.
+  if (artifact.pending) return Math.max(1, artifact.pending.request.maxAttempts);
+  const recovery = artifact.latestCommitted(kind, target.canonicalPhase)?.grant ?? null;
   if (Number.isSafeInteger(recovery?.maxAttempts) && recovery.maxAttempts > 0) {
     return recovery.maxAttempts;
   }
@@ -606,7 +625,8 @@ export function buildRecoveryEligibilityForState({ root, flowState, kind, phase,
         })
       : null,
   });
-  const latest = latestMatchingRecovery(flowState.retryRecovery?.entries, kind, target.canonicalPhase);
+  const latest = loadAuthoritativeRecoveryArtifact(root, flowState)
+    .latestCommitted(kind, target.canonicalPhase)?.grant;
   if (
     eligibility.recoverable === true
     && latest?.changedEvidence?.currentHash === eligibility.changedEvidence?.currentHash
@@ -622,7 +642,21 @@ export function buildRecoveryEligibilityForState({ root, flowState, kind, phase,
 
 export function buildStateRetryRecoveryView({ root, flowState, kind, phase, attempts, max, reason }) {
   const target = resolveRecoveryTarget(kind, phase);
-  const latest = latestMatchingRecovery(flowState.retryRecovery?.entries, kind, target.canonicalPhase);
+  const artifact = loadAuthoritativeRecoveryArtifact(root, flowState);
+  if (artifact.pending) {
+    return buildRetryRecoveryView({
+      kind,
+      phase,
+      canonicalPhase: target.canonicalPhase,
+      attempts,
+      max,
+      recoveryPossible: false,
+      recoveryReason: "recovery-resume-required",
+      changedEvidence: artifact.pending.request.changedEvidence,
+      reason: artifact.pending.request.reason,
+    });
+  }
+  const latest = artifact.latestCommitted(kind, target.canonicalPhase)?.grant ?? null;
   if (latest && attempts < max) {
     return buildRetryRecoveryView({
       kind,
@@ -690,6 +724,432 @@ export class RetryRecoveryGrantError extends Error {
     this.code = code;
     this.data = data;
   }
+}
+
+function recoveryLockError(status, message, data = {}) {
+  const code = {
+    live: "RECOVERY_OPERATION_BUSY",
+    stale: "RECOVERY_OPERATION_LOCK_STALE",
+    unknown: "RECOVERY_OPERATION_LOCK_UNKNOWN",
+    corrupt: "RECOVERY_OPERATION_LOCK_CORRUPT",
+    "authority-invalid": "RECOVERY_OPERATION_AUTHORITY_INVALID",
+    "ownership-changed": "RECOVERY_OPERATION_OWNERSHIP_CHANGED",
+  }[status] || "RECOVERY_OPERATION_LOCK_FAILED";
+  return new RetryRecoveryGrantError(code, message, data);
+}
+
+export class RetryRecoveryOperationLock {
+  constructor({ root, spec, processIdentitySource = new ProcessIdentitySource() }) {
+    const specDir = path.dirname(path.resolve(root, spec));
+    this.core = new ProcessOwnedLock({
+      directoryAuthority: new RealDirectoryAuthority(specDir, {
+        errorFactory: (status, message, data) => recoveryLockError(status, message, data),
+      }),
+      fileName: ".retry-recovery.lock",
+      kind: "retry-recovery-operation",
+      authority: {
+        root: path.resolve(root),
+        spec,
+        artifactPath: path.join(specDir, RECOVERY_ARTIFACT_FILE),
+      },
+      processIdentitySource,
+      errorFactory: (status, message, data) => recoveryLockError(status, message, data),
+    });
+  }
+
+  acquire() {
+    return this.core.acquire({ claimStale: true });
+  }
+
+  release() {
+    this.core.release();
+  }
+}
+
+class RetryRecoveryRequestSnapshot {
+  constructor(input = {}) {
+    this.runId = requireString(input.runId, "runId");
+    this.spec = requireString(input.spec, "spec");
+    this.hasIssue = input.hasIssue === true;
+    this.issue = this.hasIssue ? Number(input.issue) : null;
+    this.kind = requireString(input.kind, "kind");
+    this.phase = requireString(input.phase, "phase");
+    this.canonicalPhase = requireString(input.canonicalPhase, "canonicalPhase");
+    this.reason = requireString(input.reason, "reason");
+    this.attempts = requireSafeInteger(input.attempts, "attempts");
+    this.maxAttempts = requireSafeInteger(input.maxAttempts, "maxAttempts");
+    this.changedEvidence = input.changedEvidence
+      ? (input.changedEvidence instanceof ChangedEvidenceSummary
+        ? input.changedEvidence
+        : new ChangedEvidenceSummary(input.changedEvidence))
+      : null;
+    Object.freeze(this);
+  }
+
+  matchesInput(input) {
+    return this.kind === input.kind
+      && this.phase === input.phase
+      && this.reason === input.reason;
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      spec: this.spec,
+      hasIssue: this.hasIssue,
+      issue: this.issue,
+      kind: this.kind,
+      phase: this.phase,
+      canonicalPhase: this.canonicalPhase,
+      reason: this.reason,
+      attempts: this.attempts,
+      maxAttempts: this.maxAttempts,
+      changedEvidence: this.changedEvidence?.toJSON() ?? null,
+    };
+  }
+}
+
+export class RetryRecoveryRecord {
+  constructor(input = {}) {
+    this.grantId = requireString(input.grantId, "grantId");
+    if (!["pending", "committed", "rejected"].includes(input.status)) {
+      throw new Error(`invalid retry recovery record status: ${input.status}`);
+    }
+    this.status = input.status;
+    this.fingerprint = requireString(input.fingerprint, "fingerprint");
+    this.expectedFlowRevision = requireString(input.expectedFlowRevision, "expectedFlowRevision");
+    this.request = input.request instanceof RetryRecoveryRequestSnapshot
+      ? input.request
+      : new RetryRecoveryRequestSnapshot(input.request || {});
+    this.grant = input.grant
+      ? (input.grant instanceof RetryRecoveryEntry ? input.grant : new RetryRecoveryEntry(input.grant))
+      : null;
+    this.rejection = input.rejection == null
+      ? null
+      : {
+          code: requireString(input.rejection.code, "rejection.code"),
+          message: requireString(input.rejection.message, "rejection.message"),
+        };
+    this.createdAt = requireString(input.createdAt, "createdAt");
+    this.updatedAt = requireString(input.updatedAt || input.createdAt, "updatedAt");
+    if (this.status === "committed" && this.grant == null) {
+      throw new Error("committed retry recovery record requires a grant");
+    }
+    if (this.status === "rejected" && this.rejection == null) {
+      throw new Error("rejected retry recovery record requires rejection details");
+    }
+  }
+
+  withStatus(status, { rejection = null, updatedAt = new Date().toISOString() } = {}) {
+    return new RetryRecoveryRecord({
+      ...this.toJSON(),
+      status,
+      rejection,
+      updatedAt,
+    });
+  }
+
+  toJSON() {
+    return {
+      grantId: this.grantId,
+      status: this.status,
+      fingerprint: this.fingerprint,
+      expectedFlowRevision: this.expectedFlowRevision,
+      request: this.request.toJSON(),
+      grant: this.grant?.toJSON() ?? null,
+      rejection: this.rejection,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+}
+
+class RetryRecoveryArtifact {
+  constructor(value = {}) {
+    if (value.version !== RECOVERY_ARTIFACT_VERSION || !Array.isArray(value.entries)) {
+      throw new Error(`Invalid ${RECOVERY_ARTIFACT_FILE}`);
+    }
+    this.entries = value.entries.map((entry) => new RetryRecoveryRecord(entry));
+  }
+
+  get pending() {
+    for (let index = this.entries.length - 1; index >= 0; index -= 1) {
+      if (this.entries[index].status === "pending") return this.entries[index];
+    }
+    return null;
+  }
+
+  append(record) {
+    this.entries.push(record);
+  }
+
+  replace(record) {
+    const index = this.entries.findIndex((entry) => entry.grantId === record.grantId);
+    if (index < 0) throw new Error(`retry recovery record is missing: ${record.grantId}`);
+    this.entries[index] = record;
+  }
+
+  latestCommitted(kind, canonicalPhase) {
+    for (let index = this.entries.length - 1; index >= 0; index -= 1) {
+      const record = this.entries[index];
+      if (
+        record.status === "committed"
+        && record.request.kind === kind
+        && record.request.canonicalPhase === canonicalPhase
+      ) return record;
+    }
+    return null;
+  }
+
+  toJSON() {
+    return {
+      version: RECOVERY_ARTIFACT_VERSION,
+      entries: this.entries.map((entry) => entry.toJSON()),
+    };
+  }
+}
+
+function retryRecoveryArtifactPath(root, spec) {
+  return path.join(path.dirname(path.resolve(root, spec)), RECOVERY_ARTIFACT_FILE);
+}
+
+function readRecoveryArtifact(store) {
+  return new RetryRecoveryArtifact(store.read({ version: RECOVERY_ARTIFACT_VERSION, entries: [] }));
+}
+
+export function loadRetryRecoveryArtifact(root, spec) {
+  const store = new AtomicJsonFile(retryRecoveryArtifactPath(root, spec));
+  return readRecoveryArtifact(store).toJSON();
+}
+
+function recoveryFingerprint({ request, expectedFlowRevision }) {
+  return crypto.createHash("sha256")
+    .update(JSON.stringify({ request: request.toJSON(), expectedFlowRevision }))
+    .digest("hex");
+}
+
+function flowRevision(root, spec) {
+  const specId = specIdFromPath(spec);
+  if (!specId) throw new Error(`retry recovery spec path is invalid: ${spec}`);
+  const statePath = flowStatePath(root, specId);
+  const content = fs.readFileSync(statePath);
+  return {
+    digest: crypto.createHash("sha256").update(content).digest("hex"),
+    statePath,
+  };
+}
+
+function currentObservation({ root, spec, flowManager, recoveryInput, resolveConfiguredMaxAttempts }) {
+  const specId = specIdFromPath(spec);
+  const flowState = flowManager.loadReadOnly(specId);
+  if (!flowState) throw new Error(`retry recovery flow state is unavailable: ${spec}`);
+  const revision = flowRevision(root, spec);
+  const attempts = countRetry(flowState.metrics, recoveryInput.kind, recoveryInput.canonicalPhase);
+  const configuredMax = resolveConfiguredMaxAttempts(flowState, recoveryInput.canonicalPhase);
+  const maxAttempts = resolveRecoveryMaxAttempts({
+    root,
+    flowState,
+    kind: recoveryInput.kind,
+    phase: recoveryInput.canonicalPhase,
+    attempts,
+    resolvedMax: configuredMax,
+  });
+  const eligibility = buildRecoveryEligibilityForState({
+    root,
+    flowState,
+    kind: recoveryInput.kind,
+    phase: recoveryInput.phase,
+    attempts,
+    maxAttempts,
+  });
+  const request = new RetryRecoveryRequestSnapshot({
+    runId: flowState.runId,
+    spec: flowState.spec,
+    hasIssue: Object.hasOwn(flowState, "issue"),
+    issue: flowState.issue,
+    kind: recoveryInput.kind,
+    phase: recoveryInput.phase,
+    canonicalPhase: recoveryInput.canonicalPhase,
+    reason: recoveryInput.reason,
+    attempts,
+    maxAttempts,
+    changedEvidence: eligibility.changedEvidence || null,
+  });
+  return { flowState, revision, attempts, maxAttempts, eligibility, request };
+}
+
+function assertExpectedRequest(input, observation, recoveryInput) {
+  const sameIssue = input.expectedHasIssue === Object.hasOwn(observation.flowState, "issue")
+    && (!input.expectedHasIssue || Number(input.expectedIssue) === Number(observation.flowState.issue));
+  if (
+    input.expectedRunId !== observation.flowState.runId
+    || input.spec !== observation.flowState.spec
+    || !sameIssue
+  ) {
+    throw retryRequestError(
+      "STALE_RECOVERY_REQUEST",
+      recoveryInput,
+      observation.attempts,
+      observation.maxAttempts,
+      "target-identity-changed",
+    );
+  }
+  if (
+    input.expectedAttempts !== observation.attempts
+    || input.expectedMaxAttempts !== observation.maxAttempts
+  ) {
+    throw retryRequestError(
+      "STALE_RECOVERY_REQUEST",
+      recoveryInput,
+      observation.attempts,
+      observation.maxAttempts,
+      "retry-budget-changed",
+    );
+  }
+}
+
+function hasFlowGrant(flowState, grantId) {
+  return Array.isArray(flowState.retryRecovery?.entries)
+    && flowState.retryRecovery.entries.some((entry) => entry?.id === grantId);
+}
+
+function buildPendingRecord(observation, recoveryInput, createdAt) {
+  const grantId = `recovery-${crypto.randomUUID()}`;
+  const grant = (
+    observation.eligibility.recoverable === true
+    && observation.attempts >= observation.maxAttempts
+    && observation.eligibility.changedEvidence
+  )
+    ? new RetryRecoveryEntry({
+        id: grantId,
+        kind: recoveryInput.kind,
+        phase: recoveryInput.phase,
+        canonicalPhase: recoveryInput.canonicalPhase,
+        reason: recoveryInput.reason,
+        changedEvidence: observation.eligibility.changedEvidence,
+        permittedReevaluationCount: PERMITTED_REEVALUATION_COUNT,
+        attemptsBefore: observation.attempts,
+        maxAttempts: observation.maxAttempts,
+        counterAfter: Math.max(0, observation.maxAttempts - 1),
+        recoveryCommand: recoveryCommandFor(recoveryInput),
+        createdAt,
+      })
+    : null;
+  const fingerprint = recoveryFingerprint({
+    request: observation.request,
+    expectedFlowRevision: observation.revision.digest,
+  });
+  return new RetryRecoveryRecord({
+    grantId,
+    status: "pending",
+    fingerprint,
+    expectedFlowRevision: observation.revision.digest,
+    request: observation.request,
+    grant,
+    rejection: null,
+    createdAt,
+    updatedAt: createdAt,
+  });
+}
+
+class RetryRecoveryIssueLog {
+  constructor(value = {}) {
+    if (!Array.isArray(value.entries)) {
+      throw new Error('Invalid issue-log.json: "entries" must be an array');
+    }
+    this.entries = value.entries;
+  }
+
+  append(record) {
+    if (this.entries.some((entry) => entry?.grantId === record.grantId)) return false;
+    this.entries.push({
+      step: "retry-recovery",
+      grantId: record.grantId,
+      ...record.grant.toJSON(),
+      timestamp: record.grant.createdAt,
+    });
+    return true;
+  }
+
+  toJSON() {
+    return { entries: this.entries };
+  }
+}
+
+function readRecoveryIssueLog(store) {
+  return new RetryRecoveryIssueLog(store.read({ entries: [] }));
+}
+
+function appendRecoveryIssueLog({ store, issueLog, record }) {
+  if (issueLog.append(record)) store.write(issueLog.toJSON());
+}
+
+function emitRecoveryPhase(input, phase, record) {
+  if (typeof input.recoveryFaultInjector === "function") {
+    input.recoveryFaultInjector({ phase, record: record.toJSON() });
+  }
+}
+
+function applyNormalRetryReset({ input, flowManager, recoveryInput, observation }) {
+  flowManager.mutate((flowState, writerContext) => {
+    assertFreshRecoveryTarget(flowState, recoveryInput, {
+      runId: observation.request.runId,
+      spec: observation.request.spec,
+      hasIssue: observation.request.hasIssue,
+      issue: observation.request.issue,
+    });
+    if (writerContext.revisionDigest !== observation.revision.digest) {
+      throw retryRequestError(
+        "STALE_RECOVERY_REQUEST",
+        recoveryInput,
+        observation.attempts,
+        observation.maxAttempts,
+        "flow-revision-changed",
+      );
+    }
+    const attempts = countRetry(flowState.metrics, recoveryInput.kind, recoveryInput.canonicalPhase);
+    const configuredMax = input.resolveConfiguredMaxAttempts(flowState, recoveryInput.canonicalPhase);
+    const maxAttempts = resolveRecoveryMaxAttempts({
+      root: input.root,
+      flowState,
+      kind: recoveryInput.kind,
+      phase: recoveryInput.canonicalPhase,
+      attempts,
+      resolvedMax: configuredMax,
+    });
+    if (
+      attempts !== observation.attempts
+      || maxAttempts !== observation.maxAttempts
+      || attempts >= maxAttempts
+    ) {
+      throw retryRequestError(
+        "STALE_RECOVERY_REQUEST",
+        recoveryInput,
+        attempts,
+        maxAttempts,
+        "retry-budget-changed",
+      );
+    }
+    flowState.metrics = Array.isArray(flowState.metrics) ? flowState.metrics : [];
+    flowState.metrics.push({
+      phase: recoveryInput.canonicalPhase,
+      counter: counterForKind(recoveryInput.kind),
+      delta: 0,
+      reset: true,
+      taskId: null,
+      ts: new Date().toISOString(),
+    });
+    if (typeof input.afterReset === "function") input.afterReset(flowState);
+  }, {
+    faultInjector: input.faultInjector,
+    passThroughError: (error) => error instanceof RetryRecoveryGrantError,
+  });
+  return {
+    grant: null,
+    attemptsBefore: observation.attempts,
+    maxAttempts: observation.maxAttempts,
+    counterAfter: 0,
+  };
 }
 
 function inProgressStepIds(steps, out = []) {
@@ -768,136 +1228,229 @@ export function applyRetryReset(input = {}) {
   const recoveryInput = input.input instanceof RetryRecoveryInput
     ? input.input
     : new RetryRecoveryInput(input.input || {});
-  const expectedAttempts = requireSafeInteger(input.expectedAttempts, "expectedAttempts");
-  const expectedMaxAttempts = requireSafeInteger(input.expectedMaxAttempts, "expectedMaxAttempts");
-  const expected = {
-    runId: requireString(input.expectedRunId, "expectedRunId"),
+  requireSafeInteger(input.expectedAttempts, "expectedAttempts");
+  requireSafeInteger(input.expectedMaxAttempts, "expectedMaxAttempts");
+  requireString(input.expectedRunId, "expectedRunId");
+  const operation = new RetryRecoveryOperationLock({
+    root,
     spec,
-    hasIssue: input.expectedHasIssue === true,
-    issue: input.expectedHasIssue === true ? Number(input.expectedIssue) : null,
-  };
-  let result;
-  flowManager.mutate((flowState) => {
-    assertFreshRecoveryTarget(flowState, recoveryInput, expected);
-    const attemptsBefore = countRetry(
-      flowState.metrics,
-      recoveryInput.kind,
-      recoveryInput.canonicalPhase,
-    );
-    const configuredMax = input.resolveConfiguredMaxAttempts(flowState, recoveryInput.canonicalPhase);
-    const maxAttempts = resolveRecoveryMaxAttempts({
-      flowState,
-      kind: recoveryInput.kind,
-      phase: recoveryInput.canonicalPhase,
-      attempts: attemptsBefore,
-      resolvedMax: configuredMax,
+    processIdentitySource: input.processIdentitySource,
+  });
+  operation.acquire();
+  try {
+    const artifactStore = new AtomicJsonFile(retryRecoveryArtifactPath(root, spec), {
+      faultInjector: input.artifactFaultInjector,
     });
-    const latest = latestMatchingRecovery(
-      flowState.retryRecovery?.entries,
-      recoveryInput.kind,
-      recoveryInput.canonicalPhase,
+    const artifact = readRecoveryArtifact(artifactStore);
+    const issueLogStore = new AtomicJsonFile(
+      path.join(path.dirname(path.resolve(root, spec)), "issue-log.json"),
+      { faultInjector: input.issueLogFaultInjector },
     );
-    if (attemptsBefore !== expectedAttempts || maxAttempts !== expectedMaxAttempts) {
-      const pending = latest && attemptsBefore === latest.counterAfter;
-      throw retryRequestError(
-        pending ? "RECOVERY_ALREADY_GRANTED" : "STALE_RECOVERY_REQUEST",
-        recoveryInput,
-        attemptsBefore,
-        maxAttempts,
-        pending ? "recovery-already-granted" : "retry-budget-changed",
-      );
-    }
-    if (latest && attemptsBefore === latest.counterAfter) {
-      throw retryRequestError(
-        "RECOVERY_ALREADY_GRANTED",
-        recoveryInput,
-        attemptsBefore,
-        maxAttempts,
-        "recovery-already-granted",
-      );
-    }
+    const issueLog = readRecoveryIssueLog(issueLogStore);
+    const observation = currentObservation({
+      root,
+      spec,
+      flowManager,
+      recoveryInput,
+      resolveConfiguredMaxAttempts: input.resolveConfiguredMaxAttempts,
+    });
 
-    flowState.metrics = Array.isArray(flowState.metrics) ? flowState.metrics : [];
-    if (attemptsBefore < maxAttempts) {
-      if (input.requireExhausted === true) {
+    let record = artifact.pending;
+    if (record) {
+      if (!record.request.matchesInput(recoveryInput)) {
         throw retryRequestError(
-          "RETRY_NOT_EXHAUSTED",
+          "RECOVERY_RESUME_REQUIRED",
           recoveryInput,
-          attemptsBefore,
-          maxAttempts,
-          "retry-not-exhausted",
+          observation.attempts,
+          observation.maxAttempts,
+          `pending-grant:${record.grantId}`,
         );
       }
-      flowState.metrics.push({
-        phase: recoveryInput.canonicalPhase,
-        counter: counterForKind(recoveryInput.kind),
-        delta: 0,
-        reset: true,
-        taskId: null,
-        ts: new Date().toISOString(),
-      });
-      if (typeof input.afterReset === "function") input.afterReset(flowState);
-      result = { grant: null, attemptsBefore, maxAttempts, counterAfter: 0 };
-      return;
+    } else {
+      assertExpectedRequest(input, observation, recoveryInput);
+      const committed = artifact.latestCommitted(recoveryInput.kind, recoveryInput.canonicalPhase);
+      if (
+        committed
+        && committed.grant
+        && hasFlowGrant(observation.flowState, committed.grantId)
+        && observation.attempts === committed.grant.counterAfter
+      ) {
+        throw retryRequestError(
+          "RECOVERY_ALREADY_GRANTED",
+          recoveryInput,
+          observation.attempts,
+          observation.maxAttempts,
+          "recovery-already-granted",
+        );
+      }
+      if (observation.attempts < observation.maxAttempts && input.requireExhausted !== true) {
+        return applyNormalRetryReset({ input, flowManager, recoveryInput, observation });
+      }
+      const createdAt = requireString(input.createdAt || new Date().toISOString(), "createdAt");
+      record = buildPendingRecord(observation, recoveryInput, createdAt);
+      artifact.append(record);
+      artifactStore.write(artifact.toJSON());
+      emitRecoveryPhase(input, "after-pending", record);
     }
 
-    const eligibility = buildRecoveryEligibilityForState({
-      root,
-      flowState,
-      kind: recoveryInput.kind,
-      phase: recoveryInput.phase,
-      attempts: attemptsBefore,
-      maxAttempts,
-    });
-    if (eligibility.recoverable !== true) {
-      const code = eligibility.reason === "recovery-already-granted"
-        ? "RECOVERY_ALREADY_GRANTED"
-        : String(eligibility.reason || "recovery-not-eligible").replace(/-/g, "_").toUpperCase();
-      throw retryRequestError(
-        code,
-        recoveryInput,
-        attemptsBefore,
-        maxAttempts,
-        eligibility.reason,
-      );
+    let fresh = flowManager.loadReadOnly(specIdFromPath(spec));
+    if (!hasFlowGrant(fresh, record.grantId)) {
+      try {
+        flowManager.mutate((flowState, writerContext) => {
+          const expected = {
+            runId: record.request.runId,
+            spec: record.request.spec,
+            hasIssue: record.request.hasIssue,
+            issue: record.request.issue,
+          };
+          assertFreshRecoveryTarget(flowState, recoveryInput, expected);
+          if (writerContext.revisionDigest !== record.expectedFlowRevision) {
+            throw retryRequestError(
+              "STALE_RECOVERY_REQUEST",
+              recoveryInput,
+              record.request.attempts,
+              record.request.maxAttempts,
+              "flow-revision-changed",
+            );
+          }
+          const attemptsBefore = countRetry(flowState.metrics, recoveryInput.kind, recoveryInput.canonicalPhase);
+          const configuredMax = input.resolveConfiguredMaxAttempts(flowState, recoveryInput.canonicalPhase);
+          const maxAttempts = resolveRecoveryMaxAttempts({
+            root,
+            flowState,
+            kind: recoveryInput.kind,
+            phase: recoveryInput.canonicalPhase,
+            attempts: attemptsBefore,
+            resolvedMax: configuredMax,
+          });
+          if (attemptsBefore !== record.request.attempts || maxAttempts !== record.request.maxAttempts) {
+            throw retryRequestError(
+              "STALE_RECOVERY_REQUEST",
+              recoveryInput,
+              attemptsBefore,
+              maxAttempts,
+              "retry-budget-changed",
+            );
+          }
+          flowState.metrics = Array.isArray(flowState.metrics) ? flowState.metrics : [];
+          if (attemptsBefore < maxAttempts) {
+            if (input.requireExhausted === true) {
+              throw retryRequestError(
+                "RETRY_NOT_EXHAUSTED",
+                recoveryInput,
+                attemptsBefore,
+                maxAttempts,
+                "retry-not-exhausted",
+              );
+            }
+            flowState.metrics.push({
+              phase: recoveryInput.canonicalPhase,
+              counter: counterForKind(recoveryInput.kind),
+              delta: 0,
+              reset: true,
+              taskId: null,
+              ts: new Date().toISOString(),
+            });
+            if (typeof input.afterReset === "function") input.afterReset(flowState);
+            return;
+          }
+          const eligibility = buildRecoveryEligibilityForState({
+            root,
+            flowState,
+            kind: recoveryInput.kind,
+            phase: recoveryInput.phase,
+            attempts: attemptsBefore,
+            maxAttempts,
+          });
+          const currentRequest = new RetryRecoveryRequestSnapshot({
+            ...record.request.toJSON(),
+            attempts: attemptsBefore,
+            maxAttempts,
+            changedEvidence: eligibility.changedEvidence || null,
+          });
+          const currentFingerprint = recoveryFingerprint({
+            request: currentRequest,
+            expectedFlowRevision: writerContext.revisionDigest,
+          });
+          if (currentFingerprint !== record.fingerprint) {
+            throw retryRequestError(
+              "STALE_RECOVERY_REQUEST",
+              recoveryInput,
+              attemptsBefore,
+              maxAttempts,
+              "recovery-fingerprint-changed",
+            );
+          }
+          if (eligibility.recoverable !== true || record.grant == null) {
+            const code = eligibility.reason === "recovery-already-granted"
+              ? "RECOVERY_ALREADY_GRANTED"
+              : String(eligibility.reason || "recovery-not-eligible").replace(/-/g, "_").toUpperCase();
+            throw retryRequestError(code, recoveryInput, attemptsBefore, maxAttempts, eligibility.reason);
+          }
+          const entries = Array.isArray(flowState.retryRecovery?.entries)
+            ? flowState.retryRecovery.entries
+            : [];
+          flowState.retryRecovery = {
+            version: RECOVERY_ARTIFACT_VERSION,
+            entries: [...entries, record.grant.toJSON()],
+          };
+          for (const metric of buildOneAttemptGrantMetrics({
+            counter: counterForKind(recoveryInput.kind),
+            phase: recoveryInput.canonicalPhase,
+            maxAttempts,
+          })) {
+            flowState.metrics.push({ ...metric, taskId: null, ts: new Date().toISOString() });
+          }
+          if (typeof input.afterReset === "function") input.afterReset(flowState);
+        }, {
+          faultInjector: input.faultInjector,
+          passThroughError: (error) => error instanceof RetryRecoveryGrantError,
+        });
+      } catch (error) {
+        fresh = flowManager.loadReadOnly(specIdFromPath(spec));
+        if (!hasFlowGrant(fresh, record.grantId)) {
+          record = record.withStatus("rejected", {
+            rejection: {
+              code: error.code || "FLOW_MUTATION_FAILED",
+              message: error.message || String(error),
+            },
+          });
+          artifact.replace(record);
+          artifactStore.write(artifact.toJSON());
+        }
+        throw error;
+      }
+      fresh = flowManager.loadReadOnly(specIdFromPath(spec));
+      if (record.grant == null) {
+        return {
+          grant: null,
+          attemptsBefore: record.request.attempts,
+          maxAttempts: record.request.maxAttempts,
+          counterAfter: 0,
+        };
+      }
+      emitRecoveryPhase(input, "after-flow-commit", record);
     }
 
-    const entries = Array.isArray(flowState.retryRecovery?.entries)
-      ? flowState.retryRecovery.entries
-      : [];
-    const createdAt = requireString(input.createdAt || new Date().toISOString(), "createdAt");
-    const entry = new RetryRecoveryEntry({
-      id: `recovery-${String(entries.length + 1).padStart(3, "0")}`,
-      kind: recoveryInput.kind,
-      phase: recoveryInput.phase,
-      canonicalPhase: recoveryInput.canonicalPhase,
-      reason: recoveryInput.reason,
-      changedEvidence: eligibility.changedEvidence,
-      permittedReevaluationCount: PERMITTED_REEVALUATION_COUNT,
-      attemptsBefore,
-      maxAttempts,
-      counterAfter: Math.max(0, maxAttempts - 1),
-      recoveryCommand: recoveryCommandFor(recoveryInput),
-      createdAt,
+    appendRecoveryIssueLog({
+      store: issueLogStore,
+      issueLog,
+      record,
     });
-    flowState.retryRecovery = {
-      version: RECOVERY_ARTIFACT_VERSION,
-      entries: [...entries, entry.toJSON()],
+    emitRecoveryPhase(input, "after-issue-log", record);
+    record = record.withStatus("committed");
+    artifact.replace(record);
+    artifactStore.write(artifact.toJSON());
+    emitRecoveryPhase(input, "after-artifact-commit", record);
+    return {
+      grant: record.grant,
+      attemptsBefore: record.request.attempts,
+      maxAttempts: record.request.maxAttempts,
+      counterAfter: record.grant.counterAfter,
     };
-    for (const metric of buildOneAttemptGrantMetrics({
-      counter: counterForKind(recoveryInput.kind),
-      phase: recoveryInput.canonicalPhase,
-      maxAttempts,
-    })) {
-      flowState.metrics.push({ ...metric, taskId: null, ts: new Date().toISOString() });
-    }
-    if (typeof input.afterReset === "function") input.afterReset(flowState);
-    result = { grant: entry, attemptsBefore, maxAttempts, counterAfter: entry.counterAfter };
-  }, {
-    faultInjector: input.faultInjector,
-    passThroughError: (error) => error instanceof RetryRecoveryGrantError,
-  });
-  return result;
+  } finally {
+    operation.release();
+  }
 }
 
 export function applyRetryRecoveryGrant(input = {}) {
