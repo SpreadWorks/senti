@@ -277,6 +277,34 @@
       "taskId": null,
       "timestamp": "2026-07-13T09:30:00Z",
       "issueLogId": "issue-441-spec253-issue-log-release-error-preservation"
+    },
+    {
+      "step": "test",
+      "issue": 441,
+      "reason": "Two finalize recovery fixtures relied on a duplicate active-flow registration silently ignoring a conflicting mode after setup had already registered the worktree flow.",
+      "trigger": "Candidate9 registry mode invariant combined finalize regression.",
+      "resolution": "The fixtures now explicitly remove the helper-created entry and register the scenario's real worktree mode; all recovery assertions remain intact and the direct different-mode conflict test remains authoritative.",
+      "guardrailCandidate": "Recovery fixtures must seed one unambiguous active-flow mode and must not depend on duplicate registration to overwrite or ignore conflicting authority.",
+      "taskId": null,
+      "timestamp": "2026-07-13T12:30:00Z",
+      "issueLogId": "issue-441-spec253-active-flow-mode-fixture-correction"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Both cherry-pick conflict paths invoked `git cherry-pick --abort` but discarded its result. An abort failure was therefore reported as a restored CHERRY_PICK_CONFLICT and detached rescue could proceed into automatic cleanup without preserving the in-progress Git authority.",
+      "trigger": "Candidate9 source-level audit of every auto-rescue Git mutation and result.",
+      "resolution": "Auto-rescue outcome and cleanup journal v2 now retain the exact abort Git result. Conflict and empty-patch skip failures both produce a primary-first AggregateError ordered as CHERRY_PICK_CONFLICT then CHERRY_PICK_ABORT_FAILED, durably publish phase abort-failed, and stop before ref update or automatic worktree cleanup. A retry reads that journal, performs cleanup only without replaying cherry-pick or abort, and removes the journal after verified cleanup.",
+      "guardrailCandidate": "A failed compensating Git mutation must be checked, preserved after the primary failure, and journaled before any later Git mutation; recovery may resume only from the durable authority.",
+      "testEvidence": {
+        "red": "/tmp/flow-441-candidate9-auto-rescue-abort-result-red.log",
+        "targetedGreen": "/tmp/flow-441-candidate9-auto-rescue-abort-result-green.log",
+        "autoRescueGreen": "/tmp/flow-441-candidate9-auto-rescue-full-after-abort-result.log",
+        "finalizeSubsetGreen": "/tmp/flow-441-candidate9-finalize-manifest-subset-after-abort-result.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T14:10:00Z",
+      "issueLogId": "issue-441-candidate9-auto-rescue-abort-authority"
     }
   ]
 }

@@ -78,12 +78,22 @@ function normalizedMemberExpression(expression) {
 
 function expressionIsSinkCapability(expression, state) {
   const normalized = normalizedMemberExpression(expression);
+  const wrapper = /^(.*)\.(?:call|bind)\([^)]*\)$/.exec(normalized);
+  if (wrapper) return expressionIsSinkCapability(wrapper[1], state);
+  const invocationWrapper = /^(.*)\.(?:call|bind)$/.exec(normalized);
+  if (invocationWrapper) return expressionIsSinkCapability(invocationWrapper[1], state);
   if (state.aliases.has(normalized) || state.properties.has(normalized)) return true;
   const member = /^([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)$/.exec(normalized);
-  return Boolean(
+  if (
     member
     && state.namespaces.has(member[1])
-    && sinkApis.has(member[2]),
+    && sinkApis.has(member[2])
+  ) return true;
+  const promisesMember = /^([A-Za-z_$][\w$]*)\.promises\.([A-Za-z_$][\w$]*)$/.exec(normalized);
+  return Boolean(
+    promisesMember
+    && state.namespaces.has(promisesMember[1])
+    && sinkApis.has(promisesMember[2]),
   );
 }
 
@@ -109,6 +119,11 @@ function collectSinkCapabilities(source) {
   while (changed) {
     changed = false;
     for (const match of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([^;\n]+)\s*;/g)) {
+      const namespace = normalizedMemberExpression(match[2]);
+      if (state.namespaces.has(namespace) && !state.namespaces.has(match[1])) {
+        state.namespaces.add(match[1]);
+        changed = true;
+      }
       if (expressionIsSinkCapability(match[2], state) && !state.aliases.has(match[1])) {
         state.aliases.add(match[1]);
         changed = true;
@@ -245,8 +260,65 @@ function callExpressions(source) {
   );
 }
 
+function callbackCapability(expression, capabilities) {
+  const normalized = normalizedMemberExpression(expression);
+  const direct = capabilities.get(normalized);
+  if (direct) return direct;
+  const bound = /^(.*)\.bind\((.*)\)$/.exec(normalized);
+  if (bound) {
+    const base = callbackCapability(bound[1], capabilities);
+    if (!base) return null;
+    const boundArguments = argumentsAt(`(${bound[2]})`, 0);
+    return {
+      callbackIndex: base.callbackIndex,
+      pathArgumentIndex: Math.max(0, base.pathArgumentIndex - Math.max(0, boundArguments.length - 1)),
+    };
+  }
+  const called = /^(.*)\.call$/.exec(normalized);
+  if (called) {
+    const base = callbackCapability(called[1], capabilities);
+    return base && {
+      callbackIndex: base.callbackIndex,
+      pathArgumentIndex: base.pathArgumentIndex + 1,
+    };
+  }
+  const binding = /^(.*)\.bind$/.exec(normalized);
+  return binding ? callbackCapability(binding[1], capabilities) : null;
+}
+
 function callbackBridges(source) {
   const bridges = [];
+  const collect = (name, parameters, body) => {
+    const capabilities = new Map(parameters.map((parameter, callbackIndex) => [
+      parameter,
+      { callbackIndex, pathArgumentIndex: 0 },
+    ]));
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const assignment of body.matchAll(
+        /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([^;]+)\s*;/g,
+      )) {
+        const capability = callbackCapability(assignment[2], capabilities);
+        if (capability && !capabilities.has(assignment[1])) {
+          capabilities.set(assignment[1], capability);
+          changed = true;
+        }
+      }
+    }
+    for (const call of callExpressions(body)) {
+      const capability = callbackCapability(call[1], capabilities);
+      if (!capability) continue;
+      const openParen = call.index + call[0].lastIndexOf("(");
+      const calledArguments = argumentsAt(body, openParen);
+      for (let pathIndex = 0; pathIndex < parameters.length; pathIndex += 1) {
+        if (pathIndex === capability.callbackIndex) continue;
+        if (identifierAppears(calledArguments[capability.pathArgumentIndex] || "", parameters[pathIndex])) {
+          bridges.push({ name, callbackIndex: capability.callbackIndex, pathIndex });
+        }
+      }
+    }
+  };
   const functions = balancedBlocks(
     source,
     /\b(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g,
@@ -255,18 +327,26 @@ function callbackBridges(source) {
     const header = /function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/.exec(block.header);
     if (!header) continue;
     const parameters = header[2].split(",").map((parameter) => parameter.trim());
-    for (const call of callExpressions(block.body)) {
-      const callbackIndex = parameters.indexOf(normalizedMemberExpression(call[1]));
-      if (callbackIndex === -1) continue;
-      const openParen = call.index + call[0].lastIndexOf("(");
-      const calledArguments = argumentsAt(block.body, openParen);
-      for (let pathIndex = 0; pathIndex < parameters.length; pathIndex += 1) {
-        if (pathIndex === callbackIndex) continue;
-        if (identifierAppears(calledArguments[0] || "", parameters[pathIndex])) {
-          bridges.push({ name: header[1], callbackIndex, pathIndex });
-        }
-      }
-    }
+    collect(header[1], parameters, block.body);
+  }
+  const blockArrows = balancedBlocks(
+    source,
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>\s*\{/g,
+  );
+  for (const block of blockArrows) {
+    const header = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?\(([^)]*)\)/.exec(block.header);
+    if (!header) continue;
+    collect(
+      header[1],
+      header[2].split(",").map((parameter) => parameter.trim()),
+      block.body,
+    );
+  }
+  for (const arrow of source.matchAll(
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>\s*([^;\n]+)/g,
+  )) {
+    if (arrow[3].trim().startsWith("{")) continue;
+    collect(arrow[1], arrow[2].split(",").map((parameter) => parameter.trim()), arrow[3]);
   }
   return bridges;
 }
@@ -280,7 +360,9 @@ function directFlowStateSinks(filePath) {
   for (const match of callExpressions(source)) {
     if (!expressionIsSinkCapability(match[1], capabilities)) continue;
     const openParen = match.index + match[0].lastIndexOf("(");
-    const [argument = ""] = argumentsAt(source, openParen);
+    const calledArguments = argumentsAt(source, openParen);
+    const argumentIndex = /\.call$/.test(normalizedMemberExpression(match[1])) ? 1 : 0;
+    const argument = calledArguments[argumentIndex] || "";
     if (expressionIsFlowPath(argument, paths)) {
       findings.push(`${path.relative(repoRoot, filePath)}: ${normalizedMemberExpression(match[1])}(${argument.trim()}`);
     }
@@ -376,6 +458,77 @@ const capabilityFixtures = new Map([
     const target = flowStatePath(root, id);
     function invoke(callback, output) { callback(output, "callback"); }
     invoke(fs.writeFileSync, target);
+  `],
+  ["promises-member", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    await fs.promises.writeFile(target, "promises");
+  `],
+  ["namespace-reassignment", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    const io = fs;
+    io.writeFileSync(target, "namespace alias");
+  `],
+  ["function-call", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    fs.writeFileSync.call(fs, target, "call");
+  `],
+  ["bound-capability", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    const persist = fs.writeFileSync.bind(fs);
+    persist(target, "bind");
+  `],
+  ["arrow-callback-reference", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    const invoke = (callback, output) => callback(output, "callback");
+    invoke(fs.writeFileSync, target);
+  `],
+  ["multiline-block-arrow-callback", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    const invoke = (callback, output) => {
+      callback(output, "multiline");
+    };
+    invoke(fs.writeFileSync, target);
+  `],
+  ["async-arrow-promises-call", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    const invoke = async (callback, output) => {
+      await callback.call(null, output, "async-call");
+    };
+    await invoke(fs.promises.writeFile, target);
+  `],
+  ["multiline-bound-callback-alias", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    const invoke = (callback, output) => {
+      const persist = callback.bind(null);
+      persist(output, "bound-alias");
+    };
+    invoke(fs.writeFileSync, target);
+  `],
+  ["async-promises-call-bind-alias", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    const invoke = async (callback, output) => {
+      const persist = callback.call.bind(callback, null);
+      await persist(output, "call-bind-alias");
+    };
+    await invoke(fs.promises.writeFile, target);
   `],
 ]);
 

@@ -76,6 +76,7 @@ function hasOtherFlowMetadataWarning(result, relPath) {
 function makeFlowState(specId, overrides = {}) {
   return {
     spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: `feature/${specId}`,
     worktree: true,

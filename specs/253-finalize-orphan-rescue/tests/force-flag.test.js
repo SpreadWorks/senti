@@ -22,18 +22,17 @@ describe("R10: --force forces deletion with audit log", () => {
       "FORCED_ORPHAN_DROP warning code required",
     );
   });
-  it("R10: --force path proceeds to branch deletion (calls branch -D after warning)", () => {
+  it("R10: --force path proceeds to old-OID compare-and-swap branch deletion", () => {
     const src = readCleanupSrc();
-    assert.ok(
-      src.includes("branch -D") || src.includes('"branch", "-D"') || src.includes("'-D'"),
-      "branch deletion call must remain reachable on --force path",
-    );
+    assert.ok(src.includes('"update-ref", "-d", ref, expectedSha'), "branch deletion must use expected-OID CAS");
+    assert.ok(src.includes("assertCommitReachableFromBase"), "branch deletion must retain base reachability validation");
   });
   it("R10: --force path persists audit log with droppedCommits metadata", () => {
     const src = readCleanupSrc();
     assert.ok(src.includes("FORCED_ORPHAN_DROP"), "FORCED_ORPHAN_DROP block must exist");
     assert.ok(src.includes("droppedCommits,"), "--force path must record dropped commits to audit log");
-    assert.ok(src.includes("appendIssueLog(auditTarget"), "--force audit must use the shared append boundary");
+    assert.ok(src.includes("appendForcedFinalizeAudit"), "--force audit must use the durable authorization boundary");
+    assert.ok(src.includes("appendIssueLog(root, state.spec"), "--force audit must use the shared append boundary");
     assert.ok(src.includes('finalizeAuditId("forced-orphan-drop"'), "--force audit must use a stable id");
   });
 });
@@ -61,7 +60,7 @@ describe("R15: per-code mandatory audit log policy", () => {
     const forcedBlock = src.match(/FORCED_ORPHAN_DROP[\s\S]{0,2000}/);
     assert.ok(forcedBlock, "FORCED_ORPHAN_DROP block must exist");
     assert.ok(
-      src.includes("appendIssueLog(auditTarget"),
+      src.includes("appendIssueLog(root, state.spec"),
       "FORCED_ORPHAN_DROP must use the shared append boundary",
     );
     assert.ok(src.includes("CHERRY_PICK_CONFLICT"), "CHERRY_PICK_CONFLICT block must exist");

@@ -493,7 +493,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
 
     // Clean stale active-flow registry entries before creating a new flow.
-    flowManager.cleanStaleFlows();
+    flowManager.cleanStaleFlows({ operationOwnerToken });
 
     const changed = [
       `specs/${specDirName}/spec.json`,
@@ -517,7 +517,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       writeSpecFiles();
       await writeFlowState({ worktree: true });
       runDocsScanAndValidate(specRoot);
-      flowManager.addActiveFlow(specDirName, "worktree");
+      flowManager.addActiveFlow(specDirName, "worktree", { operationOwnerToken });
       lines.push(
         `created worktree: ${worktreePath}`,
         `created branch: ${branchName} (from ${resolvedBase})`,
@@ -531,7 +531,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       writeSpecFiles();
       await writeFlowState();
       runDocsScanAndValidate(specRoot);
-      flowManager.addActiveFlow(specDirName, "local");
+      flowManager.addActiveFlow(specDirName, "local", { operationOwnerToken });
       lines.push(
         ...createdFileLines,
         "",
@@ -543,7 +543,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       writeSpecFiles();
       await writeFlowState();
       runDocsScanAndValidate(specRoot);
-      flowManager.addActiveFlow(specDirName, "branch");
+      flowManager.addActiveFlow(specDirName, "branch", { operationOwnerToken });
       lines.push(
         `created branch: ${branchName} (from ${resolvedBase})`,
         ...createdFileLines,

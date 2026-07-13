@@ -70,6 +70,12 @@
       "resolution": "Recorded R1-R5 changed-file mappings so gate artifact validation can verify diff coverage.",
       "taskId": null,
       "timestamp": "2026-05-29T01:13:36.471Z"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "The concurrent-flow fixture omitted runId. After making it current, its staged-other-flow cases exposed that finalize recorded the full index tree rather than the pathspec commit tree. Added current flow identity and retained the staged/unstaged isolation assertions; production now builds the expected parent/pathspec tree in an isolated temporary index.",
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "issueLogId": "candidate9-fixture-268-pathspec-authority"
     }
   ]
 }

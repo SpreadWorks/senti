@@ -31,6 +31,15 @@ const fs = require("fs");
 const path = require("path");
 const args = process.argv.slice(2);
 const logPath = process.env.FAKE_GIT_LOG;
+const statePath = process.env.FAKE_GIT_STATE;
+const parentOid = "1111111111111111111111111111111111111111";
+const featureOid = "2222222222222222222222222222222222222222";
+const treeOid = "3333333333333333333333333333333333333333";
+const commitOid = "4444444444444444444444444444444444444444";
+let authority = fs.existsSync(statePath)
+  ? JSON.parse(fs.readFileSync(statePath, "utf8"))
+  : { committed: false, feature: true, worktree: true };
+function saveAuthority() { fs.writeFileSync(statePath, JSON.stringify(authority)); }
 
 let rest = args.slice();
 let cTarget = null;
@@ -59,10 +68,36 @@ function boundedText(text) {
   return text;
 }
 
-if (rest[0] === "add" || rest[0] === "commit") exitOk();
-if (rest[0] === "worktree" && rest[1] === "list") exitOk("");
-if (rest[0] === "branch" && rest[1] === "--list") exitOk("");
-if (rest[0] === "branch" && rest[1] === "-D") exitOk();
+if (rest[0] === "symbolic-ref") exitOk("refs/heads/main\\n");
+if (rest[0] === "read-tree") exitOk();
+if (rest[0] === "write-tree") exitOk(treeOid + "\\n");
+if (rest[0] === "rev-parse") {
+  const value = rest[rest.length - 1];
+  if (value === "HEAD") exitOk((cTarget && cTarget.endsWith("worktree") ? featureOid : authority.committed ? commitOid : parentOid) + "\\n");
+  if (value === "main") exitOk((authority.committed ? commitOid : parentOid) + "\\n");
+  if (value.includes("feature/submodule-cleanup")) exitOk(featureOid + "\\n");
+}
+if (rest[0] === "show") {
+  const format = rest.find((arg) => arg.startsWith("--format=")) || "";
+  if (format === "--format=%P") exitOk(parentOid + "\\n");
+  if (format === "--format=%T") exitOk(treeOid + "\\n");
+  if (format === "--format=%B") exitOk("chore: finalize 291-submodule-worktree-cleanup\\n");
+}
+if (rest[0] === "merge-base") exitOk();
+if (rest[0] === "show-ref") authority.feature ? exitOk(featureOid + "\\n") : exitFail();
+if (rest[0] === "add") exitOk();
+if (rest[0] === "commit") { authority.committed = true; saveAuthority(); exitOk(); }
+if (rest[0] === "worktree" && rest[1] === "list") {
+  if (authority.worktree) exitOk("worktree " + cTarget + "\\nbranch refs/heads/feature/submodule-cleanup\\n");
+  exitOk("");
+}
+if (rest[0] === "branch" && rest[1] === "--list") exitOk(authority.feature ? "  feature/submodule-cleanup\\n" : "");
+if (rest[0] === "update-ref" && rest[1] === "-d") {
+  if (!authority.feature || rest[rest.length - 1] !== featureOid) exitFail("expected OID mismatch\\n");
+  authority.feature = false;
+  saveAuthority();
+  exitOk();
+}
 
 if (rest[0] === "status" && rest.includes("--porcelain")) {
   const inSubmodule = cTarget && cTarget.endsWith(path.join("vendor", "sub"));
@@ -115,6 +150,8 @@ if (rest[0] === "worktree" && rest[1] === "remove") {
     exitFail("fatal: force remove failed " + "z".repeat(5000) + "\\n");
   }
   removeTarget(target);
+  authority.worktree = false;
+  saveAuthority();
   exitOk(boundedText(""));
 }
 
@@ -161,9 +198,11 @@ async function runCleanupScenario(scenario) {
   const previousPath = process.env.PATH;
   const previousScenario = process.env.FAKE_GIT_SCENARIO;
   const previousLog = process.env.FAKE_GIT_LOG;
+  const previousState = process.env.FAKE_GIT_STATE;
   process.env.PATH = `${binDir}${path.delimiter}${previousPath}`;
   process.env.FAKE_GIT_SCENARIO = scenario;
   process.env.FAKE_GIT_LOG = logPath;
+  process.env.FAKE_GIT_STATE = `${logPath}.state`;
   try {
     const flowManager = new FlowManager({ root: worktreeRoot, mainRoot, inWorktree: true, specId: SPEC_ID });
     const result = await runTeardown(
@@ -198,6 +237,8 @@ async function runCleanupScenario(scenario) {
     else process.env.FAKE_GIT_SCENARIO = previousScenario;
     if (previousLog === undefined) delete process.env.FAKE_GIT_LOG;
     else process.env.FAKE_GIT_LOG = previousLog;
+    if (previousState === undefined) delete process.env.FAKE_GIT_STATE;
+    else process.env.FAKE_GIT_STATE = previousState;
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 }
@@ -257,7 +298,7 @@ test("R3: clean submodule force retry succeeds before branch deletion", async ()
   const { result, commands, worktreeExists } = await runCleanupScenario("clean_submodule");
   const text = commandText(commands);
   const forceIndex = text.indexOf("worktree remove --force ");
-  const branchIndex = text.indexOf("branch -D feature/submodule-cleanup");
+  const branchIndex = text.indexOf("update-ref -d refs/heads/feature/submodule-cleanup 2222222222222222222222222222222222222222");
 
   assert.equal(result.ok, true);
   assert.equal(worktreeExists, false);
@@ -278,7 +319,7 @@ test("R4: dirty root or submodule returns SUBMODULE_WORKTREE_DIRTY and preserves
   assert.match(errorText(rootDirty.result), /recover|retry|clean|commit|stash/i, "dirty root halt must include recovery guidance");
   assert.ok(rootDirty.result.data?.recoveryOptions?.length > 0, "dirty root halt must include recovery options");
   assert.ok(
-    !commandText(rootDirty.commands).includes("branch -D feature/submodule-cleanup"),
+    !commandText(rootDirty.commands).includes("update-ref -d refs/heads/feature/submodule-cleanup"),
     "dirty root halt must preserve the feature branch",
   );
 
@@ -289,7 +330,7 @@ test("R4: dirty root or submodule returns SUBMODULE_WORKTREE_DIRTY and preserves
   assert.match(errorText(submoduleDirty.result), /recover|retry|clean|commit|stash/i, "dirty submodule halt must include recovery guidance");
   assert.ok(submoduleDirty.result.data?.recoveryOptions?.length > 0, "dirty submodule halt must include recovery options");
   assert.ok(
-    !commandText(submoduleDirty.commands).includes("branch -D feature/submodule-cleanup"),
+    !commandText(submoduleDirty.commands).includes("update-ref -d refs/heads/feature/submodule-cleanup"),
     "dirty submodule halt must preserve the feature branch",
   );
 
@@ -324,7 +365,7 @@ test("R6: successful cleanup preserves side effects and teardown validation orde
   assert.deepEqual(activeFlows, [], "successful cleanup must clear the active-flow registry");
   assert.ok(text.includes("add -- specs/291-submodule-worktree-cleanup/flow.json"));
   assert.match(text, /commit -m chore: finalize 291-submodule-worktree-cleanup/);
-  assert.ok(text.includes("branch -D feature/submodule-cleanup"));
+  assert.ok(text.includes("update-ref -d refs/heads/feature/submodule-cleanup 2222222222222222222222222222222222222222"));
   assert.match(text, /worktree list --porcelain/);
   assert.ok(text.includes("branch --list feature/submodule-cleanup"));
 });
@@ -341,7 +382,7 @@ test("R7: status inspection failure returns SUBMODULE_WORKTREE_STATUS_FAILED and
   assert.ok(result.data?.recoveryOptions?.length > 0, "status failure halt must include recovery options");
   assert.doesNotMatch(commandText(commands), /worktree remove --force/, "status failure must not force-remove");
   assert.ok(
-    !commandText(commands).includes("branch -D feature/submodule-cleanup"),
+    !commandText(commands).includes("update-ref -d refs/heads/feature/submodule-cleanup"),
     "status failure halt must preserve the feature branch",
   );
 
@@ -350,7 +391,7 @@ test("R7: status inspection failure returns SUBMODULE_WORKTREE_STATUS_FAILED and
   assert.equal(submoduleStatus.worktreeExists, true);
   assert.match(JSON.stringify(submoduleStatus.result.data?.statusFailures), /fatal: submodule status failed/);
   assert.ok(
-    !commandText(submoduleStatus.commands).includes("branch -D feature/submodule-cleanup"),
+    !commandText(submoduleStatus.commands).includes("update-ref -d refs/heads/feature/submodule-cleanup"),
     "submodule status failure must preserve the feature branch",
   );
 });
@@ -364,7 +405,7 @@ test("R8: force retry failure returns SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED bef
   assert.equal(worktreeExists, true);
   assert.match(text, /worktree remove --force/);
   assert.equal(countCommands(commands, /worktree remove --force/), 1, "force failure path must force-retry exactly once");
-  assert.ok(!text.includes("branch -D feature/submodule-cleanup"), "branch deletion must not run after force retry failure");
+  assert.ok(!text.includes("update-ref -d refs/heads/feature/submodule-cleanup"), "branch deletion must not run after force retry failure");
   const afterForce = text.slice(text.indexOf("worktree remove --force"));
   assert.ok(!afterForce.includes("worktree list --porcelain"), "teardown validation must not run after force retry failure");
   assert.ok(!afterForce.includes("branch --list feature/submodule-cleanup"), "branch validation must not run after force retry failure");

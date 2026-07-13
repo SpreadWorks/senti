@@ -23,3 +23,4 @@
    - Recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
    - **Provider/input-size recovery:** provider quota, rate limit, API error, and input size failures do not consume `reviewRetry`. Use the structured recovery command from `next-action` or `status` instead of parsing raw stderr.
    - **issue-log policy:** Do not add issue-log entries solely for ordinary provider or input size failures. Record issue-log only when a workaround is applied, a specification decision changes, or manual recovery remains unresolved.
+   - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.

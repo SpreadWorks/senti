@@ -301,12 +301,12 @@ function waitFor(predicate, message, timeoutMs = 5000) {
   });
 }
 
-function spawnSenti(root, args, { importFile, env = {} } = {}) {
+function startSenti(root, args, { importFile, env = {}, readyFd = false } = {}) {
   const nodeArgs = [...(importFile ? ["--import", importFile] : []), sentiBin, ...args];
   const child = spawn(process.execPath, nodeArgs, {
     cwd: repoRoot,
     env: { ...process.env, ...env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root },
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: readyFd ? ["ignore", "pipe", "pipe", "pipe"] : ["ignore", "pipe", "pipe"],
   });
   let stdout = "";
   let stderr = "";
@@ -314,13 +314,80 @@ function spawnSenti(root, args, { importFile, env = {} } = {}) {
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", (chunk) => { stdout += chunk; });
   child.stderr.on("data", (chunk) => { stderr += chunk; });
-  return new Promise((resolve) => {
+  const result = new Promise((resolve) => {
     child.on("close", (status, signal) => resolve({
       status,
       signal,
       envelope: JSON.parse(stdout || "{}"),
       stderr,
     }));
+  });
+  return { child, result, stdout: () => stdout, stderr: () => stderr };
+}
+
+function spawnSenti(root, args, options) {
+  return startSenti(root, args, options).result;
+}
+
+function inspectDiagnosticPath(file) {
+  try {
+    const stat = fs.lstatSync(file);
+    return {
+      path: file,
+      type: stat.isSymbolicLink() ? "symlink" : stat.isFile() ? "file" : stat.isDirectory() ? "directory" : "other",
+      mode: stat.mode & 0o777,
+      nlink: stat.nlink,
+      bytes: stat.isFile() && stat.size <= 64 * 1024 ? fs.readFileSync(file, "utf8") : null,
+    };
+  } catch (error) {
+    return { path: file, error: error.code || error.message };
+  }
+}
+
+function waitForReadySignal(processHandle, diagnosticPaths) {
+  const { child } = processHandle;
+  const expectedPid = child.pid;
+  const ready = child.stdio[3];
+  return new Promise((resolve, reject) => {
+    let signal = "";
+    const cleanup = () => {
+      ready.off("data", onData);
+      child.off("error", onError);
+      child.off("exit", onExit);
+    };
+    const onData = (chunk) => {
+      signal += chunk;
+      if (signal === `${expectedPid}\n`) {
+        cleanup();
+        resolve();
+      }
+    };
+    const onError = (error) => {
+      cleanup();
+      error.diagnostics = {
+        pid: expectedPid,
+        stdout: processHandle.stdout(),
+        stderr: processHandle.stderr(),
+        paths: diagnosticPaths.map(inspectDiagnosticPath),
+      };
+      reject(error);
+    };
+    const onExit = (code, childSignal) => {
+      cleanup();
+      void processHandle.result.then(() => reject(new Error(JSON.stringify({
+        message: "retry barrier child exited before ready",
+        pid: expectedPid,
+        code,
+        signal: childSignal,
+        stdout: processHandle.stdout(),
+        stderr: processHandle.stderr(),
+        paths: diagnosticPaths.map(inspectDiagnosticPath),
+      }))));
+    };
+    ready.setEncoding("utf8");
+    ready.on("data", onData);
+    child.once("error", onError);
+    child.once("exit", onExit);
   });
 }
 
@@ -887,26 +954,41 @@ describe("retry recovery contract", () => {
       import { RetryRecoveryOperationLock } from ${JSON.stringify(pathToFileURL(recoveryPath).href)};
       const original = RetryRecoveryOperationLock.prototype.acquire;
       RetryRecoveryOperationLock.prototype.acquire = function acquireWithBarrier(...args) {
-        const dir = process.env.RETRY_BARRIER_DIR;
-        fs.writeFileSync(path.join(dir, process.pid + ".ready"), "ready");
-        const release = path.join(dir, "release");
-        const deadline = Date.now() + 5000;
+        fs.writeSync(Number(process.env.RETRY_READY_FD), process.pid + "\\n");
+        fs.closeSync(Number(process.env.RETRY_READY_FD));
+        const release = path.join(process.env.RETRY_BARRIER_DIR, "release");
         while (!fs.existsSync(release)) {
-          if (Date.now() >= deadline) throw new Error("retry barrier timed out");
           Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
         }
         return original.apply(this, args);
       };
     `);
-    const childOptions = { importFile: hookPath, env: { RETRY_BARRIER_DIR: barrierDir } };
-    const first = spawnSenti(root, command, childOptions);
-    const second = spawnSenti(root, command, childOptions);
-    await waitFor(
-      () => fs.readdirSync(barrierDir).filter((name) => name.endsWith(".ready")).length === 2,
-      "both retry CLI processes must reach the pre-lock barrier",
-    );
-    fs.writeFileSync(releasePath, "release");
-    const results = await Promise.all([first, second]);
+    const childOptions = {
+      importFile: hookPath,
+      env: { RETRY_BARRIER_DIR: barrierDir, RETRY_READY_FD: "3" },
+      readyFd: true,
+    };
+    const first = startSenti(root, command, childOptions);
+    const second = startSenti(root, command, childOptions);
+    const diagnosticPaths = [
+      path.join(root, path.dirname(specPath), ".retry-recovery.lock"),
+      path.join(root, artifactPath),
+      path.join(root, transactionPath),
+      path.join(root, `.senti/.repository-flow-operation.lock`),
+      path.join(root, `specs/${specId}/flow.json`),
+    ];
+    let results;
+    try {
+      await Promise.all([
+        waitForReadySignal(first, diagnosticPaths),
+        waitForReadySignal(second, diagnosticPaths),
+      ]);
+      fs.writeFileSync(releasePath, "release");
+      results = await Promise.all([first.result, second.result]);
+    } finally {
+      if (!fs.existsSync(releasePath)) fs.writeFileSync(releasePath, "release");
+      await Promise.allSettled([first.result, second.result]);
+    }
     const winners = results.filter((result) => result.status === 0);
     const losers = results.filter((result) => result.status !== 0);
     assert.equal(winners.length, 1, JSON.stringify(results));

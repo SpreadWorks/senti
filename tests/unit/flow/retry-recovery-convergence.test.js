@@ -7,9 +7,15 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { makeFlowManager, makeFlowState } from "../../helpers/flow-setup.js";
 import {
   applyRetryReset,
+  buildStateRetryRecoveryView,
   buildCurrentRecoveryFingerprint,
   persistRecoveryBaseline,
+  resolveRecoveryMaxAttempts,
 } from "../../../src/flow/lib/retry-recovery.js";
+import { checkReviewRetryBelowMax } from "../../../src/flow/lib/run-review.js";
+import GetStatusCommand from "../../../src/flow/lib/get-status.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
+import { resolveGateRecoveryDisplayPhase } from "../../../src/flow/lib/gate-recovery-display.js";
 
 function setOnlyInProgress(state, targetId) {
   const visit = (steps) => {
@@ -166,6 +172,118 @@ describe("retry recovery authority convergence", () => {
       assert.deepEqual(flowEntries[0], grant, scenario);
       assert.deepEqual(publicEntries[0], grant, scenario);
       assert.deepEqual(issueEntries[0], auditEntry(grant), scenario);
+    });
+  }
+
+  const foreignPendingSurfaces = new Map([
+    ["resolved budget", ({ root, flowState }) => resolveRecoveryMaxAttempts({
+      root,
+      flowState,
+      kind: "review",
+      phase: "spec",
+      attempts: 0,
+      resolvedMax: 3,
+    })],
+    ["state view", ({ root, flowState }) => buildStateRetryRecoveryView({
+      root,
+      flowState,
+      kind: "review",
+      phase: "spec",
+      attempts: 0,
+      max: 3,
+    })],
+    ["review pre-check", ({ root, flowState, flowManager }) => checkReviewRetryBelowMax({
+      root,
+      flowState,
+      flowManager,
+    }, "spec")],
+    ["status", ({ root, flowState, flowManager }) => new GetStatusCommand().execute({
+      root,
+      flowState,
+      flowManager,
+      details: true,
+    })],
+    ["next action", ({ root, flowState, flowManager }) => new GetNextActionCommand().execute({
+      root,
+      flowState,
+      flowManager,
+    })],
+    ["gate display", ({ root, flowState }) => resolveGateRecoveryDisplayPhase({
+      root,
+      flowState,
+      stepId: "spec-gate",
+      maxAttempts: 3,
+    })],
+  ]);
+
+  for (const [surface, invoke] of foreignPendingSurfaces) {
+    it(`rejects a foreign pending request before ${surface} authority use`, () => {
+      const root = createTmpDir(`retry-convergence-foreign-${surface.replace(/\s+/g, "-")}-`);
+      roots.push(root);
+      const fixture = setupInterruptedRecovery(root, `441-foreign-${surface.replace(/\s+/g, "-")}`);
+      const nextRunId = `${fixture.transaction.request.runId}-replacement`;
+      const flowState = JSON.parse(fs.readFileSync(fixture.flowPath, "utf8"));
+      flowState.runId = nextRunId;
+      fs.writeFileSync(fixture.flowPath, `${JSON.stringify(flowState, null, 2)}\n`);
+      const flowManager = fixture.input.flowManager;
+      const before = snapshot([
+        fixture.privatePath,
+        fixture.publicPath,
+        fixture.flowPath,
+        fixture.issuePath,
+      ]);
+
+      assert.throws(
+        () => invoke({ root, flowState, flowManager }),
+        (error) => error.code === "RETRY_RECOVERY_FOREIGN_AUTHORITY",
+      );
+
+      assertSnapshot(before);
+      assert.equal(fs.existsSync(path.join(fixture.specDir, ".retry-recovery.lock")), false);
+      assert.equal(fs.existsSync(path.join(root, ".senti", ".repository-flow-operation.lock")), false);
+    });
+  }
+
+  for (const identityVariant of ["issue", "spec"]) {
+    it(`rejects a pending request with foreign ${identityVariant} identity`, () => {
+      const root = createTmpDir(`retry-convergence-foreign-${identityVariant}-`);
+      roots.push(root);
+      const fixture = setupInterruptedRecovery(root, `441-foreign-${identityVariant}`);
+      const flowState = JSON.parse(fs.readFileSync(fixture.flowPath, "utf8"));
+      if (identityVariant === "issue") {
+        flowState.issue = 441;
+        fs.writeFileSync(fixture.flowPath, `${JSON.stringify(flowState, null, 2)}\n`);
+      } else {
+        const foreignDir = path.join(root, "specs", "foreign");
+        fs.renameSync(fixture.specDir, foreignDir);
+        flowState.spec = "specs/foreign/spec.json";
+        fixture.specDir = foreignDir;
+        fixture.privatePath = path.join(foreignDir, ".retry-recovery.transaction.json");
+        fixture.publicPath = path.join(foreignDir, "retry-recovery.json");
+        fixture.flowPath = path.join(foreignDir, "flow.json");
+        fixture.issuePath = path.join(foreignDir, "issue-log.json");
+        fs.writeFileSync(fixture.flowPath, `${JSON.stringify(flowState, null, 2)}\n`);
+      }
+      const before = snapshot([
+        fixture.privatePath,
+        fixture.publicPath,
+        fixture.flowPath,
+        fixture.issuePath,
+      ]);
+
+      assert.throws(
+        () => resolveRecoveryMaxAttempts({
+          root,
+          flowState,
+          kind: "review",
+          phase: "spec",
+          attempts: 0,
+          resolvedMax: 3,
+        }),
+        (error) => error.code === "RETRY_RECOVERY_FOREIGN_AUTHORITY",
+      );
+
+      assertSnapshot(before);
     });
   }
 });

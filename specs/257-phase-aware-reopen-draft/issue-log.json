@@ -240,6 +240,21 @@
       "resolution": "Removed the single-caller predicate helper and kept the currentTaskId plus active-step check directly at the pre-implementation branch.",
       "taskId": null,
       "timestamp": "2026-05-15T01:16:38.288Z"
+    },
+    {
+      "step": "test",
+      "issue": 441,
+      "reason": "The bound atomic writer fixture assumed every invalid path reached FlowStatePathAuthority. A symlinked repository root is rejected earlier while FlowManager constructs the active-flow registry lock authority, so the broad single-code assertion misclassified valid fail-closed behavior as a product failure.",
+      "trigger": "Candidate9 100-file pre-record serial union root-symlink authority case.",
+      "resolution": "Captured the first authority boundary and strengthened the matrix to require exact ACTIVE_FLOW_REGISTRY_LOCK_AUTHORITY_INVALID for a symlinked root and exact FLOW_STATE_ATOMIC_AUTHORITY_INVALID for symlinked specs/spec directories, symlinked or non-regular flow state, and missing flow state. Every case retains byte-for-byte no-mutation checks for the observed authority.",
+      "guardrailCandidate": "Layered authority tests must assert the exact first rejecting boundary and unchanged authoritative bytes rather than requiring a later layer's error code.",
+      "testEvidence": {
+        "unionFailure": "/tmp/flow-441-candidate9-valid-union-pre-record.log",
+        "targetedGreen": "/tmp/flow-441-candidate9-union-failures-targeted-green.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T14:02:48Z",
+      "issueLogId": "issue-441-candidate9-reopen-authority-fixture-correction"
     }
   ]
 }

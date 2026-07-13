@@ -125,6 +125,21 @@
       "resolution": "Addresses R12/R14 gate concern by recording fresh upgrade execution; no generated file diff is expected because upgrade reports no changes.",
       "taskId": null,
       "timestamp": "2026-05-02T07:16:51.031Z"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "The R15 regression assertion was weakened from /resolved numeric maxAttempts/i to /review|retry/i, allowing all six review prompts to lose the resolved numeric limit contract.",
+      "trigger": "Candidate9 test-replacement audit of commit a807c467",
+      "resolution": "Restored the original exact assertion, captured the 17/18 RED, restored resolved numeric maxAttempts wording in all six product prompts, and verified 18/18 GREEN.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "issueLogId": "candidate9-spec250-r15-assertion-restored"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "Updated finalize safety assertions that encoded obsolete cleanup behavior: terminal journal deletion is replaced by a strict completed tombstone for idempotent recovery; branch -D is replaced by old-OID update-ref CAS plus reachability and worktree checks; per-flow-only contention is replaced by a common-main repository finalize lock. Invalid source-text expectations were strengthened to assert these durable authority invariants.",
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "issueLogId": "candidate9-finalize-safety-assertions-strengthened"
     }
   ]
 }

@@ -21,3 +21,4 @@ Use this guidance for the per-task code review step. Mirrors the flow-level revi
 - **Exceeded behavior:** If `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` is returned, STOP and return control to the user.
 - **Recovery:** Use `review` for review recovery and `gate` for gate recovery: `senti flow set retry reset <gate|review> <phase> --reason <text> --yes`. The reason is required and audited, one re-evaluation is granted, and unchanged evidence is rejected.
 - On complete, the next-action CLI advances to `task-gate`.
+   - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.

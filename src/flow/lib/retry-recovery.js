@@ -239,7 +239,22 @@ function loadAuthoritativeRecoveryAuthority(root, flowState) {
   if (typeof flowState?.spec !== "string" || flowState.spec.trim() === "") {
     throw new Error("retry recovery spec authority is required");
   }
-  return loadRecoveryAuthority(root, flowState.spec);
+  const authority = loadRecoveryAuthority(root, flowState.spec);
+  if (authority.transaction) {
+    assertTransactionAuthority(authority.transaction, flowState.spec, flowState);
+    const expectedFingerprint = recoveryFingerprint({
+      request: authority.transaction.request,
+      expectedFlowRevision: authority.transaction.expectedFlowRevision,
+    });
+    if (authority.transaction.fingerprint !== expectedFingerprint) {
+      const error = new Error(
+        `retry recovery transaction fingerprint is not authoritative: ${authority.transaction.grantId}`,
+      );
+      error.code = "RETRY_RECOVERY_AUTHORITY_INVALID";
+      throw error;
+    }
+  }
+  return authority;
 }
 
 function loadAuthoritativeRecoveryArtifact(root, flowState) {
@@ -1254,7 +1269,9 @@ function assertTransactionAuthority(transaction, spec, flowState) {
     || transaction.request.runId !== flowState.runId
     || !sameIssue
   ) {
-    throw new Error(`retry recovery transaction targets a foreign flow: ${transaction.grantId}`);
+    const error = new Error(`retry recovery transaction targets a foreign flow: ${transaction.grantId}`);
+    error.code = "RETRY_RECOVERY_FOREIGN_AUTHORITY";
+    throw error;
   }
 }
 

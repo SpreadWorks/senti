@@ -173,6 +173,12 @@
       "step": "finalize-merge",
       "reason": "Pre-merge rebase detected conflicts in .sdd-forge/output/analysis.json. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
       "timestamp": "2026-05-20T01:01:35.321Z"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "The finalize display fixture omitted runId and route state, so it no longer represented the current public flow boundary after durable spec-only completion journaling. Added a current runId and mergeStrategy while preserving every report stdout/stderr assertion.",
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "issueLogId": "candidate9-fixture-261-current-flow-authority"
     }
   ]
 }

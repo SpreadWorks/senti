@@ -12,6 +12,7 @@ import { ONE_TO_ONE_STEP_RENAMES, renameFlowStateStepIds } from "../lib/step-id-
 import { IssueLogStore } from "../flow/lib/issue-log-store.js";
 import {
   OfflineMigrationAuthority,
+  OfflineMigrationDirectorySnapshot,
   OfflineMigrationTarget,
   OfflineMigrationTransaction,
 } from "../lib/offline-migration-transaction.js";
@@ -21,6 +22,7 @@ const ACTIVE_FLOW_LIMIT = 1024 * 1024;
 const MIGRATION_NAME = "rename-phase-steps";
 const MIGRATION_JOURNAL = path.join(".senti", "migrations", `${MIGRATION_NAME}.json`);
 const MIGRATION_FILES = Object.freeze(["flow.json", "issue-log.json", "report.json", "retro.json", "review.md"]);
+const MIGRATION_RELEVANT_SPEC_FILES = Object.freeze(["spec.json", "spec.md", ...MIGRATION_FILES]);
 
 class RepositoryWorktree {
   constructor(worktreePath, branch = null) {
@@ -46,6 +48,7 @@ class MigrationPlan {
     this.fileWrites = [];
     this.issueLogMutations = [];
     this.authorities = [];
+    this.snapshots = [];
   }
 
   change(file, from, to) {
@@ -64,6 +67,14 @@ class MigrationPlan {
     this.authorities.push(OfflineMigrationAuthority.capture(this.root, filePath, kind));
   }
 
+  snapshot(directory, includedNames = null) {
+    this.snapshots.push(OfflineMigrationDirectorySnapshot.capture(
+      this.root,
+      directory,
+      includedNames == null ? {} : { includedNames },
+    ));
+  }
+
   issueLog(spec, expectedRevision) {
     this.issueLogMutations.push({ spec, expectedRevision });
   }
@@ -74,8 +85,9 @@ class MigrationPlan {
       mainRoot: this.root,
       inWorktree: false,
     });
-    this.#preflight(manager, maintenanceOwnerToken);
     this.#preflightIssueLogs();
+    this.#preflight(manager, maintenanceOwnerToken);
+    for (const snapshot of this.snapshots) snapshot.assertUnchanged();
     const targets = this.fileWrites.map((write) => OfflineMigrationTarget.capture(
       this.root,
       write.filePath,
@@ -86,6 +98,7 @@ class MigrationPlan {
       name: MIGRATION_NAME,
       journalPath: MIGRATION_JOURNAL,
       authorities: this.authorities,
+      snapshots: this.snapshots,
       targets,
     }).apply();
   }
@@ -348,14 +361,16 @@ function buildPlan(root, strict) {
   const plan = new MigrationPlan(root);
   const specsDir = path.join(root, "specs");
   if (!fs.existsSync(specsDir)) return plan;
-  OfflineMigrationAuthority.capture(root, specsDir, "directory");
-  const entries = fs.readdirSync(specsDir, { withFileTypes: true });
+  plan.snapshot(specsDir);
+  const entries = fs.readdirSync(specsDir, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name));
   for (const entry of entries) {
     if (entry.isSymbolicLink()) throw new Error(`migration spec directory must not be a symlink: specs/${entry.name}`);
     if (!entry.isDirectory()) continue;
     const id = entry.name;
     const dir = path.join(specsDir, id);
     plan.authority(dir, "directory");
+    plan.snapshot(dir, MIGRATION_RELEVANT_SPEC_FILES);
     const specAuthority = ["spec.json", "spec.md"]
       .map((fileName) => path.join(dir, fileName))
       .find((filePath) => fs.existsSync(filePath));
@@ -411,22 +426,43 @@ export function applyMigration(requestedRoot, {
   afterInitialSafety(topology);
   const maintenance = new RepositoryMaintenanceLock({ mainRoot: topology.mainRoot });
   maintenance.acquire();
+  let result;
+  let primaryError = null;
   try {
     const recovery = OfflineMigrationTransaction.recover({
       root: topology.mainRoot,
       name: MIGRATION_NAME,
       journalPath: MIGRATION_JOURNAL,
     });
-    if (recovery.completed) return new MigrationPlan(topology.mainRoot);
-    afterMaintenanceAcquired(topology);
-    assertApplySafety(topology);
-    const plan = buildPlan(topology.mainRoot, true);
-    afterPlanBuilt(topology, plan);
-    plan.apply(maintenance.ownerToken);
-    return plan;
-  } finally {
-    maintenance.release();
+    if (recovery.completed) {
+      result = new MigrationPlan(topology.mainRoot);
+    } else {
+      afterMaintenanceAcquired(topology);
+      assertApplySafety(topology);
+      const plan = buildPlan(topology.mainRoot, true);
+      afterPlanBuilt(topology, plan);
+      plan.apply(maintenance.ownerToken);
+      result = plan;
+    }
+  } catch (error) {
+    primaryError = error;
   }
+  let releaseError = null;
+  try {
+    maintenance.release();
+  } catch (error) {
+    releaseError = error;
+  }
+  if (primaryError && releaseError) {
+    throw new AggregateError(
+      [primaryError, releaseError],
+      "migration body and maintenance release both failed",
+      { cause: primaryError },
+    );
+  }
+  if (primaryError) throw primaryError;
+  if (releaseError) throw releaseError;
+  return result;
 }
 
 function main() {

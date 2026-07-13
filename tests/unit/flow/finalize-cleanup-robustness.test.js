@@ -437,7 +437,8 @@ describe("finalize-cleanup robustness", () => {
         });
         state.state = {};
         replaceFlowState(root, state, { specId });
-        fm.addActiveFlow(specId, "branch");
+        fm.removeActiveFlow(specId);
+        fm.addActiveFlow(specId, "worktree");
         execFileSync("git", ["-C", root, "add", `specs/${specId}/flow.json`]);
         execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "add flow authority"]);
         execFileSync("git", ["-C", root, "worktree", "add", "-b", featureBranch, worktreePath]);
@@ -567,7 +568,7 @@ describe("finalize-cleanup robustness", () => {
           force: true,
         });
         assert.equal(retried.ok, true, `${faultPhase}: ${JSON.stringify(retried)}`);
-        assert.equal(fs.existsSync(transactionPath), false, faultPhase);
+        assert.equal(JSON.parse(fs.readFileSync(transactionPath, "utf8")).phase, "completed", faultPhase);
         assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), false, faultPhase);
         assert.equal(fs.existsSync(path.join(root, ".senti", "last-finalized-spec")), true, faultPhase);
         const finalEntries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
@@ -605,7 +606,8 @@ describe("finalize-cleanup robustness", () => {
         });
         state.state = {};
         replaceFlowState(root, state, { specId });
-        fm.addActiveFlow(specId, "branch");
+        fm.removeActiveFlow(specId);
+        fm.addActiveFlow(specId, "worktree");
         const activePath = path.join(root, ".senti", ".active-flow");
         const activeBytes = fs.readFileSync(activePath);
         execFileSync("git", ["-C", root, "add", `specs/${specId}/flow.json`]);
@@ -667,7 +669,7 @@ describe("finalize-cleanup robustness", () => {
         });
         assert.equal(retried.ok, true, `${faultPhase}: ${JSON.stringify(retried)}`);
         assert.equal(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), committedHead);
-        assert.equal(fs.existsSync(transactionPath), false, faultPhase);
+        assert.equal(JSON.parse(fs.readFileSync(transactionPath, "utf8")).phase, "completed", faultPhase);
         assert.equal(fs.existsSync(activePath), false, faultPhase);
         assert.equal(fs.readFileSync(pointerPath, "utf8").trim(), spec);
       } finally {

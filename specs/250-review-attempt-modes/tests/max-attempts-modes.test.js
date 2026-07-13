@@ -253,7 +253,7 @@ describe("mode-specific flow maxAttempts", () => {
 
     for (const promptPath of promptPaths) {
       const prompt = text(promptPath);
-      assert.match(prompt, /review|retry/i, promptPath);
+      assert.match(prompt, /resolved numeric maxAttempts/i, promptPath);
       assert.doesNotMatch(prompt, /definition's maxAttempts/i, promptPath);
     }
   });

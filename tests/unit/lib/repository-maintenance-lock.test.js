@@ -210,4 +210,35 @@ describe("repository maintenance lock", () => {
       fs.unlinkSync(lockPath);
     }
   });
+
+  it("preserves acquire conflict and cleanup failures in causal order", () => {
+    tmp = createTmpDir("repository-maintenance-acquire-cleanup-");
+    const flow = new RepositoryFlowOperationLock({
+      mainRoot: tmp,
+      processIdentitySource: identitySource(),
+    });
+    flow.acquire();
+    const maintenance = new RepositoryMaintenanceLock({
+      mainRoot: tmp,
+      processIdentitySource: identitySource(),
+    });
+    const originalRelease = maintenance.lock.release;
+    maintenance.lock.release = () => {
+      throw new Error("maintenance acquire cleanup failed");
+    };
+    try {
+      assert.throws(
+        () => maintenance.acquire(),
+        (error) => error instanceof AggregateError
+          && error.errors.length === 2
+          && error.errors[0].code === "REPOSITORY_FLOW_OPERATION_BUSY"
+          && error.errors[1].message === "maintenance acquire cleanup failed"
+          && error.cause === error.errors[0],
+      );
+    } finally {
+      maintenance.lock.release = originalRelease;
+      maintenance.release();
+      flow.release();
+    }
+  });
 });

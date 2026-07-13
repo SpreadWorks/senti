@@ -16,12 +16,110 @@ import { runGit } from "./git-helpers.js";
 import { ACTIVE_FLOW_FILE } from "./flow-helpers.js";
 import { flowStatePath } from "./flow-state-atomic-writer.js";
 import { AtomicJsonFile } from "./atomic-json-file.js";
+import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
+import {
+  RepositoryFlowOperationLock,
+  resolveRepositoryLockRoot,
+} from "./repository-maintenance-lock.js";
+
+const REGISTRY_LOCK_FILE = ".active-flow.lock";
+const VALID_MODES = new Set(["worktree", "branch", "local"]);
 
 function activeFlowPath(mainRoot) {
   return path.join(sentiDir(mainRoot), ACTIVE_FLOW_FILE);
 }
 
-function readActiveFlowAuthority(filePath) {
+class ActiveFlowEntry {
+  constructor({ spec, mode }) {
+    ActiveFlowEntry.assertValidSpecId(spec);
+    if (!VALID_MODES.has(mode)) throw new Error("active-flow entry.mode is invalid");
+    this.spec = spec;
+    this.mode = mode;
+    Object.freeze(this);
+  }
+
+  static fromStored(value) {
+    if (
+      value == null
+      || typeof value !== "object"
+      || Array.isArray(value)
+      || JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(["mode", "spec"])
+    ) {
+      throw new Error("active-flow entry has an invalid schema");
+    }
+    return new ActiveFlowEntry(value);
+  }
+
+  static assertValidSpecId(spec) {
+    if (
+      typeof spec !== "string"
+      || spec.trim() === ""
+      || spec === "."
+      || spec === ".."
+      || spec.includes("/")
+      || spec.includes("\\")
+    ) {
+      throw new Error("active-flow entry.spec is invalid");
+    }
+  }
+
+  toJSON() {
+    return { spec: this.spec, mode: this.mode };
+  }
+}
+
+class ActiveFlowDocument {
+  constructor(entries = []) {
+    this.entries = entries.map((entry) => entry instanceof ActiveFlowEntry ? entry : ActiveFlowEntry.fromStored(entry));
+    const specs = new Set();
+    for (const entry of this.entries) {
+      if (specs.has(entry.spec)) throw new Error(`active-flow contains duplicate spec: ${entry.spec}`);
+      specs.add(entry.spec);
+    }
+  }
+
+  static fromStored(value) {
+    if (!Array.isArray(value)) throw new Error("active-flow authority must contain an array");
+    return new ActiveFlowDocument(value);
+  }
+
+  add(specId, mode) {
+    const existing = this.entries.find((entry) => entry.spec === specId);
+    if (existing?.mode === mode) return false;
+    if (existing) {
+      const error = new Error(`active-flow mode conflicts for spec: ${specId}`);
+      error.code = "ACTIVE_FLOW_REGISTRY_MODE_CONFLICT";
+      throw error;
+    }
+    this.entries.push(new ActiveFlowEntry({ spec: specId, mode }));
+    return true;
+  }
+
+  remove(specId) {
+    const filtered = this.entries.filter((entry) => entry.spec !== specId);
+    const changed = filtered.length !== this.entries.length;
+    this.entries = filtered;
+    return changed;
+  }
+
+  toJSON() {
+    return this.entries.map((entry) => entry.toJSON());
+  }
+}
+
+function registryRevision(bytes) {
+  return bytes == null ? null : `${bytes.length}:${Buffer.from(bytes).toString("base64")}`;
+}
+
+class ActiveFlowReadRaceError extends Error {
+  constructor(filePath) {
+    super(`active-flow authority changed twice while reading: ${filePath}`);
+    this.code = "ACTIVE_FLOW_REGISTRY_BUSY";
+    this.registryPath = filePath;
+  }
+}
+
+function activeFlowPathStat(filePath) {
   let stat;
   try {
     stat = fs.lstatSync(filePath);
@@ -32,9 +130,57 @@ function readActiveFlowAuthority(filePath) {
   if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || fs.realpathSync(filePath) !== path.resolve(filePath)) {
     throw new Error(`active-flow authority must be one real non-hardlinked file: ${filePath}`);
   }
-  const value = JSON.parse(fs.readFileSync(filePath, "utf8"));
-  if (!Array.isArray(value)) throw new Error(`active-flow authority must contain an array: ${filePath}`);
-  return value;
+  return stat;
+}
+
+function readActiveFlowAuthorityOnce(filePath) {
+  const stat = activeFlowPathStat(filePath);
+  if (stat == null) return { revision: null, document: new ActiveFlowDocument() };
+  let descriptor;
+  try {
+    descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+  } catch (error) {
+    if (error.code === "ENOENT") return { revision: null, document: new ActiveFlowDocument() };
+    throw error;
+  }
+  try {
+    const opened = fs.fstatSync(descriptor);
+    if (!opened.isFile() || opened.nlink > 1) {
+      throw new Error(`active-flow authority changed to a non-real file while reading: ${filePath}`);
+    }
+    if (opened.dev !== stat.dev || opened.ino !== stat.ino || opened.nlink === 0) {
+      throw new ActiveFlowReadRaceError(`active-flow authority identity changed while reading: ${filePath}`);
+    }
+    const bytes = fs.readFileSync(descriptor);
+    let value;
+    try {
+      value = JSON.parse(bytes.toString("utf8"));
+    } catch (error) {
+      throw new Error(`active-flow authority is malformed: ${error.message}`, { cause: error });
+    }
+    const document = ActiveFlowDocument.fromStored(value);
+    const visible = activeFlowPathStat(filePath);
+    if (visible == null || visible.dev !== opened.dev || visible.ino !== opened.ino) {
+      throw new ActiveFlowReadRaceError(filePath);
+    }
+    return {
+      revision: registryRevision(bytes),
+      document,
+    };
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+function readActiveFlowAuthority(filePath) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return readActiveFlowAuthorityOnce(filePath);
+    } catch (error) {
+      if (!(error instanceof ActiveFlowReadRaceError) || attempt === 1) throw error;
+    }
+  }
+  throw new ActiveFlowReadRaceError(filePath);
 }
 
 function removeDurably(filePath) {
@@ -62,29 +208,65 @@ function removeDurably(filePath) {
   if (primaryError) throw primaryError;
 }
 
-function runGitFailOpenBoolean(args, predicate, contextLabel) {
+function runGitBoolean(args, predicate, contextLabel) {
   const res = runGit(args);
   if (!res.ok) {
-    process.stderr.write(`[senti] ${contextLabel}: git ${args.join(" ")} failed, assuming exists: ${res.stderr}\n`);
-    return true;
+    const error = new Error(
+      `${contextLabel}: git ${args.join(" ")} failed: ${res.stderr.trim() || "unknown error"}`,
+    );
+    error.code = "ACTIVE_FLOW_REGISTRY_GIT_PROBE_FAILED";
+    throw error;
   }
   return predicate(res.stdout);
 }
 
 function worktreeExists(mainRoot, branch) {
-  return runGitFailOpenBoolean(
+  return runGitBoolean(
     ["-C", mainRoot, "worktree", "list", "--porcelain"],
-    (stdout) => stdout.includes(`branch refs/heads/${branch}`),
+    (stdout) => stdout.split("\n").includes(`branch refs/heads/${branch}`),
     "worktreeExists",
   );
 }
 
 function branchExists(mainRoot, branch) {
-  return runGitFailOpenBoolean(
+  return runGitBoolean(
     ["-C", mainRoot, "branch", "--list", branch],
     (stdout) => stdout.trim().length > 0,
     "branchExists",
   );
+}
+
+function localFlowExists(filePath) {
+  let stat;
+  try {
+    stat = fs.lstatSync(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+  if (
+    !stat.isFile()
+    || stat.isSymbolicLink()
+    || stat.nlink !== 1
+    || fs.realpathSync(filePath) !== path.resolve(filePath)
+  ) {
+    throw new Error(`active local flow authority must be one real non-hardlinked file: ${filePath}`);
+  }
+  const descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+  try {
+    const opened = fs.fstatSync(descriptor);
+    if (
+      !opened.isFile()
+      || opened.nlink !== 1
+      || opened.dev !== stat.dev
+      || opened.ino !== stat.ino
+    ) {
+      throw new Error(`active local flow authority changed while probing: ${filePath}`);
+    }
+  } finally {
+    fs.closeSync(descriptor);
+  }
+  return true;
 }
 
 export class ActiveFlowRegistry {
@@ -92,86 +274,178 @@ export class ActiveFlowRegistry {
    * @param {Object} opts
    * @param {string} opts.mainRoot - main repo root (resolved from worktree if applicable)
    */
-  constructor({ mainRoot }) {
-    this._mainRoot = mainRoot;
+  constructor({ mainRoot, processIdentitySource } = {}) {
+    this._mainRoot = resolveRepositoryLockRoot(mainRoot);
+    this._processIdentitySource = processIdentitySource;
+    const rootErrorFactory = (status, message, { lockPath, cause } = {}) => {
+      const error = new Error(message, { cause });
+      error.code = status === "live"
+        ? "ACTIVE_FLOW_REGISTRY_BUSY"
+        : `ACTIVE_FLOW_REGISTRY_LOCK_${status.replace(/-/g, "_").toUpperCase()}`;
+      error.lockPath = lockPath;
+      return error;
+    };
+    const rootAuthority = new RealDirectoryAuthority(this._mainRoot, { errorFactory: rootErrorFactory });
+    const directoryAuthority = new RealDirectoryAuthority(path.join(this._mainRoot, ".senti"), {
+      create: true,
+      parentAuthority: rootAuthority,
+      errorFactory: rootErrorFactory,
+    });
+    this._lock = new ProcessOwnedLock({
+      directoryAuthority,
+      fileName: REGISTRY_LOCK_FILE,
+      kind: "active-flow-registry",
+      authority: {
+        mainRoot: path.resolve(this._mainRoot),
+        registryPath: activeFlowPath(this._mainRoot),
+      },
+      ...(processIdentitySource && { processIdentitySource }),
+      errorFactory: rootErrorFactory,
+    });
+  }
+
+  static lockPathFor(mainRoot) {
+    return path.join(resolveRepositoryLockRoot(mainRoot), ".senti", REGISTRY_LOCK_FILE);
   }
 
   /** @returns {ActiveFlowEntry[]} */
   load() {
-    const p = activeFlowPath(this._mainRoot);
-    if (!fs.existsSync(p)) return [];
-    try {
-      const data = JSON.parse(fs.readFileSync(p, "utf8"));
-      return Array.isArray(data) ? data : [];
-    } catch (err) {
-      if (err.code !== "ENOENT") {
-        console.error(`[flow-state] WARN: failed to parse .active-flow (${p}): ${err.message}`);
-      }
-      return [];
-    }
+    return readActiveFlowAuthority(activeFlowPath(this._mainRoot)).document.toJSON();
   }
 
   /**
    * @param {string} specId
    * @param {"worktree"|"branch"|"local"} mode
    */
-  add(specId, mode) {
-    const flows = this.load();
-    if (flows.some((f) => f.spec === specId)) return;
-    flows.push({ spec: specId, mode });
-    const p = activeFlowPath(this._mainRoot);
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify(flows, null, 2) + "\n", "utf8");
+  add(specId, mode, options = {}) {
+    ActiveFlowEntry.assertValidSpecId(specId);
+    return this.#withMutationLock(() => {
+      const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
+      if (!snapshot.document.add(specId, mode)) return;
+      this.#write(snapshot.document, snapshot.revision);
+    }, options);
   }
 
   /**
    * @param {string} specId
    */
-  remove(specId) {
-    const p = activeFlowPath(this._mainRoot);
-    const flows = readActiveFlowAuthority(p);
-    if (flows == null) return;
-    const filtered = flows.filter((f) => f.spec !== specId);
-    if (filtered.length === 0) {
-      removeDurably(p);
-      return;
-    }
-    new AtomicJsonFile(p).write(filtered);
+  remove(specId, options = {}) {
+    ActiveFlowEntry.assertValidSpecId(specId);
+    return this.#withMutationLock(() => {
+      const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
+      if (!snapshot.document.remove(specId)) return;
+      if (snapshot.document.entries.length === 0) {
+        this.#remove(snapshot.revision);
+        return;
+      }
+      this.#write(snapshot.document, snapshot.revision);
+    }, options);
   }
 
   /**
    * Remove stale entries from .active-flow.
    * @returns {ActiveFlowEntry[]} cleaned active flows
    */
-  cleanStale() {
-    const flows = this.load();
-    if (flows.length === 0) return [];
-
-    const valid = [];
-    for (const entry of flows) {
-      const branch = `feature/${entry.spec}`;
-      let isStale = false;
-
-      if (entry.mode === "worktree") {
-        isStale = !worktreeExists(this._mainRoot, branch);
-      } else if (entry.mode === "branch") {
-        isStale = !branchExists(this._mainRoot, branch);
-      } else {
-        isStale = !fs.existsSync(flowStatePath(this._mainRoot, entry.spec));
+  cleanStale(options = {}) {
+    return this.#withMutationLock(() => {
+      const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
+      const valid = snapshot.document.entries.filter((entry) => {
+        const branch = `feature/${entry.spec}`;
+        if (entry.mode === "worktree") return worktreeExists(this._mainRoot, branch);
+        if (entry.mode === "branch") return branchExists(this._mainRoot, branch);
+        return localFlowExists(flowStatePath(this._mainRoot, entry.spec));
+      });
+      if (valid.length !== snapshot.document.entries.length) {
+        const document = new ActiveFlowDocument(valid);
+        if (valid.length === 0) this.#remove(snapshot.revision);
+        else this.#write(document, snapshot.revision);
       }
+      return valid.map((entry) => entry.toJSON());
+    }, options);
+  }
 
-      if (!isStale) valid.push(entry);
+  #write(document, expectedRevision) {
+    const filePath = activeFlowPath(this._mainRoot);
+    const fresh = readActiveFlowAuthority(filePath);
+    if (fresh.revision !== expectedRevision) {
+      const error = new Error("active-flow registry revision changed concurrently");
+      error.code = "ACTIVE_FLOW_REGISTRY_REVISION_CONFLICT";
+      throw error;
     }
+    new AtomicJsonFile(filePath).write(document.toJSON());
+  }
 
-    if (valid.length !== flows.length) {
-      const p = activeFlowPath(this._mainRoot);
-      if (valid.length === 0) {
-        try { fs.unlinkSync(p); } catch (err) { if (err.code !== "ENOENT") console.error(err); }
-      } else {
-        fs.writeFileSync(p, JSON.stringify(valid, null, 2) + "\n", "utf8");
-      }
+  #remove(expectedRevision) {
+    const filePath = activeFlowPath(this._mainRoot);
+    const fresh = readActiveFlowAuthority(filePath);
+    if (fresh.revision !== expectedRevision || fresh.revision == null) {
+      const error = new Error("active-flow registry revision changed before removal");
+      error.code = "ACTIVE_FLOW_REGISTRY_REVISION_CONFLICT";
+      throw error;
     }
+    removeDurably(filePath);
+  }
 
-    return valid;
+  #withMutationLock(body, { maintenanceOwnerToken = null, operationOwnerToken = null } = {}) {
+    const operationLock = new RepositoryFlowOperationLock({
+      mainRoot: this._mainRoot,
+      maintenanceOwnerToken,
+      operationOwnerToken,
+      ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
+    });
+    return this.#withOwnedLock(
+      () => {
+        try {
+          operationLock.acquire();
+        } catch (cause) {
+          if (cause.code !== "REPOSITORY_FLOW_OPERATION_BUSY") throw cause;
+          const error = new Error("active-flow registry is blocked by another flow operation", { cause });
+          error.code = "ACTIVE_FLOW_REGISTRY_BUSY";
+          error.lockPath = cause.lockPath;
+          throw error;
+        }
+      },
+      () => operationLock.release(),
+      () => this.#withRegistryLock(body),
+      "active-flow registry mutation and repository flow-operation release both failed",
+    );
+  }
+
+  #withRegistryLock(body) {
+    // Registry mutations always acquire repository flow-operation first.
+    // A caller may already hold an unrelated outer transaction lock.
+    return this.#withOwnedLock(
+      () => this._lock.acquire({ claimStale: true }),
+      () => this._lock.release(),
+      body,
+      "active-flow registry body and lock release both failed",
+    );
+  }
+
+  #withOwnedLock(acquire, release, body, aggregateMessage) {
+    acquire();
+    let result;
+    let primaryError = null;
+    try {
+      result = body();
+    } catch (error) {
+      primaryError = error;
+    }
+    let releaseError = null;
+    try {
+      release();
+    } catch (error) {
+      releaseError = error;
+    }
+    if (primaryError && releaseError) {
+      throw new AggregateError(
+        [primaryError, releaseError],
+        aggregateMessage,
+        { cause: primaryError },
+      );
+    }
+    if (primaryError) throw primaryError;
+    if (releaseError) throw releaseError;
+    return result;
   }
 }

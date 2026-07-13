@@ -280,9 +280,9 @@ export class FlowManager {
   // ── .active-flow (ActiveFlowRegistry) ───────────────────────────────────────
 
   loadActiveFlows() { return this._activeFlows.load(); }
-  addActiveFlow(specId, mode) { return this._activeFlows.add(specId, mode); }
-  removeActiveFlow(specId) { return this._activeFlows.remove(specId); }
-  cleanStaleFlows() { return this._activeFlows.cleanStale(); }
+  addActiveFlow(specId, mode, options) { return this._activeFlows.add(specId, mode, options); }
+  removeActiveFlow(specId, options) { return this._activeFlows.remove(specId, options); }
+  cleanStaleFlows(options) { return this._activeFlows.cleanStale(options); }
 
   /**
    * Clear the active-flow entry for a spec. If specId is omitted,

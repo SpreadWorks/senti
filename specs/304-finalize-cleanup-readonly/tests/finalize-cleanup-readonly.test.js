@@ -44,6 +44,7 @@ function writeFlowState(root, extra = {}) {
   fs.mkdirSync(specDir, { recursive: true });
   const state = {
     spec: `specs/${SPEC_ID}/spec.json`,
+    runId: `run-${SPEC_ID}`,
     worktree: true,
     baseBranch: "main",
     featureBranch: "feature/304-finalize-cleanup-readonly",
@@ -52,6 +53,7 @@ function writeFlowState(root, extra = {}) {
     currentTaskId: null,
     metrics: [],
     notes: [],
+    state: { mergeStrategy: "pr" },
     ...extra,
   };
   fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify(state, null, 2) + "\n", "utf8");
@@ -101,20 +103,59 @@ function writeFakeGit(binDir, { worktreeRoot, mainRoot, logPath }) {
 const fs = require("fs");
 const args = process.argv.slice(2);
 fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(args) + "\\n");
+const statePath = ${JSON.stringify(`${logPath}.state`)};
+const parentOid = "1111111111111111111111111111111111111111";
+const featureOid = "2222222222222222222222222222222222222222";
+const treeOid = "3333333333333333333333333333333333333333";
+const commitOid = "4444444444444444444444444444444444444444";
+let authority = fs.existsSync(statePath)
+  ? JSON.parse(fs.readFileSync(statePath, "utf8"))
+  : { committed: false, feature: true, worktree: true };
+function saveAuthority() { fs.writeFileSync(statePath, JSON.stringify(authority)); }
 let rest = args.slice();
-if (rest[0] === "-C") rest = rest.slice(2);
+let cTarget = null;
+if (rest[0] === "-C") { cTarget = rest[1]; rest = rest.slice(2); }
 function ok(stdout = "") { if (stdout) process.stdout.write(stdout); process.exit(0); }
+function fail(stderr = "") { if (stderr) process.stderr.write(stderr); process.exit(1); }
 if (rest[0] === "rev-parse" && rest[1] === "--show-toplevel") ok(${JSON.stringify(worktreeRoot)} + "\\n");
 if (rest[0] === "rev-parse" && rest[1] === "--git-common-dir") ok(${JSON.stringify(path.join(mainRoot, ".git"))} + "\\n");
+if (rest[0] === "symbolic-ref") ok("refs/heads/main\\n");
+if (rest[0] === "read-tree") ok();
+if (rest[0] === "write-tree") ok(treeOid + "\\n");
+if (rest[0] === "rev-parse") {
+  const value = rest[rest.length - 1];
+  if (value === "HEAD") ok((cTarget === ${JSON.stringify(worktreeRoot)} ? featureOid : authority.committed ? commitOid : parentOid) + "\\n");
+  if (value === "main") ok((authority.committed ? commitOid : parentOid) + "\\n");
+  if (value.includes("feature/304-finalize-cleanup-readonly")) ok(featureOid + "\\n");
+}
+if (rest[0] === "show") {
+  const format = rest.find((arg) => arg.startsWith("--format=")) || "";
+  if (format === "--format=%P") ok(parentOid + "\\n");
+  if (format === "--format=%T") ok(treeOid + "\\n");
+  if (format === "--format=%B") ok("chore: finalize 304-finalize-cleanup-readonly\\n");
+}
+if (rest[0] === "merge-base") ok();
+if (rest[0] === "show-ref") authority.feature ? ok(featureOid + "\\n") : fail();
 if (rest[0] === "status") ok("");
-if (rest[0] === "add" || rest[0] === "commit") ok("");
-if (rest[0] === "worktree" && rest[1] === "list") ok("");
-if (rest[0] === "worktree" && rest[1] === "remove") {
-  fs.rmSync(rest[rest.length - 1], { recursive: true, force: true });
+if (rest[0] === "add") ok("");
+if (rest[0] === "commit") { authority.committed = true; saveAuthority(); ok(""); }
+if (rest[0] === "worktree" && rest[1] === "list") {
+  if (authority.worktree) ok("worktree " + ${JSON.stringify(worktreeRoot)} + "\\nbranch refs/heads/feature/304-finalize-cleanup-readonly\\n");
   ok("");
 }
-if (rest[0] === "branch" && rest[1] === "-D") ok("");
-if (rest[0] === "branch" && rest[1] === "--list") ok("");
+if (rest[0] === "worktree" && rest[1] === "remove") {
+  fs.rmSync(rest[rest.length - 1], { recursive: true, force: true });
+  authority.worktree = false;
+  saveAuthority();
+  ok("");
+}
+if (rest[0] === "update-ref" && rest[1] === "-d") {
+  if (!authority.feature || rest[rest.length - 1] !== featureOid) fail("expected OID mismatch\\n");
+  authority.feature = false;
+  saveAuthority();
+  ok("");
+}
+if (rest[0] === "branch" && rest[1] === "--list") ok(authority.feature ? "  feature/304-finalize-cleanup-readonly\\n" : "");
 ok("");
 `, "utf8");
   fs.chmodSync(gitPath, 0o755);
@@ -545,16 +586,24 @@ test("R4: regression hooks cover read-only cleanup and force-removal scenarios",
     const deleteResult = cleanup.deleteFeatureBranchForCleanup({
       mainRepoPath: roots.mainRoot,
       featureBranch: "feature/304-finalize-cleanup-readonly",
+      expectedSha: "2222222222222222222222222222222222222222",
       runGit: branchDelete.runGit,
     });
     assert.equal(deleteResult.ok, true);
-    assert.deepEqual(branchDelete.calls[0], [
+    assert.deepEqual(branchDelete.calls, [[
       "-C",
       roots.mainRoot,
-      "branch",
-      "-D",
-      "feature/304-finalize-cleanup-readonly",
-    ]);
+      "worktree",
+      "list",
+      "--porcelain",
+    ], [
+      "-C",
+      roots.mainRoot,
+      "update-ref",
+      "-d",
+      "refs/heads/feature/304-finalize-cleanup-readonly",
+      "2222222222222222222222222222222222222222",
+    ]]);
   } finally {
     roots.cleanup();
   }

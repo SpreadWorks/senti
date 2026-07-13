@@ -16,9 +16,11 @@ function makeContainer(mainRoot) {
   const container = new Container();
   const flowState = {
     spec: SPEC_REL_PATH,
+    runId: "run-261-finalize-report-delivery",
     baseBranch: "main",
     featureBranch: "main",
     worktree: false,
+    state: { mergeStrategy: "pr" },
   };
   container.register("config", {});
   container.register("root", mainRoot);

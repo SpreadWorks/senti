@@ -12,3 +12,4 @@
    - **If verdict=FAIL** (blocking findings exist): do not edit the spec in this step and do not re-run review. The post-hook marks `spec-review` done and leaves `spec-triage` pending; the next step classifies findings before one-pass repair.
    - At semantic retry exhaustion, unresolved blocking findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition before final-regression.
    - Non-semantic failures such as tooling, parser, malformed artifact, or schema failures are not deferred. Recover them with changed evidence and a retry reset before re-review.
+   - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.

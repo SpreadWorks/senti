@@ -29,3 +29,4 @@
    - `TOOLING_FAILURE` is non-semantic. It must be recovered or explicitly overridden and does not complete through semantic deferral.
    - Recovery reason is required for manual retry reset, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
    - Quality gates after implementation (`test-execute`, `test-result-review`, `impl-review`, `impl-gate`, `acceptance-review`, `final-regression`) remain mandatory and are not weakened by deferred semantic review findings.
+   - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.

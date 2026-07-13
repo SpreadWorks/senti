@@ -5,7 +5,7 @@ import path from "node:path";
 import { AtomicJsonFile } from "./atomic-json-file.js";
 import { RealDirectoryAuthority } from "./process-owned-lock.js";
 
-const VERSION = 1;
+const VERSION = 3;
 const PHASES = new Set(["staged", "applying", "rolling-back", "rolled-back", "applied"]);
 
 export class OfflineMigrationJournalRemovalError extends Error {
@@ -82,6 +82,154 @@ function fsyncDirectory(directory) {
     }
   }
   if (primary) throw primary;
+}
+
+class OfflineMigrationDirectoryEntry {
+  constructor({ name, kind, dev, ino, mode, revision }) {
+    if (typeof name !== "string" || name === "" || name.includes("/")) {
+      throw new Error("migration directory entry name is invalid");
+    }
+    if (!["file", "directory", "symlink", "other"].includes(kind)) {
+      throw new Error("migration directory entry kind is invalid");
+    }
+    if (!Number.isSafeInteger(dev) || !Number.isSafeInteger(ino)) {
+      throw new Error("migration directory entry identity is invalid");
+    }
+    if (kind === "file") {
+      if (!Number.isSafeInteger(mode) || mode < 0 || mode > 0o777) {
+        throw new Error("migration directory entry mode is invalid");
+      }
+      if (!/^[a-f0-9]{64}$/.test(String(revision))) {
+        throw new Error("migration directory entry revision is invalid");
+      }
+    } else if (mode !== null || revision !== null) {
+      throw new Error("non-file migration directory entry cannot have file authority");
+    }
+    this.name = name;
+    this.kind = kind;
+    this.dev = dev;
+    this.ino = ino;
+    this.mode = mode;
+    this.revision = revision;
+    Object.freeze(this);
+  }
+
+  static fromStored(value) {
+    exactKeys(value, ["name", "kind", "dev", "ino", "mode", "revision"], "migration directory entry");
+    return new OfflineMigrationDirectoryEntry(value);
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      kind: this.kind,
+      dev: this.dev,
+      ino: this.ino,
+      mode: this.mode,
+      revision: this.revision,
+    };
+  }
+}
+
+function directoryEntryKind(stat) {
+  if (stat.isFile()) return "file";
+  if (stat.isDirectory()) return "directory";
+  if (stat.isSymbolicLink()) return "symlink";
+  return "other";
+}
+
+export class OfflineMigrationDirectorySnapshot {
+  constructor({ root, relativePath, includedNames, entries, digest }) {
+    this.root = path.resolve(root);
+    this.relativePath = relativePath;
+    this.includedNames = includedNames == null ? null : Object.freeze([...includedNames].sort());
+    this.entries = Object.freeze(entries.map((entry) => (
+      entry instanceof OfflineMigrationDirectoryEntry ? entry : OfflineMigrationDirectoryEntry.fromStored(entry)
+    )));
+    this.digest = digest;
+    if (!/^[a-f0-9]{64}$/.test(String(digest))) throw new Error("migration directory snapshot digest is invalid");
+  }
+
+  static capture(root, directory, { includedNames = null } = {}) {
+    const authorityRoot = path.resolve(root);
+    const located = withinRoot(authorityRoot, directory);
+    statRealDirectory(located.resolved, "migration closed-world directory");
+    const filter = includedNames == null ? null : new Set(includedNames);
+    const entries = fs.readdirSync(located.resolved)
+      .filter((name) => filter == null || filter.has(name))
+      .sort()
+      .map((name) => {
+        const filePath = path.join(located.resolved, name);
+        const stat = fs.lstatSync(filePath);
+        const kind = directoryEntryKind(stat);
+        return new OfflineMigrationDirectoryEntry({
+          name,
+          kind,
+          dev: stat.dev,
+          ino: stat.ino,
+          mode: kind === "file" ? stat.mode & 0o777 : null,
+          revision: kind === "file" ? hash(fs.readFileSync(filePath)) : null,
+        });
+      });
+    return new OfflineMigrationDirectorySnapshot({
+      root: authorityRoot,
+      relativePath: located.relative,
+      includedNames: includedNames == null ? null : [...filter].sort(),
+      entries,
+      digest: hash(Buffer.from(JSON.stringify(entries.map((entry) => entry.toJSON())))),
+    });
+  }
+
+  static fromStored(root, value) {
+    exactKeys(value, ["relativePath", "includedNames", "entries", "digest"], "migration directory snapshot");
+    if (value.includedNames != null && !Array.isArray(value.includedNames)) {
+      throw new Error("migration directory snapshot includedNames is invalid");
+    }
+    if (!Array.isArray(value.entries)) throw new Error("migration directory snapshot entries are invalid");
+    withinRoot(root, path.join(root, value.relativePath));
+    const snapshot = new OfflineMigrationDirectorySnapshot({ root, ...value });
+    const calculated = hash(Buffer.from(JSON.stringify(snapshot.entries.map((entry) => entry.toJSON()))));
+    if (calculated !== snapshot.digest) throw new Error("migration directory snapshot digest does not match entries");
+    return snapshot;
+  }
+
+  assertUnchanged({ identity = true, mutablePaths = [] } = {}) {
+    const current = OfflineMigrationDirectorySnapshot.capture(
+      this.root,
+      path.join(this.root, this.relativePath),
+      { includedNames: this.includedNames },
+    );
+    const mutable = new Set(mutablePaths);
+    const project = (entry) => {
+      const relativePath = path.posix.join(this.relativePath, entry.name);
+      if (mutable.has(relativePath)) return { name: entry.name, kind: entry.kind };
+      const authority = {
+        name: entry.name,
+        kind: entry.kind,
+        mode: entry.mode,
+        revision: entry.revision,
+      };
+      if (identity) {
+        authority.dev = entry.dev;
+        authority.ino = entry.ino;
+      }
+      return authority;
+    };
+    const expected = this.entries.map(project);
+    const actual = current.entries.map(project);
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      throw new Error(`migration closed-world snapshot changed after planning: ${this.relativePath}`);
+    }
+  }
+
+  toJSON() {
+    return {
+      relativePath: this.relativePath,
+      includedNames: this.includedNames,
+      entries: this.entries.map((entry) => entry.toJSON()),
+      digest: this.digest,
+    };
+  }
 }
 
 class AtomicBytesFile {
@@ -283,7 +431,7 @@ export class OfflineMigrationTarget {
 }
 
 class MigrationJournal {
-  constructor({ name, root, phase, applyIndex, rollbackIndex, authorities, targets, updatedAt }) {
+  constructor({ name, root, phase, applyIndex, rollbackIndex, authorities, snapshots, targets, updatedAt }) {
     if (typeof name !== "string" || name === "") throw new Error("migration journal name is invalid");
     if (!PHASES.has(phase)) throw new Error(`migration journal phase is invalid: ${phase}`);
     if (!Number.isSafeInteger(applyIndex) || !Number.isSafeInteger(rollbackIndex)) {
@@ -295,6 +443,7 @@ class MigrationJournal {
     this.applyIndex = applyIndex;
     this.rollbackIndex = rollbackIndex;
     this.authorities = authorities;
+    this.snapshots = snapshots;
     this.targets = targets;
     this.updatedAt = updatedAt;
     if (typeof updatedAt !== "string" || updatedAt === "") throw new Error("migration journal updatedAt is invalid");
@@ -303,7 +452,7 @@ class MigrationJournal {
     }
   }
 
-  static create(name, root, authorities, targets) {
+  static create(name, root, authorities, snapshots, targets) {
     return new MigrationJournal({
       name,
       root,
@@ -311,6 +460,7 @@ class MigrationJournal {
       applyIndex: 0,
       rollbackIndex: targets.length - 1,
       authorities,
+      snapshots,
       targets,
       updatedAt: new Date().toISOString(),
     });
@@ -319,18 +469,21 @@ class MigrationJournal {
   static fromStored(name, root, value) {
     exactKeys(value, [
       "version", "name", "root", "phase", "applyIndex", "rollbackIndex",
-      "authorities", "targets", "updatedAt",
+      "authorities", "snapshots", "targets", "updatedAt",
     ], "migration journal");
     if (value.version !== VERSION || value.name !== name || path.resolve(value.root) !== path.resolve(root)) {
       throw new Error("migration journal targets a different authority");
     }
-    if (!Array.isArray(value.authorities) || !Array.isArray(value.targets)) throw new Error("migration journal lists are invalid");
+    if (!Array.isArray(value.authorities) || !Array.isArray(value.snapshots) || !Array.isArray(value.targets)) {
+      throw new Error("migration journal lists are invalid");
+    }
     const authorities = value.authorities.map((item) => OfflineMigrationAuthority.fromStored(root, item));
+    const snapshots = value.snapshots.map((item) => OfflineMigrationDirectorySnapshot.fromStored(root, item));
     const targets = value.targets.map((item) => OfflineMigrationTarget.fromStored(root, item));
     if (new Set(targets.map((target) => target.relativePath)).size !== targets.length) {
       throw new Error("migration journal contains duplicate targets");
     }
-    return new MigrationJournal({ ...value, root, authorities, targets });
+    return new MigrationJournal({ ...value, root, authorities, snapshots, targets });
   }
 
   advance(phase, { applyIndex = this.applyIndex, rollbackIndex = this.rollbackIndex } = {}) {
@@ -349,6 +502,7 @@ class MigrationJournal {
       applyIndex: this.applyIndex,
       rollbackIndex: this.rollbackIndex,
       authorities: this.authorities.map((item) => item.toJSON()),
+      snapshots: this.snapshots.map((item) => item.toJSON()),
       targets: this.targets.map((item) => item.toJSON()),
       updatedAt: this.updatedAt,
     };
@@ -427,11 +581,11 @@ class MigrationJournalStore {
 }
 
 export class OfflineMigrationTransaction {
-  constructor({ root, name, journalPath, authorities, targets }) {
+  constructor({ root, name, journalPath, authorities, snapshots = [], targets }) {
     this.root = path.resolve(root);
     this.name = name;
     this.store = new MigrationJournalStore(this.root, journalPath);
-    this.journal = MigrationJournal.create(name, this.root, authorities, targets);
+    this.journal = MigrationJournal.create(name, this.root, authorities, snapshots, targets);
   }
 
   static recover({ root, name, journalPath }) {
@@ -444,6 +598,7 @@ export class OfflineMigrationTransaction {
       name,
       journalPath,
       authorities: journal.authorities,
+      snapshots: journal.snapshots,
       targets: journal.targets,
     });
     transaction.store = store;
@@ -454,6 +609,7 @@ export class OfflineMigrationTransaction {
   apply() {
     if (this.store.exists()) throw new Error(`migration journal already exists: ${this.store.path}`);
     for (const authority of this.journal.authorities) authority.assertUnchanged();
+    for (const snapshot of this.journal.snapshots) snapshot.assertUnchanged();
     for (const target of this.journal.targets) target.assertInitialIdentity();
     this.store.write(this.journal);
     this.journal.advance("applying");
@@ -491,6 +647,10 @@ export class OfflineMigrationTransaction {
 
   #recover() {
     for (const authority of this.journal.authorities) authority.assertUnchanged();
+    const mutablePaths = this.journal.targets.map((target) => target.relativePath);
+    for (const snapshot of this.journal.snapshots) {
+      snapshot.assertUnchanged({ identity: false, mutablePaths });
+    }
     if (this.journal.phase === "applied") {
       for (const target of this.journal.targets) {
         if (target.classify() !== "planned") throw new Error(`applied migration target is foreign: ${target.relativePath}`);
@@ -505,12 +665,31 @@ export class OfflineMigrationTransaction {
       this.store.remove(this.journal);
       return { recovered: true, completed: false };
     }
+    if (this.journal.phase === "rolling-back") {
+      this.#continueRollback();
+      this.store.remove(this.journal);
+      return { recovered: true, completed: false };
+    }
+    if (this.journal.phase === "staged") {
+      for (const target of this.journal.targets) {
+        if (target.classify() !== "original") {
+          throw new Error(`staged migration target is foreign: ${target.relativePath}`);
+        }
+      }
+      this.#rollback();
+      this.store.remove(this.journal);
+      return { recovered: true, completed: false };
+    }
 
     let contiguousPlanned = 0;
-    for (const target of this.journal.targets) {
+    for (let index = 0; index < this.journal.targets.length; index += 1) {
+      const target = this.journal.targets[index];
       const state = target.classify();
-      if (state === "planned" && contiguousPlanned === this.journal.targets.indexOf(target)) contiguousPlanned += 1;
+      if (state === "planned" && contiguousPlanned === index) contiguousPlanned += 1;
       else if (state !== "original") throw new Error(`migration recovery target is foreign: ${target.relativePath}`);
+    }
+    if (contiguousPlanned < this.journal.applyIndex) {
+      throw new Error("migration recovery lost journaled apply progress");
     }
     if (contiguousPlanned > this.journal.applyIndex) {
       this.journal.advance("applying", { applyIndex: contiguousPlanned });
@@ -530,7 +709,17 @@ export class OfflineMigrationTransaction {
   #rollback() {
     this.journal.advance("rolling-back", { rollbackIndex: this.journal.targets.length - 1 });
     this.store.write(this.journal);
-    for (let index = this.journal.targets.length - 1; index >= 0; index -= 1) {
+    this.#continueRollback();
+  }
+
+  #continueRollback() {
+    for (let index = this.journal.targets.length - 1; index > this.journal.rollbackIndex; index -= 1) {
+      const state = this.journal.targets[index].classify();
+      if (state !== "original") {
+        throw new Error(`completed migration rollback target is foreign: ${this.journal.targets[index].relativePath}`);
+      }
+    }
+    for (let index = this.journal.rollbackIndex; index >= 0; index -= 1) {
       const target = this.journal.targets[index];
       const state = target.classify();
       if (state === "foreign") throw new Error(`migration rollback target is foreign: ${target.relativePath}`);

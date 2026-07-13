@@ -148,9 +148,17 @@ export class RepositoryMaintenanceLock {
       const conflict = inspectForeign(this.flowOperation, null);
       if (conflict) throw conflict;
       return token;
-    } catch (error) {
-      this.lock.release();
-      throw error;
+    } catch (primaryError) {
+      try {
+        this.lock.release();
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [primaryError, cleanupError],
+          "repository maintenance acquisition and cleanup both failed",
+          { cause: primaryError },
+        );
+      }
+      throw primaryError;
     }
   }
 

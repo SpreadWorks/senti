@@ -147,6 +147,12 @@
       "guardrailCandidate": "test-execute cleanup must not delete artifacts that later acceptance-review requires",
       "taskId": null,
       "timestamp": "2026-06-12T16:04:41.055Z"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "The fake Git fixture returned empty success for symbolic refs, parents, trees, messages, commit adoption, and branch deletion, so it could not exercise current finalize authority checks. Replaced it with stateful Git authority covering symbolic HEAD, parent/base/feature OIDs, pathspec tree, commit adoption, worktree state, and expected-OID update-ref CAS; branch-preservation assertions now reject CAS deletion.",
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "issueLogId": "candidate9-fixture-291-stateful-git-authority"
     }
   ]
 }

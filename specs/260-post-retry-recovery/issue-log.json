@@ -411,6 +411,155 @@
       "issueLogId": "issue-441-candidate8-six-finding-final-audit",
       "taskId": null,
       "timestamp": "2026-07-13T11:46:00Z"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "The foreign pending recovery tests modified private transaction budgets without recomputing the transaction fingerprint, allowing RETRY_RECOVERY_AUTHORITY_INVALID to satisfy a broad foreign/authority regex before foreign-flow validation. Kept the private transaction bytes and fingerprint valid, changed only current flow runId/issue/spec identity, asserted exact RETRY_RECOVERY_FOREIGN_AUTHORITY on direct budget, view, review, status, next-action, and gate surfaces, and retained byte-for-byte no-mutation checks.",
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "issueLogId": "candidate9-retry-foreign-authority-fixture-strengthened"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "A durable rolling-back migration journal could be reinterpreted as applied when all targets still contained planned bytes, and directory snapshots tracked only inode identity so same-inode non-target content drift passed preflight. Recovery is now phase-monotonic: rolling-back always continues reverse rollback and only applying adopts planned progress. Snapshot journal v3 persists mode and SHA-256 byte revision for every relevant file and exempts only transaction targets from recovery-time content comparison.",
+      "testEvidence": {
+        "red": "/tmp/flow-441-candidate9-migration-phase-content-red.log",
+        "transactionGreen": "/tmp/flow-441-candidate9-migration-phase-content-green.log",
+        "focusedGreen": "/tmp/flow-441-candidate9-migration-full-focused-green-r2.log"
+      },
+      "timestamp": "2026-07-13T12:31:00Z",
+      "issueLogId": "candidate9-migration-phase-content-authority"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "Active-flow mutations were serialized only by their private registry lock, accepted path-bearing spec IDs, ignored duplicate mode conflicts, and treated local/Git probe failures as evidence that stale entries were valid. Every add/remove/cleanStale now acquires the repository flow-operation barrier before the registry lock with owner-token borrowing, spec and mode authority is strict, and all local/Git probes fail closed without registry mutation.",
+      "testEvidence": {
+        "red": "/tmp/flow-441-candidate9-registry-barrier-authority-red.log",
+        "registryGreen": "/tmp/flow-441-candidate9-registry-barrier-authority-green-r2.log",
+        "combinedGreen": "/tmp/flow-441-candidate9-registry-finalize-migration-full-focused-r2.log"
+      },
+      "timestamp": "2026-07-13T12:32:00Z",
+      "issueLogId": "candidate9-active-flow-registry-barrier-authority"
+    },
+    {
+      "step": "candidate9-audit",
+      "reason": "The flow-state sink guard's arrow callback bridge parsed only single-line expression bodies and did not propagate callback capability through local .call/.bind aliases, allowing multiline and async fs.promises bridges to bypass detection. The guard now extracts brace-balanced block arrows and propagates callback capability plus argument offsets through aliases, .call, and .bind while retaining the exact owner allowlist.",
+      "testEvidence": {
+        "red": "/tmp/flow-441-candidate9-scanner-arrow-bridge-red.log",
+        "green": "/tmp/flow-441-candidate9-scanner-arrow-bridge-green.log"
+      },
+      "timestamp": "2026-07-13T12:33:00Z",
+      "issueLogId": "candidate9-flow-sink-arrow-callback-bridge"
+    },
+    {
+      "step": "test",
+      "issue": 441,
+      "reason": "The two-process retry fixture used a directory poll and an arbitrary five-second child readiness deadline. It passed alone in 435 ms but timed out only in the 100-file serial union before both child-ready files appeared, so the failure did not establish a retry recovery product defect.",
+      "trigger": "Candidate9 100-file pre-record serial union: 980/982 passed and the pre-lock barrier timed out.",
+      "resolution": "Replaced time-based file polling with a dedicated fd 3 handshake. Each child synchronously writes its exact PID before entering the barrier; the parent validates both PID signals, observes child error and exit events, and releases only after both children are actually ready. Failure cleanup releases the barrier and settles both child results.",
+      "guardrailCandidate": "Concurrent process fixtures must synchronize on an explicit child-ready channel and child lifecycle events, not infer readiness from completion within a fixed wall-clock interval.",
+      "testEvidence": {
+        "unionFailure": "/tmp/flow-441-candidate9-valid-union-pre-record.log",
+        "isolatedOldFixturePass": "/tmp/flow-441-candidate9-retry-barrier-targeted-before.log",
+        "handshakeGreen": "/tmp/flow-441-candidate9-union-failures-targeted-green.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T14:02:48Z",
+      "issueLogId": "issue-441-candidate9-retry-barrier-fixture-correction"
+    },
+    {
+      "step": "candidate9-audit",
+      "issue": 441,
+      "reason": "The final Git-result audit found that both cherry-pick abort paths ignored a failed abort and could continue to detached-worktree cleanup without a durable authority for the still-mutated Git state. Outcome schema and cleanup journal v2 now preserve the exact abort result, publish abort-failed before halting, expose primary-first ordered failures, and permit only cleanup-only replay from the journal.",
+      "testEvidence": {
+        "red": "/tmp/flow-441-candidate9-auto-rescue-abort-result-red.log",
+        "green": "/tmp/flow-441-candidate9-auto-rescue-abort-result-green.log",
+        "finalizeSubset": "/tmp/flow-441-candidate9-finalize-manifest-subset-after-abort-result.log",
+        "owningRecord": "specs/253-finalize-orphan-rescue/issue-log.json#issue-441-candidate9-auto-rescue-abort-authority"
+      },
+      "timestamp": "2026-07-13T14:10:00Z",
+      "issueLogId": "candidate9-auto-rescue-abort-result-authority"
+    },
+    {
+      "step": "candidate9-audit",
+      "issue": 441,
+      "reason": "Lifecycle diagnostics for the retry concurrency union failure showed one child exiting before the retry lock with ACTIVE_FLOW_REGISTRY_BUSY while its sibling performed an active-flow registry read. ActiveFlowRegistry.load unnecessarily acquired the exclusive writer lock even though registry publication is atomic, creating reader-reader contention before the command's intended operation boundary.",
+      "trigger": "Candidate9 fresh 100-file union and exact same-order 8-file prefix with PID, exit, stderr, lock, transaction, artifact, and flow authority diagnostics.",
+      "resolution": "Registry reads now open and strictly parse the atomic visible file without acquiring writer mutation locks. Every attempt requires the visible pre-read identity, opened descriptor identity, and visible post-read identity to match. An atomic identity race permits at most two total attempts; a second race returns explicit ACTIVE_FLOW_REGISTRY_BUSY without mutation. Malformed or unknown documents fail immediately with no retry or rewrite. Real non-hardlinked file, exact entry schema, mode, and spec authority remain fail-closed; concurrent readers during writer rename observe only complete old or new documents. Add/remove/cleanStale repository-operation and registry writer lock ordering is unchanged.",
+      "testEvidence": {
+        "unionFailure": "/tmp/flow-441-candidate9-valid-union-fresh-pre-record.log",
+        "sameOrderDiagnostic": "/tmp/flow-441-candidate9-union-prefix-retry-diagnostic.log",
+        "readerRed": "/tmp/flow-441-candidate9-registry-reader-contention-red-v2.log",
+        "replacementRed": "/tmp/flow-441-candidate9-registry-reader-replacement-red.log",
+        "postIdentityRed": "/tmp/flow-441-candidate9-registry-reader-post-identity-red.log",
+        "authorityGreen": "/tmp/flow-441-candidate9-registry-snapshot-protocol-green.log",
+        "registryFullGreen": "/tmp/flow-441-candidate9-active-registry-full-after-lockfree-read.log",
+        "sameOrderGreen": "/tmp/flow-441-candidate9-union-prefix-retry-snapshot-green.log",
+        "unionGreen": "/tmp/flow-441-candidate9-valid-union-snapshot-pre-record.log"
+      },
+      "timestamp": "2026-07-13T14:20:00Z",
+      "issueLogId": "candidate9-active-flow-lockfree-reader-authority"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Candidate9 completed the final failure-boundary audit across finalize teardown, detached rescue, retry recovery, offline migration, active-flow registry transactions, and flow-state sink discovery. The audit also classified every union failure before correction and retained only valid RED evidence.",
+      "trigger": "Pre-commit self-audit, source-level Git/result and authority review, focused regression union, and exact same-order failure reproduction.",
+      "resolution": "Finalize teardown is journal-first, phase-monotonic, OID-CAS protected, and resumable without repeating committed Git mutations. Detached rescue probes and CAS-updates the base ref, verifies temporary-worktree removal, preserves pre-outcome crashes, and durably orders cherry-pick plus abort failures before cleanup-only retry. Retry recovery rejects foreign current authority with exact codes while retaining valid transaction bytes. Offline migration journals byte revisions and modes, treats rolling-back as one-way, and rejects same-inode non-target drift. Active-flow writers acquire repository operation before registry lock, validate exact spec/mode and local/Git authority, while strict atomic readers remain lock-free and use a maximum-two-attempt pre/open/post identity protocol. The sink scanner follows multiline/async arrow callbacks through aliases, call, bind, and fs.promises with its exact two-path allowlist unchanged.",
+      "findings": [
+        {
+          "id": "finalize-journal-phase-cas",
+          "invariant": "Every destructive phase is journaled, checked against current reality, and guarded by the expected OID before mutation.",
+          "green": "/tmp/flow-441-candidate9-registry-finalize-migration-full-focused-r2.log"
+        },
+        {
+          "id": "detached-rescue-cas-cleanup-abort",
+          "invariant": "Ref update uses expected-old CAS; cleanup is verified; failed abort is primary-first durable authority and no later Git mutation occurs until retry.",
+          "red": "/tmp/flow-441-candidate9-auto-rescue-abort-result-red.log",
+          "green": "/tmp/flow-441-candidate9-finalize-manifest-subset-after-abort-result.log"
+        },
+        {
+          "id": "retry-foreign-authority",
+          "invariant": "A valid pending transaction owned by a different current run, issue, or spec fails exact RETRY_RECOVERY_FOREIGN_AUTHORITY without byte mutation.",
+          "green": "/tmp/flow-441-candidate9-retry-full-diagnostic.log"
+        },
+        {
+          "id": "migration-phase-byte-authority",
+          "invariant": "Rolling-back never adopts planned bytes and every relevant file authority includes mode plus SHA-256 byte revision.",
+          "red": "/tmp/flow-441-candidate9-migration-phase-content-red.log",
+          "green": "/tmp/flow-441-candidate9-migration-full-focused-green-r2.log"
+        },
+        {
+          "id": "active-flow-writer-reader-authority",
+          "invariant": "Writers hold repository-operation then registry lock; readers parse one strict atomic snapshot without reader contention and fail BUSY after two identity races.",
+          "red": "/tmp/flow-441-candidate9-registry-reader-contention-red-v2.log and /tmp/flow-441-candidate9-registry-reader-post-identity-red.log",
+          "green": "/tmp/flow-441-candidate9-active-registry-full-snapshot-protocol.log"
+        },
+        {
+          "id": "flow-sink-arrow-callback-bridge",
+          "invariant": "Flow-path and sink-capability taint propagate through block arrows, async promises, callback aliases, call, and bind without widening the allowlist.",
+          "red": "/tmp/flow-441-candidate9-scanner-arrow-bridge-red.log",
+          "green": "/tmp/flow-441-candidate9-scanner-arrow-bridge-green.log"
+        }
+      ],
+      "testCorrections": [
+        "Retry concurrency replaced a five-second file poll with exact child fd-ready and lifecycle diagnostics; the diagnostics then exposed and proved the real active-flow reader contention product defect.",
+        "Root-symlink atomic writer coverage now asserts the exact earlier active-flow registry authority error while retaining byte-for-byte no-mutation checks for every path case.",
+        "Finalize recovery fixtures explicitly seed one active-flow mode instead of relying on a conflicting duplicate registration.",
+        "Weak source-window and broad-regex assertions were replaced by public behavior, exact code, stable identity, CAS, and durable journal assertions without deleting behavioral coverage."
+      ],
+      "testEvidence": {
+        "preAudit": "/tmp/flow-441-candidate9-static-pre-record.log",
+        "selfAudit": "/tmp/flow-441-candidate9-static-before-snapshot-union.log",
+        "firstUnionFailures": "/tmp/flow-441-candidate9-valid-union-pre-record.log",
+        "diagnosticUnionFailure": "/tmp/flow-441-candidate9-valid-union-fresh-pre-record.log",
+        "sameOrderDiagnostic": "/tmp/flow-441-candidate9-union-prefix-retry-diagnostic.log",
+        "sameOrderGreen": "/tmp/flow-441-candidate9-union-prefix-retry-snapshot-green.log",
+        "preRecordUnion": "/tmp/flow-441-candidate9-valid-union-snapshot-pre-record.log",
+        "manifest": "/tmp/flow-441-candidate9-valid-union.manifest"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T14:27:00Z",
+      "issueLogId": "issue-441-candidate9-final-direct-audit"
     }
   ]
 }

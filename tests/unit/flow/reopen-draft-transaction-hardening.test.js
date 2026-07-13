@@ -164,7 +164,7 @@ describe("Issue #441 bound atomic flow writer", () => {
 
   it("rejects symlinked or invalid root/specs/spec-directory/flow authority", () => {
     const cases = [
-      ["root symlink", (root) => {
+      ["root symlink", "ACTIVE_FLOW_REGISTRY_LOCK_AUTHORITY_INVALID", (root) => {
         const real = path.join(root, "real");
         fs.mkdirSync(real);
         const original = setup(real);
@@ -172,14 +172,14 @@ describe("Issue #441 bound atomic flow writer", () => {
         fs.symlinkSync(real, alias);
         return { root: alias, original, observed: flowPath(real) };
       }],
-      ["specs symlink", (root) => {
+      ["specs symlink", "FLOW_STATE_ATOMIC_AUTHORITY_INVALID", (root) => {
         const outsideRoot = path.join(root, "outside-root");
         fs.mkdirSync(outsideRoot);
         const original = setup(outsideRoot);
         fs.symlinkSync(path.join(outsideRoot, "specs"), path.join(root, "specs"));
         return { root, original, observed: flowPath(outsideRoot) };
       }],
-      ["spec directory symlink", (root) => {
+      ["spec directory symlink", "FLOW_STATE_ATOMIC_AUTHORITY_INVALID", (root) => {
         const outsideRoot = path.join(root, "outside-root");
         fs.mkdirSync(outsideRoot);
         const original = setup(outsideRoot);
@@ -187,33 +187,33 @@ describe("Issue #441 bound atomic flow writer", () => {
         fs.symlinkSync(path.join(outsideRoot, "specs", SPEC_ID), path.join(root, "specs", SPEC_ID));
         return { root, original, observed: flowPath(outsideRoot) };
       }],
-      ["flow symlink", (root) => {
+      ["flow symlink", "FLOW_STATE_ATOMIC_AUTHORITY_INVALID", (root) => {
         const original = setup(root);
         const outside = path.join(root, "outside-flow.json");
         fs.renameSync(flowPath(root), outside);
         fs.symlinkSync(outside, flowPath(root));
         return { root, original, observed: outside };
       }],
-      ["non-regular flow", (root) => {
+      ["non-regular flow", "FLOW_STATE_ATOMIC_AUTHORITY_INVALID", (root) => {
         const original = setup(root);
         fs.unlinkSync(flowPath(root));
         fs.mkdirSync(flowPath(root));
         return { root, original, observed: null };
       }],
-      ["missing flow", (root) => {
+      ["missing flow", "FLOW_STATE_ATOMIC_AUTHORITY_INVALID", (root) => {
         const original = setup(root);
         fs.unlinkSync(flowPath(root));
         return { root, original, observed: null };
       }],
     ];
 
-    for (const [name, prepare] of cases) {
+    for (const [name, expectedCode, prepare] of cases) {
       tmp = createTmpDir(`reopen-path-${name.replaceAll(" ", "-")}-`);
       const prepared = prepare(tmp);
       const before = prepared.observed ? bytes(prepared.observed) : null;
       assert.throws(
         () => replacement(prepared.root, prepared.original),
-        (err) => err.code === "FLOW_STATE_ATOMIC_AUTHORITY_INVALID",
+        (err) => err.code === expectedCode,
         name,
       );
       if (prepared.observed) assert.deepEqual(bytes(prepared.observed), before, name);
