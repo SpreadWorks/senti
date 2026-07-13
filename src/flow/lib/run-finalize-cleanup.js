@@ -61,7 +61,7 @@ const RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "retry-without-rescue"]
 const SUBMODULE_RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_STATUS = ["inspect-status-manually", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-remove-after-review", "retry-after-fixing-git-error"];
-const FINALIZE_TEARDOWN_VERSION = 5;
+const FINALIZE_TEARDOWN_VERSION = 6;
 const GIT_OBJECT_ID = /^[a-f0-9]{40}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const FINALIZE_BEFORE_IMAGE_MAX_FILES = 512;
@@ -487,6 +487,8 @@ class FinalizeIndexLockAuthority {
     publishPhase = "marker",
     expectedIndexRevision = null,
     expectedIndexMode = null,
+    publicationDev = null,
+    publicationIno = null,
   }) {
     if (typeof token !== "string" || !/^[0-9a-f-]{36}$/.test(token)) {
       throw new Error("finalize caller index lock token is invalid");
@@ -503,8 +505,18 @@ class FinalizeIndexLockAuthority {
     if (!new Set(["marker", "publishing"]).has(publishPhase)) {
       throw new Error("finalize caller index lock publish phase is invalid");
     }
+    if ((publicationDev === null) !== (publicationIno === null)) {
+      throw new Error("finalize caller index publication identity is incomplete");
+    }
     if (
-      (publishPhase === "marker" && (expectedIndexRevision !== null || expectedIndexMode !== null))
+      (
+        publishPhase === "marker"
+        && (
+          expectedIndexRevision !== null
+          || expectedIndexMode !== null
+          || publicationDev !== null
+        )
+      )
       || (
         publishPhase === "publishing"
         && (
@@ -513,6 +525,9 @@ class FinalizeIndexLockAuthority {
           || !Number.isInteger(expectedIndexMode)
           || expectedIndexMode < 0
           || expectedIndexMode > 0o777
+          || ![publicationDev, publicationIno].every(Number.isSafeInteger)
+          || publicationDev < 0
+          || publicationIno < 0
         )
       )
     ) {
@@ -525,6 +540,8 @@ class FinalizeIndexLockAuthority {
     this.publishPhase = publishPhase;
     this.expectedIndexRevision = expectedIndexRevision;
     this.expectedIndexMode = expectedIndexMode;
+    this.publicationDev = publicationDev;
+    this.publicationIno = publicationIno;
     Object.freeze(this);
   }
 
@@ -545,6 +562,8 @@ class FinalizeIndexLockAuthority {
       "publishPhase",
       "expectedIndexRevision",
       "expectedIndexMode",
+      "publicationDev",
+      "publicationIno",
     ], "finalize caller index lock authority");
     return new FinalizeIndexLockAuthority(value);
   }
@@ -565,15 +584,24 @@ class FinalizeIndexLockAuthority {
     });
   }
 
-  forPublication(bytes, mode) {
+  forPublication(bytes, mode, publicationStat) {
     if (this.dev === null) throw new Error("finalize caller index lock needs durable identity before publication");
     const expectedIndexRevision = FinalizeIndexLockAuthority.revision(bytes);
     const expectedIndexMode = mode & 0o777;
+    if (
+      publicationStat == null
+      || ![publicationStat.dev, publicationStat.ino].every(Number.isSafeInteger)
+      || publicationStat.nlink !== 1
+    ) {
+      throw new Error("finalize caller index publication file identity is invalid");
+    }
     if (
       this.publishPhase === "publishing"
       && (
         this.expectedIndexRevision !== expectedIndexRevision
         || this.expectedIndexMode !== expectedIndexMode
+        || this.publicationDev !== publicationStat.dev
+        || this.publicationIno !== publicationStat.ino
       )
     ) {
       throw new Error("finalize caller index publication changed after becoming durable");
@@ -583,6 +611,8 @@ class FinalizeIndexLockAuthority {
       publishPhase: "publishing",
       expectedIndexRevision,
       expectedIndexMode,
+      publicationDev: publicationStat.dev,
+      publicationIno: publicationStat.ino,
     });
   }
 
@@ -601,6 +631,14 @@ class FinalizeIndexLockAuthority {
     return this.dev !== null && stat.dev === this.dev && stat.ino === this.ino;
   }
 
+  matchesPublication(stat) {
+    return (
+      this.publicationDev !== null
+      && stat.dev === this.publicationDev
+      && stat.ino === this.publicationIno
+    );
+  }
+
   toJSON() {
     return {
       token: this.token,
@@ -610,22 +648,34 @@ class FinalizeIndexLockAuthority {
       publishPhase: this.publishPhase,
       expectedIndexRevision: this.expectedIndexRevision,
       expectedIndexMode: this.expectedIndexMode,
+      publicationDev: this.publicationDev,
+      publicationIno: this.publicationIno,
     };
   }
 }
 
 class FinalizeTempIndexAuthority {
   constructor({ workspacePath, token, dev = null, ino = null }) {
-    const tempRoot = fs.realpathSync(os.tmpdir());
     if (
       typeof workspacePath !== "string"
-      || path.dirname(workspacePath) !== tempRoot
-      || !path.basename(workspacePath).startsWith("senti-finalize-index-")
+      || !path.isAbsolute(workspacePath)
+      || typeof token !== "string"
+      || !/^[0-9a-f-]{36}$/.test(token)
+    ) {
+      throw new Error("finalize temporary index workspace authority is invalid");
+    }
+    const workspaceParent = path.dirname(workspacePath);
+    const recoveryDirectory = path.dirname(workspaceParent);
+    const sentiDirectory = path.dirname(recoveryDirectory);
+    const gitDirectory = path.dirname(sentiDirectory);
+    if (
+      path.basename(workspacePath) !== `senti-finalize-index-${token}`
+      || path.basename(workspaceParent) !== "finalize-index-workspaces"
+      || path.basename(recoveryDirectory) !== "recovery"
+      || path.basename(sentiDirectory) !== "senti"
+      || path.basename(gitDirectory) !== ".git"
     ) {
       throw new Error("finalize temporary index workspace path is invalid");
-    }
-    if (typeof token !== "string" || !/^[0-9a-f-]{36}$/.test(token)) {
-      throw new Error("finalize temporary index workspace token is invalid");
     }
     if ((dev === null) !== (ino === null)) {
       throw new Error("finalize temporary index workspace identity is incomplete");
@@ -640,10 +690,17 @@ class FinalizeTempIndexAuthority {
     Object.freeze(this);
   }
 
-  static plan() {
+  static plan(targetRoot) {
     const token = crypto.randomUUID();
+    const gitDirectory = fs.realpathSync(path.join(targetRoot, ".git"));
     return new FinalizeTempIndexAuthority({
-      workspacePath: path.join(fs.realpathSync(os.tmpdir()), `senti-finalize-index-${token}`),
+      workspacePath: path.join(
+        gitDirectory,
+        "senti",
+        "recovery",
+        "finalize-index-workspaces",
+        `senti-finalize-index-${token}`,
+      ),
       token,
     });
   }
@@ -867,11 +924,11 @@ class FinalizeTeardownTransaction {
     this.updatedAt = new Date().toISOString();
   }
 
-  authorizeIndexPublication(bytes, mode) {
+  authorizeIndexPublication(bytes, mode, publicationStat) {
     if (this.phase.atLeast("index-reconciled") || this.indexLockAuthority == null) {
       throw new Error("finalize caller index lock is unavailable for publication");
     }
-    this.indexLockAuthority = this.indexLockAuthority.forPublication(bytes, mode);
+    this.indexLockAuthority = this.indexLockAuthority.forPublication(bytes, mode, publicationStat);
     this.updatedAt = new Date().toISOString();
     return this.indexLockAuthority;
   }
@@ -881,9 +938,9 @@ class FinalizeTeardownTransaction {
     this.updatedAt = new Date().toISOString();
   }
 
-  planTempIndexWorkspace() {
+  planTempIndexWorkspace(targetRoot) {
     if (this.phase.atLeast("index-reconciled")) throw new Error("finalize temporary index workspace is already reconciled");
-    this.tempIndexAuthority = FinalizeTempIndexAuthority.plan();
+    this.tempIndexAuthority = FinalizeTempIndexAuthority.plan(targetRoot);
     this.updatedAt = new Date().toISOString();
     return this.tempIndexAuthority;
   }
@@ -1004,6 +1061,7 @@ const FINALIZE_TEMP_INDEX_BASE_NAMES = new Set(["expected.index", "commit.index"
 const FINALIZE_TEMP_INDEX_NAMES = new Set([
   ...FINALIZE_TEMP_INDEX_BASE_NAMES,
   ...[...FINALIZE_TEMP_INDEX_BASE_NAMES].map((name) => `${name}.lock`),
+  "publication.index",
 ]);
 const FINALIZE_TEMP_OWNER_FILE = ".owner";
 
@@ -1022,6 +1080,36 @@ function assertRealFinalizeFile(filePath, label) {
     throw new Error(`${label} must be one real file`);
   }
   return stat;
+}
+
+function finalizeTempIndexWorkspaceParent(targetRoot) {
+  return path.join(
+    fs.realpathSync(path.join(targetRoot, ".git")),
+    "senti",
+    "recovery",
+    "finalize-index-workspaces",
+  );
+}
+
+function ensureFinalizeTempIndexWorkspaceParent(targetRoot) {
+  const gitDirectory = new RealDirectoryAuthority(fs.realpathSync(path.join(targetRoot, ".git")));
+  gitDirectory.ensure();
+  const sentiDirectory = new RealDirectoryAuthority(path.join(gitDirectory.directory, "senti"), {
+    create: true,
+    parentAuthority: gitDirectory,
+  });
+  sentiDirectory.ensure();
+  const recoveryDirectory = new RealDirectoryAuthority(path.join(sentiDirectory.directory, "recovery"), {
+    create: true,
+    parentAuthority: sentiDirectory,
+  });
+  recoveryDirectory.ensure();
+  const workspaceParent = new RealDirectoryAuthority(
+    path.join(recoveryDirectory.directory, "finalize-index-workspaces"),
+    { create: true, parentAuthority: recoveryDirectory },
+  );
+  workspaceParent.ensure();
+  return workspaceParent;
 }
 
 function readFinalizeDescriptorBytes(descriptor) {
@@ -1128,6 +1216,13 @@ class FinalizeTempIndexWorkspace {
 
   static acquire(authority, targetRoot) {
     const marker = `${authority.token}\n`;
+    if (path.dirname(authority.workspacePath) !== finalizeTempIndexWorkspaceParent(targetRoot)) {
+      throw Object.assign(new Error("finalize temporary index workspace targets a different Git authority"), {
+        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+      });
+    }
+    const workspaceParent = ensureFinalizeTempIndexWorkspaceParent(targetRoot);
+    workspaceParent.assertStable();
     let created = false;
     try {
       fs.mkdirSync(authority.workspacePath, { mode: 0o700 });
@@ -1171,7 +1266,12 @@ class FinalizeTempIndexWorkspace {
       }
       fsyncDirectory(authority.workspacePath);
     }
-    assertRealFinalizeFile(path.join(targetRoot, ".git", "index"), "caller index authority");
+    const indexStat = assertRealFinalizeFile(path.join(targetRoot, ".git", "index"), "caller index authority");
+    if (indexStat.dev !== stat.dev) {
+      throw Object.assign(new Error("finalize temporary index workspace is on a different filesystem"), {
+        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+      });
+    }
     return new FinalizeTempIndexWorkspace(authority.withIdentity(stat), targetRoot);
   }
 
@@ -1211,6 +1311,71 @@ class FinalizeTempIndexWorkspace {
     }
   }
 
+  preparePublication(bytes, mode, authority) {
+    if (!Buffer.isBuffer(bytes) || !Number.isInteger(mode)) {
+      throw new Error("finalize index publication source is invalid");
+    }
+    this.assertAuthority();
+    const filePath = path.join(this.authority.workspacePath, "publication.index");
+    if (authority.publishPhase === "marker") {
+      let descriptor;
+      try {
+        descriptor = fs.openSync(
+          filePath,
+          fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW,
+          0o600,
+        );
+      } catch (cause) {
+        throw Object.assign(new Error("finalize index publication source is busy", { cause }), {
+          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+        });
+      }
+      try {
+        writeFinalizeDescriptorBytes(descriptor, bytes);
+        fs.fchmodSync(descriptor, mode & 0o777);
+        fs.fsyncSync(descriptor);
+        const verified = readFinalizeDescriptorBytes(descriptor);
+        if (
+          verified.stat.nlink !== 1
+          || verified.stat.size !== bytes.length
+          || (verified.stat.mode & 0o777) !== (mode & 0o777)
+          || FinalizeIndexLockAuthority.revision(verified.bytes)
+            !== FinalizeIndexLockAuthority.revision(bytes)
+        ) {
+          throw new Error("finalize index publication source verification failed");
+        }
+      } finally {
+        fs.closeSync(descriptor);
+      }
+      fsyncDirectory(this.authority.workspacePath);
+      return new FinalizeIndexPublicationSource({
+        workspace: this,
+        filePath,
+        indexPath: this.indexPath,
+        stat: assertRealFinalizeFile(filePath, "finalize index publication source"),
+      });
+    }
+    try {
+      const stat = assertRealFinalizeFile(filePath, "finalize index publication source");
+      return new FinalizeIndexPublicationSource({
+        workspace: this,
+        filePath,
+        indexPath: this.indexPath,
+        stat,
+      }).assertAuthority(authority, bytes, mode);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    const indexStat = assertRealFinalizeFile(this.indexPath, "published caller index");
+    return new FinalizeIndexPublicationSource({
+      workspace: this,
+      filePath,
+      indexPath: this.indexPath,
+      stat: indexStat,
+      published: true,
+    }).assertAuthority(authority, bytes, mode);
+  }
+
   cleanup() {
     this.assertAuthority();
     const allowed = new Set([...FINALIZE_TEMP_INDEX_NAMES, FINALIZE_TEMP_OWNER_FILE]);
@@ -1233,6 +1398,49 @@ class FinalizeTempIndexWorkspace {
     fs.unlinkSync(markerPath);
     fs.rmdirSync(this.authority.workspacePath);
     fsyncDirectory(path.dirname(this.authority.workspacePath));
+  }
+}
+
+class FinalizeIndexPublicationSource {
+  constructor({ workspace, filePath, indexPath, stat, published = false }) {
+    this.workspace = workspace;
+    this.filePath = filePath;
+    this.indexPath = indexPath;
+    this.stat = stat;
+    this.published = published;
+  }
+
+  assertAuthority(authority, bytes, mode) {
+    this.workspace.assertAuthority();
+    const sourcePath = this.published ? this.indexPath : this.filePath;
+    const before = assertRealFinalizeFile(sourcePath, "finalize index publication source");
+    const sourceBytes = fs.readFileSync(sourcePath);
+    const stat = assertRealFinalizeFile(sourcePath, "finalize index publication source");
+    if (
+      !authority.matchesPublication(stat)
+      || before.dev !== stat.dev
+      || before.ino !== stat.ino
+      || stat.nlink !== 1
+      || stat.size !== bytes.length
+      || (stat.mode & 0o777) !== (mode & 0o777)
+      || FinalizeIndexLockAuthority.revision(sourceBytes) !== authority.expectedIndexRevision
+    ) {
+      throw Object.assign(new Error("finalize index publication source authority diverged"), {
+        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+      });
+    }
+    this.stat = stat;
+    return this;
+  }
+
+  publish(authority, bytes, mode) {
+    this.assertAuthority(authority, bytes, mode);
+    if (!this.published) {
+      fs.renameSync(this.filePath, this.indexPath);
+      fsyncDirectory(path.dirname(this.indexPath));
+      this.published = true;
+    }
+    this.assertAuthority(authority, bytes, mode);
   }
 }
 
@@ -1340,7 +1548,7 @@ class FinalizeCallerIndexLease {
       || !this.authority.matches(pathStat)
     ) {
       throw Object.assign(new Error("caller index lock authority changed"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
+        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
         lockPath: this.lockPath,
       });
     }
@@ -1353,8 +1561,11 @@ class FinalizeCallerIndexLease {
     this.authority = authority;
   }
 
-  publish(bytes, mode) {
+  publish(bytes, mode, publicationSource) {
     this.assertAuthority();
+    if (!(publicationSource instanceof FinalizeIndexPublicationSource)) {
+      throw new Error("finalize index publication source is unavailable");
+    }
     if (
       this.authority.publishPhase !== "publishing"
       || FinalizeIndexLockAuthority.revision(bytes) !== this.authority.expectedIndexRevision
@@ -1394,9 +1605,26 @@ class FinalizeCallerIndexLease {
         lockPath: this.lockPath,
       });
     }
+    this.assertAuthority();
+    publicationSource.publish(this.authority, bytes, mode);
+    this.assertAuthority();
     fs.closeSync(this.descriptor);
     this.descriptor = null;
-    fs.renameSync(this.lockPath, this.indexPath);
+    const lockBefore = assertRealFinalizeFile(this.lockPath, "published caller index lock cleanup");
+    const lockBytes = fs.readFileSync(this.lockPath);
+    const lockStat = assertRealFinalizeFile(this.lockPath, "published caller index lock cleanup");
+    if (
+      !this.authority.matches(lockStat)
+      || lockBefore.dev !== lockStat.dev
+      || lockBefore.ino !== lockStat.ino
+      || this.authority.contentState(lockBytes) !== "expected-index"
+    ) {
+      throw Object.assign(new Error("published caller index lock cleanup authority diverged"), {
+        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+        lockPath: this.lockPath,
+      });
+    }
+    fs.unlinkSync(this.lockPath);
     fsyncDirectory(this.gitDirectory);
   }
 
@@ -1602,8 +1830,8 @@ class FinalizeIndexPublication {
     Object.freeze(this);
   }
 
-  publish(lease) {
-    lease.publish(this.bytes, this.mode);
+  publish(lease, source) {
+    lease.publish(this.bytes, this.mode, source);
   }
 }
 
@@ -4601,13 +4829,13 @@ function gitFailure(code, message, result) {
 
 function acquireFinalizeTempIndexWorkspace(transactionStore, transaction, targetRoot) {
   if (transaction.tempIndexAuthority == null) {
-    transaction.planTempIndexWorkspace();
+    transaction.planTempIndexWorkspace(targetRoot);
     transactionStore.write(transaction);
   } else if (
     transaction.tempIndexAuthority.dev !== null
     && !fs.existsSync(transaction.tempIndexAuthority.workspacePath)
   ) {
-    transaction.planTempIndexWorkspace();
+    transaction.planTempIndexWorkspace(targetRoot);
     transactionStore.write(transaction);
   }
   const workspace = FinalizeTempIndexWorkspace.acquire(transaction.tempIndexAuthority, targetRoot);
@@ -4648,7 +4876,7 @@ function acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRo
         });
       }
       if (
-        !transaction.indexLockAuthority.matches(indexStat)
+        !transaction.indexLockAuthority.matchesPublication(indexStat)
         || transaction.indexLockAuthority.contentState(indexBytes) !== "expected-index"
         || (indexStat.mode & 0o777) !== transaction.indexLockAuthority.expectedIndexMode
       ) {
@@ -5081,10 +5309,26 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
       if (publication == null) {
         callerIndexLease.release();
       } else {
-        transaction.authorizeIndexPublication(publication.bytes, publication.mode);
-        transactionStore.write(transaction);
-        callerIndexLease.authorizePublication(transaction.indexLockAuthority);
-        publication.publish(callerIndexLease);
+        const publicationSource = tempIndexWorkspace.preparePublication(
+          publication.bytes,
+          publication.mode,
+          transaction.indexLockAuthority,
+        );
+        if (transaction.indexLockAuthority.publishPhase === "marker") {
+          transaction.authorizeIndexPublication(
+            publication.bytes,
+            publication.mode,
+            publicationSource.stat,
+          );
+          transactionStore.write(transaction);
+          callerIndexLease.authorizePublication(transaction.indexLockAuthority);
+          publicationSource.assertAuthority(
+            transaction.indexLockAuthority,
+            publication.bytes,
+            publication.mode,
+          );
+        }
+        publication.publish(callerIndexLease, publicationSource);
       }
       callerIndexLease = null;
       tempIndexWorkspace.cleanup();

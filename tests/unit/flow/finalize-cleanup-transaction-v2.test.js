@@ -122,7 +122,7 @@ function crashFinalizeBeforeIndexRename(root, specId) {
     const indexPath = path.join(root, ".git", "index");
     const originalRename = fs.renameSync;
     fs.renameSync = (source, target) => {
-      if (source === indexPath + ".lock" && target === indexPath) {
+      if (path.basename(source) === "publication.index" && target === indexPath) {
         process.kill(process.pid, "SIGKILL");
       }
       return originalRename(source, target);
@@ -793,7 +793,7 @@ test("revalidates commit authority after the expectation journal becomes durable
     let changed = false;
     AtomicJsonFile.prototype.write = function writeThenChangeFeature(value) {
       const result = originalWrite.call(this, value);
-      if (!changed && value?.version === 5 && value.commitExpectation) {
+      if (!changed && value?.version === 6 && value.commitExpectation) {
         changed = true;
         const oldFeature = git(root, ["rev-parse", fixture.featureBranch]);
         const tree = git(root, ["rev-parse", `${oldFeature}^{tree}`]);
@@ -1141,6 +1141,64 @@ test("zero-progress index publication never renames a partial lock over the call
   }
 });
 
+test("post-fsync foreign lock replacement is never published over the caller index", async () => {
+  const root = createTmpDir("finalize-index-post-fsync-foreign-");
+  try {
+    initGitRepo(root);
+    const specId = "175";
+    setupFinalizeFlow(root, specId);
+    const indexPath = path.join(root, ".git", "index");
+    const lockPath = `${indexPath}.lock`;
+    const indexBefore = fs.readFileSync(indexPath);
+    const foreignIndexPath = path.join(root, ".git", "foreign.index");
+    const foreignRelative = "foreign-staged.txt";
+    fs.copyFileSync(indexPath, foreignIndexPath);
+    fs.writeFileSync(path.join(root, foreignRelative), "foreign staged content\n");
+    execFileSync("git", ["-C", root, "add", "--", foreignRelative], {
+      env: { ...process.env, GIT_INDEX_FILE: foreignIndexPath },
+    });
+    const foreignBytes = fs.readFileSync(foreignIndexPath);
+    fs.unlinkSync(foreignIndexPath);
+    fs.unlinkSync(path.join(root, foreignRelative));
+    assert.notDeepEqual(foreignBytes, indexBefore);
+
+    const originalFsync = fs.fsyncSync;
+    let replaced = false;
+    let foreignIno = null;
+    fs.fsyncSync = (descriptor) => {
+      originalFsync(descriptor);
+      if (replaced) return;
+      let openedPath = "";
+      try { openedPath = fs.readlinkSync(`/proc/self/fd/${descriptor}`); } catch {}
+      if (openedPath !== lockPath) return;
+      const header = Buffer.alloc(4);
+      if (fs.readSync(descriptor, header, 0, header.length, 0) !== header.length || header.toString("ascii") !== "DIRC") {
+        return;
+      }
+      replaced = true;
+      fs.unlinkSync(lockPath);
+      fs.writeFileSync(lockPath, foreignBytes, { mode: 0o644 });
+      foreignIno = fs.statSync(lockPath).ino;
+    };
+    let stopped;
+    try {
+      stopped = await runFinalize(root, specId);
+    } finally {
+      fs.fsyncSync = originalFsync;
+    }
+
+    assert.equal(replaced, true);
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "FINALIZE_INDEX_RECONCILIATION_BUSY");
+    assert.deepEqual(fs.readFileSync(indexPath), indexBefore);
+    assert.equal(fs.statSync(lockPath).ino, foreignIno);
+    assert.deepEqual(fs.readFileSync(lockPath), foreignBytes);
+  } finally {
+    fs.rmSync(path.join(root, ".git", "index.lock"), { force: true });
+    removeTmpDir(root);
+  }
+});
+
 test("foreign empty finalize workspace is never adopted or mutated", async () => {
   const root = createTmpDir("finalize-empty-workspace-race-");
   try {
@@ -1158,7 +1216,7 @@ test("foreign empty finalize workspace is never adopted or mutated", async () =>
         && value?.tempIndexAuthority?.dev === null
       ) {
         foreignWorkspace = value.tempIndexAuthority.workspacePath;
-        fs.mkdirSync(foreignWorkspace, { mode: 0o700 });
+        fs.mkdirSync(foreignWorkspace, { recursive: true, mode: 0o700 });
       }
       return result;
     };

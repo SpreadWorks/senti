@@ -428,6 +428,27 @@
       "taskId": null,
       "timestamp": "2026-07-13T19:10:00Z",
       "issueLogId": "issue-441-immutable-audit-index-cleanup-write-all"
+    },
+    {
+      "step": "immutable-audit-remediation",
+      "issue": 441,
+      "reason": "The immutable audit of commit 3e9b6c49 found that caller-index publication verified the open lock descriptor but still renamed the public index.lock pathname. A foreign inode replacement after payload fsync could therefore redirect rename and publish a foreign valid index.",
+      "trigger": "Fourth post-commit immutable-tree audit before merge authorization.",
+      "resolution": "Finalize journal v6 places the owned 0700 temporary-index workspace below the real Git directory so it shares the index filesystem, then records a separately written publication file's device/inode together with the expected revision and mode before public-lock payload mutation. The public index.lock is now guard-only: its open descriptor retains the existing write-all, fsync, size, mode, inode, and SHA checks, then the pathname is revalidated. Rename uses only the inode-bound publication file inside the transaction-owned private namespace, so replacing the public guard cannot redirect the source. Recovery distinguishes a staged private source from an already published index by the journaled publication inode and completes either state exactly once.",
+      "testCorrections": [
+        "Updated the journal-version selector from v5 to v6 and allowed the foreign empty-workspace fixture to create the newly journaled nested Git workspace path.",
+        "Moved the pre-rename SIGKILL injector from the former public index.lock rename to the private publication.index rename without weakening its journal, inode, retry, or clean-index assertions."
+      ],
+      "testEvidence": {
+        "red": "/tmp/flow-441-candidate14-post-fsync-red.log",
+        "targetedGreen": "/tmp/flow-441-candidate14-post-fsync-green-r2.log",
+        "publicationCrashGreen": "/tmp/flow-441-candidate14-publication-crash-green.log",
+        "focusedFinalizeGreen": "/tmp/flow-441-candidate14-focused-finalize-transaction-r2.log"
+      },
+      "result": "The focused reproduction passed and the finalize transaction suite passed 55/55 before the serial authority union.",
+      "taskId": null,
+      "timestamp": "2026-07-13T19:40:00Z",
+      "issueLogId": "issue-441-immutable-audit-private-index-publication-source"
     }
   ]
 }
