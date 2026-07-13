@@ -44,13 +44,17 @@ function activeRunIdOf(state) {
 export class FlowTargetExpectation {
   constructor(input = {}) {
     this.issue = normalizedIssue(input.expectIssue);
+    this.issueAbsent = input.expectNoIssue === true;
+    if (this.issue != null && this.issueAbsent) {
+      throw new Error("--expect-issue and --expect-no-issue cannot be used together");
+    }
     this.spec = normalizedSpec(input.expectSpec);
     this.runId = normalizedRunId(input.expectRunId ?? input.expectRunID);
     Object.freeze(this);
   }
 
   get empty() {
-    return this.issue == null && this.spec == null && this.runId == null;
+    return this.issue == null && !this.issueAbsent && this.spec == null && this.runId == null;
   }
 
   mismatchAgainst(state) {
@@ -61,6 +65,10 @@ export class FlowTargetExpectation {
     const activeRunId = activeRunIdOf(state);
     if (this.issue != null && activeIssue !== this.issue) {
       mismatches.expectedIssue = this.issue;
+      mismatches.activeIssue = activeIssue;
+    }
+    if (this.issueAbsent && activeIssue !== null) {
+      mismatches.expectedIssue = null;
       mismatches.activeIssue = activeIssue;
     }
     if (this.spec != null && activeSpec !== this.spec) {
@@ -74,7 +82,10 @@ export class FlowTargetExpectation {
     if (Object.keys(mismatches).length === 0) return null;
     return {
       ...mismatches,
-      ...(this.issue != null && !("expectedIssue" in mismatches) && { expectedIssue: this.issue, activeIssue }),
+      ...((this.issue != null || this.issueAbsent) && !("expectedIssue" in mismatches) && {
+        expectedIssue: this.issue,
+        activeIssue,
+      }),
       ...(this.spec != null && !("expectedSpec" in mismatches) && { expectedSpec: this.spec, activeSpec }),
       ...(this.runId != null && !("expectedRunId" in mismatches) && { expectedRunId: this.runId, activeRunId }),
     };
@@ -83,6 +94,9 @@ export class FlowTargetExpectation {
 
 function mismatchSummary(data) {
   if ("expectedIssue" in data && data.expectedIssue !== data.activeIssue) {
+    if (data.expectedIssue == null) {
+      return `Another flow is active for Issue #${data.activeIssue} but the specified target expects no Issue.`;
+    }
     return `Another flow is active for Issue #${data.activeIssue ?? "none"} and does not match the specified #${data.expectedIssue}.`;
   }
   if ("expectedSpec" in data && data.expectedSpec !== data.activeSpec) {

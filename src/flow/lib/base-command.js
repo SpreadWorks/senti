@@ -14,8 +14,10 @@
  */
 
 import { Command } from "../../lib/command.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 import { resolveFlowContext } from "./flow-context.js";
 import { targetMismatchEnvelopeForInput } from "../../lib/flow-target-guard.js";
+import { ReopenDraftRecoveryPreflight } from "./reopen-draft-transaction.js";
 
 export class FlowCommand extends Command {
   /** All flow commands emit JSON envelopes. */
@@ -41,6 +43,8 @@ export class FlowCommand extends Command {
    */
   async run(container, input = {}) {
     this.container = container;
+    const recoveryFailure = this.runRecoveryPreflight(container, input);
+    if (recoveryFailure) return recoveryFailure;
     const ctx = {
       ...resolveFlowContext(container, {
         allowMissingActive: !this.requiresFlow,
@@ -61,6 +65,27 @@ export class FlowCommand extends Command {
       if (mismatch) return mismatch;
     }
     return this.execute(ctx);
+  }
+
+  runRecoveryPreflight(container, input = {}) {
+    const root = container.get("mainRoot") || container.get("paths")?.root;
+    if (!root) return null;
+    try {
+      new ReopenDraftRecoveryPreflight({ root }).run();
+      return null;
+    } catch (err) {
+      return Envelope.fail(
+        input._envelopeType || "run",
+        input._envelopeKey || "flow",
+        "TRANSACTION_RECOVERY_FAILED",
+        err.message,
+        {
+          journalPath: err.journalPath ?? null,
+          recovered: false,
+          transaction: "issue-441-reopen-draft",
+        },
+      );
+    }
   }
 
   /**
