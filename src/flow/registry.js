@@ -9,6 +9,7 @@
  */
 
 import { derivePhase } from "../lib/flow-helpers.js";
+import { hasExplicitOption } from "../lib/flow-options.js";
 import path from "path";
 import {
   VALID_PHASES,
@@ -134,15 +135,22 @@ function deriveActivePhase(ctx) {
  * hooks which target the main repo flow.json via forRoot().
  */
 function tryUpdateStepStatus(target, stepId, status, opts) {
-  const fm = (target && typeof target === "object" && target.flowManager)
+  const isHookContext = Boolean(target && typeof target === "object" && target.flowManager);
+  const fm = isHookContext
     ? target.flowManager
     : target;
+  const mutationOpts = isHookContext && !hasExplicitOption(opts, "taskId")
+    ? {
+        ...(opts || {}),
+        taskId: taskIdForResolvedStep(findActiveNode(target.flowState), stepId),
+      }
+    : opts;
   try {
     const skipTaskImplGateContract = stepId === "impl-gate" && target?.phase === "task-impl";
     if (status === "done" && target?.root && !skipTaskImplGateContract) {
       assertStepCompletionTransitionAllowed(target, stepId);
     }
-    fm.updateStepStatus(stepId, status, opts);
+    fm.updateStepStatus(stepId, status, mutationOpts);
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
       process.stderr.write(`[senti] step-status update skipped (${stepId}=${status}): ${err.message}\n`);
