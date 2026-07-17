@@ -29,6 +29,7 @@ import { defaultAgentProfiles } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
 import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } from "./lib/gitignore.js";
 import { ensureSetupOfficialPresetState, resolveSetupOfficialPresetSource } from "./lib/plugin-registry.js";
+import { ExecutionMode, WritePlan } from "./lib/execution-plan.js";
 
 // ---------------------------------------------------------------------------
 // readline helpers
@@ -351,13 +352,17 @@ function ensureGitattributes(workRoot) {
   }
 }
 
-function registerProject(projectName, sourcePath, workRootPath, t) {
+function resolveProjectRoot(sourcePath, workRootPath, t) {
   const resolved = path.resolve(sourcePath);
   if (!fs.existsSync(resolved)) {
     throw new Error(t("common.error.pathNotFound", { path: resolved }));
   }
 
-  const workRoot = workRootPath ? path.resolve(workRootPath) : resolved;
+  return workRootPath ? path.resolve(workRootPath) : resolved;
+}
+
+function registerProject(sourcePath, workRootPath, t) {
+  const workRoot = resolveProjectRoot(sourcePath, workRootPath, t);
   ensureProjectDirs(workRoot);
   ensureGitignore(workRoot);
   ensureGitattributes(workRoot);
@@ -771,12 +776,9 @@ async function main() {
     }
   }
 
-  // --- Write phase ---
-  const { workRoot } = registerProject(
-    settings.projectName, sourcePath, workRootPath,
-    createI18n(settings.lang),
-  );
+  // Resolve and validate the plan without registering or writing the project.
   const t = createI18n(settings.lang);
+  const workRoot = resolveProjectRoot(sourcePath, workRootPath, t);
 
   // Build config: merge wizard values into existing config to preserve customizations
   const configPath = path.join(workRoot, ".senti", "config.json");
@@ -812,65 +814,64 @@ async function main() {
     configChapters: config.chapters,
   });
 
-  if (cli.dryRun) {
-    console.log("[setup] DRY-RUN: config.json content:");
-    console.log(JSON.stringify(config, null, 2));
-    return;
-  }
+  const plan = new WritePlan(`set up project at ${workRoot}`, {
+    preview: `config.json:\n${JSON.stringify(config, null, 2)}`,
+  });
+  plan.add("register project directories, configuration, agent files, and skills", async () => {
+    registerProject(sourcePath, workRootPath, t);
 
-  const configSnapshot = snapshotConfigFile(configPath);
-  try {
-    ensureSetupOfficialPresetState(workRoot, {
-      selectedTypes,
-      officialPresetRoot: officialPresetOptions.officialPresetRoot,
-      officialPresetSource: officialPresetOptions.officialPresetSource,
-    });
-  } catch (err) {
-    restoreConfigFile(configPath, configSnapshot);
-    throw err;
-  }
-  const preparedConfig = readConfigFile(configPath);
-  if (preparedConfig?.plugin) config.plugin = preparedConfig.plugin;
+    const configSnapshot = snapshotConfigFile(configPath);
+    try {
+      ensureSetupOfficialPresetState(workRoot, {
+        selectedTypes,
+        officialPresetRoot: officialPresetOptions.officialPresetRoot,
+        officialPresetSource: officialPresetOptions.officialPresetSource,
+      });
+    } catch (err) {
+      restoreConfigFile(configPath, configSnapshot);
+      throw err;
+    }
+    const preparedConfig = readConfigFile(configPath);
+    if (preparedConfig?.plugin) config.plugin = preparedConfig.plugin;
 
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
-  console.log(t("setup.messages.configGenerated", { path: configPath }));
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
+    console.log(t("setup.messages.configGenerated", { path: configPath }));
 
-  // Ensure the resolved agent work directory exists
-  if (config.agent) {
-    const workDir = resolveWorkDir(workRoot, config);
-    fs.mkdirSync(workDir, { recursive: true });
-  }
+    if (config.agent) {
+      const workDir = resolveWorkDir(workRoot, config);
+      fs.mkdirSync(workDir, { recursive: true });
+    }
 
-  // Agent config files
-  if (settings.agentFileMode === "generate") {
-    writeSetupAgentFiles({
-      workRoot,
-      lang: settings.lang,
-      agentFileTargets: settings.agentFileTargets || resolveSetupAgentFileTargets({
-        selectedAgents: settings.selectedAgents || (settings.agent ? [settings.agent] : []),
-        mode: "non-interactive",
-      }),
-      presetTypes: config.type,
-      t,
-    });
-  }
+    if (settings.agentFileMode === "generate") {
+      writeSetupAgentFiles({
+        workRoot,
+        lang: settings.lang,
+        agentFileTargets: settings.agentFileTargets || resolveSetupAgentFileTargets({
+          selectedAgents: settings.selectedAgents || (settings.agent ? [settings.agent] : []),
+          mode: "non-interactive",
+        }),
+        presetTypes: config.type,
+        t,
+      });
+    }
 
-  // Skills
-  try {
-    deploySkills(workRoot);
-    console.log(t("setup.messages.skillsDeployed"));
-  } catch (e) {
-    console.error(`skill deployment failed: ${e.message}`);
-    process.exit(EXIT_ERROR);
-  }
+    try {
+      deploySkills(workRoot);
+      console.log(t("setup.messages.skillsDeployed"));
+    } catch (e) {
+      console.error(`skill deployment failed: ${e.message}`);
+      process.exit(EXIT_ERROR);
+    }
 
-  // Final summary
-  console.log(`\n  ${t("setup.messages.nextSteps")}`);
-  console.log(`    ${t("setup.messages.step1")}`);
-  console.log(`    ${t("setup.messages.step2")}`);
-  console.log("");
+    console.log(`\n  ${t("setup.messages.nextSteps")}`);
+    console.log(`    ${t("setup.messages.step1")}`);
+    console.log(`    ${t("setup.messages.step2")}`);
+    console.log("");
 
-  if (typeof process.stdin.unref === "function") process.stdin.unref();
+    if (typeof process.stdin.unref === "function") process.stdin.unref();
+  });
+
+  return ExecutionMode.fromDryRun(cli.dryRun).execute(plan);
 }
 
 

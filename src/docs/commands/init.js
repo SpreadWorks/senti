@@ -22,8 +22,32 @@ import { stripBlockDirectives } from "../lib/directive-parser.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import { ExecutionMode, WritePlan } from "../../lib/execution-plan.js";
 
 const logger = createLogger("init");
+
+class InitChapterPlan {
+  constructor(resolution, content) {
+    if (!resolution?.fileName || typeof content !== "string") {
+      throw new Error("InitChapterPlan requires a template resolution and content");
+    }
+    this.resolution = resolution;
+    this.fileName = resolution.fileName;
+    this.content = content;
+    Object.freeze(this);
+  }
+
+  async render(agent, root) {
+    if (this.resolution.action !== "translate" || !agent) return this.content;
+    return translateTemplate(
+      this.content,
+      this.resolution.from,
+      this.resolution.to,
+      agent,
+      root,
+    );
+  }
+}
 
 // ---------------------------------------------------------------------------
 // AI 章選別
@@ -188,92 +212,80 @@ async function runInit(ctx, rawArgs) {
     projectRoot: root,
   });
 
-  // 解決結果からチャプターを生成（README は除外）
-  const chapters = [];
+  // Build the write plan from static template resolution. Agent-backed
+  // translation and filtering belong to commit and are unreachable in dry-run.
+  const plannedChapters = [];
   for (const res of resolutions) {
     if (res.fileName === "README.md") continue;
-    let content = mergeResolved(res.sources, res.additive);
+    const content = mergeResolved(res.sources, res.additive);
     if (content === null) continue;
-    if (res.action === "translate" && agent) {
-      content = await translateTemplate(content, res.from, res.to, agent, root);
-    }
-    chapters.push({ fileName: res.fileName, content });
+    plannedChapters.push(new InitChapterPlan(res, content));
   }
 
-  if (chapters.length === 0) {
+  if (plannedChapters.length === 0) {
     throw new Error(t("messages:init.noTemplates"));
   }
 
-  // AI 章選別
-  // config.chapters が定義されている場合のルール:
-  //   AI:あり + ユーザー明示:あり → ドキュメント生成する、章リスト表示する
-  //   AI:なし + ユーザー明示:あり → ドキュメント生成する、章リスト表示する
-  //   AI:あり + ユーザー明示:なし → ドキュメント生成しない、章リスト表示しない
-  // → config.chapters が唯一の真実。AI フィルタリングの結果は無視される。
-  // config.chapters が未定義の場合は従来通りプリセット + AI フィルタリング。
-  let filteredChapters = chapters;
-  const analysis = loadFullAnalysis(root);
+  const preview = plannedChapters
+    .map((chapter) => `  - ${path.join(docsDir, chapter.fileName)}`)
+    .join("\n");
+  const plan = new WritePlan(`initialize ${plannedChapters.length} documentation files`, {
+    preview,
+  });
+  plan.add(`create ${docsDir} and write the selected documentation files`, async () => {
+    const chapters = [];
+    for (const planned of plannedChapters) {
+      const content = await planned.render(agent, root);
+      chapters.push({ fileName: planned.fileName, content });
+    }
 
-  if (configChapters?.length) {
-    logger.verbose("config.chapters defined — skipping AI chapter filter");
-  } else if (analysis && agent) {
-    logger.verbose("AI chapter selection...");
-    const summaryData = loadAnalysisData(root);
-    filteredChapters = await aiFilterChapters(
-      filteredChapters,
-      summaryData,
-      agent,
-      root,
-      config?.docs?.style?.purpose || "",
-    );
-  }
+    // config.chapters is authoritative. Without it, the agent may select a
+    // subset, but only during commit.
+    let filteredChapters = chapters;
+    const analysis = loadFullAnalysis(root);
+    if (configChapters?.length) {
+      logger.verbose("config.chapters defined — skipping AI chapter filter");
+    } else if (analysis && agent) {
+      logger.verbose("AI chapter selection...");
+      const summaryData = loadAnalysisData(root);
+      filteredChapters = await aiFilterChapters(
+        filteredChapters,
+        summaryData,
+        agent,
+        root,
+        config?.docs?.style?.purpose || "",
+      );
+    }
 
-  const totalFiltered = chapters.length - filteredChapters.length;
-  logger.verbose(`${filteredChapters.length} template files (${totalFiltered} filtered by AI)`);
+    const totalFiltered = chapters.length - filteredChapters.length;
+    logger.verbose(`${filteredChapters.length} template files (${totalFiltered} filtered by AI)`);
 
-  // docs/ ディレクトリの準備
-  if (!fs.existsSync(docsDir)) {
     fs.mkdirSync(docsDir, { recursive: true });
-  }
+    const outputChapters = filteredChapters.map((ch) => ({ ...ch, outputName: ch.fileName }));
+    const conflicts = outputChapters.filter((ch) => fs.existsSync(path.join(docsDir, ch.outputName)));
+    const conflictSet = new Set(conflicts.map((ch) => ch.outputName));
 
-  const outputChapters = filteredChapters.map((ch) => ({ ...ch, outputName: ch.fileName }));
-
-  const conflicts = outputChapters.filter((ch) => fs.existsSync(path.join(docsDir, ch.outputName)));
-
-  const conflictSet = new Set(conflicts.map((ch) => ch.outputName));
-
-  if (conflicts.length > 0 && !ctx.force) {
-    logger.log(t("messages:init.conflictsExist", { count: conflicts.length }));
-    for (const ch of conflicts) {
-      logger.log(`  - ${ch.outputName}`);
+    if (conflicts.length > 0 && !ctx.force) {
+      logger.log(t("messages:init.conflictsExist", { count: conflicts.length }));
+      for (const ch of conflicts) logger.log(`  - ${ch.outputName}`);
+      logger.log(t("messages:init.useForce"));
     }
-    logger.log(t("messages:init.useForce"));
-  }
-
-  if (conflicts.length > 0 && ctx.force) {
-    logger.verbose(`--force: overwriting ${conflicts.length} existing file(s)`);
-  }
-
-  for (const chapter of outputChapters) {
-    if (conflictSet.has(chapter.outputName) && !ctx.force) continue;
-    let text = chapter.content;
-
-    // ブロックディレクティブを除去
-    text = stripBlockDirectives(text);
-
-    logger.verbose(`merged: ${chapter.fileName} → ${chapter.outputName}`);
-
-    if (!ctx.dryRun) {
-      const dst = path.join(docsDir, chapter.outputName);
-      fs.writeFileSync(dst, text, "utf8");
+    if (conflicts.length > 0 && ctx.force) {
+      logger.verbose(`--force: overwriting ${conflicts.length} existing file(s)`);
     }
-  }
 
-  if (ctx.dryRun) {
-    console.log(`DRY-RUN: ${outputChapters.length} files would be initialized in docs/`);
-  } else {
+    for (const chapter of outputChapters) {
+      if (conflictSet.has(chapter.outputName) && !ctx.force) continue;
+      const text = stripBlockDirectives(chapter.content);
+      logger.verbose(`merged: ${chapter.fileName} → ${chapter.outputName}`);
+      fs.writeFileSync(path.join(docsDir, chapter.outputName), text, "utf8");
+    }
+
     logger.verbose(`done. ${outputChapters.length} files initialized in docs/`);
-  }
+    return outputChapters;
+  });
+
+  return ExecutionMode.fromDryRun(ctx.dryRun).execute(plan);
 }
 
 export { aiFilterChapters };

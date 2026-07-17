@@ -13,6 +13,7 @@ import { sourceRoot, parseArgs, formatUTCTimestamp } from "../../lib/cli.js";
 import { DEFAULT_LANG } from "../../lib/config.js";
 import { translate } from "../../lib/i18n.js";
 import { Command } from "../../lib/command.js";
+import { ExecutionMode, WritePlan } from "../../lib/execution-plan.js";
 import { mapWithConcurrency } from "../lib/concurrency.js";
 
 async function optional(fsOp) {
@@ -121,9 +122,6 @@ async function runChangelog(rawArgs, container) {
   const lang = cfgData?.docs?.defaultLanguage || cfgData?.lang || DEFAULT_LANG;
   const t = translate();
 
-  // Ensure output directory exists (async)
-  await fsp.mkdir(path.dirname(outFile), { recursive: true });
-
   // Collect spec entries asynchronously with bounded concurrency — satisfies
   // the "no synchronous I/O in hot paths" and "bounded resource usage"
   // guardrails (spec 207 / T8).
@@ -216,13 +214,21 @@ async function runChangelog(rawArgs, container) {
   out.push("<!-- AUTO-GEN:END -->");
   out.push("");
 
-  if (opts.dryRun) {
-    console.log(out.join("\n"));
-    console.error(t("messages:changelog.dryRun", { path: outFile }));
-  } else {
-    await fsp.writeFile(outFile, out.join("\n"));
+  const content = out.join("\n");
+  const plan = new WritePlan(`generate changelog at ${outFile}`, { preview: content });
+  plan.add(`create ${path.dirname(outFile)} and write ${outFile}`, async () => {
+    await fsp.mkdir(path.dirname(outFile), { recursive: true });
+    await fsp.writeFile(outFile, content);
     console.log(t("messages:changelog.generated", { path: outFile }));
-  }
+  });
+
+  const mode = ExecutionMode.fromDryRun(opts.dryRun);
+  return mode.execute(plan, {
+    write(rendered) {
+      console.log(rendered);
+      console.error(t("messages:changelog.dryRun", { path: outFile }));
+    },
+  });
 }
 
 export default class DocsChangelogCommand extends Command {

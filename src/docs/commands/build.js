@@ -14,6 +14,7 @@ import { PKG_DIR } from "../../lib/cli.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
+import { ExecutionMode, WritePlan } from "../../lib/execution-plan.js";
 
 import { validatePresetChain } from "../../lib/presets.js";
 import DocsScanCommand from "./scan.js";
@@ -93,142 +94,149 @@ async function runBuild(rawArgs, container) {
     ...(hasTranslateStep ? [{ label: "translate", weight: 2 }] : []),
   ];
 
-  const { createProgress } = await import(pathToFileURL(path.join(PKG_DIR, "lib/progress.js")).href);
-  const progress = createProgress(pipelineSteps, {
-    verbose: isVerbose,
-    title: "Generating docs with senti...",
+  const plan = new WritePlan("run docs build pipeline", {
+    preview: pipelineSteps.map((step) => `  - ${step.label}`).join("\n"),
   });
+  plan.add("execute each pipeline step and commit its generated files", async () => {
+    const { createProgress } = await import(pathToFileURL(path.join(PKG_DIR, "lib/progress.js")).href);
+    const progress = createProgress(pipelineSteps, {
+      verbose: isVerbose,
+      title: "Generating docs with senti...",
+    });
 
-  const logger = container.get("logger");
-  const hasAgent = !!baseCtx.config.agent?.default;
+    const logger = container.get("logger");
+    const hasAgent = !!baseCtx.config.agent?.default;
 
-  // Common contract invocation: each step runs via Command.run(container, input)
-  // with `docsCtx` inside input so the leaf's execute() receives it as ctx.docsCtx.
-  const runStep = async (CommandClass, stepCtx) => {
-    const cmd = new CommandClass();
-    return cmd.run(container, { docsCtx: stepCtx, _rawArgs: [] });
-  };
+    // Common contract invocation: each step runs via Command.run(container, input)
+    // with `docsCtx` inside input so the leaf's execute() receives it as ctx.docsCtx.
+    const runStep = async (CommandClass, stepCtx) => {
+      const cmd = new CommandClass();
+      return cmd.run(container, { docsCtx: stepCtx, _rawArgs: [] });
+    };
 
-  try {
-    logger.event("pipeline-step", { step: "scan", phase: "start" });
-    progress.start("scan");
-    await runStep(DocsScanCommand, { ...baseCtx });
-    progress.stepDone();
-
-    logger.event("pipeline-step", { step: "enrich", phase: "start" });
-    progress.start("enrich");
-    if (hasAgent) {
-      await runStep(DocsEnrichCommand, { ...baseCtx, commandId: "docs.enrich" });
-    } else {
-      progress.log("[enrich] WARN: no defaultAgent configured, skipping enrich.");
-    }
-    progress.stepDone();
-
-    if (hasRegenerate) {
-      let docsFiles = [];
-      try {
-        const entries = await readdir(baseCtx.docsDir);
-        docsFiles = entries.filter((f) => f.endsWith(".md"));
-      } catch (err) {
-        if (err.code !== "ENOENT") throw err;
-      }
-      if (docsFiles.length === 0) {
-        console.error("[regenerate] ERROR: docs/ に章ファイルがありません。先に docs build を実行してください。");
-        process.exit(EXIT_ERROR);
-      }
-    } else {
-      logger.event("pipeline-step", { step: "init", phase: "start" });
-      progress.start("init");
-      await runStep(DocsInitCommand, { ...baseCtx, force: hasForce, dryRun: isDryRun, commandId: "docs.init" });
+    try {
+      logger.event("pipeline-step", { step: "scan", phase: "start" });
+      progress.start("scan");
+      await runStep(DocsScanCommand, { ...baseCtx });
       progress.stepDone();
-    }
 
-    logger.event("pipeline-step", { step: "data", phase: "start" });
-    progress.start("data");
-    await runStep(DocsDataCommand, { ...baseCtx, dryRun: isDryRun });
-    progress.stepDone();
-
-    logger.event("pipeline-step", { step: "text", phase: "start" });
-    progress.start("text");
-    if (hasAgent) {
-      const textResult = await runStep(DocsTextCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.text", force: hasForce });
-      if (textResult?.errors?.length > 0) {
-        progress.log(`[text] WARN: ${textResult.errors.length} file(s) had errors. Pipeline continues but docs may be incomplete.`);
-      }
-    } else {
-      progress.log("[text] WARN: no defaultAgent configured, skipping text generation.");
-    }
-    progress.stepDone();
-
-    logger.event("pipeline-step", { step: "readme", phase: "start" });
-    progress.start("readme");
-    await runStep(DocsReadmeCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.readme" });
-    progress.stepDone();
-
-    logger.event("pipeline-step", { step: "agents", phase: "start" });
-    progress.start("agents");
-    await runStep(DocsAgentsCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.agents" });
-    progress.stepDone();
-
-    if (isMultiLang) {
-      logger.event("pipeline-step", { step: "translate", phase: "start" });
-      progress.start("translate");
-      const nonDefaultLangs = docsCfg.languages.filter((l) => l !== docsCfg.defaultLanguage);
-      const docsDir = baseCtx.docsDir;
-
-      if (docsMode === "translate") {
-        progress.log(`[build] Translating to: ${nonDefaultLangs.join(", ")}`);
-        await runStep(DocsTranslateCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.translate" });
+      logger.event("pipeline-step", { step: "enrich", phase: "start" });
+      progress.start("enrich");
+      if (hasAgent) {
+        await runStep(DocsEnrichCommand, { ...baseCtx, commandId: "docs.enrich" });
       } else {
-        for (const lang of nonDefaultLangs) {
-          const langDocsDir = path.join(docsDir, lang);
-          const langCtx = { ...baseCtx, outputLang: lang, docsDir: langDocsDir };
-          progress.log(`[build] Generating ${lang}...`);
+        progress.log("[enrich] WARN: no defaultAgent configured, skipping enrich.");
+      }
+      progress.stepDone();
 
-          if (!hasRegenerate) {
-            await runStep(DocsInitCommand, { ...langCtx, force: hasForce, dryRun: isDryRun, commandId: "docs.init" });
+      if (hasRegenerate) {
+        let docsFiles = [];
+        try {
+          const entries = await readdir(baseCtx.docsDir);
+          docsFiles = entries.filter((f) => f.endsWith(".md"));
+        } catch (err) {
+          if (err.code !== "ENOENT") throw err;
+        }
+        if (docsFiles.length === 0) {
+          console.error("[regenerate] ERROR: docs/ に章ファイルがありません。先に docs build を実行してください。");
+          process.exit(EXIT_ERROR);
+        }
+      } else {
+        logger.event("pipeline-step", { step: "init", phase: "start" });
+        progress.start("init");
+        await runStep(DocsInitCommand, { ...baseCtx, force: hasForce, dryRun: isDryRun, commandId: "docs.init" });
+        progress.stepDone();
+      }
+
+      logger.event("pipeline-step", { step: "data", phase: "start" });
+      progress.start("data");
+      await runStep(DocsDataCommand, { ...baseCtx, dryRun: isDryRun });
+      progress.stepDone();
+
+      logger.event("pipeline-step", { step: "text", phase: "start" });
+      progress.start("text");
+      if (hasAgent) {
+        const textResult = await runStep(DocsTextCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.text", force: hasForce });
+        if (textResult?.errors?.length > 0) {
+          progress.log(`[text] WARN: ${textResult.errors.length} file(s) had errors. Pipeline continues but docs may be incomplete.`);
+        }
+      } else {
+        progress.log("[text] WARN: no defaultAgent configured, skipping text generation.");
+      }
+      progress.stepDone();
+
+      logger.event("pipeline-step", { step: "readme", phase: "start" });
+      progress.start("readme");
+      await runStep(DocsReadmeCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.readme" });
+      progress.stepDone();
+
+      logger.event("pipeline-step", { step: "agents", phase: "start" });
+      progress.start("agents");
+      await runStep(DocsAgentsCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.agents" });
+      progress.stepDone();
+
+      if (isMultiLang) {
+        logger.event("pipeline-step", { step: "translate", phase: "start" });
+        progress.start("translate");
+        const nonDefaultLangs = docsCfg.languages.filter((l) => l !== docsCfg.defaultLanguage);
+        const docsDir = baseCtx.docsDir;
+
+        if (docsMode === "translate") {
+          progress.log(`[build] Translating to: ${nonDefaultLangs.join(", ")}`);
+          await runStep(DocsTranslateCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.translate" });
+        } else {
+          for (const lang of nonDefaultLangs) {
+            const langDocsDir = path.join(docsDir, lang);
+            const langCtx = { ...baseCtx, outputLang: lang, docsDir: langDocsDir };
+            progress.log(`[build] Generating ${lang}...`);
+
+            if (!hasRegenerate) {
+              await runStep(DocsInitCommand, { ...langCtx, force: hasForce, dryRun: isDryRun, commandId: "docs.init" });
+            }
+            await runStep(DocsDataCommand, { ...langCtx, dryRun: isDryRun });
+            if (hasAgent) {
+              const langTextResult = await runStep(DocsTextCommand, { ...langCtx, dryRun: isDryRun, commandId: "docs.text", force: hasForce || hasRegenerate });
+              if (langTextResult?.errors?.length > 0) {
+                progress.log(`[text] WARN: ${lang}: ${langTextResult.errors.length} file(s) had errors.`);
+              }
+            }
+            const langReadmePath = path.join(langDocsDir, "README.md");
+            await runStep(DocsReadmeCommand, { ...langCtx, dryRun: isDryRun, output: langReadmePath, commandId: "docs.readme" });
           }
-          await runStep(DocsDataCommand, { ...langCtx, dryRun: isDryRun });
-          if (hasAgent) {
-            const langTextResult = await runStep(DocsTextCommand, { ...langCtx, dryRun: isDryRun, commandId: "docs.text", force: hasForce || hasRegenerate });
-            if (langTextResult?.errors?.length > 0) {
-              progress.log(`[text] WARN: ${lang}: ${langTextResult.errors.length} file(s) had errors.`);
+        }
+
+        if (docsMode === "translate") {
+          for (const lang of nonDefaultLangs) {
+            const langDocsDir = path.join(docsDir, lang);
+            if (await dirExists(langDocsDir)) {
+              const langReadmePath = path.join(langDocsDir, "README.md");
+              progress.log(`[build] Regenerating ${lang}/README.md...`);
+              await runStep(DocsReadmeCommand, { ...baseCtx, outputLang: lang, docsDir: langDocsDir, dryRun: isDryRun, output: langReadmePath, commandId: "docs.readme" });
             }
           }
-          const langReadmePath = path.join(langDocsDir, "README.md");
-          await runStep(DocsReadmeCommand, { ...langCtx, dryRun: isDryRun, output: langReadmePath, commandId: "docs.readme" });
         }
-      }
 
-      if (docsMode === "translate") {
+        progress.log("[build] Resolving lang.links...");
+        await runStep(DocsDataCommand, { ...baseCtx, dryRun: isDryRun });
         for (const lang of nonDefaultLangs) {
           const langDocsDir = path.join(docsDir, lang);
           if (await dirExists(langDocsDir)) {
-            const langReadmePath = path.join(langDocsDir, "README.md");
-            progress.log(`[build] Regenerating ${lang}/README.md...`);
-            await runStep(DocsReadmeCommand, { ...baseCtx, outputLang: lang, docsDir: langDocsDir, dryRun: isDryRun, output: langReadmePath, commandId: "docs.readme" });
+            await runStep(DocsDataCommand, { ...baseCtx, docsDir: langDocsDir, dryRun: isDryRun });
           }
         }
+        progress.stepDone();
       }
 
-      progress.log("[build] Resolving lang.links...");
-      await runStep(DocsDataCommand, { ...baseCtx, dryRun: isDryRun });
-      for (const lang of nonDefaultLangs) {
-        const langDocsDir = path.join(docsDir, lang);
-        if (await dirExists(langDocsDir)) {
-          await runStep(DocsDataCommand, { ...baseCtx, docsDir: langDocsDir, dryRun: isDryRun });
-        }
-      }
-      progress.stepDone();
+      progress.done();
+    } catch (err) {
+      progress.done();
+      logger.event("error", { message: err.message });
+      console.error(`[build] ERROR: ${err.message}`);
+      process.exit(EXIT_ERROR);
     }
+  });
 
-    progress.done();
-  } catch (err) {
-    progress.done();
-    logger.event("error", { message: err.message });
-    console.error(`[build] ERROR: ${err.message}`);
-    process.exit(EXIT_ERROR);
-  }
+  return ExecutionMode.fromDryRun(isDryRun).execute(plan);
 }
 
 export { runBuild };
