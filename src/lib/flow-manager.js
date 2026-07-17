@@ -516,7 +516,8 @@ export class FlowManager {
       const specId = specIdFromPath(flowState.spec);
       let worktreePath = null;
       if (flowState.worktree) {
-        worktreePath = this._store.resolveWorktreePaths(flowState).worktreePath;
+        const candidate = this._store.resolveWorktreePaths(flowState).worktreePath;
+        if (candidate && fs.existsSync(candidate)) worktreePath = candidate;
       }
       return { state: flowState, specId, worktreePath };
     }
@@ -608,8 +609,9 @@ export class FlowManager {
 
     if (state?.worktree && !worktreePath) {
       const resolved = this._store.resolveWorktreePaths(state);
-      worktreePath = resolved.worktreePath;
-      if (worktreePath && fs.existsSync(worktreePath)) {
+      const candidate = resolved.worktreePath;
+      if (candidate && fs.existsSync(candidate)) {
+        worktreePath = candidate;
         const wtStore = new FlowStore({
           root: worktreePath,
           mainRoot: this._mainRoot,

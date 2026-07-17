@@ -30,6 +30,7 @@ import {
   taskScopeViolationMessages,
 } from "./task-scope.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { FlowCompletion } from "./flow-completion.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -168,6 +169,18 @@ function promoteNextAvailableTarget(state) {
   return promoteNextTaskAndFirstStep(state);
 }
 
+function completedNextAction() {
+  return {
+    taskId: null,
+    step: null,
+    action: "completed",
+    instructions: null,
+    context: null,
+    output_schema: null,
+    requires_approval: false,
+  };
+}
+
 export default class GetNextActionCommand extends FlowCommand {
   constructor() {
     super({ requiresFlow: false });
@@ -186,6 +199,8 @@ export default class GetNextActionCommand extends FlowCommand {
       };
     }
     let state = ctx.flowState;
+
+    if (new FlowCompletion(state).complete) return completedNextAction();
 
     assertNoUnresolvedInProgressTarget(state);
     let target = findActiveNode({
@@ -230,15 +245,7 @@ export default class GetNextActionCommand extends FlowCommand {
       }
     }
     if (!target) {
-      return {
-        taskId: null,
-        step: null,
-        action: "completed",
-        instructions: null,
-        context: null,
-        output_schema: null,
-        requires_approval: false,
-      };
+      return completedNextAction();
     }
 
     const derived = deriveNextAction({

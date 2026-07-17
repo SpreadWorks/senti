@@ -4311,6 +4311,8 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     if (resolution instanceof Envelope) return resolution;
     ctx = {
       ...ctx,
+      root: resolution.mainRepoPath,
+      flowManager: resolution.mainFlowManager,
       flowState: resolution.state,
       finalizeCleanupStateResolution: resolution,
     };

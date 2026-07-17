@@ -372,9 +372,11 @@ function resolveFinalizeLifecycle(input) {
     })];
   }
   if (input.event === "finalize:onError") {
-    const actions = [
-      new RunLifecycleHook({ module: "finalize", handler: "finalizeOnError", args: { command } }),
-    ];
+    const actions = [];
+    if (command === "finalize-cleanup") {
+      actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveMainRepoFlowManager" }));
+    }
+    actions.push(new RunLifecycleHook({ module: "finalize", handler: "finalizeOnError", args: { command } }));
     if (command === "finalize-merge") {
       actions.push(new SkipSteps({ steps: ["finalize-sync", "finalize-cleanup"] }));
     }

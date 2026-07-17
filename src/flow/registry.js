@@ -26,7 +26,7 @@ import {
   taskIdForResolvedStep,
   writeEmptyDraftReviewRouteArtifacts,
 } from "./definition.js";
-import { flattenSteps } from "./lib/step-tree.js";
+import { findStepById, flattenSteps } from "./lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
 import { runFlowCommandHooks } from "../lib/plugin-registry.js";
@@ -84,10 +84,11 @@ export function assertDraftReviewRegistryHookBoundary() {
  * (squash-merged from the worktree). Post hooks must update that file — not
  * the now-stale worktree copy — so authority is switched via forRoot().
  */
-function resolveMainRepoFlowManager(ctx) {
+function switchToMainRepoFlowAuthority(ctx) {
   const { mainRepoPath } = ctx.flowManager.resolveWorktreePaths(ctx.flowState);
-  if (!mainRepoPath) return ctx.flowManager;
-  return ctx.flowManager.forRoot(mainRepoPath);
+  if (!mainRepoPath) return;
+  ctx.flowManager = ctx.flowManager.forRoot(mainRepoPath);
+  ctx.root = mainRepoPath;
 }
 
 /**
@@ -261,6 +262,11 @@ class RegistryLifecycleAdapter {
   setStepStatus(step, status) {
     const mutationStep = this.mutationStep(step);
     if (mutationStep.startsWith("finalize-")) {
+      const current = this.ctx.specId
+        ? this.ctx.flowManager.loadReadOnly(this.ctx.specId)
+        : this.ctx.flowManager.load();
+      const currentStep = findStepById(current?.steps || [], mutationStep);
+      if (currentStep?.status === status) return;
       tryUpdateStepStatus(
         this.ctx.flowManager,
         mutationStep,
@@ -395,7 +401,7 @@ class RegistryLifecycleAdapter {
       return;
     }
     if (handler === "resolveMainRepoFlowManager") {
-      this.ctx.flowManager = resolveMainRepoFlowManager(this.ctx);
+      switchToMainRepoFlowAuthority(this.ctx);
       return;
     }
     if (handler === "executeCommitPost") {

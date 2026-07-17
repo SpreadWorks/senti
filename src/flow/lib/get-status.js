@@ -27,6 +27,7 @@ import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry
 import { buildBoundedBroadModeHistory } from "./task-scope.js";
 import { buildDeferredFindingsSummary, specDirFromFlowState } from "./flow-findings.js";
 import { validateFinalRegressionResult } from "./test-artifacts.js";
+import { FlowCompletion } from "./flow-completion.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
@@ -260,7 +261,7 @@ function buildStatusOutput(state, root, options = {}) {
   const finalRegression = buildFinalRegressionStatus(root, state);
 
   const output = {
-    active: true,
+    active: !new FlowCompletion(state).complete,
     spec: state.spec,
     baseBranch: state.baseBranch,
     featureBranch: state.featureBranch,

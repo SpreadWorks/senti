@@ -15,11 +15,13 @@ import {
 } from "../../../src/flow/lib/run-finalize-cleanup.js";
 import { ProcessOwnedLock } from "../../../src/lib/process-owned-lock.js";
 import { AtomicJsonFile } from "../../../src/lib/atomic-json-file.js";
+import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import {
   RepositoryFlowOperationLock,
   RepositoryMaintenanceLock,
 } from "../../../src/lib/repository-maintenance-lock.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
+import { collectFlowLeafIds, getFlowNode } from "../../../src/flow/definition.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 
 const finalizeModule = path.resolve("src/flow/lib/run-finalize-cleanup.js");
@@ -385,6 +387,15 @@ function markFinalizeCommitReady(state) {
   return state;
 }
 
+test("finalize-cleanup is registered as the executable final flow leaf", () => {
+  const node = getFlowNode("finalize-cleanup");
+  assert.ok(node);
+  assert.equal(node.action, "run-finalize-cleanup");
+  assert.equal(collectFlowLeafIds().at(-1), "finalize-cleanup");
+  assert.equal(FLOW_COMMANDS.run["finalize-cleanup"].explicitTargetResolution, true);
+  assert.equal(typeof FLOW_COMMANDS.run["finalize-cleanup"].command, "function");
+});
+
 function removeFinalizeCleanupStep(state) {
   const finalize = findStepById(state.steps || [], "finalize");
   assert.ok(finalize && Array.isArray(finalize.children));
@@ -511,6 +522,112 @@ test("guard-targeted cleanup reconciles a matching worktree leaf into main and c
     assert.equal(findStepById(committed.steps, "finalize-cleanup").status, "done");
     assert.equal(committed.runId, fixture.state.runId);
     assert.equal(git(root, ["log", "-1", "--format=%s"]), `chore: finalize ${specId}`);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("guard-targeted cleanup resumes from main after worktree removal without reviving the deleted path", async () => {
+  const root = createTmpDir("finalize-deleted-worktree-resume-");
+  try {
+    initGitRepo(root);
+    const specId = "191";
+    const runId = "fda30a2e-6498-4027-bab0-6ce91f58ed8e";
+    const issue = 191;
+    const pluginId = "finalize-resume";
+    const pluginRoot = path.join(root, ".senti", "plugins", pluginId);
+    fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
+    fs.writeFileSync(path.join(root, ".senti", "config.json"), `${JSON.stringify({
+      plugin: { packages: [{ id: pluginId }] },
+    }, null, 2)}\n`);
+    fs.writeFileSync(path.join(pluginRoot, "hooks", "finalize.js"), `
+      export default function register(api) {
+        return class FinalizeResumeHook extends api.FlowCommandHook {
+          static command = "finalize-cleanup";
+          static hook = "post";
+          async run(context) {
+            return context.envelope.ok("plugin-hook", "finalize-cleanup", {});
+          }
+        };
+      }
+    `);
+    const readyState = markFinalizeCleanupReady({ steps: buildInitialSteps() });
+    const fixture = setupWorktreeFinalizeFlow(root, specId, {
+      runId,
+      issue,
+      steps: readyState.steps,
+      plugins: { flowCommandHooks: [{
+        apiVersion: 1,
+        pluginId,
+        module: "hooks/finalize.js",
+        className: "FinalizeResumeHook",
+        command: "finalize-cleanup",
+        hook: "post",
+        priority: 0,
+      }] },
+    });
+    const pointerPath = path.join(root, ".senti", "last-finalized-spec");
+    fs.mkdirSync(pointerPath);
+
+    const interrupted = await runFinalize(root, specId, {
+      flowManager: fixture.flowManager,
+      flowState: fixture.state,
+    });
+
+    assert.equal(interrupted.ok, false, JSON.stringify(interrupted));
+    assert.equal(interrupted.errors[0].code, "FINALIZE_POINTER_WRITE_FAILED");
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "validated");
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+    assert.equal(git(root, ["branch", "--list", fixture.featureBranch]), "");
+    assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), true);
+
+    const statusBeforeResume = spawnSync(process.execPath, [sentiCli, "flow", "get", "status"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: root },
+    });
+    assert.equal(statusBeforeResume.status, 0, statusBeforeResume.stderr);
+    assert.equal(JSON.parse(statusBeforeResume.stdout).data.active, false);
+
+    const nextAction = spawnSync(process.execPath, [sentiCli, "flow", "get", "next-action"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: root },
+    });
+    assert.equal(nextAction.status, 0, nextAction.stderr);
+    assert.equal(JSON.parse(nextAction.stdout).data.action, "completed");
+    assert.equal(JSON.parse(nextAction.stdout).data.step, null);
+    const stateAfterNextAction = makeFlowManager(root).loadReadOnly(specId);
+    assert.equal(stateAfterNextAction.currentTaskId, null);
+    assert.equal(stateAfterNextAction.tasks[0].steps[0].status, "pending");
+    assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), true, "recovery authority remains until cleanup resumes");
+
+    fs.rmdirSync(pointerPath);
+    const resumed = spawnSync(process.execPath, [
+      sentiCli,
+      "flow",
+      "run",
+      "finalize-cleanup",
+      "--expect-run-id",
+      runId,
+      "--expect-issue",
+      String(issue),
+      "--expect-spec",
+      fixture.spec,
+    ], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: root },
+    });
+
+    assert.equal(resumed.status, 0, resumed.stderr || resumed.stdout);
+    const envelope = JSON.parse(resumed.stdout);
+    assert.equal(envelope.ok, true, resumed.stdout);
+    assert.equal(envelope.data.status, "done");
+    assert.equal(fs.existsSync(fixture.worktreePath), false, "deleted worktree path must not be recreated");
+    assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), false);
+    assert.equal(fs.readFileSync(pointerPath, "utf8").trim(), fixture.spec);
+    assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
   } finally {
     removeTmpDir(root);
   }
