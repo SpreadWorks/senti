@@ -246,6 +246,14 @@ When spec writing discovers a missing user decision that belongs in draft QA:
 
 When `reopen-draft` fails or reports a recovery choice, surface that recovery through Choice Format and wait for the user's decision unless `autoApprove` explicitly covers the choice and the skill does not list it as an exception.
 
+### Draft Return: implementation-phase spec corrections
+
+When source verification during implementation discovers a contradictory or missing spec decision:
+- Use the guarded correction route even when no task is done: `senti flow run reopen-draft --category spec-correction --reason "<audit reason>" --expect-run-id <runId> --expect-spec <spec> --expect-issue <issue>`.
+- For an Issue-less flow, replace `--expect-issue <issue>` with `--expect-no-issue`. Do not fabricate or assign an Issue.
+- Read `runId`, spec, and Issue presence/value from the active flow returned by `senti flow get next-action`; do not infer identity from a branch name or path.
+- On success, preserve the current worktree and partial source changes. Resume through draft/spec clarification, spec review, gate, approval, and test design in the regular order before returning to implementation.
+
 ### Draft Return: implementation-phase task additions
 
 When implementation reveals that the spec needs additional tasks:
