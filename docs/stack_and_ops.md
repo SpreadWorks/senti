@@ -59,6 +59,12 @@ At runtime, process handling is standardized in `src/lib/process.js`, where sync
 Supporting utilities keep operational checks simple and dependency-free. The Makefile helper can safely inspect files, enforce a 1 MB size limit, and extract the `test` target, while the TOML parser converts basic configuration fragments into plain JavaScript objects for internal use.
 <!-- {{/text}} -->
 
+### Alpha Release Invariant
+
+After every change in a release train is committed and the target worktree is clean, run `npm run release:version:sync`. This updates only `package.json` to `0.1.0-alpha.N`, where `N` is the commit count that the dedicated version commit will create. Commit only that manifest change as the final release commit, then run `npm run release:preflight`.
+
+The preflight and the standalone `npm run release:version:validate` command both compare the package version with `git rev-list --count HEAD` and fail on malformed or stale versions. If another commit is added afterward, the release target is no longer final; repeat the dedicated synchronization commit before release. These commands validate release state and do not publish the package.
+
 ### Test Command Contract
 
 | Command | Selection |
