@@ -23,6 +23,11 @@ import { filterAnalysisByDocsExclude } from "../lib/analysis-filter.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
+import {
+  DocumentUpdatePlan,
+  DocumentUpdateTransaction,
+  DocumentValidationResult,
+} from "../lib/document-update-plan.js";
 
 const logger = createLogger("data");
 
@@ -77,19 +82,28 @@ export function populateFromAnalysis(root, analysis, resolveFn, opts) {
 
   const docsDir = path.join(root, "docs");
   const changedFiles = [];
+  const plans = [];
 
   const docsFiles = getChapterFiles(docsDir, { type: opts?.type, configChapters: opts?.configChapters, projectRoot: root });
 
   for (const file of docsFiles) {
     const filePath = path.join(docsDir, file);
-    const original = fs.readFileSync(filePath, "utf8");
+    const originalBytes = fs.readFileSync(filePath);
+    const original = originalBytes.toString("utf8");
     const result = processTemplate(original, analysis, file, resolveFn);
 
     if (result.replaced > 0) {
-      fs.writeFileSync(filePath, result.text);
+      plans.push(new DocumentUpdatePlan({
+        filePath,
+        originalBytes,
+        proposedBytes: Buffer.from(result.text),
+        validationResult: DocumentValidationResult.accepted(),
+      }));
       changedFiles.push(file);
     }
   }
+
+  new DocumentUpdateTransaction(plans, { faultInjector: opts?.faultInjector }).commit();
 
   return { populated: changedFiles.length > 0, files: changedFiles };
 }
@@ -145,12 +159,14 @@ async function runData(ctx, rawArgs) {
   const docsDirRel = path.relative(root, docsDir).replace(/\\/g, "/");
 
   const changedFiles = new Set();
+  const plans = [];
   let totalReplaced = 0;
   let totalSkipped = 0;
 
   for (const file of docsFiles) {
     const filePath = path.join(docsDir, file);
-    const original = fs.readFileSync(filePath, "utf8");
+    const originalBytes = fs.readFileSync(filePath);
+    const original = originalBytes.toString("utf8");
     // Inject file path context for file-aware resolvers
     const fileRelPath = `${docsDirRel}/${file}`;
     const FILE_CONTEXT_RULES = {
@@ -177,13 +193,22 @@ async function runData(ctx, rawArgs) {
         console.log(`[data] ${file}: ${linesBefore} → ${linesAfter} lines (${linesAfter - linesBefore > 0 ? "+" : ""}${linesAfter - linesBefore})`);
       }
 
-      if (!ctx.dryRun) {
-        fs.writeFileSync(filePath, result.text);
-        logger.verbose(`UPDATED: ${file}`);
+      if (!ctx.dryRun && !ctx.stdout) {
+        plans.push(new DocumentUpdatePlan({
+          filePath,
+          originalBytes,
+          proposedBytes: Buffer.from(result.text),
+          validationResult: DocumentValidationResult.accepted(),
+        }));
       } else {
         logger.verbose(`DRY-RUN: ${file} would be updated`);
       }
     }
+  }
+
+  if (!ctx.dryRun && !ctx.stdout) {
+    new DocumentUpdateTransaction(plans, { faultInjector: ctx.faultInjector }).commit();
+    for (const file of changedFiles) logger.verbose(`UPDATED: ${file}`);
   }
 
   const verb = ctx.dryRun ? "would update" : "updated";
@@ -196,4 +221,3 @@ export default class DocsDataCommand extends Command {
     return runData(ctx.docsCtx, ctx._rawArgs || []);
   }
 }
-

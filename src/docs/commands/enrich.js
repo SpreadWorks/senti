@@ -27,6 +27,7 @@ import { iterateAnalysisCategories } from "../lib/analysis-entry.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
+import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 
 const logger = createLogger("enrich");
@@ -342,10 +343,39 @@ function buildAttemptsByKey(analysis, batchEntries, attemptsUsed) {
   return attempts;
 }
 
-function saveProgress(root, analysis, totalEnriched, ctx) {
-  if (totalEnriched > 0 && !ctx.dryRun && !ctx.stdout) {
-    const saved = saveAnalysis(root, analysis);
-    logger.log(`saved progress (${totalEnriched} entries) to ${path.relative(root, saved)}`);
+export class EnrichmentCheckpointCoordinator {
+  constructor({ analysis, chapters, onWarn = () => {}, onCheckpoint = () => {} }) {
+    if (!analysis || typeof analysis !== "object") throw new Error("enrichment analysis is required");
+    if (!Array.isArray(chapters)) throw new Error("enrichment chapters must be an array");
+    this.analysis = analysis;
+    this.validChapterNames = new Set(chapters.map((chapter) => (
+      typeof chapter === "string" ? chapter : chapter.chapter
+    ).replace(/\.md$/, "")));
+    this.onWarn = onWarn;
+    this.onCheckpoint = onCheckpoint;
+  }
+
+  apply(batchResults) {
+    let totalEnriched = 0;
+    for (const result of batchResults) {
+      if (result.error) continue;
+      const { batch, enrichment } = result.value;
+      const attemptsByKey = buildAttemptsByKey(this.analysis, batch, 1);
+      mergeEnrichment(this.analysis, enrichment, {
+        batchEntries: batch,
+        attemptsByKey,
+        validChapters: this.validChapterNames,
+        onWarn: this.onWarn,
+      });
+      const batchCount = Object.values(enrichment).reduce(
+        (sum, entries) => sum + (Array.isArray(entries) ? entries.length : 0),
+        0,
+      );
+      totalEnriched += batchCount;
+      this.onCheckpoint(this.analysis, totalEnriched);
+    }
+    batchResults.throwIfErrors();
+    return totalEnriched;
   }
 }
 
@@ -365,7 +395,7 @@ function saveAnalysis(root, analysis) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
   const outputPath = path.join(outputDir, "analysis.json");
-  fs.writeFileSync(outputPath, JSON.stringify(analysis, null, 2) + "\n");
+  new AtomicJsonFile(outputPath).write(analysis);
   return outputPath;
 }
 
@@ -487,7 +517,7 @@ async function runEnrich(ctx, rawArgs) {
 
   logger.log(`${batches.length} batches (token limit: ${maxTokens}, concurrency: ${concurrency})`);
 
-  await mapWithConcurrency(batches, concurrency, async (batch) => {
+  const batchResults = await mapWithConcurrency(batches, concurrency, async (batch) => {
     const batchIdx = batches.indexOf(batch);
     logger.log(`batch ${batchIdx + 1}/${batches.length} (${batch.length} entries)`);
 
@@ -504,7 +534,6 @@ async function runEnrich(ctx, rawArgs) {
         retryCount,
       });
     } catch (err) {
-      saveProgress(root, analysis, totalEnriched, ctx);
       throw new Error(formatBatchError(err, batchIdx, batches));
     }
 
@@ -514,33 +543,27 @@ async function runEnrich(ctx, rawArgs) {
       const dumpDir = resolveWorkDir(root, config);
       fs.mkdirSync(dumpDir, { recursive: true });
       const dumpPath = path.join(dumpDir, `enrich-fail-batch${batchIdx + 1}.txt`);
-      try { fs.writeFileSync(dumpPath, response); } catch (_) { /* ignore */ }
-      logger.log(`response preview (${response.length} chars): ${response.slice(0, 200)}...`);
+      const responseText = String(response ?? "");
+      try { fs.writeFileSync(dumpPath, responseText); } catch (_) { /* ignore */ }
+      logger.log(`response preview (${responseText.length} chars): ${responseText.slice(0, 200)}...`);
       logger.log(`full response dumped to: ${path.relative(root, dumpPath)}`);
-      saveProgress(root, analysis, totalEnriched, ctx);
       throw new Error(`enrich: could not parse AI response at batch ${batchIdx + 1}/${batches.length}.`);
     }
 
-    // Merge batch results into analysis (mutates)
-    const attemptsByKey = buildAttemptsByKey(analysis, batch, 1);
-    const validChapterNames = new Set(chapters.map((c) => (typeof c === "string" ? c : c.chapter).replace(/\.md$/, "")));
-    mergeEnrichment(analysis, enrichment, {
-      batchEntries: batch,
-      attemptsByKey,
-      validChapters: validChapterNames,
-      onWarn: (msg) => logger.log(msg),
-    });
-
-    const batchCount = Object.values(enrichment).reduce(
-      (sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0,
-    );
-    totalEnriched += batchCount;
-
-    // Save after each batch (resume point)
-    if (!ctx.dryRun && !ctx.stdout) {
-      saveAnalysis(root, analysis);
-    }
+    return { batch, batchIdx, enrichment };
   });
+
+  totalEnriched = new EnrichmentCheckpointCoordinator({
+    analysis,
+    chapters,
+    onWarn: (message) => logger.log(message),
+    onCheckpoint: (_checkpoint, count) => {
+      if (!ctx.dryRun && !ctx.stdout) {
+        const saved = saveAnalysis(root, analysis);
+        logger.log(`saved progress (${count} entries) to ${path.relative(root, saved)}`);
+      }
+    },
+  }).apply(batchResults);
 
   logger.log(`enriched ${totalEnriched} entries in ${batches.length} batches`);
 

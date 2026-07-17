@@ -165,12 +165,7 @@ export async function createResolver(type, root, opts) {
 
       const ds = dataSources.get(source);
       if (ds && typeof ds[method] === "function") {
-        try {
-          return ds[method](analysis, labels, params);
-        } catch (err) {
-          logger.log(`error in ${preset}.${source}.${method}: ${err.message}`);
-          return null;
-        }
+        return ds[method](analysis, labels, params);
       }
 
       logger.verbose(`unknown: ${preset}.${source}.${method}`);

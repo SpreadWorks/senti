@@ -85,6 +85,31 @@ describe("parseDirectives — data params", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolveDataDirectives — ignoreError", () => {
+  it("propagates DataSource exceptions without ignoreError", () => {
+    const text = [
+      '<!-- {{data("base.monorepo.apps")}} -->',
+      "old content",
+      "<!-- {{/data}} -->",
+    ].join("\n");
+
+    assert.throws(
+      () => resolveDataDirectives(text, () => { throw new Error("DataSource failed"); }),
+      /DataSource failed/,
+    );
+  });
+
+  it("clears content when a DataSource throws and ignoreError=true", () => {
+    const text = [
+      '<!-- {{data("base.monorepo.apps", {ignoreError: true})}} -->',
+      "old content",
+      "<!-- {{/data}} -->",
+    ].join("\n");
+    const result = resolveDataDirectives(text, () => { throw new Error("ignored DataSource failure"); });
+
+    assert.equal(result.replaced, 1);
+    assert.doesNotMatch(result.text, /old content/);
+  });
+
   it("keeps directive lines and clears content when null + ignoreError=true", () => {
     const text = [
       "# Title",

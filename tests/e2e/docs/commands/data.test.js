@@ -102,6 +102,39 @@ describe("data CLI", () => {
     assert.ok(content.includes("1.0.0"));
   });
 
+  it("exits non-zero and preserves bytes when a DataSource throws", () => {
+    const original = [
+      "# Overview",
+      "",
+      '<!-- {{data("sample-node-command.skills.rule")}} -->',
+      "old content",
+      "<!-- {{/data}} -->",
+      "",
+    ].join("\n");
+    setup(original);
+
+    assert.throws(
+      () => runData(),
+      (error) => error.status !== 0 && /missing skill rule id/.test(error.stderr),
+    );
+    assert.equal(readDoc(), original);
+  });
+
+  it("allows an explicitly ignored DataSource exception", () => {
+    const original = [
+      "# Overview",
+      "",
+      '<!-- {{data("sample-node-command.skills.rule", {ignoreError: true})}} -->',
+      "old content",
+      "<!-- {{/data}} -->",
+      "",
+    ].join("\n");
+    setup(original);
+
+    runData();
+    assert.doesNotMatch(readDoc(), /old content/);
+  });
+
   it("shows help with --help", () => {
     setup(null);
     try { runData(["--help"]); } catch (_) { /* help may exit 0 */ }

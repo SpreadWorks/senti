@@ -6,7 +6,9 @@ import {
   mergeEnrichment,
   collectEntries,
   splitIntoBatches,
+  EnrichmentCheckpointCoordinator,
 } from "../../../../src/docs/commands/enrich.js";
+import { ConcurrentBatchResult } from "../../../../src/docs/lib/concurrency.js";
 
 describe("collectEntries", () => {
   it("collects entries across categories with index and category", () => {
@@ -88,6 +90,44 @@ describe("collectEntries", () => {
     };
     const entries = collectEntries(analysis);
     assert.equal(entries.length, 3);
+  });
+});
+
+describe("EnrichmentCheckpointCoordinator", () => {
+  it("checkpoints successful batches, leaves failed entries pending, then throws", () => {
+    const analysis = {
+      modules: {
+        entries: [
+          { file: "src/first.js" },
+          { file: "src/second.js" },
+        ],
+      },
+    };
+    const firstBatch = [{ category: "modules", index: 0, file: "src/first.js" }];
+    const checkpoints = [];
+    const results = new ConcurrentBatchResult([
+      {
+        value: {
+          batch: firstBatch,
+          enrichment: { modules: [{ index: 0, summary: "first", chapter: "overview" }] },
+        },
+        error: null,
+      },
+      { value: null, error: new Error("second batch failed") },
+    ]);
+    const coordinator = new EnrichmentCheckpointCoordinator({
+      analysis,
+      chapters: ["overview"],
+      onCheckpoint(checkpoint) {
+        checkpoints.push(structuredClone(checkpoint));
+      },
+    });
+
+    assert.throws(() => coordinator.apply(results), /second batch failed/);
+    assert.equal(checkpoints.length, 1);
+    assert.equal(analysis.modules.entries[0].summary, "first");
+    assert.ok(analysis.modules.entries[0].enrich?.processedAt);
+    assert.equal(analysis.modules.entries[1].enrich, undefined);
   });
 });
 

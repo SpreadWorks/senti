@@ -1,3 +1,34 @@
+export class ConcurrentBatchError extends AggregateError {
+  constructor(failures) {
+    super(
+      failures.map((failure) => failure.error),
+      `${failures.length} concurrent batch item(s) failed: ${failures.map((failure) => failure.error.message).join("; ")}`,
+    );
+    this.name = "ConcurrentBatchError";
+    this.code = "CONCURRENT_BATCH_FAILED";
+    this.failures = Object.freeze(failures.map((failure) => Object.freeze({ ...failure })));
+  }
+}
+
+export class ConcurrentBatchResult extends Array {
+  constructor(entries = []) {
+    super(...entries);
+  }
+
+  static get [Symbol.species]() {
+    return Array;
+  }
+
+  throwIfErrors() {
+    const failures = [];
+    for (const [index, entry] of this.entries()) {
+      if (entry?.error) failures.push({ index, error: entry.error });
+    }
+    if (failures.length > 0) throw new ConcurrentBatchError(failures);
+    return this;
+  }
+}
+
 /**
  * src/docs/lib/concurrency.js
  *
@@ -12,7 +43,7 @@
  * @param {T[]} items
  * @param {number} concurrency
  * @param {(item: T, index: number) => Promise<R>} worker
- * @returns {Promise<Array<{value: R|null, error: Error|null}>>}
+ * @returns {Promise<ConcurrentBatchResult>}
  */
 export async function mapWithConcurrency(items, concurrency, worker) {
   const limit = Math.max(1, Number(concurrency) || 1);
@@ -32,7 +63,8 @@ export async function mapWithConcurrency(items, concurrency, worker) {
           .then((value) => {
             results[itemIdx] = { value, error: null };
           })
-          .catch((error) => {
+          .catch((cause) => {
+            const error = cause instanceof Error ? cause : new Error(String(cause));
             results[itemIdx] = { value: null, error };
           })
           .finally(() => {
@@ -43,5 +75,5 @@ export async function mapWithConcurrency(items, concurrency, worker) {
     }
     next();
   });
-  return results;
+  return new ConcurrentBatchResult(results);
 }

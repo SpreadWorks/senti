@@ -37,6 +37,11 @@ import { iterateAnalysisCategories } from "../lib/analysis-entry.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { formatPreview } from "../../lib/error-preview.js";
+import {
+  DocumentUpdatePlan,
+  DocumentUpdateTransaction,
+  DocumentValidationResult,
+} from "../lib/document-update-plan.js";
 
 const logger = createLogger("text");
 
@@ -437,8 +442,12 @@ async function processTemplate(text, analysis, fileName, agent, dryRun, preamble
   const results = await mapWithConcurrency(tasks, maxConcurrency, async ({ directive: d, prompt }) => {
     logger.verbose(`Processing ${fileName}:${d.line + 1}: ${d.prompt.slice(0, 60)}...`);
     const generated = await invokeAgent(agent, prompt, preamblePatterns, fileSystemPrompt, { retryCount: retryCount || 0 });
+    if (typeof generated !== "string" || generated.trim() === "") {
+      throw new Error(`empty agent response for ${fileName}:${d.line + 1}`);
+    }
     return { generated };
   });
+  results.throwIfErrors();
 
   // Phase 3: Apply results in reverse order (line-number shift prevention)
   let filled = 0;
@@ -446,23 +455,7 @@ async function processTemplate(text, analysis, fileName, agent, dryRun, preamble
 
   for (let i = textFills.length - 1; i >= 0; i--) {
     const d = textFills[i];
-    const { value, error } = results[i] || {};
-    const rawGenerated = value?.generated || null;
-
-    if (error) {
-      logger.log(`ERROR calling agent for ${fileName}:${d.line + 1}:`);
-      logger.log(error.message);
-      skipped++;
-      continue;
-    }
-
-    if (!rawGenerated) {
-      logger.log(`WARN: empty response for ${fileName}:${d.line + 1}`);
-      skipped++;
-      continue;
-    }
-
-    let generated = rawGenerated;
+    let generated = results[i].value.generated;
 
     // maxLines/maxChars によるポスト処理トランケート
     if (d.params?.maxLines) {
@@ -562,53 +555,49 @@ export async function textFillFromAnalysis(root, analysis, commandId, srcRoot, o
   const targetFiles = opts?.files || getChapterFiles(docsDir, { type, configChapters: cfg?.chapters, projectRoot: root });
 
   const changedFiles = [];
+  const plans = [];
   let totalFilled = 0;
   let totalSkipped = 0;
 
   // Batch mode: file-level parallelism (1 call per file)
-  const errors = [];
-
   const fileResults = await mapWithConcurrency(targetFiles, concurrency, async (file) => {
     const filePath = path.join(docsDir, file);
-    const original = fs.readFileSync(filePath, "utf8");
+    const originalBytes = fs.readFileSync(filePath);
+    const original = originalBytes.toString("utf8");
     const retryCount = Number(cfg?.agent?.retryCount) || 0;
     const result = await processTemplateFileBatch(original, analysis, file, agent, false, preamblePatterns, systemPrompt, undefined, undefined, lang, resolvedSrcRoot, retryCount);
-    return { file, filePath, original, result };
+    return { file, filePath, originalBytes, original, result };
   });
+  fileResults.throwIfErrors();
 
   for (let i = 0; i < fileResults.length; i++) {
     const entry = fileResults[i];
-    if (entry?.error) {
-      const file = targetFiles[i];
-      logger.log(`ERROR ${file}: ${entry.error.message}`);
-      errors.push(file);
-      continue;
-    }
-    const { file, filePath, original, result } = entry.value;
+    const { file, filePath, originalBytes, original, result } = entry.value;
     if (!result) continue;
 
     const totalDirectives = parseDirectives(original).filter((d) => d.type === "text").length;
     const validation = validateBatchResult(original, result, totalDirectives, file);
-    if (!validation.ok) {
-      logger.log(`REJECTED ${file}: ${validation.reason}`);
-      errors.push(file);
-      continue;
-    }
+    const validationResult = validation.ok
+      ? DocumentValidationResult.accepted()
+      : DocumentValidationResult.rejected(validation.reason);
+    plans.push(new DocumentUpdatePlan({
+      filePath,
+      originalBytes,
+      proposedBytes: Buffer.from(result.text),
+      validationResult,
+    }));
 
     totalFilled += result.filled;
     totalSkipped += result.skipped;
 
     if (result.filled > 0) {
-      fs.writeFileSync(filePath, result.text);
       changedFiles.push(file);
     }
   }
 
-  if (errors.length > 0) {
-    logger.log(`${errors.length} file(s) failed: ${errors.join(", ")}`);
-  }
+  new DocumentUpdateTransaction(plans, { faultInjector: opts?.faultInjector }).commit();
 
-  return { filled: totalFilled, skipped: totalSkipped, files: changedFiles, errors };
+  return { filled: totalFilled, skipped: totalSkipped, files: changedFiles, errors: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -734,14 +723,6 @@ async function runText(ctx, rawArgs) {
       }
     }
 
-    if (!ctx.dryRun) {
-      for (const file of targetFiles) {
-        const filePath = path.join(docsDir, file);
-        const content = fs.readFileSync(filePath, "utf8");
-        const stripped = stripFillContent(content);
-        if (stripped !== content) fs.writeFileSync(filePath, stripped, "utf8");
-      }
-    }
   }
 
   let totalFilled = 0;
@@ -764,7 +745,8 @@ async function runText(ctx, rawArgs) {
   const fileEntries = [];
   for (const file of targetFiles) {
     const filePath = path.join(docsDir, file);
-    let original = fs.readFileSync(filePath, "utf8");
+    const originalBytes = fs.readFileSync(filePath);
+    const original = originalBytes.toString("utf8");
 
     if (ctx.id) {
       const directives = parseDirectives(original);
@@ -772,13 +754,13 @@ async function runText(ctx, rawArgs) {
       if (!hasId) continue;
     }
 
-    fileEntries.push({ file, filePath, original });
+    fileEntries.push({ file, filePath, originalBytes, original });
   }
 
   // File-level concurrency: batch mode can parallelize files (1 call each),
   // per-directive mode processes files sequentially to avoid concurrency² explosion
   const fileConcurrency = ctx.perDirective ? 1 : concurrency;
-  const errors = [];
+  const plans = [];
   const fileResults = await mapWithConcurrency(fileEntries, fileConcurrency, async (entry) => {
     const { file, original } = entry;
     logger.verbose(`start: ${file}`);
@@ -786,47 +768,49 @@ async function runText(ctx, rawArgs) {
     logger.verbose(`done: ${file}`);
     return { ...entry, result };
   });
+  fileResults.throwIfErrors();
 
   // Apply results
   for (let i = 0; i < fileEntries.length; i++) {
     const resultEntry = fileResults[i];
-    if (resultEntry?.error) {
-      const { file } = fileEntries[i];
-      logger.log(`ERROR ${file}: ${resultEntry.error.message}`);
-      errors.push(file);
-      continue;
-    }
-    const { file, filePath, original, result } = resultEntry.value;
+    const { file, filePath, originalBytes, original, result } = resultEntry.value;
     if (!result) continue;
 
     // バッチモードの場合は結果を検証
+    let validationResult = DocumentValidationResult.accepted();
     if (!ctx.perDirective && !ctx.dryRun) {
       const totalDirectives = parseDirectives(original).filter((d) => d.type === "text").length;
       const validation = validateBatchResult(original, result, totalDirectives, file);
       if (!validation.ok) {
         logger.log(`REJECTED ${file}: ${validation.reason}`);
-        errors.push(file);
-        continue;
+        validationResult = DocumentValidationResult.rejected(validation.reason);
       }
     }
 
     totalFilled += result.filled;
     totalSkipped += result.skipped;
 
+    if (!ctx.dryRun && (result.filled > 0 || !validationResult.ok)) {
+      plans.push(new DocumentUpdatePlan({
+        filePath,
+        originalBytes,
+        proposedBytes: Buffer.from(result.text),
+        validationResult,
+      }));
+    }
+
     if (result.filled > 0) {
       changedFiles.add(file);
-      if (!ctx.dryRun) {
-        fs.writeFileSync(filePath, result.text);
-        logger.verbose(`UPDATED: ${file}`);
-      }
     }
   }
 
-  if (errors.length > 0) {
-    logger.log(`${errors.length} file(s) failed: ${errors.join(", ")}`);
+  if (!ctx.dryRun) {
+    new DocumentUpdateTransaction(plans, { faultInjector: ctx.faultInjector }).commit();
+    for (const file of changedFiles) logger.verbose(`UPDATED: ${file}`);
   }
+
   logger.log(`Done. ${changedFiles.size} file(s) updated. filled: ${totalFilled}, skipped: ${totalSkipped}.`);
-  return { errors };
+  return { errors: [] };
 }
 
 export { stripFillContent, countFilledInBatch, processTemplateFileBatch, processTemplate, allTextDirectivesFilled, validateBatchResult, parseBatchJsonResponse, applyBatchJsonToFile, detectChangedChapters };

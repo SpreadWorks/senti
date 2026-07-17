@@ -412,7 +412,21 @@ export function resolveDataDirectives(text, resolveFn, opts) {
 
     const format = assertMarkdownFormat(d.params?.format ?? MARKDOWN_FORMAT_TABLE);
     const userParams = extractUserParams(d.params);
-    const resolved = resolveFn(d.preset, d.source, d.method, d.labels, userParams);
+    let resolved;
+    try {
+      resolved = resolveFn(d.preset, d.source, d.method, d.labels, userParams);
+    } catch (cause) {
+      if (d.params?.ignoreError === true) {
+        if (d.inline) {
+          replaceInlineDirective(lines, d);
+        } else {
+          replaceBlockDirective(lines, d);
+        }
+        replaced++;
+        continue;
+      }
+      throw cause;
+    }
     const rendered = resolved instanceof Renderable ? resolved.toMarkdownFormat(format) : null;
     if (resolved === null || resolved === undefined || rendered === null) {
       if (d.params?.ignoreError === true) {

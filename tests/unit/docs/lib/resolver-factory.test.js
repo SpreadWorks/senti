@@ -63,11 +63,13 @@ describe("createResolver", () => {
     assert.equal(result, null);
   });
 
-  it("returns null when method throws an error", async () => {
+  it("propagates errors thrown by DataSource methods", async () => {
     setupTmp("resolver-error");
     const resolver = await createResolver("sample-node-command", tmp);
-    const result = resolver.resolve("sample-node-command", "docs", "chapters", {}, ["A", "B"]);
-    assert.equal(result, null);
+    assert.throws(
+      () => resolver.resolve("sample-node-command", "skills", "rule", {}, [], {}),
+      /missing skill rule id/,
+    );
   });
 
   it("loads overrides.json when present", async () => {
