@@ -31,6 +31,11 @@ import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-
 import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
 import { runFlowCommandHooks } from "../lib/plugin-registry.js";
 import { appendIssueLogEntry } from "./lib/set-issue-log.js";
+import {
+  DecisionOutcome,
+  DeferOutcome,
+  StepAttempt,
+} from "./lib/step-outcome.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -260,17 +265,25 @@ class RegistryLifecycleAdapter {
   }
 
   setStepStatus(step, status) {
+    const attempt = this.result?.stepAttempt
+      ? StepAttempt.fromStored(this.result.stepAttempt)
+      : null;
+    if (status === "in_progress" && attempt?.outcome instanceof DeferOutcome) return;
+    const settledStatus = status === "in_progress"
+      && attempt?.outcome instanceof DecisionOutcome
+      ? "done"
+      : status;
     const mutationStep = this.mutationStep(step);
     if (mutationStep.startsWith("finalize-")) {
       const current = this.ctx.specId
         ? this.ctx.flowManager.loadReadOnly(this.ctx.specId)
         : this.ctx.flowManager.load();
       const currentStep = findStepById(current?.steps || [], mutationStep);
-      if (currentStep?.status === status) return;
+      if (currentStep?.status === settledStatus) return;
       tryUpdateStepStatus(
         this.ctx.flowManager,
         mutationStep,
-        status,
+        settledStatus,
         this.mutationOpts(mutationStep, { specId: this.ctx.specId }),
       );
       return;
@@ -278,7 +291,7 @@ class RegistryLifecycleAdapter {
     tryUpdateStepStatus(
       { ...this.ctx, phase: this.phase },
       mutationStep,
-      status,
+      settledStatus,
       this.mutationOpts(mutationStep),
     );
   }
@@ -301,16 +314,13 @@ class RegistryLifecycleAdapter {
     }
     if (counter === "gateRetry") {
       const gateMod = await import("./lib/run-gate.js");
-      try {
-        gateMod.updateGateRetryCounter(this.ctx, this.result);
-      } catch (err) {
-        process.stderr.write(`[senti] updateGateRetryCounter failed: ${err.message}\n`);
-      }
+      gateMod.updateGateRetryCounter(this.ctx, this.result);
     }
   }
 
   async appendIssueLog(source) {
     if (source === "gate-result") {
+      if (this.result?.artifacts?.deferred === true) return;
       const gateMod = await import("./lib/run-gate.js");
       tryAppendIssueLog(() => gateMod.appendIssueLogFromGateResult(this.ctx, this.result));
       return;

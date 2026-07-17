@@ -31,6 +31,11 @@ import {
 } from "./task-scope.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCompletion } from "./flow-completion.js";
+import {
+  AwaitingDecisionOutcome,
+  ExternalBlockedOutcome,
+  StepAttemptLog,
+} from "./step-outcome.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -139,6 +144,28 @@ function buildRetryRecoveryForState(ctx, state, { kind, phase, attempts, max }) 
     attempts,
     max,
   });
+}
+
+function attachLatestStepAttempt(result, state, target) {
+  if (!state.runId || !target?.stepId) return;
+  const log = new StepAttemptLog(state.stepAttempts || []);
+  const lastAttempt = log.latestForRun(state.runId);
+  if (lastAttempt) {
+    result.lastStepAttempt = lastAttempt.toJSON();
+    result.lastStepOutcome = lastAttempt.outcome.toJSON();
+  }
+  const attempt = log.latest({
+    runId: state.runId,
+    taskId: target.taskId ?? null,
+    stepId: target.stepId,
+  });
+  if (!attempt) return;
+  result.stepAttempt = attempt.toJSON();
+  result.stepOutcome = attempt.outcome.toJSON();
+  if (attempt.outcome instanceof ExternalBlockedOutcome || attempt.outcome instanceof AwaitingDecisionOutcome) {
+    result.halt = true;
+    result.resumeInstruction = attempt.outcome.resumeInstruction;
+  }
 }
 
 function promoteNextTaskAndFirstStep(state) {
@@ -290,6 +317,7 @@ export default class GetNextActionCommand extends FlowCommand {
     if (target.stepId === "acceptance-review" && derived.failurePolicy) {
       result.failurePolicy = derived.failurePolicy;
     }
+    attachLatestStepAttempt(result, state, target);
     const reviewPhase = reviewPhaseForStepId(target.stepId);
     if (reviewPhase) {
       const reviewAttempts = countReviewRetry(state.metrics, reviewPhase);

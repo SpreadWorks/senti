@@ -342,7 +342,7 @@ Note:
 - Upgrade artifact flow: when `src/skills/**`, `src/presets/**`, or upgrade source files are changed, run `senti upgrade` after those edits. Active-flow upgrade writes `upgrade-result.json` and `tests/.raw/upgrade.log`; integration gate treats that artifact as the upgrade evidence input and rejects missing, failed, or stale checked paths.
 - Impl-phase test flow: `test-execute` runs after `implement`, owns spec-local evidence, and persists `test-execute-result.json` version `"2"` plus raw output. It runs targeted project regression only for configured `test.projectPaths` changes unless `test.testExecuteRegression` explicitly overrides that policy. Full project regression is deferred to `final-regression` after `retro`.
 - Subsequent steps (`test-result-review`, `impl-review`, flow-level `impl-gate`, `retro`) read those impl-phase artifacts and do not re-run tests. `final-regression` runs the full project command once after retro and before finalize.
-- Hard stops: Prepare/docs-scan and `analysis.json` read/validation failures stop the flow. A started targeted project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion. `final-regression` failures are classified in `final-regression-result.json`; environment, sandbox, permission, timeout, dependency, and repeated failures stop instead of returning to the normal implementation repair loop.
+- Hard stops: Prepare/docs-scan and `analysis.json` read/validation failures stop the flow. A started targeted project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion. `final-regression` failures are classified in `final-regression-result.json`; environment, sandbox, permission, timeout, dependency, and invalid-command failures carry a typed recovery policy and explicit resume instruction instead of returning to the normal implementation repair loop.
 - On impl-gate FAIL, show every Observation from `data.artifacts.nextAction.diagnosis.observations` and use those observations as the primary repair input.
 - When updating base guardrails, apply the guardrail rewrite rubric: named violation, diff-verification condition, and severity-policy.
 
@@ -385,7 +385,7 @@ C.2. **Execute instructions**
      - `senti flow set ...` commands that mutate active flow state, including step, request, issue, note, summary, req, files, broad, metric, approval, issue-log, retry, acceptance-decision, and auto.
    - If a target-sensitive instruction contains a bare `senti flow ...` command and the command cannot accept `targetGuardArgs`, STOP rather than running it. Report the CLI target-binding gap instead of relying on cwd or bare active-flow selection.
    - Fetch any additional context the instructions request via `senti flow get context ... <targetGuardArgs>` / `senti flow get guardrail <phase>`. `get guardrail` is static and does not select an active flow.
-   - Retry limits: read the resolved numeric maxAttempts from the next-action envelope (`maxAttempts`). When that limit is reached, STOP and return control to the user.
+   - Retry limits: read the resolved numeric maxAttempts from the next-action envelope (`maxAttempts`). A command reaching that limit must persist a typed terminal `StepAttempt`; do not infer the terminal action from the old envelope or process exit status.
    - When the current step's work is finished, advance step status:
       - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — run target-sensitive commands with `targetGuardArgs`; the hook handles the transition, so do nothing further.
       - **`flow run review`**:
@@ -402,13 +402,20 @@ C.2. **Execute instructions**
         - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
       - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro` / `flow run final-regression`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures or final-regression failures.
       - Otherwise, manually record completion: `senti flow set step <current-step> done <targetGuardArgs>`.
+   - After every instruction command completes, including a command with a non-zero exit status, re-fetch `next-action` with `targetGuardArgs` before deciding whether to continue or stop. The previously fetched action is stale after command and post-hook completion.
+   - Interpret the refreshed `lastStepOutcome.kind` (the persisted class is named in parentheses):
+      - `decision` (`DecisionOutcome`) / `defer` (`DeferOutcome`): follow the newly returned action; a defer is a completed terminal attempt, not a stop.
+      - `retry` (`RetryOutcome`): follow the newly returned retry action within its resolved budget.
+      - `awaiting-decision` (`AwaitingDecisionOutcome`): STOP and present the decision and resume instruction.
+      - `external-blocked` (`ExternalBlockedOutcome`): STOP and present the external blocker and resume instruction.
+      - State corruption or target mismatch: STOP without issuing another mutating command.
 
 C.3. **Loop**
-   - Return to C.1.
+   - Return to C.1 using the guarded re-fetch above. Never reuse the pre-command next-action envelope.
 
 ### Loop exit condition
 
-The loop exits when target-aware status reports all steps either `done` or `skipped`, or when a retry budget is exhausted. If `targetRunId` is known, use `senti flow get status <targetRunId> <targetGuardArgs>` for the exit check; the positional runId selects the flow, and `--expect-run-id` validates that the resolved flow still matches the dispatcher target. On budget exhaustion, STOP and return control to the user.
+The loop exits when target-aware status reports all steps either `done` or `skipped`, or when the guarded refreshed next-action returns `AwaitingDecisionOutcome`, `ExternalBlockedOutcome`, state corruption, or target mismatch. If `targetRunId` is known, use `senti flow get status <targetRunId> <targetGuardArgs>` for the exit check; the positional runId selects the flow, and `--expect-run-id` validates that the resolved flow still matches the dispatcher target. Retry exhaustion by itself is not an exit condition: its persisted terminal outcome determines whether to continue or surface a resume instruction.
 
 ## Post-flow: plugin lifecycle
 
@@ -492,7 +499,7 @@ When implementation reveals that the spec needs additional tasks:
 
 - Do not write code before the approach plan is user-approved.
 - Do not start `finalize-commit` without its required user confirmation unless the autoApprove exception applies; subsequent finalize leaves follow their `requires_approval` value and hook-managed transitions.
-- Do not proceed past a failed gate.
+- Do not bypass a failed gate. Re-fetch the guarded next action and follow its typed retry, defer, decision, or external-block outcome.
 - Do not proceed past a step whose `requires_approval` is `true` without user confirmation unless the autoApprove exception applies.
 - Do not `cd` out of the worktree during an active flow (except after finalize cleanup completes).
 

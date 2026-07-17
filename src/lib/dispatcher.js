@@ -20,6 +20,11 @@ import { Envelope } from "./flow-envelope.js";
 import { RuntimeLogBlockWriter } from "./runtime-log.js";
 import { targetMismatchEnvelopeForInput } from "./flow-target-guard.js";
 import { findActiveNode, taskIdForResolvedStep } from "../flow/definition.js";
+import {
+  AwaitingDecisionOutcome,
+  ExternalBlockedOutcome,
+  StepAttempt,
+} from "../flow/lib/step-outcome.js";
 
 function throwUnexpected(extras) {
   const unknownOpt = extras.find((v) => typeof v === "string" && v.startsWith("-"));
@@ -189,6 +194,21 @@ function formatFinalizeCleanupReportDisplay({ envelopeKey, envelope }) {
 function emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr }) {
   const text = formatFinalizeCleanupReportDisplay({ envelopeKey, envelope });
   if (text) writeErr(text);
+}
+
+function settleTypedStepOutcome(envelope, result) {
+  if (!(envelope instanceof Envelope) || !result?.stepAttempt) return;
+  const attempt = StepAttempt.fromStored(result.stepAttempt);
+  if (!(attempt.outcome instanceof ExternalBlockedOutcome)
+    && !(attempt.outcome instanceof AwaitingDecisionOutcome)) return;
+  envelope.ok = false;
+  envelope.errors.push({
+    level: "fatal",
+    code: attempt.outcome instanceof AwaitingDecisionOutcome
+      ? "STEP_DECISION_REQUIRED"
+      : "STEP_EXTERNAL_BLOCKED",
+    messages: [attempt.outcome.resumeInstruction],
+  });
 }
 
 /**
@@ -448,6 +468,7 @@ export async function dispatch({
       }
     }
     if (mode === "envelope") {
+      settleTypedStepOutcome(envelope, result);
       if (envelope instanceof Envelope && envelope.ok === false) attachRuntimeLog(envelope, runtimeLog?.metadata);
       writeOut(JSON.stringify(envelope.toJSON(), null, 2) + "\n");
       emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr });

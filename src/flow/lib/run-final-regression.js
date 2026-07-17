@@ -102,24 +102,16 @@ const MAX_FAILURE_EVIDENCE_SOURCE_CHARS = Math.floor(
 export const FINAL_REGRESSION_HEARTBEAT_MS = DEFAULT_PROCESS_HEARTBEAT_MS;
 
 class TextFailureClassifier {
-  constructor(pattern, kind) {
+  constructor(pattern, FailureClass) {
     this.pattern = pattern;
-    this.kind = kind;
+    this.FailureClass = FailureClass;
     Object.freeze(this);
   }
 
-  matches(text) {
-    return this.pattern.test(text);
+  classify(text) {
+    return this.pattern.test(text) ? new this.FailureClass() : null;
   }
 }
-
-const TEXT_FAILURE_CLASSIFIERS = Object.freeze([
-  new TextFailureClassifier(/\beperm\b/, FAILURE_KINDS.CHILD_PROCESS_EPERM),
-  new TextFailureClassifier(/sandbox/, FAILURE_KINDS.SANDBOX),
-  new TextFailureClassifier(/\beacces\b|permission denied/, FAILURE_KINDS.PERMISSION),
-  new TextFailureClassifier(/\benoent\b|not found|command not found/, FAILURE_KINDS.DEPENDENCY),
-  new TextFailureClassifier(/without stdout\/stderr|spawnerror/, FAILURE_KINDS.INFRA),
-]);
 const SKIP_KINDS = Object.freeze({
   COVERED_BY_TEST_EXECUTE: "covered_by_test_execute_full_regression",
   RISK_BASED_STATIC_PROOF: "risk_based_static_proof",
@@ -132,6 +124,166 @@ const SENSITIVE_PATH_CLASSES = Object.freeze([
   "runtime-source",
   "external-integration",
   "unknown",
+]);
+
+export class FinalRegressionRecoveryPolicy {
+  constructor({ kind, retryable, nextAction, resumeInstruction = null }) {
+    if (new.target === FinalRegressionRecoveryPolicy) {
+      throw new Error("FinalRegressionRecoveryPolicy is abstract");
+    }
+    if (typeof kind !== "string" || kind.length === 0) throw new Error("final-regression recovery kind is required");
+    if (typeof retryable !== "boolean") throw new Error("final-regression recovery retryable must be boolean");
+    if (typeof nextAction !== "string" || nextAction.length === 0) throw new Error("final-regression recovery nextAction is required");
+    if (resumeInstruction != null && (typeof resumeInstruction !== "string" || resumeInstruction.length === 0)) {
+      throw new Error("final-regression resumeInstruction must be a non-empty string");
+    }
+    this.kind = kind;
+    this.retryable = retryable;
+    this.nextAction = nextAction;
+    this.resumeInstruction = resumeInstruction;
+  }
+
+  toJSON() {
+    return {
+      kind: this.kind,
+      retryable: this.retryable,
+      nextAction: this.nextAction,
+      ...(this.resumeInstruction ? { resumeInstruction: this.resumeInstruction } : {}),
+    };
+  }
+}
+
+class RepairRecoveryPolicy extends FinalRegressionRecoveryPolicy {
+  constructor() {
+    super({ kind: "repair", retryable: true, nextAction: "regression-repair" });
+    Object.freeze(this);
+  }
+}
+
+class ConfirmationRecoveryPolicy extends FinalRegressionRecoveryPolicy {
+  constructor() {
+    super({
+      kind: "awaiting-decision",
+      retryable: false,
+      nextAction: "user-confirmation",
+      resumeInstruction: "Record whether the existing regression failure may be accepted, then resume final-regression.",
+    });
+    Object.freeze(this);
+  }
+}
+
+export class ResumeRecoveryPolicy extends FinalRegressionRecoveryPolicy {
+  constructor({ nextAction = "stop", retryable = false, resumeInstruction }) {
+    super({ kind: "resume", retryable, nextAction, resumeInstruction });
+    Object.freeze(this);
+  }
+}
+
+export class FinalRegressionFailure {
+  constructor({ kind, recoveryPolicy }) {
+    if (new.target === FinalRegressionFailure) throw new Error("FinalRegressionFailure is abstract");
+    if (!Object.values(FAILURE_KINDS).includes(kind)) throw new Error(`unknown final-regression failure kind: ${kind}`);
+    if (!(recoveryPolicy instanceof FinalRegressionRecoveryPolicy)) {
+      throw new Error("final-regression recovery policy is required");
+    }
+    this.kind = kind;
+    this.recoveryPolicy = recoveryPolicy;
+    Object.freeze(this);
+  }
+}
+
+class CurrentChangeRegressionFailure extends FinalRegressionFailure {
+  constructor() {
+    super({ kind: FAILURE_KINDS.CURRENT_CHANGE, recoveryPolicy: new RepairRecoveryPolicy() });
+  }
+}
+
+class ExistingRegressionFailure extends FinalRegressionFailure {
+  constructor() {
+    super({ kind: FAILURE_KINDS.UNATTRIBUTED_EXISTING, recoveryPolicy: new ConfirmationRecoveryPolicy() });
+  }
+}
+
+class InfrastructureRegressionFailure extends FinalRegressionFailure {
+  constructor() {
+    super({
+      kind: FAILURE_KINDS.INFRA,
+      recoveryPolicy: new ResumeRecoveryPolicy({
+        resumeInstruction: "Repair the regression runner infrastructure, then retry final-regression.",
+      }),
+    });
+  }
+}
+
+export class TimeoutRegressionFailure extends FinalRegressionFailure {
+  constructor() {
+    super({
+      kind: FAILURE_KINDS.TIMEOUT,
+      recoveryPolicy: new ResumeRecoveryPolicy({
+        resumeInstruction: "Resolve the timeout or adjust the configured timeout, then retry final-regression.",
+      }),
+    });
+  }
+}
+
+export class DependencyRegressionFailure extends FinalRegressionFailure {
+  constructor() {
+    super({
+      kind: FAILURE_KINDS.DEPENDENCY,
+      recoveryPolicy: new ResumeRecoveryPolicy({
+        resumeInstruction: "Install or restore the missing dependency, then retry final-regression.",
+      }),
+    });
+  }
+}
+
+export class SandboxRegressionFailure extends FinalRegressionFailure {
+  constructor(kind = FAILURE_KINDS.SANDBOX) {
+    super({
+      kind,
+      recoveryPolicy: new ResumeRecoveryPolicy({
+        resumeInstruction: "Grant the required sandbox capability or use an allowed execution environment, then retry final-regression.",
+      }),
+    });
+  }
+}
+
+class ChildProcessEpermRegressionFailure extends SandboxRegressionFailure {
+  constructor() {
+    super(FAILURE_KINDS.CHILD_PROCESS_EPERM);
+  }
+}
+
+export class PermissionRegressionFailure extends FinalRegressionFailure {
+  constructor() {
+    super({
+      kind: FAILURE_KINDS.PERMISSION,
+      recoveryPolicy: new ResumeRecoveryPolicy({
+        resumeInstruction: "Grant the required permission, then retry final-regression.",
+      }),
+    });
+  }
+}
+
+export class InvalidCommandRegressionFailure extends FinalRegressionFailure {
+  constructor() {
+    super({
+      kind: FAILURE_KINDS.INVALID_PROJECT_TEST,
+      recoveryPolicy: new ResumeRecoveryPolicy({
+        nextAction: "test-repair",
+        retryable: true,
+        resumeInstruction: "Configure a valid project regression command, then retry final-regression.",
+      }),
+    });
+  }
+}
+
+const TEXT_FAILURE_CLASSIFIERS = Object.freeze([
+  new TextFailureClassifier(/\beperm\b/, ChildProcessEpermRegressionFailure),
+  new TextFailureClassifier(/sandbox/, SandboxRegressionFailure),
+  new TextFailureClassifier(/\beacces\b|permission denied/, PermissionRegressionFailure),
+  new TextFailureClassifier(/\benoent\b|not found|command not found/, DependencyRegressionFailure),
+  new TextFailureClassifier(/without stdout\/stderr|spawnerror/, InfrastructureRegressionFailure),
 ]);
 
 class FinalRegressionDecision {
@@ -165,27 +317,29 @@ class FinalRegressionDecision {
     });
   }
 
-  static fail(failureKind, previousFailureCount) {
-    const repairable = failureKind === FAILURE_KINDS.CURRENT_CHANGE
-      || failureKind === FAILURE_KINDS.INVALID_PROJECT_TEST;
-    const retryable = repairable && previousFailureCount === 0;
+  static fail(failure, previousFailureCount) {
+    if (!(failure instanceof FinalRegressionFailure)) throw new Error("FinalRegressionFailure is required");
+    const policy = failure.recoveryPolicy;
+    const retryable = policy.retryable && previousFailureCount === 0;
     return new FinalRegressionDecision({
-      failureKind,
+      failureKind: failure.kind,
       retryable,
-      nextAction: repairable && !retryable ? "stop" : FAILURE_NEXT_ACTION[failureKind],
+      nextAction: policy.retryable && !retryable ? "stop" : policy.nextAction,
     });
   }
 }
 
 class FinalRegressionFailureProfile {
-  constructor({ failureKind, process, fixAttempts, autoApprove = false, canValidateProceed = true }) {
-    this.failureKind = failureKind;
-    this.failureCategory = failureCategoryFor(failureKind);
-    this.failureNature = failureNatureFor(failureKind, process);
+  constructor({ failure, process, fixAttempts, autoApprove = false, canValidateProceed = true }) {
+    if (!(failure instanceof FinalRegressionFailure)) throw new Error("FinalRegressionFailure is required");
+    this.failureKind = failure.kind;
+    this.recoveryPolicy = failure.recoveryPolicy;
+    this.failureCategory = failureCategoryFor(failure.kind);
+    this.failureNature = failureNatureFor(failure.kind, process);
     this.fixAttempts = fixAttempts;
-    this.recordAndProceedEligible = canValidateProceed && recordAndProceedEligibleFor(this.failureCategory, failureKind);
+    this.recordAndProceedEligible = canValidateProceed && recordAndProceedEligibleFor(this.failureCategory, failure.kind);
     this.nextRecommendedAction = nextRecommendedActionFor({
-      failureKind,
+      failureKind: failure.kind,
       eligible: this.recordAndProceedEligible,
       fixAttempts,
     });
@@ -286,6 +440,7 @@ class FinalRegressionArtifact {
     this.nextRecommendedAction = failureProfile?.nextRecommendedAction || (result === "fail" ? NEXT_RECOMMENDED_ACTIONS.STOP : null);
     this.failureCategory = failureProfile?.failureCategory || null;
     this.failureNature = failureProfile?.failureNature || null;
+    this.recoveryPolicy = failureProfile?.recoveryPolicy || null;
     this.fixAttempts = failureProfile?.fixAttempts ?? 0;
     this.recordAndProceed = failureProfile?.recordAndProceedEvidence() || null;
     this.selectedAction = selectedAction ?? failureProfile?.selectedAction ?? null;
@@ -317,6 +472,7 @@ class FinalRegressionArtifact {
       ...(this.nextRecommendedAction ? { nextRecommendedAction: this.nextRecommendedAction } : {}),
       ...(this.failureCategory ? { failureCategory: this.failureCategory } : {}),
       ...(this.failureNature ? { failureNature: this.failureNature } : {}),
+      ...(this.recoveryPolicy ? { recoveryPolicy: this.recoveryPolicy.toJSON() } : {}),
       ...(this.result === "fail" ? { fixAttempts: this.fixAttempts } : {}),
       ...(this.recordAndProceed ? { recordAndProceed: this.recordAndProceed } : {}),
       ...(this.selectedAction ? { selectedAction: this.selectedAction } : {}),
@@ -335,6 +491,7 @@ class FinalRegressionArtifact {
       result: this.result,
       failureKind: this.failureKind,
       ...(this.failureCategory ? { failureCategory: this.failureCategory } : {}),
+      ...(this.recoveryPolicy ? { recoveryPolicy: this.recoveryPolicy.toJSON() } : {}),
       ...(this.skipKind ? { skipKind: this.skipKind } : {}),
       retryable: this.retryable,
       nextAction: this.nextAction,
@@ -770,27 +927,28 @@ function changedFilesWithinMatchLimit(changedFiles) {
   return files.length <= MAX_CHANGED_FILES_TO_MATCH ? files : null;
 }
 
-function classifyFailure({ result, discoveryError = null, root, state, config, changedFiles }) {
+export function classifyFinalRegressionFailure({ result, discoveryError = null, root = null, state = null, config = {}, changedFiles = [] }) {
   const text = failureEvidenceText(result, discoveryError);
   const normalizedText = normalizeFailureMatchText(text);
-  if (discoveryError) return FAILURE_KINDS.INVALID_PROJECT_TEST;
-  if (result?.timedOut) return FAILURE_KINDS.TIMEOUT;
-  if (normalizedText.trim() === "" && result?.exitCode) return FAILURE_KINDS.INFRA;
-  if (/^command failed:/.test(normalizedText.trim()) && result?.exitCode) return FAILURE_KINDS.INFRA;
+  if (discoveryError) return new InvalidCommandRegressionFailure();
+  if (result?.timedOut) return new TimeoutRegressionFailure();
+  if (normalizedText.trim() === "" && result?.exitCode) return new InfrastructureRegressionFailure();
+  if (/^command failed:/.test(normalizedText.trim()) && result?.exitCode) return new InfrastructureRegressionFailure();
   for (const classifier of TEXT_FAILURE_CLASSIFIERS) {
-    if (classifier.matches(normalizedText)) return classifier.kind;
+    const failure = classifier.classify(normalizedText);
+    if (failure) return failure;
   }
-  if (result?.signal) return FAILURE_KINDS.INFRA;
-  if (result?.exitCode === 127) return FAILURE_KINDS.DEPENDENCY;
+  if (result?.signal) return new InfrastructureRegressionFailure();
+  if (result?.exitCode === 127) return new DependencyRegressionFailure();
   const changedFilesForMatching = changedFilesWithinMatchLimit(changedFiles);
-  if (!changedFilesForMatching) return FAILURE_KINDS.INFRA;
+  if (!changedFilesForMatching || !root || !state) return new InfrastructureRegressionFailure();
   if (classifyChangeScope({ root, state, config, changedFiles }) === "pre-existing") {
-    return FAILURE_KINDS.UNATTRIBUTED_EXISTING;
+    return new ExistingRegressionFailure();
   }
   if (!failureReferencesChangedFile(normalizedText, changedFilesForMatching)) {
-    return FAILURE_KINDS.UNATTRIBUTED_EXISTING;
+    return new ExistingRegressionFailure();
   }
-  return FAILURE_KINDS.CURRENT_CHANGE;
+  return new CurrentChangeRegressionFailure();
 }
 
 function nextFinalRegressionAttempt(specDir) {
@@ -961,7 +1119,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     let commandText = null;
     let result;
     let resultStatus;
-    let failureKind;
+    let failure = null;
     let commandIdentity = null;
     let discoveryError = null;
     let skipDecision = null;
@@ -989,7 +1147,6 @@ export default class RunFinalRegressionCommand extends FlowCommand {
             stderr: "",
           };
           resultStatus = "skipped";
-          failureKind = null;
         } else {
           writeFinalRegressionProgressLine(`command: ${commandText}`);
           writeFinalRegressionProgressLine(`raw log: ${rawOutputPathRelative}`);
@@ -1015,7 +1172,6 @@ export default class RunFinalRegressionCommand extends FlowCommand {
             stderr: "",
           };
           resultStatus = "skipped";
-          failureKind = null;
         } else {
           discoveryError = err;
           result = FinalRegressionProcessResultFactory.commandDiscovery(err);
@@ -1023,27 +1179,28 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       }
       if (!skipDecision) {
         resultStatus = !discoveryError && processPassed(result) ? "pass" : "fail";
-        failureKind = resultStatus === "pass"
+        failure = resultStatus === "pass"
           ? null
-          : classifyFailure({ result, discoveryError, root, state, config, changedFiles });
+          : classifyFinalRegressionFailure({ result, discoveryError, root, state, config, changedFiles });
       }
     } else {
       result = FinalRegressionProcessResultFactory.rootMismatch(
         `final-regression worktree root mismatch: expected ${expectedRootPath || "<unresolved>"}, got ${rootPath}`,
       );
       resultStatus = "fail";
-      failureKind = FAILURE_KINDS.INFRA;
+      failure = new InfrastructureRegressionFailure();
     }
 
+    const failureKind = failure?.kind || null;
     const decision = resultStatus === "pass"
       ? FinalRegressionDecision.pass()
       : resultStatus === "skipped"
         ? FinalRegressionDecision.skipped()
-        : FinalRegressionDecision.fail(failureKind, previousFailures.length);
+        : FinalRegressionDecision.fail(failure, previousFailures.length);
     const fingerprintedChangedFiles = skipDecision?.changedFiles || currentChangedFilesWithFingerprints(root, changedFiles);
     const failureProfile = resultStatus === "fail"
       ? new FinalRegressionFailureProfile({
-        failureKind,
+        failure,
         process: new FinalRegressionProcess(result),
         fixAttempts: countFixAttempts({
           failures: previousFailures,

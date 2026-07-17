@@ -82,6 +82,14 @@ import {
   completeDraftArtifactChange,
   completeSpecArtifactChange,
 } from "./artifact-completion.js";
+import {
+  DecisionOutcome,
+  DeferOutcome,
+  ExternalBlockedOutcome,
+  RetryOutcome,
+  nextStepAttemptNumber,
+  recordStepAttempt,
+} from "./step-outcome.js";
 
 export { resolveGateStepId };
 
@@ -1934,6 +1942,46 @@ function gateDeferredResult(phase, attempts, findingCount) {
   };
 }
 
+function gateRetryAction(phase) {
+  return `run-gate-${phase}`;
+}
+
+function gateExternalBlock(reason) {
+  return new ExternalBlockedOutcome({
+    reason,
+    resumeInstruction: `Resolve ${reason.replaceAll("_", " ")} and retry the guarded gate action.`,
+  });
+}
+
+function gateExhaustionOutcome(artifact) {
+  const classification = classifyGateRetryExhaustionSource({ sourceArtifact: artifact });
+  if (classification.deferAllowed) {
+    return new DeferOutcome({
+      nextAction: "refresh-next-action",
+      findingCount: failedGateFindings(artifact).length,
+    });
+  }
+  return gateExternalBlock(classification.reason);
+}
+
+function recordGateOutcome(ctx, result, phase, attempt, outcome) {
+  return recordStepAttempt(ctx, {
+    stepId: resolveGateStepId(phase),
+    attempt: Math.max(1, attempt),
+    outcome,
+    result,
+  });
+}
+
+function recordGateDeferral(ctx, result, phase, attempts) {
+  const outcome = new DeferOutcome({
+    nextAction: "refresh-next-action",
+    findingCount: result.artifacts.findingCount,
+  });
+  recordGateOutcome(ctx, result, phase, attempts, outcome);
+  return result;
+}
+
 function writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact) {
   const full = path.join(specDir, sourceArtifact);
   fs.mkdirSync(path.dirname(full), { recursive: true });
@@ -1982,8 +2030,8 @@ function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
   if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
   const source = resolveGateSourceForDefer({ root: ctx.root, flowState: ctx.flowState, phase });
   if (!source?.artifact) return null;
-  const classification = classifyGateRetryExhaustionSource({ sourceArtifact: source.artifact });
-  if (!classification.deferAllowed) return null;
+  const outcome = gateExhaustionOutcome(source.artifact);
+  if (!(outcome instanceof DeferOutcome)) return null;
   const { findings } = persistGateSourceFindingIds(source.specDir, source.sourceArtifact, source.artifact);
   deferExhaustedSemanticFindings({
     root: ctx.root,
@@ -2031,7 +2079,7 @@ export function checkRetryBelowMax(ctx, phase) {
   const max = resolveRetryMax(ctx, phase);
   if (count < max) return null;
   const deferred = tryDeferGateRetryExhaustion(ctx, phase, count);
-  if (deferred) return deferred;
+  if (deferred) return recordGateDeferral(ctx, deferred, phase, count);
 
   const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max, phase);
   persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED, { seedOnly: true });
@@ -2041,16 +2089,26 @@ export function checkRetryBelowMax(ctx, phase) {
     "Previous FAIL reasons:",
     history || "  (no issue-log entries found)",
     "",
-    "Stop the automatic retry loop and return control to the user.",
+    "Resume after resolving the external blocker or recording changed retry evidence.",
   ];
   appendGateEscalationIssueLog(ctx, phase, messages);
-  return Envelope.fail(
+  const envelope = Envelope.fail(
     "run",
     "gate",
     "ESCALATE_RETRY_EXHAUSTED",
     messages,
     { phase, attempts: count, max },
   );
+  const source = ctx.flowState?.spec
+    ? resolveGateSourceForDefer({ root: ctx.root, flowState: ctx.flowState, phase })
+    : null;
+  const classifiedOutcome = source?.artifact ? gateExhaustionOutcome(source.artifact) : null;
+  const outcome = classifiedOutcome instanceof ExternalBlockedOutcome
+    ? classifiedOutcome
+    : gateExternalBlock(source?.artifact ? "defer_persistence_unavailable" : "missing_content_findings");
+  const attempt = recordGateOutcome(ctx, null, phase, count, outcome);
+  if (attempt) envelope.data = { ...envelope.data, stepAttempt: attempt.toJSON() };
+  return envelope;
 }
 
 export async function evaluateGuardrailObservationsWithRetry({
@@ -2110,16 +2168,50 @@ function appendGateEscalationIssueLog(ctx, phase, messages) {
  */
 export function updateGateRetryCounter(ctx, result) {
   const phase = result?.artifacts?.phase || ctx?.phase;
-  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+  const stepId = resolveGateStepId(phase);
+  if (!RETRY_TRACKED_PHASES.includes(phase)) {
+    const outcome = result?.result === "pass"
+      ? new DecisionOutcome({ decision: "PASS", nextAction: result?.next || "refresh-next-action" })
+      : gateExternalBlock(result?.artifacts?.failureKind || "gate_failure");
+    recordGateOutcome(ctx, result, phase, nextStepAttemptNumber(ctx?.flowState, stepId), outcome);
+    return;
+  }
   persistGateSourceFromResult(ctx, result, phase);
   const mgr = ctx.flowManager;
   if (!mgr) return;
+  const attemptsBefore = readGateRetryCount(ctx.flowState, phase);
   if (result?.result === "pass") {
     mgr.appendMetric({ phase, counter: "gateRetry", delta: 0, reset: true });
+    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, new DecisionOutcome({
+      decision: "PASS",
+      nextAction: result?.next || "refresh-next-action",
+    }));
   } else if (result?.artifacts?.failureKind === "ai_semantic_fail") {
     mgr.appendMetric({ phase, counter: "gateRetry", delta: 1 });
+    const attempts = attemptsBefore + 1;
+    const max = resolveRetryMax(ctx, phase);
+    if (attempts >= max) {
+      const deferred = tryDeferGateRetryExhaustion(ctx, phase, attempts);
+      if (deferred) {
+        Object.assign(result, deferred);
+        recordGateDeferral(ctx, result, phase, attempts);
+        return;
+      }
+      const source = resolveGateSourceForDefer({ root: ctx.root, flowState: ctx.flowState, phase });
+      const sourceOutcome = source?.artifact ? gateExhaustionOutcome(source.artifact) : null;
+      const outcome = sourceOutcome instanceof ExternalBlockedOutcome
+        ? sourceOutcome
+        : gateExternalBlock("defer_persistence_unavailable");
+      recordGateOutcome(ctx, result, phase, attempts, outcome);
+      persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RESULT_FAIL);
+      return;
+    }
+    recordGateOutcome(ctx, result, phase, attempts, new RetryOutcome({ nextAction: gateRetryAction(phase) }));
     persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RESULT_FAIL);
   } else if (ctx.gitState && (phase === "task-impl" || phase === "integration")) {
+    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlock(
+      result?.artifacts?.failureKind || "gate_failure",
+    ));
     mgr.mutate((state) => updateGateImplMemory({
       root: ctx.root,
       flowState: state,
@@ -2131,6 +2223,10 @@ export function updateGateRetryCounter(ctx, result) {
       passedGuardrails: buildPassedGuardrails(result?.artifacts?.evaluations),
       observations: result?.artifacts?.nextAction?.diagnosis?.observations || [],
     }));
+  } else {
+    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlock(
+      result?.artifacts?.failureKind || "gate_failure",
+    ));
   }
 }
 
