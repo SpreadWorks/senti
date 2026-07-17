@@ -8,13 +8,14 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS, VALID_PHASES } from "../../lib/constants.js";
 import { formatDurationSeconds } from "../../lib/formatter.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 
-export const CACHE_VERSION = 3;
+export const CACHE_VERSION = 4;
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
 const MAX_FLOW_FILES = 5000;
@@ -28,6 +29,63 @@ const DIFFICULTY_BASELINES = {
 const PRECISION_NORMALIZER = 100;
 const PRECISION_MIN = 0.3;
 const PRECISION_MAX = 3.0;
+
+export class TokenMetricsInput {
+  constructor(relativePath, content) {
+    const normalizedPath = String(relativePath || "").split(path.sep).join("/");
+    if (!normalizedPath || path.posix.isAbsolute(normalizedPath)) {
+      throw new Error("TokenMetricsInput path must be relative");
+    }
+    if (normalizedPath.split("/").includes("..")) {
+      throw new Error("TokenMetricsInput path must stay within specs");
+    }
+    if (typeof content !== "string") {
+      throw new Error("TokenMetricsInput content must be a string");
+    }
+    this.relativePath = normalizedPath;
+    this.content = content;
+    Object.freeze(this);
+  }
+}
+
+export class TokenMetricsInputFingerprint {
+  constructor(value, inputCount) {
+    if (!/^[a-f0-9]{64}$/.test(value)) {
+      throw new Error("TokenMetricsInputFingerprint value must be a SHA-256 digest");
+    }
+    if (!Number.isSafeInteger(inputCount) || inputCount < 0) {
+      throw new Error("TokenMetricsInputFingerprint inputCount must be a non-negative safe integer");
+    }
+    this.value = value;
+    this.inputCount = inputCount;
+    Object.freeze(this);
+  }
+
+  static from(inputs) {
+    if (!Array.isArray(inputs) || inputs.some((input) => !(input instanceof TokenMetricsInput))) {
+      throw new Error("TokenMetricsInputFingerprint requires TokenMetricsInput values");
+    }
+    const sorted = [...inputs].sort((a, b) => (
+      a.relativePath < b.relativePath ? -1 : a.relativePath > b.relativePath ? 1 : 0
+    ));
+    const paths = new Set();
+    const hash = createHash("sha256");
+    hash.update("senti-token-metrics-input-v1\0");
+    for (const input of sorted) {
+      if (paths.has(input.relativePath)) {
+        throw new Error(`duplicate token metrics input path: ${input.relativePath}`);
+      }
+      paths.add(input.relativePath);
+      const pathLength = Buffer.byteLength(input.relativePath);
+      const contentLength = Buffer.byteLength(input.content);
+      hash.update(`P${pathLength}:`);
+      hash.update(input.relativePath);
+      hash.update(`C${contentLength}:`);
+      hash.update(input.content);
+    }
+    return new TokenMetricsInputFingerprint(hash.digest("hex"), sorted.length);
+  }
+}
 
 function formatUsage() {
   return [
@@ -388,8 +446,7 @@ function computeMaxFinalizedAt(flowEntries) {
   return max;
 }
 
-async function isCacheFresh(metricsOutputPath, maxFinalizedAt) {
-  if (!maxFinalizedAt) return false;
+async function isCacheFresh(metricsOutputPath, inputFingerprint) {
   let text;
   try {
     text = await fs.readFile(metricsOutputPath, "utf8");
@@ -409,12 +466,12 @@ async function isCacheFresh(metricsOutputPath, maxFinalizedAt) {
     process.stderr.write(`senti metrics token: cache parse failed (${err.message}), rebuilding\n`);
     return false;
   }
-  if (typeof parsed?.maxFinalizedAt !== "string") return false;
   if (parsed.version !== CACHE_VERSION) {
     process.stderr.write(`senti metrics token: cache version mismatch (got ${parsed.version}, expected ${CACHE_VERSION}), rebuilding\n`);
     return false;
   }
-  return parsed.maxFinalizedAt >= maxFinalizedAt;
+  if (typeof parsed?.inputFingerprint !== "string") return false;
+  return parsed.inputFingerprint === inputFingerprint.value;
 }
 
 function toRowKey(date, phase) {
@@ -680,12 +737,14 @@ async function readCacheRows(metricsOutputPath) {
   return sortRows(parsed.rows);
 }
 
-async function writeCache(metricsOutputPath, rows, maxFinalizedAt) {
+async function writeCache(metricsOutputPath, rows, maxFinalizedAt, inputFingerprint) {
   await fs.mkdir(path.dirname(metricsOutputPath), { recursive: true });
   const payload = {
     version: CACHE_VERSION,
     generatedAt: new Date().toISOString(),
     maxFinalizedAt,
+    inputFingerprint: inputFingerprint.value,
+    inputCount: inputFingerprint.inputCount,
     rows: sortRows(rows),
   };
   await fs.writeFile(metricsOutputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
@@ -739,16 +798,22 @@ async function runToken(rawArgs, container) {
     } catch (err) {
       throw new Error(`invalid JSON in ${file.path}: ${err.message}`);
     }
-    flowEntries.push({ path: file.path, parsed });
+    const relativePath = path.relative(specsDir, file.path).split(path.sep).join("/");
+    flowEntries.push({
+      path: file.path,
+      parsed,
+      input: new TokenMetricsInput(relativePath, text),
+    });
   }
+  const inputFingerprint = TokenMetricsInputFingerprint.from(flowEntries.map((entry) => entry.input));
   const maxFinalizedAt = computeMaxFinalizedAt(flowEntries);
   let rows;
-  const canReuseCache = await isCacheFresh(metricsOutputPath, maxFinalizedAt);
+  const canReuseCache = await isCacheFresh(metricsOutputPath, inputFingerprint);
   if (canReuseCache) {
     rows = await readCacheRows(metricsOutputPath);
   } else {
     rows = await buildRows(flowEntries);
-    await writeCache(metricsOutputPath, rows, maxFinalizedAt);
+    await writeCache(metricsOutputPath, rows, maxFinalizedAt, inputFingerprint);
   }
 
   process.stdout.write(`${render(rows, format)}\n`);

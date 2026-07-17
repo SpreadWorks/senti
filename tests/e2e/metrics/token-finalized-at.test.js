@@ -1,9 +1,13 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { join } from "node:path";
-import { readFileSync } from "node:fs";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
-import { runTokenJson, runTokenCapture, writeBaseConfig } from "../../helpers/metrics-token.js";
+import {
+  readTokenCache,
+  runTokenJson,
+  runTokenCapture,
+  writeBaseConfig,
+  writeTokenCache,
+} from "../../helpers/metrics-token.js";
 
 function metricsFlow(finalizedAt) {
   const flow = {
@@ -63,7 +67,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
     );
   });
 
-  it("R4/R5: cache without maxFinalizedAt is invalidated and rebuilt", () => {
+  it("R4/R5: cache without an input fingerprint is invalidated and rebuilt", () => {
     tmp = createTmpDir("senti-metrics-finalized-at-cache-");
     writeBaseConfig(tmp);
     writeJson(
@@ -90,12 +94,12 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
 
     runTokenJson(tmp);
 
-    const cachePath = join(tmp, ".senti/output/metrics.json");
-    const cache = JSON.parse(readFileSync(cachePath, "utf8"));
+    const cache = readTokenCache(tmp);
     assert.ok(
       typeof cache.maxFinalizedAt === "string" && cache.maxFinalizedAt.length > 0,
       "cache should contain maxFinalizedAt after rebuild",
     );
+    assert.match(cache.inputFingerprint, /^[a-f0-9]{64}$/);
     assert.equal(
       cache.rows[0].tokenInput,
       100,
@@ -104,7 +108,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
     assert.equal(cache.rows[0].date, "2025-06-15");
   });
 
-  it("R4: cache is reused when maxFinalizedAt matches current max", () => {
+  it("R4: cache is reused when the input fingerprint matches", () => {
     tmp = createTmpDir("senti-metrics-finalized-at-cache-reuse-");
     writeBaseConfig(tmp);
     writeJson(
@@ -112,24 +116,10 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
       "specs/001-alpha/flow.json",
       metricsFlow("2025-06-15T12:00:00Z"),
     );
-    writeJson(tmp, ".senti/output/metrics.json", {
-      version: 3,
-      generatedAt: "2025-06-16T00:00:00Z",
-      maxFinalizedAt: "2025-06-15T12:00:00Z",
-      rows: [
-        {
-          date: "2025-06-15",
-          phase: "draft",
-          difficulty: null,
-          tokenInput: 42,
-          tokenOutput: 0,
-          cacheRead: 0,
-          cacheCreate: 0,
-          callCount: 0,
-          cost: 0,
-        },
-      ],
-    });
+    runTokenJson(tmp);
+    const cache = readTokenCache(tmp);
+    cache.rows[0].tokenInput = 42;
+    writeTokenCache(tmp, cache);
 
     const parsed = JSON.parse(runTokenJson(tmp));
     const row = parsed.rows.find((r) => r.phase === "draft");
