@@ -417,6 +417,11 @@ export async function dispatch({
     try {
       await entry.pre(hookCtx);
     } catch (err) {
+      if (hookCtx.flowOutboxEntry && entry.onError) {
+        try { await entry.onError(hookCtx, err); } catch (onErrorErr) {
+          writeErr(`[onError hook] ${onErrorErr.message || onErrorErr}\n`);
+        }
+      }
       await emitFailure({ err, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit, runtimeLogMetadata: runtimeLog?.metadata });
       closeRuntimeLog();
       persistRuntimeLogMetadata(null);
@@ -428,13 +433,18 @@ export async function dispatch({
   // 7. execute via Command.run
   let result;
   let caught;
-  try {
-    const cmd = new CommandClass();
-    input._envelopeType = envelopeType;
-    input._envelopeKey = envelopeKey;
-    result = await cmd.run(container, input);
-  } catch (err) {
-    caught = err;
+  if (hookCtx.flowOutboxEntry?.status === "done") {
+    result = structuredClone(hookCtx.flowOutboxEntry.result);
+    hookCtx.flowOutboxResumed = true;
+  } else {
+    try {
+      const cmd = new CommandClass();
+      input._envelopeType = envelopeType;
+      input._envelopeKey = envelopeKey;
+      result = await cmd.run(container, input);
+    } catch (err) {
+      caught = err;
+    }
   }
 
   // 8a. Success path
@@ -455,6 +465,18 @@ export async function dispatch({
     // post hooks advance step status / counters assuming success, which would
     // fire incorrectly on a judgment-result rejection.
     const skipPost = result instanceof Envelope && result.ok === false;
+    if (skipPost && hookCtx.flowOutboxEntry && entry.onError) {
+      const failure = new Error(
+        result.errors.flatMap((item) => item.messages || []).join("; ") || `${envelopeKey || "command"} failed`,
+      );
+      try {
+        await entry.onError(hookCtx, failure);
+      } catch (onErrorErr) {
+        postFailed = true;
+        if (mode === "envelope") envelope.addWarning("ON_ERROR_HOOK_FAILED", onErrorErr.message || String(onErrorErr));
+        else writeErr(`[onError hook] ${onErrorErr.message || onErrorErr}\n`);
+      }
+    }
     if (entry.post && !skipPost) {
       try {
         await entry.post(hookCtx, result);

@@ -10,7 +10,7 @@ Commit implementation changes as a finalize sub-step. This is the first step of 
 
 2. Run `senti flow run finalize-commit [--message "<msg>"]`.
    - The command performs preflight checks, migration hooks, stages production code (excluding test artifacts under `specs/<spec>/`), and creates the implementation commit.
-   - The post-hook generates `report.json`, posts to the linked issue (if any), and creates a separate `chore: add test artifacts` commit holding `retro.json`, `test-execute-result.json`, `test-result-review.json`, `test-result-review.md`, `final-regression-result.json`, and `tests/.raw/`. Retro and final-regression run as mainline impl-phase steps before finalize, not in the post-hook.
+   - The preceding `report` step has already generated `report.json` and delivered the linked Issue comment. The post-hook creates a separate durable-artifact commit holding `report.json`, `retro.json`, `test-execute-result.json`, `test-result-review.json`, `test-result-review.md`, `final-regression-result.json`, and `tests/.raw/` before it confirms the finalize-commit outbox entry.
    - Display the JSON result to the user.
    - If preflight fails (result=preflight_failed), display the failure reason and stop.
 

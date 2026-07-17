@@ -33,7 +33,7 @@
     "nextAction": {
       "type": "string",
       "enum": [
-        "finalize-commit",
+        "report",
         "regression-repair",
         "user-confirmation",
         "test-repair",
@@ -51,7 +51,7 @@
         "properties": {
           "failureKind": { "const": null },
           "retryable": { "const": false },
-          "nextAction": { "const": "finalize-commit" }
+          "nextAction": { "const": "report" }
         }
       }
     },
@@ -65,7 +65,7 @@
         "properties": {
           "failureKind": { "const": null },
           "retryable": { "const": false },
-          "nextAction": { "const": "finalize-commit" }
+          "nextAction": { "const": "report" }
         }
       }
     },
@@ -92,6 +92,7 @@
           },
           "nextAction": {
             "enum": [
+              "report",
               "regression-repair",
               "user-confirmation",
               "test-repair",

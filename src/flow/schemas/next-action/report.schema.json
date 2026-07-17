@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Report step output",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["result", "changed", "artifacts"],
+  "properties": {
+    "result": { "const": "ok" },
+    "changed": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "artifacts": {
+      "type": "object",
+      "required": ["report"],
+      "properties": {
+        "report": { "type": "object" }
+      }
+    }
+  }
+}

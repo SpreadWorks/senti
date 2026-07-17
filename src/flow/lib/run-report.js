@@ -13,7 +13,11 @@
 
 import fs from "fs";
 import path from "path";
-import { collectGitSummary } from "../../lib/git-helpers.js";
+import {
+  collectGitSummary,
+  commentOnIssueOnce,
+  isGhAvailable,
+} from "../../lib/git-helpers.js";
 import { generateReport, saveReport } from "../commands/report.js";
 import { loadIssueLog } from "./set-issue-log.js";
 import { FlowCommand } from "./base-command.js";
@@ -115,13 +119,27 @@ export class RunReportCommand extends FlowCommand {
       };
     }
 
-    try { saveReport(root, state.spec, report); } catch (e) { report.saveError = e.message; }
+    saveReport(root, state.spec, report);
+
+    let issueComment = { status: "skipped", reason: "no linked issue" };
+    if (state.issue && !isGhAvailable()) {
+      issueComment = { status: "skipped", reason: "gh unavailable" };
+    } else if (state.issue) {
+      const idempotencyKey = ctx.flowOutboxEntry?.idempotencyKey;
+      const posted = commentOnIssueOnce(state.issue, report.text, root, idempotencyKey);
+      if (!posted.ok) throw new Error(`failed to post report to issue #${state.issue}: ${posted.error}`);
+      issueComment = {
+        status: "done",
+        issue: state.issue,
+        resumed: posted.resumed,
+      };
+    }
 
     const specRelDir = path.dirname(state.spec);
     return {
       result: "ok",
       changed: [path.join(specRelDir, "report.json")],
-      artifacts: { report },
+      artifacts: { report, issueComment },
     };
   }
 }

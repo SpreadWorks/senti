@@ -29,11 +29,13 @@ export class RunFinalizeMergeCommand extends FlowCommand {
       flowState: state,
       worktreePath,
       mainRepoPath,
+      idempotencyKey: ctx.flowOutboxEntry?.idempotencyKey || null,
     });
     return {
       status: "done",
       strategy: mergeResult?.strategy || "squash",
       mergedFromSha: mergeResult?.mergedFromSha ?? null,
+      ...(mergeResult?.resumed ? { resumed: true } : {}),
     };
   }
 }

@@ -2,11 +2,12 @@
  * src/flow/run/report.js
  *
  * Generate a work report from finalize pipeline data.
- * Called by finalize.js Step 6 (report).
+ * Called by the independent report flow step before finalize-commit.
  */
 
 import fs from "fs";
 import path from "path";
+import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { buildMetricsSummary, buildReportTotals } from "../lib/get-status.js";
 import { buildBoundedBroadModeHistory } from "../lib/task-scope.js";
 import { pushSection, DIVIDER, formatDurationSeconds } from "../../lib/formatter.js";
@@ -535,5 +536,5 @@ export function saveReport(root, specPath, reportData) {
   const specDir = path.dirname(path.resolve(root, specPath));
   const reportPath = path.join(specDir, "report.json");
   fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(reportPath, JSON.stringify(reportData, null, 2) + "\n");
+  new AtomicJsonFile(reportPath).write(reportData);
 }

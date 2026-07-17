@@ -5,6 +5,8 @@ import {
   runFinalizePreflight,
   runPreflightChecks,
   commitOrSkip,
+  hasOutboxCommit,
+  outboxCommitMarker,
   runMigrationHook,
 } from "./run-finalize.js";
 import { implementationCommitExcludedTestArtifactPathspecs } from "./test-artifacts.js";
@@ -14,6 +16,15 @@ export class RunFinalizeCommitCommand extends FlowCommand {
     const { root } = ctx;
     const state = ctx.flowState;
     const message = ctx.message || "";
+    const idempotencyKey = ctx.flowOutboxEntry?.idempotencyKey || null;
+
+    if (hasOutboxCommit({ root, ref: "HEAD", idempotencyKey })) {
+      return {
+        status: "done",
+        message: message || `feat: ${state.featureBranch || "finalize"}`,
+        resumed: true,
+      };
+    }
 
     await runFinalizePreflight(root);
 
@@ -47,15 +58,16 @@ export class RunFinalizeCommitCommand extends FlowCommand {
     const specId = specIdFromPath(state.spec);
     ctx.flowManager.saveFinalizedAt(specId, new Date().toISOString());
 
-    // spec 251: stage everything EXCEPT test artifacts under the spec dir; the
-    // executeCommitPost hook follows up with a separate commit for those.
+    // Stage everything except durable finalization artifacts. The finalize
+    // lifecycle commits those separately before confirming this outbox entry.
     runGit(["add", "-A"], { cwd: root });
     const excludePathspecs = implementationCommitExcludedTestArtifactPathspecs(specId);
     const resetArgs = ["reset", "HEAD", "--", ...excludePathspecs];
     runGit(resetArgs, { cwd: root });
 
     const msg = message || `feat: ${state.featureBranch || "finalize"}`;
-    const res = commitOrSkip(["-m", msg], { cwd: root });
+    const markerArgs = idempotencyKey ? ["-m", outboxCommitMarker(idempotencyKey)] : [];
+    const res = commitOrSkip(["-m", msg, ...markerArgs], { cwd: root });
     return { ...res, message: msg };
   }
 }

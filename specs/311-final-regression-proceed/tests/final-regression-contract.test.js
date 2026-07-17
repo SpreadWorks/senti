@@ -49,7 +49,7 @@ function failedRecordedArtifact(overrides = {}) {
     remainingRisk: "full regression remains red for an existing failure",
     fixAttempts: 1,
     retryable: false,
-    nextAction: "finalize-commit",
+    nextAction: "report",
     nextRecommendedAction: "record-and-proceed",
     failureSummary: "existing failure",
     ...overrides,
@@ -64,7 +64,7 @@ describe("Issue 403 final-regression completion contract", () => {
     assert.equal(artifact.completed, true);
     assert.equal(artifact.selectedAction, "record-and-proceed");
     assert.equal(artifact.recordAndProceed.validated, true);
-    assert.equal(artifact.nextAction, "finalize-commit");
+    assert.equal(artifact.nextAction, "report");
     assert.equal(artifact.nextRecommendedAction, "record-and-proceed");
   });
 

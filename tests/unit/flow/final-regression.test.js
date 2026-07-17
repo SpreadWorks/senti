@@ -78,18 +78,18 @@ describe("flow run final-regression", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("writes a pass artifact and returns finalize-commit as next action", async () => {
+  it("writes a pass artifact and returns report as next action", async () => {
     tmp = createTmpDir("final-regression-pass-");
     const ctx = setupProject(tmp, "printf '%s\\n' 'final pass'\n");
 
     const result = await new RunFinalRegressionCommand().execute(ctx);
 
     assert.equal(result.result, "pass");
-    assert.equal(result.next, "finalize-commit");
+    assert.equal(result.next, "report");
     const artifact = readFinalRegressionArtifact(tmp);
     assert.equal(artifact.result, "pass");
     assert.equal(artifact.failureKind, null);
-    assert.equal(artifact.nextAction, "finalize-commit");
+    assert.equal(artifact.nextAction, "report");
     assert.equal(artifact.completed, true);
     assert.equal(artifact.rawOutputPath, "specs/001-test/tests/.raw/final-regression-attempt-001.log");
     assert.ok(fs.existsSync(path.join(tmp, attemptLogPath(1))));

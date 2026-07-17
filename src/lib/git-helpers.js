@@ -271,3 +271,24 @@ export function commentOnIssue(issueNumber, body, cwd) {
   });
   return res.ok ? { ok: true } : { ok: false, error: formatError(res) };
 }
+
+/**
+ * Post a report comment exactly once for a stable flow outbox identity.
+ * A read failure is terminal because posting without proving absence could
+ * duplicate a comment after a process crash.
+ */
+export function commentOnIssueOnce(issueNumber, body, cwd, idempotencyKey) {
+  if (typeof idempotencyKey !== "string" || idempotencyKey === "") {
+    throw new Error("issue comment idempotencyKey is required");
+  }
+  const marker = `<!-- senti:${idempotencyKey} -->`;
+  const existing = runCmd("gh", [
+    "issue", "view", String(issueNumber),
+    "--json", "comments",
+    "--jq", ".comments[].body",
+  ], { cwd, timeout: 30000 });
+  if (!existing.ok) return { ok: false, error: formatError(existing) };
+  if (existing.stdout.includes(marker)) return { ok: true, resumed: true };
+  const posted = commentOnIssue(issueNumber, `${body}\n\n${marker}`, cwd);
+  return posted.ok ? { ...posted, resumed: false } : posted;
+}

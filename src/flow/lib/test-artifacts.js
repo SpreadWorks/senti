@@ -806,8 +806,8 @@ function validateFinalRegressionRecordAndProceed(result) {
     if (result.selectedAction !== "record-and-proceed") {
       throw new Error("final-regression completed fail requires selectedAction=record-and-proceed");
     }
-    if (result.nextAction !== "finalize-commit") {
-      throw new Error("final-regression completed failed-recorded nextAction must be finalize-commit");
+    if (result.nextAction !== "report") {
+      throw new Error("final-regression completed failed-recorded nextAction must be report");
     }
     if (result.nextRecommendedAction !== "record-and-proceed") {
       throw new Error("final-regression completed failed-recorded nextRecommendedAction must be record-and-proceed");
@@ -835,7 +835,7 @@ function validateFinalRegressionSkipKind(result) {
   if (!FINAL_REGRESSION_SKIP_KINDS.includes(result.skipKind)) throw new Error(`final-regression skipKind invalid: ${result.skipKind}`);
   if (typeof result.reason !== "string" || result.reason.length === 0) throw new Error("final-regression skipped reason is required");
   if (result.retryable !== false) throw new Error("final-regression skipped retryable must be false");
-  if (result.nextAction !== "finalize-commit") throw new Error("final-regression skipped nextAction must be finalize-commit");
+  if (result.nextAction !== "report") throw new Error("final-regression skipped nextAction must be report");
   if (result.completed !== true) throw new Error("final-regression skipped completed must be true");
   if (!result.proof || typeof result.proof !== "object" || Array.isArray(result.proof)) {
     throw new Error("final-regression skipped proof is required");

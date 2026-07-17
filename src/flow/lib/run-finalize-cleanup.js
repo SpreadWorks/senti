@@ -14,7 +14,7 @@
  *   (A) args validation      — reject mutually-exclusive flags
  *   (B) route routing        — spec-only / PR / unknown skip decisions
  *   (C) orphan guard         — baseline ancestry + SHA comparison
- *   (D) existing teardown    — (i) step done → (ii) commit → (iv) cleanup
+ *   (D) existing teardown    — pending outbox commit → teardown → post-hook completion
  *
  * Stages (A)/(B)/(C) halt before any side effects (worktree, branch, commit,
  * step status remain unchanged on halt). Once stage (D) starts, the original
@@ -38,7 +38,10 @@ import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { FinalizeCleanupPathResolver } from "../../lib/finalize-cleanup-paths.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
-import { writeLastFinalizedPointer } from "./run-finalize.js";
+import {
+  commitFinalizeCompletion,
+  writeLastFinalizedPointer,
+} from "./run-finalize.js";
 import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
 import { FinalizeCleanupStateResolution } from "./finalize-cleanup-state.js";
@@ -46,6 +49,12 @@ import { IssueLogDocument, IssueLogStore } from "./issue-log-store.js";
 import { runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
+import {
+  FlowOutbox,
+  FlowOutboxEntry,
+  FlowOutboxStore,
+  finalizationOutboxIdentity,
+} from "./flow-outbox.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import {
   RepositoryFlowOperationLock,
@@ -4760,12 +4769,24 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
       }
     }
     if (!result) {
+      const completionData = { status: "done", message: "spec-only mode" };
       if (!transaction.phase.atLeast("completed")) {
+        const outbox = new FlowOutboxStore(ctx.flowManager, {
+          specId,
+          operationOwnerToken: ctx.repositoryOperationOwnerToken,
+        });
+        const identity = finalizationOutboxIdentity(ctx.flowState, "finalize-cleanup");
+        outbox.begin(identity);
+        outbox.complete(identity, completionData);
+        ctx.flowManager.updateStepStatus("finalize-cleanup", "done", {
+          specId,
+          operationOwnerToken: ctx.repositoryOperationOwnerToken,
+        });
         transaction.advance("completed", { commitSha: null });
         store.write(transaction);
       }
       result = attachTransaction(attachReport(
-        Envelope.ok("run", "finalize-cleanup", { status: "done", message: "spec-only mode" }),
+        Envelope.ok("run", "finalize-cleanup", completionData),
         reportRoot,
       ));
     }
@@ -5205,7 +5226,7 @@ async function runTeardownTransactionOwned(
     specId,
   });
 
-  // (i) metadata sync + finalize-cleanup → 'done'.
+  // (i) metadata sync + durable pending cleanup intent.
   const targetRoot = (worktree && mainRepoPath) ? mainRepoPath : ctx.root;
   const targetFm = ctx.finalizeCleanupStateResolution?.mainFlowManager
     || ((worktree && mainRepoPath) ? ctx.flowManager.forRoot(mainRepoPath) : ctx.flowManager);
@@ -5411,10 +5432,13 @@ async function runTeardownTransactionOwned(
 
     const flowJsonRel = `specs/${specId}/flow.json`;
     ctx.finalizeCleanupStateResolution?.ensureCleanupStep(ctx.repositoryOperationOwnerToken);
-    targetFm.updateStepStatus("finalize-cleanup", "done", {
+    const cleanupOutbox = new FlowOutboxStore(targetFm, {
       specId,
       operationOwnerToken: ctx.repositoryOperationOwnerToken,
     });
+    const cleanupIdentity = finalizationOutboxIdentity(state, "finalize-cleanup");
+    cleanupOutbox.begin(cleanupIdentity);
+    cleanupOutbox.touch(cleanupIdentity);
 
     // (ii) stage + commit. Stage flow.json plus issue-log if present so audit
     // entries written by --force / CHERRY_PICK_CONFLICT during the same run
@@ -5735,20 +5759,37 @@ async function runTeardownTransactionOwned(
     transaction.advance("active-cleared");
     transactionStore.write(transaction);
   }
+  const completionData = {
+    status: "done",
+    pluginHooks: pluginLifecycle.data?.pluginHooks || [],
+    followUps: pluginLifecycle.data?.followUps || [],
+    retainedCleanupMetadata: retainedCleanupMetadata
+      ? { surfaces: retainedCleanupMetadata.surfaces }
+      : null,
+  };
   if (!transaction.phase.atLeast("completed")) {
+    const completionOutbox = new FlowOutboxStore(targetFm, {
+      specId,
+      operationOwnerToken: ctx.repositoryOperationOwnerToken,
+    });
+    const completionIdentity = finalizationOutboxIdentity(state, "finalize-cleanup");
+    completionOutbox.begin(completionIdentity);
+    completionOutbox.complete(completionIdentity, completionData);
+    targetFm.updateStepStatus("finalize-cleanup", "done", {
+      specId,
+      operationOwnerToken: ctx.repositoryOperationOwnerToken,
+    });
+    commitFinalizeCompletion({
+      root: targetRoot,
+      specId,
+      idempotencyKey: completionIdentity.idempotencyKey,
+    });
     transaction.advance("completed");
     transactionStore.write(transaction);
   }
 
   const env = attachReport(
-    Envelope.ok("run", "finalize-cleanup", {
-      status: "done",
-      pluginHooks: pluginLifecycle.data?.pluginHooks || [],
-      followUps: pluginLifecycle.data?.followUps || [],
-      retainedCleanupMetadata: retainedCleanupMetadata
-        ? { surfaces: retainedCleanupMetadata.surfaces }
-        : null,
-    }),
+    Envelope.ok("run", "finalize-cleanup", completionData),
     reportRoot,
   );
   for (const warning of pluginLifecycle.warnings || []) {
@@ -5761,10 +5802,9 @@ async function runTeardownTransactionOwned(
 }
 
 /**
- * Spec 272: Sync unreflected Spec-Driven Development metadata (runtimeLog only) from worktree to main.
- * Status and other fields are already handled by the post-hook authoritative
- * updates or squash-merge. We only pick up logs from previous successful retries
- * that might have only landed in the worktree's flow.json.
+ * Sync metadata that must survive worktree removal. Runtime logs can exist only
+ * in the worktree after a retry, and the pending cleanup outbox entry is the
+ * durable hand-off that lets cleanup resume from the main repository.
  */
 export function syncMetadataFromWorktreeToMain(worktreeRoot, mainRoot, specId, operationOwnerToken = null) {
   const wtPath = path.join(worktreeRoot, "specs", specId, "flow.json");
@@ -5773,6 +5813,7 @@ export function syncMetadataFromWorktreeToMain(worktreeRoot, mainRoot, specId, o
 
   const wtState = JSON.parse(fs.readFileSync(wtPath, "utf8"));
   const wtSteps = flattenSteps(wtState.steps || []);
+  const worktreeOutbox = new FlowOutbox(wtState.outbox || []);
   const flowManager = new FlowManager({ root: mainRoot, mainRoot, inWorktree: false, specId });
   flowManager.mutate((mainState) => {
     const mainSteps = flattenSteps(mainState.steps || []);
@@ -5790,6 +5831,13 @@ export function syncMetadataFromWorktreeToMain(worktreeRoot, mainRoot, specId, o
       ) {
         mainStep.runtimeLog = { ...wtStep.runtimeLog };
       }
+    }
+    const cleanupIdentity = finalizationOutboxIdentity(wtState, "finalize-cleanup");
+    const cleanupEntry = worktreeOutbox.find(cleanupIdentity);
+    if (cleanupEntry instanceof FlowOutboxEntry) {
+      const mainOutbox = new FlowOutbox(mainState.outbox || []);
+      mainOutbox.merge(cleanupEntry);
+      mainState.outbox = mainOutbox.toJSON();
     }
   }, { specId, operationOwnerToken });
 }

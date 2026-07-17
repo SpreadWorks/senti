@@ -1,4 +1,5 @@
 import { buildInitialNestedSteps } from "../flow/definition.js";
+import { FlowOutbox } from "../flow/lib/flow-outbox.js";
 import { FlowStateRevision } from "./flow-state-atomic-writer.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
@@ -121,6 +122,7 @@ export class FlowState {
       revision === null || revision instanceof FlowStateRevision,
       "flow state revision must be a FlowStateRevision or null",
     );
+    new FlowOutbox(value.outbox || []);
     if (revision) {
       const identity = revision.identity;
       const hasIssue = Object.hasOwn(value, "issue") && value.issue != null;

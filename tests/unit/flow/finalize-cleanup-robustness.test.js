@@ -17,6 +17,10 @@ import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { ProcessIdentitySource } from "../../../src/lib/flow-state-atomic-writer.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { IssueLogStore } from "../../../src/flow/lib/issue-log-store.js";
+import {
+  FlowOutboxStore,
+  finalizationOutboxIdentity,
+} from "../../../src/flow/lib/flow-outbox.js";
 
 function initGitRepo(root) {
   execFileSync("git", ["init", "--quiet", root], { encoding: "utf8" });
@@ -56,16 +60,18 @@ describe("finalize-cleanup robustness", () => {
 
     const state = setupFlow(worktreeRoot);
     const specId = path.basename(path.dirname(state.spec));
-    // Copy flow.json to main repo to simulate merged state
-    const mainSpecDir = path.join(mainRoot, "specs", specId);
-    fs.mkdirSync(mainSpecDir, { recursive: true });
-    fs.writeFileSync(path.join(mainSpecDir, "flow.json"), JSON.stringify(state, null, 2));
 
     const { FlowManager } = await import("../../../src/lib/flow-manager.js");
     const fm = new FlowManager({ root: worktreeRoot, mainRoot: mainRoot, inWorktree: true, specId });
+    new FlowOutboxStore(fm, { specId }).begin(finalizationOutboxIdentity(state, "finalize-merge"));
+    const preparedState = fm.loadReadOnly(specId);
+    // The pending outbox entry crosses to main as part of the merge commit.
+    const mainSpecDir = path.join(mainRoot, "specs", specId);
+    fs.mkdirSync(mainSpecDir, { recursive: true });
+    fs.writeFileSync(path.join(mainSpecDir, "flow.json"), JSON.stringify(preparedState, null, 2));
     const ctx = {
       flowManager: fm,
-      flowState: { ...state, worktree: true, featureBranch: "feature/test" },
+      flowState: { ...preparedState, worktree: true, featureBranch: "feature/test" },
       root: worktreeRoot,
       mainRoot: mainRoot,
       specId,
@@ -846,7 +852,24 @@ describe("finalize-cleanup robustness", () => {
         const finalEntries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
         assert.equal(finalEntries.filter((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || "")).length, 1);
         assert.equal(finalEntries.filter((entry) => entry.issueLogId === "other-writer").length, 1);
-        assert.equal(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), committedHead);
+        const completedHead = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+        assert.notEqual(completedHead, committedHead);
+        assert.equal(
+          execFileSync("git", ["-C", root, "log", "-1", "--format=%s"], { encoding: "utf8" }).trim(),
+          "chore: complete finalize cleanup",
+        );
+
+        const repeated = await new RunFinalizeCleanupCommand().execute({
+          root,
+          flowState: fm.loadReadOnly(specId),
+          flowManager: fm,
+          force: true,
+        });
+        assert.equal(repeated.ok, true, `${faultPhase}: ${JSON.stringify(repeated)}`);
+        assert.equal(
+          execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+          completedHead,
+        );
       } finally {
         removeTmpDir(root);
       }
@@ -940,10 +963,27 @@ describe("finalize-cleanup robustness", () => {
           force: true,
         });
         assert.equal(retried.ok, true, `${faultPhase}: ${JSON.stringify(retried)}`);
-        assert.equal(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), committedHead);
+        const completedHead = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+        assert.notEqual(completedHead, committedHead);
+        assert.equal(
+          execFileSync("git", ["-C", root, "log", "-1", "--format=%s"], { encoding: "utf8" }).trim(),
+          "chore: complete finalize cleanup",
+        );
         assert.equal(JSON.parse(fs.readFileSync(transactionPath, "utf8")).phase, "completed", faultPhase);
         assert.equal(fs.existsSync(activePath), false, faultPhase);
         assert.equal(fs.readFileSync(pointerPath, "utf8").trim(), spec);
+
+        const repeated = await new RunFinalizeCleanupCommand().execute({
+          root,
+          flowState: fm.loadReadOnly(specId),
+          flowManager: fm,
+          force: true,
+        });
+        assert.equal(repeated.ok, true, `${faultPhase}: ${JSON.stringify(repeated)}`);
+        assert.equal(
+          execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+          completedHead,
+        );
       } finally {
         removeTmpDir(root);
       }

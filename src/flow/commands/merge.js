@@ -16,6 +16,7 @@ import os from "os";
 import { container } from "../../lib/container.js";
 import { isGhAvailable, runGit, fetchBranch, rebaseOnto, abortRebase } from "../../lib/git-helpers.js";
 import { loadSpecJson } from "../../lib/spec-json.js";
+import { hasOutboxCommit } from "../lib/run-finalize.js";
 
 const MAX_IMPLEMENTATION_SUBJECTS = 50;
 const MAX_SUBJECT_INPUT_CHARS = 4000;
@@ -24,6 +25,7 @@ const MAX_IMPLEMENTATION_SUBJECT_OUTPUT_CHARS = MAX_IMPLEMENTATION_SUBJECTS * (M
 const SQUASH_MESSAGE_IGNORED_SUBJECTS = new Set([
   "chore: record finalize metadata before merge",
   "chore: add retro and report",
+  "chore: add finalization artifacts",
 ]);
 
 /**
@@ -166,7 +168,13 @@ function collectImplementationSubjects({
     .filter((subject) => !SQUASH_MESSAGE_IGNORED_SUBJECTS.has(subject));
 }
 
-function buildSquashCommitMessage({ state, spec, fallbackTitle, implementationSubjects = [] }) {
+function buildSquashCommitMessage({
+  state,
+  spec,
+  fallbackTitle,
+  implementationSubjects = [],
+  idempotencyKey = null,
+}) {
   let implementationSubject = null;
   for (const candidate of implementationSubjects) {
     implementationSubject = firstNonEmptySubjectLine(candidate);
@@ -176,7 +184,17 @@ function buildSquashCommitMessage({ state, spec, fallbackTitle, implementationSu
     || implementationSubject
     || firstNonEmptySubjectLine(fallbackTitle)
     || "finalize-merge";
-  return state.issue ? `${subject}\n\nfixes #${state.issue}` : subject;
+  const paragraphs = [subject];
+  if (state.issue) paragraphs.push(`fixes #${state.issue}`);
+  if (idempotencyKey) paragraphs.push(`senti-outbox: ${idempotencyKey}`);
+  return paragraphs.join("\n\n");
+}
+
+function completedSquashMerge({ root, baseBranch, featureBranch, idempotencyKey }) {
+  if (!hasOutboxCommit({ root, ref: baseBranch, idempotencyKey })) return null;
+  const baseline = runGit(["-C", root, "rev-parse", featureBranch]);
+  assertOk(baseline, "failed to recover the completed squash baseline");
+  return { strategy: "squash", mergedFromSha: baseline.stdout.trim(), resumed: true };
 }
 
 /**
@@ -205,7 +223,7 @@ function resolveMergeStrategy(state, config, ghAvailable = isGhAvailable) {
  * @returns {{ strategy: string }} - the resolved strategy
  */
 function runMerge(ctx) {
-  const { flowState: state, mainRepoPath } = ctx;
+  const { flowState: state, mainRepoPath, idempotencyKey = null } = ctx;
   const root = ctx.root || container.get("root");
   const { baseBranch, featureBranch, worktree } = state;
 
@@ -222,7 +240,22 @@ function runMerge(ctx) {
     const spec = loadSpec(state, root);
     const fallbackTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.(md|json)$/, "") || featureBranch;
     const title = buildPrTitle(spec, fallbackTitle);
-    const body = buildPrBody(state, spec);
+    const marker = idempotencyKey ? `<!-- senti:${idempotencyKey} -->` : null;
+    const body = [buildPrBody(state, spec), marker].filter(Boolean).join("\n\n");
+
+    if (idempotencyKey) {
+      const existing = runCmd("gh", [
+        "pr", "list",
+        "--base", baseBranch,
+        "--head", featureBranch,
+        "--state", "all",
+        "--limit", "1",
+        "--json", "number",
+      ]);
+      assertOk(existing, "failed to inspect existing pull requests before resume");
+      const matches = JSON.parse(existing.stdout || "[]");
+      if (matches.length > 0) return { strategy: "pr", resumed: true };
+    }
 
     const pushRes = runGit(["push", "-u", remote, featureBranch]);
     assertOk(pushRes, "git push failed");
@@ -246,6 +279,15 @@ function runMerge(ctx) {
     process.stderr.write(`[senti] warning: failed to load spec for squash commit message: ${err.message}\n`);
   }
 
+  const mergeRoot = worktree && mainRepoPath ? mainRepoPath : root;
+  const completed = completedSquashMerge({
+    root: mergeRoot,
+    baseBranch,
+    featureBranch,
+    idempotencyKey,
+  });
+  if (completed) return completed;
+
   function runSquashMerge(gitPrefix, hint) {
     const mergeArgs = [...gitPrefix, "merge", "--squash", featureBranch];
     const resetArgs = [...gitPrefix, "reset", "--merge"];
@@ -265,6 +307,7 @@ function runMerge(ctx) {
       spec,
       fallbackTitle,
       implementationSubjects,
+      idempotencyKey,
     });
     const commitRes = runGit([...gitPrefix, "commit", "-m", commitMsg]);
     assertOk(commitRes, "commit after squash merge failed");
@@ -325,12 +368,12 @@ function runMerge(ctx) {
 
   // Branch mode
   // R17: capture squash baseline before checkout so the recorded SHA matches the squash target.
-  const baselineRes = runGit(["rev-parse", featureBranch]);
+  const baselineRes = runGit(["-C", root, "rev-parse", featureBranch]);
   assertOk(baselineRes, "failed to capture squash baseline (rev-parse featureBranch)");
   const mergedFromSha = baselineRes.stdout.trim();
-  const checkoutRes = runGit(["checkout", baseBranch]);
+  const checkoutRes = runGit(["-C", root, "checkout", baseBranch]);
   assertOk(checkoutRes, "git checkout failed");
-  runSquashMerge([], `Run 'git rebase ${baseBranch}' and retry finalize.`);
+  runSquashMerge(["-C", root], `Run 'git rebase ${baseBranch}' and retry finalize.`);
   return { strategy: "squash", mergedFromSha };
 }
 

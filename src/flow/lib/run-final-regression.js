@@ -305,7 +305,7 @@ class FinalRegressionDecision {
     return new FinalRegressionDecision({
       failureKind: null,
       retryable: false,
-      nextAction: "finalize-commit",
+      nextAction: "report",
     });
   }
 
@@ -313,7 +313,7 @@ class FinalRegressionDecision {
     return new FinalRegressionDecision({
       failureKind: null,
       retryable: false,
-      nextAction: "finalize-commit",
+      nextAction: "report",
     });
   }
 
@@ -436,7 +436,7 @@ class FinalRegressionArtifact {
     this.commandIdentity = commandIdentity;
     this.changedFileFingerprints = Object.freeze(fingerprintSet(changedFileFingerprints));
     this.retryable = autoRecorded ? false : decision.retryable;
-    this.nextAction = autoRecorded ? "finalize-commit" : decision.nextAction;
+    this.nextAction = autoRecorded ? "report" : decision.nextAction;
     this.nextRecommendedAction = failureProfile?.nextRecommendedAction || (result === "fail" ? NEXT_RECOMMENDED_ACTIONS.STOP : null);
     this.failureCategory = failureProfile?.failureCategory || null;
     this.failureNature = failureProfile?.failureNature || null;
@@ -1065,7 +1065,7 @@ function failedRecordedArtifact(artifact) {
     && artifact.completed === true
     && artifact.selectedAction === NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED
     && artifact.recordAndProceed?.validated === true
-    && artifact.nextAction === "finalize-commit";
+    && artifact.nextAction === "report";
 }
 
 function currentRecordAndProceedEvidence({ root, state, config, specDir }) {
@@ -1271,7 +1271,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
           rawOutputPathRelative,
         ],
         artifacts: envelopeArtifacts,
-        next: "finalize-commit",
+        next: "report",
       };
     }
 
@@ -1289,11 +1289,11 @@ export default class RunFinalRegressionCommand extends FlowCommand {
         artifacts: {
           ...envelopeArtifacts,
           completed: true,
-          nextAction: "finalize-commit",
+          nextAction: "report",
           nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
           selectedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
         },
-        next: "finalize-commit",
+        next: "report",
       };
     }
     return Envelope.fail(
@@ -1370,7 +1370,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       selectedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
       remainingRisk: input.remainingRisk,
       retryable: false,
-      nextAction: "finalize-commit",
+      nextAction: "report",
       nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
       recordAndProceed: {
         eligible: true,
@@ -1397,7 +1397,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       failureKind: json.failureKind,
       failureCategory: json.failureCategory,
       retryable: false,
-      nextAction: "finalize-commit",
+      nextAction: "report",
       nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
       selectedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
     };
@@ -1406,7 +1406,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       failedRecorded: true,
       changed: [resultPathRelative],
       artifacts,
-      next: "finalize-commit",
+      next: "report",
     };
   }
 }

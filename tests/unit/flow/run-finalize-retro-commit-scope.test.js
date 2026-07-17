@@ -15,10 +15,10 @@ function readRunFinalizeSource() {
   return fs.readFileSync(file, "utf8");
 }
 
-function extractExecuteCommitPost(source) {
-  const marker = "export async function executeCommitPost";
+function extractDurableArtifactCommit(source) {
+  const marker = "export async function commitDurableFinalizeArtifacts";
   const start = source.indexOf(marker);
-  assert.ok(start >= 0, "executeCommitPost must be exported from run-finalize.js");
+  assert.ok(start >= 0, "commitDurableFinalizeArtifacts must be exported from run-finalize.js");
   let depth = 0;
   let i = source.indexOf("{", start);
   const bodyStart = i;
@@ -30,24 +30,24 @@ function extractExecuteCommitPost(source) {
       if (depth === 0) return source.slice(bodyStart, i + 1);
     }
   }
-  throw new Error("could not locate end of executeCommitPost body");
+  throw new Error("could not locate end of commitDurableFinalizeArtifacts body");
 }
 
-function readExecuteCommitPostBodySource() {
-  return extractExecuteCommitPost(readRunFinalizeSource());
+function readDurableArtifactCommitBodySource() {
+  return extractDurableArtifactCommit(readRunFinalizeSource());
 }
 
 describe("run-finalize retro/report commit scope (regression for issue #197)", () => {
-  it("executeCommitPost does not stage all tracked changes with `git add -A`", () => {
+  it("durable artifact commit does not stage all tracked changes with `git add -A`", () => {
     assert.doesNotMatch(
-      readExecuteCommitPostBodySource(),
+      readDurableArtifactCommitBodySource(),
       /runGit\(\s*\[\s*"add"\s*,\s*"-A"\s*\]/,
-      "executeCommitPost must not use `git add -A`; it sweeps unrelated uncommitted changes into the retro/report commit",
+      "artifact commit must not use `git add -A`; it would sweep unrelated changes into finalization",
     );
   });
 
-  it("executeCommitPost stages paths scoped to the current spec directory", () => {
-    const body = readExecuteCommitPostBodySource();
+  it("durable artifact commit stages paths scoped to the current spec directory", () => {
+    const body = readDurableArtifactCommitBodySource();
     assert.match(body, /durableTestArtifactPathspecs\(/);
     assert.match(body, /collectExistingArtifactPathspecs\(root,\s*durablePathspecPatterns\)/);
   });

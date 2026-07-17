@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { executeCommitPost } from "../../../src/flow/lib/run-finalize.js";
+import { commitDurableFinalizeArtifacts } from "../../../src/flow/lib/run-finalize.js";
 
 function readRunFinalizeSource() {
   const file = path.join(process.cwd(), "src/flow/lib/run-finalize.js");
@@ -20,18 +20,18 @@ describe("run-finalize retro invocation (spec 251: retro is mainline, not finali
     );
   });
 
-  it("R6: executeCommitPost runs without invoking retro and does not record a retro result", async () => {
+  it("R6: durable artifact commit does not invoke retro or record a retro result", async () => {
     const results = {};
     const ctx = {
       root: process.cwd(),
       flowState: { spec: "nonexistent/spec.md", baseBranch: "main", requirements: [] },
       _results: results,
     };
-    await executeCommitPost(ctx);
+    await assert.rejects(() => commitDurableFinalizeArtifacts(ctx), /spec missing/);
     assert.equal(
       results.retro,
       undefined,
-      "executeCommitPost must not produce a results.retro entry — retro is no longer a finalize post-hook responsibility",
+      "artifact commit must not produce a results.retro entry — retro is a mainline step",
     );
   });
 });

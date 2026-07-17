@@ -155,7 +155,7 @@ function skippedArtifact(skipKind = "covered_by_test_execute_full_regression") {
     },
     changedFiles: [{ status: "modified", path: "src/runtime.js" }],
     retryable: false,
-    nextAction: "finalize-commit",
+    nextAction: "report",
     proof: {
       kind: skipKind,
       reusedArtifactPath: `${SPEC_DIR}/test-execute-result.json`,
@@ -243,7 +243,7 @@ function assertCoveredByTestExecuteProof(root, artifact) {
     spawnError: null,
   });
   assert.equal(artifact.retryable, false);
-  assert.equal(artifact.nextAction, "finalize-commit");
+  assert.equal(artifact.nextAction, "report");
   assert.equal(artifact.proof.kind, "covered_by_test_execute_full_regression");
   assert.equal(artifact.proof.reusedArtifactPath, `${SPEC_DIR}/test-execute-result.json`);
   assert.deepEqual(Object.keys(artifact.proof.commandIdentity).sort(), [
@@ -300,7 +300,7 @@ function assertRiskBasedProof(root, artifact, expectedPath, expectedCategory) {
     spawnError: null,
   });
   assert.equal(artifact.retryable, false);
-  assert.equal(artifact.nextAction, "finalize-commit");
+  assert.equal(artifact.nextAction, "report");
   assert.equal(artifact.proof.kind, "risk_based_static_proof");
   assert.deepEqual(artifact.proof.failClosedDecision, { eligible: true, fallbackReasons: [] });
   assert.ok(Array.isArray(artifact.proof.checkedSensitivePathClasses));
@@ -621,7 +621,7 @@ describe("final-regression skip behavior", () => {
     assert.equal(artifact.completed, true);
     assert.equal(artifact.failureKind, null);
     assert.equal(artifact.retryable, false);
-    assert.equal(artifact.nextAction, "finalize-commit");
+    assert.equal(artifact.nextAction, "report");
     assert.equal(artifact.proof.kind, "covered_by_test_execute_full_regression");
     assert.deepEqual(artifact.rawOutputLines, { start: 1, end: 3 });
   });
@@ -645,7 +645,7 @@ describe("final-regression skip behavior", () => {
 
     assert.equal(contract.verdict, "skipped");
     assert.equal(contract.failureKind, null);
-    assert.equal(contract.nextAction, "finalize-commit");
+    assert.equal(contract.nextAction, "report");
     assert.deepEqual(contract.blockingFindings, []);
     assert.equal(contract.summary.completionKind, "normal");
   });
@@ -660,7 +660,7 @@ describe("final-regression skip behavior", () => {
       failureKind: null,
       skipKind: "covered_by_test_execute_full_regression",
       retryable: false,
-      nextAction: "finalize-commit",
+      nextAction: "report",
     };
     assert.deepEqual(validateSchema(output, schema), []);
 

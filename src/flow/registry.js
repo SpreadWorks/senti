@@ -10,6 +10,7 @@
 
 import { derivePhase } from "../lib/flow-helpers.js";
 import { hasExplicitOption } from "../lib/flow-options.js";
+import fs from "fs";
 import path from "path";
 import {
   VALID_PHASES,
@@ -36,6 +37,10 @@ import {
   DeferOutcome,
   StepAttempt,
 } from "./lib/step-outcome.js";
+import {
+  FlowOutboxStore,
+  finalizationOutboxIdentity,
+} from "./lib/flow-outbox.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -337,6 +342,34 @@ class RegistryLifecycleAdapter {
     await gateMod.executeGateSideEffects(this.ctx, phase);
   }
 
+  outboxStore() {
+    return new FlowOutboxStore(this.ctx.flowManager, { specId: this.ctx.specId || null });
+  }
+
+  outboxIdentity(step) {
+    return finalizationOutboxIdentity(this.ctx.flowState, step);
+  }
+
+  beginOutboxEffect(step) {
+    if (this.ctx.dryRun) return null;
+    this.ctx.flowOutboxEntry = this.outboxStore().begin(this.outboxIdentity(step));
+    return this.ctx.flowOutboxEntry;
+  }
+
+  completeOutboxEffect(step) {
+    if (this.ctx.dryRun) return null;
+    this.ctx.flowOutboxEntry = this.outboxStore().complete(this.outboxIdentity(step), this.result);
+    return this.ctx.flowOutboxEntry;
+  }
+
+  failOutboxEffect(step) {
+    if (this.ctx.dryRun) return null;
+    const reason = this.err
+      || new Error(this.result?.reason || this.result?.message || `${step} side effect failed`);
+    this.ctx.flowOutboxEntry = this.outboxStore().fail(this.outboxIdentity(step), reason);
+    return this.ctx.flowOutboxEntry;
+  }
+
   skipSteps(steps) {
     for (const id of steps) {
       try {
@@ -411,11 +444,25 @@ class RegistryLifecycleAdapter {
       return;
     }
     if (handler === "resolveMainRepoFlowManager") {
+      if (args?.unlessPr && this.result?.strategy === "pr") return;
       switchToMainRepoFlowAuthority(this.ctx);
       return;
     }
-    if (handler === "executeCommitPost") {
-      await finalize.executeCommitPost(this.ctx);
+    if (handler === "resolveCleanupOutboxFlowManager") {
+      const { worktreePath } = this.ctx.flowManager.resolveWorktreePaths(this.ctx.flowState);
+      if (!worktreePath || !fs.existsSync(worktreePath)) switchToMainRepoFlowAuthority(this.ctx);
+      return;
+    }
+    if (handler === "commitDurableArtifacts") {
+      await finalize.commitDurableFinalizeArtifacts(this.ctx);
+      return;
+    }
+    if (handler === "commitFinalizeCompletion") {
+      finalize.commitFinalizeCompletion({
+        root: this.ctx.root,
+        specId: this.ctx.specId,
+        idempotencyKey: this.ctx.flowOutboxEntry?.idempotencyKey,
+      });
       return;
     }
     if (handler === "recordMergeOutcome") {
@@ -982,12 +1029,18 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: senti flow run finalize-commit [options]",
         "",
-        "Commit implementation changes. Post-hook runs retro, report, and issue comment.",
+        "Commit implementation changes and durable finalization artifacts.",
         "",
         "Options:",
         "  --message <msg>  Custom commit message",
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
       ].join("\n"),
+      async pre(ctx) {
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:pre",
+          command: "finalize-commit",
+        });
+      },
       async post(ctx, result) {
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "finalize:post",
@@ -1040,6 +1093,12 @@ export const FLOW_COMMANDS = {
         "",
         "Build docs on main repo after merge and commit.",
       ].join("\n"),
+      async pre(ctx) {
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:pre",
+          command: finalizeCommand("sync"),
+        });
+      },
       async post(ctx, result) {
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "finalize:post",
@@ -1075,6 +1134,12 @@ export const FLOW_COMMANDS = {
         "",
         "--auto-rescue and --force are mutually exclusive.",
       ].join("\n"),
+      async pre(ctx) {
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:pre",
+          command: finalizeCommand("cleanup"),
+        });
+      },
       async post(ctx, result) {
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "finalize:post",
@@ -1284,7 +1349,7 @@ export const FLOW_COMMANDS = {
           && artifact.completed === true
           && artifact.selectedAction === "record-and-proceed"
           && artifact.recordAndProceed?.validated === true
-          && artifact.nextAction === "finalize-commit";
+          && artifact.nextAction === "report";
         const completed = (artifact.result === "pass" && result?.result === "pass")
           || (artifact.result === "skipped" && result?.result === "skipped")
           || failedRecorded;
@@ -1309,7 +1374,7 @@ export const FLOW_COMMANDS = {
     // report generates a work report from the current flow state.
     report: {
       helpKey: "flow.run.report",
-      runtimeLog: { stepMetadata: false },
+      runtimeLog: { stepId: "report" },
       command: () => import("./lib/run-report.js"),
       args: { flags: ["--dry-run"], options: [...FLOW_RUN_OPTIONS] },
       help: [
@@ -1320,6 +1385,24 @@ export const FLOW_COMMANDS = {
         "Options:",
         "  --dry-run   Preview only, do not write report.json",
       ].join("\n"),
+      async pre(ctx) {
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "report:pre",
+          command: "report",
+        });
+      },
+      async post(ctx, result) {
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "report:post",
+          command: "report",
+        }, result);
+      },
+      async onError(ctx, err) {
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "report:onError",
+          command: "report",
+        }, null, err);
+      },
     },
   },
   report: {

@@ -26,7 +26,7 @@ function reportInput() {
         fixAttempts: 1,
         selectedAction: "record-and-proceed",
         remainingRisk: "full regression remains red for an existing failure",
-        nextAction: "finalize-commit",
+        nextAction: "report",
         nextRecommendedAction: "record-and-proceed",
       },
     },
@@ -70,7 +70,7 @@ function failedRecordedArtifact() {
     remainingRisk: "full regression remains red for an existing failure",
     fixAttempts: 1,
     retryable: false,
-    nextAction: "finalize-commit",
+    nextAction: "report",
     nextRecommendedAction: "record-and-proceed",
     failureSummary: "existing failure",
     humanSummary: "result=fail failureCategory=existing_failure selectedAction=record-and-proceed",
@@ -85,7 +85,7 @@ describe("Issue 403 final-regression report and prompt behavior", () => {
     assert.equal(finalRegression.result, "fail");
     assert.equal(finalRegression.selectedAction, "record-and-proceed");
     assert.equal(finalRegression.remainingRisk, "full regression remains red for an existing failure");
-    assert.equal(finalRegression.nextAction, "finalize-commit");
+    assert.equal(finalRegression.nextAction, "report");
     assert.equal(finalRegression.nextRecommendedAction, "record-and-proceed");
   });
 
@@ -114,7 +114,7 @@ describe("Issue 403 final-regression report and prompt behavior", () => {
       assert.equal(finalRegression.result, "fail");
       assert.equal(finalRegression.selectedAction, "record-and-proceed");
       assert.equal(finalRegression.remainingRisk, "full regression remains red for an existing failure");
-      assert.equal(finalRegression.nextAction, "finalize-commit");
+      assert.equal(finalRegression.nextAction, "report");
       assert.equal(finalRegression.nextRecommendedAction, "record-and-proceed");
     } finally {
       removeTmpDir(tmp);
@@ -168,7 +168,7 @@ describe("Issue 403 final-regression report and prompt behavior", () => {
         fixAttempts: 1,
         selectedAction: "record-and-proceed",
         remainingRisk: "full regression remains red for an existing failure",
-        nextAction: "finalize-commit",
+        nextAction: "report",
         nextRecommendedAction: "record-and-proceed",
       }, null, 2));
 

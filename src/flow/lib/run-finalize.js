@@ -7,14 +7,12 @@
 
 import fs from "fs";
 import crypto from "node:crypto";
+import os from "node:os";
 import path from "path";
 import { runCmd, assertOk } from "../../lib/process.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
-import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
+import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
-  isGhAvailable,
-  commentOnIssue,
-  collectGitSummary,
   runGit,
   countCommitsBetween,
   listUncommittedFiles,
@@ -22,12 +20,9 @@ import {
 import { container } from "../../lib/container.js";
 import { POINTER_REL_PATH as LAST_FINALIZED_SPEC_POINTER_REL_PATH } from "./run-report-show.js";
 import {
-  buildTestResultsFromArtifacts,
   collectExistingArtifactPathspecs,
   durableTestArtifactPathspecs,
 } from "./test-artifacts.js";
-import { buildUpgradeReportDataFromArtifacts } from "./run-report.js";
-import { readRetroResultIfExists } from "./retro-artifacts.js";
 
 export function finalizeOnError(stepName, trigger) {
   return (ctx, err) => {
@@ -92,6 +87,29 @@ export function commitOrSkip(args, opts) {
     return { status: "skipped", message: "nothing to commit" };
   }
   assertOk(res, "commit failed");
+}
+
+export function outboxCommitMarker(idempotencyKey) {
+  if (typeof idempotencyKey !== "string" || idempotencyKey === "") {
+    throw new Error("finalize commit idempotencyKey is required");
+  }
+  return `senti-outbox: ${idempotencyKey}`;
+}
+
+export function hasOutboxCommit({ root, ref, idempotencyKey }) {
+  return findOutboxCommit({ root, ref, idempotencyKey }) !== null;
+}
+
+export function findOutboxCommit({ root, ref, idempotencyKey }) {
+  if (!idempotencyKey) return null;
+  const marker = outboxCommitMarker(idempotencyKey);
+  const result = runGit([
+    "-C", root,
+    "log", "-1", "--format=%H%x00%B", "--fixed-strings", `--grep=${marker}`, ref,
+  ]);
+  if (!result.ok || !result.stdout.includes(marker)) return null;
+  const commit = result.stdout.split("\0", 1)[0].trim();
+  return /^[a-f0-9]{40}$/.test(commit) ? commit : null;
 }
 
 function getFinalizeMergeAllowedMetadataPaths(specId) {
@@ -213,6 +231,137 @@ export function commitFinalizeMergeMetadataIfSafe({
   };
 }
 
+class GitPathEntry {
+  constructor(objectId) {
+    if (objectId !== null && !/^[a-f0-9]{40}$/.test(objectId)) {
+      throw new Error("Git path entry object ID is invalid");
+    }
+    this.objectId = objectId;
+    Object.freeze(this);
+  }
+
+  equals(other) {
+    return other instanceof GitPathEntry && this.objectId === other.objectId;
+  }
+
+  static fromIndex(root, filePath) {
+    const result = runGit(["-C", root, "ls-files", "--stage", "--", filePath]);
+    assertOk(result, "failed to inspect finalize completion index entry");
+    const match = /^\d{6} ([a-f0-9]{40}) 0\t/.exec(result.stdout);
+    return new GitPathEntry(match?.[1] || null);
+  }
+
+  static fromTree(root, ref, filePath) {
+    const result = runGit(["-C", root, "ls-tree", ref, "--", filePath]);
+    assertOk(result, "failed to inspect finalize completion tree entry");
+    const match = /^\d{6} blob ([a-f0-9]{40})\t/.exec(result.stdout);
+    return new GitPathEntry(match?.[1] || null);
+  }
+}
+
+class FinalizeCompletionCommit {
+  constructor({ root, specId, idempotencyKey }) {
+    if (!root || !specId) throw new Error("finalize completion root and specId are required");
+    this.root = root;
+    this.stateFile = `specs/${specId}/flow.json`;
+    this.idempotencyKey = idempotencyKey;
+    this.marker = outboxCommitMarker(idempotencyKey);
+  }
+
+  execute() {
+    const existing = findOutboxCommit({
+      root: this.root,
+      ref: "HEAD",
+      idempotencyKey: this.idempotencyKey,
+    });
+    if (existing) {
+      this.#reconcileCallerIndex(existing);
+      return { status: "skipped", message: "finalize completion already committed", resumed: true };
+    }
+
+    const parent = this.#gitValue(["rev-parse", "HEAD"], "finalize completion parent");
+    const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "senti-finalize-index-"));
+    const temporaryIndex = path.join(temporaryDirectory, "index");
+    const env = { ...process.env, GIT_INDEX_FILE: temporaryIndex };
+    let primaryError = null;
+    let result = null;
+    try {
+      assertOk(
+        runGit(["-C", this.root, "read-tree", parent], { env }),
+        "failed to initialize finalize completion index",
+      );
+      assertOk(
+        runGit(["-C", this.root, "add", "--", this.stateFile], { env }),
+        "failed to stage completed finalize flow state",
+      );
+      result = runGit([
+        "-C", this.root,
+        "commit", "-m", "chore: complete finalize cleanup", "-m", this.marker,
+      ], { env });
+      if (!result.ok) {
+        const durable = findOutboxCommit({
+          root: this.root,
+          ref: "HEAD",
+          idempotencyKey: this.idempotencyKey,
+        });
+        if (!durable) assertOk(result, "finalize completion commit failed");
+      }
+    } catch (error) {
+      primaryError = error;
+    }
+
+    const cleanupErrors = [];
+    for (const target of [temporaryIndex, `${temporaryIndex}.lock`]) {
+      try { fs.unlinkSync(target); } catch (error) {
+        if (error.code !== "ENOENT") cleanupErrors.push(error);
+      }
+    }
+    try { fs.rmdirSync(temporaryDirectory); } catch (error) { cleanupErrors.push(error); }
+    if (primaryError && cleanupErrors.length > 0) {
+      throw new AggregateError(
+        [primaryError, ...cleanupErrors],
+        "finalize completion commit and temporary index cleanup both failed",
+        { cause: primaryError },
+      );
+    }
+    if (primaryError) throw primaryError;
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(cleanupErrors, "finalize completion temporary index cleanup failed", {
+        cause: cleanupErrors[0],
+      });
+    }
+
+    const committed = findOutboxCommit({
+      root: this.root,
+      ref: "HEAD",
+      idempotencyKey: this.idempotencyKey,
+    });
+    if (!committed) throw new Error("finalize completion commit is not durable");
+    this.#reconcileCallerIndex(committed);
+    return { status: "done", commit: committed };
+  }
+
+  #reconcileCallerIndex(commit) {
+    const parent = this.#gitValue(["rev-parse", `${commit}^`], "finalize completion commit parent");
+    const caller = GitPathEntry.fromIndex(this.root, this.stateFile);
+    const before = GitPathEntry.fromTree(this.root, parent, this.stateFile);
+    const after = GitPathEntry.fromTree(this.root, commit, this.stateFile);
+    if (!caller.equals(before) || caller.equals(after)) return;
+    const result = runGit(["-C", this.root, "reset", "--quiet", commit, "--", this.stateFile]);
+    assertOk(result, "failed to reconcile finalize completion index entry");
+  }
+
+  #gitValue(args, label) {
+    const result = runGit(["-C", this.root, ...args]);
+    assertOk(result, `${label} could not be resolved`);
+    return result.stdout.trim();
+  }
+}
+
+export function commitFinalizeCompletion({ root, specId, idempotencyKey }) {
+  return new FinalizeCompletionCommit({ root, specId, idempotencyKey }).execute();
+}
+
 export function resolveGitCommonDir(root) {
   const res = runGit(["-C", root, "rev-parse", "--git-common-dir"]);
   assertOk(res, "finalize preflight failed: unable to resolve git common dir");
@@ -298,82 +447,24 @@ export function runMigrationHook(root, specRelPath) {
 }
 
 /**
- * Post-commit hook implementation: generate report, commit artifacts.
- * retro is no longer invoked here — it runs as a mainline impl-phase step
- * before finalize-commit (spec 251).
+ * Commit the durable artifacts produced before finalize-commit. Report
+ * generation and Issue delivery belong to the independent report step.
  */
-export async function executeCommitPost(ctx) {
+export async function commitDurableFinalizeArtifacts(ctx) {
   const { root } = ctx;
   const state = ctx.flowState;
-  const results = ctx._results ||= {};
   const specAbsPath = state?.spec ? path.resolve(root, state.spec) : null;
   if (!specAbsPath || !fs.existsSync(specAbsPath)) {
-    results.report = { status: "skipped", reason: "spec missing" };
-    return;
+    throw new Error("cannot commit finalization artifacts: spec missing");
   }
 
-  // report
-  const { generateReport, saveReport } = await import("../commands/report.js");
-
-  const { diffStat: implDiffStat, commitMessages } = collectGitSummary(root, state.baseBranch);
-  const specAbsDir = path.dirname(specAbsPath);
-  // Shared loader validates test-execute-result.json v2 / test-result-review.json
-  // and preserves results.testExecute.projectRegression for finalize report rendering.
-  const testExecutePath = path.join(specAbsDir, "test-execute-result.json");
-  const testResultReviewPath = path.join(specAbsDir, "test-result-review.json");
-  const retroResult = readRetroResultIfExists(specAbsDir, "run-finalize");
-  if (retroResult) results.retro = retroResult;
-  if (fs.existsSync(testExecutePath) || fs.existsSync(testResultReviewPath)) {
-    Object.assign(results, buildTestResultsFromArtifacts(specAbsDir));
-  }
-  const upgrade = buildUpgradeReportDataFromArtifacts(specAbsDir);
-  if (upgrade) results.upgrade = upgrade;
-
-  let issueLog = { entries: [] };
-  try {
-    issueLog = loadIssueLog(root, state.spec);
-  } catch (_) { /* no issue-log */ }
-
-  const report = generateReport({
-    state,
-    results,
-    issueLog,
-    implDiffStat,
-    commitMessages,
-  });
-
-  saveReport(root, state.spec, report);
-  results.report = { status: "done", ...report };
-
-  // post report to issue
-  if (!state.issue) {
-    results.issueComment = { status: "skipped", reason: "no linked issue" };
-  } else if (!results.report?.text) {
-    results.issueComment = { status: "skipped", reason: "report text missing" };
-  } else if (!isGhAvailable()) {
-    results.issueComment = { status: "skipped", reason: "gh unavailable" };
-  } else {
-    const res = commentOnIssue(state.issue, results.report.text, root);
-    if (res.ok) {
-      results.issueComment = { status: "done", issue: state.issue };
-    } else {
-      console.error(`Failed to post report to issue #${state.issue}: ${res.error}`);
-      results.issueComment = { status: "failed", message: res.error };
-    }
-  }
-
-  // commit only durable impl-phase test/report artifacts
   const durablePathspecPatterns = durableTestArtifactPathspecs(specIdFromPath(state.spec));
   const existingDurablePathspecs = collectExistingArtifactPathspecs(root, durablePathspecPatterns);
   if (existingDurablePathspecs.length > 0) {
     const addRes = runGit(["add", "--", ...existingDurablePathspecs], { cwd: root });
     assertOk(addRes, "failed to stage durable test/report artifacts");
   }
-  try {
-    commitOrSkip(["-m", "chore: add retro and report"], { cwd: root });
-  } catch (e) {
-    if (results.report) {
-      results.report.commitNote = "retro/report commit failed: " + String(e.message || e).slice(0, 200);
-    }
-  }
+  const result = commitOrSkip(["-m", "chore: add finalization artifacts"], { cwd: root });
+  ctx._results = { ...(ctx._results || {}), artifactCommit: result };
+  return result;
 }

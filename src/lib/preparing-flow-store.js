@@ -110,6 +110,7 @@ export class PreparingFlowStore {
       requirements: [],
       tasks: [],
       currentTaskId: null,
+      outbox: [],
       autoApprove: false,
       ...extra,
     };

@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { executeCommitPost } from "../../../src/flow/lib/run-finalize.js";
+import RunReportCommand from "../../../src/flow/lib/run-report.js";
 
 function runGit(root, args) {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
@@ -29,7 +29,7 @@ function setupRepo() {
   return root;
 }
 
-test("R1: executeCommitPost restores existing retro.json into report input", async () => {
+test("R1: report step restores existing retro.json into report input", async () => {
   const root = setupRepo();
   const specRel = "specs/001-finalize-retro/spec.json";
   const specDir = path.join(root, "specs", "001-finalize-retro");
@@ -54,8 +54,7 @@ test("R1: executeCommitPost restores existing retro.json into report input", asy
     ],
   });
 
-  const results = {};
-  await executeCommitPost({
+  const result = await new RunReportCommand().execute({
     root,
     flowState: {
       spec: specRel,
@@ -63,12 +62,11 @@ test("R1: executeCommitPost restores existing retro.json into report input", asy
       requirements: [],
       metrics: [],
     },
-    _results: results,
   });
 
-  assert.equal(results.retro.status, "done");
-  assert.equal(results.retro.summary.done, 1);
-  assert.deepEqual(results.retro.requirements, [
+  const retro = result.artifacts.report.data.retro;
+  assert.equal(retro.done, 1);
+  assert.deepEqual(retro.requirements, [
     {
       id: "R1",
       desc: "retro result is displayed",
@@ -77,7 +75,7 @@ test("R1: executeCommitPost restores existing retro.json into report input", asy
   ]);
 });
 
-test("R2: executeCommitPost still leaves results.retro unset when retro.json is absent", async () => {
+test("R2: report step succeeds when retro.json is absent", async () => {
   const root = setupRepo();
   const specRel = "specs/001-finalize-retro/spec.json";
   writeJson(path.join(root, specRel), {
@@ -85,8 +83,7 @@ test("R2: executeCommitPost still leaves results.retro unset when retro.json is 
     requirements: [],
   });
 
-  const results = {};
-  await executeCommitPost({
+  const result = await new RunReportCommand().execute({
     root,
     flowState: {
       spec: specRel,
@@ -94,10 +91,10 @@ test("R2: executeCommitPost still leaves results.retro unset when retro.json is 
       requirements: [],
       metrics: [],
     },
-    _results: results,
   });
 
-  assert.equal(results.retro, undefined);
+  assert.equal(result.result, "ok");
+  assert.equal(result.artifacts.report.data.retro, null);
 });
 
 test("R3: finalize report.json includes retro summary and requirements from retro.json", async () => {
@@ -126,7 +123,7 @@ test("R3: finalize report.json includes retro summary and requirements from retr
     ],
   });
 
-  await executeCommitPost({
+  await new RunReportCommand().execute({
     root,
     flowState: {
       spec: specRel,
@@ -134,7 +131,6 @@ test("R3: finalize report.json includes retro summary and requirements from retr
       requirements: [],
       metrics: [],
     },
-    _results: {},
   });
 
   const report = JSON.parse(fs.readFileSync(path.join(specDir, "report.json"), "utf8"));
@@ -171,7 +167,7 @@ test("R4: finalize report text displays the Retro aggregate instead of only '-'"
     requirements: [],
   });
 
-  await executeCommitPost({
+  await new RunReportCommand().execute({
     root,
     flowState: {
       spec: specRel,
@@ -179,7 +175,6 @@ test("R4: finalize report text displays the Retro aggregate instead of only '-'"
       requirements: [],
       metrics: [],
     },
-    _results: {},
   });
 
   const report = JSON.parse(fs.readFileSync(path.join(specDir, "report.json"), "utf8"));

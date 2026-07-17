@@ -24,7 +24,7 @@ function passingFixtureBody(message = "pass") {
 
 function setupProject(tmp, scriptBody, extra = {}) {
   fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
-  writeFile(tmp, `${SPEC_DIR}/spec.md`, "# Spec\n");
+  writeFile(tmp, `${SPEC_DIR}/spec.json`, `${JSON.stringify({ requirements: [] }, null, 2)}\n`);
   writeFile(tmp, FIXTURE_PATH, scriptBody);
   initGitRepo(tmp);
   commitAll(tmp, "initial");
@@ -35,7 +35,7 @@ function setupProject(tmp, scriptBody, extra = {}) {
     root: tmp,
     config: { test: { command: `sh ${FIXTURE_PATH}`, timeout: 5 } },
     flowState: {
-      spec: `${SPEC_DIR}/spec.md`,
+      spec: `${SPEC_DIR}/spec.json`,
       baseBranch: "main",
       featureBranch: "feature/001-record-proceed",
     },
@@ -327,13 +327,13 @@ describe("Issue 403 final-regression record-and-proceed runner behavior", () => 
     });
 
     assert.equal(result.result, "fail");
-    assert.equal(result.next, "finalize-commit");
+    assert.equal(result.next, "report");
 
     const artifact = readArtifact(tmp);
     assert.equal(artifact.result, "fail");
     assert.equal(artifact.completed, true);
     assert.equal(artifact.selectedAction, "record-and-proceed");
-    assert.equal(artifact.nextAction, "finalize-commit");
+    assert.equal(artifact.nextAction, "report");
     assert.equal(artifact.nextRecommendedAction, "record-and-proceed");
     assert.equal(artifact.remainingRisk, "project regression remains red for an accepted out-of-scope failure");
     assert.equal(artifact.fixAttempts, 1);
@@ -404,7 +404,7 @@ describe("Issue 403 final-regression record-and-proceed runner behavior", () => 
         },
       });
       assert.equal(matchingResult.result, "fail");
-      assert.equal(matchingResult.next, "finalize-commit");
+      assert.equal(matchingResult.next, "report");
       const matchingArtifact = readArtifact(matchingFingerprintTmp);
       assert.equal(matchingArtifact.result, "fail");
       assert.equal(matchingArtifact.completed, true);
@@ -433,7 +433,7 @@ describe("Issue 403 final-regression record-and-proceed runner behavior", () => 
 
     assert.equal(proceed.ok, true);
     assert.equal(proceed.data.result, "fail");
-    assert.equal(proceed.data.next, "finalize-commit");
+    assert.equal(proceed.data.next, "report");
     assert.equal(proceed.data.artifacts.result, "fail");
     assert.equal(proceed.data.artifacts.selectedAction, "record-and-proceed");
     assert.equal(proceed.data.artifacts.nextRecommendedAction, "record-and-proceed");
@@ -539,7 +539,7 @@ describe("Issue 403 final-regression record-and-proceed runner behavior", () => 
     assert.equal(passResult.result, "pass");
     const passArtifact = readArtifact(tmp);
     assert.equal(passArtifact.completed, true);
-    assert.equal(passArtifact.nextAction, "finalize-commit");
+    assert.equal(passArtifact.nextAction, "report");
     assert.ok(fs.existsSync(path.join(tmp, passArtifact.rawOutputPath)));
 
     writeFile(tmp, FIXTURE_PATH, [

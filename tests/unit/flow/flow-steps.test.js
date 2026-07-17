@@ -89,7 +89,7 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
   });
 
   it("runs final-regression after retro and before finalize", () => {
-    assertStepsAppearInOrder("impl-gate", "retro", "final-regression", "finalize-commit");
+    assertStepsAppearInOrder("impl-gate", "retro", "final-regression", "report", "finalize-commit");
   });
 });
 

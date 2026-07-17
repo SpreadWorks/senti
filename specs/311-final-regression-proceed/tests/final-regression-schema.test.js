@@ -43,7 +43,7 @@ function baseFailedRecorded(overrides = {}) {
     remainingRisk: "full regression remains red for an existing failure",
     fixAttempts: 1,
     retryable: false,
-    nextAction: "finalize-commit",
+    nextAction: "report",
     nextRecommendedAction: "record-and-proceed",
     failureSummary: "existing failure",
     ...overrides,

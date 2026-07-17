@@ -5,7 +5,7 @@
      - `covered_by_test_execute_full_regression`: command did not run because same-flow `test-execute-result.json` already has fresh full/pass evidence with exact command identity and changed-file fingerprints.
      - `risk_based_static_proof`: command did not run because every changed path is explicitly non-runtime and required static/evidence checks passed.
      - `skipped_by_project_policy`: command did not run because no supported project-level regression command source exists.
-   - On PASS or SKIPPED, the registry post-hook marks `final-regression` done and the flow proceeds to `finalize-commit`.
+   - On PASS or SKIPPED, the registry post-hook marks `final-regression` done and the flow proceeds to the independent `report` step.
    - Skipped artifacts MUST include `version`, `completed`, `result`, `failureKind`, `skipKind`, `reason`, `command`, `commandSource`, `rawOutputPath`, `rawOutputLines`, `process`, `changedFiles`, `retryable`, `nextAction`, and `proof`.
    - For skipped artifacts, `process.started` is `false`, `process.exitCode` / `signal` / `spawnError` are `null`, `process.timedOut` is `false`, and `rawOutputPath` points to a retained `tests/.raw/final-regression-attempt-*.log` decision log.
    - `proof.kind` must equal `skipKind`. Covered-by-test-execute proof contains `reusedArtifactPath`, `commandIdentity`, `changedFileFingerprints`, and `staleCheck`. Risk-based proof contains `allowlistClassifications`, `checkedSensitivePathClasses`, `failClosedDecision`, `upgradeEvidencePath`, and `testExecuteEvidencePath`. Project-policy proof contains `commandDiscovery.checkedSources`, `supportedCommandFound: false`, `invalidConfiguredCommand: false`, and `reason`.

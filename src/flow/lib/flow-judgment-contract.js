@@ -181,12 +181,12 @@ export class StepCompletionPolicy {
     if (contract.targetStep !== this.stepId) return false;
     if (this.stepId === "final-regression") {
       if (contract.verdict === "pass" || contract.verdict === "skipped") {
-        return contract.failureKind === null && contract.nextAction === "finalize-commit";
+        return contract.failureKind === null && contract.nextAction === "report";
       }
       return contract.verdict === "fail"
         && contract.blockingCount === 0
         && typeof contract.failureKind === "string"
-        && contract.nextAction === "finalize-commit";
+        && contract.nextAction === "report";
     }
     if (!this.allowedVerdicts.includes(contract.verdict)) return false;
     if (this.requireNoBlocking && contract.blockingCount !== 0) return false;
@@ -213,7 +213,7 @@ export class StepCompletionPolicy {
         allowedVerdicts: ["pass", "skipped"],
         requireNoBlocking: false,
         failureKind: null,
-        nextAction: "finalize-commit",
+        nextAction: "report",
       })],
     ]);
   }
@@ -500,7 +500,7 @@ export function contractFromFinalRegressionArtifact(artifact, opts = {}) {
     && artifact.completed === true
     && artifact.selectedAction === "record-and-proceed"
     && artifact.recordAndProceed?.validated === true
-    && artifact.nextAction === "finalize-commit";
+    && artifact.nextAction === "report";
   const blockingFindings = artifact.result === "pass" || artifact.result === "skipped" || failedRecorded
     ? []
     : [{ failureKind: artifact.failureKind, nextAction: artifact.nextAction }];

@@ -189,6 +189,39 @@ export class RunLifecycleHook {
   }
 }
 
+export class BeginOutboxEffect {
+  constructor({ step }) {
+    this.step = requireString(step, "step");
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.beginOutboxEffect(this.step);
+  }
+}
+
+export class CompleteOutboxEffect {
+  constructor({ step }) {
+    this.step = requireString(step, "step");
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.completeOutboxEffect(this.step);
+  }
+}
+
+export class FailOutboxEffect {
+  constructor({ step }) {
+    this.step = requireString(step, "step");
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.failOutboxEffect(this.step);
+  }
+}
+
 export function applyLifecycleActions(adapter, actions) {
   for (const action of actions) action.apply(adapter);
 }
@@ -209,6 +242,7 @@ const IMPL_REVIEW_RESET_RANGE = Object.freeze([
   "retro",
   "acceptance-review",
   "final-regression",
+  "report",
   "finalize-commit",
   "finalize-merge",
   "finalize-sync",
@@ -232,7 +266,7 @@ const REBUILDABLE_TEST_ARTIFACT_PATHS = Object.freeze([
 ]);
 
 function isFinalizeSuccess(result) {
-  return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || ""));
+  return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || result?.data?.status || ""));
 }
 
 function gateStepIdForPhase(phase) {
@@ -353,8 +387,8 @@ function resolveGateLifecycle(input) {
   if (input.result?.artifacts?.deferred === true) return [];
   const actions = [new IncrementMetric({ phase, counter: "gateRetry" })];
   if (input.result?.result === "pass") {
-    actions.push(new SetStepStatus({ step, status: "done" }));
     actions.push(new ExecuteSideEffects());
+    actions.push(new SetStepStatus({ step, status: "done" }));
   } else {
     actions.push(new SetStepStatus({ step, status: "in_progress" }));
     actions.push(new AppendIssueLog({ source: "gate-result" }));
@@ -364,32 +398,43 @@ function resolveGateLifecycle(input) {
 
 function resolveFinalizeLifecycle(input) {
   const command = input.command;
-  if (input.event === "finalize:pre" && command === "finalize-merge") {
-    return [new RunLifecycleHook({
-      module: "finalize",
-      handler: "prepareFinalizeMerge",
-      args: { steps: ["finalize-sync", "finalize-cleanup"] },
-    })];
+  if (input.event === "finalize:pre") {
+    const actions = [];
+    if (command === "finalize-sync") {
+      actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveMainRepoFlowManager" }));
+    }
+    actions.push(new BeginOutboxEffect({ step: command }));
+    if (command === "finalize-merge") {
+      actions.push(new RunLifecycleHook({
+        module: "finalize",
+        handler: "prepareFinalizeMerge",
+        args: { steps: ["finalize-sync", "finalize-cleanup"] },
+      }));
+    }
+    return actions;
   }
   if (input.event === "finalize:onError") {
     const actions = [];
-    if (command === "finalize-cleanup") {
+    if (command === "finalize-sync") {
       actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveMainRepoFlowManager" }));
+    } else if (command === "finalize-cleanup") {
+      actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveCleanupOutboxFlowManager" }));
     }
+    actions.push(new FailOutboxEffect({ step: command }));
     actions.push(new RunLifecycleHook({ module: "finalize", handler: "finalizeOnError", args: { command } }));
     if (command === "finalize-merge") {
       actions.push(new SkipSteps({ steps: ["finalize-sync", "finalize-cleanup"] }));
     }
     return actions;
   }
-  if (!isFinalizeSuccess(input.result)) return [];
+  if (!isFinalizeSuccess(input.result)) return [new FailOutboxEffect({ step: command })];
   const actions = [];
   if (command === "finalize-merge" || command === "finalize-sync" || command === "finalize-cleanup") {
-    actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveMainRepoFlowManager" }));
-  }
-  actions.push(new SetStepStatus({ step: command, status: "done" }));
-  if (command === "finalize-commit") {
-    actions.push(new RunLifecycleHook({ module: "finalize", handler: "executeCommitPost" }));
+    actions.push(new RunLifecycleHook({
+      module: "finalize",
+      handler: "resolveMainRepoFlowManager",
+      args: command === "finalize-merge" ? { unlessPr: true } : null,
+    }));
   }
   if (command === "finalize-merge") {
     actions.push(
@@ -401,12 +446,35 @@ function resolveFinalizeLifecycle(input) {
       }),
     );
   }
+  if (command === "finalize-commit") {
+    actions.push(new RunLifecycleHook({ module: "finalize", handler: "commitDurableArtifacts" }));
+  }
+  actions.push(
+    new CompleteOutboxEffect({ step: command }),
+    new SetStepStatus({ step: command, status: "done" }),
+  );
+  if (command === "finalize-cleanup") {
+    actions.push(new RunLifecycleHook({ module: "finalize", handler: "commitFinalizeCompletion" }));
+  }
   return actions;
+}
+
+function resolveReportLifecycle(input) {
+  if (input.event === "report:pre") return [new BeginOutboxEffect({ step: "report" })];
+  if (input.event === "report:onError") return [new FailOutboxEffect({ step: "report" })];
+  if (input.result?.result !== "ok") return [new FailOutboxEffect({ step: "report" })];
+  return [
+    new CompleteOutboxEffect({ step: "report" }),
+    new SetStepStatus({ step: "report", status: "done" }),
+  ];
 }
 
 function resolveLifecycleForNode(node, input = {}) {
   if (input.event === "review:post" || node.action === "run-review") return resolveReviewLifecycle(input);
   if (input.event === "gate:post" || node.action === "run-gate") return resolveGateLifecycle(input);
+  if (String(input.event || "").startsWith("report:") || node.action === "run-report") {
+    return resolveReportLifecycle(input);
+  }
   if (String(input.event || "").startsWith("finalize:") || String(node.action || "").startsWith("run-finalize-")) {
     return resolveFinalizeLifecycle(input);
   }
@@ -790,6 +858,15 @@ const FLOW_DEFINITION = Object.freeze([
         instructionsKey: "impl.final-regression",
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/final-regression.schema.json",
+        maxAttempts: 2,
+      }),
+      new FlowNode({
+        id: "report",
+        label: "Report",
+        action: "run-report",
+        instructionsKey: "impl.report",
+        contextKinds: ["spec", "diff", "test", "issue-log", "retro"],
+        outputSchemaRef: "next-action/report.schema.json",
         maxAttempts: 2,
       }),
       new FlowNode({

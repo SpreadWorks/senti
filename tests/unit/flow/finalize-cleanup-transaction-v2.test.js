@@ -411,6 +411,7 @@ test("finalize lifecycle advances commit, merge, sync, and cleanup through their
     const fixture = setupWorktreeFinalizeFlow(root, specId);
     markFinalizeCommitReady(fixture.state);
     replaceFlowState(fixture.worktreePath, fixture.state, { specId });
+    fs.writeFileSync(path.join(fixture.worktreePath, fixture.spec), "{}\n");
     const ctx = {
       root: fixture.worktreePath,
       mainRoot: root,
@@ -419,17 +420,16 @@ test("finalize lifecycle advances commit, merge, sync, and cleanup through their
       specId,
     };
 
+    await FLOW_COMMANDS.run["finalize-commit"].pre(ctx);
     await FLOW_COMMANDS.run["finalize-commit"].post(ctx, { status: "done" });
     const afterCommit = fixture.flowManager.loadReadOnly(specId);
     assert.equal(findStepById(afterCommit.steps, "finalize-commit").status, "done");
     assert.equal(findStepById(afterCommit.steps, "finalize-merge").status, "in_progress");
-    git(fixture.worktreePath, ["add", `specs/${specId}/flow.json`]);
+    git(fixture.worktreePath, ["add", `specs/${specId}/flow.json`, fixture.spec]);
     git(fixture.worktreePath, ["commit", "--quiet", "-m", "record finalize commit lifecycle"]);
 
-    replaceFlowState(root, afterCommit, { specId });
-    git(root, ["add", `specs/${specId}/flow.json`]);
-    git(root, ["commit", "--quiet", "-m", "simulate finalize merge snapshot"]);
     ctx.flowState = afterCommit;
+    await FLOW_COMMANDS.run["finalize-merge"].pre(ctx);
     await FLOW_COMMANDS.run["finalize-merge"].post(ctx, {
       status: "done",
       strategy: "pr",
@@ -438,8 +438,14 @@ test("finalize lifecycle advances commit, merge, sync, and cleanup through their
     let mainState = ctx.flowManager.loadReadOnly(specId);
     assert.equal(findStepById(mainState.steps, "finalize-merge").status, "done");
     assert.equal(findStepById(mainState.steps, "finalize-sync").status, "in_progress");
+    git(fixture.worktreePath, ["add", `specs/${specId}/flow.json`]);
+    git(fixture.worktreePath, ["commit", "--quiet", "-m", "record finalize merge lifecycle"]);
+    replaceFlowState(root, mainState, { specId });
+    git(root, ["add", `specs/${specId}/flow.json`]);
+    git(root, ["commit", "--quiet", "-m", "simulate finalize merge snapshot"]);
 
     ctx.flowState = mainState;
+    await FLOW_COMMANDS.run["finalize-sync"].pre(ctx);
     await FLOW_COMMANDS.run["finalize-sync"].post(ctx, { status: "done" });
     mainState = ctx.flowManager.loadReadOnly(specId);
     assert.equal(findStepById(mainState.steps, "finalize-sync").status, "done");
@@ -466,7 +472,7 @@ test("finalize lifecycle advances commit, merge, sync, and cleanup through their
   }
 });
 
-test("guard-targeted cleanup reconciles a matching worktree leaf into main and completes teardown", () => {
+test("flow state validation rejects a missing main cleanup leaf before teardown", () => {
   const root = createTmpDir("finalize-state-reconciliation-");
   try {
     initGitRepo(root);
@@ -482,46 +488,23 @@ test("guard-targeted cleanup reconciles a matching worktree leaf into main and c
 
     const mainState = structuredClone(fixture.state);
     removeFinalizeCleanupStep(mainState);
-    replaceFlowState(root, mainState, { specId });
     fs.writeFileSync(
-      path.join(root, "specs", specId, "report.json"),
-      `${JSON.stringify({ text: "Final report for reconciled cleanup" }, null, 2)}\n`,
+      path.join(root, "specs", specId, "flow.json"),
+      `${JSON.stringify(mainState, null, 2)}\n`,
     );
-    git(root, ["add", `specs/${specId}/flow.json`, `specs/${specId}/report.json`]);
+    git(root, ["add", `specs/${specId}/flow.json`]);
     git(root, ["commit", "--quiet", "-m", "simulate merged cleanup state drift"]);
+    const head = git(root, ["rev-parse", "HEAD"]);
 
-    const result = spawnSync(process.execPath, [
-      sentiCli,
-      "flow",
-      "run",
-      "finalize-cleanup",
-      "--expect-run-id",
-      fixture.state.runId,
-      "--expect-issue",
-      String(fixture.state.issue),
-      "--expect-spec",
-      fixture.spec,
-    ], {
-      cwd: fixture.worktreePath,
-      env: { ...process.env, SENTI_WORK_ROOT: fixture.worktreePath },
-      encoding: "utf8",
-    });
-
-    assert.equal(result.status, 0, result.stderr || result.stdout);
-    const envelope = JSON.parse(result.stdout);
-    assert.equal(envelope.ok, true, result.stdout);
-    assert.equal(envelope.data.report.text, "Final report for reconciled cleanup");
-    assert.equal(fs.existsSync(fixture.worktreePath), false);
-    assert.equal(git(root, ["branch", "--list", fixture.featureBranch]), "");
-    assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), false);
-    assert.equal(
-      fs.readFileSync(path.join(root, ".senti", "last-finalized-spec"), "utf8").trim(),
-      fixture.spec,
+    assert.throws(
+      () => makeFlowManager(root).loadReadOnly(specId),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED"
+        && /does not match the flow definition/.test(error.message),
     );
-    const committed = JSON.parse(git(root, ["show", `HEAD:specs/${specId}/flow.json`]));
-    assert.equal(findStepById(committed.steps, "finalize-cleanup").status, "done");
-    assert.equal(committed.runId, fixture.state.runId);
-    assert.equal(git(root, ["log", "-1", "--format=%s"]), `chore: finalize ${specId}`);
+    assert.equal(fs.existsSync(fixture.worktreePath), true);
+    assert.notEqual(git(root, ["branch", "--list", fixture.featureBranch]), "");
+    assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), true);
+    assert.equal(git(root, ["rev-parse", "HEAD"]), head);
   } finally {
     removeTmpDir(root);
   }
@@ -587,7 +570,7 @@ test("guard-targeted cleanup resumes from main after worktree removal without re
       env: { ...process.env, SENTI_WORK_ROOT: root },
     });
     assert.equal(statusBeforeResume.status, 0, statusBeforeResume.stderr);
-    assert.equal(JSON.parse(statusBeforeResume.stdout).data.active, false);
+    assert.equal(JSON.parse(statusBeforeResume.stdout).data.active, true);
 
     const nextAction = spawnSync(process.execPath, [sentiCli, "flow", "get", "next-action"], {
       cwd: root,
@@ -595,8 +578,8 @@ test("guard-targeted cleanup resumes from main after worktree removal without re
       env: { ...process.env, SENTI_WORK_ROOT: root },
     });
     assert.equal(nextAction.status, 0, nextAction.stderr);
-    assert.equal(JSON.parse(nextAction.stdout).data.action, "completed");
-    assert.equal(JSON.parse(nextAction.stdout).data.step, null);
+    assert.equal(JSON.parse(nextAction.stdout).data.action, "run-finalize-cleanup");
+    assert.equal(JSON.parse(nextAction.stdout).data.step, "finalize-cleanup");
     const stateAfterNextAction = makeFlowManager(root).loadReadOnly(specId);
     assert.equal(stateAfterNextAction.currentTaskId, null);
     assert.equal(stateAfterNextAction.tasks[0].steps[0].status, "pending");
@@ -673,29 +656,24 @@ test("cleanup rejects a different main runId before any teardown side effect", a
   }
 });
 
-test("cleanup reports a missing registered leaf without unknown-step or partial cleanup", async () => {
+test("flow state validation rejects a missing worktree cleanup leaf before teardown", async () => {
   const root = createTmpDir("finalize-state-leaf-missing-");
   try {
     initGitRepo(root);
     const specId = "137";
     const fixture = setupWorktreeFinalizeFlow(root, specId, { issue: 48 });
     removeFinalizeCleanupStep(fixture.state);
-    replaceFlowState(fixture.worktreePath, fixture.state, { specId });
-    const mainState = makeFlowManager(root).loadReadOnly(specId);
-    removeFinalizeCleanupStep(mainState);
-    replaceFlowState(root, mainState, { specId });
-    git(root, ["add", `specs/${specId}/flow.json`]);
-    git(root, ["commit", "--quiet", "-m", "simulate missing cleanup leaf"]);
+    fs.writeFileSync(
+      path.join(fixture.worktreePath, "specs", specId, "flow.json"),
+      `${JSON.stringify(fixture.state, null, 2)}\n`,
+    );
     const head = git(root, ["rev-parse", "HEAD"]);
 
-    const result = await runFinalize(root, specId, {
-      flowManager: fixture.flowManager,
-      flowState: fixture.state,
-    });
-
-    assert.equal(result.ok, false);
-    assert.equal(result.errors[0].code, "FINALIZE_CLEANUP_STEP_MISSING");
-    assert.doesNotMatch(result.errors[0].messages.join(" "), /unknown step/i);
+    assert.throws(
+      () => fixture.flowManager.loadReadOnly(specId),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED"
+        && /does not match the flow definition/.test(error.message),
+    );
     assert.equal(fs.existsSync(fixture.worktreePath), true);
     assert.notEqual(git(root, ["branch", "--list", fixture.featureBranch]), "");
     assert.equal(git(root, ["rev-parse", "HEAD"]), head);
@@ -745,9 +723,21 @@ test("adopts a real post-commit SIGKILL boundary exactly once on retry", async (
     });
 
     assert.equal(retried.ok, true, JSON.stringify(retried));
-    assert.equal(git(root, ["rev-parse", "HEAD"]), committedHead);
+    const completedHead = git(root, ["rev-parse", "HEAD"]);
+    assert.notEqual(completedHead, committedHead);
     assertCompletedJournal(root);
     assert.equal(git(root, ["log", "--format=%s", "--all"]).split("\n").filter((line) => line === `chore: finalize ${specId}`).length, 1);
+    assert.equal(git(root, ["log", "--format=%s", "--all"]).split("\n").filter((line) => line === "chore: complete finalize cleanup").length, 1);
+
+    const repeated = await new RunFinalizeCleanupCommand().execute({
+      root,
+      flowManager,
+      flowState: flowManager.loadReadOnly(specId),
+      autoRescue: false,
+      force: false,
+    });
+    assert.equal(repeated.ok, true, JSON.stringify(repeated));
+    assert.equal(git(root, ["rev-parse", "HEAD"]), completedHead);
   } finally {
     removeTmpDir(root);
   }
@@ -895,9 +885,15 @@ for (const force of [false, true]) {
       const retried = await runFinalize(root, specId, { force });
 
       assert.equal(retried.ok, true, JSON.stringify(retried));
-      assert.equal(git(root, ["rev-parse", "HEAD"]), committedHead);
+      const completedHead = git(root, ["rev-parse", "HEAD"]);
+      assert.notEqual(completedHead, committedHead);
+      assert.equal(git(root, ["log", "-1", "--format=%s"]), "chore: complete finalize cleanup");
       assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), false);
       assert.equal(fs.readFileSync(fixture.pointerPath, "utf8").trim(), fixture.spec);
+
+      const repeated = await runFinalize(root, specId, { force });
+      assert.equal(repeated.ok, true, JSON.stringify(repeated));
+      assert.equal(git(root, ["rev-parse", "HEAD"]), completedHead);
     } finally {
       removeTmpDir(root);
     }
@@ -1946,11 +1942,11 @@ for (const fault of ["first-journal", "before-images", "flow-write", "expectatio
       const before = preCommitSnapshot(root, specId);
       const originalWrite = AtomicJsonFile.prototype.write;
       const flowManager = makeFlowManager(root);
-      const originalUpdate = flowManager.updateStepStatus.bind(flowManager);
+      const originalMutate = flowManager.mutate.bind(flowManager);
       let injected = false;
       if (fault === "flow-write") {
-        flowManager.updateStepStatus = (...args) => {
-          const result = originalUpdate(...args);
+        flowManager.mutate = (...args) => {
+          const result = originalMutate(...args);
           if (!injected) {
             injected = true;
             throw new Error("injected flow write fault");
@@ -2347,18 +2343,20 @@ test("preserves commit and exact-restore failures in primary-first order with du
     const specId = "157";
     setupFinalizeFlow(root, specId);
     const hook = path.join(root, ".git", "hooks", "pre-commit");
-    fs.writeFileSync(hook, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    const commitFailedMarker = path.join(root, ".git", "finalize-commit-failed");
+    fs.writeFileSync(hook, [
+      "#!/bin/sh",
+      `touch ${JSON.stringify(commitFailedMarker)}`,
+      "exit 1",
+      "",
+    ].join("\n"), { mode: 0o755 });
     const originalRename = fs.renameSync;
     let injected = false;
-    let flowStateRenames = 0;
     fs.renameSync = (source, target) => {
-      if (
-        path.basename(String(source)).startsWith(".flow.json.")
+      const restoringFlowState = path.basename(String(source)).startsWith(".flow.json.")
         && path.basename(String(target)) === "flow.json"
-      ) {
-        flowStateRenames += 1;
-      }
-      if (!injected && flowStateRenames === 2) {
+        && fs.existsSync(commitFailedMarker);
+      if (!injected && restoringFlowState) {
         injected = true;
         throw new Error("injected exact restore failure");
       }
@@ -2419,7 +2417,9 @@ test("forced teardown resumes without a new CLI force approval and preserves aud
     const retried = await runFinalize(root, specId, { flowState: fixture.state, force: false });
 
     assert.equal(retried.ok, true, JSON.stringify(retried));
-    assert.equal(git(root, ["rev-parse", "HEAD"]), head);
+    const completedHead = git(root, ["rev-parse", "HEAD"]);
+    assert.notEqual(completedHead, head);
+    assert.equal(git(root, ["log", "-1", "--format=%s"]), "chore: complete finalize cleanup");
     assert.equal(retried.data.forceAuthorization.auditId, before.authorization.auditId);
     assert.equal(retried.data.forceAuthorization.mergeStrategy, null);
     assert.equal(retried.errors.some((error) => error.code === "FORCED_ORPHAN_DROP"), true);
@@ -2428,6 +2428,10 @@ test("forced teardown resumes without a new CLI force approval and preserves aud
     const completed = JSON.parse(fs.readFileSync(journalPath, "utf8"));
     assert.equal(completed.phase, "completed");
     assert.deepEqual(completed.authorization, before.authorization);
+
+    const repeated = await runFinalize(root, specId, { flowState: fixture.state, force: false });
+    assert.equal(repeated.ok, true, JSON.stringify(repeated));
+    assert.equal(git(root, ["rev-parse", "HEAD"]), completedHead);
   } finally {
     removeTmpDir(root);
   }
