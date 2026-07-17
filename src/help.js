@@ -15,6 +15,7 @@ import {
   CommandHelpMetadata,
   CoreCommandMetadataRegistry,
   allCommands,
+  coreCommandRegistry,
   coreCommandMetadataRegistry,
 } from "./lib/command-registry.js";
 import { loadPluginRegistry } from "./lib/plugin-registry.js";
@@ -165,15 +166,17 @@ function metadataFromEntry(name, entry, parent = null, inheritedSection = null) 
 }
 
 function resolveCoreRegistry(commands = null) {
-  if (!commands || commands === allCommands || commands === coreCommandMetadataRegistry) {
+  if (!commands || commands === coreCommandRegistry) return coreCommandRegistry.metadataRegistry();
+  if (commands === allCommands || commands === coreCommandMetadataRegistry) {
     return coreCommandMetadataRegistry;
   }
+  if (typeof commands.metadataRegistry === "function") return commands.metadataRegistry();
   if (commands instanceof CoreCommandMetadataRegistry) return commands;
   if (typeof commands.findCommand === "function" && typeof commands.allCommands === "function") return commands;
   return registryFromPlainTree(commands);
 }
 
-export function buildCoreHelpModel({ commands = allCommands, lang = DEFAULT_LANG } = {}) {
+export function buildCoreHelpModel({ commands = coreCommandRegistry, lang = DEFAULT_LANG } = {}) {
   const registry = resolveCoreRegistry(commands);
   return new HelpModel(registry.entries || registry.allCommands(), { lang });
 }
@@ -339,7 +342,7 @@ export async function renderCommandHelp({
   root = process.cwd(),
   command = [],
   lang = null,
-  commands = allCommands,
+  commands = coreCommandRegistry,
 } = {}) {
   const effectiveLang = resolveLang(root, lang);
   const topic = Array.isArray(command) ? command : String(command).split(/\s+/);
@@ -354,7 +357,7 @@ export async function renderCommandHelp({
   return renderCommand(model.findCommand(topic));
 }
 
-export async function renderHelp({ root = process.cwd(), argv = [], lang = null, commands = allCommands } = {}) {
+export async function renderHelp({ root = process.cwd(), argv = [], lang = null, commands = coreCommandRegistry } = {}) {
   const effectiveLang = resolveLang(root, lang);
   const topic = coreTopicFromArgs(argv);
   const registry = loadPluginRegistry(root);
@@ -364,7 +367,10 @@ export async function renderHelp({ root = process.cwd(), argv = [], lang = null,
     return renderCommandHelp({ root, command: topic, lang: effectiveLang, commands });
   }
   const model = buildCoreHelpModel({ commands, lang: effectiveLang });
-  const plugins = commands === allCommands || commands === coreCommandMetadataRegistry || !commands
+  const plugins = commands === allCommands
+    || commands === coreCommandRegistry
+    || commands === coreCommandMetadataRegistry
+    || !commands
     ? pluginCommands(root, effectiveLang)
     : [];
   return renderTopLevel(model, plugins, effectiveLang);

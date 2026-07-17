@@ -424,7 +424,12 @@ export class PluginCatalog {
         assertNoCoreInternalImports(root, manifest.providerId, manifest.root, dataSource.path, "plugin dataSource");
         this.dataSources.set(dataSource.name, dataSource);
       }
-      for (const command of manifest.commandEntries()) this.commands.set(command.name, command);
+      for (const command of manifest.commandEntries()) {
+        if (this.commands.has(command.name)) {
+          throw new Error(`duplicate plugin command: ${command.name}`);
+        }
+        this.commands.set(command.name, command);
+      }
     }
   }
 
