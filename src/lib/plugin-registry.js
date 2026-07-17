@@ -6,6 +6,11 @@ import { repoRoot } from "./cli.js";
 import { loadConfig, loadRawConfig, sentiConfigPath, sentiDir, sentiLocalConfigPath } from "./config.js";
 import { Envelope } from "./flow-envelope.js";
 import { officialPresetPluginRoot } from "./official-plugins.js";
+import {
+  PluginConfigTransaction,
+  PluginInstallation,
+  PluginInstaller,
+} from "./plugin-installer.js";
 import { runCmd, assertOk } from "./process.js";
 
 const ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
@@ -103,6 +108,33 @@ function readStoredLocalProjectConfig(root = repoRoot(), { missingAsEmpty = fals
   return config;
 }
 
+class PluginConfigSet {
+  constructor(root, { publicConfig, localConfig } = {}) {
+    this.publicConfig = structuredClone(
+      publicConfig || readStoredProjectConfig(root, { missingAsEmpty: true }),
+    );
+    this.localConfig = structuredClone(
+      localConfig || readStoredLocalProjectConfig(root, { missingAsEmpty: true }),
+    );
+    this.publicPlugin = ensurePluginConfig(this.publicConfig);
+    this.localPlugin = ensurePluginConfig(this.localConfig);
+  }
+
+  get sources() {
+    return mergePluginEntriesById(this.publicPlugin.sources, this.localPlugin.sources);
+  }
+
+  findSource(predicate) {
+    return this.sources.find(predicate);
+  }
+
+  findPackage(id) {
+    return this.localPlugin.packages.find((pkg) => pkg.id === id)
+      || this.publicPlugin.packages.find((pkg) => pkg.id === id)
+      || null;
+  }
+}
+
 function mergePluginEntriesById(base, overlay) {
   const out = Array.isArray(base) ? structuredClone(base) : [];
   const indexById = new Map(out.map((entry, index) => [entry?.id, index]).filter(([id]) => typeof id === "string"));
@@ -133,10 +165,6 @@ function readPluginOperationConfig(root = repoRoot()) {
 
 export function writeProjectConfig(root, config) {
   writeJson(sentiConfigPath(root), config);
-}
-
-function writeLocalProjectConfig(root, config) {
-  writeJson(sentiLocalConfigPath(root), config);
 }
 
 export function maskPluginSource(source) {
@@ -371,7 +399,7 @@ export class PluginManifest {
   }
 }
 
-export class PluginRegistry {
+export class PluginCatalog {
   constructor(root, manifests, options = {}) {
     this.root = root;
     this.manifests = manifests;
@@ -444,26 +472,39 @@ export class PluginRegistry {
   }
 }
 
+export class PluginRuntime {
+  constructor(root = repoRoot(), options = {}) {
+    this.root = path.resolve(root);
+    this.options = Object.freeze({ ...options });
+  }
+
+  loadCatalog() {
+    let config;
+    try {
+      config = readProjectConfig(this.root);
+    } catch (_) {
+      return new PluginCatalog(this.root, []);
+    }
+    if (config.plugin.sources.length > MAX_PLUGIN_SOURCES) {
+      throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
+    }
+    const enabledPackages = config.plugin.packages.filter((pkg) => pkg.enabled !== false);
+    if (enabledPackages.length > MAX_ENABLED_PLUGIN_PACKAGES) {
+      throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
+    }
+    const manifests = [];
+    for (const pkg of enabledPackages) {
+      const pluginRoot = path.join(sentiDir(this.root), "plugins", pkg.id);
+      const manifestPath = path.join(pluginRoot, "plugin.json");
+      if (!fs.existsSync(manifestPath)) continue;
+      manifests.push(PluginManifest.fromRoot(pluginRoot, pkg.id));
+    }
+    return new PluginCatalog(this.root, manifests, this.options);
+  }
+}
+
 export function loadPluginRegistry(root = repoRoot(), options = {}) {
-  let config;
-  try {
-    config = readProjectConfig(root);
-  } catch (_) {
-    return new PluginRegistry(root, []);
-  }
-  if (config.plugin.sources.length > MAX_PLUGIN_SOURCES) {
-    throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
-  }
-  const enabledPackages = config.plugin.packages.filter((pkg) => pkg.enabled !== false);
-  if (enabledPackages.length > MAX_ENABLED_PLUGIN_PACKAGES) throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
-  const manifests = [];
-  for (const pkg of enabledPackages) {
-    const pluginRoot = path.join(sentiDir(root), "plugins", pkg.id);
-    const manifestPath = path.join(pluginRoot, "plugin.json");
-    if (!fs.existsSync(manifestPath)) continue;
-    manifests.push(PluginManifest.fromRoot(pluginRoot, pkg.id));
-  }
-  return new PluginRegistry(root, manifests, options);
+  return new PluginRuntime(root, options).loadCatalog();
 }
 
 export function loadPluginConfigDefaults(root = repoRoot()) {
@@ -673,11 +714,24 @@ function syncGitUrlSource(root, source) {
   }
 }
 
+export class PluginSourceStore {
+  constructor(root) {
+    if (typeof root !== "string" || root.trim() === "") throw new Error("plugin source store root is required");
+    this.root = path.resolve(root);
+  }
+
+  resolve(source) {
+    if (source.type === "npm") throw new Error(`unsupported plugin source type: npm (${source.id})`);
+    const location = sourceLocation(source);
+    if (!location) throw new Error(`plugin source ${source.id} has no location`);
+    return isGitUrl(location)
+      ? syncGitUrlSource(this.root, source)
+      : localRepoHead(path.resolve(this.root, location));
+  }
+}
+
 function resolveSource(root, source) {
-  if (source.type === "npm") throw new Error(`unsupported plugin source type: npm (${source.id})`);
-  const location = sourceLocation(source);
-  if (!location) throw new Error(`plugin source ${source.id} has no location`);
-  return isGitUrl(location) ? syncGitUrlSource(root, source) : localRepoHead(path.resolve(root, location));
+  return new PluginSourceStore(root).resolve(source);
 }
 
 function nextSourceId(config, source) {
@@ -781,53 +835,104 @@ function validateSourceTree(sourceRoot) {
   for (const entry of existingKnownPluginPaths(sourceRoot)) walkFiles(sourceRoot, normalizeRel(entry, "files entry"));
 }
 
-function installFromSource(root, source, sourceRoot, commit, { updateExisting = false, sourceMaterialized = false } = {}) {
-  validateSourceTree(sourceRoot);
-  const materialized = sourceMaterialized ? null : materializeCommit(sourceRoot, commit, root);
-  const packageRoot = materialized?.packageRoot || sourceRoot;
-  const manifest = PluginManifest.fromRoot(packageRoot);
-  validateSourceTree(packageRoot);
-  const dest = path.join(installedPluginsDir(root), manifest.name);
-  copyAllowlistedFiles(packageRoot, dest, existingKnownPluginPaths(packageRoot));
-  if (materialized) fs.rmSync(materialized.tmp, { recursive: true, force: true });
-  const installedManifest = PluginManifest.fromRoot(dest, manifest.name);
-  const config = readStoredProjectConfig(root, { missingAsEmpty: true });
-  const plugin = ensurePluginConfig(config);
-  const publicSources = new Set(plugin.sources.map((entry) => entry.id));
-  const existing = plugin.packages.find((pkg) => pkg.id === manifest.name);
-  const entry = { id: manifest.name, source: source.id, commit };
+function preparePluginConfigTransaction(root, source, pluginId, commit, {
+  updateExisting,
+  publicConfig: proposedPublicConfig,
+  localConfig: proposedLocalConfig,
+} = {}) {
+  const configs = new PluginConfigSet(root, {
+    publicConfig: proposedPublicConfig,
+    localConfig: proposedLocalConfig,
+  });
+  const {
+    publicConfig,
+    localConfig,
+    publicPlugin,
+    localPlugin,
+  } = configs;
+  const publicExisting = publicPlugin.packages.find((pkg) => pkg.id === pluginId);
+  const localExisting = localPlugin.packages.find((pkg) => pkg.id === pluginId);
+  const publicHasSource = publicPlugin.sources.some((entry) => entry.id === source.id);
+  const localHasSource = localPlugin.sources.some((entry) => entry.id === source.id);
+  const target = publicExisting || (!localExisting && publicHasSource)
+    ? { config: publicConfig, plugin: publicPlugin, existing: publicExisting, path: sentiConfigPath(root) }
+    : localExisting || localHasSource
+      ? { config: localConfig, plugin: localPlugin, existing: localExisting, path: sentiLocalConfigPath(root) }
+      : null;
+  if (!target) throw new Error(`plugin source is not registered in public or local config: ${source.id}`);
+
+  const entry = { id: pluginId, source: source.id, commit };
   if (source.ref) entry.ref = source.ref;
-  if (existing) {
-    if (!updateExisting && existing.enabled === false) entry.enabled = false;
-    Object.assign(existing, entry);
-  } else if (publicSources.has(source.id)) {
-    plugin.packages.push(entry);
+  if (target.existing) {
+    if (!updateExisting && target.existing.enabled === false) entry.enabled = false;
+    Object.assign(target.existing, entry);
   } else {
-    const localConfig = readStoredLocalProjectConfig(root, { missingAsEmpty: true });
-    const localPlugin = ensurePluginConfig(localConfig);
-    const localSources = new Set(localPlugin.sources.map((item) => item.id));
-    const localExisting = localPlugin.packages.find((pkg) => pkg.id === manifest.name);
-    if (localExisting) {
-      if (!updateExisting && localExisting.enabled === false) entry.enabled = false;
-      Object.assign(localExisting, entry);
-      writeLocalProjectConfig(root, localConfig);
-    } else if (localSources.has(source.id)) {
-      localPlugin.packages.push(entry);
-      writeLocalProjectConfig(root, localConfig);
-    }
-    return installedManifest;
+    target.plugin.packages.push(entry);
   }
-  writeProjectConfig(root, config);
-  return installedManifest;
+  const updates = [{ filePath: target.path, value: target.config }];
+  if (proposedPublicConfig && target.path !== sentiConfigPath(root)) {
+    updates.push({ filePath: sentiConfigPath(root), value: publicConfig });
+  }
+  if (proposedLocalConfig && target.path !== sentiLocalConfigPath(root)) {
+    updates.push({ filePath: sentiLocalConfigPath(root), value: localConfig });
+  }
+  return new PluginConfigTransaction(updates);
 }
 
-export function installPlugin(root, id) {
+function installFromSource(root, source, sourceRoot, commit, {
+  updateExisting = false,
+  sourceMaterialized = false,
+  publicConfig,
+  localConfig,
+  faultInjector = () => {},
+} = {}) {
+  validateSourceTree(sourceRoot);
+  const materialized = sourceMaterialized ? null : materializeCommit(sourceRoot, commit, root);
+  try {
+    const packageRoot = materialized?.packageRoot || sourceRoot;
+    const manifest = PluginManifest.fromRoot(packageRoot);
+    validateSourceTree(packageRoot);
+    const configTransaction = preparePluginConfigTransaction(
+      root,
+      source,
+      manifest.name,
+      commit,
+      { updateExisting, publicConfig, localConfig },
+    );
+    return new PluginInstaller().install(new PluginInstallation({
+      root,
+      pluginId: manifest.name,
+      stagePackage(staging) {
+        copyAllowlistedFiles(packageRoot, staging, existingKnownPluginPaths(packageRoot));
+      },
+      validateStaging(staging) {
+        validateSourceTree(staging);
+        const stagedManifest = PluginManifest.fromRoot(staging, manifest.name);
+        if (stagedManifest.name !== manifest.name) {
+          throw new Error(`staged plugin mismatch: expected ${manifest.name}, got ${stagedManifest.name}`);
+        }
+      },
+      readInstalled(destination) {
+        return PluginManifest.fromRoot(destination, manifest.name);
+      },
+      configTransaction,
+      faultInjector,
+    }));
+  } finally {
+    if (materialized) fs.rmSync(materialized.tmp, { recursive: true, force: true });
+  }
+}
+
+export function installPlugin(root, id, { faultInjector = () => {} } = {}) {
   const config = readPluginOperationConfig(root);
   for (const source of config.plugin.sources) {
     const resolved = resolveSource(root, source);
     const manifest = PluginManifest.fromRoot(resolved.root);
     if (manifest.name === id) {
-      installFromSource(root, source, resolved.root, resolved.commit, { sourceMaterialized: resolved.materialized });
+      installFromSource(root, source, resolved.root, resolved.commit, {
+        sourceMaterialized: resolved.materialized,
+        faultInjector,
+      });
       return { id, source: source.id, commit: resolved.commit };
     }
   }
@@ -860,10 +965,11 @@ class InstalledPluginUpdateEntry {
     };
   }
 
-  apply(root) {
+  apply(root, { faultInjector = () => {} } = {}) {
     installFromSource(root, this.source, this.sourceRoot, this.commit, {
       updateExisting: true,
       sourceMaterialized: this.sourceMaterialized,
+      faultInjector,
     });
   }
 }
@@ -881,8 +987,8 @@ class InstalledPluginUpdatePlan {
     return this.entries.map((entry) => entry.toResult());
   }
 
-  apply(root) {
-    for (const entry of this.entries) entry.apply(root);
+  apply(root, options = {}) {
+    for (const entry of this.entries) entry.apply(root, options);
     return this.toResults();
   }
 }
@@ -910,17 +1016,17 @@ export function planInstalledPluginUpdates(root) {
   );
 }
 
-export function updateInstalledPlugin(root, id) {
+export function updateInstalledPlugin(root, id, { faultInjector = () => {} } = {}) {
   const config = readPluginOperationConfig(root);
   const pkg = config.plugin.packages.find((entry) => entry.id === id);
   if (!pkg) throw new Error(`installed plugin not found: ${id}`);
   const sources = new Map(config.plugin.sources.map((source) => [source.id, source]));
   const entry = resolveInstalledPluginUpdate(root, sources, pkg);
-  entry.apply(root);
+  entry.apply(root, { faultInjector });
   return entry.toResult();
 }
 
-export function syncInstalledPlugins(root, { update = false } = {}) {
+export function syncInstalledPlugins(root, { update = false, faultInjector = () => {} } = {}) {
   const config = readPluginOperationConfig(root);
   const sources = new Map(config.plugin.sources.map((source) => [source.id, source]));
   const results = [];
@@ -934,7 +1040,11 @@ export function syncInstalledPlugins(root, { update = false } = {}) {
     const previousCommit = pkg.commit;
     const commit = update ? resolved.commit : pkg.commit;
     if (!SHA_RE.test(commit)) throw new Error(`plugin package ${pkg.id} must have a pinned commit`);
-    installFromSource(root, source, resolved.root, commit, { updateExisting: update, sourceMaterialized: resolved.materialized });
+    installFromSource(root, source, resolved.root, commit, {
+      updateExisting: update,
+      sourceMaterialized: resolved.materialized,
+      faultInjector,
+    });
     const result = { id: pkg.id, source: source.id, commit };
     if (update) {
       result.previousCommit = previousCommit;
@@ -1287,38 +1397,43 @@ function materializationSource(source, sourceRoot) {
   return next;
 }
 
-export function ensureOfficialPackage(root, { id, sourceRoot, ref } = {}) {
-  const config = loadRawConfig(root);
-  const plugin = ensurePluginConfig(config);
-  if (plugin.sources.length > MAX_PLUGIN_SOURCES) {
+export function ensureOfficialPackage(root, { id, sourceRoot, ref, faultInjector = () => {} } = {}) {
+  const configs = new PluginConfigSet(root);
+  if (configs.sources.length > MAX_PLUGIN_SOURCES) {
     throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
   }
-  let source = plugin.sources.find((entry) => sourceLocation(entry) === sourceRoot || entry.id === id || entry.id === `official-${id}`);
-  let addedSource = false;
+  let source = configs.findSource((entry) => (
+    sourceLocation(entry) === sourceRoot || entry.id === id || entry.id === `official-${id}`
+  ));
   if (!source) {
-    if (plugin.sources.length >= MAX_PLUGIN_SOURCES) {
+    if (configs.sources.length >= MAX_PLUGIN_SOURCES) {
       throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
     }
     source = id === DEFAULT_OFFICIAL_PRESET_SOURCE.id
       ? { ...DEFAULT_OFFICIAL_PRESET_SOURCE }
       : { id: `official-${id}`, type: "local", path: sourceRoot };
     if (ref) source.ref = ref;
-    addedSource = true;
+    configs.publicPlugin.sources.push(source);
   }
   const materializedSource = materializationSource(source, sourceRoot);
   const resolved = resolveSource(root, materializedSource);
   const sourceManifest = PluginManifest.fromRoot(resolved.root);
   if (sourceManifest.name !== id) throw new Error(`official package mismatch: expected ${id}, got ${sourceManifest.name}`);
-  if (addedSource) plugin.sources.push(source);
-  writeProjectConfig(root, config);
-  const existing = plugin.packages.find((pkg) => pkg.id === id);
-  const installedManifest = path.join(installedPluginsDir(root), id, "plugin.json");
-  if (!existing || existing.commit !== resolved.commit || !fs.existsSync(installedManifest)) {
-    installFromSource(root, source, resolved.root, resolved.commit, { updateExisting: true, sourceMaterialized: resolved.materialized });
-  }
+  installFromSource(root, source, resolved.root, resolved.commit, {
+    updateExisting: true,
+    sourceMaterialized: resolved.materialized,
+    publicConfig: configs.publicConfig,
+    localConfig: configs.localConfig,
+    faultInjector,
+  });
 }
 
-export function ensureSetupOfficialPresetState(root, { selectedTypes = [], officialPresetRoot, officialPresetSource } = {}) {
+export function ensureSetupOfficialPresetState(root, {
+  selectedTypes = [],
+  officialPresetRoot,
+  officialPresetSource,
+  faultInjector = () => {},
+} = {}) {
   const typeList = (Array.isArray(selectedTypes) ? selectedTypes : [selectedTypes]).filter(Boolean);
   const nonBaseTypes = typeList.filter((type) => type !== "base");
   if (nonBaseTypes.length === 0) return { changed: false, installed: false };
@@ -1335,20 +1450,21 @@ export function ensureSetupOfficialPresetState(root, { selectedTypes = [], offic
   const selectedOfficialTypes = nonBaseTypes.filter((type) => officialKeys.has(type));
   if (selectedOfficialTypes.length === 0) return { changed: false, installed: false };
 
-  const config = readStoredProjectConfig(root, { missingAsEmpty: true });
-  const plugin = ensurePluginConfig(config);
-  if (plugin.sources.length > MAX_PLUGIN_SOURCES) {
+  const configs = new PluginConfigSet(root);
+  if (configs.sources.length > MAX_PLUGIN_SOURCES) {
     throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
   }
 
-  let source = plugin.sources.find((entry) => sourceLocation(entry) === officialPresetRoot || entry.id === DEFAULT_OFFICIAL_PRESET_SOURCE.id);
+  let source = configs.findSource((entry) => (
+    sourceLocation(entry) === officialPresetRoot || entry.id === DEFAULT_OFFICIAL_PRESET_SOURCE.id
+  ));
   let addedSource = false;
   if (!source) {
-    if (plugin.sources.length >= MAX_PLUGIN_SOURCES) {
+    if (configs.sources.length >= MAX_PLUGIN_SOURCES) {
       throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
     }
     source = sourceForOfficial || officialPresetSourceFromRoot(officialPresetRoot);
-    plugin.sources.push(source);
+    configs.publicPlugin.sources.push(source);
     addedSource = true;
   }
 
@@ -1358,18 +1474,23 @@ export function ensureSetupOfficialPresetState(root, { selectedTypes = [], offic
     : resolveSource(root, materializationSource(source, officialPresetRoot));
   assertOfficialPresetManifest(resolved.root);
 
-  const existing = plugin.packages.find((pkg) => pkg.id === DEFAULT_OFFICIAL_PRESET_SOURCE.id);
+  const existing = configs.findPackage(DEFAULT_OFFICIAL_PRESET_SOURCE.id);
   let reenabled = false;
   if (existing?.enabled === false) {
     delete existing.enabled;
     reenabled = true;
   }
 
-  writeProjectConfig(root, config);
   const installedManifest = path.join(installedPluginsDir(root), DEFAULT_OFFICIAL_PRESET_SOURCE.id, "plugin.json");
   const needsInstall = !existing || existing.commit !== resolved.commit || !fs.existsSync(installedManifest);
-  if (needsInstall) {
-    installFromSource(root, source, resolved.root, resolved.commit, { updateExisting: true, sourceMaterialized: resolved.materialized });
+  if (addedSource || reenabled || needsInstall) {
+    installFromSource(root, source, resolved.root, resolved.commit, {
+      updateExisting: true,
+      sourceMaterialized: resolved.materialized,
+      publicConfig: configs.publicConfig,
+      localConfig: configs.localConfig,
+      faultInjector,
+    });
   }
   return { changed: addedSource || reenabled || needsInstall, installed: true, selectedTypes: selectedOfficialTypes };
 }

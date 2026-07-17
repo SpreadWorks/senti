@@ -13,7 +13,7 @@
 import fs from "fs";
 import { parseArgs } from "../../lib/cli.js";
 import { sentiConfigPath, validate } from "../../lib/config.js";
-import { PRESETS } from "../../lib/presets.js";
+import { createPresetCatalog } from "../../lib/presets.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 
@@ -77,8 +77,8 @@ function runChecks(root) {
 
   // Check 3: preset existence
   const types = Array.isArray(raw.type) ? raw.type : [raw.type];
-  const validKeys = new Set(PRESETS.map((p) => p.key));
-  const unknownPresets = types.filter((t) => !validKeys.has(t));
+  const presetCatalog = createPresetCatalog(root);
+  const unknownPresets = types.filter((type) => !presetCatalog.has(type));
 
   if (unknownPresets.length > 0) {
     checks.push({

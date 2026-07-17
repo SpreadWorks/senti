@@ -49,6 +49,48 @@ function discoverPresetsInDir(presetsDir) {
 export const CORE_PRESETS = discoverPresetsInDir(CORE_PRESETS_DIR);
 export const PRESETS = CORE_PRESETS;
 
+export class PresetCatalog {
+  constructor(entries) {
+    if (!Array.isArray(entries)) throw new Error("preset catalog entries must be an array");
+    this.entries = new Map(entries.map((entry) => [entry.key, entry]));
+  }
+
+  list() {
+    return [...this.entries.values()];
+  }
+
+  has(key) {
+    return this.entries.has(key);
+  }
+
+  get(key) {
+    return this.entries.get(key) || null;
+  }
+
+  resolveChain(leafKey, { maxDepth = MAX_CHAIN_DEPTH } = {}) {
+    const preset = this.get(leafKey);
+    if (!preset) throw new Error(`Preset not found: ${leafKey}`);
+
+    const chain = [preset];
+    const visited = new Set([leafKey]);
+    let current = preset;
+    while (current.parent) {
+      if (visited.has(current.parent)) {
+        throw new Error(`Circular parent reference detected: ${current.key} → ${current.parent}`);
+      }
+      const parentPreset = this.get(current.parent);
+      if (!parentPreset) {
+        throw new Error(`Parent preset not found: ${current.parent} (referenced by ${current.key})`);
+      }
+      visited.add(current.parent);
+      chain.unshift(parentPreset);
+      if (chain.length > maxDepth) throw new Error(`preset parent chain exceeds depth ${maxDepth}`);
+      current = parentPreset;
+    }
+    return chain;
+  }
+}
+
 function registryPresets(projectRoot, { strict = false, maxEntries, existingPresetCount = 0 } = {}) {
   if (!projectRoot) return [];
   try {
@@ -64,33 +106,32 @@ function registryPresets(projectRoot, { strict = false, maxEntries, existingPres
   }
 }
 
-function allPresets(projectRoot) {
+export function createPresetCatalog(projectRoot, { strict = false, maxEntries } = {}) {
   const byKey = new Map(CORE_PRESETS.map((preset) => [preset.key, preset]));
-  if (!projectRoot) {
-    return [...byKey.values()];
+  if (maxEntries !== undefined && byKey.size > maxEntries) {
+    throw new Error(`preset registry exceeds ${maxEntries} entries`);
   }
-  for (const preset of registryPresets(projectRoot)) byKey.set(preset.key, preset);
-  return [...byKey.values()];
+  if (projectRoot) {
+    for (const preset of registryPresets(projectRoot, {
+      strict,
+      maxEntries,
+      existingPresetCount: byKey.size,
+    })) {
+      byKey.set(preset.key, preset);
+    }
+  }
+  if (maxEntries !== undefined && byKey.size > maxEntries) {
+    throw new Error(`preset registry exceeds ${maxEntries} entries`);
+  }
+  return new PresetCatalog([...byKey.values()]);
+}
+
+function allPresets(projectRoot) {
+  return createPresetCatalog(projectRoot).list();
 }
 
 export function listPresets(projectRoot, { maxEntries } = {}) {
-  if (maxEntries !== undefined && CORE_PRESETS.length > maxEntries) {
-    throw new Error(`preset registry exceeds ${maxEntries} entries`);
-  }
-  if (maxEntries === undefined) return allPresets(projectRoot);
-
-  const byKey = new Map(CORE_PRESETS.map((preset) => [preset.key, preset]));
-  if (!projectRoot) return [...byKey.values()];
-  for (const preset of registryPresets(projectRoot, {
-    maxEntries,
-    existingPresetCount: byKey.size,
-  })) {
-    byKey.set(preset.key, preset);
-  }
-  if (byKey.size > maxEntries) {
-    throw new Error(`preset registry exceeds ${maxEntries} entries`);
-  }
-  return [...byKey.values()];
+  return createPresetCatalog(projectRoot, { maxEntries }).list();
 }
 
 export function listSetupPresetCandidates(projectRoot, { includeOfficialPresets = false, officialPresetRoot } = {}) {
@@ -128,33 +169,9 @@ export function validatePresetCandidateChains(candidates, projectRoot) {
  * @throws {Error} If preset not found or circular reference detected
  */
 export function resolveChain(leafKey, projectRoot, opts = {}) {
-  const maxDepth = opts.maxDepth || MAX_CHAIN_DEPTH;
-  const preset = allPresets(projectRoot).find((p) => p.key === leafKey);
-  if (!preset) {
-    throw new Error(`Preset not found: ${leafKey}`);
-  }
-
-  const chain = [preset];
-  const visited = new Set([leafKey]);
-  let current = preset;
-
-  while (current.parent) {
-    if (visited.has(current.parent)) {
-      throw new Error(`Circular parent reference detected: ${current.key} → ${current.parent}`);
-    }
-    const parentPreset = allPresets(projectRoot).find((p) => p.key === current.parent);
-    if (!parentPreset) {
-      throw new Error(`Parent preset not found: ${current.parent} (referenced by ${current.key})`);
-    }
-    visited.add(current.parent);
-    chain.unshift(parentPreset);
-    if (chain.length > maxDepth) {
-      throw new Error(`preset parent chain exceeds depth ${maxDepth}`);
-    }
-    current = parentPreset;
-  }
-
-  return chain;
+  return createPresetCatalog(projectRoot).resolveChain(leafKey, {
+    maxDepth: opts.maxDepth || MAX_CHAIN_DEPTH,
+  });
 }
 
 /**
