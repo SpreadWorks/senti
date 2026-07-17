@@ -315,18 +315,18 @@ describe("flow get next-action", () => {
   });
 
   describe("rule missing (REQ-9)", () => {
-    it("returns ok:false when in_progress step has no definition entry", () => {
+    it("rejects an in_progress step with no definition entry at the persistence boundary", () => {
       tmp = createTmpDir();
-      // Inject a fabricated step that does not exist in definition.js.
-      const state = setupActiveFlow(tmp, {
-        steps: [{ id: "__unknown-step__", status: "in_progress" }],
-      });
-      replaceFlowState(tmp, state);
-      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
-      assert.equal(envelope.ok, false);
-      assert.notEqual(exitCode, 0);
-      const msgs = envelope.errors.flatMap((e) => e.messages);
-      assert.ok(msgs.some((m) => m.includes("__unknown-step__")), "error mentions offending step");
+      assert.throws(
+        () => setupActiveFlow(tmp, {
+          steps: [{ id: "__unknown-step__", status: "in_progress" }],
+        }),
+        (error) => (
+          error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED"
+          && error.message.includes("flow definition")
+        ),
+      );
+      assert.equal(fs.existsSync(pathMod.join(tmp, "specs", "001-test", "flow.json")), false);
     });
   });
 

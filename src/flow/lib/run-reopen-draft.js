@@ -541,21 +541,25 @@ export class RunReopenDraftCommand extends FlowCommand {
       );
     }
 
+    const resetSteps = [];
     flowManager.mutate((nextState) => {
-      setStepStatusAndClearTimestamps(nextState.steps, "draft", "in_progress");
-      setStepStatusAndClearTimestamps(nextState.steps, "draft-gate", "pending");
+      resetSteps.push(...resetStepSequence(
+        nextState,
+        ["draft", ...PLAN_REOPEN_RESET_STEPS, "implement"],
+      ));
     });
 
     appendIssueLog(root, state, {
       step: "draft",
       reason: `reopen-draft triggered: draft step rewound to add new tasks mid-implementation${reason ? ` — ${reason}` : ""}`,
       trigger: "user invoked senti flow reopen-draft",
-      resolution: "flow.draft step set to in_progress; draft-gate reset to pending",
+      resolution: `draft step set to in_progress; reset flow steps: ${resetSteps.join(", ")}`,
     });
 
     return Envelope.ok("run", "reopen-draft", {
       reopened: true,
       mode: "implementation",
+      resetSteps,
       doneTaskCount: tasks.filter((task) => task.status === "done").length,
       taskCount: tasks.length,
     });

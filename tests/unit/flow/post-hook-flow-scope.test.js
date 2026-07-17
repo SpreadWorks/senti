@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
-import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { makeFlowManager, replaceFlowState, setupFlow } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
@@ -63,6 +63,7 @@ function setupPostHookFlow(root, stepId) {
     }],
     currentTaskId: "T-1",
   });
+  for (const step of flattenSteps(state.steps)) step.status = "pending";
   findStepById(state.steps, stepId).status = "in_progress";
   replaceFlowState(root, state);
   return state;

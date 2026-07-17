@@ -9,19 +9,80 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { sentiDir } from "./config.js";
+import { AtomicFile } from "./atomic-file.js";
+import { AtomicJsonFile } from "./atomic-json-file.js";
+import { FlowState } from "./flow-state.js";
+import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 import {
   PREPARING_PREFIX,
   PREPARING_SCAN_LIMIT,
   buildInitialSteps,
 } from "./flow-helpers.js";
 
+const MAX_RUN_ID_LENGTH = 200;
+const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+class PreparingFlowId {
+  constructor(value) {
+    if (
+      typeof value !== "string"
+      || value.length > MAX_RUN_ID_LENGTH
+      || !SAFE_RUN_ID.test(value)
+      || value === "."
+      || value === ".."
+    ) {
+      throw new Error("preparing flow runId must be a safe non-empty identifier");
+    }
+    this.value = value;
+    Object.freeze(this);
+  }
+
+  toString() {
+    return this.value;
+  }
+
+  lockName() {
+    const digest = crypto.createHash("sha256").update(this.value).digest("hex");
+    return `.preparing-flow.${digest}.lock`;
+  }
+}
+
+class PreparingFlowSnapshot {
+  constructor(filePath) {
+    this.filePath = filePath;
+    this.content = new AtomicFile(filePath).read(null);
+    if (this.content == null) {
+      const error = new Error(`preparing flow not found: ${path.basename(filePath)}`);
+      error.code = "PREPARING_FLOW_NOT_FOUND";
+      throw error;
+    }
+    this.revision = crypto.createHash("sha256").update(this.content).digest("hex");
+    this.state = new FlowState(JSON.parse(this.content.toString("utf8"))).toJSON();
+    Object.freeze(this);
+  }
+
+  assertCurrent() {
+    const content = new AtomicFile(this.filePath).read(null);
+    const revision = content == null
+      ? null
+      : crypto.createHash("sha256").update(content).digest("hex");
+    if (revision !== this.revision || !content.equals(this.content)) {
+      const error = new Error("preparing flow revision changed concurrently");
+      error.code = "PREPARING_FLOW_REVISION_CONFLICT";
+      throw error;
+    }
+  }
+}
+
 export class PreparingFlowStore {
   /**
    * @param {Object} opts
    * @param {string} opts.mainRoot
    */
-  constructor({ mainRoot }) {
-    this._mainRoot = mainRoot;
+  constructor({ mainRoot, faultInjector = () => {}, processIdentitySource } = {}) {
+    this._mainRoot = path.resolve(mainRoot);
+    this._faultInjector = faultInjector;
+    this._processIdentitySource = processIdentitySource;
   }
 
   /** @returns {string} new runId */
@@ -35,6 +96,7 @@ export class PreparingFlowStore {
    * @returns {string} created file path
    */
   create(runId, extra = {}) {
+    const id = new PreparingFlowId(runId);
     const dir = sentiDir(this._mainRoot);
     fs.mkdirSync(dir, { recursive: true });
     const state = {
@@ -51,9 +113,17 @@ export class PreparingFlowStore {
       autoApprove: false,
       ...extra,
     };
-    const p = path.join(dir, `${PREPARING_PREFIX}${runId}`);
-    fs.writeFileSync(p, JSON.stringify(state, null, 2) + "\n", "utf8");
-    return p;
+    const p = this.#path(id);
+    return this.#withLock(id, () => {
+      if (fs.existsSync(p)) {
+        const error = new Error(`preparing flow already exists: ${id}`);
+        error.code = "PREPARING_FLOW_ALREADY_EXISTS";
+        throw error;
+      }
+      const validState = new FlowState(state).toJSON();
+      new AtomicJsonFile(p, { faultInjector: this._faultInjector }).write(validState);
+      return p;
+    });
   }
 
   /**
@@ -61,10 +131,11 @@ export class PreparingFlowStore {
    * @returns {object|null}
    */
   load(runId) {
-    const p = path.join(sentiDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
+    const id = new PreparingFlowId(runId);
+    const p = this.#path(id);
     if (!fs.existsSync(p)) return null;
     try {
-      return JSON.parse(fs.readFileSync(p, "utf8"));
+      return new PreparingFlowSnapshot(p).state;
     } catch (err) {
       console.error(`[flow-state] WARN: failed to read preparing flow ${runId}: ${err.message}`);
       return null;
@@ -103,20 +174,27 @@ export class PreparingFlowStore {
    * @returns {object} the updated state
    */
   mutate(runId, mutator) {
-    const p = path.join(sentiDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
-    if (!fs.existsSync(p)) {
-      throw new Error(`preparing flow not found: ${runId}`);
-    }
-    const state = JSON.parse(fs.readFileSync(p, "utf8"));
-    mutator(state);
-    fs.writeFileSync(p, JSON.stringify(state, null, 2) + "\n", "utf8");
-    return state;
+    const id = new PreparingFlowId(runId);
+    const p = this.#path(id);
+    return this.#withLock(id, () => {
+      const snapshot = new PreparingFlowSnapshot(p);
+      const state = structuredClone(snapshot.state);
+      mutator(state);
+      const validState = new FlowState(state).toJSON();
+      snapshot.assertCurrent();
+      new AtomicJsonFile(p, { faultInjector: this._faultInjector }).write(validState);
+      return validState;
+    });
   }
 
   /** @param {string} runId */
   delete(runId) {
-    const p = path.join(sentiDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
-    try { fs.unlinkSync(p); } catch (err) { if (err.code !== "ENOENT") throw err; }
+    const id = new PreparingFlowId(runId);
+    const p = this.#path(id);
+    if (!fs.existsSync(sentiDir(this._mainRoot))) return;
+    this.#withLock(id, () => {
+      new AtomicFile(p, { faultInjector: this._faultInjector }).remove();
+    });
   }
 
   /** @returns {string[]} runIds */
@@ -127,6 +205,56 @@ export class PreparingFlowStore {
       .filter((f) => f.startsWith(PREPARING_PREFIX))
       .map((f) => f.slice(PREPARING_PREFIX.length))
       .slice(0, PREPARING_SCAN_LIMIT);
+  }
+
+  #path(id) {
+    return path.join(sentiDir(this._mainRoot), `${PREPARING_PREFIX}${id}`);
+  }
+
+  #withLock(id, body) {
+    const rootAuthority = new RealDirectoryAuthority(this._mainRoot);
+    const directoryAuthority = new RealDirectoryAuthority(sentiDir(this._mainRoot), {
+      create: true,
+      parentAuthority: rootAuthority,
+    });
+    const errorFactory = (status, message, { lockPath, cause } = {}) => {
+      const error = new Error(message, { cause });
+      error.code = status === "live"
+        ? "PREPARING_FLOW_BUSY"
+        : `PREPARING_FLOW_LOCK_${status.replace(/-/g, "_").toUpperCase()}`;
+      error.lockPath = lockPath;
+      return error;
+    };
+    const lock = new ProcessOwnedLock({
+      directoryAuthority,
+      fileName: id.lockName(),
+      kind: "preparing-flow",
+      authority: { mainRoot: this._mainRoot, runId: id.toString(), path: this.#path(id) },
+      ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
+      errorFactory,
+    });
+    lock.acquire();
+    let result;
+    let primaryError = null;
+    try {
+      result = body();
+    } catch (error) {
+      primaryError = error;
+    }
+    try {
+      lock.release();
+    } catch (cleanupError) {
+      if (primaryError) {
+        throw new AggregateError(
+          [primaryError, cleanupError],
+          "preparing flow mutation and lock cleanup both failed",
+          { cause: primaryError },
+        );
+      }
+      throw cleanupError;
+    }
+    if (primaryError) throw primaryError;
+    return result;
   }
 
 }

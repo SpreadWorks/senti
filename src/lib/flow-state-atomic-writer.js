@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
 import {
   RepositoryFlowOperationLock,
@@ -151,6 +152,10 @@ export class FlowStateRevision {
   matchesIdentity(identity) {
     return this.identity.sameImmutableTarget(identity)
       && this.identity.sameIssue(identity);
+  }
+
+  matchesState(state) {
+    return isDeepStrictEqual(JSON.parse(this.#content.toString("utf8")), state);
   }
 }
 

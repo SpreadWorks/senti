@@ -25,6 +25,7 @@ import {
   FlowStateRevision,
   flowStatePath,
 } from "./flow-state-atomic-writer.js";
+import { FlowState } from "./flow-state.js";
 import {
   specIdFromPath,
   TASK_ORIGINS,
@@ -132,6 +133,11 @@ function assertCurrentFlowStateSchema(state, sourcePath) {
   const migrationProbe = structuredClone(state);
   if (migrateFlowState(migrationProbe)) {
     throw schemaUnsupported(`flow-store: legacy flow step schema rejected. Path: ${sourcePath}.`);
+  }
+  try {
+    new FlowState(state);
+  } catch (cause) {
+    throw schemaUnsupported(`flow-store: ${cause.message}. Path: ${sourcePath}.`);
   }
 }
 
@@ -334,7 +340,13 @@ function bindCurrentFlowState(state, content, sourcePath) {
   if (state.spec !== `specs/${boundSpecId}/spec.json`) {
     throw schemaUnsupported(`flow-store: flow state spec does not match its bound directory. Path: ${sourcePath}.`);
   }
-  FLOW_STATE_REVISIONS.set(state, new FlowStateRevision(content));
+  const revision = new FlowStateRevision(content);
+  try {
+    new FlowState(state, { revision });
+  } catch (cause) {
+    throw schemaUnsupported(`flow-store: ${cause.message}. Path: ${sourcePath}.`);
+  }
+  FLOW_STATE_REVISIONS.set(state, revision);
   return state;
 }
 
@@ -539,7 +551,8 @@ export class FlowStore {
         : (content, statePath) => parseCurrentFlowState(content, statePath),
       validateState: assertCurrentFlowStateSchema,
       onFailure: opts.onFailure,
-      passThroughError: opts.passThroughError,
+      passThroughError: opts.passThroughError
+        ?? ((error) => error instanceof FlowStateSchemaUnsupportedError),
       allowIssueTransition: opts.allowIssueTransition === true,
     });
   }

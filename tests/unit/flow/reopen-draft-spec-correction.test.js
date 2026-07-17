@@ -761,6 +761,10 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     const addition = await runDirect(tmp, targetInput({ category: "task-addition" }));
     assert.equal(addition.ok, true, JSON.stringify(addition.errors));
     const taskAfter = JSON.parse(fs.readFileSync(fixture.files.flow, "utf8"));
+    assert.deepEqual(
+      flattenSteps(taskAfter.steps).filter((step) => step.status === "in_progress").map((step) => step.id),
+      ["draft"],
+    );
     assert.deepEqual(taskAfter.tasks, taskBefore.tasks);
     assert.deepEqual(taskAfter.metrics, taskBefore.metrics);
     assert.equal(taskAfter.currentTaskId, taskBefore.currentTaskId);
