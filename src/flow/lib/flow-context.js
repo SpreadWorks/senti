@@ -66,26 +66,26 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
   if (preparingAuthority) return preparingAuthority;
 
   const selection = resolveTargetSelection(options.input);
+  if (options.explicitTargetResolution === true && selection) {
+    const target = baseFlowManager.resolveExplicitFlowTarget(
+      new FlowTargetExpectation(options.input),
+    );
+    const flowManager = baseFlowManager.forRoot(
+      target.authorityRoot,
+      target.specId ? { specId: target.specId } : {},
+    );
+    return {
+      flowManager,
+      flowState: target.preparing ? null : target.state,
+      preparingFlowState: target.preparing ? target.state : null,
+      authorityRoot: target.authorityRoot,
+      flowResolutionError: null,
+    };
+  }
   const cwdState = baseFlowManager.load();
   if (!cwdState) {
     let resolved = null;
     try {
-      if (options.explicitTargetResolution === true && selection) {
-        const target = baseFlowManager.resolveExplicitFlowTarget(
-          new FlowTargetExpectation(options.input),
-        );
-        const flowManager = baseFlowManager.forRoot(
-          target.authorityRoot,
-          target.specId ? { specId: target.specId } : {},
-        );
-        return {
-          flowManager,
-          flowState: target.preparing ? null : target.state,
-          preparingFlowState: target.preparing ? target.state : null,
-          authorityRoot: target.authorityRoot,
-          flowResolutionError: null,
-        };
-      }
       resolved = typeof baseFlowManager.resolveActiveFlow === "function"
         ? baseFlowManager.resolveActiveFlow(null, selection || {})
         : null;

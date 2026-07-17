@@ -1040,6 +1040,7 @@ export const FLOW_COMMANDS = {
     "finalize-cleanup": {
       helpKey: "flow.run.finalize-cleanup",
       runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
       command: () => import("./lib/run-finalize-cleanup.js"),
       args: { flags: ["--auto-rescue", "--force"], options: [...FLOW_RUN_OPTIONS] },
       help: [

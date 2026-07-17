@@ -24,11 +24,13 @@ export class FlowCommand extends Command {
   /**
    * @param {Object} [options]
    * @param {boolean} [options.requiresFlow=true] - Whether this command requires an active flow
+   * @param {boolean} [options.explicitTargetResolution=false] - Resolve guarded targets before ambient cwd authority
    */
-  constructor({ requiresFlow = true, targetGuard = true } = {}) {
+  constructor({ requiresFlow = true, targetGuard = true, explicitTargetResolution = false } = {}) {
     super();
     this.requiresFlow = requiresFlow;
     this.targetGuard = targetGuard;
+    this.explicitTargetResolution = explicitTargetResolution;
   }
 
   /**
@@ -44,6 +46,7 @@ export class FlowCommand extends Command {
     const ctx = {
       ...resolveFlowContext(container, {
         allowMissingActive: !this.requiresFlow,
+        explicitTargetResolution: this.explicitTargetResolution,
         input,
       }),
       ...input,

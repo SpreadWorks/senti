@@ -41,6 +41,7 @@ import { FlowCommand } from "./base-command.js";
 import { writeLastFinalizedPointer } from "./run-finalize.js";
 import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
+import { FinalizeCleanupStateResolution } from "./finalize-cleanup-state.js";
 import { IssueLogDocument, IssueLogStore } from "./issue-log-store.js";
 import { runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 import { FlowManager } from "../../lib/flow-manager.js";
@@ -4257,6 +4258,10 @@ function cherryPickRange(repoPath, range, runGitFn = runGit) {
 }
 
 export class RunFinalizeCleanupCommand extends FlowCommand {
+  constructor() {
+    super({ explicitTargetResolution: true });
+  }
+
   async execute(ctx) {
     const mainRoot = ctx.mainRoot || ctx.flowManager?._mainRoot || ctx.root;
     const repositoryOperation = new RepositoryFlowOperationLock({
@@ -4302,9 +4307,16 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
   }
 
   async executeOwned(ctx) {
+    const resolution = FinalizeCleanupStateResolution.resolve(ctx);
+    if (resolution instanceof Envelope) return resolution;
+    ctx = {
+      ...ctx,
+      flowState: resolution.state,
+      finalizeCleanupStateResolution: resolution,
+    };
     const { root, autoRescue, force } = ctx;
-    const state = ctx.flowState;
-    const { worktreePath, mainRepoPath } = ctx.flowManager.resolveWorktreePaths(state);
+    const state = resolution.state;
+    const { worktreePath, mainRepoPath } = resolution;
     const { baseBranch, featureBranch, worktree } = state;
     const specId = specIdFromPath(state.spec);
     const reportRoot = mainRepoPath || root;
@@ -5193,7 +5205,8 @@ async function runTeardownTransactionOwned(
 
   // (i) metadata sync + finalize-cleanup → 'done'.
   const targetRoot = (worktree && mainRepoPath) ? mainRepoPath : ctx.root;
-  const targetFm = (worktree && mainRepoPath) ? ctx.flowManager.forRoot(mainRepoPath) : ctx.flowManager;
+  const targetFm = ctx.finalizeCleanupStateResolution?.mainFlowManager
+    || ((worktree && mainRepoPath) ? ctx.flowManager.forRoot(mainRepoPath) : ctx.flowManager);
   const transactionExisted = transactionStore.hasExisting();
   const transaction = transactionStore.loadOrCreate();
   let callerIndexLease = null;
@@ -5308,10 +5321,10 @@ async function runTeardownTransactionOwned(
     try {
     // Spec 272: sync unreflected flow metadata (e.g. retry success logs) from
     // worktree to main before teardown.
-    if (worktree && mainRepoPath && ctx.root !== mainRepoPath) {
+    if (worktree && mainRepoPath && worktreePath && worktreePath !== mainRepoPath) {
       try {
         syncMetadataFromWorktreeToMain(
-          ctx.root,
+          worktreePath,
           mainRepoPath,
           specId,
           ctx.repositoryOperationOwnerToken,
@@ -5395,6 +5408,7 @@ async function runTeardownTransactionOwned(
     }
 
     const flowJsonRel = `specs/${specId}/flow.json`;
+    ctx.finalizeCleanupStateResolution?.ensureCleanupStep(ctx.repositoryOperationOwnerToken);
     targetFm.updateStepStatus("finalize-cleanup", "done", {
       specId,
       operationOwnerToken: ctx.repositoryOperationOwnerToken,
