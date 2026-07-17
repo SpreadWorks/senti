@@ -34,6 +34,7 @@ import { deployPresetCopies } from "./lib/preset-deploy.js";
 import { writeUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
 import { normalizeSentiGitignore } from "./lib/gitignore.js";
 import { AGENT_CONFIG_FILE_NAMES, refreshAgentSentiFile } from "./lib/agent-config-files.js";
+import { DEFAULT_SCAN_POLICY, FileTreeWalker } from "./lib/file-tree-walker.js";
 
 class RenameRule {
   constructor(from, to) {
@@ -47,8 +48,9 @@ class RenameRule {
 }
 
 export class RenameMigration {
-  constructor(root) {
+  constructor(root, { walker = new FileTreeWalker(DEFAULT_SCAN_POLICY) } = {}) {
     this.root = root;
+    this.walker = walker;
     this.textRules = [
       new RenameRule(".sdd-forge", ".senti"),
       new RenameRule("senti-forge", "senti"),
@@ -192,19 +194,13 @@ export class RenameMigration {
   }
 
   listFilesUnder(dir) {
-    const out = [];
-    if (!fs.existsSync(dir)) return out;
-    const walk = (current, prefix = "") => {
-      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-        const rel = path.join(prefix, entry.name);
-        const full = path.join(current, entry.name);
-        if (this.isExcludedPath(full)) continue;
-        if (entry.isDirectory()) walk(full, rel);
-        else if (entry.isFile()) out.push(rel);
-      }
-    };
-    walk(dir);
-    return out;
+    if (!fs.existsSync(dir)) return [];
+    const result = this.walker.walk(dir, {
+      shouldEnterDirectory: (_relativePath, absolutePath) => !this.isExcludedPath(absolutePath),
+      includeFile: (_relativePath, absolutePath) => !this.isExcludedPath(absolutePath),
+    });
+    result.assertComplete(`upgrade traversal for ${dir}`);
+    return [...result.files];
   }
 
   isExcludedPath(file) {

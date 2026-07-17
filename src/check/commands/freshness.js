@@ -11,6 +11,7 @@
  *   fresh       — docs/ is up to date (exit 0)
  *   stale       — source is newer than docs/ (exit 1)
  *   never-built — docs/ does not exist (exit 1)
+ *   indeterminate — traversal limits prevent a reliable result (exit 1)
  */
 
 import fs from "fs";
@@ -18,8 +19,52 @@ import path from "path";
 import { sourceRoot, parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
+import {
+  DEFAULT_SCAN_POLICY,
+  FileTreeWalker,
+} from "../../lib/file-tree-walker.js";
 
-const FILE_LIMIT = 10_000;
+const FRESHNESS_RESULTS = new Set(["fresh", "stale", "never-built", "indeterminate"]);
+
+export class FreshnessResult {
+  constructor(result, { srcNewest = null, docsNewest = null, limits = [] } = {}) {
+    if (!FRESHNESS_RESULTS.has(result)) {
+      throw new Error(`unsupported freshness result: ${result}`);
+    }
+    this.result = result;
+    this.srcNewest = srcNewest;
+    this.docsNewest = docsNewest;
+    this.limits = Object.freeze([...limits]);
+    Object.freeze(this);
+  }
+
+  get ok() {
+    return this.result === "fresh";
+  }
+
+  toJSON() {
+    return {
+      ok: this.ok,
+      result: this.result,
+      srcNewest: this.srcNewest,
+      docsNewest: this.docsNewest,
+      limits: this.limits,
+    };
+  }
+
+  toText() {
+    switch (this.result) {
+      case "fresh":
+        return "fresh — docs/ is up to date";
+      case "stale":
+        return "stale — source is newer than docs/, run: senti docs build";
+      case "never-built":
+        return "never-built — docs/ does not exist, run: senti docs build";
+      case "indeterminate":
+        return `indeterminate — ${this.limits.join(", ")}`;
+    }
+  }
+}
 
 function printHelp() {
   console.log(
@@ -33,10 +78,11 @@ function printHelp() {
       "  fresh       docs/ is up to date",
       "  stale       source is newer than docs/ — run senti docs build",
       "  never-built docs/ does not exist — run senti docs build",
+      "  indeterminate traversal limits prevent a reliable result",
       "",
       "Exit codes:",
       "  0  fresh",
-      "  1  stale or never-built",
+      "  1  stale, never-built, or indeterminate",
       "",
       "Options:",
       "  --format <text|json>  Output format (default: text)",
@@ -46,62 +92,32 @@ function printHelp() {
 }
 
 /**
- * Recursively walk a directory and collect file paths, up to `limit` entries.
- *
- * @param {string} dir
- * @param {number} limit
- * @returns {Promise<{ files: string[], truncated: boolean }>}
- */
-async function walkFiles(dir, limit) {
-  const files = [];
-  let truncated = false;
-
-  async function walk(current) {
-    if (truncated) return;
-    let entries;
-    try {
-      entries = await fs.promises.readdir(current, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      if (truncated) return;
-      const full = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        await walk(full);
-      } else if (entry.isFile()) {
-        files.push(full);
-        if (files.length >= limit) {
-          truncated = true;
-          return;
-        }
-      }
-    }
-  }
-
-  await walk(dir);
-  return { files, truncated };
-}
-
-/**
  * Find the newest mtime (ms) among files in a directory.
  *
  * @param {string} dir
- * @param {number} limit
- * @returns {Promise<{ newestMs: number|null, truncated: boolean }>}
+ * @param {import("../../lib/file-tree-walker.js").ScanPolicy} policy
+ * @returns {Promise<{ newestMs: number|null, complete: boolean, limits: string[] }>}
  */
-async function newestMtime(dir, limit) {
-  const { files, truncated } = await walkFiles(dir, limit);
+async function newestMtime(dir, policy = DEFAULT_SCAN_POLICY) {
+  const traversal = new FileTreeWalker(policy).walk(dir);
   let newestMs = null;
-  for (const f of files) {
+  const statFailures = [];
+  for (const relativePath of traversal.files) {
     try {
-      const ms = (await fs.promises.stat(f)).mtimeMs;
+      const ms = (await fs.promises.stat(path.join(dir, relativePath))).mtimeMs;
       if (newestMs === null || ms > newestMs) newestMs = ms;
-    } catch {
-      // skip unreadable files
+    } catch (err) {
+      statFailures.push(`unreadable file ${relativePath}: ${err.code || err.message}`);
     }
   }
-  return { newestMs, truncated };
+  return {
+    newestMs,
+    complete: traversal.complete && statFailures.length === 0,
+    limits: [
+      ...traversal.limits.map((limit) => limit.toString()),
+      ...statFailures,
+    ],
+  };
 }
 
 /**
@@ -109,51 +125,52 @@ async function newestMtime(dir, limit) {
  *
  * @param {string} workRoot - repo root (docs/ lives here)
  * @param {string} srcRoot  - source root
- * @returns {Promise<{ result: "fresh"|"stale"|"never-built", srcNewest: string|null, docsNewest: string|null }>}
+ * @param {{policy?: import("../../lib/file-tree-walker.js").ScanPolicy}} options
+ * @returns {Promise<FreshnessResult>}
  */
-async function checkFreshness(workRoot, srcRoot) {
+async function checkFreshness(workRoot, srcRoot, { policy = DEFAULT_SCAN_POLICY } = {}) {
   const docsDir = path.join(workRoot, "docs");
 
   try {
     await fs.promises.access(docsDir);
   } catch {
-    return { result: "never-built", srcNewest: null, docsNewest: null };
+    return new FreshnessResult("never-built");
   }
 
   const [srcResult, docsResult] = await Promise.all([
-    newestMtime(srcRoot, FILE_LIMIT),
-    newestMtime(docsDir, FILE_LIMIT),
+    newestMtime(srcRoot, policy),
+    newestMtime(docsDir, policy),
   ]);
 
-  const { newestMs: srcMs, truncated: srcTruncated } = srcResult;
-  const { newestMs: docsMs, truncated: docsTruncated } = docsResult;
-
-  if (srcTruncated) {
-    process.stderr.write(
-      `senti check freshness: warning — source file limit (${FILE_LIMIT}) reached, result may be approximate\n`
-    );
-  }
-  if (docsTruncated) {
-    process.stderr.write(
-      `senti check freshness: warning — docs file limit (${FILE_LIMIT}) reached, result may be approximate\n`
-    );
-  }
+  const { newestMs: srcMs } = srcResult;
+  const { newestMs: docsMs } = docsResult;
 
   const srcNewest = srcMs !== null ? new Date(srcMs).toISOString() : null;
   const docsNewest = docsMs !== null ? new Date(docsMs).toISOString() : null;
 
+  if (!srcResult.complete || !docsResult.complete) {
+    return new FreshnessResult("indeterminate", {
+      srcNewest,
+      docsNewest,
+      limits: [
+        ...srcResult.limits.map((limit) => `source: ${limit}`),
+        ...docsResult.limits.map((limit) => `docs: ${limit}`),
+      ],
+    });
+  }
+
   // If source has no files, treat as fresh (nothing to build from)
   if (srcMs === null) {
-    return { result: "fresh", srcNewest, docsNewest };
+    return new FreshnessResult("fresh", { srcNewest, docsNewest });
   }
 
   // If docs has no files but dir exists, treat as stale
   if (docsMs === null) {
-    return { result: "stale", srcNewest, docsNewest };
+    return new FreshnessResult("stale", { srcNewest, docsNewest });
   }
 
   const result = srcMs > docsMs ? "stale" : "fresh";
-  return { result, srcNewest, docsNewest };
+  return new FreshnessResult(result, { srcNewest, docsNewest });
 }
 
 async function runFreshnessCheck(rawArgs, container) {
@@ -175,33 +192,19 @@ async function runFreshnessCheck(rawArgs, container) {
 
   const workRoot = container.get("root");
   const srcRoot = sourceRoot();
-  const { result, srcNewest, docsNewest } = await checkFreshness(workRoot, srcRoot);
-
-  const ok = result === "fresh";
+  const result = await checkFreshness(workRoot, srcRoot);
 
   if (format === "json") {
-    process.stdout.write(JSON.stringify({ ok, result, srcNewest, docsNewest }, null, 2) + "\n");
-    if (!ok) process.exit(EXIT_ERROR);
+    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    if (!result.ok) process.exit(EXIT_ERROR);
     return;
   }
 
-  // text format
-  switch (result) {
-    case "fresh":
-      process.stdout.write("fresh — docs/ is up to date\n");
-      break;
-    case "stale":
-      process.stdout.write("stale — source is newer than docs/, run: senti docs build\n");
-      process.exit(EXIT_ERROR);
-      break;
-    case "never-built":
-      process.stdout.write("never-built — docs/ does not exist, run: senti docs build\n");
-      process.exit(EXIT_ERROR);
-      break;
-  }
+  process.stdout.write(result.toText() + "\n");
+  if (!result.ok) process.exit(EXIT_ERROR);
 }
 
-export { checkFreshness };
+export { newestMtime, checkFreshness };
 
 export default class CheckFreshnessCommand extends Command {
   static outputMode = "raw";

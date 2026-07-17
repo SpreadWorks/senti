@@ -14,14 +14,16 @@ import { sourceRoot, parseArgs } from "../../lib/cli.js";
 import { sentiOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
-import { pushSection, DIVIDER } from "../../lib/formatter.js";
+import { pushSection } from "../../lib/formatter.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
+import {
+  DEFAULT_SCAN_POLICY,
+  FileTreeWalker,
+} from "../../lib/file-tree-walker.js";
 
 const DEFAULT_MAX_FILES = 10;
-const MAX_SCAN_DEPTH = 32;
-const MAX_SCAN_DIRECTORY_ENTRIES = 10_000;
-const MAX_SCAN_FILES = 100_000;
+const SKIPPED_DIRECTORY_NAMES = new Set([".git", "node_modules", "vendor", ".senti"]);
 
 function printHelp() {
   console.log([
@@ -61,50 +63,26 @@ function groupByExtension(files) {
  * @param {string} baseDir
  * @param {RegExp[]} includeMatchers
  * @param {RegExp[]} excludeMatchers
- * @returns {string[]} relative paths
+ * @param {import("../../lib/file-tree-walker.js").ScanPolicy} policy
+ * @returns {import("../../lib/file-tree-walker.js").FileTreeWalkResult}
  */
-function walkIncludedFiles(baseDir, includeMatchers, excludeMatchers) {
-  const results = [];
-
-  function addResult(relPath) {
-    results.push(relPath);
-    if (results.length > MAX_SCAN_FILES) {
-      throw new Error(`scan matched file count exceeds max ${MAX_SCAN_FILES}`);
-    }
-  }
-
-  function walk(dir, relPrefix, depth) {
-    if (depth > MAX_SCAN_DEPTH) {
-      throw new Error(`scan directory depth exceeds max ${MAX_SCAN_DEPTH}: ${relPrefix || "."}`);
-    }
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch (_) {
-      return;
-    }
-    if (entries.length > MAX_SCAN_DIRECTORY_ENTRIES) {
-      throw new Error(`scan directory entry count exceeds max ${MAX_SCAN_DIRECTORY_ENTRIES}: ${relPrefix || "."}`);
-    }
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "vendor" || entry.name === ".senti") continue;
-        const nextRel = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
-        walk(path.join(dir, entry.name), nextRel, depth + 1);
-      } else if (entry.isFile()) {
-        const relPath = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
-        if (excludeMatchers.some((m) => m.test(relPath))) continue;
-        if (includeMatchers.some((m) => m.test(relPath))) addResult(relPath);
-      }
-    }
-  }
-
-  walk(baseDir, "", 0);
-  return results.sort();
+function walkIncludedFiles(baseDir, includeMatchers, excludeMatchers, policy = DEFAULT_SCAN_POLICY) {
+  const walker = new FileTreeWalker(policy);
+  return walker.walk(baseDir, {
+    shouldEnterDirectory(relativePath) {
+      return !SKIPPED_DIRECTORY_NAMES.has(path.posix.basename(relativePath));
+    },
+    includeFile(relativePath) {
+      if (excludeMatchers.some((matcher) => matcher.test(relativePath))) return false;
+      return includeMatchers.some((matcher) => matcher.test(relativePath));
+    },
+  });
 }
 
 function coveragePercent(coverage) {
-  return coverage.total === 0 ? 0 : Math.round((coverage.analyzed / coverage.total) * 100);
+  if (coverage.total === 0) return 0;
+  if (coverage.analyzed === coverage.total) return 100;
+  return Math.floor((coverage.analyzed * 10_000) / coverage.total) / 100;
 }
 
 /**
@@ -113,9 +91,10 @@ function coveragePercent(coverage) {
  * @param {string} root - work root
  * @param {string} src - source root
  * @param {Object} cfg - senti config
- * @returns {{ dataSourceCoverage: { total, analyzed, uncovered } }}
+ * @param {{policy?: import("../../lib/file-tree-walker.js").ScanPolicy}} options
+ * @returns {{ dataSourceCoverage: { total: number, analyzed: number, uncovered: string[], complete: boolean, result: string, limits: string[] } }}
  */
-function computeCoverage(root, src, cfg) {
+function computeCoverage(root, src, cfg, { policy = DEFAULT_SCAN_POLICY } = {}) {
   const outputPath = path.join(sentiOutputDir(root), "analysis.json");
   if (!fs.existsSync(outputPath)) {
     throw new Error(`analysis.json not found: ${outputPath}\nRun 'senti docs scan' first.`);
@@ -135,7 +114,8 @@ function computeCoverage(root, src, cfg) {
   const includeMatchers = include.map((p) => globToRegex(p));
 
   // scan.include matched files
-  const includedFiles = walkIncludedFiles(src, includeMatchers, excludeMatchers);
+  const traversal = walkIncludedFiles(src, includeMatchers, excludeMatchers, policy);
+  const includedFiles = traversal.files;
 
   // Files analyzed by any DataSource (from analysis.json entries)
   const analyzedFiles = new Set();
@@ -146,12 +126,16 @@ function computeCoverage(root, src, cfg) {
   }
 
   const uncovered = includedFiles.filter((f) => !analyzedFiles.has(f));
+  const analyzed = includedFiles.length - uncovered.length;
 
   return {
     dataSourceCoverage: {
       total: includedFiles.length,
-      analyzed: analyzedFiles.size,
+      analyzed,
       uncovered,
+      complete: traversal.complete,
+      result: traversal.complete ? "complete" : "indeterminate",
+      limits: traversal.limits.map((limit) => limit.toString()),
     },
   };
 }
@@ -162,9 +146,12 @@ function computeCoverage(root, src, cfg) {
 function formatText(data, showAll) {
   const { dataSourceCoverage: ds } = data;
   const lines = [];
-  const dsPct = coveragePercent(ds);
-
-  lines.push(`  DataSource: ${ds.analyzed} / ${ds.total} files (${dsPct}%)`);
+  if (ds.complete) {
+    lines.push(`  DataSource: ${ds.analyzed} / ${ds.total} files (${coveragePercent(ds)}%)`);
+  } else {
+    lines.push(`  DataSource: indeterminate — ${ds.analyzed} / ${ds.total} traversed files`);
+    lines.push(`  Limits: ${ds.limits.join(", ")}`);
+  }
 
   if (ds.uncovered.length > 0) {
     const extGroups = groupByExtension(ds.uncovered);
@@ -191,14 +178,19 @@ function formatText(data, showAll) {
  */
 function formatMarkdown(data, showAll) {
   const { dataSourceCoverage: ds } = data;
-  const dsPct = coveragePercent(ds);
 
   const lines = [];
   lines.push("# Scan Coverage Report");
   lines.push("");
   lines.push("## DataSource Coverage");
   lines.push("");
-  lines.push(`**${ds.analyzed} / ${ds.total} files (${dsPct}%)**`);
+  if (ds.complete) {
+    lines.push(`**${ds.analyzed} / ${ds.total} files (${coveragePercent(ds)}%)**`);
+  } else {
+    lines.push(`**indeterminate — ${ds.analyzed} / ${ds.total} traversed files**`);
+    lines.push("");
+    lines.push(`Limits: ${ds.limits.join(", ")}`);
+  }
 
   if (ds.uncovered.length > 0) {
     const extGroups = groupByExtension(ds.uncovered);
@@ -267,7 +259,10 @@ async function runCheckScan(rawArgs, container) {
       dataSourceCoverage: {
         total: ds.total,
         analyzed: ds.analyzed,
-        percent: coveragePercent(ds),
+        percent: ds.complete ? coveragePercent(ds) : null,
+        result: ds.result,
+        complete: ds.complete,
+        limits: ds.limits,
         uncovered: showAll ? ds.uncovered : ds.uncovered.slice(0, DEFAULT_MAX_FILES),
         uncoveredTotal: ds.uncovered.length,
         uncoveredByExtension: groupByExtension(ds.uncovered),
@@ -279,9 +274,11 @@ async function runCheckScan(rawArgs, container) {
   } else {
     process.stdout.write(formatText(data, showAll) + "\n");
   }
+
+  if (!data.dataSourceCoverage.complete) process.exit(EXIT_ERROR);
 }
 
-export { groupByExtension, computeCoverage, formatText };
+export { groupByExtension, walkIncludedFiles, coveragePercent, computeCoverage, formatText };
 
 export default class CheckScanCommand extends Command {
   static outputMode = "raw";
