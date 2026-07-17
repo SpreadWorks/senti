@@ -7,11 +7,11 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager, makeFlowState } from "../../helpers/flow-setup.js";
+import { makeFlowManager, makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildMetricsSummary } from "../../../src/flow/lib/get-status.js";
-import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
 
 function makeUsage({ input = 100, output = 50, cacheRead = 20, cacheCreation = 10, cost = 0.005 } = {}) {
   return {
@@ -26,8 +26,9 @@ function makeUsage({ input = 100, output = 50, cacheRead = 20, cacheCreation = 1
 function setupFlow(dir, phase = "draft") {
   const specId = "001-test";
   const state = makeFlowState({ spec: `specs/${specId}/spec.json` });
-  const step = findStepById(state.steps, phase);
-  if (step) step.status = "in_progress";
+  if (flattenSteps(state.steps).some((step) => step.id === phase)) {
+    moveFlowToStep(state, phase);
+  }
   makeFlowManager(dir).create(state);
   makeFlowManager(dir).addActiveFlow(specId, "local");
 }

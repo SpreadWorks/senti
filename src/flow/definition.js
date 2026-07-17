@@ -291,6 +291,7 @@ export function resolveRuntimeStep(input = {}) {
   const command = input.command || input.action;
   if (command === "run-review") return reviewStepIdForInput(input);
   if (command === "run-gate") return gateStepIdForPhase(input.phase || input.result?.artifacts?.phase);
+  if (command === "report") return "report";
   if (String(command || "").startsWith("finalize-")) return command;
   return input.currentStepId || null;
 }

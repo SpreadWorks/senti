@@ -3,17 +3,38 @@ import assert from "node:assert/strict";
 import { join } from "path";
 import { checkSpecText, checkSpecJson } from "../../../../src/flow/lib/run-gate.js";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
-import { execFileSync } from "child_process";
-import { setupFlow } from "../../../helpers/flow-setup.js";
+import { execFileSync, spawnSync } from "child_process";
+import { makeFlowManager, setupFlowAtStep } from "../../../helpers/flow-setup.js";
+import { findInProgressLeaf } from "../../../../src/flow/lib/step-tree.js";
+import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 
-function initGateProject(tmp) {
-  execFileSync("git", ["init", tmp], { stdio: "ignore" });
-  execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
-  setupFlow(tmp);
+const SENTI = join(process.cwd(), "src/senti.js");
+
+function initGateProject(tmp, { specId = "001-test" } = {}) {
+  initGitRepo(tmp);
+  commitAll(tmp, "init");
+  setupFlowAtStep(tmp, "spec-gate", {
+    spec: `specs/${specId}/spec.json`,
+    featureBranch: `feature/${specId}`,
+  });
   writeJson(tmp, ".senti/config.json", {
-    lang: "en", type: "sample-node-command",
+    lang: "en", type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
   });
+}
+
+function runBlockedGate(tmp, args) {
+  const result = spawnSync(process.execPath, [SENTI, "flow", "run", "gate", ...args], {
+    encoding: "utf8",
+    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+  });
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  const envelope = JSON.parse(result.stdout);
+  assert.equal(envelope.ok, false);
+  assert.ok(envelope.errors.some((error) => error.code === "STEP_EXTERNAL_BLOCKED"));
+  assert.equal(envelope.data.stepAttempt.outcome.kind, "external-blocked");
+  assert.equal(findInProgressLeaf(makeFlowManager(tmp).load().steps).id, "spec-gate");
+  return envelope;
 }
 
 function validSpecJson(overrides = {}) {
@@ -366,19 +387,15 @@ describe("gate CLI", () => {
     assert.equal(envelope.ok, true);
   });
 
-  it("returns ok:true with result:fail when task-spec markdown is empty", () => {
+  it("returns a typed external block when task-spec markdown is empty", () => {
     tmp = createTmpDir();
     initGateProject(tmp);
     writeFile(tmp, "spec.md", "# Empty spec\n");
 
-    const result = execFileSync("node", [
-      join(process.cwd(), "src/senti.js"),
-      "flow", "run", "gate",
+    const envelope = runBlockedGate(tmp, [
       "--phase", "task-spec",
       "--spec", join(tmp, "spec.md"),
-    ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
-    const envelope = JSON.parse(result);
-    assert.equal(envelope.ok, true);
+    ]);
     assert.equal(envelope.data.result, "fail");
     assert.ok(envelope.data.artifacts.issues.length > 0);
   });
@@ -442,16 +459,12 @@ describe("gate CLI", () => {
     });
     writeJson(tmp, "specs/001-test/spec.json", invalidSpec);
 
-    const result = execFileSync("node", [
-      join(process.cwd(), "src/senti.js"),
-      "flow", "run", "gate",
+    const envelope = runBlockedGate(tmp, [
       "--phase", "spec",
       "--spec", join(specDir, "spec.md"),
       "--skip-guardrail",
-    ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
-    const envelope = JSON.parse(result);
+    ]);
 
-    assert.equal(envelope.ok, true);
     assert.equal(envelope.data.result, "fail");
     assert.equal(envelope.data.artifacts.failureKind, "mechanical");
     assert.deepEqual(envelope.data.artifacts.evaluations, []);
@@ -469,7 +482,7 @@ describe("gate CLI", () => {
 
   it("phase=spec FAILs when spec.json has unresolved marker in goal (R3, R7)", () => {
     tmp = createTmpDir();
-    initGateProject(tmp);
+    initGateProject(tmp, { specId: "002-test" });
     const specDir = join(tmp, "specs", "002-test");
     const spec = {
       goal: "TBD",
@@ -486,21 +499,11 @@ describe("gate CLI", () => {
     };
     writeJson(tmp, "specs/002-test/spec.json", spec);
 
-    let envelope;
-    try {
-      const result = execFileSync("node", [
-        join(process.cwd(), "src/senti.js"),
-        "flow", "run", "gate",
-        "--phase", "spec",
-        "--spec", join(specDir, "spec.json"),
-        "--skip-guardrail",
-      ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
-      envelope = JSON.parse(result);
-    } catch (err) {
-      // gate FAIL → exit code 1 (R7). Parse stdout from error.
-      envelope = JSON.parse(err.stdout.toString());
-    }
-    assert.equal(envelope.ok, true);
+    const envelope = runBlockedGate(tmp, [
+      "--phase", "spec",
+      "--spec", join(specDir, "spec.json"),
+      "--skip-guardrail",
+    ]);
     assert.equal(envelope.data.result, "fail");
     assert.ok(
       envelope.data.artifacts.issues.some((i) => i.includes("goal") && /TBD/.test(i)),
@@ -510,7 +513,7 @@ describe("gate CLI", () => {
 
   it("phase=spec FAILs when spec.json fails schema validation (R2)", () => {
     tmp = createTmpDir();
-    initGateProject(tmp);
+    initGateProject(tmp, { specId: "003-test" });
     const specDir = join(tmp, "specs", "003-test");
     // Missing required field: acceptance_criteria
     const spec = {
@@ -527,20 +530,11 @@ describe("gate CLI", () => {
     };
     writeJson(tmp, "specs/003-test/spec.json", spec);
 
-    let envelope;
-    try {
-      const result = execFileSync("node", [
-        join(process.cwd(), "src/senti.js"),
-        "flow", "run", "gate",
-        "--phase", "spec",
-        "--spec", join(specDir, "spec.json"),
-        "--skip-guardrail",
-      ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
-      envelope = JSON.parse(result);
-    } catch (err) {
-      envelope = JSON.parse(err.stdout.toString());
-    }
-    assert.equal(envelope.ok, true);
+    const envelope = runBlockedGate(tmp, [
+      "--phase", "spec",
+      "--spec", join(specDir, "spec.json"),
+      "--skip-guardrail",
+    ]);
     assert.equal(envelope.data.result, "fail");
     assert.ok(
       envelope.data.artifacts.issues.some((i) => /schema|acceptance_criteria/i.test(i)),

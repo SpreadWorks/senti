@@ -107,7 +107,11 @@ export function resolveTestFiles(selection, {
 
   for (const file of selection.fileArgs) collectPath(file);
   for (const pattern of selection.patternArgs) {
-    const matches = globSync(pattern, { cwd: root });
+    const matches = globSync(pattern, {
+      cwd: root,
+      maxDepth,
+      maxEntries: maxFiles,
+    });
     if (matches.length === 0) throw new Error(`no files matched pattern: ${pattern}`);
     for (const match of matches) if (match.endsWith(".test.js")) collectPath(match);
   }

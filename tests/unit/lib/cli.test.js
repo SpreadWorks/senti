@@ -24,6 +24,20 @@ describe("parseArgs", () => {
     assert.equal(result.agent, "claude");
   });
 
+  it("parses options with optional values", () => {
+    const withoutValue = parseArgs(["--reset", "--dry-run"], {
+      flags: ["--dry-run"],
+      optionalOptions: ["--reset"],
+    });
+    assert.equal(withoutValue.reset, true);
+    assert.equal(withoutValue.dryRun, true);
+
+    const withValue = parseArgs(["--reset", "modules,commands"], {
+      optionalOptions: ["--reset"],
+    });
+    assert.equal(withValue.reset, "modules,commands");
+  });
+
   it("parses --help / -h", () => {
     assert.equal(parseArgs(["--help"], {}).help, true);
     assert.equal(parseArgs(["-h"], {}).help, true);

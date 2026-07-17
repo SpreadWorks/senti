@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 import { Container } from "../../src/lib/container.js";
 import { FlowManager } from "../../src/lib/flow-manager.js";
-import { FLOW_STEPS, buildInitialSteps } from "../../src/lib/flow-helpers.js";
-import { findStepById } from "../../src/flow/lib/step-tree.js";
+import { buildInitialSteps } from "../../src/lib/flow-helpers.js";
+import { findStepById, flattenSteps } from "../../src/flow/lib/step-tree.js";
 
 /**
  * Build a fresh Container instance with `flowManager` registered for a test
@@ -40,7 +40,7 @@ const DEFAULT_TASK = {
 };
 
 export function makeDefaultTask(overrides = {}) {
-  return { ...DEFAULT_TASK, ...overrides };
+  return { ...structuredClone(DEFAULT_TASK), ...structuredClone(overrides) };
 }
 
 export function makeFlowState(overrides = {}) {
@@ -51,14 +51,42 @@ export function makeFlowState(overrides = {}) {
     featureBranch: "feature/001-test",
     steps: buildInitialSteps(),
     requirements: [],
-    tasks: [{ ...DEFAULT_TASK }],
+    tasks: [makeDefaultTask()],
     currentTaskId: null,
-    ...overrides,
+    ...structuredClone(overrides),
   };
+}
+
+/**
+ * Move a fresh full flow fixture to one definition leaf while preserving the
+ * current FlowState invariant of at most one in-progress flow leaf.
+ */
+export function moveFlowToStep(state, stepId, { completePrevious = true } = {}) {
+  const leaves = flattenSteps(state.steps);
+  const targetIndex = leaves.findIndex((step) => step.id === stepId);
+  if (targetIndex < 0) throw new Error(`unknown flow step: ${stepId}`);
+
+  for (const [index, step] of leaves.entries()) {
+    if (index === targetIndex) {
+      step.status = "in_progress";
+    } else {
+      step.status = completePrevious && index < targetIndex ? "done" : "pending";
+    }
+  }
+  return state;
 }
 
 export function setupFlow(tmp, overrides = {}) {
   const state = makeFlowState(overrides);
+  return persistFlow(tmp, state);
+}
+
+export function setupFlowAtStep(tmp, stepId, overrides = {}) {
+  const state = moveFlowToStep(makeFlowState(overrides), stepId);
+  return persistFlow(tmp, state);
+}
+
+function persistFlow(tmp, state) {
   const fm = makeFlowManager(tmp);
   fm.create(state);
   const specId = state.spec.split("/")[1];

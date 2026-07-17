@@ -99,7 +99,6 @@ describe("resumable finalization outbox", () => {
     const actions = resolveLifecycle({
       event: "report:post",
       command: "report",
-      currentStepId: "report",
       result: { result: "ok" },
     });
     assert.ok(actions[0] instanceof CompleteOutboxEffect);

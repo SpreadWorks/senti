@@ -32,6 +32,25 @@ describe("dispatcher (unified runner)", () => {
       assert.equal(captured.dryRun, true);
       assert.equal(captured.mode, "select");
     });
+
+    it("parses options with optional values before calling command", async () => {
+      const captured = [];
+      class Cmd extends Command {
+        static outputMode = "raw";
+        execute(ctx) {
+          captured.push(ctx);
+        }
+      }
+      const entry = {
+        command: async () => ({ default: Cmd }),
+        args: { flags: ["--dry-run"], optionalOptions: ["--reset"] },
+      };
+      await dispatch({ container, entry, argv: ["--reset", "--dry-run"] });
+      await dispatch({ container, entry, argv: ["--reset", "modules"] });
+      assert.equal(captured[0].reset, true);
+      assert.equal(captured[0].dryRun, true);
+      assert.equal(captured[1].reset, "modules");
+    });
   });
 
   describe("lifecycle hooks (R4)", () => {

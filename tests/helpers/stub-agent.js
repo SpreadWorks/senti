@@ -42,6 +42,30 @@ export function writeCapturingStubAgentScript(dir, relPath, capturePath, jsonRes
   return scriptPath;
 }
 
+/**
+ * Write a deterministic stub that selects a response from prompt markers.
+ * Cases are checked in order; the fallback is emitted when none match.
+ */
+export function writePromptDispatchStubAgentScript(dir, relPath, cases, fallbackResponse) {
+  const scriptPath = join(dir, relPath);
+  const routes = cases.map(({ includes, response }) => ({
+    includes: String(includes),
+    response: String(response),
+  }));
+  const body = [
+    "#!/usr/bin/env node",
+    `const routes = ${JSON.stringify(routes)};`,
+    `const fallback = ${JSON.stringify(String(fallbackResponse))};`,
+    "const prompt = process.argv.slice(2).join('\\n');",
+    "const route = routes.find((candidate) => prompt.includes(candidate.includes));",
+    "process.stdout.write(route ? route.response : fallback);",
+    "",
+  ].join("\n");
+  writeFileSync(scriptPath, body);
+  chmodSync(scriptPath, 0o755);
+  return scriptPath;
+}
+
 export function stubAgentConfig(scriptPath) {
   return {
     default: "stub-agent",

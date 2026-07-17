@@ -6,7 +6,11 @@
  * task-level task-gate remains mapped to task-impl.
  */
 
-import { collectFlowLeafIds, collectGatePhaseEntries } from "../definition.js";
+import {
+  collectFlowLeafIds,
+  collectGatePhaseEntries,
+  findActiveNode,
+} from "../definition.js";
 
 const PHASE_TO_STEP_ENTRIES = Object.freeze(collectGatePhaseEntries());
 
@@ -24,6 +28,14 @@ export const STEP_TO_PHASE = Object.freeze(
 export function resolveGateStepId(phase) {
   const step = PHASE_TO_STEP[phase];
   return step || "spec-gate";
+}
+
+export function resolveScopedGateStepId(state, phase) {
+  const activeNode = findActiveNode(state);
+  if (phase === "task-impl" && activeNode?.stepId === "task-gate") {
+    return activeNode.stepId;
+  }
+  return resolveGateStepId(phase);
 }
 
 const TASK_STEP_TO_PHASE = Object.freeze({

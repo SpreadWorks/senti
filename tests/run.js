@@ -1,14 +1,20 @@
 #!/usr/bin/env node
-import { existsSync, globSync, readdirSync, statSync, writeSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readdirSync, statSync, writeSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { getPresetAliasNames, resolvePresetTestName } from "./helpers/preset-aliases.js";
+import { globFilesSync } from "./helpers/test-file-glob.js";
 import { buildSearchDirs } from "./helpers/test-runner-search-dirs.js";
-import { formatLabelSummary, groupTestFilesByCategory } from "./helpers/test-runner-labels.js";
+import {
+  formatLabelSummary,
+  groupTestFilesByCategory,
+  parsePassCount,
+} from "./helpers/test-runner-labels.js";
 import { resolveTestFiles } from "./helpers/test-selection.js";
 import { TestRunner } from "./helpers/test-runner.js";
 
-const ROOT = resolve(import.meta.dirname, "..");
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 function getRealPresetNames() {
   return [];
@@ -35,7 +41,7 @@ function resolveFiles(selection) {
     existsSync,
     statSync,
     readdirSync,
-    globSync,
+    globSync: globFilesSync,
     searchDirs,
   });
 }
@@ -54,8 +60,9 @@ function executeFiles(files) {
     });
     if (result.stdout) writeSync(1, result.stdout);
     if (result.stderr) writeSync(2, result.stderr);
-    const pass = /^\s*#\s*pass\s+(\d+)\s*$/m.exec((result.stdout || "") + (result.stderr || ""));
-    if (category !== "other") counts[category] = pass ? Number(pass[1]) : 0;
+    if (category !== "other") {
+      counts[category] = parsePassCount((result.stdout || "") + (result.stderr || ""));
+    }
     if ((result.status ?? 1) !== 0 && exitCode === 0) exitCode = result.status ?? 1;
   }
   writeSync(1, `\n${formatLabelSummary(counts)}\n`);

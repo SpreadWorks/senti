@@ -773,6 +773,12 @@ export class FlowStore {
     this.mutate((state) => {
       const task = (state.tasks || []).find((t) => t.id === taskId);
       if (!task) throw new Error(`unknown task id: ${taskId}`);
+      const finishedAt = new Date().toISOString();
+      for (const step of task.steps || []) {
+        if (step.status !== "in_progress") continue;
+        step.status = "done";
+        step.finishedAt = finishedAt;
+      }
       task.status = "done";
       if (state.currentTaskId === taskId) state.currentTaskId = null;
 

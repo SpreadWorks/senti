@@ -11,8 +11,8 @@
 
 import fs from "fs";
 import path from "path";
-import { pathToFileURL } from "url";
 import { container, initContainer } from "../../lib/container.js";
+import { EsmModule } from "../../lib/esm-module.js";
 
 const MAX_DATA_SOURCE_FILES = 1000;
 
@@ -57,7 +57,7 @@ export async function loadDataSources(dataDir, opts) {
     const filePath = path.join(dataDir, file);
     let mod;
     try {
-      mod = await import(pathToFileURL(filePath).href);
+      mod = await new EsmModule(filePath).import();
     } catch (err) {
       throw new Error(`failed to load DataSource at ${filePath}: ${err.message}`, { cause: err });
     }

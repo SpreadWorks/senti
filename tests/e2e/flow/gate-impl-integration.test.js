@@ -19,7 +19,7 @@ import { spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll, checkoutNewBranch } from "../../helpers/git-repo.js";
 import { writeStubAgentScript, stubAgentConfig, defaultPassResponse } from "../../helpers/stub-agent.js";
-import { FLOW_STEPS } from "../../../src/lib/flow-helpers.js";
+import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 
 const CMD = path.join(process.cwd(), "src/senti.js");
 const SPEC_ID = "001-test";
@@ -120,17 +120,18 @@ function setupFixture(tmp, {
   for (let i = 0; i < (gateRetry || 0); i++) {
     metrics.push({ phase: "task-impl", counter: "gateRetry", delta: 1, taskId: null, ts: new Date().toISOString() });
   }
-  writeJson(tmp, `specs/${SPEC_ID}/flow.json`, {
+  const flowState = makeFlowState({
     spec: SPEC_PATH,
     runId: `run-${SPEC_ID}`,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
-    steps: FLOW_STEPS.map((id) => ({ id, status: "pending" })),
     requirements: [],
     tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     currentTaskId: null,
     metrics,
   });
+  moveFlowToStep(flowState, "impl-gate");
+  writeJson(tmp, `specs/${SPEC_ID}/flow.json`, flowState);
 
   // Active flow pointer — format is `[{ spec: <specId>, mode }]`.
   writeJson(tmp, ".senti/.active-flow", [
@@ -332,8 +333,10 @@ describe("gate-impl integration (spec 202)", () => {
     });
 
     const res = runGate(tmp, ["--skip-guardrail"]);
-    assert.equal(res.status, 0, `stderr=${res.stderr}`);
+    assert.equal(res.status, 1, `stdout=${res.stdout}\nstderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
+    assert.equal(env.ok, false);
+    assert.ok(env.errors.some((error) => error.code === "STEP_EXTERNAL_BLOCKED"));
     assert.equal(env.data.result, "fail");
     assert.deepEqual(env.data.artifacts.issues, ["spec.json has no requirements with usable ids"]);
   });

@@ -281,7 +281,7 @@ const docsDefinitionData = [
 
 const docsArgs = {
   init: { flags: ["--force", "--dry-run"], options: ["--type"] },
-  scan: { flags: ["--stdout", "--dry-run"], options: ["--reset"] },
+  scan: { flags: ["--stdout", "--dry-run"], optionalOptions: ["--reset"] },
   text: { flags: ["--dry-run", "--per-directive"], options: ["--agent", "--id", "--timeout"] },
 };
 

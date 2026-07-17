@@ -1,5 +1,5 @@
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../helpers/flow-setup.js";
+import { makeFlowManager, makeFlowState, moveFlowToStep } from "../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "fs";
 import { join } from "path";
@@ -88,24 +88,24 @@ describe("flow-state (specs-based storage)", () => {
   it("saveFlowState writes to specs/NNN/flow.json", () => {
     tmp = createTmpDir();
     const specId = "001-test";
-    const state = {
+    const state = makeFlowState({
       spec: `specs/${specId}/spec.json`,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
-    };
+    });
     makeFlowManager(tmp).create(state);
     assert.ok(fs.existsSync(join(tmp, "specs", specId, "flow.json")));
   });
 
   it("saveFlowState does NOT write to .senti/flow.json", () => {
     tmp = createTmpDir();
-    const state = {
+    const state = makeFlowState({
       spec: "specs/001-test/spec.json",
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
-    };
+    });
     makeFlowManager(tmp).create(state);
     assert.ok(!fs.existsSync(join(tmp, ".senti", "flow.json")));
   });
@@ -113,14 +113,12 @@ describe("flow-state (specs-based storage)", () => {
   it("loadFlowState reads from specs/NNN/flow.json via .active-flow", () => {
     tmp = createTmpDir();
     const specId = "001-test";
-    const state = {
+    const state = makeFlowState({
       spec: `specs/${specId}/spec.json`,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
+    });
     // Manually set up: write flow.json + .active-flow
     const flowDir = join(tmp, "specs", specId);
     fs.mkdirSync(flowDir, { recursive: true });
@@ -143,12 +141,12 @@ describe("flow-state (specs-based storage)", () => {
   it("clearFlowState removes entry from .active-flow but keeps flow.json", () => {
     tmp = createTmpDir();
     const specId = "001-test";
-    const state = {
+    const state = makeFlowState({
       spec: `specs/${specId}/spec.json`,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
-    };
+    });
     makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow(specId, "local");
 
@@ -168,18 +166,15 @@ describe("flow-state steps and requirements", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  function setupFlow(dir) {
+  function setupFlow(dir, configure = () => {}) {
     const specId = "001-test";
-    const state = {
+    const state = makeFlowState({
       spec: `specs/${specId}/spec.json`,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-default", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
+    });
+    configure(state);
     makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
     return specId;
@@ -241,10 +236,11 @@ describe("flow-state steps and requirements", () => {
 
   it("updateStepStatus does NOT promote when another step is already in_progress (REQ-2)", () => {
     tmp = createTmpDir();
-    setupFlow(tmp);
+    setupFlow(tmp, (state) => {
+      moveFlowToStep(state, "spec", { completePrevious: false });
+    });
     const fm = makeFlowManager(tmp);
-    // Put `spec` into in_progress first, then mark `branch` done.
-    fm.updateStepStatus("spec", "in_progress");
+    // Keep `spec` in_progress while marking `branch` done.
     fm.updateStepStatus("branch", "done");
     const loaded = fm.load();
     const spec = findStepById(loaded.steps, "spec");
@@ -292,16 +288,12 @@ describe("setIssue", () => {
 
   function setupFlow(dir) {
     const specId = "001-test";
-    const state = {
+    const state = makeFlowState({
       spec: `specs/${specId}/spec.json`,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-default", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
+    });
     makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
     return specId;

@@ -32,7 +32,7 @@ function throwUnexpected(extras) {
   throw new Error(`Unexpected argument: ${extras[0]}`);
 }
 
-function splitArgsBySpec(argv, flagSet, optionSet) {
+function splitArgsBySpec(argv, flagSet, optionSet, optionalOptionSet) {
   const nonPositional = [];
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
@@ -51,6 +51,14 @@ function splitArgsBySpec(argv, flagSet, optionSet) {
       }
       nonPositional.push(a);
       nonPositional.push(argv[++i]);
+      continue;
+    }
+    if (optionalOptionSet.has(a)) {
+      nonPositional.push(a);
+      const value = argv[i + 1];
+      if (value != null && String(value).trim() !== "" && !String(value).startsWith("-")) {
+        nonPositional.push(argv[++i]);
+      }
       continue;
     }
     // Unrecognized `-`-prefixed token → unknown option; non-dash tokens fall
@@ -86,14 +94,16 @@ export function parseEntryInput(entry, argv) {
   const positionalNames = spec.positional || [];
   const flags = spec.flags || [];
   const options = spec.options || [];
+  const optionalOptions = spec.optionalOptions || [];
 
   const { nonPositional, positional } = splitArgsBySpec(
     argv,
     new Set(flags),
     new Set(options),
+    new Set(optionalOptions),
   );
 
-  const parsed = cliParseArgs(nonPositional, { flags, options });
+  const parsed = cliParseArgs(nonPositional, { flags, options, optionalOptions });
 
   for (let i = 0; i < positionalNames.length && i < positional.length; i++) {
     parsed[positionalNames[i]] = positional[i];

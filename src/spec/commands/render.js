@@ -10,13 +10,17 @@
 
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { validateSchema } from "../../lib/schema-validate.js";
 import { getSpecDir } from "../../lib/flow-helpers.js";
 
-const SCHEMA_PATH = path.join(import.meta.dirname, "..", "..", "flow", "schemas", "spec.schema.json");
+const SCHEMA_PATH = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..", "..", "flow", "schemas", "spec.schema.json",
+);
 
 function printHelp() {
   console.log(

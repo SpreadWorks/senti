@@ -19,7 +19,7 @@ import {
   VALID_REVIEW_PHASES,
   VALID_GUARDRAIL_PHASES,
 } from "../lib/constants.js";
-import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
+import { resolveGatePhaseFromState, resolveScopedGateStepId } from "./lib/gate-step.js";
 import {
   findActiveNode,
   resolveLifecycle,
@@ -192,17 +192,9 @@ function tryAppendIssueLog(fn) {
   }
 }
 
-function scopedGateStepId(flowState, phase) {
-  const activeNode = findActiveNode(flowState);
-  if (phase === "task-impl" && activeNode?.stepId === "task-gate") {
-    return activeNode.stepId;
-  }
-  return resolveGateStepId(phase);
-}
-
 function gateRuntimeLogStepId(ctx) {
   const phase = ctx.phase || resolveGatePhaseFromState(ctx.flowState)?.phase;
-  return scopedGateStepId(ctx.flowState, phase);
+  return resolveScopedGateStepId(ctx.flowState, phase);
 }
 
 function activeStepId(flowState, stepIds) {
@@ -266,7 +258,7 @@ class RegistryLifecycleAdapter {
 
   mutationStep(step) {
     if (step !== "impl-gate" || this.phase !== "task-impl") return step;
-    return scopedGateStepId(this.ctx.flowState, this.phase);
+    return resolveScopedGateStepId(this.ctx.flowState, this.phase);
   }
 
   setStepStatus(step, status) {

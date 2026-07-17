@@ -1,5 +1,5 @@
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { makeFlowManager, makeFlowState } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
@@ -15,13 +15,13 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
       type: "base",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
-    writeJson(tmp, "specs/001-alpha/flow.json", {
+    writeJson(tmp, "specs/001-alpha/flow.json", makeFlowState({
       spec: "specs/001-alpha/spec.json",
       runId: "test-run",
       metrics: [],
       tasks: [],
       currentTaskId: null,
-    });
+    }));
 
     const iso = "2026-04-17T10:30:00.000Z";
     makeFlowManager(tmp).saveFinalizedAt("001-alpha", iso);
@@ -40,12 +40,12 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
       type: "base",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
-    writeJson(tmp, "specs/001-alpha/flow.json", {
+    writeJson(tmp, "specs/001-alpha/flow.json", makeFlowState({
       spec: "specs/001-alpha/spec.json",
       runId: "test-run",
       tasks: [],
       currentTaskId: null,
-    });
+    }));
 
     assert.throws(
       () => makeFlowManager(tmp).saveFinalizedAt("001-alpha", "2026-04-17 10:30:00"),

@@ -2,10 +2,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 
 const SCHEMA_PATH = path.resolve(
-  import.meta.dirname,
+  path.dirname(fileURLToPath(import.meta.url)),
   "../../../src/flow/schemas/next-action/update-overview.schema.json",
 );
 

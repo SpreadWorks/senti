@@ -5,7 +5,7 @@ import path from "path";
 import { spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../helpers/tmp-dir.js";
 import { initGitRepo, commitAll, checkoutNewBranch } from "../helpers/git-repo.js";
-import { FLOW_STEPS } from "../../src/lib/flow-helpers.js";
+import { setupFlowAtStep } from "../helpers/flow-setup.js";
 
 const CMD = path.join(process.cwd(), "src/senti.js");
 const SPEC_ID = "001-forest-e2e";
@@ -26,7 +26,28 @@ function readFlowJson(tmp) {
   return JSON.parse(fs.readFileSync(path.join(tmp, `specs/${SPEC_ID}/flow.json`), "utf8"));
 }
 
-function setupForestFixture(tmp) {
+function flowTask(id, status = "pending") {
+  const stepStatus = status === "done" ? "done" : "pending";
+  return {
+    id,
+    title: `${id} task`,
+    goal: `Complete ${id}`,
+    spec: `specs/${SPEC_ID}/tasks/${id}.md`,
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status,
+    steps: [
+      { id: "task-impl", status: stepStatus },
+      { id: "task-review", status: stepStatus },
+      { id: "task-gate", status: stepStatus },
+    ],
+    requirements: [],
+    summary: null,
+  };
+}
+
+function setupForestFixture(tmp, { step = "implement", tasks = [flowTask("T-1"), flowTask("T-2")] } = {}) {
   writeJson(tmp, ".senti/config.json", {
     lang: "ja",
     type: "base",
@@ -56,29 +77,22 @@ function setupForestFixture(tmp) {
   });
 
   writeFile(tmp, `specs/${SPEC_ID}/spec.md`, "# Forest E2E Fixture\n## Goal\nForest E2E test.\n");
+  writeFile(tmp, `specs/${SPEC_ID}/tasks/T-1.md`, "# T-1\n\nDo first thing.\n");
+  writeFile(tmp, `specs/${SPEC_ID}/tasks/T-2.md`, "# T-2\n\nDo second thing.\n");
 
-  const flowState = {
+  setupFlowAtStep(tmp, step, {
     spec: SPEC_PATH,
     runId: `run-${SPEC_ID}`,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
-    steps: FLOW_STEPS.map((id) => ({
-      id,
-      status: ["branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval", "test"].includes(id) ? "done" : "pending",
-    })),
     requirements: [
       { id: "R1", desc: "task 1 passes", priority: "must", status: "pending" },
       { id: "R2", desc: "task 2 passes", priority: "must", status: "pending" },
     ],
-    tasks: [
-      { id: "T-1", title: "First task", goal: "Do first thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "task-impl", status: "pending" }, { id: "task-review", status: "pending" }, { id: "task-gate", status: "pending" }] },
-      { id: "T-2", title: "Second task", goal: "Do second thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "task-impl", status: "pending" }, { id: "task-review", status: "pending" }, { id: "task-gate", status: "pending" }] },
-    ],
+    tasks,
     currentTaskId: null,
     metrics: [],
-  };
-  writeJson(tmp, `specs/${SPEC_ID}/flow.json`, flowState);
-  writeJson(tmp, ".senti/.active-flow", [{ spec: SPEC_ID, mode: "local" }]);
+  });
 
   initGitRepo(tmp);
   commitAll(tmp, "initial");
@@ -92,7 +106,7 @@ describe("REQ-C1: E2E forest lifecycle via CLI", () => {
 
   it("sync-spec-tasks populates flow tasks from spec.json", () => {
     tmp = createTmpDir();
-    setupForestFixture(tmp);
+    setupForestFixture(tmp, { step: "approval", tasks: [] });
 
     const res = run(tmp, ["flow", "set", "step", "approval", "done"]);
     assert.equal(res.status, 0, `set step failed: ${res.stderr}`);
@@ -101,37 +115,29 @@ describe("REQ-C1: E2E forest lifecycle via CLI", () => {
     assert.ok(flow.tasks.length >= 2, `expected at least 2 tasks, got ${flow.tasks.length}`);
   });
 
-  it("flow get next-action returns task-scope step when currentTaskId is set", () => {
+  it("flow get next-action promotes pending work into task scope", () => {
     tmp = createTmpDir();
     setupForestFixture(tmp);
-
-    const flow = readFlowJson(tmp);
-    flow.currentTaskId = "T-1";
-    flow.tasks[0].status = "in_progress";
-    flow.tasks[0].steps[0].status = "in_progress";
-    const implStep = flow.steps.find((s) => s.id === "implement");
-    if (implStep) implStep.status = "in_progress";
-    fs.writeFileSync(path.join(tmp, `specs/${SPEC_ID}/flow.json`), JSON.stringify(flow, null, 2));
 
     const res = run(tmp, ["flow", "get", "next-action"]);
     assert.equal(res.status, 0, `next-action failed: ${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.data.taskId, "T-1");
+    assert.equal(env.data.step, "task-impl");
   });
 
   it("complete-task marks task done and promotes next pending", () => {
     tmp = createTmpDir();
     setupForestFixture(tmp);
 
-    const flow = readFlowJson(tmp);
-    flow.currentTaskId = "T-1";
-    flow.tasks[0].status = "in_progress";
-    for (const s of flow.tasks[0].steps) s.status = "done";
-    const implStep = flow.steps.find((s) => s.id === "implement");
-    if (implStep) implStep.status = "in_progress";
-    fs.writeFileSync(path.join(tmp, `specs/${SPEC_ID}/flow.json`), JSON.stringify(flow, null, 2));
+    let res = run(tmp, ["flow", "get", "next-action"]);
+    assert.equal(res.status, 0, `next-action failed: ${res.stderr}`);
+    for (const step of ["task-impl", "task-review", "task-gate"]) {
+      res = run(tmp, ["flow", "set", "step", step, "done"]);
+      assert.equal(res.status, 0, `set ${step} failed: ${res.stderr}`);
+    }
 
-    const res = run(tmp, ["flow", "run", "complete-task", "--task-id", "T-1"]);
+    res = run(tmp, ["flow", "run", "complete-task", "--task-id", "T-1"]);
     assert.equal(res.status, 0, `complete-task failed: ${res.stderr}`);
 
     const updated = readFlowJson(tmp);
@@ -142,17 +148,7 @@ describe("REQ-C1: E2E forest lifecycle via CLI", () => {
 
   it("all tasks done transitions flow to finalize-eligible state", () => {
     tmp = createTmpDir();
-    setupForestFixture(tmp);
-
-    const flow = readFlowJson(tmp);
-    for (const task of flow.tasks) {
-      task.status = "done";
-      for (const s of task.steps) s.status = "done";
-    }
-    flow.currentTaskId = null;
-    const implStep = flow.steps.find((s) => s.id === "implement");
-    if (implStep) implStep.status = "in_progress";
-    fs.writeFileSync(path.join(tmp, `specs/${SPEC_ID}/flow.json`), JSON.stringify(flow, null, 2));
+    setupForestFixture(tmp, { tasks: [flowTask("T-1", "done"), flowTask("T-2", "done")] });
 
     const res = run(tmp, ["flow", "get", "next-action"]);
     assert.equal(res.status, 0, `next-action failed: ${res.stderr}`);

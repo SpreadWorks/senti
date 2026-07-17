@@ -8,10 +8,11 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { resolve, join } from "node:path";
+import { dirname, resolve, join } from "node:path";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const ROOT = resolve(import.meta.dirname, "..", "..");
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RUN_JS = resolve(ROOT, "tests", "run.js");
 
 function run(...args) {
@@ -198,9 +199,10 @@ describe("tests/run.js label summary with file-spec (spec 229 R5)", () => {
   });
 });
 
-describe("tests/run.js existing flags unchanged (spec 229 AC9)", () => {
-  it("no-flags run still works", () => {
-    const res = run();
-    assert.equal(typeof res.status, "number");
+describe("tests/run.js default selection unchanged (spec 229 AC9)", () => {
+  it("no suite selector keeps the default selection", () => {
+    const res = run("--list", "--json");
+    assert.equal(res.status, 0, `stderr: ${res.stderr}`);
+    assert.equal(JSON.parse(res.stdout).selection.mode, "default");
   });
 });

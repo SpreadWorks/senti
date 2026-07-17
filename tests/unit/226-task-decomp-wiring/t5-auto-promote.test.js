@@ -13,16 +13,16 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager } from "../../helpers/flow-setup.js";
+import { setupFlow, setupFlowAtStep, makeFlowManager } from "../../helpers/flow-setup.js";
 import {
   promoteNextPending,
   findNextPendingTask,
   buildInitialSteps,
   buildInitialTaskSteps,
 } from "../../../src/lib/flow-helpers.js";
-import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
+import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { syncSpecTasksToFlow } from "../../../src/flow/lib/sync-spec-tasks.js";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -161,26 +161,79 @@ describe("T-5: auto-promote function and callers", () => {
     assert.equal(t1.status, "in_progress");
   });
 
-  it("impl-gate PASS post-hook calls completeTask then promoteNextPending", () => {
+  it("task-impl gate PASS side effects complete the current task and promote the next task", () => {
     tmp = createTmpDir();
+    const specDir = path.join(tmp, "specs/226-gate-impl");
+    fs.mkdirSync(path.join(specDir, "tasks"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
+    fs.writeFileSync(path.join(tmp, ".senti/config.json"), JSON.stringify({
+      lang: "en",
+      type: "base",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+    }));
+    fs.writeFileSync(path.join(tmp, "src/value.js"), "export const value = 1;\n");
+    fs.writeFileSync(path.join(specDir, "tasks/T-1.md"), "# T-1\n\nImplement the value change.\n");
+    fs.writeFileSync(path.join(specDir, "tasks/T-2.md"), "# T-2\n\nImplement the next change.\n");
+    writeSpecJson(tmp, "specs/226-gate-impl/spec.json", baseSpec([]));
+
+    execFileSync("git", ["init", "-q", "-b", "main"], { cwd: tmp });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: tmp });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: tmp });
+    execFileSync("git", ["add", "-A"], { cwd: tmp });
+    execFileSync("git", ["commit", "-q", "-m", "initial"], { cwd: tmp });
+    execFileSync("git", ["checkout", "-q", "-b", "feature/226-gate-impl"], { cwd: tmp });
+
     // Set up flow with two tasks: T-1 in_progress, T-2 pending.
+    const steps = buildInitialSteps();
+    const flowLeaves = flattenSteps(steps);
+    const implementIndex = flowLeaves.findIndex((step) => step.id === "implement");
+    for (let index = 0; index < flowLeaves.length; index += 1) {
+      flowLeaves[index].status = index < implementIndex
+        ? "done"
+        : index === implementIndex
+          ? "in_progress"
+          : "pending";
+    }
     const tasks = [
-      { ...makePendingTask("T-1"), status: "in_progress" },
-      makePendingTask("T-2"),
+      {
+        ...makePendingTask("T-1"),
+        spec: "specs/226-gate-impl/tasks/T-1.md",
+        status: "in_progress",
+        steps: [
+          { id: "task-impl", status: "done" },
+          { id: "task-review", status: "done" },
+          { id: "task-gate", status: "in_progress" },
+        ],
+      },
+      {
+        ...makePendingTask("T-2"),
+        spec: "specs/226-gate-impl/tasks/T-2.md",
+      },
     ];
     setupFlow(tmp, {
       spec: "specs/226-gate-impl/spec.json",
+      baseBranch: "main",
+      featureBranch: "feature/226-gate-impl",
+      steps,
       tasks,
       currentTaskId: "T-1",
     });
+    fs.writeFileSync(path.join(tmp, "src/value.js"), "export const value = 2;\n");
     const fm = makeFlowManager(tmp);
 
-    // Simulate what the impl-gate PASS post-hook does (registry.js):
-    //   1. fm.completeTask(state.currentTaskId)
-    //   2. fm.mutate((s) => { promoteNextPending(s); })
-    const state = fm.load();
-    fm.completeTask(state.currentTaskId);
-    fm.mutate((s) => { promoteNextPending(s); });
+    const cli = path.join(process.cwd(), "src/senti.js");
+    const result = spawnSync(process.execPath, [
+      cli,
+      "flow", "run", "gate",
+      "--phase", "task-impl",
+      "--skip-guardrail",
+    ], {
+      cwd: tmp,
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+    });
+    assert.equal(result.status, 0, `gate failed: ${result.stderr}`);
 
     const after = fm.load();
     // T-1 completed, T-2 auto-promoted
@@ -227,8 +280,15 @@ describe("T-5: auto-promote function and callers", () => {
 
   it("completeTask does NOT call promoteNextPending (separation of concerns)", () => {
     tmp = createTmpDir();
+    const task = { ...makePendingTask("T-1"), status: "in_progress" };
+    task.steps = buildInitialTaskSteps("plan");
+    for (const step of task.steps) {
+      step.status = step.id === "task-gate"
+        ? "in_progress"
+        : "done";
+    }
     const tasks = [
-      { ...makePendingTask("T-1"), status: "in_progress" },
+      task,
       makePendingTask("T-2"),
     ];
     setupFlow(tmp, {
@@ -295,14 +355,9 @@ describe("T-5: auto-promote function and callers", () => {
       if (s.id === "task-impl") s.status = "in_progress";
     }
     const tasks = [t1, makePendingTask("T-2")];
-    const steps = buildInitialSteps();
-    // implement step at flow level must be in_progress for context
-    const impl = findStepById(steps, "implement");
-    if (impl) impl.status = "in_progress";
-    setupFlow(tmp, {
+    setupFlowAtStep(tmp, "implement", {
       tasks,
       currentTaskId: "T-1",
-      steps,
     });
 
     const CLI = path.join(process.cwd(), "src/senti.js");

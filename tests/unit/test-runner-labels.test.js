@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import {
   categorizeTestFile,
   formatLabelSummary,
+  parsePassCount,
 } from "../helpers/test-runner-labels.js";
 
 describe("categorizeTestFile", () => {
@@ -55,5 +56,15 @@ describe("formatLabelSummary", () => {
   it("treats missing keys as 0 (never omits lines)", () => {
     const out = formatLabelSummary({ unit: 4 });
     assert.equal(out, "unit: 4\nintegration: 0\nacceptance: 0");
+  });
+});
+
+describe("parsePassCount", () => {
+  it("reads the Node 18 TAP summary", () => {
+    assert.equal(parsePassCount("# tests 12\n# pass 11\n# fail 1\n"), 11);
+  });
+
+  it("reads the Node 24 TAP summary", () => {
+    assert.equal(parsePassCount("ℹ tests 12\nℹ pass 12\nℹ fail 0\n"), 12);
   });
 });

@@ -9,13 +9,14 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   buildSearchDirs,
   validateFlags,
 } from "../helpers/test-runner-search-dirs.js";
 
-const ROOT = resolve(import.meta.dirname, "..", "..");
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RUN_JS = resolve(ROOT, "tests", "run.js");
 
 describe("buildSearchDirs", () => {

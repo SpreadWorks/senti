@@ -45,7 +45,11 @@ import {
 } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
-import { resolveGateStepId, resolveGatePhaseFromState } from "./gate-step.js";
+import {
+  resolveGatePhaseFromState,
+  resolveGateStepId,
+  resolveScopedGateStepId,
+} from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { contractFromGateArtifact, repoRelative } from "./flow-judgment-contract.js";
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
@@ -116,7 +120,7 @@ export async function executeGateSideEffects(ctx, phase) {
   const { deriveNextAction } = await import("../definition.js");
   const fm = ctx.flowManager;
   const state = fm.load();
-  const stepId = resolveGateStepId(phase);
+  const stepId = resolveScopedGateStepId(state, phase);
   const scope = state?.currentTaskId != null ? "task" : "flow";
   const derived = deriveNextAction({ scope, stepId, context: state });
   const sideEffects = derived?.sideEffects;

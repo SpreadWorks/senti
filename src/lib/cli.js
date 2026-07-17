@@ -52,6 +52,7 @@ export function sourceRoot() {
  * @param {Object}   spec
  * @param {string[]} [spec.flags]    - ブール型フラグ (例: ["--dry-run","--force"])
  * @param {string[]} [spec.options]  - 値付きオプション (例: ["--type","--agent"])
+ * @param {string[]} [spec.optionalOptions] - 任意の値を取るオプション (例: ["--reset"])
  * @param {Object}   [spec.aliases]  - 短縮名マップ (例: { "-v": "--verbose" })
  * @param {Object}   [spec.defaults] - デフォルト値
  * @returns {Object} パース済みオプション (help は常に含む)
@@ -59,6 +60,7 @@ export function sourceRoot() {
 export function parseArgs(argv, spec) {
   const flags = new Set(spec.flags || []);
   const options = new Set(spec.options || []);
+  const optionalOptions = new Set(spec.optionalOptions || []);
   const aliases = spec.aliases || {};
   const opts = { ...spec.defaults, help: false };
 
@@ -78,6 +80,16 @@ export function parseArgs(argv, spec) {
       }
       opts[flagKey(a)] = String(value).trim();
       i += 1;
+      continue;
+    }
+    if (optionalOptions.has(a)) {
+      const value = argv[i + 1];
+      if (value != null && String(value).trim() !== "" && !String(value).startsWith("-")) {
+        opts[flagKey(a)] = String(value).trim();
+        i += 1;
+      } else {
+        opts[flagKey(a)] = true;
+      }
       continue;
     }
     throw new Error(`Unknown option: ${a}`);

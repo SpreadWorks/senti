@@ -2,9 +2,13 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 
-const SCHEMA_PATH = path.resolve(import.meta.dirname, "../../../src/flow/schemas/spec.schema.json");
+const SCHEMA_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../src/flow/schemas/spec.schema.json",
+);
 
 function loadSchema() {
   const text = fs.readFileSync(SCHEMA_PATH, "utf8");

@@ -32,6 +32,11 @@ export function formatLabelSummary(counts) {
   return `unit: ${u}\nintegration: ${i}\nacceptance: ${a}`;
 }
 
+export function parsePassCount(output) {
+  const match = /^\s*(?:#|ℹ)\s*pass\s+(\d+)\s*$/mu.exec(output || "");
+  return match ? Number(match[1]) : 0;
+}
+
 export function groupTestFilesByCategory(files) {
   const groups = { unit: [], integration: [], acceptance: [], other: [] };
   for (const f of files) {

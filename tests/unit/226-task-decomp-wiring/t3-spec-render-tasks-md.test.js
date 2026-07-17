@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderTaskMarkdown, renderSpecMarkdown, runSpecRender } from "../../../src/spec/commands/render.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { makeContainer } from "../../helpers/flow-setup.js";
+import { makeContainer, makeFlowState } from "../../helpers/flow-setup.js";
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
@@ -151,15 +151,14 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
       const container = makeContainer(tmp);
       container.register("root", tmp);
       const fm = container.get("flowManager");
-      fm.create({
+      fm.create(makeFlowState({
         spec: "specs/001-test/spec.json",
         runId: "run-001-test",
         baseBranch: "main",
         featureBranch: "feature/001-test",
-        steps: [{ id: "branch", status: "done" }],
         tasks: [{ id: "T-default", title: "x", goal: "g", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
         currentTaskId: null,
-      });
+      }));
 
       await runSpecRender(["--spec", specDir], container);
 
@@ -199,15 +198,14 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
       const container2 = makeContainer(tmp);
       container2.register("root", tmp);
       const fm2 = container2.get("flowManager");
-      fm2.create({
+      fm2.create(makeFlowState({
         spec: "specs/002-fresh/spec.json",
         runId: "run-002-fresh",
         baseBranch: "main",
         featureBranch: "feature/002-fresh",
-        steps: [{ id: "branch", status: "done" }],
         tasks: [{ id: "T-default", title: "x", goal: "g", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
         currentTaskId: null,
-      });
+      }));
 
       await runSpecRender(["--spec", specDir], container2);
 

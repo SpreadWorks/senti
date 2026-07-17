@@ -1,10 +1,11 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { fileURLToPath, pathToFileURL } from "url";
+import { fileURLToPath } from "url";
 import { repoRoot } from "./cli.js";
 import { loadConfig, loadRawConfig, sentiConfigPath, sentiDir, sentiLocalConfigPath } from "./config.js";
 import { Envelope } from "./flow-envelope.js";
+import { EsmModule } from "./esm-module.js";
 import { officialPresetPluginRoot } from "./official-plugins.js";
 import {
   PluginConfigTransaction,
@@ -1133,7 +1134,7 @@ export async function discoverFlowCommandHooks(root = repoRoot()) {
     for (const file of files) {
       const rel = normalizeRel(`hooks/${file}`, "hook module");
       assertNoCoreInternalImports(root, pkg.id, pluginRoot, rel);
-      const mod = await import(pathToFileURL(path.join(pluginRoot, rel)).href);
+      const mod = await new EsmModule(path.join(pluginRoot, rel)).import();
       if (typeof mod.default !== "function" || mod.default.name !== "register") throw new Error(`plugin hook ${pkg.id}/${rel} must export named default function register(api)`);
       const HookClass = mod.default(buildPluginApi());
       if (Array.isArray(HookClass)) throw new Error(`plugin hook ${pkg.id}/${rel} must return one hook class per file`);
@@ -1237,7 +1238,7 @@ export async function dispatchPluginCommand(root, commandName, args) {
   const command = registry.resolveCommand(commandName);
   if (!command) return false;
   try {
-    const mod = await import(pathToFileURL(command.absolutePath).href);
+    const mod = await new EsmModule(command.absolutePath).import();
     if (typeof mod.default !== "function") throw new Error(`plugin command ${commandName} must export default register(api)`);
     const registered = mod.default(buildPluginApi());
     if (!registered || typeof registered.main !== "function") throw new Error(`plugin command ${commandName} register(api) must return { main }`);
@@ -1282,7 +1283,7 @@ async function loadHookClass(root, plan) {
     throw new Error(`snapshot hook module missing: ${plan.pluginId}/${rel}; restore the module or re-prepare the flow`);
   }
   assertNoCoreInternalImports(root, plan.pluginId, pluginRoot, rel);
-  const mod = await import(`${pathToFileURL(modulePath).href}?t=${Date.now()}`);
+  const mod = await new EsmModule(modulePath, { cacheKey: Date.now() }).import();
   if (typeof mod.default !== "function" || mod.default.name !== "register") {
     throw new Error(`plugin hook ${plan.pluginId}/${rel} must export named default function register(api)`);
   }

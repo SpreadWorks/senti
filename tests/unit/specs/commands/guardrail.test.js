@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { join } from "path";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 import { execFileSync } from "child_process";
-import { setupFlow } from "../../../helpers/flow-setup.js";
+import { setupFlowAtStep } from "../../../helpers/flow-setup.js";
+import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 
 const SENTI = join(process.cwd(), "src/senti.js");
 
@@ -27,20 +28,32 @@ describe("gate guardrail integration", () => {
     constraints: [],
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [],
-    acceptance_criteria: [],
+    requirements: [{ id: "REQ-1", desc: "placeholder requirement" }],
+    acceptance_criteria: ["placeholder acceptance criterion"],
     clarifications: [],
     alternatives_considered: [],
     open_questions: [],
+    tasks: [
+      {
+        id: "T-default",
+        title: "Default test task",
+        goal: "Placeholder task for test fixtures.",
+        origin: "plan",
+        added_round: 0,
+        status: "pending",
+        parent: null,
+        test_strategy: "Run focused unit tests.",
+      },
+    ],
   };
 
   function createGateFixture({ config, guardrails } = {}) {
     tmp = createTmpDir();
-    execFileSync("git", ["init", tmp], { stdio: "ignore" });
-    execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
-    setupFlow(tmp);
+    initGitRepo(tmp);
+    commitAll(tmp, "init");
+    setupFlowAtStep(tmp, "spec-gate");
     writeJson(tmp, ".senti/config.json", config || {
-      lang: "en", type: "sample-node-command",
+      lang: "en", type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
     writeJson(tmp, "spec.json", validSpec);
@@ -91,7 +104,7 @@ describe("gate guardrail integration", () => {
   it("skips AI check with --skip-guardrail", () => {
     createGateFixture({
       config: {
-        lang: "en", type: "sample-node-command",
+        lang: "en", type: "base",
         docs: { languages: ["en"], defaultLanguage: "en" },
         agent: { default: "claude", providers: { claude: { command: "echo", args: ["FAIL"] } } },
       },
