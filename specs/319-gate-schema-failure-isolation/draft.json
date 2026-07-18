@@ -1,0 +1,121 @@
+{
+  "devType": "bugfix",
+  "goal": "gate output の protocol/schema failure を semantic PASS/FAIL retry lifecycle から分離し、original validation/provider error、effective phase、repair/cache outcome、tooling/provider classification を残しつつ semantic counter・artifact・routing を変更せずに停止させる。",
+  "analysis": {
+    "problem": "malformed な `Observation.requirementRef` が schema repair で同一 cached invalid response を再利用し、tooling failure が semantic `ESCALATE_RETRY_EXHAUSTED` として扱われている。さらに inferred integration phase が `onError` に伝わらず、二次的な `phase must be a non-empty string` が本来の validation error を覆い隠す。",
+    "proposedApproach": "gate prompt と output schema を invocation ごとの既知 requirement/guardrail ID に限定する。初回 response が parse/schema validation に失敗した場合、uncached fresh provider call を保証できるときだけ repair を最大1回実行し、provider call 合計を最大2回にする。失敗後は effective phase と cache decision を含む tooling/provider evidence を返し、semantic result lifecycle へ渡さない。",
+    "validation": "unit test で malformed ref、unknown ref、cached invalid replay、fresh repair exhaustion、provider call count、explicit/inferred phase を検証する。e2e test で task/integration protocol failure の zero counter/artifact/routing mutation と guard-first orderingを確認する。valid PASS/FAIL fixture では既存 counter と routing が維持されることを回帰確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #435 は `Observation.requirementRef` の説明付き値や unknown ID を protocol/schema failure として拒否することを要求している。",
+      "現在の failure path は同一 cached invalid response を repair attempt として再利用し、semantic retry exhaustion に誤分類し得る。",
+      "現在の inferred integration phase は `onError` の契約へ一貫して伝播せず、root cause を二次 diagnostic が覆う場合がある。",
+      "`src/flow/lib/run-gate.js` は gate evaluation、result artifact、retry memory、issue-log evidence を扱い、`src/flow/registry.js` は post/onError lifecycle hook を統括する。",
+      "親 assignment は Issue #435 の scope を保持する routine approval を付与しており、新しい scope 判断は要求していない。"
+    ],
+    "decisionPoints": [
+      "must: invocation ごとの exact known requirement/guardrail ID set を prompt と output schema の両方の acceptance boundary にする。",
+      "must: schema repair は初回 invalid response 後に uncached fresh call を保証できる場合だけ最大1回許可し、provider call 合計を最大2回にする。同一 cached invalid replay を fresh attempt に数えない。",
+      "must: protocol/schema/repair exhaustion は tooling/provider failure に分類し、semantic result lifecycle へ入れない。",
+      "must: explicit phase と inferred phase を同じ effective phase contract で diagnostics と `onError` に渡す。",
+      "must: target guard mismatch は agent invocation、cache access、artifact/state mutation より先に返す。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加せず Node.js 組み込みモジュールだけを使用する。",
+      "must: alpha policy に従い compatibility shim や旧 failure format の維持コードを追加しない。",
+      "must: original error、effective phase、repair attempt count、cache bypass/replay outcome、tooling/provider classification を持つ protocol/tooling evidence と validation contract は、constructor でこれらの invariant を検証する専用クラスまたは既存 class pattern で表現する。",
+      "must: 同じ validation/classification pattern が2箇所以上に現れる場合は共通 helper に抽出する。",
+      "must: `npm test` を実行し、`src/lib/agent.js` を変更した場合は `npm run test:agent` も実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: exact ID set を構築する既存 owner と schema/prompt への受け渡し位置を code evidence から決める。",
+      "must: uncached repair option または cache-key separation の既存 agent/cache contract に沿った配置を決める。",
+      "must: tooling failure evidence の durable artifact/store owner と registry lifecycle ordering を決める。",
+      "must: unit scenario に exact/unknown/suffixed ref、cache bypass、provider call count、phase parity を含め、e2e scenario に zero semantic mutation、guard ordering、valid PASS/FAIL routing parity を含める task decomposition を定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: gate prompt/schema が current invocation の exact known requirement/guardrail IDs だけを許可する。",
+      "must: description suffix、prefix、unknown ID、同一 cached invalid replay を protocol/schema failure として拒否する。",
+      "must: 初回 invalid response 後、fresh repair を保証できる場合だけ uncached provider call を最大1回実行し、保証不能または2回目の invalid response 時は tooling/provider failure で停止する。",
+      "must: protocol failure では semantic result artifact、post-result processing、`gateRetry`、PASS/FAIL counter、task/integration routing を変更しない。",
+      "must: explicit/inferred task/integration phase が同じ non-empty effective phase として root-cause evidence に残る。",
+      "must: run/Issue/spec mismatch は agent/cache/artifact/state access より前に `ACTIVE_FLOW_MISMATCH` を返し、durable state を byte-identical に保つ。",
+      "must: valid semantic PASS/FAIL の既存 counter semantics と routing を維持する。",
+      "must: `src/flow/lib/run-gate.js`、`src/flow/registry.js`、exact/unknown/suffixed ref・cache bypass・provider call count・phase parity・zero semantic mutation・guard ordering・valid routing parity を検証する unit/e2e tests を変更対象とする。agent/cache helper の変更は schema-repair call に cache bypass または repair-specific key separation を渡す contract の追加・利用に限定し、他の agent call site と cache behavior を変更しない。"
+    ],
+    "out": [
+      "must: semantic finding を bypass、defer、pass に変更しない。",
+      "must: semantic retry limit を reset または増加しない。",
+      "must: Issue #430/#432 の既存 state、artifact、counter を修復しない。",
+      "must: manual recovery、external dependency、public compatibility shim、push、publish、release を追加しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: malformed gate output は初回 failure と最大1回の fresh repair 後に、semantic retry guidance ではなく tooling/provider failure として表示・記録される。",
+    "must: protocol/schema failure 後の flow state、semantic artifacts、retry counters、routing は実行前と同一である。",
+    "must: valid PASS/FAIL output の既存 lifecycle side effects と retry accounting は変更しない。",
+    "must: gate diagnostics は inferred phase でも non-empty effective phase と original provider/validation error を保持する。",
+    "must: public CLI inventory として `senti flow run gate --phase <phase>` の command name、phase arguments、valid PASS/FAIL envelope を保持し、owner は `RunGateCommand` のままとする。",
+    "must: lifecycle hook inventory として valid semantic result の registry post hook を保持する。protocol/schema error は registry onError hook が effective phase を受け取り、tooling evidence を issue-log に記録する owner とする。",
+    "must: generated artifact inventory として valid result の phase別 gate-result artifact を保持する。protocol/schema error ではこれら semantic artifacts を作成・更新せず、tooling error envelope と issue-log evidence に置き換える。",
+    "must: state side-effect inventory として valid PASS/FAIL の `gateRetry`、PASS/FAIL counters、task/integration routing を保持する。protocol/schema error では全 side effect を実行しない。",
+    "must: public API、hook name、config entry は追加・削除せず、agent/cache option は internal schema-repair call だけが使用する。",
+    "must: behavior-level verification で CLI guard mismatch、valid PASS/FAIL post hook、protocol error onError、semantic artifact absence、counter/routing parity をそれぞれ実行経路から確認する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #435 に記載された bugfix goal と scope を、そのまま進行対象として承認しますか。",
+      "answer": "must: Issue #435 の goal、scope、acceptance criteria を変更せず、単一 bugfix concern として進める。",
+      "evidence": "Issue #435 Summary/Scope/Requirements/Acceptance Criteria、親 assignment の `Routine Issue-preserving approvals granted`、draft guardrail `single-responsibility` の Issue boundary rule。",
+      "why": "要求された protocol/schema failure isolation は prompt/schema、repair、classification、phase propagation、semantic lifecycle boundary を一体で直さないと再発経路が残る。",
+      "considered": "Issue の分割、scope 縮小、関連しない機能追加はいずれも採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "schema repair の freshness を保証できない場合、Issue #435 の要件どおり tooling/provider failure として停止する境界を承認しますか。",
+      "answer": "must: 初回 invalid response 後に uncached fresh provider call を保証できる場合だけ repair を最大1回許可し、provider call 合計を最大2回にする。保証不能または2回目の invalid response 時は tooling/provider failure で停止する。",
+      "evidence": "Issue #435 Requirements 2-4 と Acceptance Criteria、および既存 `src/flow/lib/run-gate.js` の schema-bound `agent.call` pattern と `src/flow/registry.js` の gate lifecycle ownership。",
+      "why": "同一 cached invalid response の replay を repair attempt と扱うと、provider call が発生していないのに semantic retry exhaustion へ誤分類されるため。",
+      "considered": "cached replay の再試行、semantic retry budget の増加、validation bypass は Issue の Non-Goals と矛盾するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "protocol failure の durable evidence として Issue #435 が列挙する診断情報を保持し、secondary hook error による上書きを防ぐ境界を承認しますか。",
+      "answer": "must: original validation/repair/provider error を primary evidence とし、effective phase、repair attempts、cache bypass/replay decision、final tooling/provider classification を durable に記録する。",
+      "evidence": "Issue #435 Requirements 5、7 と Acceptance Criteria、および draft guardrail `complete-context` が要求する独立 reviewer 間で一致可能な validation 条件。",
+      "why": "secondary `phase must be a non-empty string` が root cause を覆うと、運用者が repair/cache failure を特定できず semantic failure と誤認するため。",
+      "considered": "secondary hook error を primary にする方式や phase 未指定の診断省略は採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "Issue #435 の Verification に記載された state/artifact 比較、phase parity、valid PASS/FAIL regression を unit/e2e test scope として承認しますか。",
+      "answer": "must: unit test で malformed/cached output、provider call count、explicit/inferred phase を検証し、e2e test で zero counter/artifact/routing mutation、target guard ordering、valid PASS/FAIL routing parity を検証する。",
+      "evidence": "Issue #435 Acceptance Criteria/Verification、および既存 `run-gate` tests が gate result、retry counter、routing side effect を fixture で検証する project code pattern。",
+      "why": "failure isolation と正常系 parity の両方を確認しなければ、誤分類修正が既存 semantic lifecycle を壊していないことを証明できない。",
+      "considered": "malformed ref の単体 validation のみを確認する狭い test scope は lifecycle mutation と guard ordering の回帰を検出できないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T20:55:08.906Z",
+    "notes": "Issue #435 scope preserved under routine flow approval."
+  }
+}

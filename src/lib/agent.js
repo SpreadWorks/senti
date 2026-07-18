@@ -151,9 +151,17 @@ class Agent {
     ensureWorkDir(this._paths.agentWorkDir);
 
     const retry = this._normalizeRetryOptionsForTest(opts);
-    const promptCache = this._resolvePromptCache(resolved, prompt, opts);
+    const cachePolicy = new PromptCachePolicy(opts.cacheMode);
+    const promptCache = cachePolicy.readsCache
+      ? this._resolvePromptCache(resolved, prompt, opts)
+      : null;
     const hit = promptCache?.cache.get(promptCache.key);
     if (hit != null) {
+      opts.onCacheDecision?.({
+        cacheOutcome: "hit",
+        providerCalled: false,
+        fresh: false,
+      });
       await recordPromptCacheHit({
         flowManager: this._flowManager,
         context: promptCache.context,
@@ -165,6 +173,11 @@ class Agent {
     }
 
     let cacheCandidate = null;
+    opts.onCacheDecision?.({
+      cacheOutcome: cachePolicy.mode === "bypass" ? "bypass" : "miss",
+      providerCalled: true,
+      fresh: cachePolicy.mode === "bypass",
+    });
     const text = await runWithLogging({
       logger: this._logger,
       flowManager: this._flowManager,
@@ -178,7 +191,7 @@ class Agent {
         return cacheCandidate;
       },
     });
-    if (promptCache && text && this._isCacheableResponse(text, cacheCandidate, opts)) {
+    if (cachePolicy.writesCache && promptCache && text && this._isCacheableResponse(text, cacheCandidate, opts)) {
       promptCache.cache.set(promptCache.key, text);
     }
     return text;
@@ -661,6 +674,19 @@ function runWindowsTaskkill(args) {
 // ---------------------------------------------------------------------------
 // Module-private helpers
 // ---------------------------------------------------------------------------
+
+class PromptCachePolicy {
+  constructor(mode = "default") {
+    const normalized = mode ?? "default";
+    if (normalized !== "default" && normalized !== "bypass") {
+      throw new Error(`invalid cacheMode: ${normalized}`);
+    }
+    this.mode = normalized;
+    this.readsCache = normalized === "default";
+    this.writesCache = normalized === "default";
+    Object.freeze(this);
+  }
+}
 
 class PromptCacheIdentity {
   constructor(input = {}) {

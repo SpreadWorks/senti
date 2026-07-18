@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "4件の repair target は、Issue #435 の要件を変えずに question 文中の推奨回答・instructional framing を除去する小規模修正として適用する。",
+  "items": [
+    {
+      "title": "1. q1 embeds recommended answer and acceptance details",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "goal confirmation 自体は必要だが、推奨回答と acceptance detail は question text から除去できる。",
+      "evidence": "draft.json qa[0].question は `推奨は` で開始し、Issue #435 の acceptance boundary を回答として列挙している。"
+    },
+    {
+      "title": "2. q2 embeds implementation policy recommendation",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "fresh repair の acceptance policy は Issue #435 に明記されており、internal implementation detail を除いて requirement-level confirmation に直せる。",
+      "evidence": "Issue #435 Requirements 2-4 は cached replay 禁止、fresh call 保証、保証不能時の tooling/provider failure を要求している。"
+    },
+    {
+      "title": "3. q3 embeds evidence contract details",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "durable evidence boundary の確認は維持し、推奨回答を示す導入と採用誘導を除去する。",
+      "evidence": "Issue #435 Requirement 7 と Acceptance Criteria は original error、effective phase、repair/cache outcome の記録を要求している。"
+    },
+    {
+      "title": "4. q4 embeds verification scope recommendation",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "verification scope の確認は維持し、推奨回答を質問文に埋め込まず中立な確認へ直す。",
+      "evidence": "Issue #435 Verification は state/artifact/counter snapshot、phase parity、valid PASS/FAIL regression を明記している。"
+    }
+  ]
+}

@@ -1,0 +1,835 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses the vague phrase `必要最小限の agent/cache helper` without stating verifiable criteria for what counts as the minimum necessary helper changes.; Requirement says changes must be limited to `必要最小限の agent/cache helper`, but does not define measurable criteria that would let independent reviewers agree whether the implementation satisfies that limit.; Question q1 provides evidence from Issue #435 and parent assignment, but does not state the required basis as project docs/, guardrail principles, or existing code patterns.; Question q2 provides evidence from Issue #435 requirements and acceptance criteria, but does not state the required basis as project docs/, guardrail principles, or existing code patterns.; Question q3 provides evidence from Issue #435 requirements and acceptance criteria, but does not state the required basis as project docs/, guardrail principles, or existing code patterns.; Question q4 provides evidence from Issue #435 acceptance criteria and verification, but does not state the required basis as project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:55:43.755Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.scopeVerification.in[7]"
+          },
+          "observed": "Requirement uses the vague phrase `必要最小限の agent/cache helper` without stating verifiable criteria for what counts as the minimum necessary helper changes.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.scopeVerification.in[7]"
+          },
+          "observed": "Requirement says changes must be limited to `必要最小限の agent/cache helper`, but does not define measurable criteria that would let independent reviewers agree whether the implementation satisfies that limit.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.qa[0].evidence"
+          },
+          "observed": "Question q1 provides evidence from Issue #435 and parent assignment, but does not state the required basis as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.qa[1].evidence"
+          },
+          "observed": "Question q2 provides evidence from Issue #435 requirements and acceptance criteria, but does not state the required basis as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.qa[2].evidence"
+          },
+          "observed": "Question q3 provides evidence from Issue #435 requirements and acceptance criteria, but does not state the required basis as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.qa[3].evidence"
+          },
+          "observed": "Question q4 provides evidence from Issue #435 acceptance criteria and verification, but does not state the required basis as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement uses the vague phrase `必要最小限の agent/cache helper` without stating verifiable criteria for what counts as the minimum necessary helper changes."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement says changes must be limited to `必要最小限の agent/cache helper`, but does not define measurable criteria that would let independent reviewers agree whether the implementation satisfies that limit."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q1 provides evidence from Issue #435 and parent assignment, but does not state the required basis as project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q2 provides evidence from Issue #435 requirements and acceptance criteria, but does not state the required basis as project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q3 provides evidence from Issue #435 requirements and acceptance criteria, but does not state the required basis as project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q4 provides evidence from Issue #435 acceptance criteria and verification, but does not state the required basis as project docs/, guardrail principles, or existing code patterns."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "`bounded に実行する` does not state a verifiable bound, such as a maximum attempt count or stopping condition.; `bounded に実行する` is not specific enough for independent reviewers to agree whether an implementation satisfies it because the bound is unspecified.; `focused tests` is a vague test-scope description without verifiable criteria for what makes the tests focused.; `focused tests` is not specific enough for independent reviewers to agree whether the required test coverage satisfies the draft.; `bounded に実行` does not state a verifiable bound, such as a maximum attempt count or stopping condition.; `bounded に実行` is not specific enough for independent reviewers to agree whether an implementation satisfies it because the bound is unspecified.; `focused unit/e2e coverage` is a vague coverage description without verifiable criteria for what qualifies as focused coverage.; `focused unit/e2e coverage` is not specific enough for independent reviewers to agree whether the required coverage satisfies the draft.; `focused unit/e2e tests` is a vague test-scope description without verifiable criteria for what makes the tests focused.; `focused unit/e2e tests` is not specific enough for independent reviewers to agree whether the required test coverage satisfies the draft.; The draft changes existing gate failure handling and lifecycle behavior, but does not inventory the existing public behavior being moved or replaced.; The draft does not list affected public surfaces such as user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the gate failure handling change.; The draft does not map each retained existing behavior to its new owner or to an explicit removal decision.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:57:01.153Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "`bounded に実行する` does not state a verifiable bound, such as a maximum attempt count or stopping condition.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "`bounded に実行する` is not specific enough for independent reviewers to agree whether an implementation satisfies it because the bound is unspecified.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "`focused tests` is a vague test-scope description without verifiable criteria for what makes the tests focused.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "`focused tests` is not specific enough for independent reviewers to agree whether the required test coverage satisfies the draft.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "`bounded に実行` does not state a verifiable bound, such as a maximum attempt count or stopping condition.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "`bounded に実行` is not specific enough for independent reviewers to agree whether an implementation satisfies it because the bound is unspecified.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[7]"
+          },
+          "observed": "`focused unit/e2e coverage` is a vague coverage description without verifiable criteria for what qualifies as focused coverage.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[7]"
+          },
+          "observed": "`focused unit/e2e coverage` is not specific enough for independent reviewers to agree whether the required coverage satisfies the draft.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[3].answer"
+          },
+          "observed": "`focused unit/e2e tests` is a vague test-scope description without verifiable criteria for what makes the tests focused.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[3].answer"
+          },
+          "observed": "`focused unit/e2e tests` is not specific enough for independent reviewers to agree whether the required test coverage satisfies the draft.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "spec.json"
+          },
+          "observed": "The draft changes existing gate failure handling and lifecycle behavior, but does not inventory the existing public behavior being moved or replaced.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "spec.json"
+          },
+          "observed": "The draft does not list affected public surfaces such as user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the gate failure handling change.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "spec.json"
+          },
+          "observed": "The draft does not map each retained existing behavior to its new owner or to an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`bounded に実行する` does not state a verifiable bound, such as a maximum attempt count or stopping condition."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`bounded に実行する` is not specific enough for independent reviewers to agree whether an implementation satisfies it because the bound is unspecified."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`focused tests` is a vague test-scope description without verifiable criteria for what makes the tests focused."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`focused tests` is not specific enough for independent reviewers to agree whether the required test coverage satisfies the draft."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`bounded に実行` does not state a verifiable bound, such as a maximum attempt count or stopping condition."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`bounded に実行` is not specific enough for independent reviewers to agree whether an implementation satisfies it because the bound is unspecified."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`focused unit/e2e coverage` is a vague coverage description without verifiable criteria for what qualifies as focused coverage."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`focused unit/e2e coverage` is not specific enough for independent reviewers to agree whether the required coverage satisfies the draft."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`focused unit/e2e tests` is a vague test-scope description without verifiable criteria for what makes the tests focused."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`focused unit/e2e tests` is not specific enough for independent reviewers to agree whether the required test coverage satisfies the draft."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft changes existing gate failure handling and lifecycle behavior, but does not inventory the existing public behavior being moved or replaced."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft does not list affected public surfaces such as user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the gate failure handling change."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft does not map each retained existing behavior to its new owner or to an explicit removal decision."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The goal requires leaving `正確な診断` (`accurate diagnostics`) but does not state a directly verifiable condition for what makes the diagnostics accurate at this location.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:58:54.797Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "goal"
+          },
+          "observed": "The goal requires leaving `正確な診断` (`accurate diagnostics`) but does not state a directly verifiable condition for what makes the diagnostics accurate at this location.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The goal requires leaving `正確な診断` (`accurate diagnostics`) but does not state a directly verifiable condition for what makes the diagnostics accurate at this location."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the vague phrase `意味のある protocol/tooling evidence` without stating verifiable conditions for what makes the evidence meaningful.; The requirement says to run `通常 regression` in addition to checking whether agent tests are needed, but it does not define which regression command or criteria two reviewers should use to agree that the requirement is satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:59:35.701Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "The requirement uses the vague phrase `意味のある protocol/tooling evidence` without stating verifiable conditions for what makes the evidence meaningful.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.resolvedByProjectRules[4]"
+          },
+          "observed": "The requirement says to run `通常 regression` in addition to checking whether agent tests are needed, but it does not define which regression command or criteria two reviewers should use to agree that the requirement is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague phrase `意味のある protocol/tooling evidence` without stating verifiable conditions for what makes the evidence meaningful."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says to run `通常 regression` in addition to checking whether agent tests are needed, but it does not define which regression command or criteria two reviewers should use to agree that the requirement is satisfied."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff changes invalid gate output failures to use `GATE_OUTPUT_TOOLING_FAILURE`, distinct from `ESCALATE_RETRY_EXHAUSTED`, and includes evidence for original error, effective phase, per-attempt cache/freshness outcomes, and final classification. However, the durable evidence does not contain an explicit attempt count field as required; it only includes an `attempts` array plus provider/fresh repair counts. Because R4 explicitly requires typed durable evidence containing attempt count, this is incomplete.; The diff only adds a test covering R8 behavior; it does not implement any production code that enforces ACTIVE_FLOW_MISMATCH before command loading, hooks, agent/cache access, persistence, issue-log updates, semantic artifacts, or flow-state mutation. A test alone does not satisfy the requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T21:39:58.311Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "The diff changes invalid gate output failures to use `GATE_OUTPUT_TOOLING_FAILURE`, distinct from `ESCALATE_RETRY_EXHAUSTED`, and includes evidence for original error, effective phase, per-attempt cache/freshness outcomes, and final classification. However, the durable evidence does not contain an explicit attempt count field as required; it only includes an `attempts` array plus provider/fresh repair counts. Because R4 explicitly requires typed durable evidence containing attempt count, this is incomplete.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "The diff only adds a test covering R8 behavior; it does not implement any production code that enforces ACTIVE_FLOW_MISMATCH before command loading, hooks, agent/cache access, persistence, issue-log updates, semantic artifacts, or flow-state mutation. A test alone does not satisfy the requirement.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R4",
+          "reason": "The diff changes invalid gate output failures to use `GATE_OUTPUT_TOOLING_FAILURE`, distinct from `ESCALATE_RETRY_EXHAUSTED`, and includes evidence for original error, effective phase, per-attempt cache/freshness outcomes, and final classification. However, the durable evidence does not contain an explicit attempt count field as required; it only includes an `attempts` array plus provider/fresh repair counts. Because R4 explicitly requires typed durable evidence containing attempt count, this is incomplete."
+        },
+        {
+          "guardrail_id": "R8",
+          "reason": "The diff only adds a test covering R8 behavior; it does not implement any production code that enforces ACTIVE_FLOW_MISMATCH before command loading, hooks, agent/cache access, persistence, issue-log updates, semantic artifacts, or flow-state mutation. A test alone does not satisfy the requirement."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added explicit typed attemptCount evidence; retained R8 dispatcher ownership",
+      "resolution": "R4 now derives attemptCount from immutable attempt evidence and persists it to issue-log. R8 is already enforced before command loading by src/lib/dispatcher.js, is explicitly a preservation requirement in the approved spec, is verified by byte-identical mismatch tests, and cannot be reimplemented in the three production files allowed by the spec without weakening the ordering boundary.",
+      "taskId": null,
+      "timestamp": "2026-07-12T21:40:46.827Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff only adds a test case for R8; it does not modify dispatcher/flow implementation. There is no implementation evidence that run ID, issue, or spec guard mismatches now return ACTIVE_FLOW_MISMATCH before command loading, hooks, cache access, state persistence, issue-log changes, semantic artifacts, or flow-state mutation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T21:41:49.579Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "The diff only adds a test case for R8; it does not modify dispatcher/flow implementation. There is no implementation evidence that run ID, issue, or spec guard mismatches now return ACTIVE_FLOW_MISMATCH before command loading, hooks, cache access, state persistence, issue-log changes, semantic artifacts, or flow-state mutation.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R9",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "The diff only adds a test case for R8; it does not modify dispatcher/flow implementation. There is no implementation evidence that run ID, issue, or spec guard mismatches now return ACTIVE_FLOW_MISMATCH before command loading, hooks, cache access, state persistence, issue-log changes, semantic artifacts, or flow-state mutation."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: rebased onto current main and integrated #440 target-guard production ownership",
+      "resolution": "R8 now has production diff evidence from main commit bd3e8f4a and focused byte-identical mismatch coverage passes. The R7 action-order assertion was stale after main commit c6c01aab intentionally moved ExecuteSideEffects before SetStepStatus for resumable lifecycle effects; only the expected order and SetStepStatus index were updated, while phase, action existence, lifecycle step, side-effect routing, PASS, and FAIL assertions remain enforced.",
+      "taskId": null,
+      "timestamp": "2026-07-18T06:50:22.704Z",
+      "issueLogId": "issue-log-fc6c7549-a0af-46fb-8ccd-4cdcee565b39"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Acceptance review classified two stale test-review findings as still open because disposition evidence had not been recorded",
+      "trigger": "First acceptance-review returned amend_required and rewound to implement despite the repaired R2 and R5 assertions already existing",
+      "resolution": "Added acceptance-review-evidence.json marking DF-1 and DF-2 fixed with source finding, stable repaired tests, 13/13 and 58/58 test runs, retro, and impl-gate PASS references",
+      "guardrailCandidate": "After deferred review findings are repaired, record bounded per-finding acceptance dispositions before acceptance review",
+      "taskId": null,
+      "timestamp": "2026-07-18T07:26:59.672Z",
+      "issueLogId": "issue-log-435-acceptance-evidence-correction"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/319-gate-schema-failure-isolation/acceptance-review-evidence.json",
+          "fingerprint": "dd2c0626ea801d2de41e36edf1118eae5f871553faad367489bf598830facde3"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/acceptance-review.json",
+          "fingerprint": "8ad2d513bf145364fba76f4fad70d747be68758832d1922fa15f68f2d81fc82f"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/draft-coverage-repair.json",
+          "fingerprint": "e3f98800e030116a442a633877f0361eecfc194440aa576bc513c6d646629f8c"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/draft-coverage-triage.json",
+          "fingerprint": "1a2a4161d264156dbacc6738c5b2686827817d46d0eaefdf1d54eb95374a8ef2"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/draft-gate-source.json",
+          "fingerprint": "2812acc64291b48c276f0ac55e1a96414c8a211725eab27afe7508339f470e03"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/draft-questions-repair.json",
+          "fingerprint": "953534fdcabd3680d51c56d45725f08c450d3a1ad98f080e12a4336ba27d4e36"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/draft-questions-triage.json",
+          "fingerprint": "2937afe399c80e1d96fe5a57b0311d93d4d3ef0067c7cfd4bc7568dcb0261d39"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/draft-review-coverage.json",
+          "fingerprint": "9164270ee4a32741fe0ec3e08bc3a319eaba17dd56c9087867f2d394c331efd3"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/draft-review-questions.json",
+          "fingerprint": "e5c5919bb3364a6b5e06a7729dfc2a2561f76384be251e571e5c04ef757e55ed"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/draft.json",
+          "fingerprint": "00b6540a2ffe6c168f529419be5f9efdf1454dbc222eac4cf06844025f07a054"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/file-map.json",
+          "fingerprint": "b5cab85e13c3d433027d4494b95167dffbe7d3fa940eb45fbf88dfde6cd55daf"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/flow-findings.json",
+          "fingerprint": "30727bf5023a7155ce07361795abacf1678537e5b9ad55a81f8467e824738367"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/flow-findings.json",
+          "fingerprint": "30727bf5023a7155ce07361795abacf1678537e5b9ad55a81f8467e824738367"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/impl-gate-result.json",
+          "fingerprint": "8f08c02dd7567f864e940413ce1d3d46db1037caabdd82e5034e4fb03fe044f6"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/impl-gate-result.json",
+          "fingerprint": "8f08c02dd7567f864e940413ce1d3d46db1037caabdd82e5034e4fb03fe044f6"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/impl-review.json",
+          "fingerprint": "cb38402327df69279087964e54cf6b874c378db04993aa4a1168d354907904d0"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/issue.md",
+          "fingerprint": "26c2165bb971f3c671b49088ddead4ea3970f621750bf30040fcdd2a9ae542f1"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "9efbc89a63be421c804c9bfeeec38922963a9add0089b3aaaadf8a9fce8fa978"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/retro.json",
+          "fingerprint": "337ae357035cc02a633e54619f2fe6b26d176a1fd85eb8c0e678b34b4a06d7cc"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "01d10c7deea048d12bc021437e54991a10f6fb2c2bb2bbd0da0d7fc71e27061e"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "6f2cf6ee68351860f8945b1817962663d7fba02c79ecd8efd30b942c0e5f9cf6"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/impl-attempt-001.json",
+          "fingerprint": "da7311c44d9ab7f45da54e1d634323c4f5d3a0dc7b025754e1ea118fc055bc97"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/spec-attempt-001.json",
+          "fingerprint": "9e33da162929e9c8c2086b60d58aa87fc982f93d5dcc248cdc191276c8d9f565"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-001.json",
+          "fingerprint": "dcfc49d70335a9aa311afd455646d5ffa26f0e63092610f49f0be48de6c9763e"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-001.md",
+          "fingerprint": "9572b2084b4236810acdac5c651fa6783f90e4137789f4e1da6712e43bf526f4"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-002.json",
+          "fingerprint": "d82123da2e5fa207ab7a6daff18feb1281f8b8b9a63f03c1fd97eee8fa88797a"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-002.md",
+          "fingerprint": "22dd691e48484741eb9c391b054b8d172ad6d1b990102fc8bd61d8b43b9f868e"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-003.json",
+          "fingerprint": "155adff9e1185a3866d6b08ec6137361b8b00b567296950d807e7acc170267d8"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-003.md",
+          "fingerprint": "3aea919e979ee62898c836f0037d2b81a85c78c845b84f7f8dfe965471c0aeeb"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-004.json",
+          "fingerprint": "1fcec42b08d070dacd3da9a698b1595e7e64a22f95f3601f0b12bf658f903a6b"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-004.md",
+          "fingerprint": "21ea6406e434cec9e6bdf1d1b138e7ce77ad19e9d2728774964acf456073c2be"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-005.json",
+          "fingerprint": "869842e67ebc233adaa986f0142fd30e23ce5eadbbfb3bd70be970a7ee0276fd"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-005.md",
+          "fingerprint": "cfd518de6f8159808be61cde0e3511b6b40e1bb39baa853956065326a59dc763"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/scenario-validity-result.json",
+          "fingerprint": "ebcdf9aad5ce43027a36bb17c878cfbf034e09b59de61164e71061839ed5b2f4"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/spec-review.json",
+          "fingerprint": "b96c4324e04152f9c0e9f04aa2acf25ebd345a897ad6dafe29abe9b231b22515"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/spec.json",
+          "fingerprint": "a86f053106b3cb4e14b06158828b29a7a945761d1a5ce05124c7074daab1a3a3"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/spec.md",
+          "fingerprint": "7fcfcdc73a0c9a2c2c230f9dc139f745bfc1254765e277b11132a374d111a4fe"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/tasks/T-1.md",
+          "fingerprint": "877db7bba732e86fce19bf067717a77f7a4bb2e115c1e9f8d69515c205b03588"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/tasks/T-2.md",
+          "fingerprint": "fc12fce3940b0d07b6e62e7659cfb7369c3885c065f91d84c06cf05fb511f377"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/tasks/T-3.md",
+          "fingerprint": "03eb15eb6a174082e25717b9aa64f5bef7eec3a870f5a82e546b1f770579eda1"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/test-coverage.json",
+          "fingerprint": "97110d45797515c4bb65cd6ea348e6b83492e323ad65cc5f88e206f0a5985798"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/test-execute-result.json",
+          "fingerprint": "32458d92dad5d343ea35f168cacfaae24b141076f04e2654d4841a63725b6e29"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/test-result-review.json",
+          "fingerprint": "8c1a83c91e1c134bb6f7ed141b3c922016ee3312b6478564477d7532e56a8fa9"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/test-result-review.md",
+          "fingerprint": "48cf5c43a3a3226f911d87ff07d11ae54a3a666573cba0719b71ddb56c93ce1c"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/test-review.json",
+          "fingerprint": "bbee5b335f3010ac9967df2da88d8974821b93d704f218956ebda1336b759490"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/test-review.md",
+          "fingerprint": "cfd518de6f8159808be61cde0e3511b6b40e1bb39baa853956065326a59dc763"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/tests/.raw/scenario-validity.log",
+          "fingerprint": "0dfe406cb243920d8ee06e699c985804b08e64744cf08a05f3dc3847889a1024"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/tests/.raw/test-execution.log",
+          "fingerprint": "9b7eb91ee38a5d58104027f9b69410566a850db19d5f420de83bfbf06fe9204f"
+        },
+        {
+          "path": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+          "fingerprint": "01b0ec35040260fb95d31e42a368cf9387885cd66d4bc89e198aa03ba5c8cae5"
+        },
+        {
+          "path": "src/flow/lib/flow-context.js",
+          "fingerprint": "b934858797c91732d7a01f3a1c2aa3af03761bdb871e7bef94c24886960e46a8"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "571550218d267f674cd1338032abb80aea588697bdad63f00c20517607b68833"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "5ca65daffa29e927f5c8e67f5b1a125cfdbabcafa38a1e57268e8235e2d56de1"
+        },
+        {
+          "path": "src/lib/agent.js",
+          "fingerprint": "be24bba99b85bddddf4166af5b30528c0614a660bc8ccd24bc479a7bfb5cada1"
+        },
+        {
+          "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+          "fingerprint": "103a4fc52c4ba98b809edade59d40b75edb9e11e8f3f895b40f2055bc7ee77ac"
+        },
+        {
+          "path": "tests/unit/lib/agent.test.js",
+          "fingerprint": "93ecb6e9d0c98e4f25820e62795fd01154e54c11284a414b4f39c756c57eb7fd"
+        },
+        {
+          "path": "tests/unit/lib/flow-context.test.js",
+          "fingerprint": "ce7f3f15c48041712af1491817fc35831310b4115cd060fee75bb16613f693af"
+        }
+      ],
+      "rawOutputPath": "specs/319-gate-schema-failure-isolation/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-18T07:32:48.731Z",
+      "issueLogId": "issue-log-a121afda-5b37-4762-80de-eaa3a9d91c38"
+    }
+  ]
+}

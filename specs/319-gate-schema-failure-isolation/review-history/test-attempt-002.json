@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-12T21:15:31.175Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/319-gate-schema-failure-isolation/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing implementation-requirement invocation ID enum coverage",
+      "target": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js:49",
+      "issue": "R1 requires both guardrail and implementation-requirement agent invocations to restrict evaluation IDs to the exact invocation-specific enum. The test only exercises `buildGuardrailArticleEvalPrompt` and `parseGuardrailArticleEvaluation` for guardrail IDs; it never covers the implementation-requirement/equivalent evaluation-ID prompt/schema path.",
+      "requiredChange": "Add a spec-local test that builds and validates the implementation-requirement agent prompt/schema path and verifies exact IDs pass while prefixed, suffixed, explanatory, empty, and unknown IDs fail.",
+      "whyBlocking": "The coverage artifact marks R1 covered, but a required invocation class has no corresponding executable coverage.",
+      "origin": "R1",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 does not verify durable state remains byte-identical",
+      "target": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js:303",
+      "issue": "R8 requires run ID, issue, and spec guard mismatches to leave durable state byte-identical and avoid prompt-cache writes, runtime target persistence, issue-log changes, semantic artifacts, and flow-state mutation. The test only snapshots an in-memory `state` object and counters; it does not create or snapshot durable flow/artifact/cache/issue-log state.",
+      "requiredChange": "Extend the mismatch test to use a temp root with representative durable flow/cache/artifact/issue-log state and assert the durable files/directories are byte-identical after each mismatch.",
+      "whyBlocking": "A key acceptance requirement for R8 has no executable coverage; the current test could pass while mismatch handling still mutates durable state.",
+      "origin": "R8",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/319-gate-schema-failure-isolation/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3cc69f7343a5e0b1d89cbddbe35beda0637c811a30a0958a074895962be08d99"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing implementation-requirement invocation ID enum coverage",
+      "body": "R1 requires both guardrail and implementation-requirement agent invocations to restrict evaluation IDs to the exact invocation-specific enum. The test only exercises `buildGuardrailArticleEvalPrompt` and `parseGuardrailArticleEvaluation` for guardrail IDs; it never covers the implementation-requirement/equivalent evaluation-ID prompt/schema path.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R8 does not verify durable state remains byte-identical",
+      "body": "R8 requires run ID, issue, and spec guard mismatches to leave durable state byte-identical and avoid prompt-cache writes, runtime target persistence, issue-log changes, semantic artifacts, and flow-state mutation. The test only snapshots an in-memory `state` object and counters; it does not create or snapshot durable flow/artifact/cache/issue-log state.",
+      "category": "unknown"
+    }
+  ]
+}

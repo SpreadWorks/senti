@@ -1,0 +1,64 @@
+{
+  "spec": "specs/319-gate-schema-failure-isolation/spec.json",
+  "date": "2026-07-18T07:09:17.937Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "For each guardrail or implementation-requirement agent invocation, the prompt and JSON output schema shall restrict `Observation.requirementRef` or equivalent evaluation IDs to an enum containing exactly the requirement IDs and guardrail IDs valid for that invocation; exact values pass, while prefixed, suffixed, explanatory, empty, and unknown values fail validation.",
+      "status": "done",
+      "note": "R1: provider prompt and schema enumerate only current invocation IDs"
+    },
+    {
+      "desc": "The post-response parser shall validate the same invocation-specific ID set as the provider schema and preserve the original parse or schema-validation error, including the invalid field locator and value, as the primary failure cause.",
+      "status": "done",
+      "note": "R2: parser preserves invalid field locator and value as primary evidence"
+    },
+    {
+      "desc": "After an invalid initial output, schema repair shall make at most one additional provider call and at most two provider calls total. The repair call shall be provably fresh through cache bypass or repair-specific key separation; a cache replay shall not count as a fresh attempt, and inability to guarantee freshness shall stop before repair.",
+      "status": "done",
+      "note": "R3: invalid output receives one fresh cache-bypassed repair call"
+    },
+    {
+      "desc": "Parse failure, schema-validation failure, freshness-unavailable repair, and invalid fresh repair output shall throw a tooling/provider failure code distinct from `ESCALATE_RETRY_EXHAUSTED`, with typed durable evidence containing original error, effective phase, attempt count, per-attempt cache/freshness outcome, and final classification.",
+      "status": "done",
+      "note": "R4: invalid fresh repair throws tooling failure instead of semantic exhaustion"
+    },
+    {
+      "desc": "Explicit and inferred draft, spec, task-impl, and integration phases shall populate the same non-empty effective phase before gate execution and shall pass it unchanged to error envelopes, runtime diagnostics, issue-log evidence, and registry onError handling; secondary diagnostic failures shall not replace the original tooling error.",
+      "status": "done",
+      "note": "R5: explicit and inferred phases reach envelope, runtime, registry, and issue-log sinks"
+    },
+    {
+      "desc": "A protocol/schema/tooling gate failure shall not create or update semantic gate-result artifacts, gate source/recovery baselines, passed-guardrail memory, `gateRetry`, PASS/FAIL counters, task completion, integration routing, or normal semantic post-result lifecycle state.",
+      "status": "done",
+      "note": "R6: registry onError records tooling evidence without semantic lifecycle mutation"
+    },
+    {
+      "desc": "Valid semantic PASS and FAIL outputs shall preserve existing result artifacts, `gateRetry` reset/increment behavior, passed-guardrail memory, task completion, side effects, and task/integration routing for both explicit and inferred phase inputs.",
+      "status": "done",
+      "note": "R7: valid PASS and semantic FAIL retain production lifecycle actions"
+    },
+    {
+      "desc": "Run ID, Issue, and spec guard mismatches shall return `ACTIVE_FLOW_MISMATCH` before command loading, gate pre hooks, agent invocation, prompt-cache reads or writes, runtime target persistence, issue-log changes, semantic artifacts, or flow-state mutation, leaving durable state byte-identical.",
+      "status": "done",
+      "note": "R8: target mismatch stops before hooks, command, cache, and state mutation"
+    },
+    {
+      "desc": "Agent cache changes shall affect only the schema-repair call, retain existing normal cache hit/miss and metric behavior for all other calls, add no public command/config surface, use no external dependency, and preserve FlowStore, artifact-store, and registry ownership.",
+      "status": "done",
+      "note": "R9: repair cache bypass leaves normal prompt cache behavior unchanged"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

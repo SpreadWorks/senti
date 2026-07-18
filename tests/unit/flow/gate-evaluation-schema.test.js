@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   GUARDRAIL_ARTICLE_EVAL_SCHEMA,
+  RequirementGateBatch,
+  buildGuardrailArticleEvalPrompt,
   parseGuardrailArticleEvaluation,
   parseImplRequirementEvaluation,
   EvaluationSchemaError,
@@ -76,7 +78,15 @@ describe("parseGuardrailArticleEvaluation", () => {
     const resp = JSON.stringify({
       evaluations: [{ guardrail_id: "unknown", result: "pass", reason: "x" }],
     });
-    assert.throws(() => parseGuardrailArticleEvaluation(resp, known), /unknown|guardrail_id/i);
+    assert.throws(
+      () => parseGuardrailArticleEvaluation(resp, known),
+      (err) => {
+        assert.match(err.message, /unknown|guardrail_id/i);
+        assert.equal(err.data.locator, "evaluations[0].guardrail_id");
+        assert.equal(err.data.invalidValue, "unknown");
+        return true;
+      },
+    );
   });
 
   it("throws on duplicate guardrail_id", () => {
@@ -166,6 +176,44 @@ describe("parseImplRequirementEvaluation (legacy single-reason contract)", () =>
 
   it("throws on unknown id", () => {
     const resp = JSON.stringify({ evaluations: [{ guardrail_id: "unknown", result: "pass", reason: "x" }] });
-    assert.throws(() => parseImplRequirementEvaluation(resp, known), /unknown|guardrail_id/i);
+    assert.throws(
+      () => parseImplRequirementEvaluation(resp, known),
+      (err) => {
+        assert.match(err.message, /unknown|guardrail_id/i);
+        assert.equal(err.data.locator, "evaluations[0].guardrail_id");
+        assert.equal(err.data.invalidValue, "unknown");
+        assert.equal(err.data.primary, true);
+        return true;
+      },
+    );
+  });
+});
+
+describe("invocation-specific gate output schemas", () => {
+  it("enumerates exact guardrail IDs in schema and fallback", () => {
+    const built = buildGuardrailArticleEvalPrompt("target", [
+      { id: "g1", title: "G1", body: "Check G1.", meta: { category: "test" } },
+      { id: "g2", title: "G2", body: "Check G2.", meta: { category: "test" } },
+    ], "spec").build();
+    assert.deepEqual(
+      built.jsonSchema.properties.observations.items.properties.requirementRef.enum,
+      ["g1", "g2"],
+    );
+    assert.match(built.fmtFallback, /Allowed IDs \(exact match only\): g1, g2/);
+  });
+
+  it("enumerates exact implementation requirement IDs in schema and fallback", () => {
+    const built = new RequirementGateBatch({
+      requirements: [
+        { id: "R1", desc: "Implement one." },
+        { id: "R2", desc: "Implement two." },
+      ],
+      diff: "diff --git a/a.js b/a.js\n+change\n",
+    }).buildPrompt().build();
+    assert.deepEqual(
+      built.jsonSchema.properties.evaluations.items.properties.guardrail_id.enum,
+      ["R1", "R2"],
+    );
+    assert.match(built.fmtFallback, /Allowed IDs \(exact match only\): R1, R2/);
   });
 });

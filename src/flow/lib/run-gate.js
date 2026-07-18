@@ -1206,6 +1206,35 @@ const IMPL_REQUIREMENT_FMT_FALLBACK = [
   "Output MUST be valid JSON. No preamble, no trailing commentary, no Markdown prose — JSON only.",
 ].join("\n");
 
+function exactIdSchema(baseSchema, collectionKey, idKey, knownIds) {
+  const ids = [...knownIds];
+  return {
+    ...baseSchema,
+    properties: {
+      ...baseSchema.properties,
+      [collectionKey]: {
+        ...baseSchema.properties[collectionKey],
+        items: {
+          ...baseSchema.properties[collectionKey].items,
+          properties: {
+            ...baseSchema.properties[collectionKey].items.properties,
+            [idKey]: { type: "string", enum: ids },
+          },
+        },
+      },
+    },
+  };
+}
+
+function exactIdFallback(baseFallback, placeholder, knownIds) {
+  const ids = [...knownIds];
+  return [
+    baseFallback.replace(placeholder, ids.join("|")),
+    `Allowed IDs (exact match only): ${ids.join(", ")}`,
+    "Do not add prefixes, suffixes, descriptions, or explanatory text to an ID.",
+  ].join("\n");
+}
+
 // spec 255 R6: rename buildGuardrailPromptFromFiltered to buildGuardrailArticleEvalPrompt
 // and add exhaustive-enumeration directive in the rules text.
 export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds, options = {}) {
@@ -1235,8 +1264,14 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
     "- For each FAIL, describe the actionable Observation using these AI-owned fields: failureMode, requirementRef, where, observed. The system derives kind, severity, and refs.",
   ].join("\n");
   pb.setRules(rules);
-  pb.setJsonSchema(GUARDRAIL_ARTICLE_EVAL_SCHEMA);
-  pb.setFmtFallback(GUARDRAIL_FMT_FALLBACK);
+  const knownIds = filtered.map((guardrail) => guardrail.id);
+  pb.setJsonSchema(exactIdSchema(
+    GUARDRAIL_ARTICLE_EVAL_SCHEMA,
+    "observations",
+    "requirementRef",
+    knownIds,
+  ));
+  pb.setFmtFallback(exactIdFallback(GUARDRAIL_FMT_FALLBACK, "<guardrail id>", knownIds));
 
   if (Array.isArray(previouslyPassedIds) && previouslyPassedIds.length > 0) {
     pb.addUserPrompt(
@@ -1272,11 +1307,24 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
 // Structured evaluation parser (REQ-5/6/7)
 // ---------------------------------------------------------------------------
 
+class EvaluationSchemaEvidence {
+  constructor(input = {}) {
+    this.failureMode = input.failureMode || "schema_validation_failure";
+    this.locator = input.locator ?? null;
+    this.invalidValue = input.invalidValue ?? null;
+    this.primary = input.primary !== false;
+    Object.freeze(this);
+  }
+}
+
 export class EvaluationSchemaError extends Error {
-  constructor(message) {
+  constructor(message, evidence = {}) {
     super(message);
     this.name = "EvaluationSchemaError";
     this.code = "EVALUATION_SCHEMA_ERROR";
+    this.data = evidence instanceof EvaluationSchemaEvidence
+      ? evidence
+      : new EvaluationSchemaEvidence(evidence);
   }
 }
 
@@ -1319,6 +1367,7 @@ function parseEvaluationsArray(rawResponse) {
   } catch (err) {
     throw new EvaluationSchemaError(
       `AI evaluation response is not valid JSON: ${err.message}`,
+      { failureMode: "parse_failure", locator: "$", invalidValue: candidate },
     );
   }
   if (!parsed || typeof parsed !== "object") {
@@ -1338,7 +1387,10 @@ function parseJsonObject(rawResponse) {
   try {
     parsed = JSON.parse(candidate);
   } catch (err) {
-    throw new EvaluationSchemaError(`AI evaluation response is not valid JSON: ${err.message}`);
+    throw new EvaluationSchemaError(
+      `AI evaluation response is not valid JSON: ${err.message}`,
+      { failureMode: "parse_failure", locator: "$", invalidValue: candidate },
+    );
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new EvaluationSchemaError("AI evaluation response is not a JSON object");
@@ -1396,7 +1448,13 @@ export function parseGuardrailArticleEvaluation(rawResponse, knownIds) {
         }
       }
       if (!known.has(entry.requirementRef)) {
-        throw new EvaluationSchemaError(`observations[${idx}]: unknown requirementRef "${entry.requirementRef}"`);
+        throw new EvaluationSchemaError(
+          `observations[${idx}]: unknown requirementRef "${entry.requirementRef}"`,
+          {
+            locator: `observations[${idx}].requirementRef`,
+            invalidValue: entry.requirementRef,
+          },
+        );
       }
       return new Observation({
         kind: "violation",
@@ -1431,6 +1489,10 @@ export function parseGuardrailArticleEvaluation(rawResponse, knownIds) {
     if (!known.has(guardrail_id)) {
       throw new EvaluationSchemaError(
         `evaluations[${idx}]: unknown guardrail_id "${guardrail_id}"`,
+        {
+          locator: `evaluations[${idx}].guardrail_id`,
+          invalidValue: guardrail_id,
+        },
       );
     }
     if (seen.has(guardrail_id)) {
@@ -1543,6 +1605,10 @@ export function parseImplRequirementEvaluation(rawResponse, knownIds) {
     if (!known.has(guardrail_id)) {
       throw new EvaluationSchemaError(
         `evaluations[${idx}]: unknown guardrail_id "${guardrail_id}"`,
+        {
+          locator: `evaluations[${idx}].guardrail_id`,
+          invalidValue: guardrail_id,
+        },
       );
     }
     if (seen.has(guardrail_id)) {
@@ -1666,6 +1732,24 @@ export function buildGateResultArtifact({
 // Guardrail AI check — shared
 // ---------------------------------------------------------------------------
 
+async function callGateAgent(agent, built, attempt) {
+  let cacheDecision = null;
+  const text = await agent.call(built.userPrompt, {
+    commandId: "flow.spec.gate",
+    systemPrompt: built.systemPrompt,
+    jsonSchema: built.jsonSchema,
+    fmtFallback: built.fmtFallback,
+    cacheMode: attempt.cacheMode,
+    onCacheDecision(decision) { cacheDecision = decision; },
+  });
+  return {
+    text,
+    cacheOutcome: cacheDecision?.cacheOutcome || attempt.cacheMode,
+    fresh: cacheDecision?.fresh ?? attempt.repair,
+    providerCalled: cacheDecision?.providerCalled ?? true,
+  };
+}
+
 async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds, options = {}) {
   const guardrails = loadMergedGuardrails(root);
   if (guardrails.length === 0) return null;
@@ -1695,13 +1779,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
   const { observations: parsed } = await evaluateGuardrailObservationsWithRetry({
     knownIds,
     phase,
-    retryContext: options?.retryContext || null,
-    callAgent: () => agent.call(built.userPrompt, {
-      commandId: "flow.spec.gate",
-      systemPrompt: built.systemPrompt,
-      jsonSchema: built.jsonSchema,
-      fmtFallback: built.fmtFallback,
-    }),
+    callAgent: (attempt) => callGateAgent(agent, built, attempt),
   });
   const byId = new Map(filtered.map((g) => [g.id, g]));
   if (parsed.length === 0) {
@@ -2115,36 +2193,192 @@ export function checkRetryBelowMax(ctx, phase) {
   return envelope;
 }
 
-export async function evaluateGuardrailObservationsWithRetry({
-  knownIds,
-  maxAttempts = null,
+export class GateOutputAttemptEvidence {
+  constructor(input = {}) {
+    if (!Number.isInteger(input.attempt) || input.attempt < 1 || input.attempt > 2) {
+      throw new Error("attempt must be 1 or 2");
+    }
+    if (typeof input.cacheOutcome !== "string" || input.cacheOutcome.trim() === "") {
+      throw new Error("cacheOutcome must be a non-empty string");
+    }
+    this.attempt = input.attempt;
+    this.repair = input.repair === true;
+    this.cacheOutcome = input.cacheOutcome.trim();
+    this.fresh = input.fresh === true;
+    this.providerCalled = input.providerCalled ?? this.cacheOutcome !== "hit";
+    this.error = input.error ? String(input.error) : null;
+    Object.freeze(this);
+  }
+
+  withError(error) {
+    return new GateOutputAttemptEvidence({
+      ...this.toJSON(),
+      error: error?.message || String(error),
+    });
+  }
+
+  toJSON() {
+    return {
+      attempt: this.attempt,
+      repair: this.repair,
+      cacheOutcome: this.cacheOutcome,
+      fresh: this.fresh,
+      providerCalled: this.providerCalled,
+      error: this.error,
+    };
+  }
+}
+
+export class GateOutputProtocolFailure extends Error {
+  constructor({ phase, originalError, attempts, classification, failureMode } = {}) {
+    if (typeof phase !== "string" || phase.trim() === "") {
+      throw new Error("phase must be a non-empty string");
+    }
+    if (!(originalError instanceof Error)) {
+      throw new Error("originalError must be an Error");
+    }
+    if (!Array.isArray(attempts) || attempts.length === 0) {
+      throw new Error("attempts must be a non-empty array");
+    }
+    if (typeof classification !== "string" || classification.trim() === "") {
+      throw new Error("classification must be a non-empty string");
+    }
+    const evidence = attempts.map((entry) => (
+      entry instanceof GateOutputAttemptEvidence ? entry : new GateOutputAttemptEvidence(entry)
+    ));
+    super(originalError.message);
+    this.name = "GateOutputProtocolFailure";
+    this.code = "GATE_OUTPUT_TOOLING_FAILURE";
+    this.cause = originalError;
+    this.attempts = Object.freeze(evidence);
+    this.data = {
+      classification: classification.trim(),
+      failureMode: failureMode || originalError.data?.failureMode || "schema_validation_failure",
+      effectivePhase: phase.trim(),
+      originalError: originalError.message,
+      originalErrorCode: originalError.code || null,
+      attemptCount: evidence.length,
+      attempts: evidence.map((entry) => entry.toJSON()),
+      providerCalls: evidence.filter((entry) => entry.providerCalled).length,
+      freshRepairAttempts: evidence.filter((entry) => entry.repair && entry.fresh && entry.providerCalled).length,
+    };
+  }
+}
+
+class GateAgentResponse {
+  constructor(value, attempt) {
+    const structured = value && typeof value === "object" && !Array.isArray(value);
+    this.text = structured ? String(value.text ?? "") : String(value);
+    this.evidence = new GateOutputAttemptEvidence({
+      attempt: attempt.attempt,
+      repair: attempt.repair,
+      cacheOutcome: structured ? value.cacheOutcome : attempt.cacheMode,
+      fresh: structured ? value.fresh : attempt.repair,
+      providerCalled: structured ? value.providerCalled : true,
+    });
+    Object.freeze(this);
+  }
+}
+
+function gateOutputFailure({ phase, originalError, attempts, failureMode }) {
+  return new GateOutputProtocolFailure({
+    phase,
+    originalError,
+    attempts,
+    classification: "tooling_provider_failure",
+    failureMode,
+  });
+}
+
+async function evaluateGateOutputWithRepair({
+  phase,
   callAgent,
-  phase = "task-impl",
-  retryContext = null,
+  parseResponse,
+  freshRepairAvailable = true,
 }) {
-  let lastError = null;
-  const resolvedMax = maxAttempts ?? (
-    retryContext ? Math.max(1, resolveRetryMax(retryContext, phase) - readGateRetryCount(retryContext.flowState, phase)) : 2
-  );
-  for (let attempt = 1; attempt <= resolvedMax; attempt += 1) {
-    const raw = await callAgent();
+  const attempts = [];
+  let originalError = null;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const repair = attempt === 2;
+    if (repair && freshRepairAvailable !== true) {
+      throw gateOutputFailure({
+        phase,
+        originalError,
+        attempts,
+        failureMode: "freshness_unavailable",
+      });
+    }
+    const request = {
+      attempt,
+      repair,
+      cacheMode: repair ? "bypass" : "default",
+    };
+    let response;
     try {
-      const observations = parseGuardrailArticleEvaluation(raw, knownIds);
-      return { observations };
+      response = new GateAgentResponse(await callAgent(request), request);
     } catch (err) {
-      lastError = err;
+      const evidence = new GateOutputAttemptEvidence({
+        ...request,
+        cacheOutcome: repair ? "bypass" : "provider_error",
+        fresh: repair,
+        providerCalled: true,
+        error: err.message || String(err),
+      });
+      throw gateOutputFailure({
+        phase,
+        originalError: originalError || err,
+        attempts: [...attempts, evidence],
+        failureMode: "provider_failure",
+      });
+    }
+    attempts.push(response.evidence);
+    if (repair && !response.evidence.fresh) {
+      throw gateOutputFailure({
+        phase,
+        originalError,
+        attempts,
+        failureMode: "cached_replay",
+      });
+    }
+    try {
+      return parseResponse(response.text);
+    } catch (err) {
+      attempts[attempts.length - 1] = response.evidence.withError(err);
+      originalError ||= err;
+      if (attempt === 2) {
+        throw gateOutputFailure({ phase, originalError, attempts });
+      }
     }
   }
-  const envelope = buildGateRetryExhaustedEnvelope({
+  throw gateOutputFailure({ phase, originalError, attempts });
+}
+
+export async function evaluateGuardrailObservationsWithRetry({
+  knownIds,
+  callAgent,
+  phase = "task-impl",
+  freshRepairAvailable = true,
+}) {
+  const observations = await evaluateGateOutputWithRepair({
     phase,
-    attempts: resolvedMax,
-    max: resolvedMax,
-    reason: "invalid Observation output",
+    callAgent,
+    freshRepairAvailable,
+    parseResponse: (raw) => parseGuardrailArticleEvaluation(raw, knownIds),
   });
-  const err = new Error(lastError?.message || "invalid Observation output");
-  err.code = envelope.errors[0].code;
-  err.retryExhaustionEnvelope = envelope;
-  throw err;
+  return { observations };
+}
+
+async function evaluateImplRequirementsWithRetry({
+  knownIds,
+  callAgent,
+  phase,
+}) {
+  const evaluations = await evaluateGateOutputWithRepair({
+    phase,
+    callAgent,
+    parseResponse: (raw) => parseImplRequirementEvaluation(raw, knownIds),
+  });
+  return { evaluations };
 }
 
 /**
@@ -2922,8 +3156,13 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
   ].join("\n");
   pb.setRules(rules);
-  pb.setJsonSchema(IMPL_REQUIREMENT_EVAL_SCHEMA);
-  pb.setFmtFallback(IMPL_REQUIREMENT_FMT_FALLBACK);
+  pb.setJsonSchema(exactIdSchema(
+    IMPL_REQUIREMENT_EVAL_SCHEMA,
+    "evaluations",
+    "guardrail_id",
+    knownIds,
+  ));
+  pb.setFmtFallback(exactIdFallback(IMPL_REQUIREMENT_FMT_FALLBACK, "<id>", knownIds));
 
   pb.addUserPrompt("## Requirement IDs", knownIds.map((id) => `- ${id}`).join("\n"));
   if (Array.isArray(requirements)) {
@@ -3226,7 +3465,6 @@ async function runGateFlow(args) {
     {
       ...guardrailPromptOptions,
       priorMemoryMarkdown,
-      retryContext: ctx,
     },
   );
   if (!result) {
@@ -3287,13 +3525,21 @@ function updateStepStatusDuringInference(stepId, status) {
   }
 }
 
+export function resolveEffectiveGatePhase(ctx, inferredResolution = null) {
+  const explicit = typeof ctx?.phase === "string" ? ctx.phase.trim() : "";
+  const phase = explicit || (inferredResolution ?? resolveGatePhaseFromState(ctx?.flowState))?.phase || null;
+  if (phase) ctx.phase = phase;
+  return phase;
+}
+
 export class RunGateCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
-    let phase = ctx.phase;
+    const inferPhase = ctx.phase == null || ctx.phase === "";
+    const resolution = inferPhase ? resolveGatePhaseFromState(ctx.flowState) : null;
+    const phase = resolveEffectiveGatePhase(ctx, resolution);
 
-    if (phase == null || phase === "") {
-      const resolution = resolveGatePhaseFromState(ctx.flowState);
+    if (!phase) {
       if (!resolution) {
         return Envelope.fail(
           "run",
@@ -3303,7 +3549,8 @@ export class RunGateCommand extends FlowCommand {
             `valid phases: ${VALID_GATE_PHASES.join(", ")}`,
         );
       }
-      phase = resolution.phase;
+    }
+    if (inferPhase) {
       for (const staleId of resolution.staleSteps) {
         updateStepStatusDuringInference(staleId, "done");
         process.stderr.write(
@@ -3324,8 +3571,6 @@ export class RunGateCommand extends FlowCommand {
     const skipGuardrail = ctx.skipGuardrail || false;
     const level = PHASE_TO_LEVEL[phase];
 
-    // spec 255 R5: catch EvaluationSchemaError before returning to the dispatcher.
-    // AI output schema failures are non-semantic and must not consume gateRetry.
     try {
       if (phase === "draft") {
         return await this.executeDraft(ctx, root, level, skipGuardrail);
@@ -3340,16 +3585,19 @@ export class RunGateCommand extends FlowCommand {
       return await this.executeSpec(ctx, root, level, skipGuardrail);
     } catch (err) {
       if (err instanceof EvaluationSchemaError) {
-        if (RETRY_TRACKED_PHASES.includes(phase)) {
-          appendIssueLogFromGateError({ ...ctx, phase }, { message: err.message });
-        }
-        return Envelope.fail(
-          "run",
-          "gate",
-          "EVALUATION_SCHEMA_ERROR",
-          err.message,
-          { phase },
-        );
+        throw new GateOutputProtocolFailure({
+          phase,
+          originalError: err,
+          attempts: [{
+            attempt: 1,
+            repair: false,
+            cacheOutcome: "unknown",
+            fresh: false,
+            providerCalled: false,
+            error: err.message,
+          }],
+          classification: "tooling_provider_failure",
+        });
       }
       throw err;
     }
@@ -3653,13 +3901,11 @@ export class RunGateCommand extends FlowCommand {
     for (const batch of requirementPlan.calls) {
       const reqPb = batch.buildPrompt();
       const reqBuilt = reqPb.build();
-      const reqResponse = await agent.call(reqBuilt.userPrompt, {
-        commandId: "flow.spec.gate",
-        systemPrompt: reqBuilt.systemPrompt,
-        jsonSchema: reqBuilt.jsonSchema,
-        fmtFallback: reqBuilt.fmtFallback,
+      const { evaluations: reqResults } = await evaluateImplRequirementsWithRetry({
+        knownIds: batch.requirementIds,
+        phase,
+        callAgent: (attempt) => callGateAgent(agent, reqBuilt, attempt),
       });
-      const reqResults = parseImplRequirementEvaluation(reqResponse, batch.requirementIds);
       reqEvaluations.push(...reqResults.map((r) => ({
         ...r,
         title: r.guardrail_id,
@@ -3703,7 +3949,7 @@ export class RunGateCommand extends FlowCommand {
       phase,
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
       previouslyPassedIds,
-      { acknowledgedRationale, retryContext: ctx },
+      { acknowledgedRationale },
     );
     if (!grResult) {
       return finish(gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings));
@@ -3866,11 +4112,22 @@ export function appendIssueLogFromGateResult(ctx, result) {
 }
 
 export function appendIssueLogFromGateError(ctx, err) {
-  appendIssueLogEntry(ctx.root, ctx.flowState?.spec, {
+  const evidence = err?.data || {};
+  const entry = {
     step: resolveGateStepId(ctx.phase),
     phase: ctx.phase,
     reason: err.message || String(err),
     trigger: "gate onError hook (auto)",
     timestamp: new Date().toISOString(),
-  });
+  };
+  if (evidence.classification) entry.classification = evidence.classification;
+  if (evidence.failureMode) entry.failureMode = evidence.failureMode;
+  if (evidence.originalError) entry.originalError = evidence.originalError;
+  if (Number.isInteger(evidence.attemptCount)) entry.attemptCount = evidence.attemptCount;
+  if (Array.isArray(evidence.attempts)) entry.attempts = evidence.attempts;
+  if (Number.isInteger(evidence.providerCalls)) entry.providerCalls = evidence.providerCalls;
+  if (Number.isInteger(evidence.freshRepairAttempts)) {
+    entry.freshRepairAttempts = evidence.freshRepairAttempts;
+  }
+  appendIssueLogEntry(ctx.root, ctx.flowState?.spec, entry);
 }

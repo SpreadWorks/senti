@@ -1,0 +1,132 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/319-gate-schema-failure-isolation/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R1: provider prompt and schema enumerate only current invocation IDs",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R2: parser preserves invalid field locator and value as primary evidence",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R3: invalid output receives one fresh cache-bypassed repair call",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R4: invalid fresh repair throws tooling failure instead of semantic exhaustion",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R5: protocol failure requires and exposes one non-empty effective phase",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R6: protocol failure leaves semantic state and artifacts unchanged",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R7: valid PASS and semantic FAIL retain existing retry accounting",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R8: target mismatch stops before hooks, command, cache, and state mutation",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "test_name": "R9: repair cache bypass leaves normal prompt cache behavior unchanged",
+        "command": "node --test specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 290
+        }
+      }
+    }
+  ]
+}

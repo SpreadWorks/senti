@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement uses the vague phrase `意味のある protocol/tooling evidence` without stating verifiable conditions for what makes the evidence meaningful.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "The requirement uses the vague phrase `意味のある protocol/tooling evidence` without stating verifiable conditions for what makes the evidence meaningful.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement says to run `通常 regression` in addition to checking whether agent tests are needed, but it does not define which regression command or criteria two reviewers should use to agree that the requirement is satisfied.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.resolvedByProjectRules[4]"
+          },
+          "observed": "The requirement says to run `通常 regression` in addition to checking whether agent tests are needed, but it does not define which regression command or criteria two reviewers should use to agree that the requirement is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "spec.json",
+        "locator": "decisionMap.resolvedByProjectRules[2]"
+      },
+      "observed": "The requirement uses the vague phrase `意味のある protocol/tooling evidence` without stating verifiable conditions for what makes the evidence meaningful.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "decisionMap.resolvedByProjectRules[4]"
+      },
+      "observed": "The requirement says to run `通常 regression` in addition to checking whether agent tests are needed, but it does not define which regression command or criteria two reviewers should use to agree that the requirement is satisfied.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    }
+  ]
+}

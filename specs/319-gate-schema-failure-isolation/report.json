@@ -1,0 +1,808 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |   83 ++\n .../draft-questions-repair.json                    |   44 +\n .../draft-questions-triage.json                    |   36 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   40 +\n specs/319-gate-schema-failure-isolation/draft.json |  121 +++\n .../file-map.json                                  |   47 +\n .../flow-findings.json                             |   27 +\n specs/319-gate-schema-failure-isolation/flow.json  | 1036 ++++++++++++++++++++\n .../impl-gate-result.json                          |  175 ++++\n .../impl-review.json                               |   28 +\n .../issue-log.json                                 |  547 +++++++++++\n specs/319-gate-schema-failure-isolation/issue.md   |  142 +++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   84 ++\n .../review-history/impl-attempt-001.json           |   31 +\n .../review-history/impl-attempt-001.md             |   16 +\n .../review-history/spec-attempt-001.json           |   16 +\n .../review-history/spec-attempt-001.md             |   11 +\n .../review-history/test-attempt-001.json           |  168 ++++\n .../review-history/test-attempt-001.md             |   51 +\n .../review-history/test-attempt-002.json           |   70 ++\n .../review-history/test-attempt-002.md             |   24 +\n .../review-history/test-attempt-003.json           |   50 +\n .../review-history/test-attempt-003.md             |   18 +\n .../review-history/test-attempt-004.json           |   70 ++\n .../review-history/test-attempt-004.md             |   24 +\n .../review-history/test-attempt-005.json           |   70 ++\n .../review-history/test-attempt-005.md             |   24 +\n specs/319-gate-schema-failure-isolation/review.md  |   16 +\n .../scenario-validity-result.json                  |  132 +++\n .../spec-review.json                               |   13 +\n .../spec-review.md                                 |   11 +\n specs/319-gate-schema-failure-isolation/spec.json  |  275 ++++++\n specs/319-gate-schema-failure-isolation/spec.md    |  133 +++\n .../319-gate-schema-failure-isolation/tasks/T-1.md |   20 +\n .../319-gate-schema-failure-isolation/tasks/T-2.md |   20 +\n .../319-gate-schema-failure-isolation/tasks/T-3.md |   21 +\n .../test-coverage.json                             |  119 +++\n .../test-execute-result.json                       |  206 ++++\n .../test-result-review.json                        |   33 +\n .../test-result-review.md                          |   12 +\n .../test-review.json                               |   48 +\n .../test-review.md                                 |   24 +\n .../tests/.raw/scenario-validity.log               |  290 ++++++\n .../tests/.raw/test-execution.log                  |  101 ++\n .../tests/gate-schema-failure-isolation.test.js    |  713 ++++++++++++++\n src/flow/lib/run-gate.js                           |  381 +++++--\n src/flow/registry.js                               |   11 +-\n src/lib/agent.js                                   |   30 +-\n tests/unit/flow/gate-evaluation-schema.test.js     |   52 +-\n tests/unit/lib/agent.test.js                       |   56 +-\n 55 files changed, 5751 insertions(+), 70 deletions(-)",
+      "commits": [
+        "WIP: checkpoint gate schema failure isolation"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "For each guardrail or implementation-requirement agent invocation, the prompt and JSON output schema shall restrict `Observation.requirementRef` or equivalent evaluation IDs to an enum containing exactly the requirement IDs and guardrail IDs valid for that invocation; exact values pass, while prefixed, suffixed, explanatory, empty, and unknown values fail validation.",
+          "status": "done",
+          "note": "R1: provider prompt and schema enumerate only current invocation IDs"
+        },
+        {
+          "desc": "The post-response parser shall validate the same invocation-specific ID set as the provider schema and preserve the original parse or schema-validation error, including the invalid field locator and value, as the primary failure cause.",
+          "status": "done",
+          "note": "R2: parser preserves invalid field locator and value as primary evidence"
+        },
+        {
+          "desc": "After an invalid initial output, schema repair shall make at most one additional provider call and at most two provider calls total. The repair call shall be provably fresh through cache bypass or repair-specific key separation; a cache replay shall not count as a fresh attempt, and inability to guarantee freshness shall stop before repair.",
+          "status": "done",
+          "note": "R3: invalid output receives one fresh cache-bypassed repair call"
+        },
+        {
+          "desc": "Parse failure, schema-validation failure, freshness-unavailable repair, and invalid fresh repair output shall throw a tooling/provider failure code distinct from `ESCALATE_RETRY_EXHAUSTED`, with typed durable evidence containing original error, effective phase, attempt count, per-attempt cache/freshness outcome, and final classification.",
+          "status": "done",
+          "note": "R4: invalid fresh repair throws tooling failure instead of semantic exhaustion"
+        },
+        {
+          "desc": "Explicit and inferred draft, spec, task-impl, and integration phases shall populate the same non-empty effective phase before gate execution and shall pass it unchanged to error envelopes, runtime diagnostics, issue-log evidence, and registry onError handling; secondary diagnostic failures shall not replace the original tooling error.",
+          "status": "done",
+          "note": "R5: explicit and inferred phases reach envelope, runtime, registry, and issue-log sinks"
+        },
+        {
+          "desc": "A protocol/schema/tooling gate failure shall not create or update semantic gate-result artifacts, gate source/recovery baselines, passed-guardrail memory, `gateRetry`, PASS/FAIL counters, task completion, integration routing, or normal semantic post-result lifecycle state.",
+          "status": "done",
+          "note": "R6: registry onError records tooling evidence without semantic lifecycle mutation"
+        },
+        {
+          "desc": "Valid semantic PASS and FAIL outputs shall preserve existing result artifacts, `gateRetry` reset/increment behavior, passed-guardrail memory, task completion, side effects, and task/integration routing for both explicit and inferred phase inputs.",
+          "status": "done",
+          "note": "R7: valid PASS and semantic FAIL retain production lifecycle actions"
+        },
+        {
+          "desc": "Run ID, Issue, and spec guard mismatches shall return `ACTIVE_FLOW_MISMATCH` before command loading, gate pre hooks, agent invocation, prompt-cache reads or writes, runtime target persistence, issue-log changes, semantic artifacts, or flow-state mutation, leaving durable state byte-identical.",
+          "status": "done",
+          "note": "R8: target mismatch stops before hooks, command, cache, and state mutation"
+        },
+        {
+          "desc": "Agent cache changes shall affect only the schema-repair call, retain existing normal cache hit/miss and metric behavior for all other calls, add no public command/config surface, use no external dependency, and preserve FlowStore, artifact-store, and registry ownership.",
+          "status": "done",
+          "note": "R9: repair cache bypass leaves normal prompt cache behavior unchanged"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 10,
+      "fullLogPath": "specs/319-gate-schema-failure-isolation/issue-log.json",
+      "importantTotal": 5,
+      "importantShown": 5,
+      "importantOmitted": 0,
+      "recentOtherTotal": 5,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "`bounded に実行する` does not state a verifiable bound, such as a maximum attempt count or stopping condition.; `bounded に実行する` is not specific enough for independent reviewers to agree whether an implementation satisfies it because the bound...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "The diff changes invalid gate output failures to use `GATE_OUTPUT_TOOLING_FAILURE`, distinct from `ESCALATE_RETRY_EXHAUSTED`, and includes evidence for original error, effective phase, per-attempt cache/freshness outcomes, and final clas...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: added explicit typed attemptCount evidence; retained R8 dispatcher ownership",
+          "resolution": "R4 now derives attemptCount from immutable attempt evidence and persists it to issue-log. R8 is already enforced before command loading by src/lib/dispatcher.js, is explicitly a preservation requirement in the approved spec, is verified ..."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: rebased onto current main and integrated #440 target-guard production ownership",
+          "resolution": "R8 now has production diff evidence from main commit bd3e8f4a and focused byte-identical mismatch coverage passes. The R7 action-order assertion was stale after main commit c6c01aab intentionally moved ExecuteSideEffects before SetStepSt..."
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "final-regression failed: dependency_failure",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "Requirement uses the vague phrase `必要最小限の agent/cache helper` without stating verifiable criteria for what counts as the minimum necessary helper changes.; Requirement says changes must be limited to `必要最小限の agent/cache helper`, but does...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "The goal requires leaving `正確な診断` (`accurate diagnostics`) but does not state a directly verifiable condition for what makes the diagnostics accurate at this location.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "The requirement uses the vague phrase `意味のある protocol/tooling evidence` without stating verifiable conditions for what makes the evidence meaningful.; The requirement says to run `通常 regression` in addition to checking whether agent test...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff only adds a test case for R8; it does not modify dispatcher/flow implementation. There is no implementation evidence that run ID, issue, or spec guard mismatches now return ACTIVE_FLOW_MISMATCH before command loading, hooks, cac...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-review",
+          "reason": "Acceptance review classified two stale test-review findings as still open because disposition evidence had not been recorded",
+          "resolution": "Added acceptance-review-evidence.json marking DF-1 and DF-2 fixed with source finding, stable repaired tests, 13/13 and 58/58 test runs, retro, and impl-gate PASS references"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 4,
+      "question": 0,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 405495,
+      "output": 15855,
+      "cacheRead": 321280,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 23,
+      "durationMs": 418576,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 10981
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 6866
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 96337
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 66468
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 14201
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 103624
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 12488
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 107611
+        }
+      ]
+    },
+    "tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/319-gate-schema-failure-isolation/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/agent.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/agent.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "89d7904d2dc1822acd5fd1fe987b7fc8bc8f72da0ea14e20178cb15fc04f5c3d"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "41bde013ac17f1f5adba2ef576db0873cc20ba91b6a2077e18095b6f9fe9ff2d"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js",
+            "fingerprint": "be24bba99b85bddddf4166af5b30528c0614a660bc8ccd24bc479a7bfb5cada1"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "fingerprint": "103a4fc52c4ba98b809edade59d40b75edb9e11e8f3f895b40f2055bc7ee77ac"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/agent.test.js",
+            "fingerprint": "93ecb6e9d0c98e4f25820e62795fd01154e54c11284a414b4f39c756c57eb7fd"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "89d7904d2dc1822acd5fd1fe987b7fc8bc8f72da0ea14e20178cb15fc04f5c3d"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "41bde013ac17f1f5adba2ef576db0873cc20ba91b6a2077e18095b6f9fe9ff2d"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js",
+            "fingerprint": "be24bba99b85bddddf4166af5b30528c0614a660bc8ccd24bc479a7bfb5cada1"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "fingerprint": "103a4fc52c4ba98b809edade59d40b75edb9e11e8f3f895b40f2055bc7ee77ac"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/agent.test.js",
+            "fingerprint": "93ecb6e9d0c98e4f25820e62795fd01154e54c11284a414b4f39c756c57eb7fd"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "dependency_failure",
+        "failureCategory": "dependency",
+        "failureNature": "execution",
+        "skipKind": null,
+        "rawOutputPath": "specs/319-gate-schema-failure-isolation/tests/.raw/final-regression-attempt-001.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 1,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 1,
+        "failureSummary": "TAP version 13\n# Subtest: T-1: entry enforcement (guardrail + prompts + spec gate tasks check)\n    # Subtest: guardrail.json includes task-single-responsibility with phase=[spec, task-spec]\n    ok 1 - guardrail.json includes task-single-responsibility with phase=[spec, task-spec]\n      ---\n      duration_ms: 2.142571\n      type: 'test'\n      ...",
+        "currentDiffRelationship": "non-current-diff",
+        "changedFiles": [
+          {
+            "status": "untracked",
+            "path": "specs/319-gate-schema-failure-isolation/acceptance-review-evidence.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-gate-schema-failure-isolation/acceptance-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/draft-coverage-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/draft-coverage-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/draft-gate-source.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/draft-questions-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/draft-questions-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/draft-review-coverage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/draft-review-questions.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/draft.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/file-map.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/flow-findings.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-gate-schema-failure-isolation/flow-findings.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/impl-gate-result.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-gate-schema-failure-isolation/impl-gate-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/impl-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/issue.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/plugin-artifacts/workflow/prepare.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-gate-schema-failure-isolation/retro.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/draft-coverage-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/draft-questions-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/impl-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/impl-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/spec-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/spec-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-003.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-003.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-004.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-004.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-005.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-005.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/scenario-validity-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/spec-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/spec-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/spec.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/spec.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/tasks/T-1.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/tasks/T-2.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/tasks/T-3.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/test-coverage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/test-execute-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/test-result-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/test-result-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/test-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/test-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/tests/.raw/scenario-validity.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/tests/.raw/test-execution.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-context.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/agent.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/flow-context.test.js"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": "specs/319-gate-schema-failure-isolation/acceptance-review-evidence.json",
+            "fingerprint": "dd2c0626ea801d2de41e36edf1118eae5f871553faad367489bf598830facde3"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/acceptance-review.json",
+            "fingerprint": "8ad2d513bf145364fba76f4fad70d747be68758832d1922fa15f68f2d81fc82f"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/draft-coverage-repair.json",
+            "fingerprint": "e3f98800e030116a442a633877f0361eecfc194440aa576bc513c6d646629f8c"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/draft-coverage-triage.json",
+            "fingerprint": "1a2a4161d264156dbacc6738c5b2686827817d46d0eaefdf1d54eb95374a8ef2"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/draft-gate-source.json",
+            "fingerprint": "2812acc64291b48c276f0ac55e1a96414c8a211725eab27afe7508339f470e03"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/draft-questions-repair.json",
+            "fingerprint": "953534fdcabd3680d51c56d45725f08c450d3a1ad98f080e12a4336ba27d4e36"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/draft-questions-triage.json",
+            "fingerprint": "2937afe399c80e1d96fe5a57b0311d93d4d3ef0067c7cfd4bc7568dcb0261d39"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/draft-review-coverage.json",
+            "fingerprint": "9164270ee4a32741fe0ec3e08bc3a319eaba17dd56c9087867f2d394c331efd3"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/draft-review-questions.json",
+            "fingerprint": "e5c5919bb3364a6b5e06a7729dfc2a2561f76384be251e571e5c04ef757e55ed"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/draft.json",
+            "fingerprint": "00b6540a2ffe6c168f529419be5f9efdf1454dbc222eac4cf06844025f07a054"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/file-map.json",
+            "fingerprint": "b5cab85e13c3d433027d4494b95167dffbe7d3fa940eb45fbf88dfde6cd55daf"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/flow-findings.json",
+            "fingerprint": "30727bf5023a7155ce07361795abacf1678537e5b9ad55a81f8467e824738367"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/flow-findings.json",
+            "fingerprint": "30727bf5023a7155ce07361795abacf1678537e5b9ad55a81f8467e824738367"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/impl-gate-result.json",
+            "fingerprint": "8f08c02dd7567f864e940413ce1d3d46db1037caabdd82e5034e4fb03fe044f6"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/impl-gate-result.json",
+            "fingerprint": "8f08c02dd7567f864e940413ce1d3d46db1037caabdd82e5034e4fb03fe044f6"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/impl-review.json",
+            "fingerprint": "cb38402327df69279087964e54cf6b874c378db04993aa4a1168d354907904d0"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/issue.md",
+            "fingerprint": "26c2165bb971f3c671b49088ddead4ea3970f621750bf30040fcdd2a9ae542f1"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "9efbc89a63be421c804c9bfeeec38922963a9add0089b3aaaadf8a9fce8fa978"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/retro.json",
+            "fingerprint": "337ae357035cc02a633e54619f2fe6b26d176a1fd85eb8c0e678b34b4a06d7cc"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "01d10c7deea048d12bc021437e54991a10f6fb2c2bb2bbd0da0d7fc71e27061e"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "6f2cf6ee68351860f8945b1817962663d7fba02c79ecd8efd30b942c0e5f9cf6"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/impl-attempt-001.json",
+            "fingerprint": "da7311c44d9ab7f45da54e1d634323c4f5d3a0dc7b025754e1ea118fc055bc97"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/impl-attempt-001.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/spec-attempt-001.json",
+            "fingerprint": "9e33da162929e9c8c2086b60d58aa87fc982f93d5dcc248cdc191276c8d9f565"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-001.json",
+            "fingerprint": "dcfc49d70335a9aa311afd455646d5ffa26f0e63092610f49f0be48de6c9763e"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-001.md",
+            "fingerprint": "9572b2084b4236810acdac5c651fa6783f90e4137789f4e1da6712e43bf526f4"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-002.json",
+            "fingerprint": "d82123da2e5fa207ab7a6daff18feb1281f8b8b9a63f03c1fd97eee8fa88797a"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-002.md",
+            "fingerprint": "22dd691e48484741eb9c391b054b8d172ad6d1b990102fc8bd61d8b43b9f868e"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-003.json",
+            "fingerprint": "155adff9e1185a3866d6b08ec6137361b8b00b567296950d807e7acc170267d8"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-003.md",
+            "fingerprint": "3aea919e979ee62898c836f0037d2b81a85c78c845b84f7f8dfe965471c0aeeb"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-004.json",
+            "fingerprint": "1fcec42b08d070dacd3da9a698b1595e7e64a22f95f3601f0b12bf658f903a6b"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-004.md",
+            "fingerprint": "21ea6406e434cec9e6bdf1d1b138e7ce77ad19e9d2728774964acf456073c2be"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-005.json",
+            "fingerprint": "869842e67ebc233adaa986f0142fd30e23ce5eadbbfb3bd70be970a7ee0276fd"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review-history/test-attempt-005.md",
+            "fingerprint": "cfd518de6f8159808be61cde0e3511b6b40e1bb39baa853956065326a59dc763"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/scenario-validity-result.json",
+            "fingerprint": "ebcdf9aad5ce43027a36bb17c878cfbf034e09b59de61164e71061839ed5b2f4"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/spec-review.json",
+            "fingerprint": "b96c4324e04152f9c0e9f04aa2acf25ebd345a897ad6dafe29abe9b231b22515"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/spec.json",
+            "fingerprint": "a86f053106b3cb4e14b06158828b29a7a945761d1a5ce05124c7074daab1a3a3"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/spec.md",
+            "fingerprint": "7fcfcdc73a0c9a2c2c230f9dc139f745bfc1254765e277b11132a374d111a4fe"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/tasks/T-1.md",
+            "fingerprint": "877db7bba732e86fce19bf067717a77f7a4bb2e115c1e9f8d69515c205b03588"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/tasks/T-2.md",
+            "fingerprint": "fc12fce3940b0d07b6e62e7659cfb7369c3885c065f91d84c06cf05fb511f377"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/tasks/T-3.md",
+            "fingerprint": "03eb15eb6a174082e25717b9aa64f5bef7eec3a870f5a82e546b1f770579eda1"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/test-coverage.json",
+            "fingerprint": "97110d45797515c4bb65cd6ea348e6b83492e323ad65cc5f88e206f0a5985798"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/test-execute-result.json",
+            "fingerprint": "32458d92dad5d343ea35f168cacfaae24b141076f04e2654d4841a63725b6e29"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/test-result-review.json",
+            "fingerprint": "8c1a83c91e1c134bb6f7ed141b3c922016ee3312b6478564477d7532e56a8fa9"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/test-result-review.md",
+            "fingerprint": "48cf5c43a3a3226f911d87ff07d11ae54a3a666573cba0719b71ddb56c93ce1c"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/test-review.json",
+            "fingerprint": "bbee5b335f3010ac9967df2da88d8974821b93d704f218956ebda1336b759490"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/test-review.md",
+            "fingerprint": "cfd518de6f8159808be61cde0e3511b6b40e1bb39baa853956065326a59dc763"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/tests/.raw/scenario-validity.log",
+            "fingerprint": "0dfe406cb243920d8ee06e699c985804b08e64744cf08a05f3dc3847889a1024"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/tests/.raw/test-execution.log",
+            "fingerprint": "9b7eb91ee38a5d58104027f9b69410566a850db19d5f420de83bfbf06fe9204f"
+          },
+          {
+            "path": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+            "fingerprint": "01b0ec35040260fb95d31e42a368cf9387885cd66d4bc89e198aa03ba5c8cae5"
+          },
+          {
+            "path": "src/flow/lib/flow-context.js",
+            "fingerprint": "b934858797c91732d7a01f3a1c2aa3af03761bdb871e7bef94c24886960e46a8"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "571550218d267f674cd1338032abb80aea588697bdad63f00c20517607b68833"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "fingerprint": "5ca65daffa29e927f5c8e67f5b1a125cfdbabcafa38a1e57268e8235e2d56de1"
+          },
+          {
+            "path": "src/lib/agent.js",
+            "fingerprint": "be24bba99b85bddddf4166af5b30528c0614a660bc8ccd24bc479a7bfb5cada1"
+          },
+          {
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "fingerprint": "103a4fc52c4ba98b809edade59d40b75edb9e11e8f3f895b40f2055bc7ee77ac"
+          },
+          {
+            "path": "tests/unit/lib/agent.test.js",
+            "fingerprint": "93ecb6e9d0c98e4f25820e62795fd01154e54c11284a414b4f39c756c57eb7fd"
+          },
+          {
+            "path": "tests/unit/lib/flow-context.test.js",
+            "fingerprint": "ce7f3f15c48041712af1491817fc35831310b4115cd060fee75bb16613f693af"
+          }
+        ],
+        "fixAttempts": 0,
+        "selectedAction": "record-and-proceed",
+        "remainingRisk": "The full regression remains failed on the out-of-scope flow-state source-sink ownership assertion. The 12 direct fs sinks in src/flow/lib/run-finalize-cleanup.js are not repaired under Issue #435 and require separate ownership.",
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": "record-and-proceed",
+        "recordAndProceed": {
+          "eligible": true,
+          "validated": true,
+          "evidence": "Issue #435 manual flow recovery selected the artifact's eligible record-and-proceed route without rerunning tests. The same artifact classifies failureKind=dependency_failure and nextAction=stop while independently recording failureCategory=dependency, currentDiffRelationship=non-current-diff, and recordAndProceed.eligible=true; the stop/eligible signals are contradictory but the official record-and-proceed contract accepts dependency when eligible=true. The retained raw log records unit 2488/2489 PASS and integration 254/254 PASS; its only failure is tests/unit/flow/flow-state-source-sinks.test.js:604, which reports 12 direct fs sinks in src/flow/lib/run-finalize-cleanup.js outside Issue #435's source diff. Failed artifact before SHA-256=634ed8a13a1bf5927a9162fc0897951eefba10093d4acfe41f15315b4adedeb5; retained raw log SHA-256=db20bc47f61ab1f7f22494ba94d3e3ae5eed5a6b1ac5d792169f143d6c81908e."
+        },
+        "humanSummary": "result=fail failureCategory=dependency failureKind=dependency_failure raw_output=specs/319-gate-schema-failure-isolation/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=The full regression remains failed on the out-of-scope flow-state source-sink ownership assertion. The 12 direct fs sinks in src/flow/lib/run-finalize-cleanup.js are not repaired under Issue #435 and require separate owners..."
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    WIP: checkpoint gate schema failure isolation\n    55 files changed, 5751 insertions(+), 70 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 4\n    Q&A ......................... 0\n    issue-log ................... 3\n    agent calls ................. 23\n    input tokens ................ 405,495\n    output tokens ............... 15,855\n    cache-read tokens ........... 321,280\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 418.6s\n      draft-questions-review .... 11.0s\n      draft-coverage-review ..... 6.9s\n      draft-gate ................ 96.3s\n      spec-review ............... 66.5s\n      spec-gate ................. 14.2s\n      test-review ............... 103.6s\n      impl-review ............... 12.5s\n      impl-gate ................. 107.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 9  passed 9  failed 0 verdict=pass\n    raw_output: specs/319-gate-schema-failure-isolation/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=dependency_failure failureCategory=dependency raw_output=specs/319-gate-schema-failure-isolation/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=The full regression remains failed on the out-of-scope flow-state source-sink ownership assertion. The 12 direct fs sinks in src/flow/lib/run-finalize-cleanup.js are not repaired under Issue #435 and require separate ownership.\n\n  Issue Log Summary (10 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/319-gate-schema-failure-isolation/issue-log.json\n\n    Important (5)\n    - [draft-gate] `bounded に実行する` does not state a verifiable bound, such as a maximum attempt count or stopping condition.; `bounded に実行する` is not specific enough for independent reviewers to agree whether an implementation satisfies it because the bound...\n    - [spec-gate] The diff changes invalid gate output failures to use `GATE_OUTPUT_TOOLING_FAILURE`, distinct from `ESCALATE_RETRY_EXHAUSTED`, and includes evidence for original error, effective phase, per-attempt cache/freshness outcomes, and final clas...\n    - [impl-gate] fix: added explicit typed attemptCount evidence; retained R8 dispatcher ownership\n    - [impl-gate] fix: rebased onto current main and integrated #440 target-guard production ownership\n    - [final-regression] final-regression failed: dependency_failure\n\n    Recent Other (5)\n    - [draft-gate] Requirement uses the vague phrase `必要最小限の agent/cache helper` without stating verifiable criteria for what counts as the minimum necessary helper changes.; Requirement says changes must be limited to `必要最小限の agent/cache helper`, but does...\n    - [draft-gate] The goal requires leaving `正確な診断` (`accurate diagnostics`) but does not state a directly verifiable condition for what makes the diagnostics accurate at this location.\n    - [draft-gate] The requirement uses the vague phrase `意味のある protocol/tooling evidence` without stating verifiable conditions for what makes the evidence meaningful.; The requirement says to run `通常 regression` in addition to checking whether agent test...\n    - [spec-gate] The diff only adds a test case for R8; it does not modify dispatcher/flow implementation. There is no implementation evidence that run ID, issue, or spec guard mismatches now return ACTIVE_FLOW_MISMATCH before command loading, hooks, cac...\n    - [acceptance-review] Acceptance review classified two stale test-review findings as still open because disposition evidence had not been recorded"
+}

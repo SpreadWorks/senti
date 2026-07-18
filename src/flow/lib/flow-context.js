@@ -87,8 +87,9 @@ function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, opt
       };
     }
   }
+  const flowManager = baseFlowManager.forRoot(paths.root, { specId: identity.specId });
   return {
-    flowManager: baseFlowManager,
+    flowManager,
     flowState,
     preparingFlowState: null,
     authorityRoot: paths.root,

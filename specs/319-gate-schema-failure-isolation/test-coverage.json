@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "For each guardrail or implementation-requirement agent invocation, the prompt and JSON output schema shall restrict `Observation.requirementRef` or equivalent evaluation IDs to an enum containing exactly the requirement IDs and guardrail IDs valid for that invocation; exact values pass, while prefixed, suffixed, explanatory, empty, and unknown values fail validation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The post-response parser shall validate the same invocation-specific ID set as the provider schema and preserve the original parse or schema-validation error, including the invalid field locator and value, as the primary failure cause.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "After an invalid initial output, schema repair shall make at most one additional provider call and at most two provider calls total. The repair call shall be provably fresh through cache bypass or repair-specific key separation; a cache replay shall not count as a fresh attempt, and inability to guarantee freshness shall stop before repair.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Parse failure, schema-validation failure, freshness-unavailable repair, and invalid fresh repair output shall throw a tooling/provider failure code distinct from `ESCALATE_RETRY_EXHAUSTED`, with typed durable evidence containing original error, effective phase, attempt count, per-attempt cache/freshness outcome, and final classification.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Explicit and inferred draft, spec, task-impl, and integration phases shall populate the same non-empty effective phase before gate execution and shall pass it unchanged to error envelopes, runtime diagnostics, issue-log evidence, and registry onError handling; secondary diagnostic failures shall not replace the original tooling error.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "A protocol/schema/tooling gate failure shall not create or update semantic gate-result artifacts, gate source/recovery baselines, passed-guardrail memory, `gateRetry`, PASS/FAIL counters, task completion, integration routing, or normal semantic post-result lifecycle state.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Valid semantic PASS and FAIL outputs shall preserve existing result artifacts, `gateRetry` reset/increment behavior, passed-guardrail memory, task completion, side effects, and task/integration routing for both explicit and inferred phase inputs.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Run ID, Issue, and spec guard mismatches shall return `ACTIVE_FLOW_MISMATCH` before command loading, gate pre hooks, agent invocation, prompt-cache reads or writes, runtime target persistence, issue-log changes, semantic artifacts, or flow-state mutation, leaving durable state byte-identical.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Agent cache changes shall affect only the schema-repair call, retain existing normal cache hit/miss and metric behavior for all other calls, add no public command/config surface, use no external dependency, and preserve FlowStore, artifact-store, and registry ownership.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-schema-failure-isolation.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/gate-schema-failure-isolation.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ]
+    }
+  ]
+}

@@ -933,11 +933,16 @@ export const FLOW_COMMANDS = {
       },
       async onError(ctx, err) {
         const { appendIssueLogFromGateError } = await import("./lib/run-gate.js");
-        tryAppendIssueLog(() => appendIssueLogFromGateError(ctx, err));
-        await applyLifecycleActionsFromRegistry(ctx, {
+        const phase = err?.data?.effectivePhase
+          || ctx.phase
+          || resolveGatePhaseFromState(ctx.flowState)?.phase;
+        const errorCtx = { ...ctx, phase };
+        tryAppendIssueLog(() => appendIssueLogFromGateError(errorCtx, err));
+        if (err?.code === "GATE_OUTPUT_TOOLING_FAILURE") return;
+        await applyLifecycleActionsFromRegistry(errorCtx, {
           event: "gate:onError",
           command: "run-gate",
-          phase: ctx.phase,
+          phase,
         }, null, err);
       },
     },

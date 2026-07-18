@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "4件の question から推奨回答と instructional framing を除き、Issue #435 の requirement-level confirmation に限定した。",
+  "items": [
+    {
+      "title": "1. q1 embeds recommended answer and acceptance details",
+      "target": "q1",
+      "rationale": "推奨文と acceptance detail の列挙を除き、Issue の goal/scope confirmation のみにした。",
+      "evidence": "draft.json qa[0].question は Issue #435 の goal と scope の承認だけを尋ねる。",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 embeds implementation policy recommendation",
+      "target": "q2",
+      "rationale": "cache contract の内部実装指示を除き、freshness 保証不能時の requirement-level boundary の確認にした。",
+      "evidence": "draft.json qa[1].question は tooling/provider failure 停止境界だけを尋ねる。",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 embeds evidence contract details",
+      "target": "q3",
+      "rationale": "推奨された field list を除き、Issue が定める durable evidence boundary の確認にした。",
+      "evidence": "draft.json qa[2].question は Issue #435 の診断情報保持と secondary error 上書き防止だけを尋ねる。",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 embeds verification scope recommendation",
+      "target": "q4",
+      "rationale": "推奨形式を除き、Issue の Verification section を focused test scope とする確認にした。",
+      "evidence": "draft.json qa[3].question は Issue #435 の Verification scope の承認だけを尋ねる。",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    }
+  ]
+}

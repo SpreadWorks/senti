@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-12T21:21:17.868Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/319-gate-schema-failure-isolation/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 lacks implementation-requirement parser evidence coverage",
+      "target": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+      "issue": "R2 requires the post-response parser to validate the invocation-specific ID set and preserve the original schema-validation error, including invalid field locator and value. The tests assert this evidence only for guardrail `requirementRef`; the implementation-requirement `guardrail_id` parser path is not checked for locator/value preservation.",
+      "requiredChange": "Add a spec-local R2 assertion that an invalid `parseImplRequirementEvaluation` ID fails with the original invalid `guardrail_id` locator and value as the primary cause.",
+      "whyBlocking": "An acceptance requirement has no corresponding coverage for the implementation-requirement invocation path, so an implementation could preserve evidence for guardrail outputs but lose it for requirement-gate outputs.",
+      "origin": "R2",
+      "failureKind": "missing_spec_local_coverage",
+      "findingId": "review-finding-1"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 sink propagation is only executable for integration dispatch",
+      "target": "specs/319-gate-schema-failure-isolation/tests/gate-schema-failure-isolation.test.js",
+      "issue": "R5 requires explicit and inferred draft, spec, task-impl, and integration phases to pass the same effective phase unchanged to error envelopes, runtime diagnostics, issue-log evidence, and registry onError handling. The executable dispatch coverage for envelope/runtime/onError behavior only exercises integration; draft, spec, and task-impl are covered only by direct phase resolution and issue-log append checks.",
+      "requiredChange": "Extend the executable R5 dispatch/onError coverage so draft, spec, and task-impl explicit and inferred inputs also verify the envelope, runtime diagnostic metadata, issue-log entry, and registry onError phase propagation.",
+      "whyBlocking": "The requirement explicitly covers all four phases across these sinks, but the current tests would allow regressions in non-integration envelope/runtime/onError routing to pass.",
+      "origin": "R5",
+      "failureKind": "missing_spec_local_coverage",
+      "findingId": "review-finding-2"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/319-gate-schema-failure-isolation/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "4fd1ad1b5b10f928e86d47870e91bbf21a347b7b657f1d19fc1fabbd3012711b"
+  }
+}

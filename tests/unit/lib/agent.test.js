@@ -11,7 +11,7 @@ function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "agent-test-"));
 }
 
-function makeAgent(profile, { config, paths } = {}) {
+function makeAgent(profile, { config, paths, flowManager } = {}) {
   const root = paths?.root || tmpDir();
   const agentWorkDir = paths?.agentWorkDir || path.join(root, ".tmp");
   const userProviders = profile ? { "test/exec": profile } : {};
@@ -28,6 +28,7 @@ function makeAgent(profile, { config, paths } = {}) {
     paths: { root, agentWorkDir, ...(paths || {}) },
     registry,
     logger: new Logger({ logDir: os.tmpdir(), enabled: false }),
+    flowManager,
   });
 }
 
@@ -115,6 +116,59 @@ describe("Agent.call() — retry behavior", () => {
       agent.call("", { commandId: "test", retryCount: 1, retryDelayMs: 10 }),
       /exit=1/,
     );
+  });
+});
+
+describe("Agent.call() — prompt cache policy", () => {
+  it("bypasses cache reads and writes only for cacheMode=bypass", async (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const countFile = path.join(root, "count.txt");
+    const script = [
+      "const fs=require('fs');",
+      "const file=process.argv[1];",
+      "let count=fs.existsSync(file)?Number(fs.readFileSync(file,'utf8')):0;",
+      "count+=1;fs.writeFileSync(file,String(count));",
+      "process.stdout.write('provider-'+count);",
+    ].join("");
+    const spec = "specs/cache/spec.json";
+    const decisions = [];
+    const flowManager = {
+      resolveCurrentContext() {
+        return { spec, taskId: null, sentiPhase: "impl" };
+      },
+      loadActiveFlows() { return [{ spec }]; },
+      appendMetric() {},
+      accumulateAgentMetrics() {},
+    };
+    const agent = makeAgent(
+      { command: "node", args: ["-e", script, countFile, "{{PROMPT}}"] },
+      {
+        paths: { root, agentWorkDir: path.join(root, ".tmp") },
+        flowManager,
+      },
+    );
+
+    const normal = await agent.call("same", {
+      commandId: "test",
+      onCacheDecision(decision) { decisions.push(decision); },
+    });
+    const cached = await agent.call("same", {
+      commandId: "test",
+      onCacheDecision(decision) { decisions.push(decision); },
+    });
+    const bypassed = await agent.call("same", {
+      commandId: "test",
+      cacheMode: "bypass",
+      onCacheDecision(decision) { decisions.push(decision); },
+    });
+    const normalAgain = await agent.call("same", { commandId: "test" });
+
+    assert.equal(normal, "provider-1");
+    assert.equal(cached, "provider-1");
+    assert.equal(bypassed, "provider-2");
+    assert.equal(normalAgain, "provider-1");
+    assert.deepEqual(decisions.map((entry) => entry.cacheOutcome), ["miss", "hit", "bypass"]);
   });
 });
 
