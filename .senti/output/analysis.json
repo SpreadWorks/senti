@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-18T11:10:15.239Z",
+  "analyzedAt": "2026-07-18T12:29:58.561Z",
   "package": {
     "entries": [
       {
@@ -5994,9 +5994,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "a0486fa3df8c22b206ff44ba1a2763ab",
-        "lines": 4466,
-        "mtime": "2026-07-18T10:20:50.781Z",
+        "hash": "7c56350424126bd491d493344349ec8a",
+        "lines": 4853,
+        "mtime": "2026-07-18T12:29:42.563Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -6036,6 +6036,11 @@
           "SameSpecContractRecord",
           "SameSpecContractSection",
           "SameSpecContractContext",
+          "RequirementContextEntry",
+          "RequirementObligation",
+          "RequirementGateContext",
+          "classifyRequirementObligation",
+          "buildRequirementGateContext",
           "RequirementPromptExcerpt",
           "RequirementGateBatch",
           "buildRequirementGateBatches",
@@ -6125,8 +6130,18 @@
           "sameSpecClarificationRecord",
           "selectBoundedRecords",
           "requirementIdIsReferenced",
+          "positiveInteger",
+          "truncateContextItem",
+          "escapeRegExp",
+          "containsRequirementId",
+          "backtickIdentifiers",
+          "textHasLinkedIdentifier",
+          "taskPromptSourceText",
+          "overviewSourceEntries",
           "normalizeRequirementPromptInput",
           "renderRequirementPromptSection",
+          "normalizeRequirementContext",
+          "renderRequirementContextSection",
           "summarizeDiffForPrompt",
           "buildGuardrailTargetTextForPrompt",
           "requirementEvaluation",
@@ -6211,6 +6226,11 @@
           "SameSpecContractRecord",
           "SameSpecContractSection",
           "SameSpecContractContext",
+          "RequirementContextEntry",
+          "RequirementObligation",
+          "RequirementGateContext",
+          "classifyRequirementObligation",
+          "buildRequirementGateContext",
           "RequirementPromptExcerpt",
           "RequirementGateBatch",
           "buildRequirementGateBatches",
@@ -6239,6 +6259,9 @@
           "buildPerRequirementDiffs",
           "runGatePhaseWithDependencies",
           "PHASE_TO_LEVEL",
+          "MAX_REQUIREMENT_CONTEXT_ITEMS",
+          "MAX_REQUIREMENT_CONTEXT_ITEM_CHARS",
+          "MAX_REQUIREMENT_CONTEXT_CHARS",
           "IMPL_DIFF_SCOPE_LINES",
           "GUARDRAIL_ARTICLE_EVAL_SCHEMA",
           "IMPL_REQUIREMENT_EVAL_SCHEMA",
@@ -6250,23 +6273,23 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate pipeline that decides whether spec, draft, task implementation, and integration phases can advance. It combines command execution with guardrail evaluation, artifact generation, and retry control.",
-        "detail": "The module gathers gate inputs from specs, drafts, file maps, git diffs, and generated artifacts, then builds phase-specific prompts and validation payloads for rule-based and AI-assisted checks. It enforces strict schemas for evaluation responses, normalizes observations and guardrail results, and turns them into persistent gate reports, issue-log entries, and next-action contracts. Retry behavior is tracked per phase with budgets, recovery baselines, repeated-failure detection, and defer or external-block outcomes when progress is not possible. The command class also coordinates phase inference, side effects, same-spec context reuse, and implementation memory so later gate attempts can use prior evidence and passed checks.",
-        "chapter": "internal_design",
+        "summary": "Implements the flow gate engine for draft, spec, task-implementation, and integration phases. It drives validation, AI-based guardrail checks, retry behavior, and artifact output for the run-gate command.",
+        "detail": "The module combines command execution with a large set of helpers for collecting Git diffs, compacting prompt inputs, and building structured evaluation prompts for guardrail articles and requirement-level checks. It validates spec and draft lifecycle artifacts, enforces strict JSON response schemas from agents, and normalizes pass or fail observations into durable gate reports. Retry control includes per-phase budgets, recovery baselines, repeated-failure detection, defer or block classification, and issue-log integration to prevent unproductive reruns. The implementation also persists gate memory and source artifacts so later attempts can reuse prior context and compare against identical repository states.",
+        "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-18T10:22:04.052Z",
+          "processedAt": "2026-07-18T12:30:41.682Z",
           "attempts": 1
         },
         "keywords": [
+          "run-gate command",
           "flow gate",
           "guardrail evaluation",
           "spec validation",
-          "retry handling",
-          "artifact persistence",
-          "git diff analysis",
-          "workflow command",
-          "quality gate"
+          "implementation diff",
+          "retry policy",
+          "issue log",
+          "artifact persistence"
         ]
       },
       {
@@ -13058,9 +13081,9 @@
     ],
     "summary": {
       "total": 239,
-      "totalMethods": 2408
+      "totalMethods": 2423
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-18T11:10:43.878Z"
+  "enrichedAt": "2026-07-18T12:30:41.682Z"
 }
