@@ -1,0 +1,71 @@
+{
+  "devType": "bugfix",
+  "goal": "Add an official guarded and audited flow-level plan rewind from supported pre-finalize implementation stages while preserving source changes and requiring renewed planning approval and implementation verification.",
+  "analysis": {
+    "problem": "The existing task-level draft reopen requires a completed task and cannot recover a flow stopped after implementation without violating flow invariants when the approved plan itself requires clarification. Manual state or spec edits would leave approval reusable, retry counters exhausted, or prior evidence eligible after its planning basis changed.",
+    "proposedApproach": "Introduce an official flow-level rewind contract for the supported implementation stages. The contract requires target identity guards and a reason; preserves worktree and source content; clears prior approval; resets downstream planning and implementation step statuses and retry counters; marks prior review, gate, test, and implementation evidence stale; records the target identity, source stage, destination, reason, and invalidated evidence in the audit trail; leaves exactly one clarification leaf in progress; and rejects unsupported finalize or baseline states without mutation.",
+    "validation": "Verify supported-stage transitions, exact one-leaf flow consistency, renewed approval and verification requirements, source and artifact preservation, durable audit details, mismatch immutability, finalize-boundary rejection, and unchanged task-level reopen behavior."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "[must] The flow-level rewind supports impl-review, impl-gate, retro, acceptance, and final-regression before finalize.",
+      "[must] Matching run, Issue, and spec guards plus a non-empty reason are required before mutation.",
+      "[must] Rewind preserves the worktree, source changes, and prior artifacts while making prior approval and downstream evidence ineligible for reuse.",
+      "[must] Rewind restores a rerunnable planning and implementation route with exactly one in-progress leaf and a matching next action.",
+      "[must] Rewind after finalize-merge or baseline completion is rejected without changing state, source, artifacts, or audit history.",
+      "[must] The existing task-level reopen route and behavior remain unchanged."
+    ],
+    "decisionPoints": [
+      "[must] Confirm that the published Issue defines the intended goal, supported stages, preservation rules, invalidation rules, and rejection boundaries."
+    ],
+    "resolvedByProjectRules": [
+      "[must] Use only Node.js built-in modules and maintain value invariants through the existing class-based ownership model.",
+      "[must] Avoid compatibility shims because the project is in its alpha period.",
+      "[must] Keep project-specific values out of distributed src/ code."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "[must] Define the official command surface and its public ownership while preserving task-level reopen routing.",
+      "[must] Define which planning and implementation step statuses and retry counters return to rerunnable values, how prior approval and evidence become ineligible, and how target identity, source stage, destination, reason, and invalidated evidence are recorded.",
+      "[must] Define behavior-level verification for every supported source stage, mismatch guard, and finalize boundary."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] Flow-level guarded plan rewind from the five published pre-finalize implementation stages.",
+      "[must] Atomic flow state, retry, approval, and evidence invalidation with a durable audit record.",
+      "[must] Worktree, source, artifact, and task-route preservation.",
+      "[must] Unit coverage for each supported source stage, every target guard mismatch, finalize and baseline rejection, state and evidence invalidation, one-leaf consistency, source preservation, and existing task-level reopen success and failure routes; plus an end-to-end impl-gate rewind through renewed approval and required implementation verification."
+    ],
+    "out": [
+      "[must] Do not mutate or recover the active flow for Issue #432 as part of this Issue.",
+      "[must] Do not bypass or defer semantic gate findings and do not extend retry limits.",
+      "[must] Do not support rewind after finalize-merge or baseline completion.",
+      "[must] Do not add external dependencies, compatibility shims, force cleanup, or manual flow.json editing."
+    ]
+  },
+  "impactOnExisting": [
+    "[must] The new flow-level path affects planning and implementation flow state, retry eligibility, evidence eligibility, next-action routing, and the issue audit trail.",
+    "[must] Existing task-level reopen success, no-completed-task rejection, pre-implementation reopening, and task-addition routes remain unchanged and are verified by regression tests.",
+    "[must] Existing source and artifact files remain content-preserving through rewind; invalidation is represented as durable state or audit metadata rather than deletion."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Does the published Issue #434 scope match the requested outcome and boundary?",
+      "answer": "[must] Yes. Implement the published Issue #434 boundary exactly, including all listed preservation, invalidation, renewed verification, mismatch immutability, and finalize-boundary requirements, without retry extension or semantic gate bypass.",
+      "evidence": "Existing code pattern: src/flow/lib/run-reopen-draft.js owns task-level reopen modes and rejects flows without a completed task, while src/lib/flow-store.js owns flow.json loading and mutation. Project guardrails require verifiable requirements, preservation of existing-feature behavior, no new dependencies, and no alpha compatibility shims. Issue #434 Requirements 1-14 and Out of Scope apply those patterns to the new flow-level route.",
+      "why": "The recommendation follows existing command and store ownership while adding the separately guarded recovery path required to unblock Issue #432 without manual state edits or reuse of stale approval and evidence.",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T20:17:27.000Z",
+    "notes": "Parent preapproved routine Issue-preserving draft and implementation decisions for Issue #434."
+  }
+}

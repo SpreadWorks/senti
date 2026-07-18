@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed the non-question priority marker from q1 without changing its Issue-confirmation meaning.",
+  "items": [
+    {
+      "title": "1. Remove non-question directive marker",
+      "target": "q1",
+      "rationale": "Removed the '[must]' prefix so q1 contains only the self-contained confirmation question.",
+      "evidence": "draft.json qa[0].question now begins with 'Should implementation follow Issue #434 exactly'.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+[senti] spec-local tests start
+command: node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js
+TAP version 13
+# Subtest: R1: flow-level route is guarded while existing reopen routes retain behavior
+ok 1 - R1: flow-level route is guarded while existing reopen routes retain behavior
+  ---
+  duration_ms: 19.977663
+  type: 'test'
+  ...
+# Subtest: R2: each supported source produces one draft action across parent and task scopes
+ok 2 - R2: each supported source produces one draft action across parent and task scopes
+  ---
+  duration_ms: 4.094581
+  type: 'test'
+  ...
+# Subtest: R2: FlowStore persists one validated rewind and rejects an invalid candidate before save
+ok 3 - R2: FlowStore persists one validated rewind and rejects an invalid candidate before save
+  ---
+  duration_ms: 7.999921
+  type: 'test'
+  ...
+# Subtest: R3: every flow retry phase resets to zero without changing maxima or history
+ok 4 - R3: every flow retry phase resets to zero without changing maxima or history
+  ---
+  duration_ms: 1.429647
+  type: 'test'
+  ...
+# Subtest: R4: all approval and evidence categories reject stale timestamps and accept renewed ones
+ok 5 - R4: all approval and evidence categories reject stale timestamps and accept renewed ones
+  ---
+  duration_ms: 1.030886
+  type: 'test'
+  ...
+# Subtest: R4: renewed approval and artifact created on the normal route become eligible
+ok 6 - R4: renewed approval and artifact created on the normal route become eligible
+  ---
+  duration_ms: 6.120592
+  type: 'test'
+  ...
+# Subtest: R5: inventory enforces exact bounds, streams hashes, and preserves files and tasks
+ok 7 - R5: inventory enforces exact bounds, streams hashes, and preserves files and tasks
+  ---
+  duration_ms: 6.641794
+  type: 'test'
+  ...
+# Subtest: R5: real persisted rewind preserves identity, task forest, product source, and artifacts
+ok 8 - R5: real persisted rewind preserves identity, task forest, product source, and artifacts
+  ---
+  duration_ms: 4.826345
+  type: 'test'
+  ...
+# Subtest: R6: audit contains every invalidation field, remains append-only, and caps at 100
+ok 9 - R6: audit contains every invalidation field, remains append-only, and caps at 100
+  ---
+  duration_ms: 7.435879
+  type: 'test'
+  ...
+# Subtest: R7: every guard, route, baseline, resource, and candidate rejection is immutable
+ok 10 - R7: every guard, route, baseline, resource, and candidate rejection is immutable
+  ---
+  duration_ms: 8.862126
+  type: 'test'
+  ...
+# Subtest: R8: impl-gate rewind traverses renewed approval and implementation verification in order
+ok 11 - R8: impl-gate rewind traverses renewed approval and implementation verification in order
+  ---
+  duration_ms: 5.89535
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 222.146592
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] spec-local tests end

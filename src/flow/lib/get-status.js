@@ -257,7 +257,7 @@ function buildStatusOutput(state, root, options = {}) {
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
   const deferredFindings = state.spec
-    ? buildDeferredFindingsSummary({ specDir: specDirFromFlowState(root, state) })
+    ? buildDeferredFindingsSummary({ specDir: specDirFromFlowState(root, state), flowState: state })
     : { count: 0, sourceSteps: [], artifactPath: "flow-findings.json" };
   const finalRegression = buildFinalRegressionStatus(root, state);
 

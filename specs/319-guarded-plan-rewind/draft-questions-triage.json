@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Apply the single structural repair target by removing the priority marker from q1 while preserving the Issue-confirmation question.",
+  "items": [
+    {
+      "title": "1. Remove non-question directive marker",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The marker is not part of the user-facing question and can be removed without changing the requirement boundary or introducing a new decision.",
+      "evidence": "draft.json qa[0].question begins with '[must]' before the self-contained Issue #434 confirmation question."
+    }
+  ]
+}

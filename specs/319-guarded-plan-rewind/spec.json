@@ -1,0 +1,279 @@
+{
+  "goal": "Provide an official guarded and audited flow-level plan rewind from supported pre-finalize implementation stages while preserving product source and task routing and requiring renewed planning approval and implementation verification.",
+  "scope": {
+    "in": [
+      "Extend `senti flow run reopen-draft` with a flow-level route for parent `impl-review`, `impl-gate`, `retro`, `acceptance-review`, and `final-regression` stages.",
+      "Add a FlowStore-owned atomic state transition and class-based rewind/audit values.",
+      "Reset planning and implementation step state, append retry reset markers, invalidate recovery grants, and make pre-rewind approval and evidence ineligible without deleting artifacts.",
+      "Preserve the worktree, product source changes, task forest, task statuses, and existing task-level reopen behavior.",
+      "Add spec-local, unit, and end-to-end verification for supported stages, guard and boundary failures, freshness, audit, source preservation, and task-route parity."
+    ],
+    "out": [
+      "Mutating or recovering the active flow for Issue #432.",
+      "Bypassing, deferring, or marking semantic gate findings as passed, or increasing review or gate retry limits.",
+      "Plan rewind from task-scoped execution or after any finalize leaf, merge baseline, or finalized timestamp exists.",
+      "Deleting worktrees, source changes, spec artifacts, review artifacts, gate artifacts, test artifacts, implementation artifacts, or raw logs.",
+      "Manual flow.json edits, force cleanup, external dependencies, compatibility shims, push, publish, or release."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing FlowCommand, FlowManager, FlowStore, Envelope, step-tree, retry metric, and registry patterns.",
+    "Represent the plan rewind request, audit record, and invalidated evidence entries with dedicated classes whose constructors enforce non-empty identity, stage, timestamp, a reason of 1-500 characters, spec-relative paths of at most 1000 characters, at most 500 evidence entries per rewind, and at most 100 retained rewind audit records.",
+    "Require non-empty `--reason`, `--expect-run-id`, `--expect-issue`, and `--expect-spec` for the flow-level route; retain optional reason and existing guard-free behavior for the task-level route.",
+    "Validate supplied target guards through the existing shared guard boundary before command execution and reject missing required flow-level guards before any FlowStore mutation.",
+    "Perform the flow-state reset, retry reset markers, recovery invalidation, approval invalidation marker, evidence invalidation inventory, and audit append in one FlowStore mutation; an exception before save must leave flow.json byte-identical.",
+    "Restrict evidence inventory traversal to the active spec directory, reject symlinks and paths outside it, exclude flow.json itself, reject more than 500 regular files or more than 268435456 aggregate bytes before mutation, and hash files through chunks no larger than 65536 bytes.",
+    "Do not change the task forest, task status, task steps, task requirements, currentTaskId, worktree metadata, feature/base branches, runId, Issue, spec path, or product source files during flow-level rewind.",
+    "Treat all `finalize-*` leaves, `state.mergeStrategy`, `state.featureBranchSquashedSha`, and `state.finalizedAt` as plan-rewind rejection boundaries.",
+    "Keep old artifact files in place and determine eligibility from the latest rewind timestamp: approval confirmation and downstream evidence must be created after that timestamp before they can satisfy the renewed route."
+  ],
+  "design_principles": [
+    "Keep one public reopen command and select flow-level behavior only from an explicitly supported parent stage with no current task.",
+    "Make FlowStore the sole owner of the multi-field flow.json transition and validate the complete candidate before saving it.",
+    "Preserve history through append-only audit and retry reset records instead of deleting prior metrics or artifacts.",
+    "Use timestamped evidence invalidation so existing files remain inspectable while stale approval, findings, overrides, and results cannot satisfy the renewed route.",
+    "Reset the route to the definition-backed `draft` clarification leaf and require every normal plan and implementation leaf to run again."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/run-reopen-draft.js` selects the new parent flow-level route, enforces its 1-500 character reason and complete guard presence, captures at most 500 evidence entries totaling at most 268435456 bytes, delegates one state transition, and leaves the existing task-level route unchanged."
+      },
+      {
+        "text": "`src/flow/lib/plan-rewind.js` owns class-based request, evidence, audit, supported-stage, boundary, freshness, and one-active-leaf invariants."
+      },
+      {
+        "text": "`src/lib/flow-store.js` exposes the public atomic rewind mutation that resets flow steps, appends retry reset metrics and audit history, invalidates prior recovery state, and validates preserved task identity."
+      },
+      {
+        "text": "Existing approval, status, findings, override, review, gate, test, retro, acceptance, and final-regression consumers use the shared latest-rewind freshness rule when deciding whether a pre-existing artifact can satisfy the current route."
+      },
+      {
+        "text": "`src/flow/registry.js` documents flow-level prerequisites and retained task-level behavior without adding a second public command."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Shared command guards reject mismatched run, Issue, or spec before execute; the flow-level branch then rejects any missing expected identity or a reason outside 1-500 characters before inventory or mutation."
+      },
+      {
+        "text": "The rewind domain captures path, size, modification time, and SHA-256 metadata for at most 500 existing spec artifacts totaling at most 268435456 bytes, hashes with 65536-byte-or-smaller chunks, leaves every file unchanged, and passes immutable request and evidence values to FlowStore."
+      },
+      {
+        "text": "FlowStore verifies the current parent stage and finalize/baseline boundary, preserves a task/worktree identity snapshot, resets all parent leaves after prepare-spec to pending except draft=in_progress, appends reset-aware retry metrics, invalidates prior retry recovery, appends the rewind audit record, and saves only after exactly one active leaf and all preservation invariants pass."
+      },
+      {
+        "text": "Status and next-action resolve draft as the sole clarification action. Subsequent gates and consumers ignore approval or evidence at or before the latest rewind time; normal review, gate, approval, tests, implementation checks, retro, acceptance, and final regression produce new eligible evidence."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] checked existing task-level reopen ownership; result=match: extend `reopen-draft` only when currentTaskId is null and the active parent leaf is a supported implementation stage, then leave the existing completed-task branch unchanged.",
+        "evidence": "`src/flow/lib/run-reopen-draft.js` already distinguishes pre-implementation parent reopen from the task-level `hasDone` path and records task-level results after that branch."
+      },
+      {
+        "text": "[VERIFY] checked store ownership; result=match: place the complete candidate transition behind one public FlowStore method rather than issuing repeated step setters.",
+        "evidence": "`src/lib/flow-store.js` owns flow.json load/save/mutate and existing `updateStepStatus()` calls save per mutation, so repeated setters cannot provide one all-or-nothing reset."
+      },
+      {
+        "text": "[VERIFY] checked retry accounting; result=match: append `{ reset: true }` metrics for renewed phases instead of deleting historical retry entries.",
+        "evidence": "`src/flow/lib/retry-accounting.js`, `run-gate.js`, and `run-review.js` replay retry metrics and reset the effective count to zero when a matching reset marker is encountered."
+      },
+      {
+        "text": "[VERIFY] checked approval and task synchronization; result=match: reset the approval leaf and require a post-rewind confirmation while preserving existing tasks.",
+        "evidence": "`src/flow/lib/set-approval.js` writes spec.json user_approval with a confirmation timestamp, and `sync-spec-tasks.js` preserves existing flow tasks and only appends new task IDs."
+      },
+      {
+        "text": "[VERIFY] checked flow definition; result=match: all supported sources are parent implementation leaves before finalize and the renewed route can start at draft.",
+        "evidence": "`src/flow/definition.js` orders draft through approval and test before implement, impl-review, impl-gate, retro, acceptance-review, final-regression, and the finalize subtree."
+      },
+      {
+        "text": "Migration parity inventory retains the `reopen-draft` command name, optional-reason task route, pre-implementation plan route, NO_DONE_TASK behavior, issue-log side effect, registry discovery, help surface, task forest, and source preservation under their current owners; only the five explicit parent stages gain the guarded flow-level route.",
+        "evidence": "Issue #434 requires task-level route parity and a new official recovery path; the existing registry already supplies run/Issue/spec guard options through FLOW_RUN_OPTIONS."
+      }
+    ]
+  },
+  "background": "A flow can reach implementation review or later with a plan whose approved wording conflicts with its own scope and acceptance criteria. The existing task-level reopen requires completed task context and cannot reset parent implementation state, approval, retry accounting, or downstream evidence. Manual edits would bypass target isolation and leave stale artifacts eligible. The new route must rewind the parent flow as one validated state transition, preserve all product and task work, retain old artifacts for audit, and force the normal plan and implementation route to regenerate evidence after clarification.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`senti flow run reopen-draft` shall select flow-level mode only when `currentTaskId` is null and the sole active parent leaf is `impl-review`, `impl-gate`, `retro`, `acceptance-review`, or `final-regression`; that mode shall require a 1-500 character reason and explicit expected run ID, Issue, and spec, while all existing pre-implementation and task-level success and failure routes retain their current prerequisites, results, and issue-log behavior.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "FlowStore shall apply flow-level rewind in one mutation: keep branch and prepare-spec completed, set the definition-backed draft clarification leaf to in_progress, set every other parent plan and implementation leaf through finalize to pending, clear their timestamps and runtime metadata, and validate before save that exactly one in-progress leaf exists across parent and task scopes and next-action resolves that same draft leaf.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "The rewind mutation shall append reset markers for every flow-level review and gate retry phase that can be revisited, remove active retry-recovery grants from eligibility while retaining their prior value in the rewind audit, and leave configured retry maxima unchanged so all renewed retry counts start at zero without granting additional attempts.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "The rewind shall reset the approval leaf and record a latest rewind timestamp; user approval and all planning, test, implementation, review, gate, retro, acceptance, finding, override, and final-regression evidence created at or before that timestamp shall be ineligible, while evidence created afterward through the normal route shall be eligible.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Flow-level rewind shall not delete or rewrite prior artifact files and shall inventory at most 500 regular files and 268435456 aggregate bytes using spec-relative paths no longer than 1000 characters and hash chunks no larger than 65536 bytes; each entry shall contain path, byte size, modification time, and SHA-256 digest, and all product source files, worktree and branch metadata, tasks, task steps, task requirements, task statuses, currentTaskId, runId, Issue, and spec identity shall remain byte-for-byte or structurally unchanged as applicable.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Each successful rewind shall append one of at most 100 durable audit records in flow.json containing a 1-500 character reason, run ID, Issue, spec, source stage, destination step, rewind timestamp, invalidated step IDs, invalidated approval confirmation, invalidated retry-recovery value, retry reset phases, and up to 500 invalidated evidence entries; prior audit records shall remain unchanged and the 101st rewind shall be rejected before mutation.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "A supplied run, Issue, or spec mismatch shall return `ACTIVE_FLOW_MISMATCH` at the shared guard boundary, and missing flow-level guards, a reason outside 1-500 characters, unsupported stage, task-scoped stage, any `finalize-*` leaf, merge outcome, squash baseline, finalized timestamp, evidence traversal escape, symlink, path over 1000 characters, more than 500 files, more than 268435456 aggregate bytes, a 101st audit record, or candidate invariant failure shall return a specific failure before save; flow state, source, artifacts, and audit history shall remain byte-identical on every rejection.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Spec-local and shared tests shall verify all five supported stages, exactly-one-leaf and next-action agreement, complete step and retry reset sets, stale-versus-renewed approval and evidence eligibility, audit fields and append behavior, product source and artifact preservation, each identity mismatch, every finalize and baseline rejection, the 500-file, 268435456-byte, 65536-byte-chunk, 1000-character-path, 500-character-reason, and 100-record limits, and unchanged pre-implementation and task-level reopen routes; an end-to-end fixture shall traverse impl-gate rewind through clarification, renewed review/gate/approval, and required implementation verification.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: For fixtures whose sole active parent leaf is each of impl-review, impl-gate, retro, acceptance-review, and final-regression, matching guards plus a reason return flow-level reopen success, draft is the only in-progress leaf, and status and next-action both identify draft.",
+    "AC2: A successful impl-gate rewind resets every post-prepare planning and implementation leaf except draft to pending, removes their timestamps/runtime metadata, resets effective review and gate retries to zero through append-only markers, invalidates prior recovery grants, and leaves retry maxima unchanged.",
+    "AC3: Existing spec user approval and each pre-rewind evidence category are reported stale after rewind; they cannot complete or skip the renewed route, while approval and evidence written after the rewind timestamp are accepted by their existing consumers.",
+    "AC4: Before and after snapshots show identical product source contents, artifact file contents, worktree/base/feature branch metadata, task forest fields, currentTaskId, runId, Issue, and spec identity; only flow.json state and its appended audit/metric data change.",
+    "AC5: The audit record contains the 1-500 character reason, complete target identity, actual source stage, draft destination, invalidated approval timestamp, prior recovery value, reset phase lists, invalidated step IDs, and at most 500 path/size/mtime/SHA-256 evidence entries, and a second rewind appends without changing the first record while a 101st record is rejected.",
+    "AC6: Changing only expected run ID, Issue, or spec returns ACTIVE_FLOW_MISMATCH before execute, and omitting any flow-level expected identity or reason returns the documented command error before mutation; byte snapshots of flow.json, artifacts, source, and audit remain identical.",
+    "AC7: Fixtures at finalize-commit, finalize-merge, finalize-sync, finalize-cleanup, with mergeStrategy, with featureBranchSquashedSha, or with finalizedAt reject rewind without mutation; unsupported parent and task-scoped stages also reject without changing task-level routing.",
+    "AC8: Evidence traversal rejects symlinks, out-of-spec paths, paths over 1000 characters, a 501st regular file, and aggregate byte 268435457 before FlowStore mutation; accepted files are hashed in chunks no larger than 65536 bytes and deterministic spec-relative entries never exceed 500 or 268435456 aggregate bytes.",
+    "AC9: Existing tests continue to prove pre-implementation reopening, NO_DONE_TASK rejection, optional task-level reason, done-task task-addition reopening, task-count reporting, and issue-log entries with unchanged result shapes.",
+    "AC10: The spec-local end-to-end test starts from an impl-gate fixture with source and evidence, rewinds with full guards and reason, completes draft/spec review, gates, approval, tests, and implementation verification in order, and proves no previous approval, evidence, failure disposition, or retry grant bypasses a renewed step."
+  ],
+  "clarifications": [
+    {
+      "q": "Does `acceptance` in Issue #434 refer to a current flow leaf?",
+      "a": "Yes. The current definition names that leaf `acceptance-review`; tests and public results use the current identifier."
+    },
+    {
+      "q": "Does clearing stale approval require deleting historical `spec.json.user_approval`?",
+      "a": "No. Reset the approval leaf and make any confirmation at or before the latest rewind timestamp ineffective. The next approved route overwrites it with a later confirmation while the audit retains the invalidated timestamp."
+    },
+    {
+      "q": "How are retained artifacts marked stale without rewriting them?",
+      "a": "The latest rewind audit records their path, mtime, size, and digest. Shared eligibility treats evidence at or before the rewind timestamp as stale and accepts only evidence produced afterward."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add a separate `rewind-plan` command.",
+      "reason": "Rejected because reopen-draft already owns official return-to-clarification behavior and the parent stage plus currentTaskId provides an unambiguous new mode without altering the existing task route."
+    },
+    {
+      "option": "Reuse repeated `set step` calls and issue-log writes.",
+      "reason": "Rejected because each setter saves independently and can expose dual or orphan in-progress state, partial retry resets, or an audit record without the corresponding state transition."
+    },
+    {
+      "option": "Delete or move stale artifacts before rerunning the plan.",
+      "reason": "Rejected because Issue #434 requires prior artifacts to remain available and identifiable; an inventory capped at 500 files and 268435456 aggregate bytes plus freshness eligibility preserves both auditability and rerun safety."
+    },
+    {
+      "option": "Reset completed tasks to pending.",
+      "reason": "Rejected because task-route preservation is required and the parent implementation route can reverify the preserved source after renewed plan approval without rewriting task history."
+    },
+    {
+      "option": "Grant another impl-gate retry without returning to planning.",
+      "reason": "Rejected because the failure is a requirement contradiction, and Issue #434 explicitly excludes retry extension and semantic gate bypass."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "reopen-draft",
+    "plan rewind",
+    "FlowStore",
+    "PlanRewindRecord",
+    "ACTIVE_FLOW_MISMATCH",
+    "evidence freshness",
+    "retry reset",
+    "approval invalidation",
+    "step tree",
+    "impl-gate",
+    "finalize boundary",
+    "artifact digest",
+    "task route preservation"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/run-reopen-draft.js",
+    "src/flow/lib/plan-rewind.js",
+    "src/lib/flow-manager.js",
+    "src/lib/flow-store.js",
+    "src/flow/registry.js",
+    "src/flow/lib/get-status.js",
+    "src/flow/lib/get-next-action.js",
+    "src/flow/lib/flow-findings.js",
+    "src/flow/lib/flow-judgment-contract.js",
+    "src/flow/lib/retry-recovery.js",
+    "tests/unit/flow/run-reopen-draft.test.js",
+    "tests/unit/flow/plan-rewind.test.js",
+    "tests/e2e/flow/plan-rewind-flow.test.js",
+    "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Model atomic plan rewind",
+      "goal": "Define class-based rewind values and make FlowStore apply the complete validated parent flow transition as one save.",
+      "acceptance": [
+        "R2, R3, R5, and R6 pass unit coverage for state reset, retry accounting, preservation, the 500-file and 268435456-byte evidence caps, and the 100-record append-only audit cap.",
+        "Candidate validation proves exactly one active leaf and leaves flow.json unchanged on every thrown invariant."
+      ],
+      "implementation_notes": "Add the plan-rewind domain module and one public FlowStore method. Reuse step-tree traversal and reset-aware metric conventions; do not issue repeated store setters.",
+      "test_strategy": "Use table-driven FlowStore/domain fixtures for every supported source, step reset set, retry phase, audit field, the 500-file, 268435456-byte, 65536-byte-chunk, 1000-character-path, 500-character-reason, and 100-record boundaries, and preservation snapshots.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Route guarded flow rewind",
+      "goal": "Integrate the parent-stage route into reopen-draft and enforce renewed approval and evidence freshness through existing consumers.",
+      "acceptance": [
+        "R1, R4, and R7 pass command, registry, status, next-action, mismatch, freshness, and finalize-boundary coverage.",
+        "Existing pre-implementation and task-level reopen outputs and issue-log behavior remain unchanged."
+      ],
+      "implementation_notes": "Select flow-level mode before the existing task route only for the five parent stages. Centralize latest-rewind freshness checks and use them from evidence consumers rather than deleting files.",
+      "test_strategy": "Extend reopen command tests and consumer tests for guard presence, stale versus renewed timestamps, status/next-action agreement, flow findings/overrides/recovery invalidation, and all rejection paths.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Verify rewind recovery route",
+      "goal": "Provide behavior-level evidence that the new flow route renews planning and implementation verification without changing source or task history.",
+      "acceptance": [
+        "R1-R8 have spec-local `// spec: R<N>` coverage and the shared task-level reopen suite passes.",
+        "AC1-AC10 pass, including the impl-gate to renewed verification end-to-end route and all immutable failure snapshots."
+      ],
+      "implementation_notes": "Build fixtures from the current flow definition and use shared snapshot helpers when the same source/artifact/state comparison appears twice.",
+      "test_strategy": "Run spec-local tests, affected unit suites, the plan-rewind E2E suite, configured targeted regression, and final full project regression through the flow.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-12T20:30:32.028Z",
+    "notes": "Parent preapproved the Issue #434 preserving spec after PASS review and gate."
+  }
+}

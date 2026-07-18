@@ -1,0 +1,1133 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement says downstream state and evidence must be invalidated \"coherently\", which is a vague condition. Replace it with explicit invalidation conditions or state fields that can be verified.; The requirement defers a \"coherent reset\" contract, but \"coherent\" is not a verifiable condition. Specify the exact state, retry, approval, evidence, and audit changes expected.; The requirement calls for \"Focused unit and end-to-end coverage\", but \"focused\" is vague. State the concrete test scenarios or coverage expectations.; The requirement says task-level reopen behavior receives \"focused regression coverage\", but \"focused\" is vague. State the concrete regression cases required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:18:01.185Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement says downstream state and evidence must be invalidated \"coherently\", which is a vague condition. Replace it with explicit invalidation conditions or state fields that can be verified.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.deferredToSpec[1]"
+          },
+          "observed": "The requirement defers a \"coherent reset\" contract, but \"coherent\" is not a verifiable condition. Specify the exact state, retry, approval, evidence, and audit changes expected.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in[3]"
+          },
+          "observed": "The requirement calls for \"Focused unit and end-to-end coverage\", but \"focused\" is vague. State the concrete test scenarios or coverage expectations.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[1]"
+          },
+          "observed": "The requirement says task-level reopen behavior receives \"focused regression coverage\", but \"focused\" is vague. State the concrete regression cases required.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement says downstream state and evidence must be invalidated \"coherently\", which is a vague condition. Replace it with explicit invalidation conditions or state fields that can be verified."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement defers a \"coherent reset\" contract, but \"coherent\" is not a verifiable condition. Specify the exact state, retry, approval, evidence, and audit changes expected."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement calls for \"Focused unit and end-to-end coverage\", but \"focused\" is vague. State the concrete test scenarios or coverage expectations."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement says task-level reopen behavior receives \"focused regression coverage\", but \"focused\" is vague. State the concrete regression cases required."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The answered question cites Issue #434 requirements and a parent preapproval as its basis, but the guardrail requires the basis for each recommended answer to be stated as project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:18:47.421Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "Content",
+            "locator": "qa[0].evidence"
+          },
+          "observed": "The answered question cites Issue #434 requirements and a parent preapproval as its basis, but the guardrail requires the basis for each recommended answer to be stated as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "The answered question cites Issue #434 requirements and a parent preapproval as its basis, but the guardrail requires the basis for each recommended answer to be stated as project docs/, guardrail principles, or existing code patterns."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The constraint requires bounded collection invariants for rewind request, audit record, and invalidated evidence entries, but does not state explicit upper bounds for the collection counts or sizes.; The constraint requires evidence inventory traversal to enforce explicit file-count and total-byte limits, but the spec does not state the actual count or byte upper bounds.; R5 requires a bounded inventory of existing spec artifacts, but does not state explicit upper bounds for artifact count or total inventory size.; R8 requires tests for bounded inventory failures, but the related bounded processing requirement does not state explicit file-count or byte-size upper bounds to verify.; AC8 refers to excessive file count, excessive aggregate bytes, and ordinary bounded directories, but does not state explicit upper bounds for count, aggregate bytes, or per-file loading size.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:27:43.413Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[1]"
+          },
+          "observed": "The constraint requires bounded collection invariants for rewind request, audit record, and invalidated evidence entries, but does not state explicit upper bounds for the collection counts or sizes.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[5]"
+          },
+          "observed": "The constraint requires evidence inventory traversal to enforce explicit file-count and total-byte limits, but the spec does not state the actual count or byte upper bounds.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R5]"
+          },
+          "observed": "R5 requires a bounded inventory of existing spec artifacts, but does not state explicit upper bounds for artifact count or total inventory size.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R8]"
+          },
+          "observed": "R8 requires tests for bounded inventory failures, but the related bounded processing requirement does not state explicit file-count or byte-size upper bounds to verify.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[AC8]"
+          },
+          "observed": "AC8 refers to excessive file count, excessive aggregate bytes, and ordinary bounded directories, but does not state explicit upper bounds for count, aggregate bytes, or per-file loading size.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The constraint requires bounded collection invariants for rewind request, audit record, and invalidated evidence entries, but does not state explicit upper bounds for the collection counts or sizes."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The constraint requires evidence inventory traversal to enforce explicit file-count and total-byte limits, but the spec does not state the actual count or byte upper bounds."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R5 requires a bounded inventory of existing spec artifacts, but does not state explicit upper bounds for artifact count or total inventory size."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R8 requires tests for bounded inventory failures, but the related bounded processing requirement does not state explicit file-count or byte-size upper bounds to verify."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "AC8 refers to excessive file count, excessive aggregate bytes, and ordinary bounded directories, but does not state explicit upper bounds for count, aggregate bytes, or per-file loading size."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: set the R8 fixture's promoted leaf to in_progress and regenerate v2 test evidence",
+      "resolution": "R1-R8 now pass spec-local execution and test-result-review validates the regenerated artifact",
+      "taskId": null,
+      "timestamp": "2026-07-12T20:57:32.029Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff does not preserve the required routing boundary. `run-reopen-draft` now enters the new flow-rewind branch for any `FLOW_REWIND_CANDIDATE_STAGES`, including unsupported stages like `test-execute`, `test-result-review`, and finalize steps, and also for `state.currentTaskId != null` when the active parent leaf is a supported stage. That means existing task-level/pre-existing reopen routes can be preempted and turned into plan-rewind errors, violating the requirement that flow-level mode be selected only when `currentTaskId` is null and the active parent leaf is one of the five supported stages, while existing pre-implementation and task-level routes retain current behavior. The shown code also relies on `findInProgressLeaf` without demonstrating a sole-active-parent-leaf check in this diff.; The diff implements most rewind mutation behavior in FlowStore.rewindPlan/applyPlanRewind, including a single mutate call, setting draft in_progress, resetting other non-task leaves to pending, clearing startedAt/finishedAt/runtimeLog, preserving tasks, and checking exactly one in-progress leaf across parent/task scopes. However, it does not validate before save that next-action resolves to the same draft leaf; applyPlanRewind only checks activeLeaves and never calls the flow next-action resolver/findActiveNode equivalent. It also merely skips branch and prepare-spec instead of ensuring they are completed, so invalid pre-state could preserve them as non-completed.; The diff does not implement run/issue/spec mismatch rejection at the shared guard boundary for the flow-level route. run-reopen-draft only checks that expectRunId/expectIssue/expectSpec are present, then builds PlanRewindRequest from the current state, so mismatched supplied guards are ignored in direct command execution unless an external wrapper happens to call the shared guard. applyPlanRewind also reports identity mismatch as PLAN_REWIND_TARGET_MISMATCH, not ACTIVE_FLOW_MISMATCH. Other listed rejection cases are mostly covered, but this required ACTIVE_FLOW_MISMATCH behavior is not shown in the implementation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:59:15.471Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "The diff does not preserve the required routing boundary. `run-reopen-draft` now enters the new flow-rewind branch for any `FLOW_REWIND_CANDIDATE_STAGES`, including unsupported stages like `test-execute`, `test-result-review`, and finalize steps, and also for `state.currentTaskId != null` when the active parent leaf is a supported stage. That means existing task-level/pre-existing reopen routes can be preempted and turned into plan-rewind errors, violating the requirement that flow-level mode be selected only when `currentTaskId` is null and the active parent leaf is one of the five supported stages, while existing pre-implementation and task-level routes retain current behavior. The shown code also relies on `findInProgressLeaf` without demonstrating a sole-active-parent-leaf check in this diff.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "The diff implements most rewind mutation behavior in FlowStore.rewindPlan/applyPlanRewind, including a single mutate call, setting draft in_progress, resetting other non-task leaves to pending, clearing startedAt/finishedAt/runtimeLog, preserving tasks, and checking exactly one in-progress leaf across parent/task scopes. However, it does not validate before save that next-action resolves to the same draft leaf; applyPlanRewind only checks activeLeaves and never calls the flow next-action resolver/findActiveNode equivalent. It also merely skips branch and prepare-spec instead of ensuring they are completed, so invalid pre-state could preserve them as non-completed.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff does not implement run/issue/spec mismatch rejection at the shared guard boundary for the flow-level route. run-reopen-draft only checks that expectRunId/expectIssue/expectSpec are present, then builds PlanRewindRequest from the current state, so mismatched supplied guards are ignored in direct command execution unless an external wrapper happens to call the shared guard. applyPlanRewind also reports identity mismatch as PLAN_REWIND_TARGET_MISMATCH, not ACTIVE_FLOW_MISMATCH. Other listed rejection cases are mostly covered, but this required ACTIVE_FLOW_MISMATCH behavior is not shown in the implementation.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R3",
+        "R6",
+        "R4",
+        "R5",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "The diff does not preserve the required routing boundary. `run-reopen-draft` now enters the new flow-rewind branch for any `FLOW_REWIND_CANDIDATE_STAGES`, including unsupported stages like `test-execute`, `test-result-review`, and finalize steps, and also for `state.currentTaskId != null` when the active parent leaf is a supported stage. That means existing task-level/pre-existing reopen routes can be preempted and turned into plan-rewind errors, violating the requirement that flow-level mode be selected only when `currentTaskId` is null and the active parent leaf is one of the five supported stages, while existing pre-implementation and task-level routes retain current behavior. The shown code also relies on `findInProgressLeaf` without demonstrating a sole-active-parent-leaf check in this diff."
+        },
+        {
+          "guardrail_id": "R2",
+          "reason": "The diff implements most rewind mutation behavior in FlowStore.rewindPlan/applyPlanRewind, including a single mutate call, setting draft in_progress, resetting other non-task leaves to pending, clearing startedAt/finishedAt/runtimeLog, preserving tasks, and checking exactly one in-progress leaf across parent/task scopes. However, it does not validate before save that next-action resolves to the same draft leaf; applyPlanRewind only checks activeLeaves and never calls the flow next-action resolver/findActiveNode equivalent. It also merely skips branch and prepare-spec instead of ensuring they are completed, so invalid pre-state could preserve them as non-completed."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "The diff does not implement run/issue/spec mismatch rejection at the shared guard boundary for the flow-level route. run-reopen-draft only checks that expectRunId/expectIssue/expectSpec are present, then builds PlanRewindRequest from the current state, so mismatched supplied guards are ignored in direct command execution unless an external wrapper happens to call the shared guard. applyPlanRewind also reports identity mismatch as PLAN_REWIND_TARGET_MISMATCH, not ACTIVE_FLOW_MISMATCH. Other listed rejection cases are mostly covered, but this required ACTIVE_FLOW_MISMATCH behavior is not shown in the implementation."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: separate supported flow-level routing from unsupported/finalize rejection, enforce prerequisite completion and next-action agreement, and apply shared mismatch validation in execute",
+      "resolution": "R1 now selects flow mode only for five parent stages with no current task; R2 validates branch/prepare and flow/draft next action before save; R7 returns ACTIVE_FLOW_MISMATCH before plan mutation",
+      "taskId": null,
+      "timestamp": "2026-07-12T21:01:41.697Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a flow-level route for the listed stages with currentTaskId == null and uses PlanRewindRequest/guard validation for reason and expected run/issue/spec, but it also changes non-flow-level behavior. In run-reopen-draft.js, `(supportedFlowStage && state.currentTaskId != null)` is diverted into plan rewind validation and returns a plan-rewind error, rather than falling through to the existing task-level routes. That violates the requirement that existing task-level success/failure routes retain their current prerequisites/results/issue-log behavior. The implementation also relies on `findInProgressLeaf(state.steps)` and does not visibly enforce that the active parent leaf is the sole active parent leaf before selecting flow-level mode.; Implementation does not consistently return ACTIVE_FLOW_MISMATCH for all supplied target mismatches at the shared boundary. run-reopen-draft calls targetMismatchEnvelopeForInput before flow-level guard validation, but applyPlanRewind/assertIdentity still maps runId/issue/spec mismatches to PLAN_REWIND_TARGET_MISMATCH rather than ACTIVE_FLOW_MISMATCH, so the shared plan-rewind guard boundary itself does not enforce the required code. Additionally, evidence path length is detected only when constructing PlanRewindEvidence after the file has already been opened and hashed in capturePlanRewindEvidence, so the path-over-1000 rejection is not guaranteed before artifact traversal work.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T21:02:35.502Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "The diff adds a flow-level route for the listed stages with currentTaskId == null and uses PlanRewindRequest/guard validation for reason and expected run/issue/spec, but it also changes non-flow-level behavior. In run-reopen-draft.js, `(supportedFlowStage && state.currentTaskId != null)` is diverted into plan rewind validation and returns a plan-rewind error, rather than falling through to the existing task-level routes. That violates the requirement that existing task-level success/failure routes retain their current prerequisites/results/issue-log behavior. The implementation also relies on `findInProgressLeaf(state.steps)` and does not visibly enforce that the active parent leaf is the sole active parent leaf before selecting flow-level mode.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "Implementation does not consistently return ACTIVE_FLOW_MISMATCH for all supplied target mismatches at the shared boundary. run-reopen-draft calls targetMismatchEnvelopeForInput before flow-level guard validation, but applyPlanRewind/assertIdentity still maps runId/issue/spec mismatches to PLAN_REWIND_TARGET_MISMATCH rather than ACTIVE_FLOW_MISMATCH, so the shared plan-rewind guard boundary itself does not enforce the required code. Additionally, evidence path length is detected only when constructing PlanRewindEvidence after the file has already been opened and hashed in capturePlanRewindEvidence, so the path-over-1000 rejection is not guaranteed before artifact traversal work.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8",
+        "R2"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "The diff adds a flow-level route for the listed stages with currentTaskId == null and uses PlanRewindRequest/guard validation for reason and expected run/issue/spec, but it also changes non-flow-level behavior. In run-reopen-draft.js, `(supportedFlowStage && state.currentTaskId != null)` is diverted into plan rewind validation and returns a plan-rewind error, rather than falling through to the existing task-level routes. That violates the requirement that existing task-level success/failure routes retain their current prerequisites/results/issue-log behavior. The implementation also relies on `findInProgressLeaf(state.steps)` and does not visibly enforce that the active parent leaf is the sole active parent leaf before selecting flow-level mode."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "Implementation does not consistently return ACTIVE_FLOW_MISMATCH for all supplied target mismatches at the shared boundary. run-reopen-draft calls targetMismatchEnvelopeForInput before flow-level guard validation, but applyPlanRewind/assertIdentity still maps runId/issue/spec mismatches to PLAN_REWIND_TARGET_MISMATCH rather than ACTIVE_FLOW_MISMATCH, so the shared plan-rewind guard boundary itself does not enforce the required code. Additionally, evidence path length is detected only when constructing PlanRewindEvidence after the file has already been opened and hashed in capturePlanRewindEvidence, so the path-over-1000 rejection is not guaranteed before artifact traversal work."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: preserve task route, require sole parent active leaf for flow mode, normalize mismatch code, and reject long evidence paths before hashing",
+      "resolution": "R1 flow mode now selects only five sole parent stages with currentTaskId null; R7 uses ACTIVE_FLOW_MISMATCH throughout and validates paths before artifact IO",
+      "taskId": null,
+      "timestamp": "2026-07-12T21:04:09.403Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff does not fully preserve existing route behavior. `targetMismatchEnvelopeForInput` now runs before mode selection, so pre-implementation and task-level `reopen-draft` routes can fail on target guard input that previously was irrelevant, changing their prerequisites. The new `rejectedFlowStage` branch also intercepts null-currentTask states such as `test-execute`/`test-result-review` before the existing route logic, changing prior failure/success behavior and issue-log behavior for those stages. Flow-level support for the listed stages and reason/guard validation is present, but the requirement explicitly requires existing pre-implementation and task-level routes to retain current prerequisites, results, and issue-log behavior.; The diff does not fully implement R7. Evidence traversal escape is incomplete: normalizeEvidencePath only rejects POSIX '../' and absolute paths after path.posix.normalize, so Windows-style traversal such as '..\\\\escape' is accepted on POSIX. That means an evidence traversal escape does not return a specific failure. Also, the production route calls fm.rewindPlan but the diff does not add that shared save-boundary method to FlowManager/FlowStore, so byte-identical rejection before save is not demonstrated for the real route.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T21:04:50.800Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "The diff does not fully preserve existing route behavior. `targetMismatchEnvelopeForInput` now runs before mode selection, so pre-implementation and task-level `reopen-draft` routes can fail on target guard input that previously was irrelevant, changing their prerequisites. The new `rejectedFlowStage` branch also intercepts null-currentTask states such as `test-execute`/`test-result-review` before the existing route logic, changing prior failure/success behavior and issue-log behavior for those stages. Flow-level support for the listed stages and reason/guard validation is present, but the requirement explicitly requires existing pre-implementation and task-level routes to retain current prerequisites, results, and issue-log behavior.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff does not fully implement R7. Evidence traversal escape is incomplete: normalizeEvidencePath only rejects POSIX '../' and absolute paths after path.posix.normalize, so Windows-style traversal such as '..\\\\escape' is accepted on POSIX. That means an evidence traversal escape does not return a specific failure. Also, the production route calls fm.rewindPlan but the diff does not add that shared save-boundary method to FlowManager/FlowStore, so byte-identical rejection before save is not demonstrated for the real route.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "The diff does not fully preserve existing route behavior. `targetMismatchEnvelopeForInput` now runs before mode selection, so pre-implementation and task-level `reopen-draft` routes can fail on target guard input that previously was irrelevant, changing their prerequisites. The new `rejectedFlowStage` branch also intercepts null-currentTask states such as `test-execute`/`test-result-review` before the existing route logic, changing prior failure/success behavior and issue-log behavior for those stages. Flow-level support for the listed stages and reason/guard validation is present, but the requirement explicitly requires existing pre-implementation and task-level routes to retain current prerequisites, results, and issue-log behavior."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "The diff does not fully implement R7. Evidence traversal escape is incomplete: normalizeEvidencePath only rejects POSIX '../' and absolute paths after path.posix.normalize, so Windows-style traversal such as '..\\\\escape' is accepted on POSIX. That means an evidence traversal escape does not return a specific failure. Also, the production route calls fm.rewindPlan but the diff does not add that shared save-boundary method to FlowManager/FlowStore, so byte-identical rejection before save is not demonstrated for the real route."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: preserve existing reopen routes by relying on the shared FlowCommand target guard and restricting explicit rejection to finalize; reject Windows-style evidence traversal; expose and test FlowManager-to-FlowStore rewind delegation; tooling note: flow resume candidate discovery truncated at 200 and could not select spec 319, so the parent supplied the exact guarded target",
+      "resolution": "Existing pre-implementation and task-level routing now reaches its prior prerequisites, finalize still fails before mutation, both slash styles are normalized before traversal checks, and the persisted rewind remains owned by one FlowStore mutation reached through FlowManager; refreshed test and review evidence passes",
+      "taskId": null,
+      "timestamp": "2026-07-12T21:09:22.792Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The flow-level selector is not correctly limited to a sole active parent leaf. The new code derives `parentActiveSteps` from `flattenSteps(state.steps || []).filter(status === \"in_progress\")`, which can include in-progress container/parent steps as well as the active leaf in the normal nested flow tree. That makes `parentActiveSteps.length` greater than 1 for typical states such as `impl` containing active `impl-gate`, causing the new invariant failure instead of selecting flow-level mode. Although the diff adds reason/target-guard plumbing and preserves later existing routes structurally, the core selection condition required by R1 is not implemented correctly.; The diff adds many rejection checks, but it does not fully implement R7. The new flow-level guard only checks that expectRunId/expectIssue/expectSpec are present; it does not itself verify supplied run/issue/spec mismatches at the plan-rewind guard boundary. The R7 test only exercises targetMismatchEnvelopeForInput directly, not the actual reopen-draft flow path. In run-reopen-draft, createFlowRewindRequest builds the rewind request from state.runId/state.issue/state.spec after validatePlanRewindGuards, so a mismatched supplied guard can still be ignored unless some external shared guard happens to run. That leaves the required ACTIVE_FLOW_MISMATCH behavior at the shared guard boundary unproven and not implemented in this diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T21:10:00.311Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "The flow-level selector is not correctly limited to a sole active parent leaf. The new code derives `parentActiveSteps` from `flattenSteps(state.steps || []).filter(status === \"in_progress\")`, which can include in-progress container/parent steps as well as the active leaf in the normal nested flow tree. That makes `parentActiveSteps.length` greater than 1 for typical states such as `impl` containing active `impl-gate`, causing the new invariant failure instead of selecting flow-level mode. Although the diff adds reason/target-guard plumbing and preserves later existing routes structurally, the core selection condition required by R1 is not implemented correctly.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff adds many rejection checks, but it does not fully implement R7. The new flow-level guard only checks that expectRunId/expectIssue/expectSpec are present; it does not itself verify supplied run/issue/spec mismatches at the plan-rewind guard boundary. The R7 test only exercises targetMismatchEnvelopeForInput directly, not the actual reopen-draft flow path. In run-reopen-draft, createFlowRewindRequest builds the rewind request from state.runId/state.issue/state.spec after validatePlanRewindGuards, so a mismatched supplied guard can still be ignored unless some external shared guard happens to run. That leaves the required ACTIVE_FLOW_MISMATCH behavior at the shared guard boundary unproven and not implemented in this diff.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "The flow-level selector is not correctly limited to a sole active parent leaf. The new code derives `parentActiveSteps` from `flattenSteps(state.steps || []).filter(status === \"in_progress\")`, which can include in-progress container/parent steps as well as the active leaf in the normal nested flow tree. That makes `parentActiveSteps.length` greater than 1 for typical states such as `impl` containing active `impl-gate`, causing the new invariant failure instead of selecting flow-level mode. Although the diff adds reason/target-guard plumbing and preserves later existing routes structurally, the core selection condition required by R1 is not implemented correctly."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "The diff adds many rejection checks, but it does not fully implement R7. The new flow-level guard only checks that expectRunId/expectIssue/expectSpec are present; it does not itself verify supplied run/issue/spec mismatches at the plan-rewind guard boundary. The R7 test only exercises targetMismatchEnvelopeForInput directly, not the actual reopen-draft flow path. In run-reopen-draft, createFlowRewindRequest builds the rewind request from state.runId/state.issue/state.spec after validatePlanRewindGuards, so a mismatched supplied guard can still be ignored unless some external shared guard happens to run. That leaves the required ACTIVE_FLOW_MISMATCH behavior at the shared guard boundary unproven and not implemented in this diff."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: make sole-active-parent-leaf selection explicit through shared findInProgressLeaves and test identity mismatches through the actual RunReopenDraftCommand.run shared guard boundary",
+      "resolution": "Container steps are excluded by construction, the same helper validates before and after rewind, and run/Issue/spec mismatches now prove ACTIVE_FLOW_MISMATCH plus immutable state on the real command entry path; refreshed tests and impl review pass",
+      "taskId": null,
+      "timestamp": "2026-07-12T21:12:34.042Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff implements many rejection codes in applyPlanRewind, but the save boundary is not shown as implemented: run-reopen-draft calls fm.rewindPlan and tests call FlowStore.rewindPlan, yet no FlowManager/FlowStore changes are included. Therefore the required shared guard/persist-before-save behavior and byte-identical rejection guarantee for persisted flow state cannot be confirmed as implemented in the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T21:13:11.171Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff implements many rejection codes in applyPlanRewind, but the save boundary is not shown as implemented: run-reopen-draft calls fm.rewindPlan and tests call FlowStore.rewindPlan, yet no FlowManager/FlowStore changes are included. Therefore the required shared guard/persist-before-save behavior and byte-identical rejection guarantee for persisted flow state cannot be confirmed as implemented in the diff.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8",
+        "R1"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R7",
+          "reason": "The diff implements many rejection codes in applyPlanRewind, but the save boundary is not shown as implemented: run-reopen-draft calls fm.rewindPlan and tests call FlowStore.rewindPlan, yet no FlowManager/FlowStore changes are included. Therefore the required shared guard/persist-before-save behavior and byte-identical rejection guarantee for persisted flow state cannot be confirmed as implemented in the diff."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: correct R7 gate file mapping and integration retry evidence fingerprinting; preserve the omitted final R7 raw prompt as tests/.raw/impl-gate-r7-omitted-save-boundary-prompt.json (sha256 ee5eb630a132895cf8684ede1b0e7edf94240e759d4b788aa14fb2694bac7427)",
+      "resolution": "R7 now maps src/lib/flow-manager.js and src/lib/flow-store.js so the evaluator receives the save-boundary diff; spec implementationTargets includes FlowManager; integration changed-evidence includes file-map.json and a focused test proves unchanged denial versus file-map-only eligibility; refreshed tests and reviews pass",
+      "taskId": null,
+      "timestamp": "2026-07-12T21:22:27.729Z"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-001",
+      "id": "recovery-001",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Correct R7 gate mapping and recovery evidence so the evaluator receives the FlowManager and FlowStore save-boundary diffs",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "e66819625df00418cbce2ccb0427e5812e35f1f7d7f76b8bc08d9200b5586029",
+        "currentHash": "a953368d0d1d099e8499fe986a34f10a586f1f5ce8a02c7375fa077ecabc0ec8",
+        "changedPaths": [
+          "specs/319-guarded-plan-rewind/test-execute-result.json",
+          "specs/319-guarded-plan-rewind/test-result-review.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/step-tree.js",
+          "src/flow/registry.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Correct R7 gate mapping and recovery evidence so the evaluator receives the FlowManager and FlowStore save-boundary diffs\" --yes",
+      "createdAt": "2026-07-12T21:22:58.645Z",
+      "timestamp": "2026-07-12T21:22:58.645Z",
+      "issueLogId": "recovery-001"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff covers many rejection cases, but R7 is not fully implemented. `validatePlanRewindGuards` only checks that expected run/issue/spec guards are present; it does not compare supplied guard values to the active flow, and `createFlowRewindRequest` builds the request from state values instead of the supplied expectations. Also evidence path length is checked after normalization, so a supplied path over 1000 characters that normalizes shorter can bypass the required path-length rejection.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T21:23:24.466Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff covers many rejection cases, but R7 is not fully implemented. `validatePlanRewindGuards` only checks that expected run/issue/spec guards are present; it does not compare supplied guard values to the active flow, and `createFlowRewindRequest` builds the request from state values instead of the supplied expectations. Also evidence path length is checked after normalization, so a supplied path over 1000 characters that normalizes shorter can bypass the required path-length rejection.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R7",
+          "reason": "The diff covers many rejection cases, but R7 is not fully implemented. `validatePlanRewindGuards` only checks that expected run/issue/spec guards are present; it does not compare supplied guard values to the active flow, and `createFlowRewindRequest` builds the request from state values instead of the supplied expectations. Also evidence path length is checked after normalization, so a supplied path over 1000 characters that normalizes shorter can bypass the required path-length rejection."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: reject overlong raw evidence paths before normalization and prove shared target mismatches stop before command execution; preserve the triggering prompt as tests/.raw/impl-gate-r7-shared-guard-and-path-length-prompt.json (sha256 fc9b46e008276bde7a555a529b04722d0bcaac8f8ee3fa46b825494feef755b8)",
+      "resolution": "Raw paths longer than 1000 characters now fail before collapse while exactly 1000 characters remain accepted; R7 owns base-command and flow-target-guard, and execute spies prove runId/Issue/spec mismatches return ACTIVE_FLOW_MISMATCH without entering RunReopenDraftCommand.execute; refreshed tests and reviews pass",
+      "taskId": null,
+      "timestamp": "2026-07-12T21:29:41.547Z"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-002",
+      "id": "recovery-002",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Reject overlong raw evidence paths before normalization and prove shared target mismatches stop before command execution",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "a953368d0d1d099e8499fe986a34f10a586f1f5ce8a02c7375fa077ecabc0ec8",
+        "currentHash": "cbdc303119ea662cf8e721fcd74086aa638c714b9509f8c9bd021d27689e2c9f",
+        "changedPaths": [
+          "specs/319-guarded-plan-rewind/test-execute-result.json",
+          "specs/319-guarded-plan-rewind/test-result-review.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/step-tree.js",
+          "src/flow/registry.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Reject overlong raw evidence paths before normalization and prove shared target mismatches stop before command execution\" --yes",
+      "createdAt": "2026-07-12T21:29:51.793Z",
+      "timestamp": "2026-07-12T21:29:51.793Z",
+      "issueLogId": "recovery-002"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The implementation covers many rejection cases, but not all required immutable pre-save failures. In the flow-level route, evidence capture failures occur after a successful candidate validation but before `fm.rewindPlan`, so flow state is not saved, but artifact/source byte-identity is only incidental and not guarded by the shared save boundary. More importantly, `normalizeEvidencePath()` accepts normalized traversal segments that do not escape, such as `a/../evidence.json`, despite the requirement calling out evidence traversal escape as a specific rejection. Baseline completion also checks `state.state.mergeStrategy`, `featureBranchSquashedSha`, and `finalizedAt`, but the requirement names merge outcome separately; no `mergeOutcome`/outcome field is rejected in the shown code. Therefore R7 is not fully implemented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T21:30:17.307Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The implementation covers many rejection cases, but not all required immutable pre-save failures. In the flow-level route, evidence capture failures occur after a successful candidate validation but before `fm.rewindPlan`, so flow state is not saved, but artifact/source byte-identity is only incidental and not guarded by the shared save boundary. More importantly, `normalizeEvidencePath()` accepts normalized traversal segments that do not escape, such as `a/../evidence.json`, despite the requirement calling out evidence traversal escape as a specific rejection. Baseline completion also checks `state.state.mergeStrategy`, `featureBranchSquashedSha`, and `finalizedAt`, but the requirement names merge outcome separately; no `mergeOutcome`/outcome field is rejected in the shown code. Therefore R7 is not fully implemented.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R7",
+          "reason": "The implementation covers many rejection cases, but not all required immutable pre-save failures. In the flow-level route, evidence capture failures occur after a successful candidate validation but before `fm.rewindPlan`, so flow state is not saved, but artifact/source byte-identity is only incidental and not guarded by the shared save boundary. More importantly, `normalizeEvidencePath()` accepts normalized traversal segments that do not escape, such as `a/../evidence.json`, despite the requirement calling out evidence traversal escape as a specific rejection. Baseline completion also checks `state.state.mergeStrategy`, `featureBranchSquashedSha`, and `finalizedAt`, but the requirement names merge outcome separately; no `mergeOutcome`/outcome field is rejected in the shown code. Therefore R7 is not fully implemented."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Rebase onto current main produced four content conflicts before guarded re-evaluation",
+      "trigger": "Main integrated the required flow identity, transaction, and definition changes after the prior impl-gate evidence was recorded",
+      "resolution": "Preserved current main identity and atomic recovery invariants, retained Issue 434 downstream behavior, and migrated only the newly required pending report step",
+      "guardrailCandidate": "Rebase stale flow worktrees through a remote checkpoint and exact schema audit before retry recovery",
+      "taskId": null,
+      "timestamp": "2026-07-18T13:19:50.309Z",
+      "issueLogId": "issue-log-0d5d6eb1-adc4-4f10-9a09-7e5668732f5b"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-56fc5dcd-2f5f-4b39-81df-d4a19398c982",
+      "id": "recovery-56fc5dcd-2f5f-4b39-81df-d4a19398c982",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Re-evaluate after integrating current main and exact audited migration of two pre-strict-schema retry recovery audit rows; changed implementation evidence remains authoritative",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "cbdc303119ea662cf8e721fcd74086aa638c714b9509f8c9bd021d27689e2c9f",
+        "currentHash": "f7a9f87e341f74bc95c9ea76d9b3bc77771ad4120b89d7e3af0346e502edef71",
+        "changedPaths": [
+          "specs/319-guarded-plan-rewind/test-execute-result.json",
+          "specs/319-guarded-plan-rewind/test-result-review.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/step-tree.js",
+          "src/flow/registry.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Re-evaluate after integrating current main and exact audited migration of two pre-strict-schema retry recovery audit rows; changed implementation evidence remains authoritative\" --yes",
+      "createdAt": "2026-07-18T13:26:29.162Z",
+      "timestamp": "2026-07-18T13:26:29.162Z",
+      "issueLogId": "recovery-56fc5dcd-2f5f-4b39-81df-d4a19398c982"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/319-guarded-plan-rewind/.retry-recovery.transaction.json",
+          "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/acceptance-review-evidence.json",
+          "fingerprint": "1b1a4be3dc08d4c4b06c434e39238ee4d012cc9efc43a8d08fb366ef242768f6"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/acceptance-review.json",
+          "fingerprint": "e279354ed11a84d56c608484d5eed208ec4f7fa6aaa2770b75551e6b3db96a80"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/draft-coverage-repair.json",
+          "fingerprint": "9190c7942093e8179ad1fa409a313f65a6300dbf6f7b4015be772a2e0ce1322b"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/draft-coverage-triage.json",
+          "fingerprint": "7ea82193c6700c02cdcfd7a3dbb885e86d1357af4b0a7b379a2c545fb4f25f73"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/draft-gate-source.json",
+          "fingerprint": "ab35d81358e4c68574fa214d2ff44e64aa1dc6f0cb49d1b16a4bdfb6da43c04e"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/draft-questions-repair.json",
+          "fingerprint": "c1240cd592f1c320ede52d787004a9d8a79e4f6f607ed78cf11c81c41671996a"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/draft-questions-triage.json",
+          "fingerprint": "b6451df3ee06b222d1f61809242a66a76c4bc49195742bd051add95e1cf58655"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/draft-review-coverage.json",
+          "fingerprint": "cedaf100f4d149eef11a385d0cdb5c54a85e9c841991339757f9261a080d801d"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/draft-review-questions.json",
+          "fingerprint": "4ec59dc5ec1c8e69922efacb3c3a0a1d9cbad619b18895c7d2cfa8180378bd2d"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/draft.json",
+          "fingerprint": "e0ea1ff19e0cb867bd66e364090d00e8ac68efae9ffd054e5d8135f5ad08ee95"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/file-map.json",
+          "fingerprint": "85164b4413b4e2776c21b79d36e3a0b0ec95ec19bfd37b0f332993c7dd5b25dc"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/flow-findings.json",
+          "fingerprint": "ecb5fbca9f79b985c8f613bcfa174844a765f767d9a5fbe29bf72d28aed033ce"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/gate-impl-memory.json",
+          "fingerprint": "49f9d507908e0e96f5b80698db75fe23ae3fbd60097a21ed06ed43037a6ef181"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/impl-gate-result.json",
+          "fingerprint": "00942fbc04f2da2fdb314b502b3b4bc352240a42bbbda5cd2b248c44b3e861fe"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/impl-gate-result.json",
+          "fingerprint": "00942fbc04f2da2fdb314b502b3b4bc352240a42bbbda5cd2b248c44b3e861fe"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/impl-review.json",
+          "fingerprint": "470f37e1fa49d6554a9bda7f57d4ced20987e3fc3ec2ecd7867f212ea6da79e2"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/issue.md",
+          "fingerprint": "9a9da73ed260093741691e6557e8101ebb16d0bf790174746148eeddcd6b9afb"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "2aea9858bbe2da487a38c09ba79dc7bfcc37c2677d5338e5cc6b2cbb8d91767c"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/retro.json",
+          "fingerprint": "defe5e9825d9db3b2af6ce386acc3fcee403e009e5bfcdd8ab37b8ca430b760c"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/retry-recovery.json",
+          "fingerprint": "fb67c152e05d5bdbc01fff4a7d97d0da3d060053d9596fa237d131322494b4db"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/retry-recovery.json",
+          "fingerprint": "fb67c152e05d5bdbc01fff4a7d97d0da3d060053d9596fa237d131322494b4db"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "6cdc04c67b173840adaf7612be22d5d1897683e9b38c8568ad8472499ae879d6"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "06b1fe0c49190870f9bee4f2a5e0eaa9da24f12cba7ff4b1072ef76695e10d2e"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-001.json",
+          "fingerprint": "a80b6d202ae5aad3db3413a7c3c438f3ded15713cc4353cd85a2eff71e660b52"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-002.json",
+          "fingerprint": "5e3675dde1226993956d4038d4449f2cd056c457532849240acf92f925bfa847"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-003.json",
+          "fingerprint": "adb9821fb88577fd94ff61d03f5038209e27e0c6c0c3d3f2c54c73c8565fda13"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-003.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-004.json",
+          "fingerprint": "3bd75612344efe79d429f45510a789d41623cc8df3d22c3f2542a04da0b9e1a7"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-004.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-005.json",
+          "fingerprint": "e3040a16a913797f2d0770ab7718c0ec5c43d4265502f0fb4a1a11d14165e3f2"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-005.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-006.json",
+          "fingerprint": "9b45a49a434b32240f813beeb867de5213d01136c93f42ce8d9640f4bddbe54e"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-006.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-007.json",
+          "fingerprint": "9970ac039919f9393705886f1b66c80966fbb483d80cedcc2bfea19741772abd"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/impl-attempt-007.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/spec-attempt-001.json",
+          "fingerprint": "cfc936427c26eeeb1e92c549ff6537dc0ba0ec07fc3271a9d90ea4d946fb3049"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/test-attempt-001.json",
+          "fingerprint": "7e2347bbfae0995f2785082a48efb9e65f8a8fc4ed7db87e3e705c28d548cf59"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/test-attempt-001.md",
+          "fingerprint": "a628f019b5593c8c57f8e338a78a1d11f233872974bd32baa489e03aac9ba066"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/test-attempt-002.json",
+          "fingerprint": "160908e8716cfaf7e7c220ad32a079ac38f2ce5ddcc1a36c4a5f16625c83c354"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/test-attempt-002.md",
+          "fingerprint": "45c4d9d72ed894ecafd74e70798c1ffdd60f0e16ba535d79f4392309c8482c3f"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/test-attempt-003.json",
+          "fingerprint": "a4636aedcb5b2e1cb3cf7bfbda9e57b5b646978f0a887ed70a1a954901fd1ba2"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/test-attempt-003.md",
+          "fingerprint": "3e57582f113b8c628e7150471294ca7382a3e6f33a8e5538ee6a1a1e6aa7345f"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/test-attempt-004.json",
+          "fingerprint": "b864d5fa36f8ff4f3c4e3cae9b9edfaf4b2d00fdd17126f8f41f9c0c4637dfab"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/test-attempt-004.md",
+          "fingerprint": "2200722449aa6a2e2d2928fb8b139d2849be4025bf8c400e9649ce644a01fef5"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "03916f59fb48e7ffcbee1f54a75c1372635dd5429c7abe8c4bc01fdadcd07431"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "083a8d5571e6abd7bbf7426affb05274b2afdf2aa91ad1c628ebdd51d1a8336c"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "8650231304bbce09c13097246163b728a9bf7a98f729af47ae0444ab6f4a0ac6"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "dd3880d7fbe27ed31a95be4f14296d1f4dac885ecc6f60f19cf6515e9c0a537b"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "bd182e58bb3ea2a49ec13c08395776e88fc2f2e8d236f3a8f14b5da939877e2e"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "a0a705de8b116d51e2227690360010d06466ac10a0a7afa7eccd517417346855"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "494c7cfd4ba492d70419e91abce8c7fbdaffa52ef25a61eb734b4d6804ea5795"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "557b46d241b23f9c6eafe0fc1140fb6cd3e50b2180dfb43e83b8ea33598b37ad"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "aaca35bea96cb233b4ed5a7c28b414eefe41d603a72d14833d33e2cdbac481fe"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "5a4c675401202d8b81f075eca1fde40839b659a635ed0d502ca8b98f1bfe0f50"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/scenario-validity-result.json",
+          "fingerprint": "39160f7d84b046f7f635fc48698dfd118d528ab4791f19238b448b5101107c81"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/spec-gate-source.json",
+          "fingerprint": "a2d2a34a5abcaaafdbe92982c7367a929592f3410d77754e28c9c57ddf029358"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/spec-review.json",
+          "fingerprint": "2b8ee08aef699199a487f02e60ec40b779931527c7e56e33ac96b4ff7a926582"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/spec.json",
+          "fingerprint": "a6b13508853e9577f6f830839fb04db7df5ae0dcadec99ef66535e185e640b66"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/spec.md",
+          "fingerprint": "53b94fef94ff4c4e27427253e1f9ddbe3b7815a252eec68fe303f236e417db80"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/tasks/T-1.md",
+          "fingerprint": "2fe1ef402374c1ab702f08bba54cb7cdcc2ace13d6b27764dd8817894457bb39"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/tasks/T-2.md",
+          "fingerprint": "4e0ba93eaa284016f818b165fef24b2c53602b23d7a14d8deae13b5cd42cb863"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/tasks/T-3.md",
+          "fingerprint": "c223385265a85db9fa81ef9dfca2d66450c2223a2c1c7ada88d4b0a1ddb5c43d"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/test-coverage.json",
+          "fingerprint": "8c3a51c6ccfe8c622b0b1d8f8f6d030fce6580618b49c4c6aee58124cbeb8dfc"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/test-execute-result.json",
+          "fingerprint": "c97a1c72a7cd5f9522b112d855d530a02d73e27f260bf410332141478f7a57b1"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/test-result-review.json",
+          "fingerprint": "3f14b32c7317f59442f0c7fbeb30b3e82c6594ef74969fa4250c3fc44d7c356c"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/test-result-review.md",
+          "fingerprint": "660e74d0e758e973b017245d86c3d32cbf122255373506dc1a0d1c38c13ad498"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/test-review.json",
+          "fingerprint": "dca2bbcb17a81b50ac40c3f1b3aed46c5218ec8bd0848f9ae21ee1d558b290e7"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/test-review.md",
+          "fingerprint": "2200722449aa6a2e2d2928fb8b139d2849be4025bf8c400e9649ce644a01fef5"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/tests/.raw/impl-gate-r7-omitted-save-boundary-prompt.json",
+          "fingerprint": "ee5eb630a132895cf8684ede1b0e7edf94240e759d4b788aa14fb2694bac7427"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/tests/.raw/impl-gate-r7-shared-guard-and-path-length-prompt.json",
+          "fingerprint": "fc9b46e008276bde7a555a529b04722d0bcaac8f8ee3fa46b825494feef755b8"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/tests/.raw/scenario-validity.log",
+          "fingerprint": "ea09c3e6ec0eb158230fef527aeacbfcceaee95ff9780c238e563bdf872b1947"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/tests/.raw/test-execution.log",
+          "fingerprint": "469d271fefce18b8c90a86097fb90cc0923cfa8995cfd0b3a4aaf4e271952d23"
+        },
+        {
+          "path": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+          "fingerprint": "c0ca4694de1b2c31830a7e41c89c1602830a18755b792105b0646a2551c00ebb"
+        },
+        {
+          "path": "src/flow/lib/acceptance-review-artifacts.js",
+          "fingerprint": "6b885351f71927f1d1afcf43bb29f67eacff7fc5f59cf1dcd9719975e7a577e6"
+        },
+        {
+          "path": "src/flow/lib/flow-findings.js",
+          "fingerprint": "c8104b9d8f81d9f68a6174db27d00fdea4bd0c390a2e3429f98d9cb7358eddae"
+        },
+        {
+          "path": "src/flow/lib/flow-judgment-contract.js",
+          "fingerprint": "5179b1ebcf2a116b42d7048bae9d8f144644d76608cf01ebdc90ff8630efc62d"
+        },
+        {
+          "path": "src/flow/lib/get-status.js",
+          "fingerprint": "c4591f567c5c880727faaae6b30f8aa5ac68b6696a067b69a9f8c40b90dd3503"
+        },
+        {
+          "path": "src/flow/lib/plan-rewind.js",
+          "fingerprint": "816ef122ce4f5464c2699b5abe9d66cd78608bcd32d8629d00e28e7d98743ccb"
+        },
+        {
+          "path": "src/flow/lib/retry-recovery.js",
+          "fingerprint": "2e3a7f8382b0794852fcada0b84478d579f2eb9db881a4f55272e6c9428f06d4"
+        },
+        {
+          "path": "src/flow/lib/run-acceptance-review.js",
+          "fingerprint": "2138d1b33262d7b9342fd15567254974c117403d09950537aa2c70d411e7f17b"
+        },
+        {
+          "path": "src/flow/lib/run-reopen-draft.js",
+          "fingerprint": "fbe21d2a06765f867b6b9ce1de0fb72bdf21e1c62250a23ced3d24f3e50482ac"
+        },
+        {
+          "path": "src/flow/lib/set-step.js",
+          "fingerprint": "a8c198bd569c0936789084b72afe11478e68bec6c78ae9f14bf0bd7eda27abe5"
+        },
+        {
+          "path": "src/flow/lib/step-tree.js",
+          "fingerprint": "8ea36f8cfc2bf094c01f9a7c71a9c45b6137c5d1019a215821184b4da9741884"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "e72551723aa6d99655c728bd6270c45215fbf3f0967728410ca3e87a4694b794"
+        },
+        {
+          "path": "src/lib/flow-manager.js",
+          "fingerprint": "df1b6d42a9ca58ed739484d443fb3e47c36f63eb6ad45552eadafbb87a58a6ce"
+        },
+        {
+          "path": "src/lib/flow-store.js",
+          "fingerprint": "52382da0b3d76dde9fbbb23c5f0dd71a89891b27fa91dc93d0d903fc33a8a0d4"
+        },
+        {
+          "path": "tests/unit/flow/plan-rewind.test.js",
+          "fingerprint": "01b0b6026e1da50037f9f062f605551a7629ef48f5cdf3364a6ff918f8683c70"
+        },
+        {
+          "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+          "fingerprint": "b35ae2fec2918362cbed0e0886ad49da0c21f887441905438a85a589415d8974"
+        }
+      ],
+      "rawOutputPath": "specs/319-guarded-plan-rewind/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-18T13:36:28.248Z",
+      "issueLogId": "issue-log-ce2da595-3348-42c8-8035-3cd4b895071e"
+    }
+  ]
+}

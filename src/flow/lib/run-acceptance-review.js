@@ -17,7 +17,10 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
   execute(ctx) {
     const state = ctx.flowManager.load();
     const specDir = resolveSpecDir(path.resolve(ctx.root, state.spec));
-    const artifact = readFixtureArtifact() || buildAcceptanceReviewArtifactFromEvidence({ specDir });
+    const artifact = readFixtureArtifact() || buildAcceptanceReviewArtifactFromEvidence({
+      specDir,
+      flowState: state,
+    });
     const result = applyAcceptanceReviewResult({
       root: ctx.root,
       flowManager: ctx.flowManager,

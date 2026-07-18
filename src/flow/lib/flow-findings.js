@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { resolveSpecDir } from "../../lib/spec-json.js";
+import { latestPlanRewind } from "./plan-rewind.js";
 
 export const FLOW_FINDINGS_FILE = "flow-findings.json";
 export const MAX_FLOW_FINDINGS = 200;
@@ -106,6 +107,9 @@ export class FlowFinding {
     this.finalDisposition = validateFinalDisposition(
       Object.prototype.hasOwnProperty.call(input, "finalDisposition") ? input.finalDisposition : null,
     );
+    this.planRewindAt = input.planRewindAt == null
+      ? null
+      : requireString(input.planRewindAt, "planRewindAt");
     Object.freeze(this);
   }
 
@@ -120,6 +124,7 @@ export class FlowFinding {
       round: this.round,
       completionKind: this.completionKind,
       finalDisposition: this.finalDisposition,
+      ...(this.planRewindAt && { planRewindAt: this.planRewindAt }),
     };
   }
 }
@@ -158,10 +163,15 @@ export function flowFindingsPath(specDir) {
   return path.join(specDir, FLOW_FINDINGS_FILE);
 }
 
-export function readFlowFindingsArtifact(specDir) {
+export function readFlowFindingsArtifact(specDir, { flowState = null } = {}) {
   const file = flowFindingsPath(specDir);
   if (!fs.existsSync(file)) return new FlowFindingsArtifact({ entries: [] });
-  return new FlowFindingsArtifact(readJson(file));
+  const artifact = new FlowFindingsArtifact(readJson(file));
+  const rewind = latestPlanRewind(flowState);
+  if (!rewind) return artifact;
+  return new FlowFindingsArtifact({
+    entries: artifact.entries.filter((entry) => entry.planRewindAt === rewind.rewoundAt),
+  });
 }
 
 export function writeFlowFindingsArtifact(specDir, artifact) {
@@ -197,11 +207,13 @@ export function appendDeferredFlowFinding({
 }) {
   const specDir = specDirFromFlowState(root, flowState);
   const existing = readFlowFindingsArtifact(specDir);
+  const planRewindAt = latestPlanRewind(flowState)?.rewoundAt ?? null;
   const normalizedSourceArtifact = normalizeSourceArtifactPath(sourceArtifact);
   const existingIndex = existing.entries.findIndex((entry) => (
     entry.sourceStep === sourceStep
       && entry.sourceArtifact === normalizedSourceArtifact
       && entry.sourceFindingId === sourceFindingId
+      && entry.planRewindAt === planRewindAt
   ));
   if (existingIndex >= 0) {
     const current = existing.entries[existingIndex];
@@ -212,6 +224,7 @@ export function appendDeferredFlowFinding({
       round: round ?? attempts,
       completionKind: "deferred",
       finalDisposition: current.finalDisposition ?? finalDisposition,
+      planRewindAt,
     });
     const entries = existing.entries.map((item, index) => (index === existingIndex ? entry : item));
     writeFlowFindingsArtifact(specDir, new FlowFindingsArtifact({ entries }));
@@ -227,6 +240,7 @@ export function appendDeferredFlowFinding({
     round: round ?? nextRound(existing),
     completionKind: "deferred",
     finalDisposition,
+    planRewindAt,
   });
   const next = new FlowFindingsArtifact({ entries: [...existing.entries, entry] });
   writeFlowFindingsArtifact(specDir, next);
@@ -248,8 +262,8 @@ export function readBoundedSourceArtifact(specDir, relPath) {
   return readJson(file);
 }
 
-export function buildDeferredFindingsSummary({ specDir }) {
-  const artifact = readFlowFindingsArtifact(specDir);
+export function buildDeferredFindingsSummary({ specDir, flowState = null }) {
+  const artifact = readFlowFindingsArtifact(specDir, { flowState });
   const sourceSteps = [];
   const seen = new Set();
   for (const entry of artifact.entries) {

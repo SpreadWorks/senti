@@ -308,6 +308,9 @@ export class FlowManager {
     }
     return this.#setBoundWorktreeIssue(issue, withSpecIdDefault(opts, this._boundSpecId));
   }
+  rewindPlan(request, evidence, opts) {
+    return this._store.rewindPlan(request, evidence, withSpecIdDefault(opts, this._boundSpecId));
+  }
   addNote(text, opts) { return this._store.addNote(text, withSpecIdDefault(opts, this._boundSpecId)); }
   incrementMetric(phase, counter, opts) {
     return this._store.incrementMetric(phase, counter, withSpecIdDefault(opts, this._boundSpecId));

@@ -8,18 +8,27 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
+import fs from "node:fs";
 import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import { FLOW_STEPS, PHASE_MAP } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
-import { findInProgressLeaf, findStepById } from "./step-tree.js";
+import { findInProgressLeaf, findInProgressLeaves, findStepById } from "./step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "./draft-review-routes.js";
 import {
   PlanRewindAuditHistory,
   sealLatestPlanRewind,
 } from "./spec-correction-rewind-audit.js";
+import {
+  PLAN_REWIND_SUPPORTED_STAGES,
+  PlanRewindError,
+  PlanRewindRequest,
+  applyPlanRewind,
+  capturePlanRewindEvidence,
+  validatePlanRewindGuards,
+} from "./plan-rewind.js";
 
 const MAX_REASON_LENGTH = 500;
 const SPEC_CORRECTION_CATEGORY = "spec-correction";
@@ -57,6 +66,12 @@ const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
 const PLAN_REOPEN_RESET_STEPS = Object.freeze([
   ...PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS,
   ...PLAN_REOPEN_ACTIVE_STEPS,
+]);
+const FLOW_REWIND_REJECTED_STAGES = new Set([
+  "finalize-commit",
+  "finalize-merge",
+  "finalize-sync",
+  "finalize-cleanup",
 ]);
 const STALE_ARTIFACTS = Object.freeze([
   "spec.json",
@@ -450,6 +465,34 @@ function executeSpecCorrection({ flowManager, root, specId, state, reason }) {
   return specCorrectionResult(audit.toJSON(), resetSteps, replacement);
 }
 
+function invalidatedApprovalConfirmedAt(root, state) {
+  const file = path.resolve(root, state.spec);
+  if (!fs.existsSync(file)) return null;
+  const spec = JSON.parse(fs.readFileSync(file, "utf8"));
+  return typeof spec.user_approval?.confirmed_at === "string"
+    ? spec.user_approval.confirmed_at
+    : null;
+}
+
+function flowRewindEnvelope(error) {
+  if (!(error instanceof PlanRewindError)) throw error;
+  return Envelope.fail("run", "reopen-draft", error.code, error.message);
+}
+
+function createFlowRewindRequest({ root, state, ctx, reason, sourceStage }) {
+  validatePlanRewindGuards(ctx);
+  return new PlanRewindRequest({
+    runId: state.runId,
+    issue: state.issue,
+    spec: state.spec,
+    sourceStage,
+    destinationStep: "draft",
+    reason,
+    rewoundAt: new Date().toISOString(),
+    invalidatedApprovalConfirmedAt: invalidatedApprovalConfirmedAt(root, state),
+  });
+}
+
 export class RunReopenDraftCommand extends FlowCommand {
   async execute(ctx) {
     if (!REOPEN_CATEGORIES.has(ctx.category)) {
@@ -460,10 +503,8 @@ export class RunReopenDraftCommand extends FlowCommand {
         `--category must be task-addition or ${SPEC_CORRECTION_CATEGORY}`,
       );
     }
-
     const { root, flowManager, flowState: state } = ctx;
     if (!state) return Envelope.fail("run", "reopen-draft", "NO_ACTIVE_FLOW", "no active flow found");
-
     let reason;
     try {
       reason = validateReason(ctx.reason);
@@ -507,7 +548,61 @@ export class RunReopenDraftCommand extends FlowCommand {
     }
 
     const tasks = Array.isArray(state.tasks) ? state.tasks : [];
-    const previousActiveStep = findInProgressLeaf(state.steps || [])?.id ?? null;
+    const parentActiveLeaves = findInProgressLeaves(state.steps || []);
+    const previousActiveStep = parentActiveLeaves.length === 1
+      ? parentActiveLeaves[0].id
+      : findInProgressLeaf(state.steps || [])?.id ?? null;
+    const supportedFlowStage = parentActiveLeaves.length === 1
+      && PLAN_REWIND_SUPPORTED_STAGES.includes(previousActiveStep);
+    const rejectedFlowStage = FLOW_REWIND_REJECTED_STAGES.has(previousActiveStep);
+    if (
+      state.currentTaskId == null
+      && parentActiveLeaves.length !== 1
+      && parentActiveLeaves.some((step) => (
+        PLAN_REWIND_SUPPORTED_STAGES.includes(step.id) || FLOW_REWIND_REJECTED_STAGES.has(step.id)
+      ))
+    ) {
+      return Envelope.fail(
+        "run",
+        "reopen-draft",
+        "PLAN_REWIND_INVARIANT",
+        `flow-level plan rewind requires exactly one active parent leaf (got ${parentActiveLeaves.length})`,
+      );
+    }
+    if (rejectedFlowStage && state.currentTaskId == null) {
+      try {
+        const request = createFlowRewindRequest({ root, state, ctx, reason, sourceStage: previousActiveStep });
+        applyPlanRewind(state, request, []);
+        throw new PlanRewindError("PLAN_REWIND_INVARIANT", "rejected plan rewind stage unexpectedly validated");
+      } catch (error) {
+        return flowRewindEnvelope(error);
+      }
+    }
+    if (supportedFlowStage && state.currentTaskId == null) {
+      try {
+        const request = createFlowRewindRequest({ root, state, ctx, reason, sourceStage: previousActiveStep });
+        // Validate the complete candidate before walking or hashing artifacts.
+        applyPlanRewind(state, request, []);
+        const specDir = path.dirname(path.resolve(root, state.spec));
+        const evidence = capturePlanRewindEvidence(specDir);
+        const audit = flowManager.rewindPlan(request, evidence);
+        return Envelope.ok("run", "reopen-draft", {
+          reopened: true,
+          mode: "flow-level",
+          previousActiveStep,
+          destinationStep: audit.destinationStep,
+          rewoundAt: audit.rewoundAt,
+          invalidatedStepIds: audit.invalidatedStepIds,
+          invalidatedEvidence: audit.invalidatedEvidence,
+          retryReset: {
+            review: audit.reviewRetryResetPhases,
+            gate: audit.gateRetryResetPhases,
+          },
+        });
+      } catch (error) {
+        return flowRewindEnvelope(error);
+      }
+    }
     if (state.currentTaskId == null && PLAN_REOPEN_ACTIVE_STEPS.includes(previousActiveStep)) {
       const resetSteps = [];
       flowManager.mutate((nextState) => {

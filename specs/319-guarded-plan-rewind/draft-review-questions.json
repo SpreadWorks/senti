@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-07-12T20:15:43.070Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 1 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. Remove non-question directive marker",
+      "target": "q1",
+      "rationale": "Remove `[must]` so the entry begins: `Should implementation follow Issue #434 exactly: ...?`",
+      "evidence": "The shown question includes an instruction/priority marker (`[must]`) instead of only the question text.",
+      "classification": "repair_target"
+    }
+  ]
+}

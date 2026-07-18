@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/flow-judgment-contract.js"
+    ],
+    "inputHash": "fe6b23f62619b0ad9c6fd51b15ba8cc4865acf629f4542c1c1bcccaa408581cd",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "src/flow/lib/flow-judgment-contract.js"
+  ],
+  "inputHash": "fe6b23f62619b0ad9c6fd51b15ba8cc4865acf629f4542c1c1bcccaa408581cd",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T20:54:58.624Z",
+  "finishedAt": "2026-07-12T20:54:58.624Z",
+  "rawResponse": "I’ll inspect the touched file around the changed paths so the proposals are grounded in the existing local patterns, not just the diff snippet.The diff path is not present under the current `.tmp` working directory, so I’m checking the workspace layout before deciding whether to rely on the provided diff only.### 1. Extract Rewind Freshness Helpers\n**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Issue:** The new logic repeats `latestPlanRewind(state)` and `isPlanArtifactFresh(...)` checks in multiple places, making the rewind eligibility rule harder to audit consistently.  \n**Suggestion:** Compute `const hasPlanRewind = Boolean(latestPlanRewind(state));` once in `validateStepCompletionTransition`, and extract helpers such as `isFreshAfterPlanRewind(state, artifactPath, kind)` and `isOverrideEvidenceFresh(state, overrideEvidence)`. This would reduce duplication and make the R4 freshness rule easier to maintain.\n\n### 2. Isolate Completion Override Loading Policy\n**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Issue:** `validateStepCompletionTransition` now contains low-level override artifact freshness checks, file existence checks, evidence loading, and evidence timestamp validation inline. This mixes transition validation with override evidence loading policy.  \n**Suggestion:** Move the block into a focused helper, for example `loadFreshCompletionOverrideEvidence(specDir, stepId, state)`, returning `null` for stale or absent evidence. That keeps the transition function closer to its existing orchestration role.\n\n### 3. Avoid Recomputing Latest Rewind Inside One Decision Path\n**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Issue:** `latestPlanRewind(state)` is called repeatedly within the same validation path and inside `deferredEvidenceApplies`. If `latestPlanRewind` is non-trivial or later changes behavior, this creates unnecessary repeated work and slightly obscures the single decision point.  \n**Suggestion:** Store the result once and pass it through where needed, or pass a small rewind context object into helpers. For example: `const latestRewind = latestPlanRewind(state);` then use `if (latestRewind && ...)`.\n\n### 4. Clarify Artifact Kind Naming\n**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Issue:** The new calls pass string literals like `\"flow-findings\"` and `\"completion-overrides\"` as artifact kinds, while `stepId` is also passed as a kind elsewhere. This makes it unclear whether the third argument represents a step id, artifact id, or evidence kind.  \n**Suggestion:** Introduce named constants or a small local mapping for non-step artifact kinds, such as `FLOW_FINDINGS_ARTIFACT_KIND` and `COMPLETION_OVERRIDES_ARTIFACT_KIND`, or rename the local variable to reflect the expected semantic type before passing it. This improves consistency and reduces typo risk.",
+  "success": {
+    "proposals": [
+      {
+        "title": "I’ll inspect the touched file around the changed paths so the proposals are grounded in the existing local patterns, not just the diff snippet.The diff path is not present under the current `.tmp` working directory, so I’m checking the workspace layout before deciding whether to rely on the provided diff only.### 1. Extract Rewind Freshness Helpers",
+        "body": "**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Issue:** The new logic repeats `latestPlanRewind(state)` and `isPlanArtifactFresh(...)` checks in multiple places, making the rewind eligibility rule harder to audit consistently.  \n**Suggestion:** Compute `const hasPlanRewind = Boolean(latestPlanRewind(state));` once in `validateStepCompletionTransition`, and extract helpers such as `isFreshAfterPlanRewind(state, artifactPath, kind)` and `isOverrideEvidenceFresh(state, overrideEvidence)`. This would reduce duplication and make the R4 freshness rule easier to maintain.",
+        "file": "src/flow/lib/flow-judgment-contract.js"
+      },
+      {
+        "title": "2. Isolate Completion Override Loading Policy",
+        "body": "**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Issue:** `validateStepCompletionTransition` now contains low-level override artifact freshness checks, file existence checks, evidence loading, and evidence timestamp validation inline. This mixes transition validation with override evidence loading policy.  \n**Suggestion:** Move the block into a focused helper, for example `loadFreshCompletionOverrideEvidence(specDir, stepId, state)`, returning `null` for stale or absent evidence. That keeps the transition function closer to its existing orchestration role.",
+        "file": "src/flow/lib/flow-judgment-contract.js"
+      },
+      {
+        "title": "3. Avoid Recomputing Latest Rewind Inside One Decision Path",
+        "body": "**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Issue:** `latestPlanRewind(state)` is called repeatedly within the same validation path and inside `deferredEvidenceApplies`. If `latestPlanRewind` is non-trivial or later changes behavior, this creates unnecessary repeated work and slightly obscures the single decision point.  \n**Suggestion:** Store the result once and pass it through where needed, or pass a small rewind context object into helpers. For example: `const latestRewind = latestPlanRewind(state);` then use `if (latestRewind && ...)`.",
+        "file": "src/flow/lib/flow-judgment-contract.js"
+      },
+      {
+        "title": "4. Clarify Artifact Kind Naming",
+        "body": "**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Issue:** The new calls pass string literals like `\"flow-findings\"` and `\"completion-overrides\"` as artifact kinds, while `stepId` is also passed as a kind elsewhere. This makes it unclear whether the third argument represents a step id, artifact id, or evidence kind.  \n**Suggestion:** Introduce named constants or a small local mapping for non-step artifact kinds, such as `FLOW_FINDINGS_ARTIFACT_KIND` and `COMPLETION_OVERRIDES_ARTIFACT_KIND`, or rename the local variable to reflect the expected semantic type before passing it. This improves consistency and reduces typo risk.",
+        "file": "src/flow/lib/flow-judgment-contract.js"
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "deferredFindingDispositions": [
+    {
+      "findingId": "DF-1",
+      "finalDisposition": "false_positive",
+      "evidenceRefs": [
+        "impl-gate-result.json#gate-finding-1",
+        "src/lib/flow-store.js#FlowStore.setMergeOutcome",
+        "spec.json#constraints: state.mergeStrategy, state.featureBranchSquashedSha, and state.finalizedAt",
+        "spec.json#acceptance_criteria:AC7",
+        "tests/guarded-plan-rewind.test.js#R7: every guard, route, baseline, resource, and candidate rejection is immutable",
+        "tests/.raw/test-execution.log#R7 PASS",
+        "test-execute-result.json#R7 pass",
+        "test-result-review.json#verdict pass",
+        "file-map.json#R7",
+        "retro.json#R7 done"
+      ]
+    }
+  ]
+}

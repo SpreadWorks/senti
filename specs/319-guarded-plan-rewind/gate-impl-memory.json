@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "phase": "integration",
+      "round": 5,
+      "status": "blocking",
+      "statusReason": "The diff implements many rejection codes in applyPlanRewind, but the save boundary is not shown as implemented: run-reopen-draft calls fm.rewindPlan and tests call FlowStore.rewindPlan, yet no FlowManager/FlowStore changes are included. Therefore the required shared guard/persist-before-save behavior and byte-identical rejection guarantee for persisted flow state cannot be confirmed as implemented in the diff.",
+      "updatedAt": "2026-07-12T21:13:11.180Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8",
+        "R1"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff implements many rejection codes in applyPlanRewind, but the save boundary is not shown as implemented: run-reopen-draft calls fm.rewindPlan and tests call FlowStore.rewindPlan, yet no FlowManager/FlowStore changes are included. Therefore the required shared guard/persist-before-save behavior and byte-identical rejection guarantee for persisted flow state cannot be confirmed as implemented in the diff.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "integration",
+      "round": 6,
+      "status": "blocking",
+      "statusReason": "The diff covers many rejection cases, but R7 is not fully implemented. `validatePlanRewindGuards` only checks that expected run/issue/spec guards are present; it does not compare supplied guard values to the active flow, and `createFlowRewindRequest` builds the request from state values instead of the supplied expectations. Also evidence path length is checked after normalization, so a supplied path over 1000 characters that normalizes shorter can bypass the required path-length rejection.",
+      "updatedAt": "2026-07-12T21:23:24.492Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff covers many rejection cases, but R7 is not fully implemented. `validatePlanRewindGuards` only checks that expected run/issue/spec guards are present; it does not compare supplied guard values to the active flow, and `createFlowRewindRequest` builds the request from state values instead of the supplied expectations. Also evidence path length is checked after normalization, so a supplied path over 1000 characters that normalizes shorter can bypass the required path-length rejection.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "integration",
+      "round": 7,
+      "status": "blocking",
+      "statusReason": "The implementation covers many rejection cases, but not all required immutable pre-save failures. In the flow-level route, evidence capture failures occur after a successful candidate validation but before `fm.rewindPlan`, so flow state is not saved, but artifact/source byte-identity is only incidental and not guarded by the shared save boundary. More importantly, `normalizeEvidencePath()` accepts normalized traversal segments that do not escape, such as `a/../evidence.json`, despite the requirement calling out evidence traversal escape as a specific rejection. Baseline completion also checks `state.state.mergeStrategy`, `featureBranchSquashedSha`, and `finalizedAt`, but the requirement names merge outcome separately; no `mergeOutcome`/outcome field is rejected in the shown code. Therefore R7 is not fully implemented.",
+      "updatedAt": "2026-07-12T21:30:17.316Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The implementation covers many rejection cases, but not all required immutable pre-save failures. In the flow-level route, evidence capture failures occur after a successful candidate validation but before `fm.rewindPlan`, so flow state is not saved, but artifact/source byte-identity is only incidental and not guarded by the shared save boundary. More importantly, `normalizeEvidencePath()` accepts normalized traversal segments that do not escape, such as `a/../evidence.json`, despite the requirement calling out evidence traversal escape as a specific rejection. Baseline completion also checks `state.state.mergeStrategy`, `featureBranchSquashedSha`, and `finalizedAt`, but the requirement names merge outcome separately; no `mergeOutcome`/outcome field is rejected in the shown code. Therefore R7 is not fully implemented.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ]
+    }
+  ]
+}

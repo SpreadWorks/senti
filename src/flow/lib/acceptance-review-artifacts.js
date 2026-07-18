@@ -190,8 +190,8 @@ export function deriveAcceptanceReviewVerdict(artifact = {}) {
   return "pass";
 }
 
-function validateDeferredFindingCoverage(specDir, deferredFindings = []) {
-  const expectedEntries = readFlowFindingsArtifact(specDir).entries;
+function validateDeferredFindingCoverage(specDir, deferredFindings = [], flowState = null) {
+  const expectedEntries = readFlowFindingsArtifact(specDir, { flowState }).entries;
   const expectedIds = new Set(expectedEntries.map((entry) => entry.findingId));
   const actualIds = new Set();
   for (const finding of deferredFindings) {
@@ -252,12 +252,12 @@ function deferredSourceBlockers(specDir, deferredFindings) {
   return blockers;
 }
 
-export function writeAcceptanceReviewArtifact({ specDir, artifact }) {
+export function writeAcceptanceReviewArtifact({ specDir, artifact, flowState = null }) {
   const normalized = normalizeArtifact(artifact);
   const reportPath = path.join(specDir, "report.json");
   if (fs.existsSync(reportPath)) normalized.reportRefs = ["report.json"];
   else delete normalized.reportRefs;
-  validateDeferredFindingCoverage(specDir, normalized.deferredFindings);
+  validateDeferredFindingCoverage(specDir, normalized.deferredFindings, flowState);
   validateAcceptanceReviewArtifact(normalized);
   const file = path.join(specDir, ACCEPTANCE_REVIEW_ARTIFACT_FILE);
   writeJson(file, normalized);
@@ -320,7 +320,7 @@ export function applyAcceptanceReviewResult({ root, flowManager, artifact }) {
       nextAction: "user_decision",
     }
     : preliminary;
-  const written = writeAcceptanceReviewArtifact({ specDir, artifact: artifactForWrite });
+  const written = writeAcceptanceReviewArtifact({ specDir, artifact: artifactForWrite, flowState: state });
   const next = written.artifact;
   flowManager.mutate((s) => {
     s.acceptanceReview = {
@@ -442,7 +442,7 @@ function missingRequiredTestIds(specDir) {
   return testableRequirementIds(specDir).filter((id) => !summaryIds.has(id));
 }
 
-export function buildAcceptanceReviewArtifactFromEvidence({ specDir }) {
+export function buildAcceptanceReviewArtifactFromEvidence({ specDir, flowState = null }) {
   const required = ["scenario-validity-result.json", "test-execute-result.json", "test-result-review.json", "retro.json"];
   const missing = [];
   const invalidSchemas = [];
@@ -469,7 +469,7 @@ export function buildAcceptanceReviewArtifactFromEvidence({ specDir }) {
   } catch (_) {
     missingRequired = testableRequirementIds(specDir);
   }
-  const deferredFindings = buildDeferredFindingsFromEvidence(specDir);
+  const deferredFindings = buildDeferredFindingsFromEvidence(specDir, flowState);
   const mechanicalBlockers = [
     ...classifyMechanicalBlockers({
       tests: { missing: testsMissing, failed, missingRequired },
@@ -521,8 +521,8 @@ function readDispositionEvidence(specDir) {
   return map;
 }
 
-function buildDeferredFindingsFromEvidence(specDir) {
-  const flowFindings = readFlowFindingsArtifact(specDir);
+function buildDeferredFindingsFromEvidence(specDir, flowState = null) {
+  const flowFindings = readFlowFindingsArtifact(specDir, { flowState });
   const evidence = readDispositionEvidence(specDir);
   return flowFindings.entries.map((entry) => {
     const classified = evidence.get(entry.findingId);

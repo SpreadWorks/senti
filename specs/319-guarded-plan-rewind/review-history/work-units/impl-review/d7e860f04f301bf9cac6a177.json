@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/set-step.js"
+    ],
+    "inputHash": "85e8c67e07b33c45563d0b538e0a70a1f4ef71ff9353b3c00d035b2f21949d5d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "src/flow/lib/set-step.js"
+  ],
+  "inputHash": "85e8c67e07b33c45563d0b538e0a70a1f4ef71ff9353b3c00d035b2f21949d5d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T21:22:20.294Z",
+  "finishedAt": "2026-07-12T21:22:20.294Z",
+  "rawResponse": "### 1. Collapse redundant freshness state\n**File:** `src/flow/lib/set-step.js`  \n**Issue:** `preValidateApprovalStep` initializes `fresh = false`, assigns inside `try`, and resets to `false` in `catch`. This adds state without improving behavior.  \n**Suggestion:** Return the failure directly from `catch`, and use a `const fresh = ...` inside the `try` block. That makes the stale path explicit and removes mutable control flow.\n\n### 2. Extract repeated stale approval failure construction\n**File:** `src/flow/lib/set-step.js`  \n**Issue:** `Envelope.fail(\"set\", \"step\", \"STALE_PLAN_APPROVAL\", ...)` is repeated three times in the new approval validation logic.  \n**Suggestion:** Add a small local helper such as `stalePlanApproval(message)` near `preValidateApprovalStep`, then reuse it for all stale approval failures. This reduces duplication and keeps the error code consistent.\n\n### 3. Rename `fresh` to describe the approval-specific condition\n**File:** `src/flow/lib/set-step.js`  \n**Issue:** The variable name `fresh` is generic, while this function is specifically validating whether the approval confirmation survives the latest plan rewind.  \n**Suggestion:** Rename it to `approvalIsFresh` or `confirmedAfterLatestRewind` so the conditional reads closer to the domain rule.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Collapse redundant freshness state",
+        "body": "**File:** `src/flow/lib/set-step.js`  \n**Issue:** `preValidateApprovalStep` initializes `fresh = false`, assigns inside `try`, and resets to `false` in `catch`. This adds state without improving behavior.  \n**Suggestion:** Return the failure directly from `catch`, and use a `const fresh = ...` inside the `try` block. That makes the stale path explicit and removes mutable control flow.",
+        "file": "src/flow/lib/set-step.js"
+      },
+      {
+        "title": "2. Extract repeated stale approval failure construction",
+        "body": "**File:** `src/flow/lib/set-step.js`  \n**Issue:** `Envelope.fail(\"set\", \"step\", \"STALE_PLAN_APPROVAL\", ...)` is repeated three times in the new approval validation logic.  \n**Suggestion:** Add a small local helper such as `stalePlanApproval(message)` near `preValidateApprovalStep`, then reuse it for all stale approval failures. This reduces duplication and keeps the error code consistent.",
+        "file": "src/flow/lib/set-step.js"
+      },
+      {
+        "title": "3. Rename `fresh` to describe the approval-specific condition",
+        "body": "**File:** `src/flow/lib/set-step.js`  \n**Issue:** The variable name `fresh` is generic, while this function is specifically validating whether the approval confirmation survives the latest plan rewind.  \n**Suggestion:** Rename it to `approvalIsFresh` or `confirmedAfterLatestRewind` so the conditional reads closer to the domain rule.",
+        "file": "src/flow/lib/set-step.js"
+      }
+    ]
+  }
+}

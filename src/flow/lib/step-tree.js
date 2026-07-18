@@ -59,6 +59,20 @@ export function findInProgressLeaf(steps, depth = 0) {
   return null;
 }
 
+export function findInProgressLeaves(steps, depth = 0) {
+  assertDepth(depth);
+  if (!Array.isArray(steps)) return [];
+  const leaves = [];
+  for (const step of steps) {
+    if (step.children) {
+      leaves.push(...findInProgressLeaves(step.children, depth + 1));
+    } else if (step.status === "in_progress") {
+      leaves.push(step);
+    }
+  }
+  return leaves;
+}
+
 export function promoteNextPendingLeaf(steps) {
   if (steps.some((step) => {
     if (step.children) return findInProgressLeaf(step.children) != null;

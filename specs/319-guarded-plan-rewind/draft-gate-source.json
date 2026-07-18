@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "draft-recommend-with-reasoning",
+      "result": "fail",
+      "reason": "The answered question cites Issue #434 requirements and a parent preapproval as its basis, but the guardrail requires the basis for each recommended answer to be stated as project docs/, guardrail principles, or existing code patterns.",
+      "category": "code-quality",
+      "title": "Present Recommendations with Reasoning",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "Content",
+            "locator": "qa[0].evidence"
+          },
+          "observed": "The answered question cites Issue #434 requirements and a parent preapproval as its basis, but the guardrail requires the basis for each recommended answer to be stated as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "draft-recommend-with-reasoning",
+      "where": {
+        "file": "Content",
+        "locator": "qa[0].evidence"
+      },
+      "observed": "The answered question cites Issue #434 requirements and a parent preapproval as its basis, but the guardrail requires the basis for each recommended answer to be stated as project docs/, guardrail principles, or existing code patterns.",
+      "severity": "blocking",
+      "refs": [
+        "draft-recommend-with-reasoning"
+      ]
+    }
+  ]
+}

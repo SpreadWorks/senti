@@ -1,0 +1,333 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/319-guarded-plan-rewind/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R1: flow-level route is guarded while existing reopen routes retain behavior",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 88
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R2: each supported source produces one draft action across parent and task scopes",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 88
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R3: every flow retry phase resets to zero without changing maxima or history",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 88
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R4: all approval and evidence categories reject stale timestamps and accept renewed ones",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 88
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R5: inventory enforces exact bounds, streams hashes, and preserves files and tasks",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 88
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R6: audit contains every invalidation field, remains append-only, and caps at 100",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 88
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R7: every guard, route, baseline, resource, and candidate rejection is immutable",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 88
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R8: impl-gate rewind traverses renewed approval and implementation verification in order",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 88
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/lib/acceptance-review-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/flow-findings.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/flow-judgment-contract.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/get-status.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/plan-rewind.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/retry-recovery.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-acceptance-review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-reopen-draft.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-step.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/step-tree.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-manager.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-store.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/plan-rewind.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/acceptance-review-artifacts.js",
+        "fingerprint": "27896b7b0fd70ad9a7e430dfd07de98cb338ab856283c87a0348b8d887612bea"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-findings.js",
+        "fingerprint": "c8104b9d8f81d9f68a6174db27d00fdea4bd0c390a2e3429f98d9cb7358eddae"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-judgment-contract.js",
+        "fingerprint": "59b8e0713fbfcb8557a92bd4bcfce576e549d38f5c7eba7790f0efb4df7b5b3f"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js",
+        "fingerprint": "f09eda94d9a5fe6f9d00751df74736a44aa1f50e4b74f46537e7bcb20998bfcd"
+      },
+      {
+        "status": "untracked",
+        "path": "src/flow/lib/plan-rewind.js",
+        "fingerprint": "816ef122ce4f5464c2699b5abe9d66cd78608bcd32d8629d00e28e7d98743ccb"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/retry-recovery.js",
+        "fingerprint": "3f03e85ec3890e932b34ede1c4a0c9a3e6bcd6e96c84376a5869c8b10d8ca651"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-acceptance-review.js",
+        "fingerprint": "2138d1b33262d7b9342fd15567254974c117403d09950537aa2c70d411e7f17b"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-reopen-draft.js",
+        "fingerprint": "9dabded8d5490a0eb499a74349548f88238295c9474bb465a38431a558bcc779"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js",
+        "fingerprint": "a8c198bd569c0936789084b72afe11478e68bec6c78ae9f14bf0bd7eda27abe5"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/step-tree.js",
+        "fingerprint": "8ea36f8cfc2bf094c01f9a7c71a9c45b6137c5d1019a215821184b4da9741884"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "6b753f4fb43ec3ae849b5ce3f1e23c7e33dd31aa6cf2c136ba93f044ecc4265d"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js",
+        "fingerprint": "980df45f36462739713b81d0dc0ec5c52351f5b4310a21bdbf13cdb11fd98e9b"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-store.js",
+        "fingerprint": "1f32073356ef832263a304795266207c275d10079eceb627c7ca6d57bc10e51e"
+      },
+      {
+        "status": "untracked",
+        "path": "tests/unit/flow/plan-rewind.test.js",
+        "fingerprint": "01b0b6026e1da50037f9f062f605551a7629ef48f5cdf3364a6ff918f8683c70"
+      },
+      {
+        "status": "untracked",
+        "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+        "fingerprint": "b35ae2fec2918362cbed0e0886ad49da0c21f887441905438a85a589415d8974"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/acceptance-review-artifacts.js",
+        "fingerprint": "27896b7b0fd70ad9a7e430dfd07de98cb338ab856283c87a0348b8d887612bea"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-findings.js",
+        "fingerprint": "c8104b9d8f81d9f68a6174db27d00fdea4bd0c390a2e3429f98d9cb7358eddae"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-judgment-contract.js",
+        "fingerprint": "59b8e0713fbfcb8557a92bd4bcfce576e549d38f5c7eba7790f0efb4df7b5b3f"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js",
+        "fingerprint": "f09eda94d9a5fe6f9d00751df74736a44aa1f50e4b74f46537e7bcb20998bfcd"
+      },
+      {
+        "status": "untracked",
+        "path": "src/flow/lib/plan-rewind.js",
+        "fingerprint": "816ef122ce4f5464c2699b5abe9d66cd78608bcd32d8629d00e28e7d98743ccb"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/retry-recovery.js",
+        "fingerprint": "3f03e85ec3890e932b34ede1c4a0c9a3e6bcd6e96c84376a5869c8b10d8ca651"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-acceptance-review.js",
+        "fingerprint": "2138d1b33262d7b9342fd15567254974c117403d09950537aa2c70d411e7f17b"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-reopen-draft.js",
+        "fingerprint": "9dabded8d5490a0eb499a74349548f88238295c9474bb465a38431a558bcc779"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js",
+        "fingerprint": "a8c198bd569c0936789084b72afe11478e68bec6c78ae9f14bf0bd7eda27abe5"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/step-tree.js",
+        "fingerprint": "8ea36f8cfc2bf094c01f9a7c71a9c45b6137c5d1019a215821184b4da9741884"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "6b753f4fb43ec3ae849b5ce3f1e23c7e33dd31aa6cf2c136ba93f044ecc4265d"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js",
+        "fingerprint": "980df45f36462739713b81d0dc0ec5c52351f5b4310a21bdbf13cdb11fd98e9b"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-store.js",
+        "fingerprint": "1f32073356ef832263a304795266207c275d10079eceb627c7ca6d57bc10e51e"
+      },
+      {
+        "status": "untracked",
+        "path": "tests/unit/flow/plan-rewind.test.js",
+        "fingerprint": "01b0b6026e1da50037f9f062f605551a7629ef48f5cdf3364a6ff918f8683c70"
+      },
+      {
+        "status": "untracked",
+        "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+        "fingerprint": "b35ae2fec2918362cbed0e0886ad49da0c21f887441905438a85a589415d8974"
+      }
+    ]
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/319-guarded-plan-rewind/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R1: supported parent stages are explicit and reopen-draft retains standard guard options",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 240
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R2: every supported stage rewinds to exactly one draft leaf",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 240
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R3: retry resets are append-only and prior recovery is audited but inactive",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 240
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R4: approval and evidence must be newer than the latest rewind",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 240
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R5: evidence capture records digest metadata without modifying files or tasks",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 240
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R6: audit records target, transition, invalidations, and append history",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 240
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R7: unsupported, finalize, baseline, and resource failures do not mutate input",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 240
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "test_name": "R8: requirement verification covers route, reset, freshness, audit, bounds, and parity",
+        "command": "node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 240
+        }
+      }
+    }
+  ]
+}

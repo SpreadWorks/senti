@@ -32,6 +32,11 @@ import {
   readJsonStrict,
   validateTestExecuteResultV2,
 } from "./test-artifacts.js";
+import {
+  PlanEvidenceReference,
+  isPlanEvidenceFresh,
+  latestPlanRewind,
+} from "./plan-rewind.js";
 
 function collectSideEffects(stepId) {
   return resolveSideEffects({ scope: "flow", stepId }) || [];
@@ -67,6 +72,42 @@ function preValidateTestStep(ctx) {
     formatValidationMessages(result),
     result,
   );
+}
+
+function preValidateApprovalStep({ root, state }) {
+  if (!latestPlanRewind(state)) return null;
+  let spec;
+  try {
+    spec = loadSpecJson(path.resolve(root, state.spec), { validate: false });
+  } catch (error) {
+    return Envelope.fail("set", "step", "STALE_PLAN_APPROVAL", error.message);
+  }
+  const confirmedAt = spec.user_approval?.confirmed_at;
+  if (typeof confirmedAt !== "string") {
+    return Envelope.fail(
+      "set",
+      "step",
+      "STALE_PLAN_APPROVAL",
+      "approval must be confirmed after the latest plan rewind",
+    );
+  }
+  let fresh = false;
+  try {
+    fresh = isPlanEvidenceFresh(state, new PlanEvidenceReference({
+      kind: "approval",
+      createdAt: confirmedAt,
+    }));
+  } catch {
+    fresh = false;
+  }
+  return fresh
+    ? null
+    : Envelope.fail(
+      "set",
+      "step",
+      "STALE_PLAN_APPROVAL",
+      "approval confirmation is stale after the latest plan rewind",
+    );
 }
 
 function validatePostHookManagedStep(ctx, id) {
@@ -233,6 +274,10 @@ export default class SetStepCommand extends FlowCommand {
     }
     if (status === "done") {
       const state = ctx.flowManager.load();
+      if (id === "approval") {
+        const fail = preValidateApprovalStep({ root: ctx.root, state });
+        if (fail) return fail;
+      }
       if (id === "implement") {
         const fail = await preValidateImplementStepCompletion({ root: ctx.root, state, requestedStatus: status });
         if (fail) return fail;

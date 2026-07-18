@@ -9,6 +9,12 @@ import {
   readBoundedSourceArtifact,
   readFlowFindingsArtifact,
 } from "./flow-findings.js";
+import {
+  PlanEvidenceReference,
+  isPlanArtifactFresh,
+  isPlanEvidenceFresh,
+  latestPlanRewind,
+} from "./plan-rewind.js";
 
 export const COMPLETION_OVERRIDE_FILE = "completion-overrides.json";
 
@@ -329,10 +335,14 @@ export class CompletionValidator {
   }
 }
 
-function deferredEvidenceApplies(specDir, contract) {
+function deferredEvidenceApplies(specDir, contract, state) {
+  const findingsFile = path.join(specDir, "flow-findings.json");
+  if (latestPlanRewind(state) && !isPlanArtifactFresh(state, findingsFile, "flow-findings")) {
+    return false;
+  }
   let artifact;
   try {
-    artifact = readFlowFindingsArtifact(specDir);
+    artifact = readFlowFindingsArtifact(specDir, { flowState: state });
   } catch {
     return false;
   }
@@ -627,6 +637,15 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
     );
   }
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
+  const targetArtifact = path.join(specDir, TARGET_ARTIFACT_FILE_BY_STEP[stepId]);
+  if (latestPlanRewind(state) && !isPlanArtifactFresh(state, targetArtifact, stepId)) {
+    return Envelope.fail(
+      "set",
+      "step",
+      "STALE_PLAN_EVIDENCE",
+      `${stepId} evidence must be regenerated after the latest plan rewind`,
+    );
+  }
   const overridePath = repoRelative(root, completionOverridePath(specDir));
   let contract;
   try {
@@ -651,7 +670,21 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
 
   let overrideEvidence = null;
   try {
-    overrideEvidence = loadCompletionOverrideEvidence(specDir, stepId);
+    const overrideFile = completionOverridePath(specDir);
+    const overrideFresh = !latestPlanRewind(state)
+      || !fs.existsSync(overrideFile)
+      || isPlanArtifactFresh(state, overrideFile, "completion-overrides");
+    overrideEvidence = overrideFresh ? loadCompletionOverrideEvidence(specDir, stepId) : null;
+    if (
+      overrideEvidence
+      && latestPlanRewind(state)
+      && !isPlanEvidenceFresh(state, new PlanEvidenceReference({
+        kind: "completion-overrides",
+        createdAt: overrideEvidence.approvedAt,
+      }))
+    ) {
+      overrideEvidence = null;
+    }
   } catch (err) {
     return buildCompletionValidationEnvelope({
       contract,
@@ -669,7 +702,7 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
     contract,
     requestedStatus,
     overrideEvidence,
-    deferredEvidence: deferredEvidenceApplies(specDir, contract),
+    deferredEvidence: deferredEvidenceApplies(specDir, contract, state),
   });
   if (result.kind === "normal" || result.kind === "override" || result.kind === "deferred") return null;
   if (stepId === "acceptance-review") {

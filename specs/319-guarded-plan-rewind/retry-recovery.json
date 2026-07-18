@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Correct R7 gate mapping and recovery evidence so the evaluator receives the FlowManager and FlowStore save-boundary diffs",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "e66819625df00418cbce2ccb0427e5812e35f1f7d7f76b8bc08d9200b5586029",
+        "currentHash": "a953368d0d1d099e8499fe986a34f10a586f1f5ce8a02c7375fa077ecabc0ec8",
+        "changedPaths": [
+          "specs/319-guarded-plan-rewind/test-execute-result.json",
+          "specs/319-guarded-plan-rewind/test-result-review.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/step-tree.js",
+          "src/flow/registry.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Correct R7 gate mapping and recovery evidence so the evaluator receives the FlowManager and FlowStore save-boundary diffs\" --yes",
+      "createdAt": "2026-07-12T21:22:58.645Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Reject overlong raw evidence paths before normalization and prove shared target mismatches stop before command execution",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "a953368d0d1d099e8499fe986a34f10a586f1f5ce8a02c7375fa077ecabc0ec8",
+        "currentHash": "cbdc303119ea662cf8e721fcd74086aa638c714b9509f8c9bd021d27689e2c9f",
+        "changedPaths": [
+          "specs/319-guarded-plan-rewind/test-execute-result.json",
+          "specs/319-guarded-plan-rewind/test-result-review.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/step-tree.js",
+          "src/flow/registry.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Reject overlong raw evidence paths before normalization and prove shared target mismatches stop before command execution\" --yes",
+      "createdAt": "2026-07-12T21:29:51.793Z"
+    },
+    {
+      "id": "recovery-56fc5dcd-2f5f-4b39-81df-d4a19398c982",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Re-evaluate after integrating current main and exact audited migration of two pre-strict-schema retry recovery audit rows; changed implementation evidence remains authoritative",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "cbdc303119ea662cf8e721fcd74086aa638c714b9509f8c9bd021d27689e2c9f",
+        "currentHash": "f7a9f87e341f74bc95c9ea76d9b3bc77771ad4120b89d7e3af0346e502edef71",
+        "changedPaths": [
+          "specs/319-guarded-plan-rewind/test-execute-result.json",
+          "specs/319-guarded-plan-rewind/test-result-review.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/step-tree.js",
+          "src/flow/registry.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Re-evaluate after integrating current main and exact audited migration of two pre-strict-schema retry recovery audit rows; changed implementation evidence remains authoritative\" --yes",
+      "createdAt": "2026-07-18T13:26:29.162Z"
+    }
+  ]
+}

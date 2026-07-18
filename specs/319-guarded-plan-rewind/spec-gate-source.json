@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The constraint requires bounded collection invariants for rewind request, audit record, and invalidated evidence entries, but does not state explicit upper bounds for the collection counts or sizes.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[1]"
+          },
+          "observed": "The constraint requires bounded collection invariants for rewind request, audit record, and invalidated evidence entries, but does not state explicit upper bounds for the collection counts or sizes.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The constraint requires evidence inventory traversal to enforce explicit file-count and total-byte limits, but the spec does not state the actual count or byte upper bounds.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[5]"
+          },
+          "observed": "The constraint requires evidence inventory traversal to enforce explicit file-count and total-byte limits, but the spec does not state the actual count or byte upper bounds.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "R5 requires a bounded inventory of existing spec artifacts, but does not state explicit upper bounds for artifact count or total inventory size.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R5]"
+          },
+          "observed": "R5 requires a bounded inventory of existing spec artifacts, but does not state explicit upper bounds for artifact count or total inventory size.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "R8 requires tests for bounded inventory failures, but the related bounded processing requirement does not state explicit file-count or byte-size upper bounds to verify.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R8]"
+          },
+          "observed": "R8 requires tests for bounded inventory failures, but the related bounded processing requirement does not state explicit file-count or byte-size upper bounds to verify.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "AC8 refers to excessive file count, excessive aggregate bytes, and ordinary bounded directories, but does not state explicit upper bounds for count, aggregate bytes, or per-file loading size.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[AC8]"
+          },
+          "observed": "AC8 refers to excessive file count, excessive aggregate bytes, and ordinary bounded directories, but does not state explicit upper bounds for count, aggregate bytes, or per-file loading size.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "constraints[1]"
+      },
+      "observed": "The constraint requires bounded collection invariants for rewind request, audit record, and invalidated evidence entries, but does not state explicit upper bounds for the collection counts or sizes.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "constraints[5]"
+      },
+      "observed": "The constraint requires evidence inventory traversal to enforce explicit file-count and total-byte limits, but the spec does not state the actual count or byte upper bounds.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R5]"
+      },
+      "observed": "R5 requires a bounded inventory of existing spec artifacts, but does not state explicit upper bounds for artifact count or total inventory size.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R8]"
+      },
+      "observed": "R8 requires tests for bounded inventory failures, but the related bounded processing requirement does not state explicit file-count or byte-size upper bounds to verify.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[AC8]"
+      },
+      "observed": "AC8 refers to excessive file count, excessive aggregate bytes, and ordinary bounded directories, but does not state explicit upper bounds for count, aggregate bytes, or per-file loading size.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    }
+  ]
+}

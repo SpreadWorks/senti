@@ -1,0 +1,240 @@
+[senti] scenario-validity tests start
+command: node --test specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js
+[senti] scenario-validity file start command=node specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js
+TAP version 13
+# Subtest: R1: supported parent stages are explicit and reopen-draft retains standard guard options
+not ok 1 - R1: supported parent stages are explicit and reopen-draft retains standard guard options
+  ---
+  duration_ms: 2.416772
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:136:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    plan rewind production module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadPlanRewind (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:124:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:137:50)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: every supported stage rewinds to exactly one draft leaf
+not ok 2 - R2: every supported stage rewinds to exactly one draft leaf
+  ---
+  duration_ms: 0.711164
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:153:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    plan rewind production module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadPlanRewind (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:124:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:154:86)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R3: retry resets are append-only and prior recovery is audited but inactive
+not ok 3 - R3: retry resets are append-only and prior recovery is audited but inactive
+  ---
+  duration_ms: 0.373442
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:172:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    plan rewind production module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadPlanRewind (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:124:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:173:74)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: approval and evidence must be newer than the latest rewind
+not ok 4 - R4: approval and evidence must be newer than the latest rewind
+  ---
+  duration_ms: 0.424602
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:184:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    plan rewind production module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadPlanRewind (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:124:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:185:77)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: evidence capture records digest metadata without modifying files or tasks
+not ok 5 - R5: evidence capture records digest metadata without modifying files or tasks
+  ---
+  duration_ms: 0.689363
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:194:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    plan rewind production module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadPlanRewind (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:124:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:200:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: audit records target, transition, invalidations, and append history
+not ok 6 - R6: audit records target, transition, invalidations, and append history
+  ---
+  duration_ms: 0.394122
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:228:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    plan rewind production module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadPlanRewind (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:124:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:234:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: unsupported, finalize, baseline, and resource failures do not mutate input
+not ok 7 - R7: unsupported, finalize, baseline, and resource failures do not mutate input
+  ---
+  duration_ms: 0.601203
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:260:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    plan rewind production module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadPlanRewind (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:124:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:265:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R8: requirement verification covers route, reset, freshness, audit, bounds, and parity
+not ok 8 - R8: requirement verification covers route, reset, freshness, audit, bounds, and parity
+  ---
+  duration_ms: 0.350482
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:287:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    plan rewind production module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadPlanRewind (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:124:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-guarded-plan-rewind/specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js:288:9)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 0
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27.317739
+Command failed: node specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/319-guarded-plan-rewind/tests/guarded-plan-rewind.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: supported parent stages are explicit and reopen-draft retains standard guard options
+[senti] requirement R2 observed: R2: every supported stage rewinds to exactly one draft leaf
+[senti] requirement R3 observed: R3: retry resets are append-only and prior recovery is audited but inactive
+[senti] requirement R4 observed: R4: approval and evidence must be newer than the latest rewind
+[senti] requirement R5 observed: R5: evidence capture records digest metadata without modifying files or tasks
+[senti] requirement R6 observed: R6: audit records target, transition, invalidations, and append history
+[senti] requirement R7 observed: R7: unsupported, finalize, baseline, and resource failures do not mutate input
+[senti] requirement R8 observed: R8: requirement verification covers route, reset, freshness, audit, bounds, and parity
+[senti] scenario-validity tests end

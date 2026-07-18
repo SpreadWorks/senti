@@ -36,6 +36,7 @@ import {
 } from "./flow-helpers.js";
 import { findStepById, promoteNextPendingLeaf, flattenSteps } from "../flow/lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "../flow/lib/draft-review-routes.js";
+import { applyPlanRewind, latestPlanRewind } from "../flow/lib/plan-rewind.js";
 
 const MAX_FLOW_STEPS_FOR_MIGRATION = 200;
 const MAX_FLOW_ARTIFACTS_FOR_MIGRATION = 500;
@@ -709,6 +710,17 @@ export class FlowStore {
   setRequest(text, opts) { this.mutate((state) => { state.request = text; }, opts); }
   setIssue(issue, opts = {}) {
     this.mutate((state) => { state.issue = issue; }, { ...opts, allowIssueTransition: true });
+  }
+
+  rewindPlan(request, evidence, opts) {
+    let result;
+    this.mutate((state) => {
+      const next = applyPlanRewind(state, request, evidence);
+      for (const key of Object.keys(state)) delete state[key];
+      Object.assign(state, next);
+      result = latestPlanRewind(state);
+    }, opts);
+    return result;
   }
 
   /**
