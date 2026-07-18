@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+      "specs/319-requirement-gate-context/review-history/spec-attempt-001.md",
+      "specs/319-requirement-gate-context/review-history/test-attempt-001.json",
+      "specs/319-requirement-gate-context/review-history/test-attempt-001.md",
+      "specs/319-requirement-gate-context/spec-review.md"
+    ],
+    "inputHash": "d8080cf6c31a71eb3c59dc6978f7612caf5496288294f7970b4ef77bcb591b76",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+    "specs/319-requirement-gate-context/review-history/spec-attempt-001.md",
+    "specs/319-requirement-gate-context/review-history/test-attempt-001.json",
+    "specs/319-requirement-gate-context/review-history/test-attempt-001.md",
+    "specs/319-requirement-gate-context/spec-review.md"
+  ],
+  "inputHash": "d8080cf6c31a71eb3c59dc6978f7612caf5496288294f7970b4ef77bcb591b76",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T11:38:55.295Z",
+  "finishedAt": "2026-07-18T11:38:55.295Z",
+  "rawResponse": "### 1. Avoid Duplicating Finding Details Within The JSON Artifact\n**File:** `specs/319-requirement-gate-context/review-history/test-attempt-001.json`  \n**Requirement:** R9  \n**Issue:** The same review findings are represented twice: once in `blockingFindings` / `advisoryFindings` with full detail, and again in `findings` with partially duplicated `title` and `body`. This creates drift risk because future updates must keep two structures synchronized.  \n**Suggestion:** Store findings in one canonical array and derive grouped views from it, or make the grouped sections reference canonical finding IDs instead of repeating the text.\n\n### 2. Normalize Review History Markdown Generation\n**File:** `specs/319-requirement-gate-context/review-history/test-attempt-001.md`  \n**Requirement:** R9  \n**Issue:** The Markdown file duplicates the same finding content already present in `test-attempt-001.json`. If both are persisted artifacts, this increases maintenance cost and can produce inconsistent review history.  \n**Suggestion:** Treat the JSON as the canonical artifact and generate the Markdown from it, or persist only one format if both are not required by downstream consumers.\n\n### 3. Add Missing Trailing Newline\n**File:** `specs/319-requirement-gate-context/review-history/spec-attempt-001.md`  \n**Requirement:** R9  \n**Issue:** The file ends without a trailing newline, which is inconsistent with typical text artifact formatting and can create noisy diffs later.  \n**Suggestion:** Add a final newline at the end of the Markdown file.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid Duplicating Finding Details Within The JSON Artifact",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/test-attempt-001.json`  \n**Requirement:** R9  \n**Issue:** The same review findings are represented twice: once in `blockingFindings` / `advisoryFindings` with full detail, and again in `findings` with partially duplicated `title` and `body`. This creates drift risk because future updates must keep two structures synchronized.  \n**Suggestion:** Store findings in one canonical array and derive grouped views from it, or make the grouped sections reference canonical finding IDs instead of repeating the text.",
+        "file": "specs/319-requirement-gate-context/review-history/test-attempt-001.json",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Normalize Review History Markdown Generation",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/test-attempt-001.md`  \n**Requirement:** R9  \n**Issue:** The Markdown file duplicates the same finding content already present in `test-attempt-001.json`. If both are persisted artifacts, this increases maintenance cost and can produce inconsistent review history.  \n**Suggestion:** Treat the JSON as the canonical artifact and generate the Markdown from it, or persist only one format if both are not required by downstream consumers.",
+        "file": "specs/319-requirement-gate-context/review-history/test-attempt-001.md",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Add Missing Trailing Newline",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/spec-attempt-001.md`  \n**Requirement:** R9  \n**Issue:** The file ends without a trailing newline, which is inconsistent with typical text artifact formatting and can create noisy diffs later.  \n**Suggestion:** Add a final newline at the end of the Markdown file.",
+        "file": "specs/319-requirement-gate-context/review-history/spec-attempt-001.md",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

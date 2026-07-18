@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "draft-explore-before-asking",
+      "result": "fail",
+      "reason": "The question asks the user to confirm Issue #436 scope even though its own evidence states that Issue #436 Scope, Requirements, Acceptance Criteria, Out of Scope, and the parent task already define the same boundary; this should have been resolved by reading the available issue/task context before asking.",
+      "category": "process",
+      "title": "Explore Before Asking",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-explore-before-asking",
+          "where": {
+            "file": "Content",
+            "locator": "qa[0]"
+          },
+          "observed": "The question asks the user to confirm Issue #436 scope even though its own evidence states that Issue #436 Scope, Requirements, Acceptance Criteria, Out of Scope, and the parent task already define the same boundary; this should have been resolved by reading the available issue/task context before asking.",
+          "severity": "blocking",
+          "refs": [
+            "draft-explore-before-asking"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "draft-explore-before-asking",
+      "where": {
+        "file": "Content",
+        "locator": "qa[0]"
+      },
+      "observed": "The question asks the user to confirm Issue #436 scope even though its own evidence states that Issue #436 Scope, Requirements, Acceptance Criteria, Out of Scope, and the parent task already define the same boundary; this should have been resolved by reading the available issue/task context before asking.",
+      "severity": "blocking",
+      "refs": [
+        "draft-explore-before-asking"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,292 @@
+[senti] scenario-validity tests start
+command: node --test specs/319-requirement-gate-context/tests/requirement-gate-context.test.js
+[senti] scenario-validity file start command=node specs/319-requirement-gate-context/tests/requirement-gate-context.test.js
+TAP version 13
+# Subtest: Issue \#436 requirement gate context
+    # Subtest: R1: context value classes enforce invariants and own rendering
+    not ok 1 - R1: context value classes enforce invariants and own rendering
+      ---
+      duration_ms: 1.639568
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:99:3'
+      failureType: 'testCodeFailure'
+      error: 'RequirementContextEntry is not a constructor'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:105:19)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R2: context selects global and exact-linked authoritative sources
+    not ok 2 - R2: context selects global and exact-linked authoritative sources
+      ---
+      duration_ms: 0.372122
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:113:3'
+      failureType: 'testCodeFailure'
+      error: 'buildRequirementGateContext is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        buildContext (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:90:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:114:18)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R3: context bounds and ordering are deterministic
+    not ok 3 - R3: context bounds and ordering are deterministic
+      ---
+      duration_ms: 1.305887
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:135:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        undefined !== 12
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 12
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:136:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: identical input produces identical prompt bytes and cache identity
+    not ok 4 - R4: identical input produces identical prompt bytes and cache identity
+      ---
+      duration_ms: 0.271642
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:151:3'
+      failureType: 'testCodeFailure'
+      error: 'buildRequirementGateContext is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        buildContext (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:90:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:152:22)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: obligation classification covers implementation, regression, preservation, and non-interception
+    not ok 5 - R5: obligation classification covers implementation, regression, preservation, and non-interception
+      ---
+      duration_ms: 0.225681
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:163:3'
+      failureType: 'testCodeFailure'
+      error: 'classifyRequirementObligation is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:164:18)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R6: Issue \#432 R6 prompt evaluates preservation evidence without reimplementation
+    not ok 6 - R6: Issue \#432 R6 prompt evaluates preservation evidence without reimplementation
+      ---
+      duration_ms: 0.343561
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:171:3'
+      failureType: 'testCodeFailure'
+      error: 'buildRequirementGateContext is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        buildContext (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:90:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:178:21)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R7: Issue \#434 R7 prompt accepts cited safe canonical paths and exact schema fields
+    not ok 7 - R7: Issue \#434 R7 prompt accepts cited safe canonical paths and exact schema fields
+      ---
+      duration_ms: 0.437362
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:186:3'
+      failureType: 'testCodeFailure'
+      error: 'buildRequirementGateContext is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        buildContext (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:90:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:194:21)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R8: implementation prompt requires stable citations and real missing-behavior FAIL
+    not ok 8 - R8: implementation prompt requires stable citations and real missing-behavior FAIL
+      ---
+      duration_ms: 0.524722
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:202:3'
+      failureType: 'testCodeFailure'
+      error: 'buildRequirementGateContext is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        buildContext (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:90:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:203:54)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R9: implementation evaluation result schema remains unchanged
+    not ok 9 - R9: implementation evaluation result schema remains unchanged
+      ---
+      duration_ms: 1.081485
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:210:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:211:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R10: target guard remains before command-specific context construction
+    not ok 10 - R10: target guard remains before command-specific context construction
+      ---
+      duration_ms: 2.263812
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:219:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:220:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R11: public context API exposes the required deterministic limits
+    not ok 11 - R11: public context API exposes the required deterministic limits
+      ---
+      duration_ms: 0.304202
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:226:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:227:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..11
+not ok 1 - Issue \#436 requirement gate context
+  ---
+  duration_ms: 10.952456
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-requirement-gate-context/specs/319-requirement-gate-context/tests/requirement-gate-context.test.js:98:1'
+  failureType: 'subtestsFailed'
+  error: '11 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 11
+# suites 1
+# pass 0
+# fail 11
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 29.860874
+Command failed: node specs/319-requirement-gate-context/tests/requirement-gate-context.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/319-requirement-gate-context/tests/requirement-gate-context.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: context value classes enforce invariants and own rendering
+[senti] requirement R2 observed: R2: context selects global and exact-linked authoritative sources
+[senti] requirement R3 observed: R3: context bounds and ordering are deterministic
+[senti] requirement R4 observed: R4: identical input produces identical prompt bytes and cache identity
+[senti] requirement R5 observed: R5: obligation classification covers implementation, regression, preservation, and non-interception
+[senti] requirement R6 observed: R6: Issue #432 R6 prompt evaluates preservation evidence without reimplementation
+[senti] requirement R7 observed: R7: Issue #434 R7 prompt accepts cited safe canonical paths and exact schema fields
+[senti] requirement R8 observed: R8: implementation prompt requires stable citations and real missing-behavior FAIL
+[senti] requirement R9 observed: R9: implementation evaluation result schema remains unchanged
+[senti] requirement R10 observed: R10: target guard remains before command-specific context construction
+[senti] requirement R11 observed: R11: public context API exposes the required deterministic limits
+[senti] scenario-validity tests end

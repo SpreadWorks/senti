@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "a3a9b06f11a6e12d9b02c066",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-4de0a5c51e2b1fb1",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/draft-gate-source.json",
+      "specs/319-requirement-gate-context/draft-review-questions.json",
+      "specs/319-requirement-gate-context/flow.json",
+      "specs/319-requirement-gate-context/issue.md",
+      "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+      "specs/319-requirement-gate-context/scenario-validity-result.json",
+      "specs/319-requirement-gate-context/spec.json",
+      "specs/319-requirement-gate-context/tasks/T-1.md",
+      "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+      "tests/e2e/flow/gate-impl-integration.test.js"
+    ],
+    "inputHash": "4de0a5c51e2b1fb17d4db4b385f2b097584409946647869ccf1b44610b80e1d8",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "a3a9b06f11a6e12d9b02c066"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/draft-gate-source.json",
+    "specs/319-requirement-gate-context/draft-review-questions.json",
+    "specs/319-requirement-gate-context/flow.json",
+    "specs/319-requirement-gate-context/issue.md",
+    "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+    "specs/319-requirement-gate-context/scenario-validity-result.json",
+    "specs/319-requirement-gate-context/spec.json",
+    "specs/319-requirement-gate-context/tasks/T-1.md",
+    "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+    "tests/e2e/flow/gate-impl-integration.test.js"
+  ],
+  "inputHash": "4de0a5c51e2b1fb17d4db4b385f2b097584409946647869ccf1b44610b80e1d8",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T22:33:26.509Z",
+  "finishedAt": "2026-07-12T22:33:26.509Z",
+  "rawResponse": "### 1. Canonical Spec State Is Inconsistent Across Artifacts\n**File:** `specs/319-requirement-gate-context/spec.json`\n**Issue:** `spec.json`, `spec.md`, and `tasks/T-1.md` appear to describe the same requirement lifecycle, but use conflicting states: requirements are `\"done\"`, the only task is `\"pending\"`, and markdown status is `Draft`.\n**Suggestion:** Define one lifecycle vocabulary and apply it consistently across generated spec and task artifacts. If these statuses represent different concepts, rename the fields to make that explicit, such as `documentStatus`, `requirementStatus`, and `implementationStatus`.\n\n### 2. Requirement Details Are Duplicated Across Generated Files\n**File:** `specs/319-requirement-gate-context/spec.md`\n**Issue:** Requirement and acceptance-criteria content is repeated across `spec.json`, `spec.md`, and `tasks/T-1.md`, creating cross-file drift risk when one generated artifact changes without the others.\n**Suggestion:** Make `spec.json` the canonical source and clearly mark `spec.md` and task markdown as generated projections, or reduce secondary files to references back to canonical requirement IDs.\n\n### 3. Bounded-Resource Limits Are Requested In Multiple Places But Not Centralized\n**File:** `specs/319-requirement-gate-context/draft.json`\n**Issue:** Multiple reviews flag missing or unclear bounds in `draft.json`, `flow.json`, `issue-log.json`, `tasks/T-1.md`, and `src/flow/lib/run-gate.js`. This suggests the bound values are not defined in one reusable contract.\n**Suggestion:** Add a single canonical bounds section or constants map covering context entries, chars/bytes, observations, logs, metrics, notes, and scan limits. Reference or generate task/spec text and implementation constants from that source.\n\n### 4. Runtime Evidence Artifacts Use Different Duplication Patterns\n**File:** `specs/319-requirement-gate-context/flow.json`\n**Issue:** `flow.json`, `scenario-validity-result.json`, `issue-log.json`, `draft-gate-source.json`, and `.raw/scenario-validity.log` all store repeated execution or evidence data, but with different shapes and no shared normalization pattern.\n**Suggestion:** Introduce a common evidence/run metadata shape, with top-level run fields and per-item references. Keep raw logs out of committed spec artifacts unless explicitly required.\n\n### 5. Prompt Capture Naming Is Inconsistent With Gate Context Naming\n**File:** `tests/e2e/flow/gate-impl-integration.test.js`\n**Issue:** The e2e fixture uses generic names like `capturePrompt` and `capturePath`, while related tests and implementation are specifically about requirement gate context and gate prompts. This differs from names like `buildRequirementGateContext()` and `RequirementGateBatch`.\n**Suggestion:** Rename fixture fields to gate-specific names such as `captureGatePrompt` and `gatePromptCapturePath` so test interfaces align with the production concept being exercised.\n\n### 6. Fixture Construction Is Duplicated Across Unit And E2E Tests\n**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`\n**Issue:** Both the unit test file and `tests/e2e/flow/gate-impl-integration.test.js` introduce or repeat custom spec/task fixture construction. Schema changes could require parallel edits in multiple test files.\n**Suggestion:** Add shared fixture helpers for minimal specs, tasks, and requirement-context cases, or keep local helpers with matching names and shapes so drift is easier to spot.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Canonical Spec State Is Inconsistent Across Artifacts",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.json`\n**Issue:** `spec.json`, `spec.md`, and `tasks/T-1.md` appear to describe the same requirement lifecycle, but use conflicting states: requirements are `\"done\"`, the only task is `\"pending\"`, and markdown status is `Draft`.\n**Suggestion:** Define one lifecycle vocabulary and apply it consistently across generated spec and task artifacts. If these statuses represent different concepts, rename the fields to make that explicit, such as `documentStatus`, `requirementStatus`, and `implementationStatus`.",
+        "file": "specs/319-requirement-gate-context/spec.json"
+      },
+      {
+        "title": "2. Requirement Details Are Duplicated Across Generated Files",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.md`\n**Issue:** Requirement and acceptance-criteria content is repeated across `spec.json`, `spec.md`, and `tasks/T-1.md`, creating cross-file drift risk when one generated artifact changes without the others.\n**Suggestion:** Make `spec.json` the canonical source and clearly mark `spec.md` and task markdown as generated projections, or reduce secondary files to references back to canonical requirement IDs.",
+        "file": "specs/319-requirement-gate-context/spec.md"
+      },
+      {
+        "title": "3. Bounded-Resource Limits Are Requested In Multiple Places But Not Centralized",
+        "body": "**File:** `specs/319-requirement-gate-context/draft.json`\n**Issue:** Multiple reviews flag missing or unclear bounds in `draft.json`, `flow.json`, `issue-log.json`, `tasks/T-1.md`, and `src/flow/lib/run-gate.js`. This suggests the bound values are not defined in one reusable contract.\n**Suggestion:** Add a single canonical bounds section or constants map covering context entries, chars/bytes, observations, logs, metrics, notes, and scan limits. Reference or generate task/spec text and implementation constants from that source.",
+        "file": "specs/319-requirement-gate-context/draft.json"
+      },
+      {
+        "title": "4. Runtime Evidence Artifacts Use Different Duplication Patterns",
+        "body": "**File:** `specs/319-requirement-gate-context/flow.json`\n**Issue:** `flow.json`, `scenario-validity-result.json`, `issue-log.json`, `draft-gate-source.json`, and `.raw/scenario-validity.log` all store repeated execution or evidence data, but with different shapes and no shared normalization pattern.\n**Suggestion:** Introduce a common evidence/run metadata shape, with top-level run fields and per-item references. Keep raw logs out of committed spec artifacts unless explicitly required.",
+        "file": "specs/319-requirement-gate-context/flow.json"
+      },
+      {
+        "title": "5. Prompt Capture Naming Is Inconsistent With Gate Context Naming",
+        "body": "**File:** `tests/e2e/flow/gate-impl-integration.test.js`\n**Issue:** The e2e fixture uses generic names like `capturePrompt` and `capturePath`, while related tests and implementation are specifically about requirement gate context and gate prompts. This differs from names like `buildRequirementGateContext()` and `RequirementGateBatch`.\n**Suggestion:** Rename fixture fields to gate-specific names such as `captureGatePrompt` and `gatePromptCapturePath` so test interfaces align with the production concept being exercised.",
+        "file": "tests/e2e/flow/gate-impl-integration.test.js"
+      },
+      {
+        "title": "6. Fixture Construction Is Duplicated Across Unit And E2E Tests",
+        "body": "**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`\n**Issue:** Both the unit test file and `tests/e2e/flow/gate-impl-integration.test.js` introduce or repeat custom spec/task fixture construction. Schema changes could require parallel edits in multiple test files.\n**Suggestion:** Add shared fixture helpers for minimal specs, tasks, and requirement-context cases, or keep local helpers with matching names and shapes so drift is easier to spot.",
+        "file": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js"
+      }
+    ]
+  }
+}

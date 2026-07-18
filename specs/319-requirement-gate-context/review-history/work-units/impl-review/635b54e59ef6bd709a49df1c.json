@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/file-map.json",
+      "specs/319-requirement-gate-context/flow-findings.json",
+      "specs/319-requirement-gate-context/flow.json",
+      "specs/319-requirement-gate-context/issue-log.json"
+    ],
+    "inputHash": "8be7f0bce762471dcc4029584b3fea9fbc2799817f6a4df6e55e15131c3ec50d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/file-map.json",
+    "specs/319-requirement-gate-context/flow-findings.json",
+    "specs/319-requirement-gate-context/flow.json",
+    "specs/319-requirement-gate-context/issue-log.json"
+  ],
+  "inputHash": "8be7f0bce762471dcc4029584b3fea9fbc2799817f6a4df6e55e15131c3ec50d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T12:10:57.283Z",
+  "finishedAt": "2026-07-18T12:10:57.283Z",
+  "rawResponse": "### 1. Deduplicate Repeated Requirement File Lists\n**File:** `specs/319-requirement-gate-context/file-map.json`  \n**Requirement:** R9  \n**Issue:** Most requirement entries repeat identical or near-identical path arrays, which makes the ownership map harder to maintain and increases the chance of accidental drift between requirements.  \n**Suggestion:** If the consuming schema allows it, introduce shared groups such as `unitContextRequirements`, `e2eContextRequirements`, or a `defaults`/`overrides` structure. If the schema requires the current expanded shape, generate this file from a compact source to avoid hand-maintaining duplicate arrays.\n\n### 2. Remove Stale Runtime Logs From Pending Steps\n**File:** `specs/319-requirement-gate-context/flow.json`  \n**Requirement:** R11  \n**Issue:** Several steps have `\"status\": \"pending\"` while also carrying completed `runtimeLog` entries with `endedAt` and `exitCode: 0`, for example `impl-gate`, `retro`, and `acceptance-review`. That mixes historical execution data with current pending state and makes the flow state harder to reason about.  \n**Suggestion:** Either clear `runtimeLog` when a step is reset to `pending`, or move prior executions into `stepAttempts`/history-only storage so the active step object represents only the current state.\n\n### 3. Bound Flow History Growth\n**File:** `specs/319-requirement-gate-context/flow.json`  \n**Requirement:** R3  \n**Issue:** The `metrics`, `notes`, `stepAttempts`, and `reviewRecoveryBaselines` arrays can grow without an explicit visible cap in this persisted artifact. That conflicts with the bounded-resource-usage guardrail when flow state is repeatedly retried or resumed.  \n**Suggestion:** Add or document explicit retention bounds for persisted history, such as max entries per array, max serialized bytes, or deterministic compaction/truncation rules.\n\n### 4. Normalize Deferred Finding Entries\n**File:** `specs/319-requirement-gate-context/flow-findings.json`  \n**Requirement:** R10  \n**Issue:** The three deferred finding entries duplicate every field except IDs. This repetition makes future updates noisy and risks inconsistent retry metadata across equivalent findings.  \n**Suggestion:** If supported by the artifact schema, represent common fields once at the collection level, or generate these entries from a compact list of `sourceFindingId` values plus shared retry/disposition metadata.\n\n### 5. Reduce Issue Log Duplication\n**File:** `specs/319-requirement-gate-context/issue-log.json`  \n**Requirement:** R11  \n**Issue:** Several entries duplicate the same finding text across `reason`, `observations[*].observed`, and `failedEvaluations[*].reason`. This inflates the artifact and makes corrections require editing the same semantic content in multiple places.  \n**Suggestion:** Store detailed findings once, then reference them from summary fields by ID. Keep `reason` as a short summary instead of concatenating every detailed violation string.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Deduplicate Repeated Requirement File Lists",
+        "body": "**File:** `specs/319-requirement-gate-context/file-map.json`  \n**Requirement:** R9  \n**Issue:** Most requirement entries repeat identical or near-identical path arrays, which makes the ownership map harder to maintain and increases the chance of accidental drift between requirements.  \n**Suggestion:** If the consuming schema allows it, introduce shared groups such as `unitContextRequirements`, `e2eContextRequirements`, or a `defaults`/`overrides` structure. If the schema requires the current expanded shape, generate this file from a compact source to avoid hand-maintaining duplicate arrays.",
+        "file": "specs/319-requirement-gate-context/file-map.json",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Remove Stale Runtime Logs From Pending Steps",
+        "body": "**File:** `specs/319-requirement-gate-context/flow.json`  \n**Requirement:** R11  \n**Issue:** Several steps have `\"status\": \"pending\"` while also carrying completed `runtimeLog` entries with `endedAt` and `exitCode: 0`, for example `impl-gate`, `retro`, and `acceptance-review`. That mixes historical execution data with current pending state and makes the flow state harder to reason about.  \n**Suggestion:** Either clear `runtimeLog` when a step is reset to `pending`, or move prior executions into `stepAttempts`/history-only storage so the active step object represents only the current state.",
+        "file": "specs/319-requirement-gate-context/flow.json",
+        "requirementId": "R11"
+      },
+      {
+        "title": "3. Bound Flow History Growth",
+        "body": "**File:** `specs/319-requirement-gate-context/flow.json`  \n**Requirement:** R3  \n**Issue:** The `metrics`, `notes`, `stepAttempts`, and `reviewRecoveryBaselines` arrays can grow without an explicit visible cap in this persisted artifact. That conflicts with the bounded-resource-usage guardrail when flow state is repeatedly retried or resumed.  \n**Suggestion:** Add or document explicit retention bounds for persisted history, such as max entries per array, max serialized bytes, or deterministic compaction/truncation rules.",
+        "file": "specs/319-requirement-gate-context/flow.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Normalize Deferred Finding Entries",
+        "body": "**File:** `specs/319-requirement-gate-context/flow-findings.json`  \n**Requirement:** R10  \n**Issue:** The three deferred finding entries duplicate every field except IDs. This repetition makes future updates noisy and risks inconsistent retry metadata across equivalent findings.  \n**Suggestion:** If supported by the artifact schema, represent common fields once at the collection level, or generate these entries from a compact list of `sourceFindingId` values plus shared retry/disposition metadata.",
+        "file": "specs/319-requirement-gate-context/flow-findings.json",
+        "requirementId": "R10"
+      },
+      {
+        "title": "5. Reduce Issue Log Duplication",
+        "body": "**File:** `specs/319-requirement-gate-context/issue-log.json`  \n**Requirement:** R11  \n**Issue:** Several entries duplicate the same finding text across `reason`, `observations[*].observed`, and `failedEvaluations[*].reason`. This inflates the artifact and makes corrections require editing the same semantic content in multiple places.  \n**Suggestion:** Store detailed findings once, then reference them from summary fields by ID. Keep `reason` as a short summary instead of concatenating every detailed violation string.",
+        "file": "specs/319-requirement-gate-context/issue-log.json",
+        "requirementId": "R11"
+      }
+    ]
+  }
+}

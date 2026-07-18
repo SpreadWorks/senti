@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/test-coverage.json",
+      "specs/319-requirement-gate-context/test-execute-result.json",
+      "specs/319-requirement-gate-context/test-result-review.json",
+      "specs/319-requirement-gate-context/test-result-review.md"
+    ],
+    "inputHash": "941a6b1b933f21417d9ed0814d6a48de1e3f9ff48ae045cf433db95eb0e1e7ba",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/test-coverage.json",
+    "specs/319-requirement-gate-context/test-execute-result.json",
+    "specs/319-requirement-gate-context/test-result-review.json",
+    "specs/319-requirement-gate-context/test-result-review.md"
+  ],
+  "inputHash": "941a6b1b933f21417d9ed0814d6a48de1e3f9ff48ae045cf433db95eb0e1e7ba",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T12:12:39.734Z",
+  "finishedAt": "2026-07-18T12:12:39.734Z",
+  "rawResponse": "### 1. Normalize repeated test evidence fields\n**File:** `specs/319-requirement-gate-context/test-execute-result.json`  \n**Requirement:** R11  \n**Issue:** Each summary entry repeats the same `command`, `test_file`, and identical `raw_output_lines`. This makes the artifact noisy and increases the chance of inconsistent updates if the command or output range changes.  \n**Suggestion:** Move shared execution metadata to a top-level object such as `execution`, and keep each requirement summary focused on `id`, `result`, and `test_name`.\n\n### 2. Use consistent test file paths across artifacts\n**File:** `specs/319-requirement-gate-context/test-coverage.json`  \n**Requirement:** R11  \n**Issue:** The requirement `files` entries use `tests/requirement-gate-context.test.js`, while the execution artifact references `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`. The mismatch makes traceability harder.  \n**Suggestion:** Use the same project-relative path format as `test-execute-result.json`: `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`.\n\n### 3. Avoid duplicating changed file lists\n**File:** `specs/319-requirement-gate-context/test-execute-result.json`  \n**Requirement:** R9  \n**Issue:** `regression.trigger_relevant_changed_files` and `regression.changed_files` contain the same three entries with the same fingerprints. This duplicates data without adding meaning.  \n**Suggestion:** Keep a single `changed_files` list and add a separate field only if trigger relevance differs, such as `trigger_relevant: true` per entry or a list of referenced paths.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize repeated test evidence fields",
+        "body": "**File:** `specs/319-requirement-gate-context/test-execute-result.json`  \n**Requirement:** R11  \n**Issue:** Each summary entry repeats the same `command`, `test_file`, and identical `raw_output_lines`. This makes the artifact noisy and increases the chance of inconsistent updates if the command or output range changes.  \n**Suggestion:** Move shared execution metadata to a top-level object such as `execution`, and keep each requirement summary focused on `id`, `result`, and `test_name`.",
+        "file": "specs/319-requirement-gate-context/test-execute-result.json",
+        "requirementId": "R11"
+      },
+      {
+        "title": "2. Use consistent test file paths across artifacts",
+        "body": "**File:** `specs/319-requirement-gate-context/test-coverage.json`  \n**Requirement:** R11  \n**Issue:** The requirement `files` entries use `tests/requirement-gate-context.test.js`, while the execution artifact references `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`. The mismatch makes traceability harder.  \n**Suggestion:** Use the same project-relative path format as `test-execute-result.json`: `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`.",
+        "file": "specs/319-requirement-gate-context/test-coverage.json",
+        "requirementId": "R11"
+      },
+      {
+        "title": "3. Avoid duplicating changed file lists",
+        "body": "**File:** `specs/319-requirement-gate-context/test-execute-result.json`  \n**Requirement:** R9  \n**Issue:** `regression.trigger_relevant_changed_files` and `regression.changed_files` contain the same three entries with the same fingerprints. This duplicates data without adding meaning.  \n**Suggestion:** Keep a single `changed_files` list and add a separate field only if trigger relevance differs, such as `trigger_relevant: true` per entry or a list of referenced paths.",
+        "file": "specs/319-requirement-gate-context/test-execute-result.json",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

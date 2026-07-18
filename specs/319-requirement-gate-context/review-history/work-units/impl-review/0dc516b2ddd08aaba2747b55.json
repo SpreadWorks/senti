@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0dc516b2ddd08aaba2747b55",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0015",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-gate.js",
+      "tests/e2e/flow/gate-impl-integration.test.js",
+      "tests/unit/flow/gate-requirement-context.test.js"
+    ],
+    "inputHash": "e9af2a1bb49cbec9f1e8428168f02b31d09cc2a54b31092669e659feb3492e5e",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0dc516b2ddd08aaba2747b55"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-gate.js",
+    "tests/e2e/flow/gate-impl-integration.test.js",
+    "tests/unit/flow/gate-requirement-context.test.js"
+  ],
+  "inputHash": "e9af2a1bb49cbec9f1e8428168f02b31d09cc2a54b31092669e659feb3492e5e",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T12:13:15.123Z",
+  "finishedAt": "2026-07-18T12:13:15.123Z",
+  "rawResponse": "### 1. Fix Broken RegExp Escaping\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** `escapeRegExp()` replaces every regex metacharacter with the literal string `\\{{PROMPT}}`, so requirement IDs containing regex-significant characters are not matched correctly and may produce invalid exact-boundary matching behavior.  \n**Suggestion:** Replace the implementation with the standard escaped-match replacement:\n```js\nfunction escapeRegExp(text) {\n  return text.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\$&\");\n}\n```\n\n### 2. Deduplicate Context Lookup and Batch Construction\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `buildRequirementGateBatches()` repeats the same `new RequirementGateBatch({ requirements: [requirement], contexts: ..., diff, maxChars, structuredSpec })` construction in two branches, and context lookup is split across multiple expressions. This makes future prompt-size/cache behavior changes easier to apply inconsistently.  \n**Suggestion:** Add a small local helper such as `contextFor(requirement)` and `newBatch(requirement)` inside `buildRequirementGateBatches()`, then reuse it for the initial batch and rollover batch creation.\n\n### 3. Avoid Re-Filtering Entries For Every Rendered Section\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** `RequirementGateContext.#render()` calls `this.entries.filter(...)` once per section. With bounded context this is not dangerous, but it duplicates scanning logic and makes the fixed section ordering harder to reason about.  \n**Suggestion:** Group entries by section once before the render loop, then iterate `REQUIREMENT_CONTEXT_SECTION_ORDER` against that grouped map. This keeps ordering explicit while simplifying the loop.\n\n### 4. Remove Duplicated Prompt Rendering Branches\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `RequirementGateBatch` repeats the “contexts versus raw requirements” rendering decision in the constructor and `fitsWith()`. The logic must stay byte-identical for cache stability, so duplication increases maintenance risk.  \n**Suggestion:** Extract a helper like `renderRequirementGateInputs(requirements, contexts, usesFullSpec, fullSpecText)` or narrower `renderRequirementsOrContexts(requirements, contexts)`, and use it consistently in the constructor and `fitsWith()`.\n\n### 5. Strengthen Tests Around Invalid Constructor Inputs\n**File:** `tests/unit/flow/gate-requirement-context.test.js`  \n**Requirement:** R1  \n**Issue:** The unit test covers successful rendering but does not exercise the new constructor rejection paths for empty references/text, unknown sections, unknown obligation kinds, non-positive caps, or context/requirement ID mismatches.  \n**Suggestion:** Add focused `assert.throws()` cases for `RequirementContextEntry`, `RequirementObligation`, and `RequirementGateContext` invalid inputs so the immutability/value-object contract is protected directly.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Fix Broken RegExp Escaping",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** `escapeRegExp()` replaces every regex metacharacter with the literal string `\\{{PROMPT}}`, so requirement IDs containing regex-significant characters are not matched correctly and may produce invalid exact-boundary matching behavior.  \n**Suggestion:** Replace the implementation with the standard escaped-match replacement:\n```js\nfunction escapeRegExp(text) {\n  return text.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\$&\");\n}\n```",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Deduplicate Context Lookup and Batch Construction",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `buildRequirementGateBatches()` repeats the same `new RequirementGateBatch({ requirements: [requirement], contexts: ..., diff, maxChars, structuredSpec })` construction in two branches, and context lookup is split across multiple expressions. This makes future prompt-size/cache behavior changes easier to apply inconsistently.  \n**Suggestion:** Add a small local helper such as `contextFor(requirement)` and `newBatch(requirement)` inside `buildRequirementGateBatches()`, then reuse it for the initial batch and rollover batch creation.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Avoid Re-Filtering Entries For Every Rendered Section",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** `RequirementGateContext.#render()` calls `this.entries.filter(...)` once per section. With bounded context this is not dangerous, but it duplicates scanning logic and makes the fixed section ordering harder to reason about.  \n**Suggestion:** Group entries by section once before the render loop, then iterate `REQUIREMENT_CONTEXT_SECTION_ORDER` against that grouped map. This keeps ordering explicit while simplifying the loop.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Remove Duplicated Prompt Rendering Branches",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `RequirementGateBatch` repeats the “contexts versus raw requirements” rendering decision in the constructor and `fitsWith()`. The logic must stay byte-identical for cache stability, so duplication increases maintenance risk.  \n**Suggestion:** Extract a helper like `renderRequirementGateInputs(requirements, contexts, usesFullSpec, fullSpecText)` or narrower `renderRequirementsOrContexts(requirements, contexts)`, and use it consistently in the constructor and `fitsWith()`.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Strengthen Tests Around Invalid Constructor Inputs",
+        "body": "**File:** `tests/unit/flow/gate-requirement-context.test.js`  \n**Requirement:** R1  \n**Issue:** The unit test covers successful rendering but does not exercise the new constructor rejection paths for empty references/text, unknown sections, unknown obligation kinds, non-positive caps, or context/requirement ID mismatches.  \n**Suggestion:** Add focused `assert.throws()` cases for `RequirementContextEntry`, `RequirementObligation`, and `RequirementGateContext` invalid inputs so the immutability/value-object contract is protected directly.",
+        "file": "tests/unit/flow/gate-requirement-context.test.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

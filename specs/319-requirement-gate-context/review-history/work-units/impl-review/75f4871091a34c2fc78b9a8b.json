@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/draft-questions-triage.json",
+      "specs/319-requirement-gate-context/draft-review-coverage.json",
+      "specs/319-requirement-gate-context/draft-review-questions.json",
+      "specs/319-requirement-gate-context/draft.json"
+    ],
+    "inputHash": "364c702a86270900273c3a8fac8c69e8517559e9c49ceb9956030dec9027a04f",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/draft-questions-triage.json",
+    "specs/319-requirement-gate-context/draft-review-coverage.json",
+    "specs/319-requirement-gate-context/draft-review-questions.json",
+    "specs/319-requirement-gate-context/draft.json"
+  ],
+  "inputHash": "364c702a86270900273c3a8fac8c69e8517559e9c49ceb9956030dec9027a04f",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T11:38:04.048Z",
+  "finishedAt": "2026-07-18T11:38:04.048Z",
+  "rawResponse": "### 1. Remove Regeneration-Volatile Timestamps\n**File:** `specs/319-requirement-gate-context/draft-review-questions.json`  \n**Requirement:** R8  \n**Issue:** `generatedAt` embeds a run-specific timestamp in a generated artifact. That makes otherwise identical regenerated review output byte-different, which conflicts with the draft’s deterministic byte-equality and cache-identity goals.  \n**Suggestion:** Omit `generatedAt` from generated review artifacts, or replace it with a stable value derived from the reviewed draft/version.\n\n### 2. Avoid Duplicated Empty Review Artifacts\n**File:** `specs/319-requirement-gate-context/draft-review-coverage.json`  \n**Requirement:** R8  \n**Issue:** `draft-review-coverage.json` and `draft-review-questions.json` duplicate the same empty PASS structure, summary, and arrays, differing only by phase/source metadata. This creates extra committed artifacts with no additional review signal.  \n**Suggestion:** If the pipeline allows it, collapse empty PASS outputs into a single shared review result shape, or omit phase-specific files when there are no findings and record the successful phase status in one canonical artifact.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Regeneration-Volatile Timestamps",
+        "body": "**File:** `specs/319-requirement-gate-context/draft-review-questions.json`  \n**Requirement:** R8  \n**Issue:** `generatedAt` embeds a run-specific timestamp in a generated artifact. That makes otherwise identical regenerated review output byte-different, which conflicts with the draft’s deterministic byte-equality and cache-identity goals.  \n**Suggestion:** Omit `generatedAt` from generated review artifacts, or replace it with a stable value derived from the reviewed draft/version.",
+        "file": "specs/319-requirement-gate-context/draft-review-questions.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Avoid Duplicated Empty Review Artifacts",
+        "body": "**File:** `specs/319-requirement-gate-context/draft-review-coverage.json`  \n**Requirement:** R8  \n**Issue:** `draft-review-coverage.json` and `draft-review-questions.json` duplicate the same empty PASS structure, summary, and arrays, differing only by phase/source metadata. This creates extra committed artifacts with no additional review signal.  \n**Suggestion:** If the pipeline allows it, collapse empty PASS outputs into a single shared review result shape, or omit phase-specific files when there are no findings and record the successful phase status in one canonical artifact.",
+        "file": "specs/319-requirement-gate-context/draft-review-coverage.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

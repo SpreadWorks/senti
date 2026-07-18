@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/review-history/test-attempt-002.json",
+      "specs/319-requirement-gate-context/review-history/test-attempt-002.md",
+      "specs/319-requirement-gate-context/review-history/test-attempt-003.json",
+      "specs/319-requirement-gate-context/review-history/test-attempt-003.md"
+    ],
+    "inputHash": "9235e6db09f575254b540cc2e923d3f994bd44899f28324cb14628cd61608e20",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/review-history/test-attempt-002.json",
+    "specs/319-requirement-gate-context/review-history/test-attempt-002.md",
+    "specs/319-requirement-gate-context/review-history/test-attempt-003.json",
+    "specs/319-requirement-gate-context/review-history/test-attempt-003.md"
+  ],
+  "inputHash": "9235e6db09f575254b540cc2e923d3f994bd44899f28324cb14628cd61608e20",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T11:39:12.096Z",
+  "finishedAt": "2026-07-18T11:39:12.096Z",
+  "rawResponse": "### 1. Eliminate duplicated review content between JSON and Markdown artifacts\n**File:** `specs/319-requirement-gate-context/review-history/test-attempt-002.md`  \n**Requirement:** R11  \n**Issue:** The Markdown file manually duplicates the same findings already represented structurally in `test-attempt-002.json`. This creates drift risk across titles, issues, required changes, and blocking rationale.  \n**Suggestion:** Generate the Markdown review summary from the JSON artifact, or keep only the canonical JSON artifact if Markdown is not required as a persisted source.\n\n### 2. Eliminate duplicated review content between JSON and Markdown artifacts\n**File:** `specs/319-requirement-gate-context/review-history/test-attempt-003.md`  \n**Requirement:** R11  \n**Issue:** The Markdown file repeats all finding data from `test-attempt-003.json`, creating a second hand-maintained representation of the same review state.  \n**Suggestion:** Derive this Markdown from `test-attempt-003.json` during reporting, or store only the JSON and render Markdown on demand.\n\n### 3. Remove redundant finding fields inside the JSON artifact\n**File:** `specs/319-requirement-gate-context/review-history/test-attempt-002.json`  \n**Requirement:** R11  \n**Issue:** Each finding is represented twice: once in `blockingFindings` and again in `findings`, with overlapping title/body/severity/origin data. This duplication makes updates error-prone and increases artifact size without adding clear value.  \n**Suggestion:** Keep a single normalized findings array and derive blocking counts/views from `severity`, or make `blockingFindings` references to finding IDs instead of duplicating full content.\n\n### 4. Remove redundant finding fields inside the JSON artifact\n**File:** `specs/319-requirement-gate-context/review-history/test-attempt-003.json`  \n**Requirement:** R11  \n**Issue:** `blockingFindings` and `findings` duplicate the same three review findings using different schemas. This weakens design consistency and invites stale or contradictory data.  \n**Suggestion:** Consolidate to one canonical schema, then compute blocking/advisory groupings when rendering reports.\n\n### 5. Use consistent target path naming\n**File:** `specs/319-requirement-gate-context/review-history/test-attempt-003.json`  \n**Requirement:** R11  \n**Issue:** The `target` values use `tests/requirement-gate-context.test.js`, while attempt 002 uses the fuller spec-local path `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`. The inconsistency makes cross-attempt comparison and tooling harder.  \n**Suggestion:** Normalize `target` paths to the same repo-relative format across all review-history artifacts.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Eliminate duplicated review content between JSON and Markdown artifacts",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/test-attempt-002.md`  \n**Requirement:** R11  \n**Issue:** The Markdown file manually duplicates the same findings already represented structurally in `test-attempt-002.json`. This creates drift risk across titles, issues, required changes, and blocking rationale.  \n**Suggestion:** Generate the Markdown review summary from the JSON artifact, or keep only the canonical JSON artifact if Markdown is not required as a persisted source.",
+        "file": "specs/319-requirement-gate-context/review-history/test-attempt-002.md",
+        "requirementId": "R11"
+      },
+      {
+        "title": "2. Eliminate duplicated review content between JSON and Markdown artifacts",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/test-attempt-003.md`  \n**Requirement:** R11  \n**Issue:** The Markdown file repeats all finding data from `test-attempt-003.json`, creating a second hand-maintained representation of the same review state.  \n**Suggestion:** Derive this Markdown from `test-attempt-003.json` during reporting, or store only the JSON and render Markdown on demand.",
+        "file": "specs/319-requirement-gate-context/review-history/test-attempt-003.md",
+        "requirementId": "R11"
+      },
+      {
+        "title": "3. Remove redundant finding fields inside the JSON artifact",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/test-attempt-002.json`  \n**Requirement:** R11  \n**Issue:** Each finding is represented twice: once in `blockingFindings` and again in `findings`, with overlapping title/body/severity/origin data. This duplication makes updates error-prone and increases artifact size without adding clear value.  \n**Suggestion:** Keep a single normalized findings array and derive blocking counts/views from `severity`, or make `blockingFindings` references to finding IDs instead of duplicating full content.",
+        "file": "specs/319-requirement-gate-context/review-history/test-attempt-002.json",
+        "requirementId": "R11"
+      },
+      {
+        "title": "4. Remove redundant finding fields inside the JSON artifact",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/test-attempt-003.json`  \n**Requirement:** R11  \n**Issue:** `blockingFindings` and `findings` duplicate the same three review findings using different schemas. This weakens design consistency and invites stale or contradictory data.  \n**Suggestion:** Consolidate to one canonical schema, then compute blocking/advisory groupings when rendering reports.",
+        "file": "specs/319-requirement-gate-context/review-history/test-attempt-003.json",
+        "requirementId": "R11"
+      },
+      {
+        "title": "5. Use consistent target path naming",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/test-attempt-003.json`  \n**Requirement:** R11  \n**Issue:** The `target` values use `tests/requirement-gate-context.test.js`, while attempt 002 uses the fuller spec-local path `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`. The inconsistency makes cross-attempt comparison and tooling harder.  \n**Suggestion:** Normalize `target` paths to the same repo-relative format across all review-history artifacts.",
+        "file": "specs/319-requirement-gate-context/review-history/test-attempt-003.json",
+        "requirementId": "R11"
+      }
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/spec-review.json",
+      "specs/319-requirement-gate-context/spec.json",
+      "specs/319-requirement-gate-context/spec.md",
+      "specs/319-requirement-gate-context/tasks/T-1.md"
+    ],
+    "inputHash": "675c4346e607a83878382c7b7240c9befa71c9fb4cd386d4d172dc621316098f",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/spec-review.json",
+    "specs/319-requirement-gate-context/spec.json",
+    "specs/319-requirement-gate-context/spec.md",
+    "specs/319-requirement-gate-context/tasks/T-1.md"
+  ],
+  "inputHash": "675c4346e607a83878382c7b7240c9befa71c9fb4cd386d4d172dc621316098f",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T11:41:14.795Z",
+  "finishedAt": "2026-07-18T11:41:14.795Z",
+  "rawResponse": "### 1. Remove Empty Open Questions Placeholder\n**File:** `specs/319-requirement-gate-context/spec.md`  \n**Requirement:** R11  \n**Issue:** The `## Open Questions` section contains a blank checklist item (`- [ ]`), while `spec.json` correctly represents this as an empty `open_questions` array. This creates dead/generated noise and can be mistaken for an unresolved item.  \n**Suggestion:** Render empty open questions as `None` or omit the placeholder item entirely.\n\n### 2. Define Diff Evidence Citation Format Explicitly\n**File:** `specs/319-requirement-gate-context/spec.json`  \n**Requirement:** R8  \n**Issue:** The spec requires reasons to cite every additional source used, including mapped diff evidence, but only defines stable citation formats for spec-derived entries like `[REQ:<id>]`, `[AC:<n>]`, `[FILE-MAP:<id>:<n>]`, etc. The mapped diff evidence citation format is not explicitly named.  \n**Suggestion:** Add a deterministic citation label for mapped diff evidence, such as `[DIFF:<path>:<n>]` or a single `[DIFF]` section reference, and mirror it in `spec.md` so evaluator reasons have an unambiguous source-reference contract.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Empty Open Questions Placeholder",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.md`  \n**Requirement:** R11  \n**Issue:** The `## Open Questions` section contains a blank checklist item (`- [ ]`), while `spec.json` correctly represents this as an empty `open_questions` array. This creates dead/generated noise and can be mistaken for an unresolved item.  \n**Suggestion:** Render empty open questions as `None` or omit the placeholder item entirely.",
+        "file": "specs/319-requirement-gate-context/spec.md",
+        "requirementId": "R11"
+      },
+      {
+        "title": "2. Define Diff Evidence Citation Format Explicitly",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.json`  \n**Requirement:** R8  \n**Issue:** The spec requires reasons to cite every additional source used, including mapped diff evidence, but only defines stable citation formats for spec-derived entries like `[REQ:<id>]`, `[AC:<n>]`, `[FILE-MAP:<id>:<n>]`, etc. The mapped diff evidence citation format is not explicitly named.  \n**Suggestion:** Add a deterministic citation label for mapped diff evidence, such as `[DIFF:<path>:<n>]` or a single `[DIFF]` section reference, and mirror it in `spec.md` so evaluator reasons have an unambiguous source-reference contract.",
+        "file": "specs/319-requirement-gate-context/spec.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

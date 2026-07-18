@@ -281,6 +281,62 @@ describe("gate-impl integration (spec 202)", () => {
     assert.equal(env.data.result, "pass", "identical test file should not trigger mechanical FAIL");
   });
 
+  it("passes bounded cited requirement context through the real gate command", () => {
+    tmp = createTmpDir();
+    const capturePath = path.join(tmp, "captured-requirement-context-prompt.txt");
+    const specJson = minimalSpecJson();
+    specJson.scope.out = ["Do not replace delegated behavior"];
+    specJson.constraints = ["Use the exact schema contract"];
+    specJson.design_principles = ["R1 preserves `resultField`"];
+    specJson.overview = {
+      modules: [{ text: "R1 is owned by `tests/dummy.test.js`" }],
+      data_flow: [{ text: "R1 retains delegated evidence" }],
+      decisions: [{ text: "R1 schema field contract is `resultField`" }],
+    };
+    specJson.requirements = [{
+      id: "R1",
+      desc: "Preserve delegated `resultField` behavior",
+      priority: "must",
+      status: "pending",
+    }];
+    specJson.acceptance_criteria = ["AC1 (R1): regression evidence keeps `resultField` unchanged"];
+    specJson.implementationTargets = ["tests/dummy.test.js"];
+    specJson.tasks = [{
+      id: "T-1",
+      title: "Preserve result field",
+      goal: "Preserve R1 through `tests/dummy.test.js`.",
+      acceptance: ["R1 keeps delegated behavior."],
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    }];
+    setupFixture(tmp, {
+      initialTest: BASE_TEST,
+      modifiedTest: `${BASE_TEST}// regression evidence for resultField\n`,
+      specJson,
+      fileMap: { R1: ["tests/dummy.test.js"] },
+      capturePromptPath: capturePath,
+      stubResponse: JSON.stringify({
+        evaluations: [{
+          guardrail_id: "R1",
+          result: "pass",
+          reason: "[REQ:R1] [AC:1] [EVIDENCE:R1] preserved",
+        }],
+      }),
+    });
+
+    const res = runGate(tmp, ["--skip-guardrail"]);
+    assert.equal(res.status, 0, `stderr=${res.stderr}`);
+    const env = parseEnvelope(res.stdout);
+    assert.equal(env.data.result, "pass");
+    const prompt = fs.readFileSync(capturePath, "utf8");
+    assert.match(prompt, /## Requirement Contexts/);
+    assert.match(prompt, /Obligation: preservation\/non-interception/);
+    assert.match(prompt, /\[SCHEMA:DECISION:1:1\] resultField/);
+    assert.match(prompt, /\[FILE-MAP:R1:1\] tests\/dummy\.test\.js/);
+    assert.match(prompt, /\[EVIDENCE:R1\]/);
+  });
+
   it("R5a-312: task-impl accepts explicit spec.json ID without file-map", () => {
     tmp = createTmpDir();
     setupFixture(tmp, {

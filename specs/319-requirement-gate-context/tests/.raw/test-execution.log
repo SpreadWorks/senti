@@ -1,0 +1,104 @@
+[senti] spec-local tests start
+command: node --test specs/319-requirement-gate-context/tests/requirement-gate-context.test.js
+TAP version 13
+# Subtest: Issue \#436 requirement gate context
+    # Subtest: R1: context value classes enforce invariants and own rendering
+    ok 1 - R1: context value classes enforce invariants and own rendering
+      ---
+      duration_ms: 2.522453
+      type: 'test'
+      ...
+    # Subtest: R2: context selects global and exact-linked authoritative sources
+    ok 2 - R2: context selects global and exact-linked authoritative sources
+      ---
+      duration_ms: 2.755215
+      type: 'test'
+      ...
+    # Subtest: R3: context bounds and ordering are deterministic
+    ok 3 - R3: context bounds and ordering are deterministic
+      ---
+      duration_ms: 2.910695
+      type: 'test'
+      ...
+    # Subtest: R4: identical input produces identical prompt bytes and cache identity
+    ok 4 - R4: identical input produces identical prompt bytes and cache identity
+      ---
+      duration_ms: 10.798096
+      type: 'test'
+      ...
+    # Subtest: R5: obligation classification covers implementation, regression, preservation, and non-interception
+    ok 5 - R5: obligation classification covers implementation, regression, preservation, and non-interception
+      ---
+      duration_ms: 0.628724
+      type: 'test'
+      ...
+    # Subtest: R6: Issue \#432 R6 prompt evaluates preservation evidence without reimplementation
+    ok 6 - R6: Issue \#432 R6 prompt evaluates preservation evidence without reimplementation
+      ---
+      duration_ms: 2.865175
+      type: 'test'
+      ...
+    # Subtest: R7: Issue \#434 R7 prompt accepts cited safe canonical paths and exact schema fields
+    ok 7 - R7: Issue \#434 R7 prompt accepts cited safe canonical paths and exact schema fields
+      ---
+      duration_ms: 1.253126
+      type: 'test'
+      ...
+    # Subtest: R8: implementation prompt requires stable citations and real missing-behavior FAIL
+    ok 8 - R8: implementation prompt requires stable citations and real missing-behavior FAIL
+      ---
+      duration_ms: 2.04453
+      type: 'test'
+      ...
+    # Subtest: R9: implementation evaluation result schema remains unchanged
+    ok 9 - R9: implementation evaluation result schema remains unchanged
+      ---
+      duration_ms: 3.283977
+      type: 'test'
+      ...
+    # Subtest: R10: target guard remains before command-specific context construction
+    ok 10 - R10: target guard remains before command-specific context construction
+      ---
+      duration_ms: 3.8587
+      type: 'test'
+      ...
+    # Subtest: R11: real RunGateCommand path covers Issue \#432, Issue \#434, and missing behavior
+    ok 11 - R11: real RunGateCommand path covers Issue \#432, Issue \#434, and missing behavior
+      ---
+      duration_ms: 1794.736479
+      type: 'test'
+      ...
+    # Subtest: R11: public context API exposes the required deterministic limits
+    ok 12 - R11: public context API exposes the required deterministic limits
+      ---
+      duration_ms: 0.215761
+      type: 'test'
+      ...
+    1..12
+ok 1 - Issue \#436 requirement gate context
+  ---
+  duration_ms: 1829.888181
+  type: 'suite'
+  ...
+1..1
+# tests 12
+# suites 1
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1989.590567
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] requirement R9 result pass
+[senti] requirement R10 result pass
+[senti] requirement R11 result pass
+[senti] spec-local tests end

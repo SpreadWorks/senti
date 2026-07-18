@@ -1,0 +1,75 @@
+{
+  "devType": "bugfix",
+  "goal": "Provide each implementation-gate requirement evaluation with deterministic authoritative context capped by explicit per-section, per-item, and total character limits, so findings use only cited contracts and do not demand implementation for a regression-only or preservation/non-interception obligation whose required evidence passes.",
+  "analysis": {
+    "problem": "Implementation-gate requirement evaluation currently relies on isolated requirement text and mapped diffs without matching acceptance criteria, linked constraints and decisions, schema contracts, task ownership, or file-map ownership. It can therefore misread preservation or regression obligations as implementation work and invent fields, outcomes, or rejection rules absent from those sources.",
+    "proposedApproach": "Construct a per-requirement context with explicit item and character caps from linked requirement, acceptance, constraint, decision, schema, task, ownership, file-map, and diff evidence; classify the obligation explicitly; and require source-type plus stable-index citations in evaluation reasons.",
+    "validation": "Use repeated-build byte-equality tests; PASS regressions modeled on Issue #432 R6 and Issue #434 R7; FAIL cases where cited context requires changed behavior, an exact field, preservation, or regression evidence that the implementation omits; and existing coverage for counters, caching, result schema, routing, and target-guard ordering."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Requirement evaluation currently receives requirement text and mapped diffs but omits matching acceptance criteria, linked constraints and decisions, schema contracts, task ownership, and file-map ownership.",
+      "must: Issue #432 R6 demonstrates a preservation-only obligation incorrectly treated as reimplementation work.",
+      "must: Issue #434 R7 demonstrates rejection of safe canonical path a/../x and invention of a nonexistent mergeOutcome field.",
+      "must: The existing implementation gate owns semantic counters, cache behavior, result schema, routing, and target guards that this bugfix must preserve.",
+      "must: The linked Issue and assignment approve its stated scope and exclusions as the complete product boundary for this bugfix."
+    ],
+    "decisionPoints": [
+      "must: Context selection must use deterministic requirement ID and ownership linkage rather than unrelated full-spec dumping.",
+      "must: Obligation classification must distinguish implementation, regression-only, and preservation/non-interception evaluation semantics.",
+      "must: Finding reasons must cite the authoritative context actually used through stable source references.",
+      "must: Explicit section, item, and character or token-equivalent bounds must make identical inputs produce identical prompt bytes and cache identity."
+    ],
+    "resolvedByProjectRules": [
+      "must: Use only Node.js built-in modules and add no external dependency.",
+      "must: Express meaningful structured values with dedicated classes that enforce invariants and own rendering behavior.",
+      "must: Validate run, Issue, and spec target guards before context construction, cache or agent access, and mutation.",
+      "must: Preserve the Issue as one specification concern and avoid compatibility shims during alpha development."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Define measurable per-section, per-item, total character, and deterministic truncation limits within the existing prompt budget.",
+      "must: Define authoritative linkage rules and stable citation identifiers for every included source type.",
+      "must: Map every requirement and acceptance criterion to implementation tasks and to agent-independent or end-to-end tests named by covered requirement ID."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Update implementation-gate context and prompt construction in src/flow/lib/run-gate.js; add one helper module only if it owns a context value class reused by both selection and rendering and prevents duplicate invariant enforcement.",
+      "must: Include full requirement text and sources connected by requirement ID, acceptance-criterion requirement reference, task requirementIds or implementationTargets, file-map requirement key, or an explicit schema, constraint, decision, ownership, or data-flow reference in the requirement or its matched acceptance criteria.",
+      "must: Add prompt/context unit tests for byte equality, ordering, truncation, citations, and all obligation types; add end-to-end cases for Issue #432 R6 PASS and preservation/regression-evidence FAIL, Issue #434 R7 PASS without mergeOutcome or safe-path rejection, and a FAIL where cited context requires omitted changed behavior or an exact field.",
+      "must: Return FAIL when a cited requirement or acceptance criterion requires changed behavior, an integration, an exact field, preservation, or regression evidence and the mapped implementation or test evidence omits or contradicts it."
+    ],
+    "out": [
+      "must: Do not add a gate bypass, defer path, or manual finding disposition.",
+      "must: Do not reset or extend semantic retry counters or repair prior Issue #432 or Issue #434 state.",
+      "must: Do not add behavior, schema fields, outcomes, or rejection rules absent from authoritative context.",
+      "must: Do not add dependencies, public compatibility shims, push, publish, or release operations."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Requirement-evaluation prompt bytes and cache identities may change only as a deterministic consequence of the new authoritative context.",
+    "must: Semantic gate counters, retry accounting, cache semantics, persisted result schema, task and integration routing, and file-map reconciliation behavior must remain unchanged.",
+    "must: Target mismatch handling must remain first and leave state and artifacts byte-identical before any context, agent, cache, or mutation work.",
+    "should: The requirement-call batch must remain at or below MAX_IMPL_REQUIREMENT_BATCH_CHARS (120000 characters), and every agent prompt must remain at or below MAX_AGENT_PROMPT_INPUT_CHARS (900000 characters), without including sources lacking a defined requirement or ownership linkage."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "dropped",
+      "category": "goal-confirmation",
+      "question": "must: Issue #436 の範囲を、要件ごとの権威ある文脈付与、義務種別の明示、安定した引用、既知の誤判定回帰、真の欠落動作の検出、および既存ゲート契約の維持に限定してよいですか。",
+      "answer": "",
+      "evidence": "",
+      "why": "",
+      "considered": "",
+      "droppedReason": "Issue #436 の Scope、Requirements、Acceptance Criteria、Out of Scope と親タスクの approved scope が同じ境界を明示しており、追加のユーザー判断を必要としないためです。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T21:48:34Z",
+    "notes": "Issue #436 and the parent-approved assignment define the accepted scope and exclusions."
+  }
+}

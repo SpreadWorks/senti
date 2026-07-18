@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "8dd631de9065ac75b1dfdc57",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0014",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/test-review.json",
+      "specs/319-requirement-gate-context/tests/.raw/scenario-validity.log",
+      "specs/319-requirement-gate-context/tests/.raw/test-execution.log",
+      "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js"
+    ],
+    "inputHash": "2230632fa8ad5221b0dba1e02e9e07a48d26f8759fa387b62413942ebf36070e",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8dd631de9065ac75b1dfdc57"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/test-review.json",
+    "specs/319-requirement-gate-context/tests/.raw/scenario-validity.log",
+    "specs/319-requirement-gate-context/tests/.raw/test-execution.log",
+    "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js"
+  ],
+  "inputHash": "2230632fa8ad5221b0dba1e02e9e07a48d26f8759fa387b62413942ebf36070e",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T12:12:58.828Z",
+  "finishedAt": "2026-07-18T12:12:58.828Z",
+  "rawResponse": "I’ll review only the four touched files in the supplied diff and frame any suggestions against the required IDs. I’m treating this as a code-quality review rather than changing files.### 1. Remove stale failing execution artifact\n**File:** `specs/319-requirement-gate-context/tests/.raw/scenario-validity.log`  \n**Requirement:** R11  \n**Issue:** This checked-in raw log records 11 failing subtests, while `tests/.raw/test-execution.log` records the same spec-local test suite passing with 12 subtests. Keeping contradictory generated artifacts makes the change set harder to audit and can mislead future reviewers about the actual expected state.  \n**Suggestion:** Delete the stale failing log, or regenerate it from the same final test run so the raw artifacts consistently reflect the current passing suite.\n\n### 2. Consolidate duplicated RunGate fixture setup\n**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`  \n**Requirement:** R11  \n**Issue:** `runGateFixture()` builds a large temporary spec, flow state, file map, Git repo, stub agent, and CLI invocation inline. Much of this mirrors existing setup concepts already represented by `fixtureSpec()`, `buildContext()`, and the shared temp/git helpers, but the function is long enough that the actual e2e assertion intent is buried.  \n**Suggestion:** Split the setup into small helpers such as `writeGateFixtureProject()`, `writeGateFlowState()`, and `runTaskImplGate()`. Keep `runGateFixture()` as orchestration returning `{ tmp, execution, envelope, prompt, flowState }`.\n\n### 3. Use a single requirement fixture factory for e2e cases\n**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`  \n**Requirement:** R11  \n**Issue:** The R11 e2e fixtures repeatedly spell out requirement objects with the same `{ id, desc, priority: \"must\", status: \"pending\" }` shape. This duplicates boilerplate and makes the case-specific behavior less visible.  \n**Suggestion:** Add a small helper like `requirement(id, desc)` or `mustRequirement(id, desc)` and use it in the `fixtures` array.\n\n### 4. Avoid monkey-patching `fs` globally inside a test\n**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`  \n**Requirement:** R10  \n**Issue:** The R10 test temporarily replaces `fs.readFileSync` and `fs.writeFileSync` globally. Even with `finally` restoration, this pattern is brittle under concurrent test execution and can cause unrelated code in the same process to observe instrumented filesystem behavior.  \n**Suggestion:** Prefer dependency injection through the command/container if available, or assert guard behavior through stable external effects only: unchanged artifact bytes, zero agent calls, and unchanged flow state. If read/write counting remains necessary, wrap the command’s filesystem dependency at its local boundary rather than patching Node’s `fs` module globally.\n\n### 5. Rename `responseResult` to reflect gate verdict casing\n**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`  \n**Requirement:** R11  \n**Issue:** `responseResult` is generic and easy to confuse with the full command result or envelope result. In the fixtures it specifically means the stubbed per-requirement evaluation verdict, using lowercase `\"pass\"`/`\"fail\"`.  \n**Suggestion:** Rename it to `stubVerdict` or `evaluationVerdict`, and update `runGateFixture()` plus the R11 fixture table accordingly.",
+  "success": {
+    "proposals": [
+      {
+        "title": "I’ll review only the four touched files in the supplied diff and frame any suggestions against the required IDs. I’m treating this as a code-quality review rather than changing files.### 1. Remove stale failing execution artifact",
+        "body": "**File:** `specs/319-requirement-gate-context/tests/.raw/scenario-validity.log`  \n**Requirement:** R11  \n**Issue:** This checked-in raw log records 11 failing subtests, while `tests/.raw/test-execution.log` records the same spec-local test suite passing with 12 subtests. Keeping contradictory generated artifacts makes the change set harder to audit and can mislead future reviewers about the actual expected state.  \n**Suggestion:** Delete the stale failing log, or regenerate it from the same final test run so the raw artifacts consistently reflect the current passing suite.",
+        "file": "specs/319-requirement-gate-context/tests/.raw/scenario-validity.log",
+        "requirementId": "R11"
+      },
+      {
+        "title": "2. Consolidate duplicated RunGate fixture setup",
+        "body": "**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`  \n**Requirement:** R11  \n**Issue:** `runGateFixture()` builds a large temporary spec, flow state, file map, Git repo, stub agent, and CLI invocation inline. Much of this mirrors existing setup concepts already represented by `fixtureSpec()`, `buildContext()`, and the shared temp/git helpers, but the function is long enough that the actual e2e assertion intent is buried.  \n**Suggestion:** Split the setup into small helpers such as `writeGateFixtureProject()`, `writeGateFlowState()`, and `runTaskImplGate()`. Keep `runGateFixture()` as orchestration returning `{ tmp, execution, envelope, prompt, flowState }`.",
+        "file": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+        "requirementId": "R11"
+      },
+      {
+        "title": "3. Use a single requirement fixture factory for e2e cases",
+        "body": "**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`  \n**Requirement:** R11  \n**Issue:** The R11 e2e fixtures repeatedly spell out requirement objects with the same `{ id, desc, priority: \"must\", status: \"pending\" }` shape. This duplicates boilerplate and makes the case-specific behavior less visible.  \n**Suggestion:** Add a small helper like `requirement(id, desc)` or `mustRequirement(id, desc)` and use it in the `fixtures` array.",
+        "file": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+        "requirementId": "R11"
+      },
+      {
+        "title": "4. Avoid monkey-patching `fs` globally inside a test",
+        "body": "**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`  \n**Requirement:** R10  \n**Issue:** The R10 test temporarily replaces `fs.readFileSync` and `fs.writeFileSync` globally. Even with `finally` restoration, this pattern is brittle under concurrent test execution and can cause unrelated code in the same process to observe instrumented filesystem behavior.  \n**Suggestion:** Prefer dependency injection through the command/container if available, or assert guard behavior through stable external effects only: unchanged artifact bytes, zero agent calls, and unchanged flow state. If read/write counting remains necessary, wrap the command’s filesystem dependency at its local boundary rather than patching Node’s `fs` module globally.",
+        "file": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+        "requirementId": "R10"
+      },
+      {
+        "title": "5. Rename `responseResult` to reflect gate verdict casing",
+        "body": "**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`  \n**Requirement:** R11  \n**Issue:** `responseResult` is generic and easy to confuse with the full command result or envelope result. In the fixtures it specifically means the stubbed per-requirement evaluation verdict, using lowercase `\"pass\"`/`\"fail\"`.  \n**Suggestion:** Rename it to `stubVerdict` or `evaluationVerdict`, and update `runGateFixture()` plus the R11 fixture table accordingly.",
+        "file": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+        "requirementId": "R11"
+      }
+    ]
+  }
+}

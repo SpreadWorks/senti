@@ -229,6 +229,9 @@ const UNTRACKED_DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1 MiB
 const TASK_IMPL_GATE_DIFF_MAX_BYTES = 1024 * 1024; // 1 MiB
 const MAX_IMPL_REQUIREMENT_BATCH_CHARS = 120000;
 const MAX_AGENT_PROMPT_INPUT_CHARS = 900000;
+export const MAX_REQUIREMENT_CONTEXT_ITEMS = 12;
+export const MAX_REQUIREMENT_CONTEXT_ITEM_CHARS = 1000;
+export const MAX_REQUIREMENT_CONTEXT_CHARS = 24000;
 const MAX_GUARDRAIL_TARGET_CHARS = 250000;
 const MAX_SAME_SPEC_REQUIREMENT_SUMMARIES = 64;
 const MAX_SAME_SPEC_REQUIREMENT_SUMMARY_CHARS = 768;
@@ -3219,6 +3222,321 @@ export class SameSpecContractContext {
   }
 }
 
+const REQUIREMENT_CONTEXT_SECTION_ORDER = Object.freeze([
+  "requirement",
+  "acceptance",
+  "out-of-scope",
+  "constraint",
+  "principle",
+  "module",
+  "data-flow",
+  "decision",
+  "schema",
+  "task",
+  "target",
+  "file-map",
+  "evidence",
+]);
+const REQUIREMENT_CONTEXT_SECTIONS = new Set(REQUIREMENT_CONTEXT_SECTION_ORDER);
+const REQUIREMENT_OBLIGATION_KINDS = new Set([
+  "implementation",
+  "regression-only",
+  "preservation/non-interception",
+]);
+const PRESERVATION_OBLIGATION_PHRASES = Object.freeze([
+  "preservation",
+  "preserve",
+  "non-interception",
+  "non-interference",
+  "do not intercept",
+  "remain unchanged",
+  "retain existing",
+  "byte-identical",
+]);
+const REGRESSION_OBLIGATION_PHRASES = Object.freeze([
+  "regression-only",
+  "no regression",
+  "continue existing behavior",
+]);
+const CHANGED_BEHAVIOR_VERBS = Object.freeze([
+  "add",
+  "create",
+  "change",
+  "introduce",
+  "implement",
+  "return",
+  "write",
+  "set",
+  "support",
+  "reject",
+  "require",
+]);
+
+function positiveInteger(value, name) {
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`);
+  return value;
+}
+
+function truncateContextItem(text, maxChars) {
+  if (text.length <= maxChars) return text;
+  const suffix = " [CONTEXT:TRUNCATED]";
+  return `${text.slice(0, Math.max(0, maxChars - suffix.length)).trimEnd()}${suffix}`;
+}
+
+export class RequirementContextEntry {
+  constructor({ section, reference, text }) {
+    if (!REQUIREMENT_CONTEXT_SECTIONS.has(section)) throw new Error(`unknown requirement context section: ${section}`);
+    if (typeof reference !== "string" || !/^\[[^\]]+\]$/.test(reference.trim())) {
+      throw new Error("reference must be a non-empty bracketed source reference");
+    }
+    if (typeof text !== "string" || text.trim() === "") throw new Error("text must be a non-empty string");
+    this.section = section;
+    this.reference = reference.trim();
+    this.text = text.trim();
+    Object.freeze(this);
+  }
+
+  toPromptText(maxChars = MAX_REQUIREMENT_CONTEXT_ITEM_CHARS) {
+    positiveInteger(maxChars, "maxChars");
+    return truncateContextItem(`${this.reference} ${this.text}`, maxChars);
+  }
+}
+
+export class RequirementObligation {
+  constructor(kind) {
+    if (!REQUIREMENT_OBLIGATION_KINDS.has(kind)) throw new Error(`unknown requirement obligation kind: ${kind}`);
+    this.kind = kind;
+    Object.freeze(this);
+  }
+
+  toPromptText() {
+    if (this.kind === "regression-only") {
+      return "Evaluate cited regression evidence and non-interference only. Must not demand reimplementation or require delegated existing behavior to be reimplemented. Return FAIL when required regression evidence is missing or mapped changes intercept, remove, or contradict preserved behavior.";
+    }
+    if (this.kind === "preservation/non-interception") {
+      return "Evaluate cited preservation, regression evidence, and non-interference only. Must not demand reimplementation or require delegated existing behavior to be reimplemented. Return FAIL when evidence is missing or mapped changes intercept, remove, or contradict preserved behavior.";
+    }
+    return "Evaluate whether mapped implementation evidence supplies every changed behavior, integration, and exact field required by the cited authoritative context. Return FAIL when required behavior is omitted or contradicted.";
+  }
+}
+
+export class RequirementGateContext {
+  constructor({
+    requirementId,
+    obligation,
+    entries,
+    maxItems = MAX_REQUIREMENT_CONTEXT_ITEMS,
+    maxItemChars = MAX_REQUIREMENT_CONTEXT_ITEM_CHARS,
+    maxChars = MAX_REQUIREMENT_CONTEXT_CHARS,
+  }) {
+    if (typeof requirementId !== "string" || requirementId.trim() === "") {
+      throw new Error("requirementId must be a non-empty string");
+    }
+    if (!(obligation instanceof RequirementObligation)) throw new Error("obligation must be a RequirementObligation");
+    if (!Array.isArray(entries)) throw new Error("entries must be an array");
+    if (!entries.every((entry) => entry instanceof RequirementContextEntry)) {
+      throw new Error("entries must contain RequirementContextEntry values");
+    }
+    this.requirementId = requirementId.trim();
+    this.obligation = obligation;
+    this.entries = Object.freeze([...entries]);
+    this.maxItems = positiveInteger(maxItems, "maxItems");
+    this.maxItemChars = positiveInteger(maxItemChars, "maxItemChars");
+    this.maxChars = positiveInteger(maxChars, "maxChars");
+    this.promptText = this.#render();
+    Object.freeze(this);
+  }
+
+  #render() {
+    const lines = [
+      `### ${this.requirementId}`,
+      `Obligation: ${this.obligation.kind}`,
+      `Evaluation contract: ${this.obligation.toPromptText()}`,
+    ];
+    let truncated = false;
+    sections: for (const section of REQUIREMENT_CONTEXT_SECTION_ORDER) {
+      const sectionEntries = this.entries.filter((entry) => entry.section === section);
+      if (sectionEntries.length > this.maxItems) truncated = true;
+      for (const entry of sectionEntries.slice(0, this.maxItems)) {
+        const rendered = entry.toPromptText(this.maxItemChars);
+        if (rendered.length < `${entry.reference} ${entry.text}`.length) truncated = true;
+        const next = [...lines, rendered].join("\n");
+        if (next.length > this.maxChars) {
+          truncated = true;
+          break sections;
+        }
+        lines.push(rendered);
+      }
+    }
+    if (truncated) {
+      const marker = "[CONTEXT:TRUNCATED]";
+      while (lines.length > 3 && [...lines, marker].join("\n").length > this.maxChars) lines.pop();
+      if ([...lines, marker].join("\n").length <= this.maxChars) lines.push(marker);
+    }
+    return lines.join("\n");
+  }
+
+  toPromptText() {
+    return this.promptText;
+  }
+}
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function containsRequirementId(text, requirementId) {
+  const pattern = new RegExp(`(^|[^A-Za-z0-9_])${escapeRegExp(requirementId)}([^A-Za-z0-9_]|$)`);
+  return pattern.test(String(text || ""));
+}
+
+function backtickIdentifiers(text) {
+  return [...String(text || "").matchAll(/`([^`]+)`/g)].map((match) => match[1]);
+}
+
+function textHasLinkedIdentifier(text, identifiers) {
+  if (identifiers.size === 0) return false;
+  return backtickIdentifiers(text).some((identifier) => identifiers.has(identifier));
+}
+
+function taskPromptSourceText(task) {
+  return [
+    task.title,
+    task.goal,
+    ...(Array.isArray(task.acceptance) ? task.acceptance : []),
+    task.implementation_notes,
+    task.test_strategy,
+  ].filter((value) => typeof value === "string" && value.trim() !== "").join(" | ");
+}
+
+function overviewSourceEntries(spec) {
+  return [
+    ["principle", "PRINCIPLE", spec.design_principles || []],
+    ["module", "MODULE", spec.overview?.modules || []],
+    ["data-flow", "DATA", spec.overview?.data_flow || []],
+    ["decision", "DECISION", spec.overview?.decisions || []],
+  ];
+}
+
+export function classifyRequirementObligation(requirement, acceptanceCriteria = []) {
+  if (!requirement || typeof requirement.desc !== "string") throw new Error("requirement.desc must be a string");
+  if (!Array.isArray(acceptanceCriteria)) throw new Error("acceptanceCriteria must be an array");
+  const text = [requirement.desc, ...acceptanceCriteria].join("\n").toLowerCase();
+  if (PRESERVATION_OBLIGATION_PHRASES.some((phrase) => text.includes(phrase))) {
+    return new RequirementObligation("preservation/non-interception");
+  }
+  const regression = REGRESSION_OBLIGATION_PHRASES.some((phrase) => text.includes(phrase));
+  const changedBehavior = CHANGED_BEHAVIOR_VERBS.some((verb) => new RegExp(`\\b${verb}\\b`).test(text));
+  return new RequirementObligation(regression && !changedBehavior ? "regression-only" : "implementation");
+}
+
+export function buildRequirementGateContext({ spec, requirement, fileMap = {}, relatedDiff = "" }) {
+  if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new Error("spec must be an object");
+  const normalizedRequirement = normalizeRequirementPromptInput(requirement);
+  if (!fileMap || typeof fileMap !== "object" || Array.isArray(fileMap)) throw new Error("fileMap must be an object");
+  if (typeof relatedDiff !== "string") throw new Error("relatedDiff must be a string");
+
+  const requirementId = normalizedRequirement.id;
+  const acceptance = (spec.acceptance_criteria || [])
+    .map((text, index) => ({ text, sourceIndex: index + 1 }))
+    .filter(({ text }) => containsRequirementId(text, requirementId));
+  const acceptanceTexts = acceptance.map(({ text }) => text);
+  const obligation = classifyRequirementObligation(normalizedRequirement, acceptanceTexts);
+  const entries = [new RequirementContextEntry({
+    section: "requirement",
+    reference: `[REQ:${requirementId}]`,
+    text: normalizedRequirement.toPromptText().replace(/^[- ]+/, ""),
+  })];
+  acceptance.forEach(({ text, sourceIndex }) => entries.push(new RequirementContextEntry({
+    section: "acceptance",
+    reference: `[AC:${sourceIndex}]`,
+    text,
+  })));
+  (spec.scope?.out || []).forEach((text, index) => entries.push(new RequirementContextEntry({
+    section: "out-of-scope",
+    reference: `[OUT:${index + 1}]`,
+    text,
+  })));
+  (spec.constraints || []).forEach((text, index) => entries.push(new RequirementContextEntry({
+    section: "constraint",
+    reference: `[CONSTRAINT:${index + 1}]`,
+    text,
+  })));
+
+  const linkedIdentifiers = new Set(backtickIdentifiers([
+    normalizedRequirement.desc,
+    ...acceptanceTexts,
+    ...(spec.scope?.out || []),
+    ...(spec.constraints || []),
+  ].join("\n")));
+  const linkedTasks = [];
+  (spec.tasks || []).forEach((task) => {
+    const text = taskPromptSourceText(task);
+    if (!containsRequirementId(text, requirementId) && !textHasLinkedIdentifier(text, linkedIdentifiers)) return;
+    linkedTasks.push({ task, text });
+    for (const identifier of backtickIdentifiers(text)) linkedIdentifiers.add(identifier);
+  });
+
+  const linkedSources = [];
+  for (const [section, label, sources] of overviewSourceEntries(spec)) {
+    sources.forEach((source, index) => {
+      const text = typeof source === "string" ? source : source?.text;
+      if (typeof text !== "string" || text.trim() === "") return;
+      if (!containsRequirementId(text, requirementId) && !textHasLinkedIdentifier(text, linkedIdentifiers)) return;
+      const reference = `[${label}:${index + 1}]`;
+      entries.push(new RequirementContextEntry({ section, reference, text }));
+      linkedSources.push({ label, index: index + 1, text });
+    });
+  }
+
+  const schemaSources = [
+    { label: "REQ", index: requirementId, text: normalizedRequirement.desc },
+    ...acceptance.map(({ text, sourceIndex }) => ({ label: "AC", index: sourceIndex, text })),
+    ...(spec.constraints || []).map((text, index) => ({ label: "CONSTRAINT", index: index + 1, text })),
+    ...linkedSources,
+    ...linkedTasks.map(({ task, text }) => ({ label: "TASK", index: task.id, text })),
+  ];
+  schemaSources.forEach((source) => {
+    if (!/\b(schema|field|contract)\b/i.test(source.text)) return;
+    backtickIdentifiers(source.text).forEach((identifier, index) => entries.push(new RequirementContextEntry({
+      section: "schema",
+      reference: `[SCHEMA:${source.label}:${source.index}:${index + 1}]`,
+      text: identifier,
+    })));
+  });
+
+  linkedTasks.forEach(({ task, text }) => entries.push(new RequirementContextEntry({
+    section: "task",
+    reference: `[TASK:${task.id}]`,
+    text,
+  })));
+
+  const mappedFiles = Array.isArray(fileMap[requirementId])
+    ? [...new Set(fileMap[requirementId].map(String))].sort()
+    : [];
+  (spec.implementationTargets || []).forEach((target, index) => {
+    if (!mappedFiles.includes(target) && !linkedIdentifiers.has(target)) return;
+    entries.push(new RequirementContextEntry({
+      section: "target",
+      reference: `[TARGET:${index + 1}]`,
+      text: target,
+    }));
+  });
+  mappedFiles.forEach((file, index) => entries.push(new RequirementContextEntry({
+    section: "file-map",
+    reference: `[FILE-MAP:${requirementId}:${index + 1}]`,
+    text: file,
+  })));
+  if (relatedDiff.trim() !== "") {
+    entries.push(new RequirementContextEntry({
+      section: "evidence",
+      reference: `[EVIDENCE:${requirementId}]`,
+      text: relatedDiff,
+    }));
+  }
+  return new RequirementGateContext({ requirementId, obligation, entries });
+}
+
 
 export class RequirementPromptExcerpt {
   constructor(requirement) {
@@ -3258,9 +3576,22 @@ function renderRequirementPromptSection(requirements) {
   return requirements.map((requirement) => normalizeRequirementPromptInput(requirement).toPromptText()).join("\n");
 }
 
+function normalizeRequirementContext(input, requirementId) {
+  if (!(input instanceof RequirementGateContext)) throw new Error("contexts must contain RequirementGateContext values");
+  if (input.requirementId !== requirementId) {
+    throw new Error(`context requirement id ${input.requirementId} does not match ${requirementId}`);
+  }
+  return input;
+}
+
+function renderRequirementContextSection(contexts) {
+  return contexts.map((context) => context.toPromptText()).join("\n\n");
+}
+
 export class RequirementGateBatch {
   constructor({
     requirements,
+    contexts = null,
     diff,
     maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS,
     usesFullSpec = false,
@@ -3286,8 +3617,18 @@ export class RequirementGateBatch {
     this.sameSpecContractContext = structuredSpec === null
       ? null
       : new SameSpecContractContext({ spec: structuredSpec, currentRequirementIds: this.requirementIds });
+    if (contexts !== null && (!Array.isArray(contexts) || contexts.length !== this.requirements.length)) {
+      throw new Error("contexts must be null or match requirements length");
+    }
+    this.contexts = contexts === null
+      ? null
+      : Object.freeze(contexts.map((context, index) => normalizeRequirementContext(context, this.requirementIds[index])));
     this.category = "requirements";
-    this.requirementPromptText = this.usesFullSpec ? this.fullSpecText : renderRequirementPromptSection(this.requirements);
+    this.requirementPromptText = this.usesFullSpec
+      ? this.fullSpecText
+      : this.contexts
+        ? renderRequirementContextSection(this.contexts)
+        : renderRequirementPromptSection(this.requirements);
     if (this.requirementPromptText.length + this.diff.length > MAX_AGENT_PROMPT_INPUT_CHARS) {
       const budget = Math.max(20000, this.maxChars - this.requirementPromptText.length);
       this.diff = summarizeDiffForPrompt(this.diff, budget);
@@ -3297,15 +3638,24 @@ export class RequirementGateBatch {
     Object.freeze(this);
   }
 
-  fitsWith(requirement) {
+  fitsWith(requirement, context = null) {
     const requirements = [...this.requirements, normalizeRequirementPromptInput(requirement)];
-    const promptCharCount = renderRequirementPromptSection(requirements).length + this.diff.length;
+    const contexts = this.contexts
+      ? [...this.contexts, normalizeRequirementContext(context, requirements.at(-1).id)]
+      : null;
+    const promptCharCount = (contexts
+      ? renderRequirementContextSection(contexts)
+      : renderRequirementPromptSection(requirements)).length + this.diff.length;
     return promptCharCount <= this.maxChars;
   }
 
-  withRequirement(requirement) {
+  withRequirement(requirement, context = null) {
+    const normalized = normalizeRequirementPromptInput(requirement);
     return new RequirementGateBatch({
-      requirements: [...this.requirements, normalizeRequirementPromptInput(requirement)],
+      requirements: [...this.requirements, normalized],
+      contexts: this.contexts
+        ? [...this.contexts, normalizeRequirementContext(context, normalized.id)]
+        : null,
       diff: this.diff,
       maxChars: this.maxChars,
       structuredSpec: this.structuredSpec,
@@ -3315,6 +3665,7 @@ export class RequirementGateBatch {
   buildPrompt() {
     return buildImplCheckPrompt({
       requirements: this.usesFullSpec ? this.fullSpecText : this.requirements,
+      contexts: this.contexts,
       diff: this.diff,
       knownIds: this.requirementIds,
       sameSpecContractContext: this.sameSpecContractContext,
@@ -3372,11 +3723,13 @@ function requirementEvaluation(reqId, result, reason) {
 
 export function buildRequirementGateBatches({
   requirements,
+  contexts = null,
   relatedDiffs,
   maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS,
   structuredSpec = null,
 }) {
   if (!Array.isArray(requirements)) throw new Error("requirements must be an array");
+  if (contexts !== null && !(contexts instanceof Map)) throw new Error("contexts must be a Map or null");
   if (!(relatedDiffs instanceof Map)) throw new Error("relatedDiffs must be a Map");
   const groups = new Map();
   for (const requirementInput of requirements) {
@@ -3391,15 +3744,28 @@ export function buildRequirementGateBatches({
     let current = null;
     for (const requirement of group) {
       if (!current) {
-        current = new RequirementGateBatch({ requirements: [requirement], diff, maxChars, structuredSpec });
+        current = new RequirementGateBatch({
+          requirements: [requirement],
+          contexts: contexts ? [contexts.get(requirement.id)] : null,
+          diff,
+          maxChars,
+          structuredSpec,
+        });
         continue;
       }
-      if (current.fitsWith(requirement)) {
-        current = current.withRequirement(requirement);
+      const context = contexts?.get(requirement.id) || null;
+      if (current.fitsWith(requirement, context)) {
+        current = current.withRequirement(requirement, context);
         continue;
       }
       batches.push(current);
-      current = new RequirementGateBatch({ requirements: [requirement], diff, maxChars, structuredSpec });
+      current = new RequirementGateBatch({
+        requirements: [requirement],
+        contexts: contexts ? [context] : null,
+        diff,
+        maxChars,
+        structuredSpec,
+      });
     }
     if (current) batches.push(current);
   }
@@ -3408,6 +3774,7 @@ export function buildRequirementGateBatches({
 
 export function planRequirementGateCalls({
   requirements,
+  contexts = null,
   relatedDiffs,
   previouslyPassed = new Set(),
   fullSpecText = "",
@@ -3417,23 +3784,22 @@ export function planRequirementGateCalls({
   structuredSpec = null,
 }) {
   const requirementExcerpts = requirements.map(normalizeRequirementPromptInput);
+  if (contexts !== null && !(contexts instanceof Map)) throw new Error("contexts must be a Map or null");
   if (relatedDiffs == null) {
     if (phase === "integration") throw new Error("file-map trust input is required for integration gate");
     return new RequirementGatePlan({
       calls: [new RequirementGateBatch({
         requirements: requirementExcerpts,
+        contexts: contexts ? requirementExcerpts.map((requirement) => contexts.get(requirement.id)) : null,
         diff: fullDiff,
         maxChars,
-        usesFullSpec: true,
+        usesFullSpec: contexts === null,
         fullSpecText,
       })],
       evaluations: [],
     });
   }
   if (!(relatedDiffs instanceof Map)) throw new Error("relatedDiffs must be a Map or null");
-  if (phase === "integration" && (!structuredSpec || typeof structuredSpec !== "object" || Array.isArray(structuredSpec))) {
-    throw new Error("structured spec is required for same-spec contract context in the integration gate");
-  }
   const previousSet = previouslyPassed instanceof Set ? previouslyPassed : new Set(previouslyPassed || []);
   const callRequirements = [];
   const evaluations = [];
@@ -3449,9 +3815,14 @@ export function planRequirementGateCalls({
     }
     callRequirements.push(requirement);
   }
+  if (phase === "integration" && callRequirements.length > 0
+    && (!structuredSpec || typeof structuredSpec !== "object" || Array.isArray(structuredSpec))) {
+    throw new Error("structured spec is required for same-spec contract context in the integration gate");
+  }
   return new RequirementGatePlan({
     calls: buildRequirementGateBatches({
       requirements: callRequirements,
+      contexts,
       relatedDiffs,
       maxChars,
       structuredSpec: phase === "integration" ? structuredSpec : null,
@@ -3465,6 +3836,7 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
     ? specTextOrOptions
     : { requirements: specTextOrOptions, diff: diffArg, knownIds: knownIdsArg };
   const requirements = options.requirements;
+  const contexts = options.contexts || null;
   const diff = options.diff || "";
   const knownIds = options.knownIds || [];
   const sameSpecContractContext = options.sameSpecContractContext || null;
@@ -3477,6 +3849,9 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
   const rules = [
     "- guardrail_id MUST be one of the requirement ids listed below.",
     "- result MUST be one of the lowercase strings: pass, fail, skip.",
+    "- Every evaluation reason MUST cite [REQ:<id>] and every additional source reference used by the reason.",
+    "- A finding cannot require a field, outcome, rejection rule, or behavior absent from the rendered authoritative context.",
+    "- Return FAIL when authoritative context requires changed behavior, an integration, or an exact field and mapped implementation evidence omits or contradicts it.",
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
     ...(sameSpecContractContext ? [
       "- Assess preservation against the explicit same-spec current contract, not legacy behavior that it replaces, retires, or invalidates.",
@@ -3493,7 +3868,9 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
   pb.setFmtFallback(exactIdFallback(IMPL_REQUIREMENT_FMT_FALLBACK, "<id>", knownIds));
 
   pb.addUserPrompt("## Requirement IDs", knownIds.map((id) => `- ${id}`).join("\n"));
-  if (Array.isArray(requirements)) {
+  if (Array.isArray(contexts)) {
+    pb.addUserPrompt("## Requirement Contexts", renderRequirementContextSection(contexts));
+  } else if (Array.isArray(requirements)) {
     pb.addUserPrompt("## Requirements", renderRequirementPromptSection(requirements));
   } else {
     pb.addUserPrompt("## Spec", requirements || "");
@@ -4211,6 +4588,15 @@ export class RunGateCommand extends FlowCommand {
       const perFileDiffs = collectPerFileDiffsForGate(committed, uncommitted, untracked);
       perReqDiffs = buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, diff);
     }
+    const requirementContexts = new Map(requirements.map((requirement) => [
+      requirement.id,
+      buildRequirementGateContext({
+        spec: parentSpecForRationale,
+        requirement,
+        fileMap,
+        relatedDiff: perReqDiffs?.get(requirement.id) ?? diff,
+      }),
+    ]));
 
     let reqEvaluations;
     const previousResult = findPreviousPassedGuardrails({
@@ -4221,6 +4607,7 @@ export class RunGateCommand extends FlowCommand {
 
     const requirementPlan = planRequirementGateCalls({
       requirements,
+      contexts: requirementContexts,
       relatedDiffs: perReqDiffs,
       previouslyPassed: new Set(previousResult?.passedGuardrails || []),
       fullSpecText: specText,

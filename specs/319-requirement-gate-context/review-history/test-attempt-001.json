@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-12T22:07:13.727Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 5,
+    "advisory": 1,
+    "total": 6
+  },
+  "coverageArtifact": "specs/319-requirement-gate-context/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 source-reference assertions are not executable as written",
+      "target": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js R2 test",
+      "issue": "The test builds each expected-reference regex with `ref.replace(/[\\[\\]]/g, \"\\\\{{PROMPT}}\")`, which creates a pattern for a placeholder string rather than escaped square brackets. It will not correctly assert references like `[REQ:R1]` and may fail before exercising production context selection.",
+      "requiredChange": "Replace the placeholder escaping with a valid literal-reference matcher, for example by escaping regex metacharacters or using string inclusion checks for each expected reference.",
+      "whyBlocking": "A test that is not executable or cannot exercise the intended production behavior is a concrete static anti-pattern.",
+      "origin": "R2",
+      "failureKind": "static-anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 constructor coverage omits immutability and required rejection cases",
+      "target": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js R1 test",
+      "issue": "The R1 test checks a few empty/unknown values but does not test that RequirementContextEntry, RequirementGateContext, and RequirementObligation are immutable, does not cover constructor rejection of non-positive caps, and does not cover rejection of non-deterministic input collections.",
+      "requiredChange": "Add spec-local assertions for immutability of all three value types and for the missing constructor rejection cases: non-positive caps and non-deterministic input collections.",
+      "whyBlocking": "R1 explicitly requires these behaviors, and the coverage artifact marks R1 covered even though those required cases have no corresponding test coverage.",
+      "origin": "R1",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 batch-limit and cache mechanism coverage is missing",
+      "target": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js R4 test",
+      "issue": "The R4 test verifies byte-identical prompts and the 900000-character ceiling, but it does not verify that rendered requirement context plus mapped diff count toward the unchanged 120000-character RequirementGateBatch limit, nor that the existing agent cache mechanism uses the same cache identity.",
+      "requiredChange": "Add coverage that constructs enough rendered context and mapped diff to exercise the 120000-character batch accounting, and verify the existing cache path/key behavior for identical spec, file-map, diff, and task state.",
+      "whyBlocking": "R4 contains explicit acceptance requirements with no corresponding spec-local regression coverage, while the coverage artifact reports R4 as covered.",
+      "origin": "R4",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R9 unchanged behavior coverage is too narrow",
+      "target": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js R9 test",
+      "issue": "The R9 test only checks parseImplRequirementEvaluation output shape. It does not cover unchanged semantic PASS/FAIL counter transitions, retry memory, agent cache mechanism, persisted impl-gate-result schema, task/integration routing, no-related-diff behavior, or file-map reconciliation behavior.",
+      "requiredChange": "Add focused regression coverage for the listed unchanged R9 behaviors, or split them into existing shared tests that are actually referenced by this spec-local suite.",
+      "whyBlocking": "R9 is a preservation requirement for multiple existing behaviors, and most of those behaviors have no corresponding test coverage despite the artifact marking R9 covered.",
+      "origin": "R9",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R10 guard mismatch immutability is not tested",
+      "target": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js R10 test",
+      "issue": "The R10 test inspects `FlowCommand.prototype.run.toString()` and only checks that `targetMismatchEnvelopeForInput` appears before `execute(ctx)`. It does not exercise mismatched run, Issue, or spec guards, does not assert ACTIVE_FLOW_MISMATCH, does not prove spec/context/file-map construction is skipped, and does not verify zero agent/cache access, byte-identical artifacts, or no state mutation.",
+      "requiredChange": "Replace or supplement the source-order assertion with executable guard-mismatch tests for run, Issue, and spec mismatches that assert ACTIVE_FLOW_MISMATCH, unchanged state/artifacts, and zero agent stub invocations before any spec/context/file-map work.",
+      "whyBlocking": "R10’s required guard behavior and immutability guarantees have no real regression coverage, and the current source-string assertion could pass without exercising production behavior.",
+      "origin": "R10",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Boundary cases for exact ID matching could be clearer",
+      "target": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js R2 test",
+      "improvement": "Add a nearby non-match such as `R11` or `XR1` acceptance/source text to prove exact-boundary matching does not accidentally include partial IDs.",
+      "whyNonBlocking": "The current R2 test has some unrelated R10 exclusion coverage, so this is a useful precision improvement rather than a separate blocker."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/319-requirement-gate-context/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 5,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "6887e516109bc47d96dd35afdce65aa4c3efda006c95c84f8c410c11c3892d93"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 source-reference assertions are not executable as written",
+      "body": "The test builds each expected-reference regex with `ref.replace(/[\\[\\]]/g, \"\\\\{{PROMPT}}\")`, which creates a pattern for a placeholder string rather than escaped square brackets. It will not correctly assert references like `[REQ:R1]` and may fail before exercising production context selection.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 constructor coverage omits immutability and required rejection cases",
+      "body": "The R1 test checks a few empty/unknown values but does not test that RequirementContextEntry, RequirementGateContext, and RequirementObligation are immutable, does not cover constructor rejection of non-positive caps, and does not cover rejection of non-deterministic input collections.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R4 batch-limit and cache mechanism coverage is missing",
+      "body": "The R4 test verifies byte-identical prompts and the 900000-character ceiling, but it does not verify that rendered requirement context plus mapped diff count toward the unchanged 120000-character RequirementGateBatch limit, nor that the existing agent cache mechanism uses the same cache identity.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R9 unchanged behavior coverage is too narrow",
+      "body": "The R9 test only checks parseImplRequirementEvaluation output shape. It does not cover unchanged semantic PASS/FAIL counter transitions, retry memory, agent cache mechanism, persisted impl-gate-result schema, task/integration routing, no-related-diff behavior, or file-map reconciliation behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R10 guard mismatch immutability is not tested",
+      "body": "The R10 test inspects `FlowCommand.prototype.run.toString()` and only checks that `targetMismatchEnvelopeForInput` appears before `execute(ctx)`. It does not exercise mismatched run, Issue, or spec guards, does not assert ACTIVE_FLOW_MISMATCH, does not prove spec/context/file-map construction is skipped, and does not verify zero agent/cache access, byte-identical artifacts, or no state mutation.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Boundary cases for exact ID matching could be clearer",
+      "body": "Boundary cases for exact ID matching could be clearer",
+      "category": "unknown"
+    }
+  ]
+}

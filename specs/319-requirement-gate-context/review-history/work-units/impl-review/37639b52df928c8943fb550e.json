@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "37639b52df928c8943fb550e",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-d87fc5b98b1d4f70",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/draft-gate-source.json",
+      "specs/319-requirement-gate-context/draft-review-questions.json",
+      "specs/319-requirement-gate-context/flow.json",
+      "specs/319-requirement-gate-context/issue.md",
+      "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+      "specs/319-requirement-gate-context/scenario-validity-result.json",
+      "specs/319-requirement-gate-context/spec.json",
+      "specs/319-requirement-gate-context/tasks/T-1.md",
+      "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+      "tests/e2e/flow/gate-impl-integration.test.js"
+    ],
+    "inputHash": "d87fc5b98b1d4f70302cea1f39fa31a4abc0473c53add16c845a736e4a9c579a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "37639b52df928c8943fb550e"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/draft-gate-source.json",
+    "specs/319-requirement-gate-context/draft-review-questions.json",
+    "specs/319-requirement-gate-context/flow.json",
+    "specs/319-requirement-gate-context/issue.md",
+    "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+    "specs/319-requirement-gate-context/scenario-validity-result.json",
+    "specs/319-requirement-gate-context/spec.json",
+    "specs/319-requirement-gate-context/tasks/T-1.md",
+    "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+    "tests/e2e/flow/gate-impl-integration.test.js"
+  ],
+  "inputHash": "d87fc5b98b1d4f70302cea1f39fa31a4abc0473c53add16c845a736e4a9c579a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T22:34:05.962Z",
+  "finishedAt": "2026-07-12T22:34:05.962Z",
+  "rawResponse": "### 1. Normalize Spec Lifecycle Statuses\n**File:** `specs/319-requirement-gate-context/spec.json`\n**Issue:** Lifecycle state is inconsistent across `spec.json`, `spec.md`, and task artifacts: requirements are `\"done\"`, the task is `\"pending\"`, and markdown says `Draft`. This makes it unclear whether status refers to specification, approval, implementation, or validation.\n**Suggestion:** Define one lifecycle vocabulary and apply it consistently across generated JSON, Markdown, and task files. If different layers need separate statuses, use explicit names like `documentStatus`, `requirementStatus`, and `taskStatus`.\n\n### 2. Establish One Canonical Spec Source\n**File:** `specs/319-requirement-gate-context/spec.md`\n**Issue:** Multiple files duplicate or restate the same requirement content: `spec.md` mirrors `spec.json`, `tasks/T-1.md` restates R1-R11 acceptance details, and generated review artifacts refer back to overlapping draft/spec content. This creates cross-file drift risk.\n**Suggestion:** Make `spec.json` the canonical machine-readable source and generate `spec.md` and task acceptance text from it, or reduce secondary artifacts to stable references such as requirement IDs.\n\n### 3. Centralize Observation And Guardrail Failure Data\n**File:** `specs/319-requirement-gate-context/issue-log.json`\n**Issue:** Observation/failure payloads are duplicated across `draft-gate-source.json` and `issue-log.json`, including repeated failure text in fields like `reason`, `observations[].observed`, and `failedEvaluations[].reason`. The same conceptual violation appears in multiple shapes.\n**Suggestion:** Introduce stable observation IDs and have evaluations, issue-log entries, and draft-gate artifacts reference those IDs instead of repeating full payloads.\n\n### 4. Use Consistent Artifact Reference Naming\n**File:** `specs/319-requirement-gate-context/draft-questions-repair.json`\n**Issue:** Artifact references use ambiguous or inconsistent naming across draft/review files, such as `sourceTriage` pointing to `draft-questions-triage.json` while related artifacts are named `draft-questions-repair.json` and `draft-gate-source.json`.\n**Suggestion:** Standardize artifact reference fields, for example `sourceArtifactFile`, `triageArtifactFile`, and `gateSourceFile`, and ensure values match the actual upstream artifact.\n\n### 5. Align Prompt Capture Naming Across Test Fixtures\n**File:** `tests/e2e/flow/gate-impl-integration.test.js`\n**Issue:** `capturePrompt`/`capturePath` in the e2e fixture and gate-context focused tests refer to gate prompt behavior, but the generic names could conflict with future captured artifacts and differ from the more specific gate terminology used elsewhere.\n**Suggestion:** Rename fixture options and returned values to `captureGatePrompt` and `gatePromptCapturePath`, then use the same names in related gate-context tests/helpers.\n\n### 6. Share Fixture Construction Across Gate Tests\n**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`\n**Issue:** Both the spec-local gate-context tests and e2e gate integration tests construct similar spec/task fixtures manually. This duplicates schema assumptions across files and increases maintenance cost when spec/task shape changes.\n**Suggestion:** Extract shared fixture builders, or at minimum align local helper names and shapes such as `fixtureTask()` and `minimalSpecJson()` so test data evolves consistently.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Spec Lifecycle Statuses",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.json`\n**Issue:** Lifecycle state is inconsistent across `spec.json`, `spec.md`, and task artifacts: requirements are `\"done\"`, the task is `\"pending\"`, and markdown says `Draft`. This makes it unclear whether status refers to specification, approval, implementation, or validation.\n**Suggestion:** Define one lifecycle vocabulary and apply it consistently across generated JSON, Markdown, and task files. If different layers need separate statuses, use explicit names like `documentStatus`, `requirementStatus`, and `taskStatus`.",
+        "file": "specs/319-requirement-gate-context/spec.json"
+      },
+      {
+        "title": "2. Establish One Canonical Spec Source",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.md`\n**Issue:** Multiple files duplicate or restate the same requirement content: `spec.md` mirrors `spec.json`, `tasks/T-1.md` restates R1-R11 acceptance details, and generated review artifacts refer back to overlapping draft/spec content. This creates cross-file drift risk.\n**Suggestion:** Make `spec.json` the canonical machine-readable source and generate `spec.md` and task acceptance text from it, or reduce secondary artifacts to stable references such as requirement IDs.",
+        "file": "specs/319-requirement-gate-context/spec.md"
+      },
+      {
+        "title": "3. Centralize Observation And Guardrail Failure Data",
+        "body": "**File:** `specs/319-requirement-gate-context/issue-log.json`\n**Issue:** Observation/failure payloads are duplicated across `draft-gate-source.json` and `issue-log.json`, including repeated failure text in fields like `reason`, `observations[].observed`, and `failedEvaluations[].reason`. The same conceptual violation appears in multiple shapes.\n**Suggestion:** Introduce stable observation IDs and have evaluations, issue-log entries, and draft-gate artifacts reference those IDs instead of repeating full payloads.",
+        "file": "specs/319-requirement-gate-context/issue-log.json"
+      },
+      {
+        "title": "4. Use Consistent Artifact Reference Naming",
+        "body": "**File:** `specs/319-requirement-gate-context/draft-questions-repair.json`\n**Issue:** Artifact references use ambiguous or inconsistent naming across draft/review files, such as `sourceTriage` pointing to `draft-questions-triage.json` while related artifacts are named `draft-questions-repair.json` and `draft-gate-source.json`.\n**Suggestion:** Standardize artifact reference fields, for example `sourceArtifactFile`, `triageArtifactFile`, and `gateSourceFile`, and ensure values match the actual upstream artifact.",
+        "file": "specs/319-requirement-gate-context/draft-questions-repair.json"
+      },
+      {
+        "title": "5. Align Prompt Capture Naming Across Test Fixtures",
+        "body": "**File:** `tests/e2e/flow/gate-impl-integration.test.js`\n**Issue:** `capturePrompt`/`capturePath` in the e2e fixture and gate-context focused tests refer to gate prompt behavior, but the generic names could conflict with future captured artifacts and differ from the more specific gate terminology used elsewhere.\n**Suggestion:** Rename fixture options and returned values to `captureGatePrompt` and `gatePromptCapturePath`, then use the same names in related gate-context tests/helpers.",
+        "file": "tests/e2e/flow/gate-impl-integration.test.js"
+      },
+      {
+        "title": "6. Share Fixture Construction Across Gate Tests",
+        "body": "**File:** `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`\n**Issue:** Both the spec-local gate-context tests and e2e gate integration tests construct similar spec/task fixtures manually. This duplicates schema assumptions across files and increases maintenance cost when spec/task shape changes.\n**Suggestion:** Extract shared fixture builders, or at minimum align local helper names and shapes such as `fixtureTask()` and `minimalSpecJson()` so test data evolves consistently.",
+        "file": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js"
+      }
+    ]
+  }
+}

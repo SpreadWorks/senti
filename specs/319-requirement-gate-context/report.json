@@ -1,0 +1,1077 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |   46 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/319-requirement-gate-context/draft.json      |   75 ++\n specs/319-requirement-gate-context/file-map.json   |   59 +\n .../flow-findings.json                             |   38 +\n specs/319-requirement-gate-context/flow.json       | 1152 ++++++++++++++++++++\n specs/319-requirement-gate-context/issue-log.json  |  282 +++++\n specs/319-requirement-gate-context/issue.md        |  188 ++++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/spec-attempt-001.json           |   16 +\n .../review-history/spec-attempt-001.md             |   11 +\n .../review-history/test-attempt-001.json           |  148 +++\n .../review-history/test-attempt-001.md             |   45 +\n .../review-history/test-attempt-002.json           |  110 ++\n .../review-history/test-attempt-002.md             |   36 +\n .../review-history/test-attempt-003.json           |   90 ++\n .../review-history/test-attempt-003.md             |   30 +\n .../review-history/test-attempt-004.json           |   70 ++\n .../review-history/test-attempt-004.md             |   24 +\n .../review-history/test-attempt-005.json           |  108 ++\n .../review-history/test-attempt-005.md             |   33 +\n .../impl-review/018870d7c819e46bcb116c71.json      |   64 ++\n .../impl-review/0bdf3b707356690edf741e13.json      |   38 +\n .../impl-review/11401db1d0226f1231be2ae2.json      |   59 +\n .../impl-review/2802ea34b3003a0b446168d0.json      |   69 ++\n .../impl-review/37639b52df928c8943fb550e.json      |   85 ++\n .../impl-review/427dfbd203456f4fae825b67.json      |   44 +\n .../impl-review/562c706852c82bb0fcee42e9.json      |   57 +\n .../impl-review/591b4feebb7073ebc2e7b66d.json      |   38 +\n .../impl-review/59fa3a31c681356961cc7bdf.json      |   49 +\n .../impl-review/635b54e59ef6bd709a49df1c.json      |   38 +\n .../impl-review/68c8724c88dc3077b9eb2525.json      |   80 ++\n .../impl-review/75f4871091a34c2fc78b9a8b.json      |   49 +\n .../impl-review/7e5d5fb7ab4d2a3c8c35d417.json      |   80 ++\n .../impl-review/81371a5f1c9b299fd850f568.json      |   80 ++\n .../impl-review/a3a9b06f11a6e12d9b02c066.json      |   85 ++\n .../impl-review/bd3798396b2128f722503801.json      |   49 +\n .../impl-review/c43a47f76d207c075c9f3648.json      |   59 +\n .../impl-review/d7e860f04f301bf9cac6a177.json      |   46 +\n .../impl-review/ef8dc0799dc0cb3c7083f668.json      |   85 ++\n .../scenario-validity-result.json                  |  158 +++\n .../319-requirement-gate-context/spec-review.json  |   13 +\n specs/319-requirement-gate-context/spec-review.md  |   11 +\n specs/319-requirement-gate-context/spec.json       |  252 +++++\n specs/319-requirement-gate-context/spec.md         |  121 ++\n specs/319-requirement-gate-context/tasks/T-1.md    |   21 +\n .../test-coverage.json                             |  141 +++\n .../test-execute-result.json                       |  215 ++++\n .../test-result-review.json                        |   33 +\n .../test-result-review.md                          |   12 +\n .../319-requirement-gate-context/test-review.json  |   67 ++\n specs/319-requirement-gate-context/test-review.md  |   33 +\n .../tests/.raw/scenario-validity.log               |  292 +++++\n .../tests/.raw/test-execution.log                  |  202 ++++\n .../tests/requirement-gate-context.test.js         |  675 ++++++++++++\n src/flow/lib/run-gate.js                           |  409 ++++++-\n tests/e2e/flow/gate-impl-integration.test.js       |   56 +\n tests/unit/flow/gate-requirement-context.test.js   |   85 ++\n 65 files changed, 6592 insertions(+), 11 deletions(-)",
+      "commits": [
+        "WIP: checkpoint Issue 436 before main integration",
+        "Add requirement gate context specification"
+      ]
+    },
+    "retro": {
+      "total": 11,
+      "done": 11,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Create immutable RequirementContextEntry, RequirementGateContext, and RequirementObligation values in run-gate.js; constructors reject empty references/text, unknown source or obligation kinds, non-positive caps, and non-deterministic input collections, and each value owns its prompt rendering.",
+          "status": "done",
+          "note": "R1: context value classes enforce invariants and own rendering"
+        },
+        {
+          "desc": "Build one RequirementGateContext per evaluated requirement with [REQ:<id>] full text; up to 12 exact-boundary-ID matching ACs; the first 12 global Out of Scope and constraint entries in source order; up to 12 exact-ID or exact backtick-identifier-linked principles, modules, data-flow, decisions, tasks, and implementationTargets; [SCHEMA:<source-ref>:<n>] entries for exact backtick identifiers in linked text containing schema, field, or contract; and direct file-map ownership plus mapped diff evidence.",
+          "status": "done",
+          "note": "R2: context selects global and exact-linked authoritative sources"
+        },
+        {
+          "desc": "Render context in fixed section order, preserve spec-array source order, sort file-map paths lexically, cap each section at 12 items, each item at 1000 characters, and each requirement context at 24000 characters, truncating only at deterministic character or whole-entry boundaries with [CONTEXT:TRUNCATED].",
+          "status": "done",
+          "note": "R3: context bounds and ordering are deterministic"
+        },
+        {
+          "desc": "Count rendered requirement context and mapped diff toward the unchanged 120000-character RequirementGateBatch limit and unchanged 900000-character agent input limit; identical spec, file-map, diff, and task state must produce byte-identical prompts and therefore the same existing cache key.",
+          "status": "done",
+          "note": "R4: identical input produces identical prompt bytes and cache identity"
+        },
+        {
+          "desc": "Assign obligation kind deterministically from lowercased requirement text plus matched ACs: preservation/non-interception wins for preservation, non-interception, non-interference, remain unchanged, retain existing, or byte-identical phrases; regression-only applies for regression-only, no regression, or continue existing behavior when none of add, create, change, introduce, implement, return, write, set, support, reject, or require is present; every other requirement is implementation.",
+          "status": "done",
+          "note": "R5: obligation classification covers implementation, regression, preservation, and non-interception"
+        },
+        {
+          "desc": "Prompt instructions for regression-only and preservation/non-interception obligations must evaluate cited regression evidence and non-interference only, must not demand reimplementation of delegated existing behavior, and must return FAIL when required regression evidence is absent or mapped changes intercept, remove, or contradict preserved behavior.",
+          "status": "done",
+          "note": "R6: Issue #432 R6 prompt evaluates preservation evidence without reimplementation"
+        },
+        {
+          "desc": "Prompt instructions must prohibit findings that require a field, outcome, rejection rule, or behavior absent from the rendered authoritative context; safe canonical path a/../x and exact schema fields must be evaluated from cited source text, and mergeOutcome must not be required when no rendered source defines it.",
+          "status": "done",
+          "note": "R7: Issue #434 R7 prompt accepts cited safe canonical paths and exact schema fields"
+        },
+        {
+          "desc": "Prompt instructions must require every evaluation reason to cite [REQ:<id>] and every additional source reference used, and must return semantic FAIL when cited context requires changed behavior, an integration, an exact field, preservation, or regression evidence that mapped implementation/test evidence omits or contradicts.",
+          "status": "done",
+          "note": "R8: implementation prompt requires stable citations and real missing-behavior FAIL"
+        },
+        {
+          "desc": "Keep parseImplRequirementEvaluation output fields, semantic PASS/FAIL counter transitions, retry memory, agent cache mechanism, persisted impl-gate-result schema, task/integration routing, no-related-diff behavior, and file-map reconciliation behavior unchanged.",
+          "status": "done",
+          "note": "R9: implementation evaluation result schema remains unchanged"
+        },
+        {
+          "desc": "For mismatched run, Issue, or spec guards, return ACTIVE_FLOW_MISMATCH before spec/context/file-map construction, agent or cache access, and state or artifact mutation; flow state and spec artifacts must remain byte-identical and the agent stub invocation count must remain zero.",
+          "status": "done",
+          "note": "R10: target guard remains before command-specific context construction"
+        },
+        {
+          "desc": "Add spec-local tests beginning with // spec: R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 and shared unit/end-to-end coverage for source selection, bounds, ordering, citations, all three obligation kinds, Issue #432 R6 PASS/FAIL, Issue #434 R7 PASS, missing changed behavior FAIL, guard mismatch immutability, counters, cache/result shape, and routing.",
+          "status": "done",
+          "note": "R11: real RunGateCommand path covers Issue #432, Issue #434, and missing behavior"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 20,
+      "fullLogPath": "specs/319-requirement-gate-context/issue-log.json",
+      "importantTotal": 8,
+      "importantShown": 8,
+      "importantOmitted": 0,
+      "recentOtherTotal": 12,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 7,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate found nine ambiguous requirement phrases without measurable linkage or resource conditions.",
+          "resolution": "Rewrote every matching phrase with explicit source-link rules, byte-equality cases, named negative cases, and 120000/900000 character limits."
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Spec-local tests used static named imports for not-yet-implemented exports, causing module-load failure and invalid_test classification for every requirement.",
+          "resolution": "Changed to a namespace import so each R-prefixed test executes and fails on its own missing API or behavior before implementation."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review found five blocking gaps in reference matching, value invariants, batch/cache accounting, preserved gate contracts, and executable target-guard coverage.",
+          "resolution": "Replaced regex construction with literal inclusion, added immutability and constructor bounds, exercised RequirementGateBatch and Agent cache keys, covered counters/result/routing/file-map memory, and executed three target mismatch guard..."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Second static test review found semantic Issue #432/#434 and missing-behavior fixtures only matched prompt text, and the agent input assertion did not cross 900000 characters.",
+          "resolution": "Added prompt-aware stub evaluation through RequirementGateBatch and parseImplRequirementEvaluation for PASS/FAIL contrasts, plus an oversized unified diff that exercises agent-input compaction."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "Requirement gate prerequisites reported stale spec-local failures after the base integration.",
+          "resolution": "Use an explicit MUST NOT reimplementation contract, cite the mapped Git Diff from the evidence marker without embedding duplicate diff bytes, and require structured spec context only when an integration batch is actually planned."
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "R2 requires each RequirementGateContext to include mapped diff evidence, but buildRequirementGateContext now renders [EVIDENCE:<id>] as only \"Mapped implementation evidence is provided in ## Git Diff.\" rather than the mapped diff content...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: integration gate attempt 1 reported R2 evidence omission, R3 marker mismatch, and incomplete R6 regression-only failure conditions.",
+          "resolution": "Restore direct mapped diff bytes in EVIDENCE, use [CONTEXT:TRUNCATED] for item and context truncation, and require FAIL for intercept/remove/contradict in regression-only. Keep the R8 fixture internally consistent by using the same mappe..."
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "final-regression failed: dependency_failure",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "Current flow schema added report leaf after this run state was created",
+          "resolution": "Inserted one pending report leaf before finalize through spec-bound FlowManager mutate with stepIdMigration validation and atomic readback"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "R11 real CLI fixture became invalid after integrating the current nested flow-state schema authority.",
+          "resolution": "Initialize the fixture with buildInitialSteps() and retain all four real CLI cases plus their target guard, requirement context, output schema, prompt citation, and gate metric assertions."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Implementation mostly builds per-requirement context with [REQ], matching ACs, global Out of Scope/constraints, linked sources, file-map entries, and direct [EVIDENCE] diff bytes. However implementationTargets are linked with plain subst...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: integration gate attempt 2 reported substring matching for R2 implementationTargets.",
+          "resolution": "Require exact file-map ownership or exact membership in the collected backtick identifier set, and add a partial-path target fixture that must not render."
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "Acceptance review could not classify deferred test-review findings because their formal evidence references were absent.",
+          "resolution": "Added acceptance-review-evidence.json marking each original finding fixed and linking it to the unchanged source finding, repaired spec-local assertion, v2 test result, 12/12 raw PASS, retro result, and impl-gate PASS."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 15
+    },
+    "tokenMetrics": {
+      "input": 456829,
+      "output": 24849,
+      "cacheRead": 709376,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 36,
+      "durationMs": 648770,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 5937
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 5837
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 51195
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 102934
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 13937
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 124234
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 344696
+        }
+      ]
+    },
+    "tests": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/319-requirement-gate-context/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "2557f43f5b9b29f3554174cb5fafad1cee039f17316ed13a164fd4148efd2a2a"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "fingerprint": "f2c88044e248f0c9a34d5e57c4b189d7154985419357d14578b9011d49c49bf6"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "fingerprint": "d8c8283faf534f13535d978077c665cb4cef163487d88cc5674e9bfad604b3cb"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "2557f43f5b9b29f3554174cb5fafad1cee039f17316ed13a164fd4148efd2a2a"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "fingerprint": "f2c88044e248f0c9a34d5e57c4b189d7154985419357d14578b9011d49c49bf6"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "fingerprint": "d8c8283faf534f13535d978077c665cb4cef163487d88cc5674e9bfad604b3cb"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "dependency_failure",
+        "failureCategory": "dependency",
+        "failureNature": "execution",
+        "skipKind": null,
+        "rawOutputPath": "specs/319-requirement-gate-context/tests/.raw/final-regression-attempt-001.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 1,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 1,
+        "failureSummary": "TAP version 13\n# Subtest: T-1: entry enforcement (guardrail + prompts + spec gate tasks check)\n    # Subtest: guardrail.json includes task-single-responsibility with phase=[spec, task-spec]\n    ok 1 - guardrail.json includes task-single-responsibility with phase=[spec, task-spec]\n      ---\n      duration_ms: 1.854489\n      type: 'test'\n      ...",
+        "currentDiffRelationship": "non-current-diff",
+        "changedFiles": [
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/acceptance-review-evidence.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/acceptance-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/draft-coverage-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/draft-coverage-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/draft-gate-source.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/draft-questions-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/draft-questions-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/draft-review-coverage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/draft-review-questions.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/draft.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/file-map.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/flow-findings.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/flow-findings.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/impl-gate-result.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/impl-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/issue.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/plugin-artifacts/workflow/prepare.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/retro.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/draft-coverage-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/draft-questions-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review-history/impl-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review-history/impl-attempt-001.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review-history/impl-attempt-002.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review-history/impl-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/spec-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/spec-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-003.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-003.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-004.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-004.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-005.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-005.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/37639b52df928c8943fb550e.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/68c8724c88dc3077b9eb2525.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/7e5d5fb7ab4d2a3c8c35d417.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/81371a5f1c9b299fd850f568.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/a3a9b06f11a6e12d9b02c066.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/aa15e94c66b90d26b64fe5f3.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/ef8dc0799dc0cb3c7083f668.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/319-requirement-gate-context/review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/scenario-validity-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/spec-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/spec-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/spec.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/spec.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/tasks/T-1.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/test-coverage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/test-execute-result.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/test-execute-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/test-result-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/test-result-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/test-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/test-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/tests/.raw/scenario-validity.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/tests/.raw/test-execution.log"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/tests/.raw/test-execution.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/gate-impl-integration.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/gate-requirement-context.test.js"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": "specs/319-requirement-gate-context/acceptance-review-evidence.json",
+            "fingerprint": "850797e512c0a177cf7491b8346d9753fc0807336c9745691eba8427c843e8ef"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/acceptance-review.json",
+            "fingerprint": "5590df99aca4ce68116b26a48e719187469c78b2369f54df0814c1152ccab651"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/draft-coverage-repair.json",
+            "fingerprint": "522fb181bc8a459d29f0a434086705377261b566942efc7e1eff5ad8be36dbdb"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/draft-coverage-triage.json",
+            "fingerprint": "9e11d711dc38989ae52de4bfa47d91b55c793b7c10fc5dbd76f19387aa390d94"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/draft-gate-source.json",
+            "fingerprint": "87859ed6636ef08f1d506d72b9287d2a4ba36e45f13ba759fa44e4ebe01ca542"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/draft-questions-repair.json",
+            "fingerprint": "36500681fee0064505818b9c6bbb77b1f6def180ccab0ac558964fc7d0dd7313"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/draft-questions-triage.json",
+            "fingerprint": "4565879693a627f039169b96a2d9d4cc15a192264977120c98422147b4c09d27"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/draft-review-coverage.json",
+            "fingerprint": "f033eafbbc0f12e5ba4580baf65a915407784e6732d25f793e475a6b6494a4ef"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/draft-review-questions.json",
+            "fingerprint": "9fd8bae88ef7116e0ebcfb5a9a2b7b5b1973ff81633e6d02a62f06265836f138"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/draft.json",
+            "fingerprint": "d3f3bdc4fad7c9931d2ff14615bd6bd8188e7b03599ac016c35a6eb6ce42a988"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/file-map.json",
+            "fingerprint": "0fdce975a63da194b0f1f9390acfbe75d08c29e454b9129e96f566db8f21dbfc"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/flow-findings.json",
+            "fingerprint": "94a210d08767386db9f4240df6476111dfc24f73bc506adc40131c68cd5bd9f8"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/flow-findings.json",
+            "fingerprint": "94a210d08767386db9f4240df6476111dfc24f73bc506adc40131c68cd5bd9f8"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/impl-gate-result.json",
+            "fingerprint": "e135d1845dcaf62904360e423eb6b1716e16e34c626644b02a9fbe9071bdd82c"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/impl-review.json",
+            "fingerprint": "488258ad4b5be103f50960ba8e95731bfc7a8f755ca120cd1d9fa037be3e9f16"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/issue.md",
+            "fingerprint": "189db2e665717e2765b150bfbdaf724ccb3a87a79e8e99dfafabf625819b185c"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "2eaa26a65e2f4cc3374ca6ce9ac0e4f9f3da724358945254de940638ef5d7e9a"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/retro.json",
+            "fingerprint": "dd63babaea3da7003ebe84ac541cf9792847c2982433565b5d42d94306150628"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "064dc2ae8d9ece842a8775ebc398dec003e351b7cce19d38fab82bc1388c7cc2"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "8e16885d82d4a990f8b515491f023d0eee9dce01615264ea3f7e8092d9ac44bb"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/impl-attempt-001.json",
+            "fingerprint": "ce82300e8c693fc77946790b89d43ee37db250c6198aefa2d5c8293d17a3abab"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/impl-attempt-001.md",
+            "fingerprint": "62d63835858f1467ece79a7c3cbe25ec5f410798a21c50dc3854e0c0385d373b"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/impl-attempt-002.json",
+            "fingerprint": "99d4c45be81504c0bef238e89d353d83704fcca04dee09c48b0404165a4f14fa"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/impl-attempt-002.md",
+            "fingerprint": "d33e9009f55799ec12820ba3bc7f54f1f551a4a390820173e791c44cce2c40d4"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+            "fingerprint": "056f39ea595ef3a6d37ee581152f5e8374ee83bd43f32a44b442f56f1210c103"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-001.json",
+            "fingerprint": "21af7683e1e401479d021d83b533fd03a93badc8cf1f39ec134cbfeb551aca28"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-001.md",
+            "fingerprint": "5f4a148dba127a7cb1c6bae8946c9df06f8d478912c1efda94a7be1da203e598"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-002.json",
+            "fingerprint": "642c480423506528f88b77a99a5a9ea96e99e4b3da37e4aab4844d46fb6d89d4"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-002.md",
+            "fingerprint": "85506cfb27b3b13756122465fffd26f70e5ec686af95b8818bdd7b7da86d90f1"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-003.json",
+            "fingerprint": "2aa84d60379aad318830b8b8316cf9c5bf95df8b12245ffd8d45654d51d571e7"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-003.md",
+            "fingerprint": "d74e0c04b42d4a957efc0bef15e85b4d92b2296c0922df0c01f147e3192f27ca"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-004.json",
+            "fingerprint": "4c288b58dee8c1b8abf3ec59cc80eb2155243d644536dd7f952a8b60656076b7"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-004.md",
+            "fingerprint": "b34e1084ac24f83f23f1c9962b203baac30be76b47d6fb4091c7b0da356e1871"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-005.json",
+            "fingerprint": "26da8332f9c0f6c95817e5438d7ed6bc978f067118171b955c4fc091982f411d"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/test-attempt-005.md",
+            "fingerprint": "0fd2c0d9b78e007b6269b01b5d960d4e263b1607810d9891187c2067946539f7"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "12506d7d9b26347e4787482c1cc7e7870ec83fcc227fd65865fa97e4fa5c5d15"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "12506d7d9b26347e4787482c1cc7e7870ec83fcc227fd65865fa97e4fa5c5d15"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "1a40ca9a641df6cc173662513a97a412e9fe4c390445f1ed092f1b2a6a5d1643"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "1a40ca9a641df6cc173662513a97a412e9fe4c390445f1ed092f1b2a6a5d1643"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+            "fingerprint": "ccb5a444496d8eaa0f1bf8c5bb72c1a03db03ddad364ca51679027ccd32c6e60"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "62300f0c3bbff190eaaae18976d7c0c78f8325f00b55438d2ed9be2a4229f870"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "62300f0c3bbff190eaaae18976d7c0c78f8325f00b55438d2ed9be2a4229f870"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "cb32f8e0f01a99861f722222413c8d49574ab367e29f072ec02b311e48eb68b8"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "cb32f8e0f01a99861f722222413c8d49574ab367e29f072ec02b311e48eb68b8"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/37639b52df928c8943fb550e.json",
+            "fingerprint": "f60eeaa32c71b7396716fb574fa087de5bae30e66262e7ebf1c44164b551753e"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "f9514a301af3bc3d9d9bb4919a87f031788d0a764ec91f1834650b42c460af5b"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "f9514a301af3bc3d9d9bb4919a87f031788d0a764ec91f1834650b42c460af5b"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "8aba3a2a963a0e8cb7190d099cebe1a902f61efe9ca50c8249f73e5a2b098083"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "8aba3a2a963a0e8cb7190d099cebe1a902f61efe9ca50c8249f73e5a2b098083"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "8258daba83b7a24e26ad12f8f804a6aa1594dee141bb892656d6f9f48331aae6"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "8258daba83b7a24e26ad12f8f804a6aa1594dee141bb892656d6f9f48331aae6"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "cf996ee7301a4904f25ecde07fd1ceb31d46e12ddfdd89606770148ce21e2e80"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "cf996ee7301a4904f25ecde07fd1ceb31d46e12ddfdd89606770148ce21e2e80"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "c83d04dd426244ac9b1d10c5e0273b674df0bb9d6bbd8ebdebc6da7469069a8c"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "c83d04dd426244ac9b1d10c5e0273b674df0bb9d6bbd8ebdebc6da7469069a8c"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/68c8724c88dc3077b9eb2525.json",
+            "fingerprint": "3bf26c017ade90ed5cc2c3b47104e6cd083859685748a8f314b7452519048b46"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "c5823b874914e21156ef02a953f90df6d8cba9c9877b2cc6be4c1541a55b37dd"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "c5823b874914e21156ef02a953f90df6d8cba9c9877b2cc6be4c1541a55b37dd"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/7e5d5fb7ab4d2a3c8c35d417.json",
+            "fingerprint": "954a458d7bd7cc944679218bff01bff4a6da0e0e37281d158870d48a4172568d"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/81371a5f1c9b299fd850f568.json",
+            "fingerprint": "c7c2842f9b1f115337d4c4f349ec5a6d274bcd768810074e313f0ee017f218a4"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "dd3bb2a85b5ffa7700484cce1f587dd1126c877455395c30662bb649bcaf62b0"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/a3a9b06f11a6e12d9b02c066.json",
+            "fingerprint": "23149213a260f567d3ac02818bafdaee0f049f4313fefc281b6fd82e54aa4578"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/aa15e94c66b90d26b64fe5f3.json",
+            "fingerprint": "a85a0875c9f47300e7e843d281852adc00ba9a2b87bde1534763979d6ede2041"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "7b68c141bc5b71f332b69b238321c325f69ca4f79394790ac6e710cde1c77c82"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "7b68c141bc5b71f332b69b238321c325f69ca4f79394790ac6e710cde1c77c82"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "7ae9b1c5efec0acdf3ff737eacc5164eff285b6f352607b3184500a5c01a90b0"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "7ae9b1c5efec0acdf3ff737eacc5164eff285b6f352607b3184500a5c01a90b0"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "97e6e18b0f28ddaee2df064d708ad52f63dfe051e33ee24405e6b0cfbc59421c"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "97e6e18b0f28ddaee2df064d708ad52f63dfe051e33ee24405e6b0cfbc59421c"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "61fd59913a1551c5d6a7efade1bc8e4f7115d8deda83a83709d937bcd48a7ca6"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review-history/work-units/impl-review/ef8dc0799dc0cb3c7083f668.json",
+            "fingerprint": "321ecffe3dd0df71b0168dac35a85d8f038dbeacfd1edf8ca8d86e7090f19e11"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/review.md",
+            "fingerprint": "d33e9009f55799ec12820ba3bc7f54f1f551a4a390820173e791c44cce2c40d4"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/scenario-validity-result.json",
+            "fingerprint": "439b3a14bb507bb08dc1736ce88494bcde2fce22c33b1de600e6d4a4b9a41ecd"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/spec-review.json",
+            "fingerprint": "61c3e1ffbd37cd9a7a3db9180b65e078b47ba5ba0a8f7ee59fec36a09d811d3a"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/spec.json",
+            "fingerprint": "eb728ac0bb0cb69b172bb411fea035403b5c772aee4c4d999e146825df34fbea"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/spec.md",
+            "fingerprint": "486ef8f398876bc4fb91e0dae08d791720da8c895ff9d8264536f5c060eee946"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/tasks/T-1.md",
+            "fingerprint": "ebbc091619e0cccb8cb04fddd1a105d8af056a32a9e0fe9c310ddd8962a5386f"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/test-coverage.json",
+            "fingerprint": "421b53159d3c37996f5d1a9e8b1f21527c7033d15cf295c2a9735277311e9ab9"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/test-execute-result.json",
+            "fingerprint": "ed3b83b2a874c98edafa639f9e89e1a080a2994b32a1c3674fa9a5ae4571acee"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/test-execute-result.json",
+            "fingerprint": "ed3b83b2a874c98edafa639f9e89e1a080a2994b32a1c3674fa9a5ae4571acee"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/test-result-review.json",
+            "fingerprint": "ca4366735b8d87ddab99ba168e2e106d15d601d3314100b70455832886048dee"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/test-result-review.md",
+            "fingerprint": "1b40e73b373b80d55ddef4bb64dff4f52661701d4a753db2ae4085a229da3147"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/test-review.json",
+            "fingerprint": "b547f2f508e07b4575fa9db79c4762a8e0573b4da979ae5058e7099bd40c17ee"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/test-review.md",
+            "fingerprint": "0fd2c0d9b78e007b6269b01b5d960d4e263b1607810d9891187c2067946539f7"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/tests/.raw/scenario-validity.log",
+            "fingerprint": "cbabbc25b9255fc8e405e70fe251f62d4d68b20f617cd1c32647ce552778b1d8"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/tests/.raw/test-execution.log",
+            "fingerprint": "cc4365a18b4801c8dd788681bbe242c5fd2c0be3ff717a87d0a66fd54b86651a"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/tests/.raw/test-execution.log",
+            "fingerprint": "cc4365a18b4801c8dd788681bbe242c5fd2c0be3ff717a87d0a66fd54b86651a"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+            "fingerprint": "58315ba7cdaf2672ebe9df076b1f335a8ef6ab80e70ab35ffb3a2e7d50fe4e14"
+          },
+          {
+            "path": "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+            "fingerprint": "58315ba7cdaf2672ebe9df076b1f335a8ef6ab80e70ab35ffb3a2e7d50fe4e14"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "2557f43f5b9b29f3554174cb5fafad1cee039f17316ed13a164fd4148efd2a2a"
+          },
+          {
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "fingerprint": "f2c88044e248f0c9a34d5e57c4b189d7154985419357d14578b9011d49c49bf6"
+          },
+          {
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "fingerprint": "d8c8283faf534f13535d978077c665cb4cef163487d88cc5674e9bfad604b3cb"
+          }
+        ],
+        "fixAttempts": 0,
+        "selectedAction": "record-and-proceed",
+        "remainingRisk": "final-regression remains failed; category=dependency",
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": "record-and-proceed",
+        "recordAndProceed": {
+          "eligible": true,
+          "validated": true,
+          "evidence": "record-and-proceed selected for dependency"
+        },
+        "humanSummary": "result=fail failureCategory=dependency failureKind=dependency_failure raw_output=specs/319-requirement-gate-context/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=dependency"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    WIP: checkpoint Issue 436 before main integration\n    Add requirement gate context specification\n    65 files changed, 6592 insertions(+), 11 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (11 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 15\n    agent calls ................. 36\n    input tokens ................ 456,829\n    output tokens ............... 24,849\n    cache-read tokens ........... 709,376\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 648.8s\n      draft-questions-review .... 5.9s\n      draft-coverage-review ..... 5.8s\n      draft-gate ................ 51.2s\n      spec-review ............... 102.9s\n      spec-gate ................. 13.9s\n      test-review ............... 124.2s\n      impl-review ............... 344.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 11  passed 11  failed 0 verdict=pass\n    raw_output: specs/319-requirement-gate-context/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=dependency_failure failureCategory=dependency raw_output=specs/319-requirement-gate-context/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=dependency\n\n  Issue Log Summary (20 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/319-requirement-gate-context/issue-log.json\n\n    Important (8)\n    - [draft-gate] Draft gate found nine ambiguous requirement phrases without measurable linkage or resource conditions.\n    - [scenario-validity] Spec-local tests used static named imports for not-yet-implemented exports, causing module-load failure and invalid_test classification for every requirement.\n    - [test-review] Static test review found five blocking gaps in reference matching, value invariants, batch/cache accounting, preserved gate contracts, and executable target-guard coverage.\n    - [test-review] Second static test review found semantic Issue #432/#434 and missing-behavior fixtures only matched prompt text, and the agent input assertion did not cross 900000 characters.\n    - [impl-gate] Requirement gate prerequisites reported stale spec-local failures after the base integration.\n    - [spec-gate] R2 requires each RequirementGateContext to include mapped diff evidence, but buildRequirementGateContext now renders [EVIDENCE:<id>] as only \"Mapped implementation evidence is provided in ## Git Diff.\" rather than the mapped diff content...\n    - [impl-gate] fix: integration gate attempt 1 reported R2 evidence omission, R3 marker mismatch, and incomplete R6 regression-only failure conditions.\n    - [final-regression] final-regression failed: dependency_failure\n\n    Recent Other (5 of 12)\n    - [impl-review] Current flow schema added report leaf after this run state was created\n    - [impl-gate] R11 real CLI fixture became invalid after integrating the current nested flow-state schema authority.\n    - [spec-gate] Implementation mostly builds per-requirement context with [REQ], matching ACs, global Out of Scope/constraints, linked sources, file-map entries, and direct [EVIDENCE] diff bytes. However implementationTargets are linked with plain subst...\n    - [impl-gate] fix: integration gate attempt 2 reported substring matching for R2 implementationTargets.\n    - [implement] Acceptance review could not classify deferred test-review findings because their formal evidence references were absent.\n    ... 7 other issue-log entries omitted"
+}

@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "7e5d5fb7ab4d2a3c8c35d417",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-db2f6c82a8ffc129",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/draft-gate-source.json",
+      "specs/319-requirement-gate-context/draft-review-questions.json",
+      "specs/319-requirement-gate-context/flow.json",
+      "specs/319-requirement-gate-context/issue.md",
+      "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+      "specs/319-requirement-gate-context/scenario-validity-result.json",
+      "specs/319-requirement-gate-context/spec.json",
+      "specs/319-requirement-gate-context/tasks/T-1.md",
+      "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+      "tests/e2e/flow/gate-impl-integration.test.js"
+    ],
+    "inputHash": "db2f6c82a8ffc1294eb538e2030ce6722e59034d076d6392615f7ac91bd7505c",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "7e5d5fb7ab4d2a3c8c35d417"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/draft-gate-source.json",
+    "specs/319-requirement-gate-context/draft-review-questions.json",
+    "specs/319-requirement-gate-context/flow.json",
+    "specs/319-requirement-gate-context/issue.md",
+    "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+    "specs/319-requirement-gate-context/scenario-validity-result.json",
+    "specs/319-requirement-gate-context/spec.json",
+    "specs/319-requirement-gate-context/tasks/T-1.md",
+    "specs/319-requirement-gate-context/tests/requirement-gate-context.test.js",
+    "tests/e2e/flow/gate-impl-integration.test.js"
+  ],
+  "inputHash": "db2f6c82a8ffc1294eb538e2030ce6722e59034d076d6392615f7ac91bd7505c",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T22:36:52.564Z",
+  "finishedAt": "2026-07-12T22:36:52.565Z",
+  "rawResponse": "### 1. Align Spec Lifecycle Statuses\n**File:** `specs/319-requirement-gate-context/spec.md`\n**Issue:** Status terminology conflicts across `spec.md`, `spec.json`, and `tasks/T-1.md`: markdown says `Draft`, requirements are `\"done\"`, and the task is `\"pending\"`. This makes the lifecycle state ambiguous across artifacts.\n**Suggestion:** Define one lifecycle vocabulary and apply it consistently. For example, use `document_status: approved/draft`, `requirement_status: specified/implemented/accepted`, and `task_status: pending/done`.\n\n### 2. Choose a Canonical Requirement Source\n**File:** `specs/319-requirement-gate-context/spec.md`\n**Issue:** Requirement and acceptance-criteria content is duplicated across `spec.json`, `spec.md`, and `tasks/T-1.md`. Multiple summaries flag drift risk from restating the same R1-R11 details in generated artifacts.\n**Suggestion:** Make `spec.json` the canonical source and generate `spec.md` and task acceptance text from it, or reduce generated files to stable references like “Satisfy R1-R11 from `spec.json`.”\n\n### 3. Standardize Artifact Naming For Source/Triage Links\n**File:** `specs/319-requirement-gate-context/draft-questions-repair.json`\n**Issue:** `sourceTriage` points to `draft-questions-triage.json`, while adjacent artifacts are named `draft-questions-repair.json`, `draft-review-questions.json`, and `draft-gate-source.json`. The naming pattern is inconsistent enough to obscure which artifact produced which result.\n**Suggestion:** Use explicit cross-file reference fields such as `sourceArtifact`, `sourceTriageFile`, or `derivedFrom`, and ensure referenced filenames match committed artifacts.\n\n### 4. Apply Bounded-Resource Rules Consistently\n**File:** `specs/319-requirement-gate-context/spec.json`\n**Issue:** Bounded-resource requirements are mentioned across the draft, task, flow artifact, issue log, and implementation review, but concrete limits are missing or unevenly applied. This creates a cross-file gap between the spec intent, task instructions, generated logs, and `src/flow/lib/run-gate.js` behavior.\n**Suggestion:** Add canonical numeric bounds to `spec.json`, then reference or generate those same limits in `spec.md`, `tasks/T-1.md`, and implementation constants/tests.\n\n### 5. Normalize Generated Evidence And Runtime Artifacts\n**File:** `specs/319-requirement-gate-context/flow.json`\n**Issue:** Several generated artifacts duplicate transient or repeated data: `flow.json` runtime logs/metrics, `issue-log.json` violation text, `scenario-validity-result.json` evidence fields, and `.raw/scenario-validity.log`. This creates cross-file review noise and drift risk.\n**Suggestion:** Split durable review evidence from ephemeral execution logs. Keep one stable evidence summary per run and exclude or regenerate volatile logs, metrics, stack traces, and repeated raw command output.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Align Spec Lifecycle Statuses",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.md`\n**Issue:** Status terminology conflicts across `spec.md`, `spec.json`, and `tasks/T-1.md`: markdown says `Draft`, requirements are `\"done\"`, and the task is `\"pending\"`. This makes the lifecycle state ambiguous across artifacts.\n**Suggestion:** Define one lifecycle vocabulary and apply it consistently. For example, use `document_status: approved/draft`, `requirement_status: specified/implemented/accepted`, and `task_status: pending/done`.",
+        "file": "specs/319-requirement-gate-context/spec.md"
+      },
+      {
+        "title": "2. Choose a Canonical Requirement Source",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.md`\n**Issue:** Requirement and acceptance-criteria content is duplicated across `spec.json`, `spec.md`, and `tasks/T-1.md`. Multiple summaries flag drift risk from restating the same R1-R11 details in generated artifacts.\n**Suggestion:** Make `spec.json` the canonical source and generate `spec.md` and task acceptance text from it, or reduce generated files to stable references like “Satisfy R1-R11 from `spec.json`.”",
+        "file": "specs/319-requirement-gate-context/spec.md"
+      },
+      {
+        "title": "3. Standardize Artifact Naming For Source/Triage Links",
+        "body": "**File:** `specs/319-requirement-gate-context/draft-questions-repair.json`\n**Issue:** `sourceTriage` points to `draft-questions-triage.json`, while adjacent artifacts are named `draft-questions-repair.json`, `draft-review-questions.json`, and `draft-gate-source.json`. The naming pattern is inconsistent enough to obscure which artifact produced which result.\n**Suggestion:** Use explicit cross-file reference fields such as `sourceArtifact`, `sourceTriageFile`, or `derivedFrom`, and ensure referenced filenames match committed artifacts.",
+        "file": "specs/319-requirement-gate-context/draft-questions-repair.json"
+      },
+      {
+        "title": "4. Apply Bounded-Resource Rules Consistently",
+        "body": "**File:** `specs/319-requirement-gate-context/spec.json`\n**Issue:** Bounded-resource requirements are mentioned across the draft, task, flow artifact, issue log, and implementation review, but concrete limits are missing or unevenly applied. This creates a cross-file gap between the spec intent, task instructions, generated logs, and `src/flow/lib/run-gate.js` behavior.\n**Suggestion:** Add canonical numeric bounds to `spec.json`, then reference or generate those same limits in `spec.md`, `tasks/T-1.md`, and implementation constants/tests.",
+        "file": "specs/319-requirement-gate-context/spec.json"
+      },
+      {
+        "title": "5. Normalize Generated Evidence And Runtime Artifacts",
+        "body": "**File:** `specs/319-requirement-gate-context/flow.json`\n**Issue:** Several generated artifacts duplicate transient or repeated data: `flow.json` runtime logs/metrics, `issue-log.json` violation text, `scenario-validity-result.json` evidence fields, and `.raw/scenario-validity.log`. This creates cross-file review noise and drift risk.\n**Suggestion:** Split durable review evidence from ephemeral execution logs. Keep one stable evidence summary per run and exclude or regenerate volatile logs, metrics, stack traces, and repeated raw command output.",
+        "file": "specs/319-requirement-gate-context/flow.json"
+      }
+    ]
+  }
+}

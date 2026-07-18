@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "aa15e94c66b90d26b64fe5f3",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-6eee68fb6f7fa523",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/319-requirement-gate-context/draft-coverage-repair.json",
+      "specs/319-requirement-gate-context/draft-questions-triage.json",
+      "specs/319-requirement-gate-context/file-map.json",
+      "specs/319-requirement-gate-context/issue.md",
+      "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+      "specs/319-requirement-gate-context/review-history/test-attempt-002.json",
+      "specs/319-requirement-gate-context/review-history/test-attempt-004.json",
+      "specs/319-requirement-gate-context/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+      "specs/319-requirement-gate-context/review-history/work-units/impl-review/37639b52df928c8943fb550e.json",
+      "specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+      "specs/319-requirement-gate-context/review-history/work-units/impl-review/7e5d5fb7ab4d2a3c8c35d417.json",
+      "specs/319-requirement-gate-context/spec-review.json",
+      "specs/319-requirement-gate-context/test-coverage.json",
+      "specs/319-requirement-gate-context/test-review.json",
+      "src/flow/lib/run-gate.js"
+    ],
+    "inputHash": "6eee68fb6f7fa5237909b7d2c1441db16d1543874be8478a9f364963ade54651",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "aa15e94c66b90d26b64fe5f3"
+  },
+  "targetFiles": [
+    "specs/319-requirement-gate-context/draft-coverage-repair.json",
+    "specs/319-requirement-gate-context/draft-questions-triage.json",
+    "specs/319-requirement-gate-context/file-map.json",
+    "specs/319-requirement-gate-context/issue.md",
+    "specs/319-requirement-gate-context/review-history/spec-attempt-001.json",
+    "specs/319-requirement-gate-context/review-history/test-attempt-002.json",
+    "specs/319-requirement-gate-context/review-history/test-attempt-004.json",
+    "specs/319-requirement-gate-context/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+    "specs/319-requirement-gate-context/review-history/work-units/impl-review/37639b52df928c8943fb550e.json",
+    "specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+    "specs/319-requirement-gate-context/review-history/work-units/impl-review/7e5d5fb7ab4d2a3c8c35d417.json",
+    "specs/319-requirement-gate-context/spec-review.json",
+    "specs/319-requirement-gate-context/test-coverage.json",
+    "specs/319-requirement-gate-context/test-review.json",
+    "src/flow/lib/run-gate.js"
+  ],
+  "inputHash": "6eee68fb6f7fa5237909b7d2c1441db16d1543874be8478a9f364963ade54651",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T12:13:35.124Z",
+  "finishedAt": "2026-07-18T12:13:35.124Z",
+  "rawResponse": "### 1. Normalize Test Path Format Across Artifacts\n**File:** `specs/319-requirement-gate-context/test-coverage.json`  \n**Requirement:** R11  \n**Issue:** Multiple artifacts use inconsistent paths for the same test file: some use `tests/requirement-gate-context.test.js`, while others use `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`. This affects `test-coverage.json`, `test-execute-result.json`, and review-history targets, making cross-artifact traceability harder.  \n**Suggestion:** Standardize on one repo-relative path format across all generated artifacts, preferably `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`.\n\n### 2. Use One Canonical Review Finding Representation\n**File:** `specs/319-requirement-gate-context/review-history/test-attempt-002.json`  \n**Requirement:** R11  \n**Issue:** Review findings are duplicated across JSON and Markdown files, and also duplicated within JSON as grouped arrays such as `blockingFindings` / `advisoryFindings` plus a separate `findings` array. This pattern appears across several review-history attempts and creates cross-file drift risk.  \n**Suggestion:** Store findings once in a canonical structured JSON array, derive blocking/advisory groupings from fields like severity, and generate Markdown summaries from JSON instead of persisting independently maintained copies.\n\n### 3. Consolidate Work-Unit Identity Metadata\n**File:** `specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json`  \n**Requirement:** R2  \n**Issue:** Several impl-review work-unit JSON files repeat the same identity fields both at the top level and under `identity`, including `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId`. The repetition spans multiple files and can drift between artifacts.  \n**Suggestion:** Normalize the work-unit schema so immutable identity metadata lives in one canonical object, preferably `identity`, with any flattened view derived at render/read time.\n\n### 4. Store Provider Proposal Text Once\n**File:** `specs/319-requirement-gate-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json`  \n**Requirement:** R2  \n**Issue:** Across multiple impl-review work-unit artifacts, proposal content is stored both as markdown in `rawResponse` and as parsed structured data in `success.proposals`. This duplicates long proposal bodies and risks inconsistency between raw and parsed representations.  \n**Suggestion:** Treat `success.proposals` as canonical after successful parsing. Omit `rawResponse` for successful parsed outputs, or replace it with a checksum/debug excerpt.\n\n### 5. Enforce Requirement ID Contract Consistently\n**File:** `specs/319-requirement-gate-context/review-history/work-units/impl-review/68c8724c88dc3077b9eb2525.json`  \n**Requirement:** R1  \n**Issue:** Some stored impl-review proposal artifacts include `requirementId`, while others omit both the structured field and the mandatory `**Requirement:** <id>` line in proposal bodies. This creates an interface inconsistency across work-unit files and violates the stated provider contract.  \n**Suggestion:** Add validation before persisting `status: \"success\"` so every proposal has a known requirement ID in both the structured field and rendered body, or reject the provider output.\n\n### 6. Normalize Proposal Title Data\n**File:** `specs/319-requirement-gate-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json`  \n**Requirement:** R11  \n**Issue:** Some structured proposal titles include ordinal prefixes like `\"1. ...\"`, while ordering is already represented by array position. This mixes rendered presentation with data and is inconsistent with normalized proposal storage.  \n**Suggestion:** Store proposal titles without numeric prefixes and add numbering only when rendering Markdown or CLI output.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Test Path Format Across Artifacts",
+        "body": "**File:** `specs/319-requirement-gate-context/test-coverage.json`  \n**Requirement:** R11  \n**Issue:** Multiple artifacts use inconsistent paths for the same test file: some use `tests/requirement-gate-context.test.js`, while others use `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`. This affects `test-coverage.json`, `test-execute-result.json`, and review-history targets, making cross-artifact traceability harder.  \n**Suggestion:** Standardize on one repo-relative path format across all generated artifacts, preferably `specs/319-requirement-gate-context/tests/requirement-gate-context.test.js`.",
+        "file": "specs/319-requirement-gate-context/test-coverage.json",
+        "requirementId": "R11"
+      },
+      {
+        "title": "2. Use One Canonical Review Finding Representation",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/test-attempt-002.json`  \n**Requirement:** R11  \n**Issue:** Review findings are duplicated across JSON and Markdown files, and also duplicated within JSON as grouped arrays such as `blockingFindings` / `advisoryFindings` plus a separate `findings` array. This pattern appears across several review-history attempts and creates cross-file drift risk.  \n**Suggestion:** Store findings once in a canonical structured JSON array, derive blocking/advisory groupings from fields like severity, and generate Markdown summaries from JSON instead of persisting independently maintained copies.",
+        "file": "specs/319-requirement-gate-context/review-history/test-attempt-002.json",
+        "requirementId": "R11"
+      },
+      {
+        "title": "3. Consolidate Work-Unit Identity Metadata",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json`  \n**Requirement:** R2  \n**Issue:** Several impl-review work-unit JSON files repeat the same identity fields both at the top level and under `identity`, including `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId`. The repetition spans multiple files and can drift between artifacts.  \n**Suggestion:** Normalize the work-unit schema so immutable identity metadata lives in one canonical object, preferably `identity`, with any flattened view derived at render/read time.",
+        "file": "specs/319-requirement-gate-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Store Provider Proposal Text Once",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json`  \n**Requirement:** R2  \n**Issue:** Across multiple impl-review work-unit artifacts, proposal content is stored both as markdown in `rawResponse` and as parsed structured data in `success.proposals`. This duplicates long proposal bodies and risks inconsistency between raw and parsed representations.  \n**Suggestion:** Treat `success.proposals` as canonical after successful parsing. Omit `rawResponse` for successful parsed outputs, or replace it with a checksum/debug excerpt.",
+        "file": "specs/319-requirement-gate-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "5. Enforce Requirement ID Contract Consistently",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/work-units/impl-review/68c8724c88dc3077b9eb2525.json`  \n**Requirement:** R1  \n**Issue:** Some stored impl-review proposal artifacts include `requirementId`, while others omit both the structured field and the mandatory `**Requirement:** <id>` line in proposal bodies. This creates an interface inconsistency across work-unit files and violates the stated provider contract.  \n**Suggestion:** Add validation before persisting `status: \"success\"` so every proposal has a known requirement ID in both the structured field and rendered body, or reject the provider output.",
+        "file": "specs/319-requirement-gate-context/review-history/work-units/impl-review/68c8724c88dc3077b9eb2525.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "6. Normalize Proposal Title Data",
+        "body": "**File:** `specs/319-requirement-gate-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json`  \n**Requirement:** R11  \n**Issue:** Some structured proposal titles include ordinal prefixes like `\"1. ...\"`, while ordering is already represented by array position. This mixes rendered presentation with data and is inconsistent with normalized proposal storage.  \n**Suggestion:** Store proposal titles without numeric prefixes and add numbering only when rendering Markdown or CLI output.",
+        "file": "specs/319-requirement-gate-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+        "requirementId": "R11"
+      }
+    ]
+  }
+}
