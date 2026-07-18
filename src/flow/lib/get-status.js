@@ -28,6 +28,7 @@ import { buildBoundedBroadModeHistory } from "./task-scope.js";
 import { buildDeferredFindingsSummary, specDirFromFlowState } from "./flow-findings.js";
 import { validateFinalRegressionResult } from "./test-artifacts.js";
 import { FlowCompletion } from "./flow-completion.js";
+import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
@@ -306,21 +307,50 @@ export default class GetStatusCommand extends FlowCommand {
     const runId = validateRunId(ctx.runId);
     const options = { details: ctx.details === true };
 
+    if (ctx.flowResolutionError) {
+      return Envelope.fail(
+        "get",
+        "status",
+        ctx.flowResolutionError.code || "FLOW_TARGET_NOT_FOUND",
+        ctx.flowResolutionError.message,
+        ctx.flowResolutionError.data,
+      );
+    }
+
     if (runId) {
-      // runId-based resolution
-      const state = ctx.flowManager.resolveByRunId(runId);
+      // The binding already selected the only permissible worktree target.
+      // A positional runId validates that state instead of redirecting it.
+      const state = ctx.worktreeFlowProvenance instanceof WorktreeFlowProvenance && ctx.flowState
+        ? ctx.flowState
+        : ctx.flowManager.resolveByRunId(runId);
       if (!state) {
         throw new Error(`RUN_ID_NOT_FOUND: ${runId}`);
       }
       const status = buildStatusOutput(state, ctx.root, options);
       try {
+        const positionalExpectation = new FlowTargetExpectation({ expectRunId: runId });
+        const positionalMismatch = positionalExpectation.mismatchAgainst(state);
+        if (positionalMismatch) {
+          return buildTargetMismatchEnvelope({ type: "get", key: "status", data: positionalMismatch });
+        }
         const expectation = new FlowTargetExpectation({
           expectIssue: ctx.expectIssue,
+          expectNoIssue: ctx.expectNoIssue,
           expectSpec: ctx.expectSpec,
-          expectRunId: ctx.expectRunId || runId,
+          expectRunId: ctx.expectRunId,
         });
         const mismatch = expectation.mismatchAgainst(state);
-        return mismatch ? buildTargetMismatchEnvelope({ type: "get", key: "status", data: mismatch }) : status;
+        return mismatch ? buildTargetMismatchEnvelope({
+          type: "get",
+          key: "status",
+          data: {
+            ...mismatch,
+            ...(!("expectedRunId" in mismatch) && {
+              expectedRunId: runId,
+              activeRunId: state.runId || null,
+            }),
+          },
+        }) : status;
       } catch (err) {
         return Envelope.fail("get", "status", "ARGS_ERROR", err.message);
       }

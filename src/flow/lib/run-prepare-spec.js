@@ -5,6 +5,7 @@
  * requiresFlow: false (this command creates the flow).
  */
 
+import crypto from "node:crypto";
 import fs from "fs";
 import path from "path";
 import { isInsideWorktree, PKG_DIR } from "../../lib/cli.js";
@@ -21,11 +22,49 @@ import { writeIssueMd } from "./issue-body-cache.js";
 import { discoverFlowCommandHooks, readProjectConfig, runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowManager } from "../../lib/flow-manager.js";
+import { FlowSpecId } from "../../lib/flow-spec-id.js";
+import { AtomicFile } from "../../lib/atomic-file.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
+import { ProcessIdentity, ProcessIdentitySource } from "../../lib/process-identity.js";
+import {
+  WorktreeFlowBindingStore,
+  WorktreeFlowIdentity,
+} from "../../lib/worktree-flow-binding.js";
 
 const MAX_PLUGIN_RUNTIME_SYNC_FILES = 2000;
 const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([".senti/config.json"]);
 const MAX_REQUIRED_WORKTREE_BRANCH_FILES = 16;
+const WORKTREE_FLOW_INTERNAL_IGNORES = Object.freeze([
+  "/.senti/flow-identity.json",
+  "/.senti/flow-identity.issue-transaction.json",
+  "/.senti/.flow-identity.publication.json",
+  "/.senti/.flow-identity.publication.intent",
+  "/.senti/.flow-identity.publication.receipt.tmp",
+  "/.senti/.flow-identity.publication.binding.tmp",
+]);
+const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+const WORKTREE_PREPARE_ATTEMPT_FILE = ".worktree-prepare-attempt.json";
+const WORKTREE_PREPARE_ATTEMPT_VERSION = 1;
+const WORKTREE_PREPARE_ATTEMPT_KEYS = Object.freeze([
+  "version",
+  "attemptId",
+  "mainRoot",
+  "runId",
+  "issue",
+  "branchName",
+  "worktreePath",
+  "spec",
+  "expectedOid",
+  "preparingPath",
+  "preparingBefore",
+  "excludePath",
+  "excludeBefore",
+  "excludeAfter",
+  "processIdentity",
+]);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
+const MAX_PREPARE_ATTEMPT_BYTES = 256 * 1024;
 
 function runGitTrim(root, args) {
   const res = runGit(["-C", root, ...args]);
@@ -55,7 +94,7 @@ function nextIndex(root) {
 
   const branchLines = runGitTrim(root, ["branch", "--list", "feature/[0-9][0-9][0-9]-*"])
     .split("\n")
-    .map((x) => x.replace(/^[* ]+/, "").trim())
+    .map((x) => x.replace(/^[*+ ]+/, "").trim())
     .filter(Boolean);
   for (const b of branchLines) {
     const m = b.match(/^feature\/([0-9]{3})-/);
@@ -271,6 +310,451 @@ function requiredWorktreeFilesEnvelope(issues) {
   });
 }
 
+function gitWorktreeRecord(root, worktreePath) {
+  const listed = runGit(["-C", root, "worktree", "list", "--porcelain"]);
+  assertOk(listed, "git worktree list failed during prepare rollback");
+  const expectedPath = path.resolve(worktreePath);
+  for (const block of listed.stdout.trim().split(/\n\n+/)) {
+    const fields = Object.fromEntries(block.split("\n").map((line) => {
+      const separator = line.indexOf(" ");
+      return separator < 0 ? [line, true] : [line.slice(0, separator), line.slice(separator + 1)];
+    }));
+    if (fields.worktree && path.resolve(fields.worktree) === expectedPath) return fields;
+  }
+  return null;
+}
+
+function gitRefOid(root, branchName) {
+  const result = runGit(["-C", root, "rev-parse", "--verify", `refs/heads/${branchName}`]);
+  return result.ok ? result.stdout.trim() : null;
+}
+
+function exactKeys(value, keys, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be one object`);
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
+    throw new Error(`${label} fields are invalid`);
+  }
+}
+
+function fsyncDirectory(directory) {
+  const descriptor = fs.openSync(directory, "r");
+  try {
+    fs.fsyncSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+function optionalBytes(filePath) {
+  try {
+    return fs.readFileSync(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function encodedBytes(bytes) {
+  return bytes == null ? null : bytes.toString("base64");
+}
+
+function decodedBytes(value, label) {
+  if (value === null) return null;
+  if (typeof value !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+    throw new Error(`${label} must be canonical base64 or null`);
+  }
+  const bytes = Buffer.from(value, "base64");
+  if (bytes.toString("base64") !== value) throw new Error(`${label} must be canonical base64`);
+  return bytes;
+}
+
+function worktreeIgnoreBytes(before) {
+  const current = before?.toString("utf8") || "";
+  const existing = new Set(current.split(/\r?\n/));
+  const missing = WORKTREE_FLOW_INTERNAL_IGNORES.filter((entry) => !existing.has(entry));
+  if (missing.length === 0) return Buffer.from(current);
+  const separator = current.length > 0 && !current.endsWith("\n") ? "\n" : "";
+  return Buffer.from(`${current}${separator}${missing.join("\n")}\n`);
+}
+
+class WorktreePrepareAttemptRecord {
+  constructor(value) {
+    exactKeys(value, WORKTREE_PREPARE_ATTEMPT_KEYS, "worktree prepare attempt");
+    if (value.version !== WORKTREE_PREPARE_ATTEMPT_VERSION || !UUID.test(value.attemptId)) {
+      throw new Error("worktree prepare attempt version or ID is invalid");
+    }
+    if (!path.isAbsolute(value.mainRoot) || fs.realpathSync(value.mainRoot) !== value.mainRoot) {
+      throw new Error("worktree prepare attempt main root is invalid");
+    }
+    if (!path.isAbsolute(value.worktreePath) || path.resolve(value.worktreePath) !== value.worktreePath) {
+      throw new Error("worktree prepare attempt worktree path is invalid");
+    }
+    const specMatch = /^specs\/([^/]+)\/spec\.json$/.exec(value.spec);
+    if (!specMatch) {
+      throw new Error("worktree prepare attempt spec is invalid");
+    }
+    FlowSpecId.from(specMatch[1]);
+    if (!GIT_OBJECT_ID.test(value.expectedOid)) {
+      throw new Error("worktree prepare attempt expected OID is invalid");
+    }
+    if (!SAFE_RUN_ID.test(value.runId) || value.branchName !== `feature/${specMatch[1]}`) {
+      throw new Error("worktree prepare attempt run or branch is invalid");
+    }
+    if (value.issue !== null && (!Number.isSafeInteger(value.issue) || value.issue < 1)) {
+      throw new Error("worktree prepare attempt Issue is invalid");
+    }
+    for (const [filePath, label] of [
+      [value.preparingPath, "preparing path"],
+      [value.excludePath, "exclude path"],
+    ]) {
+      if (!path.isAbsolute(filePath) || path.resolve(filePath) !== filePath) {
+        throw new Error(`worktree prepare attempt ${label} is invalid`);
+      }
+    }
+    const expectedWorktreePath = path.join(
+      sentiDir(value.mainRoot),
+      "worktree",
+      value.branchName.replace(/\//g, "-"),
+    );
+    if (value.worktreePath !== expectedWorktreePath) {
+      throw new Error("worktree prepare attempt managed path is invalid");
+    }
+    if (value.preparingPath !== path.join(sentiDir(value.mainRoot), `.active-flow.${value.runId}`)) {
+      throw new Error("worktree prepare attempt preparing path is invalid");
+    }
+    const rawExclude = runGitTrim(value.mainRoot, ["rev-parse", "--git-path", "info/exclude"]);
+    const expectedExcludePath = path.isAbsolute(rawExclude)
+      ? rawExclude
+      : path.resolve(value.mainRoot, rawExclude);
+    if (value.excludePath !== expectedExcludePath) {
+      throw new Error("worktree prepare attempt exclude path is invalid");
+    }
+    this.version = value.version;
+    this.attemptId = value.attemptId;
+    this.mainRoot = value.mainRoot;
+    this.runId = value.runId;
+    this.issue = value.issue;
+    this.branchName = value.branchName;
+    this.worktreePath = value.worktreePath;
+    this.spec = value.spec;
+    this.specDirName = value.spec.split("/")[1];
+    this.expectedOid = value.expectedOid;
+    this.preparingPath = value.preparingPath;
+    this.preparingBefore = decodedBytes(value.preparingBefore, "preparing before-image");
+    this.excludePath = value.excludePath;
+    this.excludeBefore = decodedBytes(value.excludeBefore, "exclude before-image");
+    this.excludeAfter = decodedBytes(value.excludeAfter, "exclude after-image");
+    this.processIdentity = new ProcessIdentity(value.processIdentity);
+    if (this.processIdentity.ownerToken !== this.attemptId) {
+      throw new Error("worktree prepare attempt process owner token is invalid");
+    }
+    Object.freeze(this);
+  }
+
+  static create({ mainRoot, runId, issue, branchName, worktreePath, spec, expectedOid, processIdentitySource }) {
+    const attemptId = crypto.randomUUID();
+    const preparingPath = path.join(sentiDir(mainRoot), `.active-flow.${runId}`);
+    const rawExclude = runGitTrim(mainRoot, ["rev-parse", "--git-path", "info/exclude"]);
+    const excludePath = path.isAbsolute(rawExclude) ? rawExclude : path.resolve(mainRoot, rawExclude);
+    const preparingBefore = optionalBytes(preparingPath);
+    const excludeBefore = optionalBytes(excludePath);
+    return new WorktreePrepareAttemptRecord({
+      version: WORKTREE_PREPARE_ATTEMPT_VERSION,
+      attemptId,
+      mainRoot,
+      runId,
+      issue,
+      branchName,
+      worktreePath,
+      spec,
+      expectedOid,
+      preparingPath,
+      preparingBefore: encodedBytes(preparingBefore),
+      excludePath,
+      excludeBefore: encodedBytes(excludeBefore),
+      excludeAfter: encodedBytes(worktreeIgnoreBytes(excludeBefore)),
+      processIdentity: processIdentitySource.createOwner(attemptId),
+    });
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      attemptId: this.attemptId,
+      mainRoot: this.mainRoot,
+      runId: this.runId,
+      issue: this.issue,
+      branchName: this.branchName,
+      worktreePath: this.worktreePath,
+      spec: this.spec,
+      expectedOid: this.expectedOid,
+      preparingPath: this.preparingPath,
+      preparingBefore: encodedBytes(this.preparingBefore),
+      excludePath: this.excludePath,
+      excludeBefore: encodedBytes(this.excludeBefore),
+      excludeAfter: encodedBytes(this.excludeAfter),
+      processIdentity: this.processIdentity,
+    };
+  }
+}
+
+class WorktreePrepareAttemptJournal {
+  constructor({ mainRoot, processIdentitySource = new ProcessIdentitySource() }) {
+    this.mainRoot = fs.realpathSync(mainRoot);
+    this.path = path.join(sentiDir(this.mainRoot), WORKTREE_PREPARE_ATTEMPT_FILE);
+    this.processIdentitySource = processIdentitySource;
+  }
+
+  load() {
+    let stat;
+    try {
+      stat = fs.lstatSync(this.path);
+    } catch (error) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+    if (
+      !stat.isFile()
+      || stat.isSymbolicLink()
+      || stat.nlink !== 1
+      || stat.size > MAX_PREPARE_ATTEMPT_BYTES
+      || fs.realpathSync(this.path) !== this.path
+    ) {
+      throw new Error("worktree prepare attempt journal authority is invalid");
+    }
+    let descriptor = null;
+    try {
+      descriptor = fs.openSync(this.path, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+      const opened = fs.fstatSync(descriptor);
+      if (opened.dev !== stat.dev || opened.ino !== stat.ino || opened.nlink !== 1) {
+        throw new Error("worktree prepare attempt journal changed while opening");
+      }
+      const bytes = fs.readFileSync(descriptor);
+      const after = fs.fstatSync(descriptor);
+      const visible = fs.lstatSync(this.path);
+      if (
+        after.dev !== opened.dev
+        || after.ino !== opened.ino
+        || visible.dev !== opened.dev
+        || visible.ino !== opened.ino
+        || after.nlink !== 1
+        || visible.nlink !== 1
+        || after.size !== bytes.length
+      ) {
+        throw new Error("worktree prepare attempt journal changed while reading");
+      }
+      const record = new WorktreePrepareAttemptRecord(JSON.parse(bytes.toString("utf8")));
+      if (record.mainRoot !== this.mainRoot) throw new Error("worktree prepare attempt root mismatch");
+      return { record, stat: opened };
+    } finally {
+      if (descriptor != null) fs.closeSync(descriptor);
+    }
+  }
+
+  begin(record, flowManager) {
+    if (!(record instanceof WorktreePrepareAttemptRecord)) {
+      throw new Error("worktree prepare attempt record is required");
+    }
+    if (this.load()) throw new Error("worktree prepare attempt already exists");
+    if (gitWorktreeRecord(this.mainRoot, record.worktreePath) || fs.existsSync(record.worktreePath)) {
+      throw new Error("worktree prepare attempt path already exists before journal publication");
+    }
+    if (gitRefOid(this.mainRoot, record.branchName) != null) {
+      throw new Error("worktree prepare attempt branch already exists before journal publication");
+    }
+    if (flowManager.loadActiveFlows().some((entry) => entry.spec === record.specDirName)) {
+      throw new Error("worktree prepare active-flow entry exists before journal publication");
+    }
+    fs.mkdirSync(path.dirname(this.path), { recursive: true });
+    new AtomicFile(this.path).write(`${JSON.stringify(record.toJSON(), null, 2)}\n`);
+    const published = this.load();
+    if (published.record.attemptId !== record.attemptId) {
+      throw new Error("worktree prepare attempt journal readback mismatch");
+    }
+    return record;
+  }
+
+  recoverStale(flowManager, operationOwnerToken) {
+    const snapshot = this.load();
+    if (!snapshot) return;
+    const assessment = this.processIdentitySource.assess(snapshot.record.processIdentity);
+    if (assessment.status !== "stale") {
+      throw new Error(`worktree prepare attempt owner is ${assessment.status}: ${assessment.reason}`);
+    }
+    this.rollback(snapshot.record, flowManager, operationOwnerToken);
+  }
+
+  assertGitCreated(record) {
+    const worktree = gitWorktreeRecord(this.mainRoot, record.worktreePath);
+    const branchOid = gitRefOid(this.mainRoot, record.branchName);
+    if (
+      worktree?.HEAD !== record.expectedOid
+      || worktree.branch !== `refs/heads/${record.branchName}`
+      || branchOid !== record.expectedOid
+    ) {
+      throw new Error("created worktree and branch do not match the prepare attempt authority");
+    }
+  }
+
+  publishExclude(record, worktreePath) {
+    const rawPath = runGitTrim(worktreePath, ["rev-parse", "--git-path", "info/exclude"]);
+    const excludePath = path.isAbsolute(rawPath) ? rawPath : path.resolve(worktreePath, rawPath);
+    if (excludePath !== record.excludePath) throw new Error("worktree exclude authority path changed");
+    const current = optionalBytes(excludePath);
+    if (!this.#sameBytes(current, record.excludeBefore)) {
+      throw new Error("shared worktree exclude changed before attempt publication");
+    }
+    if (this.#sameBytes(current, record.excludeAfter)) return;
+    new AtomicFile(excludePath).write(record.excludeAfter);
+  }
+
+  rollback(record, flowManager, operationOwnerToken) {
+    const authority = this.#validateRollback(record, flowManager);
+    if (authority.registryOwned) {
+      flowManager.removeActiveFlow(record.specDirName, { operationOwnerToken });
+    }
+    if (authority.preparingMissing && record.preparingBefore != null) {
+      new AtomicFile(record.preparingPath).write(record.preparingBefore);
+    }
+    if (authority.excludePublished) {
+      if (record.excludeBefore == null) {
+        fs.unlinkSync(record.excludePath);
+        fsyncDirectory(path.dirname(record.excludePath));
+      } else {
+        new AtomicFile(record.excludePath).write(record.excludeBefore);
+      }
+    }
+    if (authority.worktree) {
+      const removed = runGit(["-C", this.mainRoot, "worktree", "remove", "--force", record.worktreePath]);
+      if (!removed.ok) throw new Error(`git worktree remove failed: ${removed.stderr.trim()}`);
+    }
+    const branchOid = gitRefOid(this.mainRoot, record.branchName);
+    if (branchOid === record.expectedOid) {
+      const removed = runGit([
+        "-C", this.mainRoot, "update-ref", "-d", `refs/heads/${record.branchName}`, record.expectedOid,
+      ]);
+      if (!removed.ok) throw new Error(`git branch CAS delete failed: ${removed.stderr.trim()}`);
+    }
+    this.#remove(record);
+  }
+
+  complete(record) {
+    const snapshot = this.load();
+    if (!snapshot || snapshot.record.attemptId !== record.attemptId) {
+      throw new Error("worktree prepare attempt journal ownership changed before completion");
+    }
+    this.#remove(record);
+  }
+
+  #validateRollback(record, flowManager) {
+    const snapshot = this.load();
+    if (!snapshot || snapshot.record.attemptId !== record.attemptId) {
+      throw new Error("worktree prepare attempt journal ownership changed before rollback");
+    }
+    const matches = flowManager.loadActiveFlows().filter((entry) => entry.spec === record.specDirName);
+    if (matches.length > 1 || (matches.length === 1 && matches[0].mode !== "worktree")) {
+      throw new Error("active-flow authority changed before prepare attempt rollback");
+    }
+    const preparing = optionalBytes(record.preparingPath);
+    if (preparing != null && !this.#sameBytes(preparing, record.preparingBefore)) {
+      throw new Error("preparing flow authority changed before prepare attempt rollback");
+    }
+    const exclude = optionalBytes(record.excludePath);
+    const excludePublished = this.#sameBytes(exclude, record.excludeAfter)
+      && !this.#sameBytes(exclude, record.excludeBefore);
+    if (!excludePublished && !this.#sameBytes(exclude, record.excludeBefore)) {
+      throw new Error("shared worktree exclude authority changed before prepare attempt rollback");
+    }
+    const worktree = gitWorktreeRecord(this.mainRoot, record.worktreePath);
+    const branchOid = gitRefOid(this.mainRoot, record.branchName);
+    if (worktree && (
+      worktree.HEAD !== record.expectedOid
+      || worktree.branch !== `refs/heads/${record.branchName}`
+      || branchOid !== record.expectedOid
+    )) {
+      throw new Error("worktree prepare attempt Git authority changed from expected OID");
+    }
+    if (!worktree && fs.existsSync(record.worktreePath)) {
+      throw new Error("worktree prepare attempt path exists outside Git authority");
+    }
+    if (!worktree && branchOid != null && branchOid !== record.expectedOid) {
+      throw new Error("worktree prepare attempt branch authority changed from expected OID");
+    }
+    if (worktree) {
+      const bindingPath = path.join(record.worktreePath, ".senti", "flow-identity.json");
+      const flowPath = path.join(
+        record.worktreePath,
+        record.spec.replace(/\/spec\.json$/, "/flow.json"),
+      );
+      const bindingBytes = optionalBytes(bindingPath);
+      const flowBytes = optionalBytes(flowPath);
+      if (bindingBytes != null) {
+        const binding = JSON.parse(bindingBytes.toString("utf8"));
+        if (
+          binding.runId !== record.runId
+          || binding.issue !== record.issue
+          || binding.spec !== record.spec
+          || binding.worktreePath !== record.worktreePath
+        ) {
+          throw new Error("worktree prepare binding authority changed before rollback");
+        }
+      }
+      if (flowBytes != null) {
+        const flow = JSON.parse(flowBytes.toString("utf8"));
+        const flowIssue = Object.hasOwn(flow, "issue") ? flow.issue : null;
+        if (
+          flow.runId !== record.runId
+          || flowIssue !== record.issue
+          || flow.spec !== record.spec
+          || flow.worktree !== true
+        ) {
+          throw new Error("worktree prepare flow authority changed before rollback");
+        }
+      }
+    }
+    return {
+      registryOwned: matches.length === 1,
+      preparingMissing: preparing == null,
+      excludePublished,
+      worktree,
+    };
+  }
+
+  #remove(record) {
+    const snapshot = this.load();
+    if (!snapshot || snapshot.record.attemptId !== record.attemptId) {
+      throw new Error("worktree prepare attempt journal changed before removal");
+    }
+    const current = fs.lstatSync(this.path);
+    if (current.dev !== snapshot.stat.dev || current.ino !== snapshot.stat.ino || current.nlink !== 1) {
+      throw new Error("worktree prepare attempt journal inode CAS failed");
+    }
+    fs.unlinkSync(this.path);
+    fsyncDirectory(path.dirname(this.path));
+  }
+
+  #sameBytes(left, right) {
+    return left === null || right === null ? left === right : left.equals(right);
+  }
+}
+
+function ensureWorktreeFlowIdentityIgnored(worktreePath, journal, record) {
+  if (journal && record) return journal.publishExclude(record, worktreePath);
+  const rawPath = runGitTrim(worktreePath, ["rev-parse", "--git-path", "info/exclude"]);
+  const excludePath = path.isAbsolute(rawPath) ? rawPath : path.resolve(worktreePath, rawPath);
+  fs.mkdirSync(path.dirname(excludePath), { recursive: true });
+  const current = fs.existsSync(excludePath) ? fs.readFileSync(excludePath, "utf8") : "";
+  const existing = new Set(current.split(/\r?\n/));
+  const missing = WORKTREE_FLOW_INTERNAL_IGNORES.filter((entry) => !existing.has(entry));
+  if (missing.length === 0) return;
+  const separator = current.length > 0 && !current.endsWith("\n") ? "\n" : "";
+  new AtomicFile(excludePath).write(`${current}${separator}${missing.join("\n")}\n`);
+}
+
 export async function runPrepareWithPluginHooks({ root, title, request, noBranch = true, issue = null }) {
   const specDirName = "001-plugin-hook-snapshot-fixture";
   const specDir = path.join(root, "specs", specDirName);
@@ -387,8 +871,25 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
     if (!skipBranch) ensureBaseBranch(root, resolvedBase);
 
-    const idx = String(nextIndex(root)).padStart(3, "0");
     const slug = slugify(title) || "feature";
+    const mainRoot = fs.realpathSync(ctx.mainRoot || flowManager._mainRoot || root);
+    const attemptJournal = !dryRun && useWorktree
+      ? new WorktreePrepareAttemptJournal({
+          mainRoot,
+          processIdentitySource: ctx.worktreePrepareProcessIdentitySource,
+        })
+      : null;
+    const pendingAttempt = attemptJournal?.load()?.record ?? null;
+    if (pendingAttempt && (
+      (runIdArg && pendingAttempt.runId !== runIdArg)
+      || pendingAttempt.issue !== (issue ? Number(issue) : null)
+      || !pendingAttempt.specDirName.endsWith(`-${slug}`)
+    )) {
+      throw new Error("stale worktree prepare attempt does not match this exact retry target");
+    }
+    const idx = pendingAttempt
+      ? pendingAttempt.specDirName.slice(0, 3)
+      : String(nextIndex(root)).padStart(3, "0");
     const branchName = `feature/${idx}-${slug}`;
     const specDirName = `${idx}-${slug}`;
 
@@ -424,10 +925,11 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
 
     const operationLock = new RepositoryFlowOperationLock({
-      mainRoot: ctx.mainRoot || flowManager._mainRoot || root,
+      mainRoot,
     });
     const operationOwnerToken = operationLock.acquire();
     try {
+    if (attemptJournal) attemptJournal.recoverStale(flowManager, operationOwnerToken);
 
     // Helper: write planning source files. spec.json is the source of truth;
     // spec.md is a generated view rendered later when human approval needs it.
@@ -448,7 +950,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
 
     // Helper: write flow.json state
-    const flowRunId = runIdArg || flowManager.generateRunId();
+    const flowRunId = runIdArg || pendingAttempt?.runId || flowManager.generateRunId();
     async function writeFlowState(extra) {
       // At prepare time a fresh flow has no tasks. Integration steps
       // initialize as `skipped` (spec 198 REQ-P4-1); tasks added later
@@ -494,9 +996,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
       });
     }
 
-    // Clean stale active-flow registry entries before creating a new flow.
-    flowManager.cleanStaleFlows({ operationOwnerToken });
-
     const changed = [
       `specs/${specDirName}/spec.json`,
       `specs/${specDirName}/draft.json`,
@@ -513,13 +1012,73 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const lines = [];
 
     if (useWorktree) {
-      runGitTrim(root, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
-      syncPluginRuntimeToWorktree(root, worktreePath);
-      await onHook("PostWorktree", { CWD: worktreePath });
-      writeSpecFiles();
-      await writeFlowState({ worktree: true });
-      runDocsScanAndValidate(specRoot);
-      flowManager.addActiveFlow(specDirName, "worktree", { operationOwnerToken });
+      let worktreeAttempt = null;
+      let attemptPublished = false;
+      try {
+        const expectedWorktreeOid = runGitTrim(root, ["rev-parse", resolvedBase]);
+        worktreeAttempt = WorktreePrepareAttemptRecord.create({
+          mainRoot,
+          runId: flowRunId,
+          issue: issue ? Number(issue) : null,
+          branchName,
+          worktreePath,
+          spec: `specs/${specDirName}/spec.json`,
+          expectedOid: expectedWorktreeOid,
+          processIdentitySource: attemptJournal.processIdentitySource,
+        });
+        attemptJournal.begin(worktreeAttempt, flowManager);
+        attemptPublished = true;
+        runGitTrim(root, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
+        attemptJournal.assertGitCreated(worktreeAttempt);
+        ctx.worktreePrepareFaultInjector?.({
+          phase: "after-worktree-add",
+          worktreePath,
+          branchName,
+          spec: worktreeAttempt.spec,
+        });
+        ensureWorktreeFlowIdentityIgnored(worktreePath, attemptJournal, worktreeAttempt);
+        syncPluginRuntimeToWorktree(root, worktreePath);
+        await onHook("PostWorktree", { CWD: worktreePath });
+        writeSpecFiles();
+        await writeFlowState({ worktree: true });
+        runDocsScanAndValidate(specRoot);
+        const identity = new WorktreeFlowIdentity({
+          runId: flowRunId,
+          issue: issue ? Number(issue) : null,
+          spec: `specs/${specDirName}/spec.json`,
+          worktreePath,
+        });
+        new WorktreeFlowBindingStore({
+          worktreePath,
+          faultInjector: ctx.worktreeFlowBindingFaultInjector,
+        }).save(identity);
+        const worktreeManager = flowManager.forRoot(worktreePath, {
+          bindingFaultInjector: ctx.worktreeFlowBindingFaultInjector,
+        });
+        const resolvedIdentity = worktreeManager.resolveWorktreeBinding();
+        if (!resolvedIdentity.equals(identity)) {
+          throw new Error("fresh worktree manager resolved a different flow binding");
+        }
+        resolvedIdentity.assertFlowState(worktreeManager.load(resolvedIdentity.specId));
+        flowManager.cleanStaleFlows({ operationOwnerToken });
+        flowManager.addActiveFlow(specDirName, "worktree", { operationOwnerToken });
+        if (runIdArg) flowManager.deletePreparingFlow(runIdArg);
+        attemptJournal.complete(worktreeAttempt);
+        attemptPublished = false;
+      } catch (publicationError) {
+        if (attemptPublished) {
+          try {
+            attemptJournal.rollback(worktreeAttempt, flowManager, operationOwnerToken);
+          } catch (rollbackError) {
+            throw new AggregateError(
+              [publicationError, rollbackError],
+              "worktree publication and attempt rollback both failed",
+              { cause: publicationError },
+            );
+          }
+        }
+        throw publicationError;
+      }
       lines.push(
         `created worktree: ${worktreePath}`,
         `created branch: ${branchName} (from ${resolvedBase})`,
@@ -530,6 +1089,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...fillAndGateNext.map((l, i) => `${i + 2}) ${l}`),
       );
     } else if (skipBranch) {
+      flowManager.cleanStaleFlows({ operationOwnerToken });
       writeSpecFiles();
       await writeFlowState();
       runDocsScanAndValidate(specRoot);
@@ -541,6 +1101,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...fillAndGateNext.map((l, i) => `${i + 1}) ${l}`),
       );
     } else {
+      flowManager.cleanStaleFlows({ operationOwnerToken });
       runGitTrim(root, ["checkout", "-b", branchName, resolvedBase]);
       writeSpecFiles();
       await writeFlowState();
@@ -555,7 +1116,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       );
     }
 
-    if (runIdArg) {
+    if (runIdArg && !useWorktree) {
       flowManager.deletePreparingFlow(runIdArg);
     }
 

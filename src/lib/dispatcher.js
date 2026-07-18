@@ -349,6 +349,27 @@ export async function dispatch({
   // command module. A mismatch cannot reach command-owned validation,
   // lifecycle hooks, execution, or step metadata persistence.
   const hookCtx = buildRuntimeHookCtx(input);
+  const emitTargetFailure = (failure) => {
+    openRuntimeLog(hookCtx);
+    attachRuntimeLog(failure, runtimeLog?.metadata);
+    writeOut(JSON.stringify(failure.toJSON(), null, 2) + "\n");
+    setExit(1);
+    closeRuntimeLog();
+    if (restoreStreams) restoreStreams();
+  };
+  const identityResolutionError = hookCtx.flowResolutionError?.code === "ACTIVE_FLOW_MISMATCH"
+    ? hookCtx.flowResolutionError
+    : null;
+  if (identityResolutionError) {
+    emitTargetFailure(Envelope.fail(
+      envelopeType || "run",
+      envelopeKey || "?",
+      identityResolutionError.code,
+      identityResolutionError.message,
+      identityResolutionError.data,
+    ));
+    return;
+  }
   const targetMismatch = entry.targetGuard === false
     ? null
     : buildHookCtx
@@ -360,12 +381,7 @@ export async function dispatch({
         })
       : null;
   if (targetMismatch) {
-    openRuntimeLog(hookCtx);
-    attachRuntimeLog(targetMismatch, runtimeLog?.metadata);
-    writeOut(JSON.stringify(targetMismatch.toJSON(), null, 2) + "\n");
-    setExit(1);
-    closeRuntimeLog();
-    if (restoreStreams) restoreStreams();
+    emitTargetFailure(targetMismatch);
     return;
   }
 

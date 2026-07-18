@@ -179,7 +179,83 @@ describe("spec init CLI", () => {
     assert.match(envelope.data.output, /created spec/);
     assertPrepareArtifacts(wtPath, "specs/001-auto-feat");
 
+    const specId = envelope.data.spec.split("/")[1];
+    const worktreeFlowPath = join(wtPath, "specs", specId, "flow.json");
+    const worktreeState = JSON.parse(fs.readFileSync(worktreeFlowPath, "utf8"));
+    worktreeState.worktree = true;
+    worktreeState.request = "worktree authority";
+    fs.writeFileSync(worktreeFlowPath, `${JSON.stringify(worktreeState, null, 2)}\n`);
+    const mainSpecDir = join(tmp, "specs", specId);
+    fs.mkdirSync(mainSpecDir, { recursive: true });
+    fs.copyFileSync(join(wtPath, "specs", specId, "spec.json"), join(mainSpecDir, "spec.json"));
+    fs.writeFileSync(join(mainSpecDir, "flow.json"), `${JSON.stringify({
+      ...worktreeState,
+      request: "main authority",
+    }, null, 2)}\n`);
+
+    const switched = JSON.parse(execFileSync("node", [CMD, "flow", "get", "status", "--details"], {
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+    }));
+    assert.equal(switched.data.request, "main authority");
+
+    const secondSpec = "002-positional";
+    const secondState = {
+      ...worktreeState,
+      spec: `specs/${secondSpec}/spec.json`,
+      runId: "run-positional-second",
+      issue: 442,
+      worktree: false,
+      request: "positional target",
+    };
+    fs.mkdirSync(join(tmp, "specs", secondSpec), { recursive: true });
+    fs.writeFileSync(join(tmp, "specs", secondSpec, "flow.json"), `${JSON.stringify(secondState, null, 2)}\n`);
+    fs.writeFileSync(join(tmp, ".senti", ".active-flow"), `${JSON.stringify([
+      { spec: specId, mode: "local" },
+      { spec: secondSpec, mode: "local" },
+    ], null, 2)}\n`);
+    fs.writeFileSync(join(tmp, ".senti", ".current-flow"), `${specId}\n`);
+    const positional = JSON.parse(execFileSync("node", [
+      CMD, "flow", "get", "status", "run-positional-second",
+      "--expect-run-id", "run-positional-second",
+      "--expect-issue", "442",
+      "--expect-spec", secondSpec,
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+    }));
+    assert.equal(positional.data.runId, "run-positional-second");
+
     // Cleanup worktree
+    execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });
+  });
+
+  it("resumes an orphan flow from a generic linked worktree without binding fallback", () => {
+    tmp = createTmpDir();
+    initProject(tmp);
+    const wtPath = join(tmp, "orphan-wt");
+    execFileSync("git", ["-C", tmp, "worktree", "add", wtPath, "-b", "wt-orphan"], { encoding: "utf8" });
+    writeJson(wtPath, ".senti/config.json", {
+      lang: "en", type: "sample-node-command",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+    });
+    const prepared = JSON.parse(execFileSync("node", [
+      CMD, "flow", "prepare", "--title", "orphan-generic", "--base", "main",
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+    }));
+    fs.rmSync(join(tmp, ".senti", ".active-flow"), { force: true });
+
+    const resumed = JSON.parse(execFileSync("node", [
+      CMD, "flow", "resume", "--spec", prepared.data.spec.split("/")[1],
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    }));
+    assert.equal(resumed.ok, true);
+    assert.equal(fs.realpathSync(resumed.data.selected.executionRoot), fs.realpathSync(wtPath));
+
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });
   });
 });

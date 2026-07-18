@@ -39,6 +39,7 @@ describe("registry structure", () => {
   });
 
   it("target-sensitive dispatcher commands accept target guards", () => {
+    const targetGuardFlags = ["--expect-no-issue"];
     const targetGuardOptions = ["--expect-issue", "--expect-spec", "--expect-run-id"];
     const commandRefs = [
       FLOW_COMMANDS.get["resolve-context"],
@@ -66,7 +67,14 @@ describe("registry structure", () => {
     ];
 
     for (const entry of commandRefs) {
+      const flags = entry.args?.flags || [];
       const options = entry.args?.options || [];
+      for (const flag of targetGuardFlags) {
+        assert.ok(
+          flags.includes(flag),
+          `${entry.helpKey} must accept ${flag} as a flag`,
+        );
+      }
       for (const option of targetGuardOptions) {
         assert.ok(
           options.includes(option),
@@ -79,10 +87,11 @@ describe("registry structure", () => {
   it("resolve-context help matches its dispatcher target guard options", () => {
     const entry = FLOW_COMMANDS.get["resolve-context"];
     const helpOptions = [...entry.help.matchAll(/--expect-[a-z-]+/g)].map((match) => match[0]);
+    const guardArgs = [...entry.args.flags, ...entry.args.options];
 
     assert.deepEqual(
       [...new Set(helpOptions)].sort(),
-      [...entry.args.options].sort(),
+      guardArgs.sort(),
     );
   });
 
@@ -96,8 +105,9 @@ describe("registry structure", () => {
     ];
     for (const entry of entries) {
       const helpOptions = [...entry.help.matchAll(/--expect-[a-z-]+/g)].map((match) => match[0]);
-      const guardOptions = entry.args.options.filter((option) => option.startsWith("--expect-"));
-      assert.deepEqual([...new Set(helpOptions)].sort(), guardOptions.sort());
+      const guardArgs = [...entry.args.flags, ...entry.args.options]
+        .filter((option) => option.startsWith("--expect-"));
+      assert.deepEqual([...new Set(helpOptions)].sort(), guardArgs.sort());
     }
     assert.equal(FLOW_COMMANDS.set.request.requiresFlow, false);
     assert.equal(FLOW_COMMANDS.set.note.requiresFlow, false);

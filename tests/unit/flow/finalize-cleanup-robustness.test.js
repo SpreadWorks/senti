@@ -16,6 +16,10 @@ import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { ProcessIdentitySource } from "../../../src/lib/flow-state-atomic-writer.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import {
+  WorktreeFlowBindingStore,
+  WorktreeFlowIdentity,
+} from "../../../src/lib/worktree-flow-binding.js";
 import { IssueLogStore } from "../../../src/flow/lib/issue-log-store.js";
 import {
   FlowOutboxStore,
@@ -44,6 +48,15 @@ function writeLiveFlowWriterLock(root, specId) {
     statePath: fs.realpathSync(statePath),
   }, null, 2)}\n`, { mode: 0o600 });
   return lockPath;
+}
+
+function saveManagedWorktreeBinding(worktreePath, state) {
+  new WorktreeFlowBindingStore({ worktreePath }).save(new WorktreeFlowIdentity({
+    runId: state.runId,
+    issue: Object.hasOwn(state, "issue") ? state.issue : null,
+    spec: state.spec,
+    worktreePath,
+  }));
 }
 
 describe("finalize-cleanup robustness", () => {
@@ -720,6 +733,7 @@ describe("finalize-cleanup robustness", () => {
         execFileSync("git", ["-C", root, "add", `specs/${specId}/flow.json`]);
         execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "add flow authority"]);
         execFileSync("git", ["-C", root, "worktree", "add", "-b", featureBranch, worktreePath]);
+        saveManagedWorktreeBinding(worktreePath, state);
         const branchBlocker = path.join(root, "branch-blocker");
         if (faultPhase === "worktree-remove") {
           execFileSync("git", ["-C", root, "worktree", "lock", worktreePath]);
@@ -908,6 +922,7 @@ describe("finalize-cleanup robustness", () => {
         execFileSync("git", ["-C", root, "add", `specs/${specId}/flow.json`]);
         execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "add flow authority"]);
         execFileSync("git", ["-C", root, "worktree", "add", "-b", featureBranch, worktreePath]);
+        saveManagedWorktreeBinding(worktreePath, state);
 
         const pointerPath = path.join(root, ".senti", "last-finalized-spec");
         const activeBackup = `${activePath}.saved`;

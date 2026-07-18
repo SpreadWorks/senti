@@ -50,11 +50,11 @@ describe("optional flow context resolution", () => {
         throw new Error("active flow resolution should not run");
       },
     };
-    container.register("paths", { root: "/repo/.senti/worktree/feature-001-active" });
+    container.register("paths", { root: "/repo" });
     container.register("mainRoot", "/repo");
     container.register("config", {});
     container.register("flowManager", flowManager);
-    container.register("inWorktree", true);
+    container.register("inWorktree", false);
 
     class OptionalCommand extends FlowCommand {
       constructor() {

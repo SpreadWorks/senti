@@ -12,6 +12,7 @@ const LOCK_VERSION = 2;
 const LOCK_KIND = "flow-state-writer";
 const MAX_TEMP_ATTEMPTS = 3;
 const MAX_LOCK_BYTES = 64 * 1024;
+const SAFE_TRANSITION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 export const STATE_FILE = "flow.json";
 
@@ -48,6 +49,19 @@ function pathMayExist(target) {
     return true;
   } catch (cause) {
     return cause.code !== "ENOENT";
+  }
+}
+
+function sameFile(left, right) {
+  return left.dev === right.dev && left.ino === right.ino;
+}
+
+function lstatOptional(target) {
+  try {
+    return fs.lstatSync(target);
+  } catch (cause) {
+    if (cause.code === "ENOENT") return null;
+    throw cause;
   }
 }
 
@@ -372,11 +386,38 @@ class CleanupReport {
   }
 }
 
+class FlowStateWriterTransitionAuthority {
+  constructor({ transitionId, writerOwnerToken, writerOwnerTempName }) {
+    if (!SAFE_TRANSITION_ID.test(transitionId) || !SAFE_TRANSITION_ID.test(writerOwnerToken)) {
+      throw authorityError("flow writer transition publication IDs must be UUIDs");
+    }
+    const expectedTempName = `.flow.json.writer.${writerOwnerToken}.owner.tmp`;
+    if (writerOwnerTempName !== expectedTempName || path.basename(writerOwnerTempName) !== writerOwnerTempName) {
+      throw authorityError("flow writer transition owner temp name is invalid");
+    }
+    this.transitionId = transitionId;
+    this.writerOwnerToken = writerOwnerToken;
+    this.writerOwnerTempName = writerOwnerTempName;
+    Object.freeze(this);
+  }
+
+  static optional(input) {
+    const values = [input.transitionId, input.writerOwnerToken, input.writerOwnerTempName];
+    if (values.every((value) => value == null)) return null;
+    return new FlowStateWriterTransitionAuthority(input);
+  }
+
+  tempPath(specDirectory) {
+    return path.join(specDirectory, this.writerOwnerTempName);
+  }
+}
+
 class FlowStateWriterLock {
-  constructor(authority, faults, processIdentitySource) {
+  constructor(authority, faults, processIdentitySource, transitionAuthority = null) {
     this.authority = authority;
     this.faults = faults;
     this.processIdentitySource = processIdentitySource;
+    this.transitionAuthority = transitionAuthority;
     this.processIdentity = null;
     this.ownerTempPath = null;
     this.acquired = false;
@@ -479,7 +520,82 @@ class FlowStateWriterLock {
     return cleanup;
   }
 
+  recoverCommittedWrite() {
+    if (!(this.transitionAuthority instanceof FlowStateWriterTransitionAuthority)) {
+      throw authorityError("flow writer recovery requires an exact transition ID", {
+        authority: this.authority,
+      });
+    }
+    const tempPath = this.transitionAuthority.tempPath(this.authority.specDirectory);
+    const visible = lstatOptional(this.authority.lockPath);
+    const temp = lstatOptional(tempPath);
+    if (!visible && !temp) {
+      fsyncDirectory(this.authority.specDirectory);
+      return;
+    }
+    let snapshot;
+    if (visible && temp) {
+      if (!sameFile(visible, temp) || visible.nlink !== 2 || temp.nlink !== 2) {
+        throw this.#recoveryAuthorityError("flow writer publication names do not have exact two-link authority");
+      }
+      snapshot = this.#readOwnerSnapshot(this.authority.lockPath, 2);
+    } else if (visible) {
+      snapshot = this.#readOwnerSnapshot(this.authority.lockPath, 1);
+    } else {
+      snapshot = this.#readOwnerSnapshot(tempPath, 1);
+    }
+    const assessment = this.processIdentitySource.assess(snapshot.owner.processIdentity);
+    if (assessment.status !== "stale") {
+      throw this.#assessmentError(
+        snapshot.owner,
+        assessment,
+        new Error("flow writer recovery requires a proven-stale owner"),
+      );
+    }
+    if (
+      snapshot.owner.transitionId !== this.transitionAuthority.transitionId
+      || snapshot.owner.processIdentity.ownerToken !== this.transitionAuthority.writerOwnerToken
+    ) {
+      throw atomicError(
+        "FLOW_STATE_ATOMIC_TRANSITION_MISMATCH",
+        "flow writer lock belongs to a different Issue transition",
+        { authority: this.authority, residuePaths: [this.authority.lockPath] },
+      );
+    }
+    try {
+      if (temp) {
+        this.#assertRecoveryName(tempPath, snapshot.stat, visible ? 2 : 1);
+        fs.unlinkSync(tempPath);
+      }
+      if (visible) {
+        this.#assertRecoveryName(this.authority.lockPath, snapshot.stat, 1);
+        fs.unlinkSync(this.authority.lockPath);
+      }
+      fsyncDirectory(this.authority.specDirectory);
+    } catch (cause) {
+      throw atomicError(
+        "FLOW_STATE_ATOMIC_SAVE_FAILED",
+        `committed flow writer recovery failed: ${cause.message}`,
+        {
+          cause,
+          authority: this.authority,
+          committed: true,
+          residuePaths: [this.authority.lockPath, tempPath].filter((target) => pathMayExist(target)),
+        },
+      );
+    }
+  }
+
   #openOwnerTemp() {
+    if (this.transitionAuthority) {
+      const tempPath = this.transitionAuthority.tempPath(this.authority.specDirectory);
+      this.faults.emit("before-lock-owner-temp-open", { attempt: 0, tempPath });
+      return {
+        token: this.transitionAuthority.writerOwnerToken,
+        path: tempPath,
+        descriptor: fs.openSync(tempPath, "wx", 0o600),
+      };
+    }
     for (let attempt = 0; attempt < MAX_TEMP_ATTEMPTS; attempt += 1) {
       const token = crypto.randomUUID();
       const tempPath = path.join(this.authority.specDirectory, `.flow.json.writer.${token}.owner.tmp`);
@@ -504,6 +620,7 @@ class FlowStateWriterLock {
       root: this.authority.root,
       spec: this.authority.spec,
       statePath: this.authority.statePath,
+      ...(this.transitionAuthority && { transitionId: this.transitionAuthority.transitionId }),
     };
   }
 
@@ -518,6 +635,10 @@ class FlowStateWriterLock {
       });
     }
     const assessment = this.processIdentitySource.assess(owner.processIdentity);
+    return this.#assessmentError(owner, assessment, cause);
+  }
+
+  #assessmentError(owner, assessment, cause) {
     if (assessment.status === "live") {
       return atomicError("FLOW_STATE_ATOMIC_BUSY", assessment.reason, {
         cause,
@@ -537,11 +658,39 @@ class FlowStateWriterLock {
   }
 
   #readOwner() {
-    const stat = fs.lstatSync(this.authority.lockPath);
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_LOCK_BYTES) {
+    return this.#readOwnerSnapshot().owner;
+  }
+
+  #readOwnerSnapshot(filePath = this.authority.lockPath, expectedLinkCount = 1) {
+    const visible = fs.lstatSync(filePath);
+    if (
+      !visible.isFile()
+      || visible.isSymbolicLink()
+      || visible.nlink !== expectedLinkCount
+      || visible.size > MAX_LOCK_BYTES
+      || fs.realpathSync(filePath) !== filePath
+    ) {
       throw new Error("flow writer lock must be a bounded regular file");
     }
-    const owner = JSON.parse(fs.readFileSync(this.authority.lockPath, "utf8"));
+    let descriptor = null;
+    let owner;
+    try {
+      descriptor = fs.openSync(
+        filePath,
+        fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
+      );
+      const opened = fs.fstatSync(descriptor);
+      if (!sameFile(visible, opened) || opened.nlink !== expectedLinkCount || opened.size > MAX_LOCK_BYTES) {
+        throw new Error("flow writer lock changed while opening");
+      }
+      owner = JSON.parse(fs.readFileSync(descriptor, "utf8"));
+      const afterVisible = fs.lstatSync(filePath);
+      if (!sameFile(opened, afterVisible) || afterVisible.nlink !== expectedLinkCount) {
+        throw new Error("flow writer lock changed while reading");
+      }
+    } finally {
+      if (descriptor != null) fs.closeSync(descriptor);
+    }
     if (
       owner.version !== LOCK_VERSION
       || owner.kind !== LOCK_KIND
@@ -556,7 +705,24 @@ class FlowStateWriterLock {
     } catch (cause) {
       throw new Error("flow writer lock process identity is invalid", { cause });
     }
-    return owner;
+    return { owner, stat: visible };
+  }
+
+  #assertRecoveryName(filePath, expectedStat, expectedLinkCount) {
+    const current = fs.lstatSync(filePath);
+    if (!sameFile(current, expectedStat) || current.nlink !== expectedLinkCount) {
+      throw this.#recoveryAuthorityError("flow writer publication changed before transition recovery");
+    }
+  }
+
+  #recoveryAuthorityError(message) {
+    return atomicError("FLOW_STATE_ATOMIC_LOCK_UNKNOWN", message, {
+      authority: this.authority,
+      residuePaths: [
+        this.authority.lockPath,
+        this.transitionAuthority?.tempPath(this.authority.specDirectory),
+      ].filter((target) => target && pathMayExist(target)),
+    });
   }
 
   #residuePaths() {
@@ -660,6 +826,10 @@ export class AtomicFlowStateWriter {
     processIdentitySource = new ProcessIdentitySource(),
     maintenanceOwnerToken = null,
     operationOwnerToken = null,
+    allowIssueTransition = false,
+    transitionId = null,
+    writerOwnerToken = null,
+    writerOwnerTempName = null,
   }) {
     this.pathAuthority = new FlowStatePathAuthority({ root, boundSpecId });
     this.replacementAuthority = expectedOriginal == null && nextState == null
@@ -669,9 +839,20 @@ export class AtomicFlowStateWriter {
         expectedOriginal,
         nextState,
         expectedRevision,
+        allowIssueTransition,
       });
     this.faults = new FaultBoundary(faultInjector);
-    this.lock = new FlowStateWriterLock(this.pathAuthority, this.faults, processIdentitySource);
+    this.transitionAuthority = FlowStateWriterTransitionAuthority.optional({
+      transitionId,
+      writerOwnerToken,
+      writerOwnerTempName,
+    });
+    this.lock = new FlowStateWriterLock(
+      this.pathAuthority,
+      this.faults,
+      processIdentitySource,
+      this.transitionAuthority,
+    );
     this.mainRoot = mainRoot;
     this.maintenanceOwnerToken = maintenanceOwnerToken;
     this.processIdentitySource = processIdentitySource;
@@ -680,6 +861,31 @@ export class AtomicFlowStateWriter {
       maintenanceOwnerToken,
       operationOwnerToken,
     });
+  }
+
+  recoverCommittedWrite() {
+    this.repositoryOperation.acquire();
+    let primary = null;
+    try {
+      this.lock.recoverCommittedWrite();
+    } catch (error) {
+      primary = error;
+    }
+    let releaseError = null;
+    try {
+      this.repositoryOperation.release();
+    } catch (error) {
+      releaseError = error;
+    }
+    if (primary && releaseError) {
+      throw new AggregateError(
+        [primary, releaseError],
+        "committed flow state recovery and repository barrier release both failed",
+        { cause: primary },
+      );
+    }
+    if (primary) throw primary;
+    if (releaseError) throw releaseError;
   }
 
   save() {

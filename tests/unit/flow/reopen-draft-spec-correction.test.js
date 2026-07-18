@@ -6,6 +6,10 @@ import path from "node:path";
 import { Container } from "../../../src/lib/container.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import {
+  WorktreeFlowBindingStore,
+  WorktreeFlowIdentity,
+} from "../../../src/lib/worktree-flow-binding.js";
 import { buildInitialSteps, FLOW_STEPS } from "../../../src/lib/flow-helpers.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { resolveFlowContext } from "../../../src/flow/lib/flow-context.js";
@@ -168,6 +172,14 @@ function setupFlow(root, {
   if (!doneTask && taskStepStatus) state.tasks[0].steps[0].status = taskStepStatus;
   const fm = new FlowManager({ root, mainRoot, inWorktree });
   fm.create(state);
+  if (inWorktree) {
+    new WorktreeFlowBindingStore({ worktreePath: root }).save(new WorktreeFlowIdentity({
+      runId: state.runId,
+      issue: Object.hasOwn(state, "issue") ? state.issue : null,
+      spec: state.spec,
+      worktreePath: root,
+    }));
+  }
   fm.addActiveFlow(SPEC_ID, inWorktree ? "worktree" : "local");
   return { files, state };
 }

@@ -15,7 +15,10 @@
 
 import { Command } from "../../lib/command.js";
 import { resolveFlowContext } from "./flow-context.js";
-import { targetMismatchEnvelopeForInput } from "../../lib/flow-target-guard.js";
+import {
+  buildTargetMismatchEnvelope,
+  targetMismatchEnvelopeForInput,
+} from "../../lib/flow-target-guard.js";
 
 export class FlowCommand extends Command {
   /** All flow commands emit JSON envelopes. */
@@ -51,6 +54,16 @@ export class FlowCommand extends Command {
       }),
       ...input,
     };
+    if (ctx.flowResolutionError) {
+      if (ctx.flowResolutionError.code === "ACTIVE_FLOW_MISMATCH") {
+        return buildTargetMismatchEnvelope({
+          type: input._envelopeType || "run",
+          key: input._envelopeKey || "flow",
+          data: ctx.flowResolutionError.data,
+        });
+      }
+      if (this.requiresFlow) throw ctx.flowResolutionError;
+    }
     if (this.requiresFlow && !ctx.flowState) {
       throw new Error("no active flow (flow.json not found)");
     }

@@ -15,18 +15,18 @@ describe("resolveActiveFlow", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  function setupFlow(dir, specId = "001-test") {
+  function setupFlow(dir, specId = "001-test", issue = Number(specId.slice(0, 3))) {
     const state = {
       spec: `specs/${specId}/spec.json`,
       baseBranch: "main",
       featureBranch: `feature/${specId}`,
       runId: `run-${specId}`,
-      issue: Number(specId.slice(0, 3)),
       steps: buildInitialSteps(),
       requirements: [],
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
+    if (issue != null) state.issue = issue;
     makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
     return state;
@@ -155,6 +155,45 @@ describe("resolveActiveFlow", () => {
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectIssue: 222 });
     assert.ok(result);
     assert.equal(result.specId, "002-second");
+  });
+
+  it("selects the unique Issue-less flow via opts.selectNoIssue", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-with-issue", 1);
+    setupFlow(tmp, "002-no-issue", null);
+
+    const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectNoIssue: true });
+
+    assert.equal(result.specId, "002-no-issue");
+    assert.equal(Object.hasOwn(result.state, "issue"), false);
+  });
+
+  it("returns the structured not-found error when no Issue-less flow is active", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-first", 1);
+    setupFlow(tmp, "002-second", 2);
+
+    assert.throws(
+      () => makeFlowManager(tmp).resolveActiveFlow(null, { selectNoIssue: true }),
+      (error) => error.code === "FLOW_TARGET_NOT_FOUND"
+        && error.data?.matchCount === 0
+        && error.data?.expectedIssue === null
+        && /not found.*no Issue/i.test(error.message),
+    );
+  });
+
+  it("returns the structured ambiguity error when multiple Issue-less flows are active", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-first", null);
+    setupFlow(tmp, "002-second", null);
+
+    assert.throws(
+      () => makeFlowManager(tmp).resolveActiveFlow(null, { selectNoIssue: true }),
+      (error) => error.code === "FLOW_TARGET_NOT_FOUND"
+        && error.data?.matchCount === 2
+        && error.data?.expectedIssue === null
+        && /ambiguous.*no Issue/i.test(error.message),
+    );
   });
 
   it("throws a clear error when selectSpecId is not in active flows", () => {

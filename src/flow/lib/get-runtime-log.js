@@ -42,6 +42,7 @@ export default class GetRuntimeLogCommand extends Command {
       ...resolveFlowContext(this.container, {
         allowMissingActive: true,
         explicitTargetResolution: true,
+        mismatchTargetResolution: true,
         preparingRunIdSelection: false,
         input,
       }),

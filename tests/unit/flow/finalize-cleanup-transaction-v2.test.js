@@ -9,9 +9,14 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { makeFlowManager, replaceFlowState, setupFlow } from "../../helpers/flow-setup.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import {
+  WorktreeFlowBindingStore,
+  WorktreeFlowIdentity,
+} from "../../../src/lib/worktree-flow-binding.js";
+import {
   FinalizeBeforeImageRestorePolicy,
   RunFinalizeCleanupCommand,
   deleteFeatureBranchForCleanup,
+  removeWorktreeForCleanup,
 } from "../../../src/flow/lib/run-finalize-cleanup.js";
 import { ProcessOwnedLock } from "../../../src/lib/process-owned-lock.js";
 import { AtomicJsonFile } from "../../../src/lib/atomic-json-file.js";
@@ -358,6 +363,18 @@ function setupWorktreeFinalizeFlow(root, specId, overrides = {}) {
   git(root, ["add", `specs/${specId}/flow.json`]);
   git(root, ["commit", "--quiet", "-m", "add worktree flow"]);
   git(root, ["worktree", "add", "-b", featureBranch, worktreePath]);
+  const excludePath = git(worktreePath, ["rev-parse", "--git-path", "info/exclude"]);
+  fs.appendFileSync(excludePath, [
+    "/.senti/flow-identity.json",
+    "/.senti/flow-identity.issue-transaction.json",
+    "",
+  ].join("\n"));
+  new WorktreeFlowBindingStore({ worktreePath }).save(new WorktreeFlowIdentity({
+    runId: state.runId,
+    issue: Object.hasOwn(state, "issue") ? state.issue : null,
+    spec: state.spec,
+    worktreePath,
+  }));
   const flowManager = new FlowManager({
     root: worktreePath,
     mainRoot: root,
@@ -372,6 +389,15 @@ function markFinalizeCleanupReady(state) {
     step.status = step.id === "finalize-cleanup" ? "in_progress" : "done";
   }
   return state;
+}
+
+function worktreeBindingFor(fixture) {
+  return new WorktreeFlowIdentity({
+    runId: fixture.state.runId,
+    issue: Object.hasOwn(fixture.state, "issue") ? fixture.state.issue : null,
+    spec: fixture.state.spec,
+    worktreePath: fixture.worktreePath,
+  });
 }
 
 function markFinalizeCommitReady(state) {
@@ -777,6 +803,142 @@ for (const tamper of ["missing-result", "mismatched-result-phase"]) {
     }
   });
 }
+
+test("restores the exact binding after worktree removal failure and removes it on retry", () => {
+  const root = createTmpDir("finalize-binding-remove-retry-");
+  try {
+    initGitRepo(root);
+    const fixture = setupWorktreeFinalizeFlow(root, "binding-retry");
+    const expectedBinding = worktreeBindingFor(fixture);
+    const bindingStore = new WorktreeFlowBindingStore({ worktreePath: fixture.worktreePath });
+    git(root, ["worktree", "lock", fixture.worktreePath]);
+
+    const failed = removeWorktreeForCleanup({
+      mainRepoPath: root,
+      worktreePath: fixture.worktreePath,
+      featureBranch: fixture.featureBranch,
+      expectedBinding,
+    });
+    assert.equal(failed.ok, false);
+    assert.equal(failed.env.errors[0].code, "WORKTREE_REMOVE_FAILED");
+    assert.equal(bindingStore.load().equals(expectedBinding), true);
+
+    git(root, ["worktree", "unlock", fixture.worktreePath]);
+    const retried = removeWorktreeForCleanup({
+      mainRepoPath: root,
+      worktreePath: fixture.worktreePath,
+      featureBranch: fixture.featureBranch,
+      expectedBinding,
+    });
+    assert.equal(retried.ok, true);
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("process interruption before Git removal leaves the verified binding restartable", () => {
+  const root = createTmpDir("finalize-binding-interruption-");
+  try {
+    initGitRepo(root);
+    const fixture = setupWorktreeFinalizeFlow(root, "binding-interruption");
+    const expectedBinding = worktreeBindingFor(fixture);
+    const script = `
+      import { removeWorktreeForCleanup } from ${JSON.stringify(pathToFileURL(finalizeModule).href)};
+      import { WorktreeFlowIdentity } from ${JSON.stringify(pathToFileURL(path.resolve("src/lib/worktree-flow-binding.js")).href)};
+      const [mainRepoPath, worktreePath, featureBranch, identityJson] = process.argv.slice(1);
+      removeWorktreeForCleanup({
+        mainRepoPath,
+        worktreePath,
+        featureBranch,
+        expectedBinding: new WorktreeFlowIdentity(JSON.parse(identityJson)),
+        runGit: () => {
+          process.kill(process.pid, "SIGKILL");
+          return { ok: false, status: 1, stdout: "", stderr: "unreachable" };
+        },
+      });
+    `;
+    const stopped = spawnSync(process.execPath, [
+      "--input-type=module",
+      "-e",
+      script,
+      root,
+      fixture.worktreePath,
+      fixture.featureBranch,
+      JSON.stringify(expectedBinding.toJSON()),
+    ]);
+    assert.equal(stopped.signal, "SIGKILL");
+    assert.equal(
+      new WorktreeFlowBindingStore({ worktreePath: fixture.worktreePath }).load().equals(expectedBinding),
+      true,
+    );
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("does not recreate the binding when Git reports failure after the worktree vanished", () => {
+  const root = createTmpDir("finalize-binding-vanished-");
+  try {
+    initGitRepo(root);
+    const fixture = setupWorktreeFinalizeFlow(root, "binding-vanished");
+    const result = removeWorktreeForCleanup({
+      mainRepoPath: root,
+      worktreePath: fixture.worktreePath,
+      featureBranch: fixture.featureBranch,
+      expectedBinding: worktreeBindingFor(fixture),
+      runGit: () => {
+        fs.rmSync(fixture.worktreePath, { recursive: true, force: true });
+        return { ok: false, status: 1, stdout: "", stderr: "simulated late failure" };
+      },
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.env.errors[0].code, "WORKTREE_REMOVE_FAILED");
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("rejects missing, foreign-replaced, and hardlinked bindings before Git teardown", () => {
+  for (const scenario of ["missing", "foreign-replaced", "hardlinked"]) {
+    const root = createTmpDir(`finalize-binding-${scenario}-`);
+    try {
+      initGitRepo(root);
+      const fixture = setupWorktreeFinalizeFlow(root, `binding-${scenario}`);
+      const expectedBinding = worktreeBindingFor(fixture);
+      const bindingStore = new WorktreeFlowBindingStore({ worktreePath: fixture.worktreePath });
+      if (scenario === "missing") {
+        fs.unlinkSync(bindingStore.path);
+      } else if (scenario === "foreign-replaced") {
+        fs.writeFileSync(bindingStore.path, `${JSON.stringify({
+          version: 1,
+          ...expectedBinding.toJSON(),
+          runId: "foreign-run",
+        }, null, 2)}\n`);
+      } else {
+        fs.linkSync(bindingStore.path, `${bindingStore.path}.foreign-link`);
+      }
+      let gitCalls = 0;
+      const result = removeWorktreeForCleanup({
+        mainRepoPath: root,
+        worktreePath: fixture.worktreePath,
+        featureBranch: fixture.featureBranch,
+        expectedBinding,
+        runGit: () => {
+          gitCalls += 1;
+          return { ok: true, status: 0, stdout: "", stderr: "" };
+        },
+      });
+      assert.equal(result.ok, false, scenario);
+      assert.equal(result.env.errors[0].code, "WORKTREE_FLOW_BINDING_REMOVE_FAILED", scenario);
+      assert.equal(gitCalls, 0, scenario);
+      assert.equal(fs.existsSync(fixture.worktreePath), true, scenario);
+    } finally {
+      removeTmpDir(root);
+    }
+  }
+});
 
 test("rejects a changed worktree HEAD before removing the worktree", async () => {
   const root = createTmpDir("finalize-worktree-head-divergence-");

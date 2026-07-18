@@ -45,6 +45,7 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
     buildHookCtx: (c, input = {}) => resolveFlowContext(c, {
       allowMissingActive: resolvedEntry.requiresFlow === false,
       explicitTargetResolution: resolvedEntry.explicitTargetResolution === true,
+      mismatchTargetResolution: resolvedEntry.mismatchTargetResolution === true,
       preparingRunIdSelection: resolvedEntry.preparingRunIdSelection !== false,
       input,
     }),

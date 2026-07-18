@@ -60,6 +60,10 @@ import {
   RepositoryFlowOperationLock,
   resolveRepositoryLockRoot,
 } from "../../lib/repository-maintenance-lock.js";
+import {
+  WorktreeFlowBindingStore,
+  WorktreeFlowIdentity,
+} from "../../lib/worktree-flow-binding.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
 const SUBMODULE_DIAGNOSTIC_LIMIT = 50;
@@ -2910,7 +2914,7 @@ function writeJsonFile(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-export function removeWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch, force = false, runGit: runGitFn = runGit }) {
+function removeGitWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch, force, runGit: runGitFn }) {
   const removeArgs = ["-C", mainRepoPath, "worktree", "remove"];
   if (force) removeArgs.push("--force");
   removeArgs.push(worktreePath);
@@ -2957,6 +2961,51 @@ export function removeWorktreeForCleanup({ mainRepoPath, worktreePath, featureBr
     };
   }
   return { ok: true };
+}
+
+function bindingFailure(code, error) {
+  return {
+    ok: false,
+    env: Envelope.fail("run", "finalize-cleanup", code, error.message),
+  };
+}
+
+function verifyExactWorktreeBinding(expectedBinding) {
+  const store = new WorktreeFlowBindingStore({ worktreePath: expectedBinding.worktreePath });
+  store.withLock(() => {
+    const current = store.loadOwned().identity;
+    if (!current.equals(expectedBinding)) {
+      throw new Error("worktree flow binding changed before finalize teardown");
+    }
+  });
+}
+
+export function removeWorktreeForCleanup({
+  mainRepoPath,
+  worktreePath,
+  featureBranch,
+  force = false,
+  runGit: runGitFn = runGit,
+  expectedBinding = null,
+}) {
+  if (expectedBinding != null) {
+    if (!(expectedBinding instanceof WorktreeFlowIdentity)) {
+      throw new Error("worktree cleanup expected binding must be a worktree flow identity");
+    }
+    try {
+      verifyExactWorktreeBinding(expectedBinding);
+    } catch (error) {
+      return bindingFailure("WORKTREE_FLOW_BINDING_REMOVE_FAILED", error);
+    }
+  }
+
+  return removeGitWorktreeForCleanup({
+    mainRepoPath,
+    worktreePath,
+    featureBranch,
+    force,
+    runGit: runGitFn,
+  });
 }
 
 export function deleteFeatureBranchForCleanup({
@@ -5654,11 +5703,21 @@ async function runTeardownTransactionOwned(
     assertWorktreeAuthority(transaction, { mainRepoPath, state });
     const wtPath = worktreePath || ctx.root;
     if (fs.existsSync(wtPath)) {
+      const worktreeFlowManager = ctx.flowManager.forRoot(wtPath, { specId });
+      const expectedBinding = worktreeFlowManager.usesWorktreeFlowBinding()
+        ? new WorktreeFlowIdentity({
+            runId: state.runId,
+            issue: Object.hasOwn(state, "issue") ? state.issue : null,
+            spec: state.spec,
+            worktreePath: wtPath,
+          })
+        : null;
       const removeResult = removeWorktreeForCleanup({
         mainRepoPath,
         worktreePath: wtPath,
         featureBranch,
         force: ctx.force === true,
+        expectedBinding,
       });
       if (!removeResult.ok) return failAfterCommit(removeResult.env);
     }

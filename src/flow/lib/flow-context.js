@@ -18,6 +18,7 @@ import fs from "fs";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { flowStatePath } from "../../lib/flow-state-atomic-writer.js";
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
+import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 
 const MISSING_PREPARING_FLOW_STATE = Object.freeze({});
 
@@ -26,8 +27,9 @@ function resolveTargetSelection(input = {}) {
   const specToken = input.expectSpec ?? null;
   const selectSpecId = specToken ? specIdFromPath(specToken) : null;
   const selectIssue = input.expectIssue ?? null;
-  if (selectRunId == null && selectSpecId == null && selectIssue == null) return null;
-  return { selectRunId, selectSpecId, selectIssue };
+  const selectNoIssue = input.expectNoIssue === true;
+  if (selectRunId == null && selectSpecId == null && selectIssue == null && !selectNoIssue) return null;
+  return { selectRunId, selectSpecId, selectIssue, selectNoIssue };
 }
 
 function preparingRunIdSelection(input = {}) {
@@ -53,8 +55,58 @@ function preparingAuthorityForRunId(baseFlowManager, mainRoot, paths, runId) {
   };
 }
 
+function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, options) {
+  if (!container.get("inWorktree")) return null;
+  if (baseFlowManager.usesWorktreeFlowBinding() === false) return null;
+  let identity;
+  try {
+    identity = baseFlowManager.resolveWorktreeBinding(new FlowTargetExpectation(options.input));
+  } catch (error) {
+    return {
+      flowManager: baseFlowManager,
+      flowState: null,
+      preparingFlowState: null,
+      authorityRoot: null,
+      flowResolutionError: error,
+    };
+  }
+  const flowState = baseFlowManager.load(identity.specId);
+  if (mainRoot) {
+    const mainFlowPath = flowStatePath(mainRoot, identity.specId);
+    if (fs.existsSync(mainFlowPath)) {
+      const mainManager = baseFlowManager.forRoot(mainRoot, { specId: identity.specId });
+      const mainState = mainManager.load(identity.specId);
+      identity.assertFlowState(mainState);
+      return {
+        flowManager: mainManager,
+        flowState: mainState,
+        preparingFlowState: null,
+        authorityRoot: mainRoot,
+        flowResolutionError: null,
+        worktreeFlowProvenance: new WorktreeFlowProvenance(identity, mainRoot),
+      };
+    }
+  }
+  return {
+    flowManager: baseFlowManager,
+    flowState,
+    preparingFlowState: null,
+    authorityRoot: paths.root,
+    flowResolutionError: null,
+    worktreeFlowProvenance: new WorktreeFlowProvenance(identity, paths.root),
+  };
+}
+
 function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options = {}) {
   const paths = container.get("paths");
+  const worktreeAuthority = boundWorktreeAuthority(
+    container,
+    baseFlowManager,
+    mainRoot,
+    paths,
+    options,
+  );
+  if (worktreeAuthority) return worktreeAuthority;
   const preparingAuthority = options.preparingRunIdSelection === false
     ? null
     : preparingAuthorityForRunId(
@@ -67,9 +119,22 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
 
   const selection = resolveTargetSelection(options.input);
   if (options.explicitTargetResolution === true && selection) {
-    const target = baseFlowManager.resolveExplicitFlowTarget(
-      new FlowTargetExpectation(options.input),
-    );
+    let target;
+    try {
+      const resolver = options.mismatchTargetResolution === true
+        ? baseFlowManager.resolveExplicitFlowTargetForRead.bind(baseFlowManager)
+        : baseFlowManager.resolveExplicitFlowTarget.bind(baseFlowManager);
+      target = resolver(new FlowTargetExpectation(options.input));
+    } catch (error) {
+      if (!options.allowMissingActive) throw error;
+      return {
+        flowManager: baseFlowManager,
+        flowState: null,
+        preparingFlowState: null,
+        authorityRoot: null,
+        flowResolutionError: error,
+      };
+    }
     const flowManager = baseFlowManager.forRoot(
       target.authorityRoot,
       target.specId ? { specId: target.specId } : {},
@@ -103,21 +168,25 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
     return { flowManager: baseFlowManager, flowState: null, authorityRoot: null, flowResolutionError: null };
   }
 
-  const inWorktree = container.get("inWorktree");
-
-  if (inWorktree && cwdState.worktree && mainRoot) {
+  if (container.get("inWorktree") && cwdState.worktree && mainRoot) {
     const specId = specIdFromPath(cwdState.spec);
     if (specId) {
       const mainFlowPath = flowStatePath(mainRoot, specId);
       if (fs.existsSync(mainFlowPath)) {
-        const mainFm = baseFlowManager.forRoot(mainRoot, { specId });
-        const mainState = mainFm.load(specId);
+        const mainManager = baseFlowManager.forRoot(mainRoot, { specId });
+        const mainState = mainManager.load(specId);
         if (mainState) {
-          return { flowManager: mainFm, flowState: mainState, authorityRoot: mainRoot };
+          return {
+            flowManager: mainManager,
+            flowState: mainState,
+            authorityRoot: mainRoot,
+            flowResolutionError: null,
+          };
         }
       }
     }
   }
+
   return { flowManager: baseFlowManager, flowState: cwdState, authorityRoot: paths.root, flowResolutionError: null };
 }
 
@@ -131,6 +200,7 @@ export function resolveFlowContext(container, options = {}) {
     preparingFlowState = null,
     authorityRoot,
     flowResolutionError,
+    worktreeFlowProvenance = null,
   } = resolveAuthorityFlowState(
     container,
     baseFlowManager,
@@ -148,5 +218,6 @@ export function resolveFlowContext(container, options = {}) {
     inWorktree: container.get("inWorktree"),
     authorityRoot,
     flowResolutionError,
+    worktreeFlowProvenance,
   };
 }

@@ -12,6 +12,7 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { resolveCommandRouteOptions } from "../../lib/flow-options.js";
 import { fetchNormalizedIssueBody, writeIssueMd } from "./issue-body-cache.js";
+import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 
 export default class SetIssueCommand extends FlowCommand {
   execute(ctx) {
@@ -38,6 +39,22 @@ export default class SetIssueCommand extends FlowCommand {
         "issue",
         "INVALID_ARG_VALUE",
         `issue number must be a positive integer: ${raw}`,
+      );
+    }
+
+    if (
+      ctx.worktreeFlowProvenance instanceof WorktreeFlowProvenance
+      && !ctx.worktreeFlowProvenance.stateUsesBindingAuthority
+    ) {
+      return Envelope.fail(
+        "set",
+        "issue",
+        "WORKTREE_FLOW_BINDING_AUTHORITY_MISMATCH",
+        "Issue mutation is unavailable after flow state authority moved away from its bound worktree.",
+        {
+          bindingAuthorityRoot: ctx.worktreeFlowProvenance.identity.worktreePath,
+          stateAuthorityRoot: ctx.worktreeFlowProvenance.stateAuthorityRoot,
+        },
       );
     }
 

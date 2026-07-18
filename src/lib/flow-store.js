@@ -512,6 +512,10 @@ export class FlowStore {
     processIdentitySource,
     maintenanceOwnerToken,
     operationOwnerToken,
+    allowIssueTransition = false,
+    transitionId = null,
+    writerOwnerToken = null,
+    writerOwnerTempName = null,
   } = {}) {
     const writer = new AtomicFlowStateWriter({
       root: this._root,
@@ -524,10 +528,35 @@ export class FlowStore {
       processIdentitySource,
       maintenanceOwnerToken,
       operationOwnerToken,
+      allowIssueTransition,
+      transitionId,
+      writerOwnerToken,
+      writerOwnerTempName,
     });
     assertCurrentFlowStateSchema(state, writer.pathAuthority.statePath);
     assertCurrentFlowStateSchema(expectedOriginal, writer.pathAuthority.statePath);
     return writer.save();
+  }
+
+  recoverCommittedAtomicWrite(boundSpecId, {
+    processIdentitySource,
+    maintenanceOwnerToken,
+    operationOwnerToken,
+    transitionId,
+    writerOwnerToken,
+    writerOwnerTempName,
+  } = {}) {
+    return new AtomicFlowStateWriter({
+      root: this._root,
+      mainRoot: this._mainRoot,
+      boundSpecId,
+      processIdentitySource,
+      maintenanceOwnerToken,
+      operationOwnerToken,
+      transitionId,
+      writerOwnerToken,
+      writerOwnerTempName,
+    }).recoverCommittedWrite();
   }
 
   mutate(mutator, opts = {}) {

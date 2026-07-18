@@ -33,6 +33,32 @@ describe("dispatcher (unified runner)", () => {
       assert.equal(captured.mode, "select");
     });
 
+    it("parses the no-Issue expectation as a flag before target value options", async () => {
+      let captured;
+      class Cmd extends Command {
+        static outputMode = "raw";
+        execute(ctx) {
+          captured = ctx;
+        }
+      }
+      const entry = {
+        command: async () => ({ default: Cmd }),
+        args: {
+          flags: ["--expect-no-issue"],
+          options: ["--expect-run-id"],
+        },
+      };
+
+      await dispatch({
+        container,
+        entry,
+        argv: ["--expect-no-issue", "--expect-run-id", "run-440"],
+      });
+
+      assert.equal(captured.expectNoIssue, true);
+      assert.equal(captured.expectRunId, "run-440");
+    });
+
     it("parses options with optional values before calling command", async () => {
       const captured = [];
       class Cmd extends Command {
