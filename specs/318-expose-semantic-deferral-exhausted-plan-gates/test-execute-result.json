@@ -1,0 +1,125 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "test_name": "R1: exhausted semantic eligibility inspection is bounded and read-only",
+        "command": "node --test specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "test_name": "R2: semantic recovery command contains the selected run, Issue, and spec guards",
+        "command": "node --test specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "test_name": "R3: matching continuation preserves 5/5 and provider count while persisting and completing",
+        "command": "node --test specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "test_name": "R4: each mismatched continuation guard stops before semantic-deferral mutation",
+        "command": "node --test specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "test_name": "R5: named non-deferable durable sources remain stopped without a recovery command",
+        "command": "node --test specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "test_name": "R6: task and integration recovery retain changed-evidence, audit, grant, and guard contracts",
+        "command": "node --test specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/lib/get-next-action.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-gate.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-next-action.js",
+        "fingerprint": "1750ec3c54ce99fcd08d7bf7d1363d17fe356ea4b7f2dcf6e29b639a1647306a"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "88ef305280c819eb956d69c6eaa7a9bcee21a8ae15394655b316b19a51196e51"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-next-action.js",
+        "fingerprint": "1750ec3c54ce99fcd08d7bf7d1363d17fe356ea4b7f2dcf6e29b639a1647306a"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "88ef305280c819eb956d69c6eaa7a9bcee21a8ae15394655b316b19a51196e51"
+      }
+    ]
+  }
+}

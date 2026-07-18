@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement says to keep product changes within \"an exact necessary shared helper if ownership requires it\". \"necessary\" and \"if ownership requires it\" are not verifiable conditions and leave reviewers without an objective criterion for whether a shared helper is allowed.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "The requirement says to keep product changes within \"an exact necessary shared helper if ownership requires it\". \"necessary\" and \"if ownership requires it\" are not verifiable conditions and leave reviewers without an objective criterion for whether a shared helper is allowed.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement allows \"an exact necessary shared helper if ownership requires it\" without defining measurable criteria for necessity or ownership requirements, so two independent reviewers could disagree on whether an implementation satisfies this constraint.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "The requirement allows \"an exact necessary shared helper if ownership requires it\" without defining measurable criteria for necessity or ownership requirements, so two independent reviewers could disagree on whether an implementation satisfies this constraint.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "content",
+        "locator": "decisionMap.resolvedByProjectRules[2]"
+      },
+      "observed": "The requirement says to keep product changes within \"an exact necessary shared helper if ownership requires it\". \"necessary\" and \"if ownership requires it\" are not verifiable conditions and leave reviewers without an objective criterion for whether a shared helper is allowed.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "content",
+        "locator": "decisionMap.resolvedByProjectRules[2]"
+      },
+      "observed": "The requirement allows \"an exact necessary shared helper if ownership requires it\" without defining measurable criteria for necessity or ownership requirements, so two independent reviewers could disagree on whether an implementation satisfies this constraint.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    }
+  ]
+}

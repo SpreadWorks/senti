@@ -24,6 +24,7 @@ import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.j
 import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
 import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
 import { countReviewRetry } from "./run-review.js";
+import { inspectDurableGateSemanticDeferral } from "./run-gate.js";
 import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import {
   evaluateTaskScope,
@@ -166,6 +167,50 @@ function attachLatestStepAttempt(result, state, target) {
     result.halt = true;
     result.resumeInstruction = attempt.outcome.resumeInstruction;
   }
+}
+
+function buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay) {
+  if (!["draft", "spec"].includes(gateRecoveryDisplay.phase)) return null;
+  const inspection = inspectDurableGateSemanticDeferral({
+    root: ctx.root,
+    flowState: state,
+    phase: gateRecoveryDisplay.phase,
+  });
+  if (!inspection.deferAllowed || inspection.reason !== "semantic_findings") return null;
+  const phase = gateRecoveryDisplay.phase;
+  return Object.freeze({
+    kind: "gate",
+    phase,
+    canonicalPhase: phase,
+    attempts: gateRecoveryDisplay.attempts,
+    max: gateRecoveryDisplay.max,
+    recoveryPossible: true,
+    recoveryReason: "semantic_findings",
+    classification: "semantic_findings",
+    changedEvidence: null,
+    recoveryCommand: [
+      "senti flow run gate",
+      `--phase ${phase}`,
+      `--expect-run-id ${state.runId}`,
+      `--expect-issue ${state.issue}`,
+      `--expect-spec ${state.spec}`,
+    ].join(" "),
+    reason: "semantic_findings",
+  });
+}
+
+function buildGateRetryRecovery(ctx, state, gateRecoveryDisplay) {
+  const existingRecovery = () => buildRetryRecoveryForState(ctx, state, {
+    kind: "gate",
+    phase: gateRecoveryDisplay.phase,
+    attempts: gateRecoveryDisplay.attempts,
+    max: gateRecoveryDisplay.max,
+  });
+  if (["task-impl", "integration"].includes(gateRecoveryDisplay.phase)) {
+    return existingRecovery();
+  }
+  return buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay)
+    || existingRecovery();
 }
 
 function promoteNextTaskAndFirstStep(state) {
@@ -353,12 +398,7 @@ export default class GetNextActionCommand extends FlowCommand {
         })
       : null;
     if (gateRecoveryDisplay) {
-      const retryRecovery = buildRetryRecoveryForState(ctx, state, {
-        kind: "gate",
-        phase: gateRecoveryDisplay.phase,
-        attempts: gateRecoveryDisplay.attempts,
-        max: gateRecoveryDisplay.max,
-      });
+      const retryRecovery = buildGateRetryRecovery(ctx, state, gateRecoveryDisplay);
       if (retryRecovery) {
         attachRetryRecovery(result, "gateStop", null, retryRecovery);
       }

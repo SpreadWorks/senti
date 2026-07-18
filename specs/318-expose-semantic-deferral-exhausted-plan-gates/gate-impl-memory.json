@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "phase": "integration",
+      "round": 1,
+      "status": "blocking",
+      "statusReason": "The diff adds tests asserting the R6 behavior, but it does not implement the required task-impl/integration retry recovery mechanics. The only production change in get-next-action explicitly delegates task-impl and integration to the existing retry recovery path, and no changes are shown to enforce changed fingerprint comparison, ACTIVE_FLOW_MISMATCH ordering before writes, audit append, or max-minus-one grant semantics.",
+      "updatedAt": "2026-07-12T19:58:01.101Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R5",
+        "R3",
+        "R4"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff adds tests asserting the R6 behavior, but it does not implement the required task-impl/integration retry recovery mechanics. The only production change in get-next-action explicitly delegates task-impl and integration to the existing retry recovery path, and no changes are shown to enforce changed fingerprint comparison, ACTIVE_FLOW_MISMATCH ordering before writes, audit append, or max-minus-one grant semantics.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "integration",
+      "round": 2,
+      "status": "blocking",
+      "statusReason": "The production diff only adds plan-gate semantic deferral handling for draft/spec and explicitly routes task-impl/integration through the existing retry recovery path unchanged. No implementation changes are shown that compare the current evidence fingerprint to the latest baseline, enforce unchanged-evidence denial, append the recovery audit, grant exactly one max-minus-one re-evaluation, or ensure ACTIVE_FLOW_MISMATCH is checked before writes for this recovery command. The new test asserts those contracts, but the diff does not implement them.",
+      "updatedAt": "2026-07-12T20:01:36.962Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The production diff only adds plan-gate semantic deferral handling for draft/spec and explicitly routes task-impl/integration through the existing retry recovery path unchanged. No implementation changes are shown that compare the current evidence fingerprint to the latest baseline, enforce unchanged-evidence denial, append the recovery audit, grant exactly one max-minus-one re-evaluation, or ensure ACTIVE_FLOW_MISMATCH is checked before writes for this recovery command. The new test asserts those contracts, but the diff does not implement them.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ]
+    }
+  ]
+}

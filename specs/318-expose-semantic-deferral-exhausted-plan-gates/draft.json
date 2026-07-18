@@ -1,0 +1,68 @@
+{
+  "devType": "bugfix",
+  "goal": "must: Expose a guarded next-action continuation that semantically defers eligible exhausted draft and spec plan-gate findings without another provider evaluation or retry mutation.",
+  "analysis": {
+    "problem": "Exhausted draft and spec gates are always reported as unrecoverable even when their durable source contains only findings that the existing gate transition can semantically defer, leaving an otherwise continuable flow blocked.",
+    "proposedApproach": "Classify the durable gate source before constructing exhausted plan-gate recovery and expose the existing semantic-deferral transition only for semantic_findings, with the active run, Issue, and spec guards included in the continuation.",
+    "validation": "This addresses the root dispatch gap by connecting guarded next-action recovery to the already durable transition while preserving attempt count, provider-call count, finding persistence, gate completion, and blocked outcomes for every non-deferable classification."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: The current exhausted plan-gate next-action path reports unsupported-plan-gate-phase with recoveryPossible false.",
+      "must: The existing run-gate semantic-deferral transition reads durable gate evidence, persists deferred findings, and completes an eligible gate without a provider evaluation.",
+      "must: The supported plan phases are draft and spec; task and integration retry recovery behavior is outside this change."
+    ],
+    "decisionPoints": [
+      "must: Reuse the existing semantic-deferral transition, or one atomic transition with identical invariants, instead of adding a sixth gate evaluation.",
+      "must: Offer recovery only when the existing structured classifier returns semantic_findings.",
+      "must: Include run, Issue, and spec target guards and reject mismatches before state mutation with ACTIVE_FLOW_MISMATCH."
+    ],
+    "resolvedByProjectRules": [
+      "must: Use only Node.js built-in modules and the repository's existing flow patterns.",
+      "must: Do not add alpha compatibility paths, rewind, reset, retry, or manual recovery features.",
+      "must: Keep product changes within get-next-action and run-gate; extract one shared helper only when both modules call the same durable-source classification behavior."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Define the continuation payload and command contract for both draft-gate and spec-gate.",
+      "must: Define draft and spec unit scenarios for semantic, tooling, schema, coverage, corrupt, missing, and other non-deferable durable sources, plus one end-to-end path beginning at the fifth semantic failure.",
+      "must: Define evidence that attempt and provider invocation counts remain unchanged while the deferred finding and completed gate are persisted."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Exhausted draft-gate and spec-gate next-action classification and guarded semantic-deferral continuation.",
+      "must: Durable finding persistence, gate completion, and advancement after eligible deferral.",
+      "must: Unit coverage for draft and spec classification, guarded action generation, attempt and provider-call preservation, finding persistence, and gate completion; one fifth-failure end-to-end path; and task/integration retry-regression cases."
+    ],
+    "out": [
+      "must: Do not operate on or mutate the blocked Issue 414 run.",
+      "must: Do not add plan-gate rewind, reset, retry, or sixth-provider-evaluation behavior.",
+      "must: Do not make tooling, schema, coverage, corrupt, missing-source, or other non-deferable failures recoverable."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Eligible exhausted draft and spec plan gates gain one guarded continuation through existing semantic deferral.",
+    "must: Non-deferable exhausted plan gates retain recoveryPossible false and receive no retry, rewind, or reset action.",
+    "must: Existing task and integration retry recovery plus target mismatch behavior remain unchanged."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Should the specification preserve Issue #432 exactly by exposing guarded semantic deferral only for exhausted draft and spec gates classified as semantic_findings, while keeping attempts at 5/5 and every non-deferable classification blocked?",
+      "answer": "Yes. must: Preserve the published boundary exactly: guarded semantic deferral is available only for exhausted draft and spec gates classified as semantic_findings, attempts remain 5/5, and non-deferable classifications remain blocked.",
+      "evidence": "Issue #432 Requirements, Acceptance Criteria, Verification, and Non-Goals all state this boundary; the parent assignment repeats semantic_findings-only behavior and forbids plan-gate retry or mutation of Issue #414.",
+      "why": "The defect is missing guarded exposure of an existing durable transition, not missing gate evaluation or generalized recovery behavior.",
+      "considered": "A broader exhausted-gate retry, rewind, reset, or manual recovery action was rejected because it would violate the Issue's explicit non-goals and could trigger a forbidden sixth evaluation.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T14:42:34Z",
+    "notes": "Issue #432 and the parent assignment preapprove the issue-preserving draft boundary."
+  }
+}

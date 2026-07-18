@@ -1,0 +1,731 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses the vague qualifier \"focused\" in \"Define focused unit and end-to-end scenarios...\" without stating verifiable criteria for what makes the scenarios focused.; Requirement uses the vague qualifier \"Focused\" in \"Focused unit, end-to-end, and task/integration retry-regression coverage\" without measurable criteria for required coverage.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T14:43:01.745Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "/decisionMap/deferredToSpec/1"
+          },
+          "observed": "Requirement uses the vague qualifier \"focused\" in \"Define focused unit and end-to-end scenarios...\" without stating verifiable criteria for what makes the scenarios focused.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "/scopeVerification/in/2"
+          },
+          "observed": "Requirement uses the vague qualifier \"Focused\" in \"Focused unit, end-to-end, and task/integration retry-regression coverage\" without measurable criteria for required coverage.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement uses the vague qualifier \"focused\" in \"Define focused unit and end-to-end scenarios...\" without stating verifiable criteria for what makes the scenarios focused."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement uses the vague qualifier \"Focused\" in \"Focused unit, end-to-end, and task/integration retry-regression coverage\" without measurable criteria for required coverage."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement says to keep product changes within \"an exact necessary shared helper if ownership requires it\". \"necessary\" and \"if ownership requires it\" are not verifiable conditions and leave reviewers without an objective criterion for whether a shared helper is allowed.; The requirement allows \"an exact necessary shared helper if ownership requires it\" without defining measurable criteria for necessity or ownership requirements, so two independent reviewers could disagree on whether an implementation satisfies this constraint.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T14:43:41.568Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "The requirement says to keep product changes within \"an exact necessary shared helper if ownership requires it\". \"necessary\" and \"if ownership requires it\" are not verifiable conditions and leave reviewers without an objective criterion for whether a shared helper is allowed.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "The requirement allows \"an exact necessary shared helper if ownership requires it\" without defining measurable criteria for necessity or ownership requirements, so two independent reviewers could disagree on whether an implementation satisfies this constraint.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement says to keep product changes within \"an exact necessary shared helper if ownership requires it\". \"necessary\" and \"if ownership requires it\" are not verifiable conditions and leave reviewers without an objective criterion for whether a shared helper is allowed."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement allows \"an exact necessary shared helper if ownership requires it\" without defining measurable criteria for necessity or ownership requirements, so two independent reviewers could disagree on whether an implementation satisfies this constraint."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "phase": "spec",
+      "reason": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f56cf-e98d-7b01-9685-f6885403ab8b\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit. Visit https://chatgpt.com/codex/settings/us",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-12T14:51:36.177Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T14:51:36.189Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R1 requires reading the canonical durable gate source with an \"existing bounded reader\" but does not state an explicit upper bound such as maximum bytes, entries, or depth for that source read.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T19:21:25.335Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "R1 requires reading the canonical durable gate source with an \"existing bounded reader\" but does not state an explicit upper bound such as maximum bytes, entries, or depth for that source read.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R1 requires reading the canonical durable gate source with an \"existing bounded reader\" but does not state an explicit upper bound such as maximum bytes, entries, or depth for that source read."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requirement R6 says existing task-impl and integration retry recovery shall retain their \"current behavior\" without enumerating the behavior or measurable criteria, so two independent reviewers could disagree on what satisfies it.; Requirement R6 depends on preserving unspecified \"current behavior\" for retry recovery, changed-evidence reset commands, one-attempt grants, counters, and target guards, which is not decidable from a standard unified diff and test execution summary alone.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T19:22:08.569Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "Requirement R6 says existing task-impl and integration retry recovery shall retain their \"current behavior\" without enumerating the behavior or measurable criteria, so two independent reviewers could disagree on what satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "Requirement R6 depends on preserving unspecified \"current behavior\" for retry recovery, changed-evidence reset commands, one-attempt grants, counters, and target guards, which is not decidable from a standard unified diff and test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement R6 says existing task-impl and integration retry recovery shall retain their \"current behavior\" without enumerating the behavior or measurable criteria, so two independent reviewers could disagree on what satisfies it."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Requirement R6 depends on preserving unspecified \"current behavior\" for retry recovery, changed-evidence reset commands, one-attempt grants, counters, and target guards, which is not decidable from a standard unified diff and test execution summary alone."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: initialize the R3 temporary continuation fixtures as Git repositories before running the real draft/spec gate commands",
+      "resolution": "computeGitState now has a committed HEAD and clean worktree, so the test reaches semantic deferral instead of failing fixture preflight",
+      "taskId": null,
+      "timestamp": "2026-07-12T19:40:58.388Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: add required docs languages/defaultLanguage fields to the R3 temporary project config",
+      "resolution": "the real draft/spec gate continuation now passes config validation; regenerated v2 evidence reports R1-R6 pass and independent review verdict pass",
+      "taskId": null,
+      "timestamp": "2026-07-12T19:43:46.991Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff only adds inspectDurableGateSemanticDeferral and tests. It does not show guarded get-next-action calling this inspection when draft/spec gate retries equal the max, so the required next-action behavior is not implemented in the product diff.; The diff does not modify the matching continuation/run-gate path. It adds tests asserting the 5/5 continuation behavior, but no implementation changes are shown to preserve counts, skip provider invocation, persist durable semantic findings, mark the gate step done, and advance next-action.; get-next-action adds a semantic deferral recovery view and command with the selected state's run/issue/spec guards, but it only checks inspection.deferAllowed and does not verify inspection.reason === \"semantic_findings\", so the required iff condition is not implemented explicitly.; The diff adds tests for continuation guard mismatches, but shows no product-code change in the gate continuation path to enforce ACTIVE_FLOW_MISMATCH before semantic-deferral writes, retry metric changes, or gate step mutation, nor to permit the matching guarded semantic-deferral transition.; The diff only adds a spec test covering R6 and updates analysis metadata. It does not modify the implementation for exhausted retry recovery, fingerprint comparison, retry reset behavior/audit writes, or ACTIVE_FLOW_MISMATCH ordering, so the requirement is not implemented in the provided diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T19:44:36.848Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "The diff only adds inspectDurableGateSemanticDeferral and tests. It does not show guarded get-next-action calling this inspection when draft/spec gate retries equal the max, so the required next-action behavior is not implemented in the product diff.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "The diff does not modify the matching continuation/run-gate path. It adds tests asserting the 5/5 continuation behavior, but no implementation changes are shown to preserve counts, skip provider invocation, persist durable semantic findings, mark the gate step done, and advance next-action.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "get-next-action adds a semantic deferral recovery view and command with the selected state's run/issue/spec guards, but it only checks inspection.deferAllowed and does not verify inspection.reason === \"semantic_findings\", so the required iff condition is not implemented explicitly.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "The diff adds tests for continuation guard mismatches, but shows no product-code change in the gate continuation path to enforce ACTIVE_FLOW_MISMATCH before semantic-deferral writes, retry metric changes, or gate step mutation, nor to permit the matching guarded semantic-deferral transition.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff only adds a spec test covering R6 and updates analysis metadata. It does not modify the implementation for exhausted retry recovery, fingerprint comparison, retry reset behavior/audit writes, or ACTIVE_FLOW_MISMATCH ordering, so the requirement is not implemented in the provided diff.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "The diff only adds inspectDurableGateSemanticDeferral and tests. It does not show guarded get-next-action calling this inspection when draft/spec gate retries equal the max, so the required next-action behavior is not implemented in the product diff."
+        },
+        {
+          "guardrail_id": "R3",
+          "reason": "The diff does not modify the matching continuation/run-gate path. It adds tests asserting the 5/5 continuation behavior, but no implementation changes are shown to preserve counts, skip provider invocation, persist durable semantic findings, mark the gate step done, and advance next-action."
+        },
+        {
+          "guardrail_id": "R2",
+          "reason": "get-next-action adds a semantic deferral recovery view and command with the selected state's run/issue/spec guards, but it only checks inspection.deferAllowed and does not verify inspection.reason === \"semantic_findings\", so the required iff condition is not implemented explicitly."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "The diff adds tests for continuation guard mismatches, but shows no product-code change in the gate continuation path to enforce ACTIVE_FLOW_MISMATCH before semantic-deferral writes, retry metric changes, or gate step mutation, nor to permit the matching guarded semantic-deferral transition."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "The diff only adds a spec test covering R6 and updates analysis metadata. It does not modify the implementation for exhausted retry recovery, fingerprint comparison, retry reset behavior/audit writes, or ACTIVE_FLOW_MISMATCH ordering, so the requirement is not implemented in the provided diff."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: make the semantic_findings iff check explicit and map both owned production modules plus behavior coverage to every requirement",
+      "resolution": "the requirement diff now shows get-next-action inspection/guarded continuation together with run-gate bounded classification and existing transition coverage; regenerated R1-R6 evidence passes",
+      "taskId": null,
+      "timestamp": "2026-07-12T19:45:50.535Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds tests for mismatched continuation guards, but shows no production change ensuring run gate validates run ID, issue, and spec guards before source artifact writes, flow-findings writes, retry metric changes, or gate step mutation. Matching semantic-deferral behavior is also not implemented in the shown production diff.; The diff does not implement the task-impl/integration exhausted retry recovery behavior. The only product-code changes add semantic deferral handling for draft/spec plan gates in get-next-action/run-gate; R6’s changed-evidence fingerprint gating, audit append, max-minus-one retry grant, and ACTIVE_FLOW_MISMATCH-before-write behavior for task-impl/integration are only asserted in the new test file, not changed in implementation in this diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T19:46:31.884Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "The diff adds tests for mismatched continuation guards, but shows no production change ensuring run gate validates run ID, issue, and spec guards before source artifact writes, flow-findings writes, retry metric changes, or gate step mutation. Matching semantic-deferral behavior is also not implemented in the shown production diff.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff does not implement the task-impl/integration exhausted retry recovery behavior. The only product-code changes add semantic deferral handling for draft/spec plan gates in get-next-action/run-gate; R6’s changed-evidence fingerprint gating, audit append, max-minus-one retry grant, and ACTIVE_FLOW_MISMATCH-before-write behavior for task-impl/integration are only asserted in the new test file, not changed in implementation in this diff.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R5",
+        "R1",
+        "R2"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R4",
+          "reason": "The diff adds tests for mismatched continuation guards, but shows no production change ensuring run gate validates run ID, issue, and spec guards before source artifact writes, flow-findings writes, retry metric changes, or gate step mutation. Matching semantic-deferral behavior is also not implemented in the shown production diff."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "The diff does not implement the task-impl/integration exhausted retry recovery behavior. The only product-code changes add semantic deferral handling for draft/spec plan gates in get-next-action/run-gate; R6’s changed-evidence fingerprint gating, audit append, max-minus-one retry grant, and ACTIVE_FLOW_MISMATCH-before-write behavior for task-impl/integration are only asserted in the new test file, not changed in implementation in this diff."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: make retained transition and retry ownership explicit within the two approved modules",
+      "resolution": "run-gate now factors its existing semantic deferral body through the exhausted continuation path, while get-next-action routes task-impl/integration directly to the unchanged retry builder before draft/spec semantic recovery",
+      "taskId": null,
+      "timestamp": "2026-07-12T19:47:58.322Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "observations[0]: unknown requirementRef \"no-overengineering: single-caller indirection\"",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-12T19:49:03.190Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: remove the single-caller recovery-view class and centralize repeated non-deferable inspection construction; the prior command failed Observation schema validation and did not consume integration gateRetry",
+      "resolution": "buildPlanGateSemanticDeferralRecovery now owns the frozen response directly and DurableGateSemanticDeferralInspection.nonDeferable owns all four blocked constructions without changing R1-R6 behavior",
+      "taskId": null,
+      "timestamp": "2026-07-12T19:56:25.465Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds tests asserting the R6 behavior, but it does not implement the required task-impl/integration retry recovery mechanics. The only production change in get-next-action explicitly delegates task-impl and integration to the existing retry recovery path, and no changes are shown to enforce changed fingerprint comparison, ACTIVE_FLOW_MISMATCH ordering before writes, audit append, or max-minus-one grant semantics.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T19:58:01.091Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff adds tests asserting the R6 behavior, but it does not implement the required task-impl/integration retry recovery mechanics. The only production change in get-next-action explicitly delegates task-impl and integration to the existing retry recovery path, and no changes are shown to enforce changed fingerprint comparison, ACTIVE_FLOW_MISMATCH ordering before writes, audit append, or max-minus-one grant semantics.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R5",
+        "R3",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "The diff adds tests asserting the R6 behavior, but it does not implement the required task-impl/integration retry recovery mechanics. The only production change in get-next-action explicitly delegates task-impl and integration to the existing retry recovery path, and no changes are shown to enforce changed fingerprint comparison, ACTIVE_FLOW_MISMATCH ordering before writes, audit append, or max-minus-one grant semantics."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: reject the R6 finding as an invalid scope interpretation; R6 requires preservation and delegation to the existing task-impl/integration recovery path, not reimplementation in Issue #432",
+      "resolution": "strengthen executable R6 evidence for unchanged delegation, returned recovery objects, non-interception, audit writes, target guards, and max-minus-one grants without changing recovery product mechanics",
+      "taskId": null,
+      "timestamp": "2026-07-12T19:59:45.471Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The production diff only adds plan-gate semantic deferral handling for draft/spec and explicitly routes task-impl/integration through the existing retry recovery path unchanged. No implementation changes are shown that compare the current evidence fingerprint to the latest baseline, enforce unchanged-evidence denial, append the recovery audit, grant exactly one max-minus-one re-evaluation, or ensure ACTIVE_FLOW_MISMATCH is checked before writes for this recovery command. The new test asserts those contracts, but the diff does not implement them.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:01:36.952Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The production diff only adds plan-gate semantic deferral handling for draft/spec and explicitly routes task-impl/integration through the existing retry recovery path unchanged. No implementation changes are shown that compare the current evidence fingerprint to the latest baseline, enforce unchanged-evidence denial, append the recovery audit, grant exactly one max-minus-one re-evaluation, or ensure ACTIVE_FLOW_MISMATCH is checked before writes for this recovery command. The new test asserts those contracts, but the diff does not implement them.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "The production diff only adds plan-gate semantic deferral handling for draft/spec and explicitly routes task-impl/integration through the existing retry recovery path unchanged. No implementation changes are shown that compare the current evidence fingerprint to the latest baseline, enforce unchanged-evidence denial, append the recovery audit, grant exactly one max-minus-one re-evaluation, or ensure ACTIVE_FLOW_MISMATCH is checked before writes for this recovery command. The new test asserts those contracts, but the diff does not implement them."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "invalid test fixture after main integration: all R1-R6 tests stop before product assertions because FlowManager.save no longer exists",
+      "resolution": "Proposed strengthening: replace fixture persistence with FlowManager.create(state) and addActiveFlow(specId, mode) so the suite exercises the current atomic FlowStore and active-target authority contract; keep every R1-R6 assertion unchanged and do not consume the final impl-gate attempt before parent review",
+      "taskId": null,
+      "timestamp": "2026-07-18T14:19:18.466Z",
+      "issueLogId": "issue-log-b8b25d40-2e0a-4800-90bb-3e0c9fc7b539"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "invalid test fixture after #441: spec task metadata was persisted without the required runtime steps array, so all R1-R6 tests stopped in FlowStore.create before product assertions",
+      "resolution": "Map each spec task to a fresh empty steps array, matching the current flow-scoped gate fixture precedent while currentTaskId remains null; preserve all 99 assertions and keep task routing isolated from plan/integration recovery coverage",
+      "taskId": null,
+      "timestamp": "2026-07-18T14:25:44.445Z",
+      "issueLogId": "issue-log-1564d893-0210-4a75-96c4-5d897ef216bf"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Focused fixture CLI invocation returned no parseable envelope, but the saved test output omitted spawnSync error, signal, status, stdout, and stderr details, so the exact transport cause was not observable.",
+      "resolution": "Strengthen only the test helper: explicitly bind SENTI_WORK_ROOT and SENTI_SOURCE_ROOT to the fixture, run the package CLI from the repository root, and assert spawn transport success plus non-empty stdout before JSON parsing. Preserve all 99 behavioral assertions and target guards; run the focused test once to identify the exact cause.",
+      "taskId": null,
+      "timestamp": "2026-07-18T14:33:44.512Z",
+      "issueLogId": "issue-log-5f43c853-6677-4e88-a1d5-480771074a7a"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R6 task-impl fixture used flow-level impl-gate with tasks removed, but the current retry-recovery writer requires the task-impl authority to remain an active task-gate target and rejects the stale topology with STALE_RECOVERY_TARGET.",
+      "resolution": "Follow the canonical retry-recovery owner in specs/260-post-retry-recovery: build the task runtime steps with buildInitialTaskSteps(origin), activate task-gate, mark the task in progress, bind currentTaskId, and complete the flow branch for task-impl; retain flow-level impl-gate for integration. Commands, reasons, target guards, and all 99 behavioral assertions remain unchanged; the existing success assertion now reports status, envelope, and stderr on failure.",
+      "taskId": null,
+      "timestamp": "2026-07-18T14:42:44.042Z",
+      "issueLogId": "issue-log-575da914-c9a3-4ba3-ae98-2e3ef26ea78c"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "The canonical task topology correction exposed two stale R6 next-action step assertions that still expected flow-level impl-gate for task-impl, although the current owner routes task-impl through task-gate and integration through impl-gate.",
+      "resolution": "Make the two existing step assertions phase-aware: expect task-gate for task-impl and impl-gate for integration. Preserve all 53 R6 assertions and all 99 behavioral assertions, plus every command, reason, target guard, recovery payload, counter, audit, and immutability expectation.",
+      "taskId": null,
+      "timestamp": "2026-07-18T14:45:40.464Z",
+      "issueLogId": "issue-log-8379402c-404b-476a-bc67-6d46b483e7a1"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/acceptance-review.json",
+          "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/draft-coverage-repair.json",
+          "fingerprint": "b782f4ffe9ff029181d68a812d478718d338724d53594662190b52fee0661f07"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/draft-coverage-triage.json",
+          "fingerprint": "88ceb73eef0abce8dcd76b2d36129479edc53a0e8ad3a2371a6d6dd762dc1002"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/draft-gate-source.json",
+          "fingerprint": "06475b26e059d5adb64de2d5827893ac4f620f2229a6308231a03806a9da1023"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/draft-questions-repair.json",
+          "fingerprint": "3b5311f2adc9ae8f988216cf24514e33ca1d6543d9116789dbd79ee1935a5198"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/draft-questions-triage.json",
+          "fingerprint": "84778d232df282c097d14aa676b513de39fd485807fedf41579c9ea0e5632609"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/draft-review-coverage.json",
+          "fingerprint": "2c1264249e572624b00d26f48c1b24c40fcba40f3b5557dc14dc964a1df259a8"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/draft-review-questions.json",
+          "fingerprint": "ae2d5c789069784a4473590859d67b56865f718aaeb1505107a635d60711fd0a"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/draft.json",
+          "fingerprint": "a0e6d6cf1369ce5af0cf8b24301eadbaca427b660f81f7a51d4d126aaa232f7f"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/file-map.json",
+          "fingerprint": "7d40af5403425ca3babaf6a8dfa8b61a76505d76436909d4b12ff552332c4c8a"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/gate-impl-memory.json",
+          "fingerprint": "27cfcf82f4b89719747635642ac33dd3844c3d8294fbe76146e6b6cb1258f477"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/impl-gate-result.json",
+          "fingerprint": "b994ac845f38284c6f6876f88953d19322bb5fc028bf968ccee81ddf005fad96"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/impl-gate-result.json",
+          "fingerprint": "b994ac845f38284c6f6876f88953d19322bb5fc028bf968ccee81ddf005fad96"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/impl-review.json",
+          "fingerprint": "9da1b970e5a2e11579a674ab57fbd0ab2aeaced0622cd74c5ac2acddb909b853"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/issue.md",
+          "fingerprint": "b9702946e0d20fa3f175d8ff4f53a28214495352cee5bd8140322160b1476666"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "d08e86dc5e969e78692ca46ff4d4a79a6c4af7bc95e6c8a799c25e1a38eccb79"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/retro.json",
+          "fingerprint": "7db5a2b36eff1dfabc1026d908dccb4d37485ade206db9b74fd2f6f72b7c92ca"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "55bbf1302e84fd8a3db7a70be5fc7e23daa02b51c5bb0efc2b3eac3f2da1d3e2"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "88ed61078a4fff926abbb25d3680c2bf429eb02ec6670292d7bda89e6fbbf19d"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/impl-attempt-001.json",
+          "fingerprint": "d03ad5af62a56ccad48f8135979d38c28d1805b9b13cd70efc72598b6fe4af4c"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/spec-attempt-001.json",
+          "fingerprint": "a01b14314f377dd5ce9e84ec7809c6c08b16253ab66dc47693c97c813aca3edd"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-001.json",
+          "fingerprint": "c8fdd7ad7e48f63a7a82d50e71622918c72f55eb60de2956844015c92782dbde"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-001.md",
+          "fingerprint": "539ab4aa096366d6458a52a762a1f0f83eba77c4e7e0c4c80beb766e1d6ef7b4"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-002.json",
+          "fingerprint": "d4758471f813dcab3501a45c1114a5bb01aacaa1695ccdb943bd8a6bd1098ee2"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-002.md",
+          "fingerprint": "459e0173cfb655086dda52b1565077b8a829e64f4a4f41ebbc62d885c7a8bca6"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-003.json",
+          "fingerprint": "2c0518f9300426c15bc8030abccdc97e3c05e17c6e53e8f6b1cc9e1ca9d2a10d"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-003.md",
+          "fingerprint": "921c0ab7bb99cfb511adafbe51e9df358d4b526a69ef4394b1a146bf901d99cd"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-004.json",
+          "fingerprint": "08d3da27e249837504b538b91e7c9ab92053a85b00cdd976da4a371ea385d0a8"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-004.md",
+          "fingerprint": "270bfa1b2f52a5cfc8b35a6502596455ef058339c11add6011e311e8edefe9ce"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-005.json",
+          "fingerprint": "d8e89ba06123e88d37940a93e82e521ab464a43a8d26e407b3d2af1c2e70ee82"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review-history/test-attempt-005.md",
+          "fingerprint": "f91f50f1e35715525ad9bdc4f01d0399fe3a0a445f0297c301d7868ce8023e27"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/scenario-validity-result.json",
+          "fingerprint": "f3ce0346e98fcec7c7616da6e81ad01446386dcd2c9d94db7f5d3336c372c727"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/spec-gate-source.json",
+          "fingerprint": "b7fd99dfb75911c7a39319772ace094945dc552541f6375fc331fdf6495e00b8"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/spec-review.json",
+          "fingerprint": "02afd752c13c8f4068d3f84c0f38dc1923297b5e641d2f364d1c376e645f9d70"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/spec.json",
+          "fingerprint": "4fec92b8a830552efd41bbf9ad18f8b7f74132f2d559cb6cbe4362891f6b22fd"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/spec.md",
+          "fingerprint": "b27e39711dcd1a8ac0cd5d66b4135d88a03d952dc7897c028ace0080cac224e7"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tasks/T-1.md",
+          "fingerprint": "0ab4ebc57faba1d1b6a40f23f55bbd60b360e1935529679cb493fe2acc142ccd"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/test-coverage.json",
+          "fingerprint": "ff1ce1e9f8602163447671b1592debbc779a382aff77cc9dd7a6a4a66a068cce"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/test-execute-result.json",
+          "fingerprint": "b1694700871a0ddcec0575a283973e2f1a5810bfe392cd177b8613460a374a7b"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/test-result-review.json",
+          "fingerprint": "f4c2530d2172ae88595ca7ea65bcffe933aa7964569ece75529ed775728b869c"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/test-result-review.md",
+          "fingerprint": "391242b31d29839b8b28efa1f04993ecd01c6a5d3894526369ec6af6e3f1ba04"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/test-review.json",
+          "fingerprint": "a34e4f64029bd99b4dc5ea60e4fd43454338308a45ab100d728aa9fed919394b"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/test-review.md",
+          "fingerprint": "f91f50f1e35715525ad9bdc4f01d0399fe3a0a445f0297c301d7868ce8023e27"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/.raw/scenario-validity.log",
+          "fingerprint": "e54d8fb0399ce8a3e8c98d43b41c521203702ea39aa856e969b9357f5b65cc63"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/.raw/test-execution.log",
+          "fingerprint": "d2d91afd377caeecce7ec31d9765f93e6c6ba9cb7dfb2b9836a740cefa60ae21"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+          "fingerprint": "26e5d7686a1a0672f78a8e81d92185f81febfbddc865b6690a72ba6dad5001da"
+        },
+        {
+          "path": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+          "fingerprint": "26e5d7686a1a0672f78a8e81d92185f81febfbddc865b6690a72ba6dad5001da"
+        },
+        {
+          "path": "src/flow/lib/get-next-action.js",
+          "fingerprint": "94bf8343f0f6a11f4d48dc2a817195d20ec18419bea0285b76c03f699d2b9e23"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "bf3d7e1f69070e88f6496845efc8d12567f8a9558f79b5f94e416c449a93bb7b"
+        }
+      ],
+      "rawOutputPath": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-18T14:53:58.518Z",
+      "issueLogId": "issue-log-f197f07a-2337-41d2-bc26-6b3e7d7c159a"
+    }
+  ]
+}

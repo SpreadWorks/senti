@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "The empty initial QA list is a valid structural defect and will be repaired with one Issue-grounded scope confirmation question.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "q<N/A>",
+      "decision": "apply",
+      "rationale": "The review contract requires at least one initial QA entry before answers exist, and a single scope-confirmation question can be added without introducing a new design decision.",
+      "evidence": "draft.json qa[] is empty; Issue #432 explicitly fixes the eligible semantic_findings behavior and excludes plan-gate retry, reset, rewind, and non-semantic recovery."
+    }
+  ]
+}

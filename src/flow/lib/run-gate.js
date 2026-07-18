@@ -2002,6 +2002,71 @@ export function classifyGateRetryExhaustionSource(input = {}) {
   };
 }
 
+export class DurableGateSemanticDeferralInspection {
+  constructor({ phase, sourceArtifact, deferAllowed, reason }) {
+    this.phase = phase;
+    this.sourceArtifact = sourceArtifact;
+    this.deferAllowed = deferAllowed === true;
+    this.reason = reason;
+    Object.freeze(this);
+  }
+
+  static nonDeferable({ phase, sourceArtifact, reason }) {
+    return new DurableGateSemanticDeferralInspection({
+      phase,
+      sourceArtifact,
+      deferAllowed: false,
+      reason,
+    });
+  }
+}
+
+export function inspectDurableGateSemanticDeferral({ root, flowState, phase } = {}) {
+  const sourceArtifact = GATE_SOURCE_ARTIFACT_BY_PHASE[phase] || null;
+  if (!sourceArtifact || !root || !flowState?.spec) {
+    return DurableGateSemanticDeferralInspection.nonDeferable({
+      phase,
+      sourceArtifact,
+      reason: "missing_source",
+    });
+  }
+
+  const specDir = specDirFromFlowState(root, flowState);
+  if (!sourceArtifactExists(specDir, sourceArtifact)) {
+    return DurableGateSemanticDeferralInspection.nonDeferable({
+      phase,
+      sourceArtifact,
+      reason: "missing_source",
+    });
+  }
+
+  let artifact;
+  try {
+    artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
+  } catch {
+    return DurableGateSemanticDeferralInspection.nonDeferable({
+      phase,
+      sourceArtifact,
+      reason: "malformed_artifact",
+    });
+  }
+  if (!artifact) {
+    return DurableGateSemanticDeferralInspection.nonDeferable({
+      phase,
+      sourceArtifact,
+      reason: "missing_source",
+    });
+  }
+
+  const classification = classifyGateRetryExhaustionSource({ sourceArtifact: artifact });
+  return new DurableGateSemanticDeferralInspection({
+    phase,
+    sourceArtifact,
+    deferAllowed: classification.deferAllowed && classification.reason === "semantic_findings",
+    reason: classification.reason,
+  });
+}
+
 function gateSourceFindingId(finding, index) {
   return finding?.findingId || finding?.id || `gate-finding-${index + 1}`;
 }

@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-12T19:31:43.280Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/318-expose-semantic-deferral-exhausted-plan-gates/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 lacks bounded-read coverage",
+      "target": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+      "issue": "The R1 test only verifies read-only behavior for a normal small source artifact. It does not create an artifact larger than 1 MiB or otherwise assert that exhausted draft/spec gate inspection uses the bounded source-artifact read limit instead of reading the full durable source.",
+      "requiredChange": "Add a spec-local test case that uses an oversized canonical gate source and asserts the bounded-read/classification behavior required by R1.",
+      "whyBlocking": "R1 explicitly requires inspection to read at most 1 MiB through the existing bounded reader; the current tests could pass with an implementation that reads the entire source artifact.",
+      "origin": "R1",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 get-next-action recovery exposure is untested",
+      "target": "specs/318-expose-semantic-deferral-exhausted-plan-gates/tests/plan-gate-semantic-deferral.test.js",
+      "issue": "The R6 test exercises `senti flow set retry reset gate` directly, but does not verify guarded `get next-action` behavior for task-impl or integration when retries are exhausted. It therefore misses the requirement that recoveryPossible is true only when the current evidence fingerprint differs from the latest baseline and that the exposed recovery command remains the specified reset command.",
+      "requiredChange": "Add spec-local task-impl and integration next-action cases for changed and unchanged evidence fingerprints, asserting recoveryPossible and the exposed recovery command contract before executing the reset command.",
+      "whyBlocking": "A core acceptance requirement for R6 concerns the next-action recovery surface, and the current tests could pass even if get-next-action never exposes or incorrectly exposes task/integration retry recovery.",
+      "origin": "R6",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/318-expose-semantic-deferral-exhausted-plan-gates/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "b1e12c44c55a2047dd7517432275b793bc9174c06408c44e4d5b7d3f5ee92eca"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R1 lacks bounded-read coverage",
+      "body": "The R1 test only verifies read-only behavior for a normal small source artifact. It does not create an artifact larger than 1 MiB or otherwise assert that exhausted draft/spec gate inspection uses the bounded source-artifact read limit instead of reading the full durable source.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R6 get-next-action recovery exposure is untested",
+      "body": "The R6 test exercises `senti flow set retry reset gate` directly, but does not verify guarded `get next-action` behavior for task-impl or integration when retries are exhausted. It therefore misses the requirement that recoveryPossible is true only when the current evidence fingerprint differs from the latest baseline and that the exposed recovery command remains the specified reset command.",
+      "category": "unknown"
+    }
+  ]
+}

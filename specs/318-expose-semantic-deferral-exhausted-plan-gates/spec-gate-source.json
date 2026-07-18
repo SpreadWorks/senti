@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Requirement R6 says existing task-impl and integration retry recovery shall retain their \"current behavior\" without enumerating the behavior or measurable criteria, so two independent reviewers could disagree on what satisfies it.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "Requirement R6 says existing task-impl and integration retry recovery shall retain their \"current behavior\" without enumerating the behavior or measurable criteria, so two independent reviewers could disagree on what satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "req-diff-verifiability",
+      "result": "fail",
+      "reason": "Requirement R6 depends on preserving unspecified \"current behavior\" for retry recovery, changed-evidence reset commands, one-attempt grants, counters, and target guards, which is not decidable from a standard unified diff and test execution summary alone.",
+      "category": "process",
+      "title": "REQ Diff-Verifiability",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "Requirement R6 depends on preserving unspecified \"current behavior\" for retry recovery, changed-evidence reset commands, one-attempt grants, counters, and target guards, which is not decidable from a standard unified diff and test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R6].desc"
+      },
+      "observed": "Requirement R6 says existing task-impl and integration retry recovery shall retain their \"current behavior\" without enumerating the behavior or measurable criteria, so two independent reviewers could disagree on what satisfies it.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "req-diff-verifiability",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R6].desc"
+      },
+      "observed": "Requirement R6 depends on preserving unspecified \"current behavior\" for retry recovery, changed-evidence reset commands, one-attempt grants, counters, and target guards, which is not decidable from a standard unified diff and test execution summary alone.",
+      "severity": "blocking",
+      "refs": [
+        "req-diff-verifiability"
+      ]
+    }
+  ]
+}
