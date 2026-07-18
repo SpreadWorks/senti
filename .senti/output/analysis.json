@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-18T14:58:59.514Z",
+  "analyzedAt": "2026-07-18T23:19:11.719Z",
   "package": {
     "entries": [
       {
@@ -3909,13 +3909,15 @@
       },
       {
         "file": "src/flow/lib/flow-outbox.js",
-        "hash": "6a5773a14d1e1967bc6eda913635ab27",
-        "lines": 296,
-        "mtime": "2026-07-17T06:24:50.742Z",
+        "hash": "3684de6d2488eb64b729f7f1d4883af9",
+        "lines": 385,
+        "mtime": "2026-07-18T23:18:53.716Z",
         "className": "flow-outbox",
         "methods": [
           "FlowOutboxIdentity",
+          "FlowOutboxRecoveryReceipt",
           "FlowOutboxEntry",
+          "FlowOutboxRecoveryClaim",
           "FlowOutbox",
           "FlowOutboxStore",
           "finalizationOutboxIdentity",
@@ -3926,7 +3928,9 @@
         "imports": [],
         "exports": [
           "FlowOutboxIdentity",
+          "FlowOutboxRecoveryReceipt",
           "FlowOutboxEntry",
+          "FlowOutboxRecoveryClaim",
           "FlowOutbox",
           "FlowOutboxStore",
           "finalizationOutboxIdentity"
@@ -3937,21 +3941,21 @@
           "src/flow/registry.js"
         ],
         "id": "a2b028f4",
-        "summary": "Implements an idempotent outbox for flow side effects. It records pending, completed, and failed operations using stable identities and immutable entry updates.",
-        "detail": "The outbox identity object validates the idempotency key and provides equality and serialization helpers for storage. Each outbox entry enforces status invariants, including the rule that pending entries cannot already carry result or failure payloads. The in-memory outbox collection exposes begin, complete, fail, touch, and lookup operations that return updated copies instead of mutating entries in place. A store adapter persists those transitions through flowManager.mutate and also provides a helper for finalization-specific outbox identities.",
+        "summary": "Implements an immutable outbox model for flow side effects with idempotent identities and recovery metadata. It also provides a persistence wrapper that updates outbox state through the flow manager.",
+        "detail": "The module validates strings, timestamps, statuses, and cloneable JSON payloads before creating domain objects. `FlowOutboxEntry` enforces state invariants, such as forbidding retained results on pending items and requiring exact-recovery receipts to match the entry identity. `FlowOutbox` exposes transition methods like begin, complete, fail, touch, and reopen while returning new snapshots instead of mutating caller-owned objects. `FlowOutboxStore` persists those transitions through `flowManager.mutate`, and `finalizationOutboxIdentity` builds stable idempotency keys from flow state and step IDs.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.535Z",
+          "processedAt": "2026-07-18T23:21:47.184Z",
           "attempts": 1
         },
         "keywords": [
-          "outbox pattern",
+          "outbox",
           "idempotency",
-          "side effects",
+          "retry queue",
+          "recovery receipt",
           "flow state",
-          "pending done failed",
-          "immutable updates"
+          "event persistence"
         ]
       },
       {
@@ -4305,9 +4309,9 @@
       },
       {
         "file": "src/flow/lib/get-prompt.js",
-        "hash": "1a4b5ff38c9454a91594ead383c84702",
-        "lines": 341,
-        "mtime": "2026-06-09T08:02:50.453Z",
+        "hash": "e91ddb7f4aeac9b720d491d9301f6867",
+        "lines": 340,
+        "mtime": "2026-07-18T23:18:53.717Z",
         "className": "get-prompt",
         "methods": [
           "validKinds"
@@ -4322,21 +4326,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "410dfcc9",
-        "enrich": {
-          "processedAt": "2026-06-09T17:07:35.166Z",
-          "attempts": 2
-        },
-        "summary": "Exposes a small command for retrieving prompt templates by kind and language. It validates the requested prompt type and returns the rendered spec-oriented prompt definition.",
-        "detail": "The module stores prompt resolvers in a language-keyed registry and derives the supported kinds directly from that mapping. Its command class validates that a prompt kind was provided, rejects unknown kinds with a clear error, and then delegates rendering to the selected function. The current implementation is intentionally narrow, centered on spec-related prompt views rather than a broad prompt framework. This makes it a simple CLI-facing adapter around prompt lookup and rendering.",
+        "summary": "Provides a flow command that returns prompt content by kind from a language-keyed prompt registry. It rejects missing or unknown kinds with explicit validation errors.",
+        "detail": "`PROMPTS_BY_LANG` stores prompt templates by language and kind, while `validKinds()` derives the accepted keys from the Japanese mapping. The command throws descriptive errors when `kind` is missing or not recognized, and it includes the valid choices in the message. It is wired into the flow command framework and imports the spec-view renderer, so prompt generation can incorporate rendered specification context. The handler returns structured command data rather than performing direct filesystem writes.",
         "chapter": "cli_commands",
-        "role": "Prompt lookup command",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-07-18T23:21:47.184Z",
+          "attempts": 1
+        },
         "keywords": [
           "prompt command",
-          "prompt registry",
+          "template lookup",
+          "kind validation",
           "language mapping",
-          "spec prompt",
-          "prompt rendering",
-          "CLI validation"
+          "flow prompt",
+          "prompt generation"
         ]
       },
       {
@@ -4908,22 +4912,28 @@
       },
       {
         "file": "src/flow/lib/render-spec-view.js",
-        "hash": "56e20f4f922923f639cef5dade7fa381",
-        "lines": 63,
-        "mtime": "2026-05-15T01:47:20.169Z",
+        "hash": "87c0645d2d83c41f75f252e956335b84",
+        "lines": 117,
+        "mtime": "2026-07-18T23:18:53.717Z",
         "className": "render-spec-view",
         "methods": [
+          "SpecViewRenderPlan",
+          "buildSpecViewPlan",
+          "applySpecViewPlan",
           "renderSpecView",
-          "resolveInput",
-          "buildSpecViewMeta"
+          "resolveInput"
         ],
         "imports": [
           "node:fs",
           "node:path",
           "../../lib/spec-json.js",
-          "../../spec/commands/render.js"
+          "../../spec/commands/render.js",
+          "../../spec/lib/render-contract.js"
         ],
         "exports": [
+          "SpecViewRenderPlan",
+          "buildSpecViewPlan",
+          "applySpecViewPlan",
           "renderSpecView"
         ],
         "extends": null,
@@ -4933,22 +4943,21 @@
           "src/flow/lib/set-approval.js"
         ],
         "id": "a93faae0",
-        "enrich": {
-          "processedAt": "2026-05-20T01:10:31.634Z",
-          "attempts": 8
-        },
-        "summary": "Renders spec.md and task markdown files from spec.json into the spec directory.",
-        "detail": "`renderSpecView()` resolves the spec.json path under the root, loads it via `loadSpecJson`, and writes `spec.md` plus per-task `tasks/<id>.md` files using `renderSpecMarkdown` and `renderTaskMarkdown`. When the spec is missing and `optional=true`, returns `{ rendered:false, reason }` instead of throwing. Tracks all written paths in `changed` (relativized) and creates the `tasks/` directory as needed. `buildSpecViewMeta` derives metadata (spec dir name, created date from mtime) for the markdown renderers.",
+        "summary": "Builds and applies a render plan that materializes `spec.md` and per-task markdown from a spec definition. The module separates planning from file writes so callers can inspect or skip missing-spec cases.",
+        "detail": "`resolveInput()` normalizes relative spec paths against a supplied root so callers can pass either absolute or project-relative locations. `SpecViewRenderPlan` precomputes rendered markdown for the main spec and each task, then writes them to `spec.md` and the `tasks` directory when applied. `MissingSpecViewRenderPlan` represents an optional no-op outcome when `spec.json` is absent, allowing higher-level commands to continue gracefully. The public helpers split plan construction from execution and guard against applying incomplete plans.",
         "chapter": "internal_design",
-        "role": "spec-view-renderer",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-18T23:21:47.184Z",
+          "attempts": 1
+        },
         "keywords": [
-          "spec",
-          "render",
-          "markdown",
-          "spec.md",
-          "task markdown",
-          "spec.json",
-          "filesystem"
+          "spec rendering",
+          "render plan",
+          "markdown generation",
+          "task pages",
+          "spec view",
+          "file output"
         ]
       },
       {
@@ -5575,9 +5584,9 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "0745780a2b93d967cde6fe166c26f97c",
-        "lines": 1413,
-        "mtime": "2026-07-17T06:07:52.893Z",
+        "hash": "42aa52bb33116bc22a6a8d3765c6a83d",
+        "lines": 1466,
+        "mtime": "2026-07-18T23:18:53.717Z",
         "className": "run-final-regression",
         "methods": [
           "FinalRegressionRecoveryPolicy",
@@ -5625,6 +5634,10 @@
           "boundedText",
           "boundedEvidenceSource",
           "failureEvidenceText",
+          "hasOnlyZeroTestSummary",
+          "assertionFailureBlocks",
+          "firstAssertionFailureBlockLines",
+          "allAssertionFailureBlockLines",
           "normalizeFailureMatchText",
           "changedFilePath",
           "listFilesRecursive",
@@ -5673,22 +5686,21 @@
         "extends": "FinalRegressionRecoveryPolicy",
         "usedBy": null,
         "id": "49364661",
-        "summary": "Runs and records the final-regression stage for a flow spec. It classifies failures, chooses the next action, and writes result artifacts plus raw attempt logs.",
-        "detail": "The command models failures as typed classes with recovery policies, then maps stderr, stdout, and spawn conditions into actionable categories such as dependency, sandbox, timeout, infrastructure, or current-change regressions. It fingerprints command identity and changed files, compares them with test-execute coverage and prior failures, and can skip or downgrade work when the change set is already covered or outside risky paths. Each execution stores bounded failure evidence, numbered raw logs, and a validated JSON artifact so later record-and-proceed operations can verify freshness and provenance. Supporting helpers also cap scan sizes, normalize paths, classify change scope, and append issue-log entries to preserve an auditable regression history.",
+        "summary": "Runs the final regression step and persists detailed result artifacts, raw logs, and failure decisions. The module also classifies failures into change-related, existing, and environment categories to drive recovery behavior.",
+        "detail": "The file defines a large failure taxonomy, pattern-based text classifiers, and recovery policies that map process output into actionable regression outcomes. It fingerprints changed files and command identities so it can distinguish current-change regressions from pre-existing failures and recommend fix, confirm, or record-and-proceed actions. The command manages attempt numbering, raw log capture, bounded evidence extraction, and JSON artifact persistence under the spec directory. It also contains skip logic driven by test-execute coverage, low-risk path analysis, and freshness checks for reused recorded failures.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.546Z",
+          "processedAt": "2026-07-18T23:21:47.184Z",
           "attempts": 1
         },
         "keywords": [
           "final regression",
           "failure classification",
-          "record and proceed",
-          "test coverage",
-          "command fingerprint",
-          "attempt log",
-          "issue log"
+          "retry policy",
+          "artifact logging",
+          "change fingerprint",
+          "record and proceed"
         ]
       },
       {
@@ -7162,9 +7174,9 @@
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
-        "hash": "061ba765ff3db94bdda2b75949919dbe",
-        "lines": 177,
-        "mtime": "2026-06-09T08:02:50.457Z",
+        "hash": "55d03315630c620543bddfa3a377bdc3",
+        "lines": 168,
+        "mtime": "2026-07-18T23:18:53.717Z",
         "className": "run-update-overview",
         "methods": [
           "persistOverviewUpdate",
@@ -7179,7 +7191,8 @@
           "./base-command.js",
           "../../lib/flow-manager.js",
           "../../lib/flow-envelope.js",
-          "../../lib/flow-helpers.js"
+          "../../lib/flow-helpers.js",
+          "../../lib/spec-json.js"
         ],
         "exports": [
           "persistOverviewUpdate",
@@ -7190,22 +7203,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d001ca9b",
-        "enrich": {
-          "processedAt": "2026-06-09T17:08:05.013Z",
-          "attempts": 2
-        },
-        "summary": "Updates the overview section of a spec by merging structured additions into `spec.json` and re-rendering the markdown view. It validates the input JSON and keeps the persisted overview within a controlled schema.",
-        "detail": "The module caps the size of `spec.json`, reads it, applies overview additions through a merge helper, and writes the updated JSON back with stable formatting. It then calls the spec renderer so `spec.md` stays synchronized with the canonical JSON representation. Input validation is strict: the command requires JSON text and only accepts known top-level addition keys such as modules, data flow, and decisions. Errors are returned through envelopes, which makes bad input, missing flow state, and persistence failures visible to callers in a standard format.",
+        "summary": "Applies overview additions to `spec.json` and regenerates rendered spec files. It validates the input JSON shape before touching persistent state.",
+        "detail": "`persistOverviewUpdate()` size-checks `spec.json`, loads it, merges overview additions, saves the updated JSON, and rerenders markdown views. `validateOverviewAdditions()` requires a JSON string and restricts accepted top-level keys to the overview sections expected by the merge logic. The command looks up the active flow and spec directory, then returns success or failure through `Envelope` objects instead of bare exceptions. This keeps overview editing and view regeneration as one transactional command path.",
         "chapter": "cli_commands",
-        "role": "Command for merging overview metadata into a spec artifact.",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-07-18T23:21:47.184Z",
+          "attempts": 1
+        },
         "keywords": [
-          "update overview",
+          "overview update",
           "spec.json",
-          "spec.md",
+          "JSON validation",
           "overview merge",
-          "json validation",
-          "render spec",
-          "metadata update"
+          "spec render",
+          "flow command"
         ]
       },
       {
@@ -7244,9 +7256,9 @@
       },
       {
         "file": "src/flow/lib/set-approval.js",
-        "hash": "58d322d6b7b404ab28909f25edfa64aa",
+        "hash": "6b31aa1ed4aee67c41f05a72d6378a61",
         "lines": 83,
-        "mtime": "2026-05-15T01:46:58.354Z",
+        "mtime": "2026-07-18T23:18:53.717Z",
         "className": "set-approval",
         "methods": [
           "isValidIso8601"
@@ -7264,21 +7276,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "831b8f64",
-        "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
-          "attempts": 2
-        },
-        "summary": "Handles approval metadata updates in spec documents with field-level validation and optional markdown re-rendering. It enforces approval status and timestamp correctness before persisting.",
-        "detail": "`SetApprovalCommand` extends the flow command base and validates approval-related inputs such as ISO-8601 date formatting and note length constraints. It resolves the target spec path from flow context, then reads and writes `spec.json` through shared helpers to keep schema behavior consistent. After mutation, it calls `renderSpecView` so markdown reflects updated approval state. Failures are surfaced through structured `Envelope.fail` responses, keeping command behavior deterministic.",
+        "summary": "Updates the `user_approval` section of the active spec and rerenders the spec view. It enforces basic limits on timestamps and note content before saving.",
+        "detail": "`isValidIso8601()` accepts canonical ISO timestamps and also tolerates offset forms that round-trip through a regular expression check. The command validates approval status, optional timestamp fields, and note length limits before mutating the spec. It resolves the active spec path from flow state, saves the updated `user_approval` block, and rerenders markdown through the shared spec-view plan helpers. Failures are surfaced as structured envelopes, which keeps CLI behavior consistent with other flow commands.",
         "chapter": "cli_commands",
-        "role": "Flow command for managing `user_approval` state in spec metadata.",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-07-18T23:21:47.184Z",
+          "attempts": 1
+        },
         "keywords": [
-          "approval workflow",
-          "ISO 8601 validation",
+          "approval status",
+          "ISO 8601",
           "spec metadata",
-          "flow state",
-          "render spec",
-          "command envelope"
+          "user approval",
+          "flow command",
+          "markdown rerender"
         ]
       },
       {
@@ -8004,9 +8016,9 @@
       },
       {
         "file": "src/flow/lib/sync-spec-tasks.js",
-        "hash": "37111f91f25a2ff188b880427e021573",
-        "lines": 94,
-        "mtime": "2026-04-25T13:47:25.159Z",
+        "hash": "2e94db1cd9502f236ccb80974bddb209",
+        "lines": 103,
+        "mtime": "2026-07-18T23:18:53.717Z",
         "className": "sync-spec-tasks",
         "methods": [
           "syncSpecTasksToFlow",
@@ -8017,7 +8029,8 @@
           "node:path",
           "../../lib/flow-manager.js",
           "../../lib/spec-json.js",
-          "../../lib/flow-helpers.js"
+          "../../lib/flow-helpers.js",
+          "../../spec/lib/render-contract.js"
         ],
         "exports": [
           "syncSpecTasksToFlow"
@@ -8027,23 +8040,21 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "5bb691f5",
-        "summary": "This module synchronizes tasks defined in a spec file into the currently active flow state. It maps spec-level task definitions into flow task objects and reports what was added or skipped.",
-        "detail": "The entry point, `syncSpecTasksToFlow`, follows a guard-first pattern and returns an explicit skipped result when no active flow exists. It resolves the spec path to an absolute path, loads spec data, and prepares flow task step structures using shared helpers such as `buildInitialTaskSteps` and `promoteNextPending`. The function appears to batch-create flow tasks and returns structured output containing the added task list for downstream reporting. A dedicated `buildFlowTask` helper encapsulates task object construction, deriving context like the spec directory and attaching round assignment metadata. Overall, the implementation favors deterministic synchronization logic and reusable flow-state helper utilities over inline ad hoc transformations.",
+        "summary": "Synchronizes task definitions from `spec.json` into the active flow state. It converts spec tasks into flow tasks with normalized output paths and initial workflow steps.",
+        "detail": "`syncSpecTasksToFlow()` first checks for an active flow and returns a skipped result when no flow state is present. When a spec exists, it resolves the spec path, loads and validates `spec.json`, and derives the sibling `tasks` directory used for task markdown outputs. Each spec task is converted into a flow task with a confined `TaskOutputPath`, normalized repository-relative paths, an assigned round, and initial step scaffolding. The helper is designed to bridge declarative spec tasks into executable flow-manager state.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-25T13:47:52.445Z",
+          "processedAt": "2026-07-18T23:21:47.184Z",
           "attempts": 1
         },
         "keywords": [
-          "task synchronization",
-          "spec to flow mapping",
-          "workflow state",
-          "pending step promotion",
-          "flow task builder",
-          "active flow guard",
-          "spec path resolution",
-          "orchestration helper"
+          "task sync",
+          "flow manager",
+          "spec tasks",
+          "task bootstrap",
+          "normalized paths",
+          "workflow steps"
         ]
       },
       {
@@ -9526,9 +9537,9 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "43fc9ed4b945b6ac36660ad7f5707c04",
-        "lines": 573,
-        "mtime": "2026-07-18T05:36:55.304Z",
+        "hash": "a052eceb19a9ab78cc68707dfb7164ed",
+        "lines": 576,
+        "mtime": "2026-07-18T23:18:53.718Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -9569,21 +9580,21 @@
           "src/lib/namespace-dispatcher.js"
         ],
         "id": "18d5f63b",
-        "summary": "Runs command entries through a common dispatch pipeline that handles argument parsing, envelopes, runtime logs, hooks, and failure formatting. It is the main controller between CLI input and command execution.",
-        "detail": "dispatch captures stdout and stderr behavior, resolves output mode, and routes execution through pre, post, and error hooks defined by each entry. The module contains argument splitting helpers that preserve non-positional options while validating required and optional flags against command specs. It attaches runtime-log metadata to envelopes, derives flow and step context, and persists finalize-cleanup information after command completion. Error paths produce structured envelopes or raw diagnostics depending on mode, while also updating exit codes and invoking onError hooks consistently. The implementation includes cleanup-report formatting helpers so warnings about missing finalize reports are surfaced in a compact, bounded form.",
+        "summary": "Implements the central command dispatcher for CLI execution, hooks, envelopes, and runtime logging. It also normalizes argument parsing and error emission across commands.",
+        "detail": "`splitArgsBySpec()` separates flags, required options, optional options, and positional arguments while producing explicit errors for missing values or unknown switches. `parseEntryInput()` applies that logic to command metadata and preserves the common help-path behavior. `dispatch()` wraps execution with pre/post hooks, envelope serialization, exit-code management, and runtime log capture by temporarily intercepting process stdout and stderr. It also formats finalize-cleanup warnings, persists post-return metadata, and funnels thrown errors through a single failure emission path.",
         "chapter": "project_structure",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.607Z",
+          "processedAt": "2026-07-18T23:21:47.184Z",
           "attempts": 1
         },
         "keywords": [
-          "command dispatcher",
-          "envelope output",
+          "dispatcher",
+          "CLI routing",
+          "argument parsing",
           "runtime log",
-          "hook lifecycle",
-          "error handling",
-          "argument splitting"
+          "envelope output",
+          "command hooks"
         ]
       },
       {
@@ -11925,14 +11936,15 @@
       },
       {
         "file": "src/lib/schema-validate.js",
-        "hash": "ebf49177f5dce633d5bc86fbc8b4af49",
-        "lines": 143,
-        "mtime": "2026-06-18T00:35:13.477Z",
+        "hash": "7924bf9003ec234beb543f7cd113c910",
+        "lines": 170,
+        "mtime": "2026-07-18T23:18:53.718Z",
         "className": "schema-validate",
         "methods": [
           "validateSchema",
           "checkType",
           "schemaHasType",
+          "hasExplicitFullStringAnchors",
           "typeOf"
         ],
         "imports": [],
@@ -11945,22 +11957,21 @@
           "src/lib/spec-json.js"
         ],
         "id": "8bb94bbb",
-        "summary": "Provides a lightweight recursive schema validator for plain JavaScript values. It checks structure and types and returns a collected list of validation errors instead of throwing immediately.",
-        "detail": "The validator walks a value against a schema definition and accumulates path-aware error messages for mismatched fields. It short-circuits some branches when a required type check fails, avoiding noisy follow-on errors. Helper functions normalize runtime type detection and support schemas whose `type` can be a single value or an array of allowed types. The overall design is minimal and dependency-free, making it suitable for validating configuration objects and other internal data contracts.",
+        "summary": "Provides a lightweight recursive schema validator for internal JSON documents. It returns collected validation errors instead of throwing on the first mismatch.",
+        "detail": "`validateSchema()` walks a value against a schema and accumulates human-readable error strings instead of aborting on the first mismatch. The helpers support primitive and union type checks, object and array recursion, and pattern handling for strings. `hasExplicitFullStringAnchors()` inspects regular expressions carefully so anchored patterns can be recognized without misreading escaped characters. The implementation focuses on the subset of schema features needed by internal JSON files rather than a full standards-complete engine.",
         "chapter": "configuration",
-        "role": "Generic schema validation utility",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-06-19T01:33:07.285Z",
+          "processedAt": "2026-07-18T23:21:47.184Z",
           "attempts": 1
         },
         "keywords": [
           "schema validation",
-          "config validation",
+          "JSON schema",
           "type checking",
-          "recursive validator",
-          "JSON schema-like",
-          "error collection",
-          "data contract"
+          "pattern matching",
+          "config validation",
+          "error collection"
         ]
       },
       {
@@ -13041,9 +13052,9 @@
       },
       {
         "file": "src/spec/commands/render.js",
-        "hash": "d64c7620633c657397e573a5caa8022c",
-        "lines": 359,
-        "mtime": "2026-07-17T09:51:52.397Z",
+        "hash": "2129e2b78709b83dc2ca2307842ee001",
+        "lines": 355,
+        "mtime": "2026-07-18T23:18:53.718Z",
         "className": "render",
         "methods": [
           "renderSpecMarkdown",
@@ -13065,7 +13076,8 @@
           "../../lib/command.js",
           "../../lib/constants.js",
           "../../lib/schema-validate.js",
-          "../../lib/flow-helpers.js"
+          "../../lib/flow-helpers.js",
+          "../lib/render-contract.js"
         ],
         "exports": [
           "renderSpecMarkdown",
@@ -13076,22 +13088,66 @@
         "extends": "Command",
         "usedBy": null,
         "id": "d63c4335",
-        "summary": "Implements `senti spec render`, which turns a validated `spec.json` into Markdown documents. It can render both the main spec page and individual task files.",
-        "detail": "The command parses CLI options, resolves either an explicit spec directory or the active flow's spec directory, and rejects invalid paths or missing inputs with clear stderr messages. It loads a JSON schema, validates `spec.json`, and formats the document into structured Markdown sections for overview, requirements, tasks, and user confirmation metadata. When tasks are present, it also creates `tasks/<id>.md` files alongside the main `spec.md` output. The implementation mixes synchronous validation and file reads with asynchronous task writes to keep the command straightforward while still parallelizing per-task output.",
+        "summary": "Implements the `spec render` command that converts `spec.json` into `spec.md` and task markdown files. It validates paths and schema input before writing output.",
+        "detail": "The command loads a bundled schema file, validates path-style options, and can resolve the target spec directory either from CLI input or the active flow container. Before rendering, it checks that the spec directory and `spec.json` exist and that the JSON passes schema validation. It writes the main spec markdown plus one markdown file per task, creating the `tasks` directory as needed and printing relative output paths to stdout. `SpecRenderCommand` exposes this behavior through the generic command base class.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.645Z",
+          "processedAt": "2026-07-18T23:21:47.184Z",
           "attempts": 1
         },
         "keywords": [
           "spec render",
-          "Markdown generation",
-          "schema validation",
-          "spec.json",
-          "task documents",
-          "active flow",
-          "CLI command"
+          "markdown export",
+          "schema check",
+          "task markdown",
+          "CLI command",
+          "path validation"
+        ]
+      },
+      {
+        "file": "src/spec/lib/render-contract.js",
+        "hash": "62bdd5a63d4958084dccf9799725d08c",
+        "lines": 195,
+        "mtime": "2026-07-18T23:18:53.718Z",
+        "className": "render-contract",
+        "methods": [
+          "TaskId",
+          "TaskCollection",
+          "TaskOutputPath",
+          "TaskRenderPlan",
+          "SpecRenderContext",
+          "toPosixPath"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path"
+        ],
+        "exports": [
+          "TaskId",
+          "TaskCollection",
+          "TaskOutputPath",
+          "TaskRenderPlan",
+          "SpecRenderContext"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "87f2e428",
+        "summary": "Defines the rendering contract for spec and task markdown generation, including validated task IDs and confined output paths. It establishes safe metadata and path rules for the rendering pipeline.",
+        "detail": "`TaskId` enforces a conservative identifier pattern and `TaskCollection` validates array shape, duplicate IDs, parent references, and an upper bound on task count. `TaskOutputPath` resolves output filenames under a specific tasks directory and rejects any path that would escape that directory. `TaskRenderPlan` and related entry types formalize the renderer inputs and produced markdown artifacts. `SpecRenderContext` verifies root, spec, and `spec.json` relationships and derives metadata such as title, relative spec path, optional flow state, and creation date.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-18T23:21:47.184Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "render contract",
+          "task id",
+          "path confinement",
+          "render context",
+          "task collection",
+          "spec metadata"
         ]
       },
       {
@@ -13173,10 +13229,10 @@
       }
     ],
     "summary": {
-      "total": 240,
-      "totalMethods": 2454
+      "total": 241,
+      "totalMethods": 2469
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-18T14:59:30.423Z"
+  "enrichedAt": "2026-07-18T23:21:47.184Z"
 }
