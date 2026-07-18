@@ -33,6 +33,7 @@ import {
 import { deployPresetCopies } from "./lib/preset-deploy.js";
 import { writeUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
 import { normalizeSentiGitignore } from "./lib/gitignore.js";
+import { normalizeSentiGitattributes } from "./lib/gitattributes.js";
 import { AGENT_CONFIG_FILE_NAMES, refreshAgentSentiFile } from "./lib/agent-config-files.js";
 import { DEFAULT_SCAN_POLICY, FileTreeWalker } from "./lib/file-tree-walker.js";
 
@@ -83,15 +84,7 @@ export class RenameMigration {
     const changed = [];
     this.migrateManagedDirectory(changed, { dryRun });
     this.migrateLegacySkillDirectories(changed, { dryRun });
-    this.migrateRenamedPaths(changed, { dryRun });
-    for (const file of this.listTextTargets()) {
-      const before = fs.readFileSync(file, "utf8");
-      const after = this.normalizeTextTarget(file, this.renameText(before));
-      if (after !== before) {
-        if (!dryRun) fs.writeFileSync(file, after, "utf8");
-        changed.push(path.relative(this.root, file));
-      }
-    }
+    this.migrateRootMetadata(changed, { dryRun });
     return changed;
   }
 
@@ -107,24 +100,20 @@ export class RenameMigration {
     return next;
   }
 
-  normalizeTextTarget(file, text) {
-    const rel = path.relative(this.root, file).split(path.sep).join("/");
-    if (rel === ".gitignore") return normalizeSentiGitignore(text, { appendIfMissing: false });
-    return text;
-  }
-
   migrateManagedDirectory(changed, { dryRun }) {
     const legacyDir = path.join(this.root, ".sdd-forge");
     if (!fs.existsSync(legacyDir)) return;
 
     for (const rel of this.listFilesUnder(legacyDir)) {
       const src = path.join(legacyDir, rel);
-      const dest = path.join(this.root, ".senti", rel);
+      const renamedRel = this.renamePath(rel);
+      const dest = path.join(this.root, ".senti", ...renamedRel.split("/"));
       if (this.isExcludedPath(src)) continue;
       if (fs.existsSync(dest)) continue;
       if (!dryRun) {
         fs.mkdirSync(path.dirname(dest), { recursive: true });
         fs.renameSync(src, dest);
+        this.migrateManagedFileContent(dest);
       }
       this.recordChange(changed, path.relative(this.root, dest));
     }
@@ -152,25 +141,36 @@ export class RenameMigration {
     }
   }
 
-  migrateRenamedPaths(changed, { dryRun }) {
-    const files = this.listFilesUnder(this.root)
-      .map((rel) => path.join(this.root, rel))
-      .filter((file) => !this.isExcludedPath(file))
-      .sort((a, b) => b.length - a.length);
+  migrateManagedFileContent(file) {
+    if (!this.isTextFile(file)) return;
+    const before = fs.readFileSync(file, "utf8");
+    const after = this.renameText(before);
+    if (after !== before) fs.writeFileSync(file, after, "utf8");
+  }
 
-    for (const src of files) {
-      const rel = path.relative(this.root, src).split(path.sep).join("/");
-      const renamedRel = this.renamePath(rel);
-      if (renamedRel === rel) continue;
+  migrateRootMetadata(changed, { dryRun }) {
+    this.migrateRootTextFile(
+      changed,
+      ".gitignore",
+      (content) => normalizeSentiGitignore(content, { appendIfMissing: false }),
+      { dryRun },
+    );
+    this.migrateRootTextFile(
+      changed,
+      ".gitattributes",
+      (content) => normalizeSentiGitattributes(content, { appendIfMissing: false }),
+      { dryRun },
+    );
+  }
 
-      const dest = path.join(this.root, ...renamedRel.split("/"));
-      if (fs.existsSync(dest)) continue;
-      if (!dryRun) {
-        fs.mkdirSync(path.dirname(dest), { recursive: true });
-        fs.renameSync(src, dest);
-      }
-      this.recordChange(changed, renamedRel);
-    }
+  migrateRootTextFile(changed, relativePath, transform, { dryRun }) {
+    const file = path.join(this.root, relativePath);
+    if (!fs.existsSync(file)) return;
+    const before = fs.readFileSync(file, "utf8");
+    const after = transform(before);
+    if (after === before) return;
+    if (!dryRun) fs.writeFileSync(file, after, "utf8");
+    this.recordChange(changed, relativePath);
   }
 
   renamePath(rel) {
@@ -180,17 +180,6 @@ export class RenameMigration {
       .split("sdd-forge").join("senti")
       .split("AGENTS.sdd").join("AGENTS.senti")
       .split("agents.sdd").join("agents.senti");
-  }
-
-  listTextTargets() {
-    return this.listFilesUnder(this.root)
-      .map((rel) => path.join(this.root, rel))
-      .filter((file) => !this.isExcludedPath(file))
-      .filter((file) => !this.isLegacyManagedFile(file))
-      .filter((file) => !this.isLegacySkillFile(file))
-      .filter((file) => !this.isMigrationSource(file))
-      .filter((file) => !this.isProjectLocalCreatingPresetsGuide(file))
-      .filter((file) => this.isTextFile(file));
   }
 
   listFilesUnder(dir) {
@@ -223,26 +212,6 @@ export class RenameMigration {
     if (rel.startsWith(".senti/agent-cache/")) return true;
     if (rel.startsWith(".senti/tmp/")) return true;
     return false;
-  }
-
-  isMigrationSource(file) {
-    const rel = path.relative(this.root, file).split(path.sep).join("/");
-    return rel === "src/upgrade.js";
-  }
-
-  isProjectLocalCreatingPresetsGuide(file) {
-    const rel = path.relative(this.root, file).split(path.sep).join("/");
-    return /^\.senti\/templates\/[^/]+\/docs\/creating_presets\.md$/.test(rel);
-  }
-
-  isLegacyManagedFile(file) {
-    const rel = path.relative(this.root, file).split(path.sep).join("/");
-    return rel.startsWith(".sdd-forge/");
-  }
-
-  isLegacySkillFile(file) {
-    const rel = path.relative(this.root, file).split(path.sep).join("/");
-    return rel.startsWith(".agents/skills/sdd-forge.") || rel.startsWith(".claude/skills/sdd-forge.");
   }
 
   isTextFile(file) {

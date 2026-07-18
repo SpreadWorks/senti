@@ -28,6 +28,7 @@ import { resolveWorkDir } from "./lib/config.js";
 import { defaultAgentProfiles } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
 import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } from "./lib/gitignore.js";
+import { SENTI_ANALYSIS_GITATTRIBUTE, normalizeSentiGitattributes } from "./lib/gitattributes.js";
 import { ensureSetupOfficialPresetState, resolveSetupOfficialPresetSource } from "./lib/plugin-registry.js";
 import { ExecutionMode, WritePlan } from "./lib/execution-plan.js";
 
@@ -341,14 +342,12 @@ function ensureGitignore(workRoot) {
 
 function ensureGitattributes(workRoot) {
   const gitattributesPath = path.join(workRoot, ".gitattributes");
-  const entry = ".senti/output/analysis.json merge=ours";
   if (fs.existsSync(gitattributesPath)) {
     const content = fs.readFileSync(gitattributesPath, "utf8");
-    if (!content.includes(entry)) {
-      fs.appendFileSync(gitattributesPath, `\n${entry}\n`);
-    }
+    const normalized = normalizeSentiGitattributes(content);
+    if (normalized !== content) fs.writeFileSync(gitattributesPath, normalized, "utf8");
   } else {
-    fs.writeFileSync(gitattributesPath, `${entry}\n`);
+    fs.writeFileSync(gitattributesPath, `${SENTI_ANALYSIS_GITATTRIBUTE}\n`);
   }
 }
 

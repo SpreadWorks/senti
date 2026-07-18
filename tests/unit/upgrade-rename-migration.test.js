@@ -7,49 +7,81 @@ import { FileTreeWalker, ScanPolicy } from "../../src/lib/file-tree-walker.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../helpers/tmp-dir.js";
 
 describe("RenameMigration", () => {
-  it("skips nested node_modules directories", () => {
+  it("migrates only senti-owned paths", () => {
     const tmp = createTmpDir("senti-upgrade-rename-");
     try {
-      const legacyName = ["senti", "forge"].join("-");
-      const currentName = "senti";
-      const dependencyFile = `src/frontend/node_modules/pkg/${legacyName}-note.js`;
-      const projectFile = `src/app/${legacyName}-note.js`;
-      const migratedProjectFile = `src/app/${currentName}-note.js`;
-      writeFile(tmp, dependencyFile, `const name = '${legacyName}';\n`);
-      writeFile(tmp, projectFile, `const name = '${legacyName}';\n`);
+      writeFile(tmp, ".sdd-forge/config.json", '{"command":"sdd-forge"}\n');
+      writeFile(tmp, ".sdd-forge/templates/sdd-forge-note.md", "SDD flow\n");
+      writeFile(tmp, ".agents/skills/sdd-forge.flow/SKILL.md", "legacy skill\n");
+      writeFile(tmp, ".claude/skills/sdd-forge.flow/SKILL.md", "legacy skill\n");
+      writeFile(tmp, ".gitignore", [
+        ".sdd-forge/*",
+        "!.sdd-forge/config.json",
+        "!.sdd-forge/templates/",
+        "!.sdd-forge/output/",
+        ".sdd-forge/output/acceptance-report-*.json",
+        "node_modules",
+        "",
+      ].join("\n"));
+      writeFile(tmp, ".gitattributes", ".sdd-forge/output/analysis.json merge=ours\n");
+      writeFile(tmp, "src/app/sdd-forge-note.js", "const name = 'sdd-forge';\n");
+      writeFile(tmp, "src/frontend/node_modules/pkg/sdd-forge-note.js", "sdd-forge\n");
+      writeFile(tmp, "docs/sdd-forge-note.md", "SDD flow\n");
+      writeFile(tmp, "specs/001-sdd-forge/spec.md", "SDD flow\n");
 
       const changed = new RenameMigration(tmp).run();
 
-      assert.equal(fs.existsSync(path.join(tmp, dependencyFile)), true);
+      assert.equal(fs.readFileSync(path.join(tmp, ".senti/config.json"), "utf8"), '{"command":"senti"}\n');
+      assert.equal(fs.readFileSync(path.join(tmp, ".senti/templates/senti-note.md"), "utf8"), "Spec-Driven Development flow\n");
+      assert.equal(fs.existsSync(path.join(tmp, ".agents/skills/senti.flow/SKILL.md")), true);
+      assert.equal(fs.existsSync(path.join(tmp, ".claude/skills/senti.flow/SKILL.md")), true);
+      assert.match(fs.readFileSync(path.join(tmp, ".gitignore"), "utf8"), /^\.senti\/\*/);
       assert.equal(
-        fs.readFileSync(path.join(tmp, dependencyFile), "utf8"),
-        `const name = '${legacyName}';\n`,
+        fs.readFileSync(path.join(tmp, ".gitignore"), "utf8").match(/\.sdd-forge\//g)?.length,
+        1,
       );
-      assert.equal(fs.existsSync(path.join(tmp, migratedProjectFile)), true);
-      assert.equal(
-        fs.readFileSync(path.join(tmp, migratedProjectFile), "utf8"),
-        `const name = '${currentName}';\n`,
-      );
-      assert.equal(changed.includes(migratedProjectFile), true);
-      assert.equal(changed.some((rel) => rel.includes("node_modules")), false);
+      assert.equal(fs.readFileSync(path.join(tmp, ".gitattributes"), "utf8"), ".senti/output/analysis.json merge=ours\n");
+
+      assert.equal(fs.readFileSync(path.join(tmp, "src/app/sdd-forge-note.js"), "utf8"), "const name = 'sdd-forge';\n");
+      assert.equal(fs.readFileSync(path.join(tmp, "src/frontend/node_modules/pkg/sdd-forge-note.js"), "utf8"), "sdd-forge\n");
+      assert.equal(fs.readFileSync(path.join(tmp, "docs/sdd-forge-note.md"), "utf8"), "SDD flow\n");
+      assert.equal(fs.readFileSync(path.join(tmp, "specs/001-sdd-forge/spec.md"), "utf8"), "SDD flow\n");
+      assert.equal(changed.some((rel) => rel.startsWith("src/")), false);
+      assert.equal(changed.some((rel) => rel.startsWith("docs/")), false);
+      assert.equal(changed.some((rel) => rel.startsWith("specs/")), false);
     } finally {
       removeTmpDir(tmp);
     }
   });
 
-  it("fails closed when the shared traversal policy cannot scan the full tree", () => {
+  it("does not traverse project files outside the legacy managed directory", () => {
     const tmp = createTmpDir("senti-upgrade-traversal-");
     try {
-      writeFile(tmp, "a.txt", "sdd\n");
-      writeFile(tmp, "b.txt", "sdd\n");
+      writeFile(tmp, ".sdd-forge/config.json", "{}\n");
+      writeFile(tmp, "src/a.txt", "sdd\n");
+      writeFile(tmp, "src/b.txt", "sdd\n");
+      const walker = new FileTreeWalker(new ScanPolicy({ maxFiles: 1 }));
+
+      new RenameMigration(tmp, { walker }).run();
+
+      assert.equal(fs.readFileSync(path.join(tmp, "src/a.txt"), "utf8"), "sdd\n");
+      assert.equal(fs.readFileSync(path.join(tmp, "src/b.txt"), "utf8"), "sdd\n");
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+
+  it("fails closed when the legacy managed directory traversal is incomplete", () => {
+    const tmp = createTmpDir("senti-upgrade-managed-traversal-");
+    try {
+      writeFile(tmp, ".sdd-forge/a.txt", "sdd\n");
+      writeFile(tmp, ".sdd-forge/b.txt", "sdd\n");
       const walker = new FileTreeWalker(new ScanPolicy({ maxFiles: 1 }));
 
       assert.throws(
         () => new RenameMigration(tmp, { walker }).run(),
-        /upgrade traversal .* is indeterminate: files limit 1/,
+        /upgrade traversal .*\.sdd-forge is indeterminate: files limit 1/,
       );
-      assert.equal(fs.readFileSync(path.join(tmp, "a.txt"), "utf8"), "sdd\n");
-      assert.equal(fs.readFileSync(path.join(tmp, "b.txt"), "utf8"), "sdd\n");
     } finally {
       removeTmpDir(tmp);
     }

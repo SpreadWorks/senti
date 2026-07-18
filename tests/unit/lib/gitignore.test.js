@@ -50,6 +50,32 @@ describe("normalizeSentiGitignore", () => {
     ].join("\n"));
   });
 
+  it("replaces legacy sdd-forge entries without changing unrelated rules", () => {
+    const normalized = normalizeSentiGitignore([
+      ".sdd-forge/*",
+      "!.sdd-forge/config.json",
+      "!.sdd-forge/templates/",
+      "!.sdd-forge/output/",
+      ".sdd-forge/output/acceptance-report-*.json",
+      "",
+      "vendor/",
+      "",
+    ].join("\n"), { appendIfMissing: false });
+
+    assert.equal(normalized, [
+      ".senti/*",
+      "!.senti/config.json",
+      "!.senti/templates/",
+      "!.senti/output/",
+      "!.senti/presets/",
+      ".senti/output/acceptance-report-*.json",
+      ".sdd-forge/",
+      "",
+      "vendor/",
+      "",
+    ].join("\n"));
+  });
+
   it("does not change unrelated gitignore content when append is disabled", () => {
     const content = [
       "node_modules",

@@ -5,7 +5,7 @@ import { loadSpecDrivenDevelopmentTemplate } from "./agents-md.js";
 export const AGENT_CONFIG_FILE_NAMES = ["AGENTS.md", "CLAUDE.md"];
 
 export const AGENTS_SENTI_DIRECTIVE_RE =
-  /<!--\s*\{\{data\("(?:(?:[^"]+)\.)?agents\.senti"\)\}\}\s*-->[\s\S]*?<!--\s*\{\{\/data\}\}\s*-->/;
+  /<!--\s*\{\{data\("(?:(?:[^"]+)\.)?(?:agents\.senti|agents\.sdd|AGENTS\.sdd)"\)\}\}\s*-->[\s\S]*?<!--\s*\{\{\/data\}\}\s*-->/;
 
 export function buildAgentsSentiBlock(lang, options = {}) {
   const specDrivenDevelopmentContent = loadSpecDrivenDevelopmentTemplate(lang, options);

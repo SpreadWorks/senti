@@ -7,11 +7,11 @@ import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../helpers/tmp
 
 const CMD = join(process.cwd(), "src/senti.js");
 
-function staleAgentFileContent() {
+function staleAgentFileContent(dataSource = "agents.senti") {
   return [
     '# fixture',
     '',
-    '<!-- {{data("agents.senti")}} -->',
+    `<!-- {{data("${dataSource}")}} -->`,
     '## Spec-Driven Development (Spec-Driven Development)',
     '',
     '- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、内容を判定して「直接修正」か「Spec-Driven Development フロー (`/senti.flow`)」のどちらで進めるかを AskUserQuestion で 2 択提示すること。確認なしにコードを変更してはならない。**',
@@ -82,5 +82,18 @@ describe("upgrade agent instruction files", () => {
     assert.match(output, /DRY-RUN/);
     assert.match(output, /CLAUDE\.md/);
     assert.equal(fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8"), before);
+  });
+
+  it("refreshes legacy agents.sdd blocks without rewriting project-owned content", () => {
+    tmp = createTmpDir("senti-upgrade-legacy-agent-files-");
+    setupProject(tmp);
+    writeFile(tmp, "AGENTS.md", `${staleAgentFileContent("agents.sdd")}\nLegacy sdd project note.\n`);
+
+    runUpgrade(tmp);
+
+    const content = fs.readFileSync(join(tmp, "AGENTS.md"), "utf8");
+    assertRefreshed(content);
+    assert.match(content, /data\("agents\.senti"\)/);
+    assert.match(content, /Legacy sdd project note\./);
   });
 });
