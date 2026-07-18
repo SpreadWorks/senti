@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "q1 から instruction prefix を除去した。",
+  "items": [
+    {
+      "title": "1. Remove Instruction Prefix",
+      "target": "q1",
+      "rationale": "質問本文が質問だけを含むように先頭の `must:` を削除した。",
+      "evidence": "draft.json qa[0].question は現在 Issue #439 の確認文から直接始まる。",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    }
+  ]
+}

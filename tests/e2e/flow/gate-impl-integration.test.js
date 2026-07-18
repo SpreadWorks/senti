@@ -18,8 +18,14 @@ import path from "path";
 import { spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll, checkoutNewBranch } from "../../helpers/git-repo.js";
-import { writeStubAgentScript, stubAgentConfig, defaultPassResponse } from "../../helpers/stub-agent.js";
+import {
+  writeStubAgentScript,
+  writeCapturingStubAgentScript,
+  stubAgentConfig,
+  defaultPassResponse,
+} from "../../helpers/stub-agent.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { writeIntegrationGateTrustArtifacts } from "../../helpers/integration-gate-artifacts.js";
 
 const CMD = path.join(process.cwd(), "src/senti.js");
 const SPEC_ID = "001-test";
@@ -83,9 +89,13 @@ function setupFixture(tmp, {
   specJson = minimalSpecJson(),
   specMarkdown = DEFAULT_SPEC_MD,
   fileMap = null,
+  capturePromptPath = null,
+  integrationTrustRequirementIds = null,
 } = {}) {
   // Stub AI provider
-  const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", stubResponse);
+  const stubPath = capturePromptPath
+    ? writeCapturingStubAgentScript(tmp, ".stub-agent.js", capturePromptPath, stubResponse)
+    : writeStubAgentScript(tmp, ".stub-agent.js", stubResponse);
   writeJson(tmp, ".senti/config.json", {
     lang: "ja",
     type: "base",
@@ -98,6 +108,12 @@ function setupFixture(tmp, {
   // Post-T8: run-gate loads spec.json via the single validated load path.
   writeJson(tmp, `specs/${SPEC_ID}/spec.json`, specJson);
   if (fileMap) writeJson(tmp, `specs/${SPEC_ID}/file-map.json`, fileMap);
+  if (integrationTrustRequirementIds) {
+    writeIntegrationGateTrustArtifacts(tmp, {
+      specId: SPEC_ID,
+      requirementIds: integrationTrustRequirementIds,
+    });
+  }
 
   // Initial test file
   writeFile(tmp, "tests/dummy.test.js", initialTest);
@@ -151,10 +167,10 @@ function setupFixture(tmp, {
   return { stubPath };
 }
 
-function runGate(tmp, extraArgs = []) {
+function runGate(tmp, extraArgs = [], phase = "task-impl") {
   return spawnSync(
     "node",
-    [CMD, "flow", "run", "gate", "--phase", "task-impl", ...extraArgs],
+    [CMD, "flow", "run", "gate", "--phase", phase, ...extraArgs],
     {
       encoding: "utf8",
       env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
@@ -339,6 +355,50 @@ describe("gate-impl integration (spec 202)", () => {
     assert.ok(env.errors.some((error) => error.code === "STEP_EXTERNAL_BLOCKED"));
     assert.equal(env.data.result, "fail");
     assert.deepEqual(env.data.artifacts.issues, ["spec.json has no requirements with usable ids"]);
+  });
+
+  it("integration requirement prompts receive bounded same-spec contract context", () => {
+    tmp = createTmpDir();
+    const capturePath = path.join(tmp, "captured-prompt.txt");
+    const specJson = {
+      ...minimalSpecJson(),
+      overview: {
+        modules: [],
+        data_flow: [],
+        decisions: [{
+          text: "R1 replaces the nullable legacy output.",
+          evidence: "current schema",
+          consideredAlternatives: "legacy output",
+        }],
+      },
+      requirements: [
+        { id: "R1", desc: "Return a required status enum.", priority: "must", status: "pending" },
+        { id: "R2", desc: "Preserve the current R1 contract.", priority: "must", status: "pending" },
+      ],
+      clarifications: [{ q: "Is legacy [] valid?", a: "No." }],
+    };
+    setupFixture(tmp, {
+      initialTest: BASE_TEST,
+      modifiedTest: `${BASE_TEST}// current contract implementation\n`,
+      stubResponse: buildPassResponseJson("R1", "R2"),
+      specJson,
+      fileMap: { R1: ["tests/dummy.test.js"], R2: ["tests/dummy.test.js"] },
+      capturePromptPath: capturePath,
+      integrationTrustRequirementIds: ["R1", "R2"],
+    });
+
+    const res = runGate(tmp, ["--skip-guardrail"], "integration");
+    const runtimeLogPath = path.join(tmp, ".tmp/logs", `${SPEC_ID}.log`);
+    const runtimeLog = fs.existsSync(runtimeLogPath) ? fs.readFileSync(runtimeLogPath, "utf8") : "(missing)";
+    assert.equal(res.status, 0, `stdout=${res.stdout}\nstderr=${res.stderr}\nruntimeLog=${runtimeLog}`);
+    const env = parseEnvelope(res.stdout);
+    assert.equal(env.data.result, "pass", res.stdout);
+    const prompt = fs.readFileSync(capturePath, "utf8");
+    assert.match(prompt, /## Same-Spec Contract Context/);
+    assert.match(prompt, /requirements\[1\] R2: Preserve the current R1 contract\./);
+    assert.match(prompt, /requirements\[0\] R1: Return a required status enum\./);
+    assert.match(prompt, /overview\.decisions\[0\].*replaces the nullable legacy output/s);
+    assert.match(prompt, /clarifications\[0\].*legacy \[\] valid/s);
   });
 
 });

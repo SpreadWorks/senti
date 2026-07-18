@@ -1,0 +1,80 @@
+{
+  "devType": "bugfix",
+  "goal": "must: impl-gate の各 requirement 評価へ authoritative な同一 spec contract context を渡し、同一 spec が明示的に置換または無効化した legacy contract ではなく current contract に対して preservation を判定する。",
+  "analysis": {
+    "problem": "must: 現在の impl-gate は file-map がある場合、評価対象 requirement の excerpt と関連 diff だけを batch prompt に渡すため、同一 spec 内の contract replacement decision や legacy validity clarification を参照できず、廃止済み contract の preservation を誤って要求し得る。",
+    "proposedApproach": "must: current requirement full text、ID-keyed same-spec requirement summaries、migration または contract replacement decisions、legacy input/output validity を変える clarifications だけから成る bounded authoritative context を既存 requirement evaluation prompt に加える。",
+    "validation": "must: #437 の R6 等価 fixture が R1/R2 replacement と legacy [] invalidation を参照して PASS し、new required enum contract の実違反は FAIL することを agent-independent に確認する。加えて deterministic bounds、prompt/cache input、既存 counters/retries/artifacts/routing、non-impl gates の非回帰を検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: 現行 RequirementGateBatch は batch 内 requirement excerpts と diff だけを buildImplCheckPrompt に渡し、same-spec decisions と clarifications を渡していない。",
+      "must: Issue #439 の再現では R1/R2 が nullable/optional legacy output を required enum contract へ置換し、clarification が legacy [] を invalid とする一方、R6 preservation がその context を参照できなかった。",
+      "must: Issue #439 は requirement summaries 64 items/768 chars、decisions 24 items/1024 chars、clarifications 24 items/1024 chars、total 48000 chars の上限を明示している。",
+      "must: Issue #439 は current requirement first、explicitly referenced requirement IDs next、remaining same-spec items in source order、stable source references の順序を明示している。"
+    ],
+    "decisionPoints": [
+      "must: preservation は同一 spec が確立した authoritative current contract に対して評価し、明示的に retired または invalidated とされた legacy contract の維持を要求しない。",
+      "must: current requirement full text と同一 spec の bounded summaries/decisions/clarifications を各 impl-gate requirement evaluation に供給する。",
+      "must: truncation は item boundary のみで行い、omitted item count と original character count を含む fixed-format record を section ごとに出す。",
+      "must: 同じ structured spec input からの selection、ordering、summarization、truncation、serialization は byte-identical にする。",
+      "must: current contract の required enum を壊す実装や current-contract preservation/non-interception 違反は引き続き FAIL にする。"
+    ],
+    "resolvedByProjectRules": [
+      "must: context construction は既存 structured spec artifacts だけから行い、新しい agent call と外部依存を追加しない。",
+      "must: invariant を持つ新しい context representation は専用 class として表現し、src に Issue/spec/run 固有値を埋め込まない。",
+      "must: alpha policy に従い nullable/optional/[] legacy behavior の compatibility fallback を追加しない。",
+      "must: 同じ実装 pattern が二箇所以上に現れる場合は共通 helper に抽出し、既存 run-gate module の命名と構造に合わせる。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: bounded context model の module ownership、constructor invariants、prompt serialization boundary を既存 RequirementGateBatch と PromptBuilder の責務に合わせて定義する。",
+      "must: R6-equivalent PASS、new-enum violation FAIL、referenced-ID priority、overflow/truncation、byte identity、non-regression の focused test mapping を定義する。",
+      "must: structured spec のどの decisions/clarifications entry を contract replacement または legacy validity change として選ぶかを汎用的かつ deterministic に定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/flow/lib/run-gate.js の impl-gate requirement prompt/context construction を変更する。",
+      "must: current requirement と same-spec requirement summaries、migration/contract replacement decisions、legacy validity clarifications の bounded serialization を追加する。",
+      "must: current-contract preservation guidance を requirement evaluation に追加する。",
+      "must: R6-equivalent PASS と real current-contract violation FAIL の deterministic regression coverage を追加する。",
+      "must: count/per-item/total bounds、selection order、item-boundary truncation、fixed truncation records、serialized bytes を検証する。",
+      "must: 既存 impl-gate output schema、cache identity contract、semantic counters、retry policy、artifact lifecycle、task/integration routing の非回帰を検証する。"
+    ],
+    "out": [
+      "must: #436 が所有する AC/task/implementationTargets/file-map/evidence/full schema/design/data-flow/full architecture context を追加しない。",
+      "must: output finding contract、global citation contract、obligation classification、retry architecture を再設計しない。",
+      "must: draft/spec/test/acceptance または他 gate の prompt/schema/evaluation/counters/retries/artifacts/routing を変更しない。",
+      "must: gate bypass、manual disposition、retry reset、retry-limit extension を追加しない。",
+      "must: tooling/schema failure を semantic PASS/FAIL に変換しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: Inventory: impl-gate requirement prompt public behavior は requirement excerpts と diff に bounded same-spec contract context を追加する。owner は引き続き run-gate requirement planning/prompt path とし、focused prompt tests で検証する。",
+    "must: Inventory: prompt input の正当な変更に伴う cache key/input bytes の変更は認めるが、cache identity algorithm と reuse contract は変更せず deterministic byte tests で検証する。",
+    "must: Inventory: agent call count は既存 RequirementGateBatch ごとに一回のままとし、context summary generation 用 call を追加しない。",
+    "must: Inventory: impl-gate output schema、semantic counters、retry policy、artifact lifecycle、task/integration routing は owner と behavior を維持し、既存 regression tests で検証する。",
+    "must: Inventory: draft/spec/test/acceptance と non-impl gate の prompt/schema/evaluation/counters/retries/artifacts/routing は変更せず、既存 non-regression coverage で検証する。",
+    "must: Inventory: legacy nullable/optional/[] contract は同一 spec が明示的に置換または invalid とした場合に preservation 対象から外れ、compatibility fallback は追加しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "この確認の優先度は must: Issue #439 の Goal/Scope/Out of Scope を維持し、same-spec contract context に限定した impl-gate preservation 修正として進めますか。",
+      "answer": "must: はい。Issue #439 の Goal/Scope/Out of Scope を維持し、same-spec contract context に限定した impl-gate preservation 修正として進める。",
+      "evidence": "flow.json notes の `draft Q1: approved Goal/Scope/Out of Scope` と Issue #439 の Summary、Scope、Out of scope、Acceptance Criteria。",
+      "why": "must: 既承認の scope は #437 の bootstrap bug を解消しつつ、#436 が所有する broader requirement-context redesign へ拡大しない境界を定めている。",
+      "considered": "should: #436 の full context を同時実装する案は Issue #439 の明示的な out-of-scope と bootstrap 分離目的に反するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-18T08:52:01Z",
+    "notes": "Issue #439 と既存 flow note が Q1 の Goal/Scope/Out of Scope を解決し、coverage review は未解決 user decision なしで PASS。"
+  }
+}

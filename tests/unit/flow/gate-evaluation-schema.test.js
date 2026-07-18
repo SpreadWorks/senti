@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   GUARDRAIL_ARTICLE_EVAL_SCHEMA,
   RequirementGateBatch,
+  SameSpecContractContext,
   buildGuardrailArticleEvalPrompt,
   parseGuardrailArticleEvaluation,
   parseImplRequirementEvaluation,
@@ -215,5 +216,39 @@ describe("invocation-specific gate output schemas", () => {
       ["R1", "R2"],
     );
     assert.match(built.fmtFallback, /Allowed IDs \(exact match only\): R1, R2/);
+  });
+
+  it("adds same-spec context without changing the implementation evaluation schema", () => {
+    const spec = {
+      requirements: [
+        { id: "R1", desc: "Define current output." },
+        { id: "R2", desc: "Preserve R1." },
+      ],
+      overview: {
+        decisions: [{
+          text: "R1 replaces the legacy output.",
+          evidence: "current schema",
+          consideredAlternatives: "legacy output",
+        }],
+      },
+      clarifications: [{ q: "Is legacy output valid?", a: "No." }],
+    };
+    const baseline = new RequirementGateBatch({
+      requirements: [spec.requirements[1]],
+      diff: "diff --git a/a.js b/a.js\n+change\n",
+    }).buildPrompt().build();
+    const integration = new RequirementGateBatch({
+      requirements: [spec.requirements[1]],
+      diff: "diff --git a/a.js b/a.js\n+change\n",
+      structuredSpec: spec,
+    }).buildPrompt().build();
+
+    assert.ok(integration.userPrompt.includes("## Same-Spec Contract Context"));
+    assert.ok(integration.userPrompt.includes("requirements[0] R1: Define current output."));
+    assert.ok(integration.userPrompt.includes("overview.decisions[0]"));
+    assert.ok(integration.userPrompt.includes("clarifications[0]"));
+    assert.deepEqual(integration.jsonSchema, baseline.jsonSchema);
+    assert.equal(integration.fmtFallback, baseline.fmtFallback);
+    assert.ok(new SameSpecContractContext({ spec, currentRequirementIds: ["R2"] }));
   });
 });

@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement uses the vague qualifier \"legitimate\" in \"only legitimate prompt/cache input bytes may change\" without stating verifiable conditions for which prompt/cache byte changes are allowed.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "The requirement uses the vague qualifier \"legitimate\" in \"only legitimate prompt/cache input bytes may change\" without stating verifiable conditions for which prompt/cache byte changes are allowed.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Two independent reviewers may not agree whether a prompt/cache byte change is \"legitimate\" because the requirement does not define measurable acceptance conditions for that term.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "Two independent reviewers may not agree whether a prompt/cache byte change is \"legitimate\" because the requirement does not define measurable acceptance conditions for that term.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The acceptance criterion uses the vague phrase \"Focused regression\" without specifying the exact regression scope or required test evidence.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[6]"
+          },
+          "observed": "The acceptance criterion uses the vague phrase \"Focused regression\" without specifying the exact regression scope or required test evidence.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The acceptance criterion uses the vague qualifier \"representative\" in \"representative non-impl gate prompt snapshots\" without identifying which non-impl gates must be covered.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[7]"
+          },
+          "observed": "The acceptance criterion uses the vague qualifier \"representative\" in \"representative non-impl gate prompt snapshots\" without identifying which non-impl gates must be covered.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[5].desc"
+      },
+      "observed": "The requirement uses the vague qualifier \"legitimate\" in \"only legitimate prompt/cache input bytes may change\" without stating verifiable conditions for which prompt/cache byte changes are allowed.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[5].desc"
+      },
+      "observed": "Two independent reviewers may not agree whether a prompt/cache byte change is \"legitimate\" because the requirement does not define measurable acceptance conditions for that term.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[6]"
+      },
+      "observed": "The acceptance criterion uses the vague phrase \"Focused regression\" without specifying the exact regression scope or required test evidence.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[7]"
+      },
+      "observed": "The acceptance criterion uses the vague qualifier \"representative\" in \"representative non-impl gate prompt snapshots\" without identifying which non-impl gates must be covered.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    }
+  ]
+}

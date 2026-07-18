@@ -1,0 +1,54 @@
+{
+  "spec": "specs/321-same-spec-contract-context/spec.json",
+  "date": "2026-07-18T09:37:22.331Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Each spec-level integration impl-gate requirement batch shall receive every evaluated current requirement ID and full description plus same-spec requirement summaries, overview decisions, and clarifications; every record shall carry its exact zero-based input locator formatted as requirements[<index>], overview.decisions[<index>], or clarifications[<index>].",
+      "status": "done",
+      "note": "R1: serializes current full text and same-spec records with exact zero-based locators"
+    },
+    {
+      "desc": "Requirement context shall order current batch requirements first, requirements explicitly referenced by current descriptions next, and remaining requirements last, preserving spec source order within each group and excluding duplicate IDs.",
+      "status": "done",
+      "note": "R2: orders current, explicitly referenced, and remaining unique requirements by source order"
+    },
+    {
+      "desc": "Contract context shall enforce limits of 64 requirement summaries at 768 characters each, 24 decisions at 1024 characters each, 24 clarifications at 1024 characters each, and 48000 serialized characters total using whole-item omission and a fixed per-section record containing omitted item count and original character count.",
+      "status": "done",
+      "note": "R3: enforces item, count, and total bounds with whole-item truncation records"
+    },
+    {
+      "desc": "For identical structured spec and batch inputs, context selection, reference detection, ordering, bounds, truncation records, serialization, and resulting prompt/cache input bytes shall be identical.",
+      "status": "done",
+      "note": "R4: produces byte-identical context and prompt output and rejects current-text overflow"
+    },
+    {
+      "desc": "The requirement evaluation guidance shall assess preservation against explicit same-spec current-contract replacement and invalidation statements, PASS the #437 R6-equivalent replacement case, and FAIL an implementation that violates the new required enum contract or current-contract non-interception behavior.",
+      "status": "done",
+      "note": "R5: supplies authoritative replacement guidance for positive and negative preservation evidence"
+    },
+    {
+      "desc": "The change shall retain existing requirement batch grouping, one agent call per batch, output schema, parser/tooling-failure boundary, cache identity algorithm, semantic counters, retry policy, artifacts, previously-passed handling, and task/integration routing; built prompt bytes may differ only by the inserted Same-Spec Contract Context section and the added current-contract preservation rule lines.",
+      "status": "done",
+      "note": "R6: retains one call for a shared batch and changes only integration context and guidance"
+    },
+    {
+      "desc": "Task-impl and non-impl gates shall retain their existing prompt and lifecycle behavior, no external dependency or legacy compatibility fallback shall be added, and the new bounded context invariants shall be represented by dedicated classes in generic src code.",
+      "status": "done",
+      "note": "R7: leaves task-impl and context-free prompt builders unchanged"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

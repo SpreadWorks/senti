@@ -1,0 +1,153 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "The integration gate now passes the structured parent spec into requirement batch planning, and each RequirementGateBatch constructs a SameSpecContractContext for the batch's evaluated requirement IDs. The context serializes current batch requirements as full-text records with IDs, includes same-spec requirement records plus overview decisions and clarifications, and formats locators as requirements[<index>], overview.decisions[<index>], and clarifications[<index>].",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "SameSpecContractContext partitions requirements into current, explicitly referenced, and remaining groups, filters each group from spec.requirements in source order, excludes current/referenced duplicates with sets, and serializes current records before summary records.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "The implementation defines the required 64/768, 24/1024, 24/1024, and 48000 limits, omits over-limit records as whole items, records omitted item count and original character count per affected section, and further removes whole selected items until serialized context is within the total bound.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "Selection, reference detection, ordering, omission, and serialization are deterministic functions of the structured spec and batch requirement IDs, with no external state, randomization, or agent call; identical inputs therefore produce identical context and prompt/cache input bytes.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "The diff adds preservation guidance that evaluates against explicit same-spec current-contract replacement/retirement/invalidation statements, injects Same-Spec Contract Context into integration requirement prompts, and includes R5 coverage for the #437 R6-equivalent replacement PASS case plus FAIL cases for required enum and current-contract non-interception violations.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "The diff preserves existing batching and one-call-per-batch by continuing to use buildRequirementGateBatches and calling evaluateImplRequirementsWithRetry once per RequirementGateBatch. Output schema/fmtFallback, parser boundary, retry behavior, semantic counters, artifacts, previously-passed handling, cache algorithm, and task/non-impl routing are not modified; tests also assert these contracts. The only intentional prompt byte changes are the integration-only Same-Spec Contract Context user section and the two added current-contract preservation rule lines.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R7",
+      "result": "pass",
+      "reason": "The diff keeps the new Same-Spec Contract Context integration-only: task-impl planning passes structuredSpec as null, context-free buildImplCheckPrompt output remains unchanged, and non-impl prompt/lifecycle paths are not modified. No package dependency changes or legacy compatibility fallback are introduced. The bounded context invariants are modeled in generic src code with dedicated classes SameSpecContractRecord, SameSpecContractSection, and SameSpecContractContext with constructor validation.",
+      "title": "R7",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — The integration gate now passes the structured parent spec into requirement batch planning, and each RequirementGateBatch constructs a SameSpecContractContext for the batch's evaluated requirement IDs. The context serializes current batch requirements as full-text records with IDs, includes same-spec requirement records plus overview decisions and clarifications, and formats locators as requirements[<index>], overview.decisions[<index>], and clarifications[<index>].",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — SameSpecContractContext partitions requirements into current, explicitly referenced, and remaining groups, filters each group from spec.requirements in source order, excludes current/referenced duplicates with sets, and serializes current records before summary records.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — The implementation defines the required 64/768, 24/1024, 24/1024, and 48000 limits, omits over-limit records as whole items, records omitted item count and original character count per affected section, and further removes whole selected items until serialized context is within the total bound.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — Selection, reference detection, ordering, omission, and serialization are deterministic functions of the structured spec and batch requirement IDs, with no external state, randomization, or agent call; identical inputs therefore produce identical context and prompt/cache input bytes.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — The diff adds preservation guidance that evaluates against explicit same-spec current-contract replacement/retirement/invalidation statements, injects Same-Spec Contract Context into integration requirement prompts, and includes R5 coverage for the #437 R6-equivalent replacement PASS case plus FAIL cases for required enum and current-contract non-interception violations.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — The diff preserves existing batching and one-call-per-batch by continuing to use buildRequirementGateBatches and calling evaluateImplRequirementsWithRetry once per RequirementGateBatch. Output schema/fmtFallback, parser boundary, retry behavior, semantic counters, artifacts, previously-passed handling, cache algorithm, and task/non-impl routing are not modified; tests also assert these contracts. The only intentional prompt byte changes are the integration-only Same-Spec Contract Context user section and the two added current-contract preservation rule lines.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R7 — The diff keeps the new Same-Spec Contract Context integration-only: task-impl planning passes structuredSpec as null, context-free buildImplCheckPrompt output remains unchanged, and non-impl prompt/lifecycle paths are not modified. No package dependency changes or legacy compatibility fallback are introduced. The bounded context invariants are modeled in generic src code with dedicated classes SameSpecContractRecord, SameSpecContractSection, and SameSpecContractContext with constructor validation.",
+      "guardrail_id": "R7",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/321-same-spec-contract-context/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "21eeffde3cf6628b9afa3796fa8214ee1addcc0c4c706954d948076dba5d0301"
+  }
+}

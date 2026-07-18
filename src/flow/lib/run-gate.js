@@ -230,6 +230,13 @@ const TASK_IMPL_GATE_DIFF_MAX_BYTES = 1024 * 1024; // 1 MiB
 const MAX_IMPL_REQUIREMENT_BATCH_CHARS = 120000;
 const MAX_AGENT_PROMPT_INPUT_CHARS = 900000;
 const MAX_GUARDRAIL_TARGET_CHARS = 250000;
+const MAX_SAME_SPEC_REQUIREMENT_SUMMARIES = 64;
+const MAX_SAME_SPEC_REQUIREMENT_SUMMARY_CHARS = 768;
+const MAX_SAME_SPEC_DECISIONS = 24;
+const MAX_SAME_SPEC_DECISION_CHARS = 1024;
+const MAX_SAME_SPEC_CLARIFICATIONS = 24;
+const MAX_SAME_SPEC_CLARIFICATION_CHARS = 1024;
+const MAX_SAME_SPEC_CONTRACT_CONTEXT_CHARS = 48000;
 const GATE_SOURCE_ARTIFACT_BY_PHASE = Object.freeze({
   draft: "draft-gate-source.json",
   spec: "spec-gate-source.json",
@@ -2929,6 +2936,289 @@ export function applyFlipOverride({ evaluations, previousEntry, currentState, ph
 // Task-impl / integration: requirements check
 // ---------------------------------------------------------------------------
 
+const SAME_SPEC_SECTION_TITLES = Object.freeze({
+  requirements: "Requirements",
+  "overview.decisions": "Overview Decisions",
+  clarifications: "Clarifications",
+});
+
+export class SameSpecContractRecord {
+  constructor({ section, locator, content, sourceCharacters, requirementId = null, current = false }) {
+    if (!Object.hasOwn(SAME_SPEC_SECTION_TITLES, section)) {
+      throw new Error(`unknown same-spec contract section: ${section}`);
+    }
+    if (typeof locator !== "string" || locator.trim() === "") {
+      throw new Error("same-spec contract record locator must be a non-empty string");
+    }
+    if (typeof content !== "string" || content.trim() === "") {
+      throw new Error("same-spec contract record content must be a non-empty string");
+    }
+    if (!Number.isInteger(sourceCharacters) || sourceCharacters < 0) {
+      throw new Error("same-spec contract record sourceCharacters must be a non-negative integer");
+    }
+    if (requirementId !== null && (typeof requirementId !== "string" || requirementId.trim() === "")) {
+      throw new Error("same-spec contract requirementId must be a non-empty string or null");
+    }
+    this.section = section;
+    this.locator = locator.trim();
+    this.content = content.trim();
+    this.sourceCharacters = sourceCharacters;
+    this.requirementId = requirementId === null ? null : requirementId.trim();
+    this.current = Boolean(current);
+    Object.freeze(this);
+  }
+
+  toPromptText() {
+    if (this.section === "requirements") {
+      const kind = this.current ? "current" : "summary";
+      return `- [${kind}] ${this.locator} ${this.requirementId}: ${this.content}`;
+    }
+    const lines = this.content.split("\n");
+    return [`- ${this.locator}: ${lines[0]}`, ...lines.slice(1).map((line) => `  ${line}`)].join("\n");
+  }
+}
+
+export class SameSpecContractSection {
+  constructor({ name, records, omittedRecords = [] }) {
+    if (!Object.hasOwn(SAME_SPEC_SECTION_TITLES, name)) {
+      throw new Error(`unknown same-spec contract section: ${name}`);
+    }
+    if (!Array.isArray(records) || !records.every((record) => record instanceof SameSpecContractRecord)) {
+      throw new Error("same-spec contract section records must contain SameSpecContractRecord values");
+    }
+    if (!Array.isArray(omittedRecords) || !omittedRecords.every((record) => record instanceof SameSpecContractRecord)) {
+      throw new Error("same-spec contract omittedRecords must contain SameSpecContractRecord values");
+    }
+    if (![...records, ...omittedRecords].every((record) => record.section === name)) {
+      throw new Error("same-spec contract records must belong to their section");
+    }
+    this.name = name;
+    this.records = Object.freeze([...records]);
+    this.omittedItemCount = omittedRecords.length;
+    this.omittedOriginalCharacters = omittedRecords.reduce(
+      (total, record) => total + record.sourceCharacters,
+      0,
+    );
+    Object.freeze(this);
+  }
+
+  toPromptText() {
+    const records = this.records.length > 0
+      ? this.records.map((record) => record.toPromptText())
+      : ["- (none)"];
+    if (this.omittedItemCount > 0) {
+      records.push(
+        `- [truncated ${this.name}: omitted_items=${this.omittedItemCount}; `
+          + `original_characters=${this.omittedOriginalCharacters}]`,
+      );
+    }
+    return [`### ${SAME_SPEC_SECTION_TITLES[this.name]}`, ...records].join("\n");
+  }
+}
+
+function sameSpecRequirementRecord(requirement, index, current) {
+  const excerpt = normalizeRequirementPromptInput(requirement);
+  return new SameSpecContractRecord({
+    section: "requirements",
+    locator: `requirements[${index}]`,
+    content: excerpt.desc,
+    sourceCharacters: excerpt.desc.length,
+    requirementId: excerpt.id,
+    current,
+  });
+}
+
+function sameSpecDecisionRecord(decision, index) {
+  if (!decision || typeof decision !== "object" || Array.isArray(decision)) {
+    throw new Error(`overview.decisions[${index}] must be an object`);
+  }
+  const fields = [
+    ["text", decision.text],
+    ["evidence", decision.evidence],
+    ["consideredAlternatives", decision.consideredAlternatives],
+  ];
+  if (typeof decision.text !== "string" || decision.text.trim() === "") {
+    throw new Error(`overview.decisions[${index}].text must be a non-empty string`);
+  }
+  const contentFields = fields
+    .filter(([, value]) => typeof value === "string" && value.trim() !== "")
+    .map(([name, value]) => `${name}: ${value.trim()}`);
+  return new SameSpecContractRecord({
+    section: "overview.decisions",
+    locator: `overview.decisions[${index}]`,
+    content: contentFields.join("\n"),
+    sourceCharacters: fields.reduce(
+      (total, [, value]) => total + (typeof value === "string" ? value.trim().length : 0),
+      0,
+    ),
+  });
+}
+
+function sameSpecClarificationRecord(clarification, index) {
+  if (!clarification || typeof clarification !== "object" || Array.isArray(clarification)) {
+    throw new Error(`clarifications[${index}] must be an object`);
+  }
+  if (typeof clarification.q !== "string" || clarification.q.trim() === "") {
+    throw new Error(`clarifications[${index}].q must be a non-empty string`);
+  }
+  if (typeof clarification.a !== "string" || clarification.a.trim() === "") {
+    throw new Error(`clarifications[${index}].a must be a non-empty string`);
+  }
+  return new SameSpecContractRecord({
+    section: "clarifications",
+    locator: `clarifications[${index}]`,
+    content: `q: ${clarification.q.trim()}\na: ${clarification.a.trim()}`,
+    sourceCharacters: clarification.q.trim().length + clarification.a.trim().length,
+  });
+}
+
+function selectBoundedRecords(records, { maxItems, maxItemCharacters }) {
+  const withinItemLimit = [];
+  const omittedRecords = [];
+  for (const record of records) {
+    if (record.sourceCharacters > maxItemCharacters) omittedRecords.push(record);
+    else withinItemLimit.push(record);
+  }
+  return {
+    records: withinItemLimit.slice(0, maxItems),
+    omittedRecords: [...omittedRecords, ...withinItemLimit.slice(maxItems)],
+  };
+}
+
+function requirementIdIsReferenced(text, id) {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, (character) => `\\${character}`);
+  return new RegExp(`(^|[^A-Za-z0-9_])${escaped}(?=$|[^A-Za-z0-9_])`).test(text);
+}
+
+export class SameSpecContractContext {
+  constructor({ spec, currentRequirementIds }) {
+    if (!spec || typeof spec !== "object" || Array.isArray(spec)) {
+      throw new Error("structured spec must be an object");
+    }
+    if (!Array.isArray(spec.requirements)) throw new Error("spec requirements must be an array");
+    if (!spec.overview || typeof spec.overview !== "object" || Array.isArray(spec.overview)) {
+      throw new Error("spec overview must be an object");
+    }
+    if (!Array.isArray(spec.overview.decisions)) throw new Error("spec overview.decisions must be an array");
+    if (!Array.isArray(spec.clarifications)) throw new Error("spec clarifications must be an array");
+    if (!Array.isArray(currentRequirementIds) || currentRequirementIds.length === 0) {
+      throw new Error("currentRequirementIds must be a non-empty array");
+    }
+    const currentIds = new Set();
+    for (const id of currentRequirementIds) {
+      if (typeof id !== "string" || id.trim() === "") {
+        throw new Error("currentRequirementIds must contain non-empty strings");
+      }
+      const normalized = id.trim();
+      if (currentIds.has(normalized)) throw new Error(`duplicate current requirement id: ${normalized}`);
+      currentIds.add(normalized);
+    }
+
+    const requirementEntries = spec.requirements.map((requirement, index) => ({
+      requirement: normalizeRequirementPromptInput(requirement),
+      index,
+    }));
+    const knownIds = new Set();
+    for (const { requirement } of requirementEntries) {
+      if (knownIds.has(requirement.id)) throw new Error(`duplicate structured spec requirement id: ${requirement.id}`);
+      knownIds.add(requirement.id);
+    }
+    for (const id of currentIds) {
+      if (!knownIds.has(id)) throw new Error(`current requirement id not found in structured spec: ${id}`);
+    }
+
+    const currentEntries = requirementEntries.filter(({ requirement }) => currentIds.has(requirement.id));
+    const currentDescriptions = currentEntries.map(({ requirement }) => requirement.desc).join("\n");
+    const referencedEntries = requirementEntries.filter(({ requirement }) => (
+      !currentIds.has(requirement.id)
+      && requirementIdIsReferenced(currentDescriptions, requirement.id)
+    ));
+    const referencedIds = new Set(referencedEntries.map(({ requirement }) => requirement.id));
+    const remainingEntries = requirementEntries.filter(({ requirement }) => (
+      !currentIds.has(requirement.id) && !referencedIds.has(requirement.id)
+    ));
+
+    const currentRecords = currentEntries.map(({ requirement, index }) => (
+      sameSpecRequirementRecord(requirement, index, true)
+    ));
+    if (currentRecords.reduce((total, record) => total + record.sourceCharacters, 0)
+      >= MAX_SAME_SPEC_CONTRACT_CONTEXT_CHARS) {
+      throw new Error("current requirement full text exceeds the 48000-character same-spec contract context bound");
+    }
+    const summarySelection = selectBoundedRecords(
+      [...referencedEntries, ...remainingEntries].map(({ requirement, index }) => (
+        sameSpecRequirementRecord(requirement, index, false)
+      )),
+      {
+        maxItems: MAX_SAME_SPEC_REQUIREMENT_SUMMARIES,
+        maxItemCharacters: MAX_SAME_SPEC_REQUIREMENT_SUMMARY_CHARS,
+      },
+    );
+    const decisionSelection = selectBoundedRecords(
+      spec.overview.decisions.map(sameSpecDecisionRecord),
+      { maxItems: MAX_SAME_SPEC_DECISIONS, maxItemCharacters: MAX_SAME_SPEC_DECISION_CHARS },
+    );
+    const clarificationSelection = selectBoundedRecords(
+      spec.clarifications.map(sameSpecClarificationRecord),
+      { maxItems: MAX_SAME_SPEC_CLARIFICATIONS, maxItemCharacters: MAX_SAME_SPEC_CLARIFICATION_CHARS },
+    );
+
+    const selected = {
+      requirements: [...summarySelection.records],
+      "overview.decisions": [...decisionSelection.records],
+      clarifications: [...clarificationSelection.records],
+    };
+    const omitted = {
+      requirements: [...summarySelection.omittedRecords],
+      "overview.decisions": [...decisionSelection.omittedRecords],
+      clarifications: [...clarificationSelection.omittedRecords],
+    };
+    const buildSections = () => ({
+      requirements: new SameSpecContractSection({
+        name: "requirements",
+        records: [...currentRecords, ...selected.requirements],
+        omittedRecords: omitted.requirements,
+      }),
+      decisions: new SameSpecContractSection({
+        name: "overview.decisions",
+        records: selected["overview.decisions"],
+        omittedRecords: omitted["overview.decisions"],
+      }),
+      clarifications: new SameSpecContractSection({
+        name: "clarifications",
+        records: selected.clarifications,
+        omittedRecords: omitted.clarifications,
+      }),
+    });
+    const renderSections = (sections) => [
+      sections.requirements.toPromptText(),
+      sections.decisions.toPromptText(),
+      sections.clarifications.toPromptText(),
+    ].join("\n\n");
+
+    let sections = buildSections();
+    const removalOrder = ["clarifications", "overview.decisions", "requirements"];
+    while (renderSections(sections).length > MAX_SAME_SPEC_CONTRACT_CONTEXT_CHARS) {
+      const section = removalOrder.find((name) => selected[name].length > 0);
+      if (!section) {
+        throw new Error("current requirements and contract metadata exceed the 48000-character context bound");
+      }
+      omitted[section].push(selected[section].pop());
+      sections = buildSections();
+    }
+
+    this.requirements = sections.requirements;
+    this.decisions = sections.decisions;
+    this.clarifications = sections.clarifications;
+    this.serialized = renderSections(sections);
+    Object.freeze(this);
+  }
+
+  toPromptText() {
+    return this.serialized;
+  }
+}
+
 
 export class RequirementPromptExcerpt {
   constructor(requirement) {
@@ -2969,19 +3259,33 @@ function renderRequirementPromptSection(requirements) {
 }
 
 export class RequirementGateBatch {
-  constructor({ requirements, diff, maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS, usesFullSpec = false, fullSpecText = null }) {
+  constructor({
+    requirements,
+    diff,
+    maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS,
+    usesFullSpec = false,
+    fullSpecText = null,
+    structuredSpec = null,
+  }) {
     if (!Array.isArray(requirements) || requirements.length === 0) {
       throw new Error("requirements must be a non-empty array");
     }
     if (typeof diff !== "string") throw new Error("diff must be a string");
     if (!Number.isInteger(maxChars) || maxChars <= 0) throw new Error("maxChars must be a positive integer");
     if (fullSpecText !== null && typeof fullSpecText !== "string") throw new Error("fullSpecText must be a string or null");
+    if (structuredSpec !== null && (!structuredSpec || typeof structuredSpec !== "object" || Array.isArray(structuredSpec))) {
+      throw new Error("structuredSpec must be an object or null");
+    }
     this.requirements = Object.freeze(requirements.map(normalizeRequirementPromptInput));
     this.diff = diff;
     this.maxChars = maxChars;
     this.usesFullSpec = Boolean(usesFullSpec);
     this.fullSpecText = fullSpecText;
     this.requirementIds = Object.freeze(this.requirements.map((requirement) => requirement.id));
+    this.structuredSpec = structuredSpec;
+    this.sameSpecContractContext = structuredSpec === null
+      ? null
+      : new SameSpecContractContext({ spec: structuredSpec, currentRequirementIds: this.requirementIds });
     this.category = "requirements";
     this.requirementPromptText = this.usesFullSpec ? this.fullSpecText : renderRequirementPromptSection(this.requirements);
     if (this.requirementPromptText.length + this.diff.length > MAX_AGENT_PROMPT_INPUT_CHARS) {
@@ -3004,6 +3308,7 @@ export class RequirementGateBatch {
       requirements: [...this.requirements, normalizeRequirementPromptInput(requirement)],
       diff: this.diff,
       maxChars: this.maxChars,
+      structuredSpec: this.structuredSpec,
     });
   }
 
@@ -3012,6 +3317,7 @@ export class RequirementGateBatch {
       requirements: this.usesFullSpec ? this.fullSpecText : this.requirements,
       diff: this.diff,
       knownIds: this.requirementIds,
+      sameSpecContractContext: this.sameSpecContractContext,
     });
   }
 }
@@ -3064,7 +3370,12 @@ function requirementEvaluation(reqId, result, reason) {
   };
 }
 
-export function buildRequirementGateBatches({ requirements, relatedDiffs, maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS }) {
+export function buildRequirementGateBatches({
+  requirements,
+  relatedDiffs,
+  maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS,
+  structuredSpec = null,
+}) {
   if (!Array.isArray(requirements)) throw new Error("requirements must be an array");
   if (!(relatedDiffs instanceof Map)) throw new Error("relatedDiffs must be a Map");
   const groups = new Map();
@@ -3080,7 +3391,7 @@ export function buildRequirementGateBatches({ requirements, relatedDiffs, maxCha
     let current = null;
     for (const requirement of group) {
       if (!current) {
-        current = new RequirementGateBatch({ requirements: [requirement], diff, maxChars });
+        current = new RequirementGateBatch({ requirements: [requirement], diff, maxChars, structuredSpec });
         continue;
       }
       if (current.fitsWith(requirement)) {
@@ -3088,7 +3399,7 @@ export function buildRequirementGateBatches({ requirements, relatedDiffs, maxCha
         continue;
       }
       batches.push(current);
-      current = new RequirementGateBatch({ requirements: [requirement], diff, maxChars });
+      current = new RequirementGateBatch({ requirements: [requirement], diff, maxChars, structuredSpec });
     }
     if (current) batches.push(current);
   }
@@ -3103,6 +3414,7 @@ export function planRequirementGateCalls({
   fullDiff = "",
   phase = "task-impl",
   maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS,
+  structuredSpec = null,
 }) {
   const requirementExcerpts = requirements.map(normalizeRequirementPromptInput);
   if (relatedDiffs == null) {
@@ -3119,6 +3431,9 @@ export function planRequirementGateCalls({
     });
   }
   if (!(relatedDiffs instanceof Map)) throw new Error("relatedDiffs must be a Map or null");
+  if (phase === "integration" && (!structuredSpec || typeof structuredSpec !== "object" || Array.isArray(structuredSpec))) {
+    throw new Error("structured spec is required for same-spec contract context in the integration gate");
+  }
   const previousSet = previouslyPassed instanceof Set ? previouslyPassed : new Set(previouslyPassed || []);
   const callRequirements = [];
   const evaluations = [];
@@ -3135,7 +3450,12 @@ export function planRequirementGateCalls({
     callRequirements.push(requirement);
   }
   return new RequirementGatePlan({
-    calls: buildRequirementGateBatches({ requirements: callRequirements, relatedDiffs, maxChars }),
+    calls: buildRequirementGateBatches({
+      requirements: callRequirements,
+      relatedDiffs,
+      maxChars,
+      structuredSpec: phase === "integration" ? structuredSpec : null,
+    }),
     evaluations,
   });
 }
@@ -3147,6 +3467,10 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
   const requirements = options.requirements;
   const diff = options.diff || "";
   const knownIds = options.knownIds || [];
+  const sameSpecContractContext = options.sameSpecContractContext || null;
+  if (sameSpecContractContext !== null && !(sameSpecContractContext instanceof SameSpecContractContext)) {
+    throw new Error("sameSpecContractContext must be a SameSpecContractContext or null");
+  }
   const pb = new PromptBuilder();
   pb.setRole("You are an implementation compliance checker.\nCheck whether each spec requirement has been implemented in the diff.");
 
@@ -3154,6 +3478,10 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
     "- guardrail_id MUST be one of the requirement ids listed below.",
     "- result MUST be one of the lowercase strings: pass, fail, skip.",
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
+    ...(sameSpecContractContext ? [
+      "- Assess preservation against the explicit same-spec current contract, not legacy behavior that it replaces, retires, or invalidates.",
+      "- Explicit same-spec replacement, retirement, or invalidation statements override legacy preservation obligations; otherwise preserve existing behavior.",
+    ] : []),
   ].join("\n");
   pb.setRules(rules);
   pb.setJsonSchema(exactIdSchema(
@@ -3169,6 +3497,9 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
     pb.addUserPrompt("## Requirements", renderRequirementPromptSection(requirements));
   } else {
     pb.addUserPrompt("## Spec", requirements || "");
+  }
+  if (sameSpecContractContext) {
+    pb.addUserPrompt("## Same-Spec Contract Context", sameSpecContractContext.toPromptText());
   }
   pb.addUserPrompt("## Git Diff", diff);
 
@@ -3896,6 +4227,7 @@ export class RunGateCommand extends FlowCommand {
       fullDiff: diff,
       phase,
       maxChars: MAX_IMPL_REQUIREMENT_BATCH_CHARS,
+      structuredSpec: phase === "integration" ? parentSpecForRationale : null,
     });
     reqEvaluations = [...requirementPlan.evaluations];
     for (const batch of requirementPlan.calls) {

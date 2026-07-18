@@ -1,0 +1,742 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Rebase onto current main conflicted in the generated analysis artifact",
+      "trigger": "Issue 439 checkpoint commit replayed over the newer main analysis snapshot",
+      "resolution": "Kept the current main analysis content and continued the rebase with Issue 439 flow artifacts intact",
+      "guardrailCandidate": "Checkpoint flow artifacts before upstream integration and resolve only target-flow conflicts",
+      "taskId": null,
+      "timestamp": "2026-07-18T08:44:50.640Z",
+      "issueLogId": "issue-log-98f4815f-7387-4060-9f18-ad01e4414a65"
+    },
+    {
+      "step": "draft",
+      "reason": "The inherited worktree flow had no authoritative run identity binding",
+      "trigger": "Target-aware status rejected the requested run with RUN_ID_NOT_FOUND after rebase",
+      "resolution": "Created the exact Issue 439 identity once through WorktreeFlowBindingStore.save and verified it against flow state",
+      "guardrailCandidate": "Worktree preparation must publish and retain an authoritative identity binding before dispatcher continuation",
+      "taskId": null,
+      "timestamp": "2026-07-18T08:44:56.257Z",
+      "issueLogId": "issue-log-09ff74fe-052e-4f8f-8f35-1ee78d445961"
+    },
+    {
+      "step": "draft",
+      "reason": "The inherited flow state predated the mandatory report lifecycle step",
+      "trigger": "Current branch-local status rejected impl children with FLOW_STATE_SCHEMA_UNSUPPORTED",
+      "resolution": "Inserted one pending report step through FlowStore.mutate with stepIdMigration and captured before and after hashes",
+      "guardrailCandidate": "State schema evolution needs an official audited migration path before active-flow continuation",
+      "taskId": null,
+      "timestamp": "2026-07-18T08:45:02.750Z",
+      "issueLogId": "issue-log-3536d1bc-d883-4989-9963-6f80a9a037d2"
+    },
+    {
+      "step": "draft",
+      "reason": "Read-only issue and guardrail commands rejected dispatcher target guard flags",
+      "trigger": "flow get issue and flow get guardrail returned ARGS_ERROR for expect-run-id",
+      "resolution": "Retried only those explicit read-only targets with their documented syntax while retaining guards on dispatcher and mutating commands",
+      "guardrailCandidate": "Document target-guard support per flow subcommand and keep explicit identifiers on unguarded read-only commands",
+      "taskId": null,
+      "timestamp": "2026-07-18T08:48:59.958Z",
+      "issueLogId": "issue-log-708350b1-7771-452c-8498-fe7dcc23dbf2"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate passed but emitted preset resolution and metric accumulation warnings",
+      "trigger": "Branch-local gate reported missing node-cli preset and invalid active-flow metric authority",
+      "resolution": "Preserved the PASS outcome and recorded the warnings without changing Issue 439 scope or bypassing validation",
+      "guardrailCandidate": "Flow commands should surface non-fatal plugin and metrics degradation as structured artifacts with stable ownership",
+      "taskId": null,
+      "timestamp": "2026-07-18T08:52:45.949Z",
+      "issueLogId": "issue-log-9522a0e3-2a41-4516-839e-95a966d8fd68"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requirement uses the vague adjective \"stable\" in \"stable JSON source references\" without stating verifiable conditions for what makes a source reference stable.; Requirement says batches shall include \"stable JSON source references\" but does not specify the source reference format or stability criteria, so reviewers may disagree on satisfaction.; Acceptance criterion uses the vague adjective \"stable\" in \"stable source references\" without stating verifiable conditions for what makes a source reference stable.; Acceptance criterion requires \"stable source references\" but does not specify the exact reference format or stability criteria, so reviewers may disagree on satisfaction.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-18T09:00:01.593Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Requirement uses the vague adjective \"stable\" in \"stable JSON source references\" without stating verifiable conditions for what makes a source reference stable.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Requirement says batches shall include \"stable JSON source references\" but does not specify the source reference format or stability criteria, so reviewers may disagree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[0]"
+          },
+          "observed": "Acceptance criterion uses the vague adjective \"stable\" in \"stable source references\" without stating verifiable conditions for what makes a source reference stable.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[0]"
+          },
+          "observed": "Acceptance criterion requires \"stable source references\" but does not specify the exact reference format or stability criteria, so reviewers may disagree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement uses the vague adjective \"stable\" in \"stable JSON source references\" without stating verifiable conditions for what makes a source reference stable."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement says batches shall include \"stable JSON source references\" but does not specify the source reference format or stability criteria, so reviewers may disagree on satisfaction."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Acceptance criterion uses the vague adjective \"stable\" in \"stable source references\" without stating verifiable conditions for what makes a source reference stable."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Acceptance criterion requires \"stable source references\" but does not specify the exact reference format or stability criteria, so reviewers may disagree on satisfaction."
+        }
+      ],
+      "issueLogId": "issue-log-ea85a1ca-7ea5-4c49-a841-25a6780b6eeb"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found undefined stability criteria for source reference wording",
+      "trigger": "Attempt one failed unambiguous-requirements and complete-context on R1 and AC1",
+      "resolution": "Replaced every stable-reference phrase with exact zero-based input locator formats across the spec",
+      "guardrailCandidate": "Source-reference requirements must define exact locator syntax and index authority rather than use qualitative stability terms",
+      "taskId": null,
+      "timestamp": "2026-07-18T09:00:37.197Z",
+      "issueLogId": "issue-log-2e5a57f5-5c38-4f78-b326-05e3b34d4bfd"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The requirement uses the vague qualifier \"legitimate\" in \"only legitimate prompt/cache input bytes may change\" without stating verifiable conditions for which prompt/cache byte changes are allowed.; Two independent reviewers may not agree whether a prompt/cache byte change is \"legitimate\" because the requirement does not define measurable acceptance conditions for that term.; The acceptance criterion uses the vague phrase \"Focused regression\" without specifying the exact regression scope or required test evidence.; The acceptance criterion uses the vague qualifier \"representative\" in \"representative non-impl gate prompt snapshots\" without identifying which non-impl gates must be covered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-18T09:01:07.031Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "The requirement uses the vague qualifier \"legitimate\" in \"only legitimate prompt/cache input bytes may change\" without stating verifiable conditions for which prompt/cache byte changes are allowed.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "Two independent reviewers may not agree whether a prompt/cache byte change is \"legitimate\" because the requirement does not define measurable acceptance conditions for that term.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[6]"
+          },
+          "observed": "The acceptance criterion uses the vague phrase \"Focused regression\" without specifying the exact regression scope or required test evidence.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[7]"
+          },
+          "observed": "The acceptance criterion uses the vague qualifier \"representative\" in \"representative non-impl gate prompt snapshots\" without identifying which non-impl gates must be covered.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague qualifier \"legitimate\" in \"only legitimate prompt/cache input bytes may change\" without stating verifiable conditions for which prompt/cache byte changes are allowed."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Two independent reviewers may not agree whether a prompt/cache byte change is \"legitimate\" because the requirement does not define measurable acceptance conditions for that term."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The acceptance criterion uses the vague phrase \"Focused regression\" without specifying the exact regression scope or required test evidence."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The acceptance criterion uses the vague qualifier \"representative\" in \"representative non-impl gate prompt snapshots\" without identifying which non-impl gates must be covered."
+        }
+      ],
+      "issueLogId": "issue-log-c97ffc98-3bfc-4378-b0c2-0f75113e3ba2"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found undefined change allowance and regression scope terms",
+      "trigger": "Attempt two rejected legitimate, focused, and representative wording in R6 and AC7-AC8",
+      "resolution": "Limited byte changes to named prompt sections and named exact test files and gate prompt categories",
+      "guardrailCandidate": "Non-regression requirements must identify exact mutable regions, test owners, and covered command categories",
+      "taskId": null,
+      "timestamp": "2026-07-18T09:01:50.357Z",
+      "issueLogId": "issue-log-a931a640-add2-4953-9cd9-8fdf6c5e3e37"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/321-same-spec-contract-context/acceptance-review.json",
+          "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-coverage-repair.json",
+          "fingerprint": "e321149804da74f89a0e8782a682c952db73319dd710df3de5fee607a3dce2b8"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-coverage-triage.json",
+          "fingerprint": "c2dc3a3db63150a56d8eb676ac3d09e10bd1fa0ac3ef14d6fff9dbd735dbc04e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-questions-repair.json",
+          "fingerprint": "9f6befca4ebe5032b16729b7681036f86ba17753fc0d12fe7970243276aaf47b"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-questions-triage.json",
+          "fingerprint": "335862fed3fb286c20ec7dbc619bbc80762d78e1463dcd335f9d32a2c8ddfe87"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-review-coverage.json",
+          "fingerprint": "7faf22b712ae042097fff5b5d9a35899cfdfea1440c06d21ad808e192c5fdf3b"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-review-questions.json",
+          "fingerprint": "b84e5e06ee6b50c6dda789ff11e874c17cff7189a7bb880aa879f884dec3927e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft.json",
+          "fingerprint": "df0416f55c10dde66fb07ae483cf5e636a9f67ff70c44749aa454d10521b3aba"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft.json",
+          "fingerprint": "df0416f55c10dde66fb07ae483cf5e636a9f67ff70c44749aa454d10521b3aba"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/file-map.json",
+          "fingerprint": "231a8e4c2af820daca782ded84d26fd59892a1d416e5259beec037c7921f32fe"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/impl-gate-result.json",
+          "fingerprint": "3a3fcdd3892d261fee20adc7c24c92354df981bba4898453cd83f7696ba3a566"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/impl-review.json",
+          "fingerprint": "dab0d3217d99fd4bada89ece29c3db90c165ae9787c80bf76c709638d001e8c9"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/issue.md",
+          "fingerprint": "fe7357d87a6ec83767e2f02202cbcc20a6975476db96fc7ac9c287975e247b37"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "ae60301abbf9ff9fe1c2c99ed51469a8598fdf07ff46fdcc74a6554000f4838b"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/retro.json",
+          "fingerprint": "988d5f65a0883c260c72f269b42c8104f334dbc806b33f4396eb3d6270b5ce8d"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "a9c27264614d79d0706e63f875cd7563d1b0c1192cebc1b35753589457febdf1"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "6d0b4ed59454a3475b7a339029c3652494cbb7c51172af59858076a7af560b7f"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-001.json",
+          "fingerprint": "89a0f2d55d399f1d74a025b54c553cd514fdc47ba15fd21c8696864a1a53a4d6"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-001.md",
+          "fingerprint": "2cbde0ae455183eab06b4dd6791973cedeb0170f3319825af7f02b64b7c9cb21"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-002.json",
+          "fingerprint": "68ff3bfc8cbda0a50898671e02f1bac36c9819d6ddc561579d2bb5f1b4047b3e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-002.md",
+          "fingerprint": "deb0efb4166a0177a8cad4d92105a70ad84be17fa0416e36bea57768a12fbb35"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-003.json",
+          "fingerprint": "4c72046a4f158166639844651544bed60af9817557dd1cab7afc957fdb269679"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-003.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/spec-attempt-001.json",
+          "fingerprint": "95f5756943977fa023176c4398a89f399777ea62bf83453b22651050081eb1b3"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-001.json",
+          "fingerprint": "8fab1f400de72b0d106e481778c49027f4a736a2358329d987d1bd7b3e6e3658"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-001.md",
+          "fingerprint": "7533abfd59ecc801925d02f30ff7052d3ffcafb4babd081f6b44ec8617224002"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-002.json",
+          "fingerprint": "1709cb57311c46b36fb57362d403bc07ead0e5e32657080f6a45dfbd8e2dcd20"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-002.md",
+          "fingerprint": "bbdabbe2f3a25d036917494ddf32f4890b50e4a28a120589c9724ae474225afa"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-003.json",
+          "fingerprint": "2884da10c436d88d358ce830c41601947924393a049a9a5b800c986691fb72ea"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-003.md",
+          "fingerprint": "c42b845a4fcf6a830395ace7ca873110e88ffcd1eb2a49c298d8bd567faf6aaf"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-004.json",
+          "fingerprint": "1a1b5d9056fe5a568adbe441a9ba3b20d2d09dc0b551a787f76c13130de4ad60"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-004.md",
+          "fingerprint": "bc57546bdd9990000387d8f05a36177c08f8cfb40c4b63766c29f93025fae469"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/scenario-validity-result.json",
+          "fingerprint": "8bfc696ae2bb14c4fed2218f54941c7306e90d2fe9a0ce3f11d50cce6739a730"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec-gate-source.json",
+          "fingerprint": "c2b0455eda916b483d29eccecc48b0a03eaee49a59e87eadbec19b986890de1b"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec-review.json",
+          "fingerprint": "5ec746a11a79a0d9bde7b6427c236233c6adeb61ee51c5e085909fbac26fc440"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec.json",
+          "fingerprint": "e31e8371e4e9cf49a891b6903dcd3b1c798bba3970ac0112a65ffc116aed8b84"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec.json",
+          "fingerprint": "e31e8371e4e9cf49a891b6903dcd3b1c798bba3970ac0112a65ffc116aed8b84"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec.md",
+          "fingerprint": "8958e23b27d7986e8ce440a00dd406595d33909e47e1646bf4a9ceda48534d08"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/tasks/T-1.md",
+          "fingerprint": "8a46dc5a2f6ed2b8a0de87f324cb090b16ce7abfe7c7cb4d6e017ba5a1230bc8"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-coverage.json",
+          "fingerprint": "3344acde0e2bd41e447e7f1b3c3ffdadb791a30d97c267a954d78b55db050fc8"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-execute-result.json",
+          "fingerprint": "21be25b315b35f2948baeb5dd48cd1dc8e0f94141f07b0959c54c330b2f75dea"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-result-review.json",
+          "fingerprint": "e21ea2176d7879d513d91658026838f7cc2312d4b77f1ca5db0c413d91c092dd"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-result-review.md",
+          "fingerprint": "cc0bd482f725d193c9acbaade3dae880da10b6470cd3af18bd752fffcba3064c"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-review.json",
+          "fingerprint": "d25f442f787c23818a2738a7e7acfd875606ab940ecd680c4cdb2f21adaa469d"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-review.md",
+          "fingerprint": "bc57546bdd9990000387d8f05a36177c08f8cfb40c4b63766c29f93025fae469"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/tests/.raw/scenario-validity.log",
+          "fingerprint": "380b4ebcc4c28dd2b4d4568192cc93e0ce8b6d882a280c1d829aa8891d8ac9d4"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/tests/.raw/test-execution.log",
+          "fingerprint": "04340bd83e03d350a250236f4d37087588145e7de1579de22e55390acc6fb9c6"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/tests/same-spec-contract-context.test.js",
+          "fingerprint": "251d4a7b4782f1ef7dbb396c3abbf8b7c5ecb341cc5aa5a4c53f8974f2ab0df8"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "606f97f5d8586583d6bfa08c7fc7dc578a621f7bea3f9f1ea098b520b3461294"
+        },
+        {
+          "path": "tests/e2e/flow/gate-impl-integration.test.js",
+          "fingerprint": "ab9961a5ee80e5e7dde69d709d273e328ad6ed64f777752cf660494c3d928f2e"
+        },
+        {
+          "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+          "fingerprint": "6f70d183c9f6b6df7a0d4a8ef57bd62d3e64cb2fe257112eab9c2df5013139f5"
+        }
+      ],
+      "rawOutputPath": "specs/321-same-spec-contract-context/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-18T09:42:50.740Z",
+      "issueLogId": "issue-log-37beed23-114d-454b-8220-b13189855a9b"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/321-same-spec-contract-context/acceptance-review.json",
+          "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-coverage-repair.json",
+          "fingerprint": "e321149804da74f89a0e8782a682c952db73319dd710df3de5fee607a3dce2b8"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-coverage-triage.json",
+          "fingerprint": "c2dc3a3db63150a56d8eb676ac3d09e10bd1fa0ac3ef14d6fff9dbd735dbc04e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-questions-repair.json",
+          "fingerprint": "9f6befca4ebe5032b16729b7681036f86ba17753fc0d12fe7970243276aaf47b"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-questions-triage.json",
+          "fingerprint": "335862fed3fb286c20ec7dbc619bbc80762d78e1463dcd335f9d32a2c8ddfe87"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-review-coverage.json",
+          "fingerprint": "7faf22b712ae042097fff5b5d9a35899cfdfea1440c06d21ad808e192c5fdf3b"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft-review-questions.json",
+          "fingerprint": "b84e5e06ee6b50c6dda789ff11e874c17cff7189a7bb880aa879f884dec3927e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft.json",
+          "fingerprint": "df0416f55c10dde66fb07ae483cf5e636a9f67ff70c44749aa454d10521b3aba"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/draft.json",
+          "fingerprint": "df0416f55c10dde66fb07ae483cf5e636a9f67ff70c44749aa454d10521b3aba"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/file-map.json",
+          "fingerprint": "231a8e4c2af820daca782ded84d26fd59892a1d416e5259beec037c7921f32fe"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/impl-gate-result.json",
+          "fingerprint": "3a3fcdd3892d261fee20adc7c24c92354df981bba4898453cd83f7696ba3a566"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/impl-review.json",
+          "fingerprint": "dab0d3217d99fd4bada89ece29c3db90c165ae9787c80bf76c709638d001e8c9"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/issue.md",
+          "fingerprint": "fe7357d87a6ec83767e2f02202cbcc20a6975476db96fc7ac9c287975e247b37"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "ae60301abbf9ff9fe1c2c99ed51469a8598fdf07ff46fdcc74a6554000f4838b"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/retro.json",
+          "fingerprint": "988d5f65a0883c260c72f269b42c8104f334dbc806b33f4396eb3d6270b5ce8d"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "a9c27264614d79d0706e63f875cd7563d1b0c1192cebc1b35753589457febdf1"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "6d0b4ed59454a3475b7a339029c3652494cbb7c51172af59858076a7af560b7f"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-001.json",
+          "fingerprint": "89a0f2d55d399f1d74a025b54c553cd514fdc47ba15fd21c8696864a1a53a4d6"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-001.md",
+          "fingerprint": "2cbde0ae455183eab06b4dd6791973cedeb0170f3319825af7f02b64b7c9cb21"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-002.json",
+          "fingerprint": "68ff3bfc8cbda0a50898671e02f1bac36c9819d6ddc561579d2bb5f1b4047b3e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-002.md",
+          "fingerprint": "deb0efb4166a0177a8cad4d92105a70ad84be17fa0416e36bea57768a12fbb35"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-003.json",
+          "fingerprint": "4c72046a4f158166639844651544bed60af9817557dd1cab7afc957fdb269679"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/impl-attempt-003.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/spec-attempt-001.json",
+          "fingerprint": "95f5756943977fa023176c4398a89f399777ea62bf83453b22651050081eb1b3"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-001.json",
+          "fingerprint": "8fab1f400de72b0d106e481778c49027f4a736a2358329d987d1bd7b3e6e3658"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-001.md",
+          "fingerprint": "7533abfd59ecc801925d02f30ff7052d3ffcafb4babd081f6b44ec8617224002"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-002.json",
+          "fingerprint": "1709cb57311c46b36fb57362d403bc07ead0e5e32657080f6a45dfbd8e2dcd20"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-002.md",
+          "fingerprint": "bbdabbe2f3a25d036917494ddf32f4890b50e4a28a120589c9724ae474225afa"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-003.json",
+          "fingerprint": "2884da10c436d88d358ce830c41601947924393a049a9a5b800c986691fb72ea"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-003.md",
+          "fingerprint": "c42b845a4fcf6a830395ace7ca873110e88ffcd1eb2a49c298d8bd567faf6aaf"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-004.json",
+          "fingerprint": "1a1b5d9056fe5a568adbe441a9ba3b20d2d09dc0b551a787f76c13130de4ad60"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review-history/test-attempt-004.md",
+          "fingerprint": "bc57546bdd9990000387d8f05a36177c08f8cfb40c4b63766c29f93025fae469"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/scenario-validity-result.json",
+          "fingerprint": "8bfc696ae2bb14c4fed2218f54941c7306e90d2fe9a0ce3f11d50cce6739a730"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec-gate-source.json",
+          "fingerprint": "c2b0455eda916b483d29eccecc48b0a03eaee49a59e87eadbec19b986890de1b"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec-review.json",
+          "fingerprint": "5ec746a11a79a0d9bde7b6427c236233c6adeb61ee51c5e085909fbac26fc440"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec.json",
+          "fingerprint": "e31e8371e4e9cf49a891b6903dcd3b1c798bba3970ac0112a65ffc116aed8b84"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec.json",
+          "fingerprint": "e31e8371e4e9cf49a891b6903dcd3b1c798bba3970ac0112a65ffc116aed8b84"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/spec.md",
+          "fingerprint": "8958e23b27d7986e8ce440a00dd406595d33909e47e1646bf4a9ceda48534d08"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/tasks/T-1.md",
+          "fingerprint": "8a46dc5a2f6ed2b8a0de87f324cb090b16ce7abfe7c7cb4d6e017ba5a1230bc8"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-coverage.json",
+          "fingerprint": "3344acde0e2bd41e447e7f1b3c3ffdadb791a30d97c267a954d78b55db050fc8"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-execute-result.json",
+          "fingerprint": "21be25b315b35f2948baeb5dd48cd1dc8e0f94141f07b0959c54c330b2f75dea"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-result-review.json",
+          "fingerprint": "e21ea2176d7879d513d91658026838f7cc2312d4b77f1ca5db0c413d91c092dd"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-result-review.md",
+          "fingerprint": "cc0bd482f725d193c9acbaade3dae880da10b6470cd3af18bd752fffcba3064c"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-review.json",
+          "fingerprint": "d25f442f787c23818a2738a7e7acfd875606ab940ecd680c4cdb2f21adaa469d"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/test-review.md",
+          "fingerprint": "bc57546bdd9990000387d8f05a36177c08f8cfb40c4b63766c29f93025fae469"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/tests/.raw/scenario-validity.log",
+          "fingerprint": "380b4ebcc4c28dd2b4d4568192cc93e0ce8b6d882a280c1d829aa8891d8ac9d4"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/tests/.raw/test-execution.log",
+          "fingerprint": "04340bd83e03d350a250236f4d37087588145e7de1579de22e55390acc6fb9c6"
+        },
+        {
+          "path": "specs/321-same-spec-contract-context/tests/same-spec-contract-context.test.js",
+          "fingerprint": "7bf533bc4ae363bafccdc0dfa9f44ee36d77e0218e359d1617f1789a590853d3"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "606f97f5d8586583d6bfa08c7fc7dc578a621f7bea3f9f1ea098b520b3461294"
+        },
+        {
+          "path": "tests/e2e/flow/gate-impl-integration.test.js",
+          "fingerprint": "c4bd181515920628bb236ad0d11b3a00bc554d35e722f3546e5c64052442c034"
+        },
+        {
+          "path": "tests/helpers/integration-gate-artifacts.js",
+          "fingerprint": "21e088fa0a15476cbb84b62313d4c056a82342efa5ed0c77287bd0e290c870ad"
+        },
+        {
+          "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+          "fingerprint": "6f70d183c9f6b6df7a0d4a8ef57bd62d3e64cb2fe257112eab9c2df5013139f5"
+        }
+      ],
+      "rawOutputPath": "specs/321-same-spec-contract-context/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "record-and-proceed",
+      "timestamp": "2026-07-18T10:07:57.585Z",
+      "issueLogId": "issue-log-8a711b87-8ada-4381-ab13-2667e2a9fc65"
+    }
+  ]
+}

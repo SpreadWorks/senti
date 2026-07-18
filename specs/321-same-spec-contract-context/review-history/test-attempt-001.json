@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-18T09:10:44.254Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/321-same-spec-contract-context/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 negative/positive preservation behavior is not exercised",
+      "target": "specs/321-same-spec-contract-context/tests/same-spec-contract-context.test.js: R5 test",
+      "issue": "The test feeds pre-decided PASS/FAIL JSON into parseImplRequirementEvaluation, so it only proves the parser preserves a supplied result. An implementation could omit the required enum/current-contract preservation guidance or fail to assess the #437 R6-equivalent replacement case and this parser-only assertion would still pass if the hardcoded JSON says pass/fail.",
+      "requiredChange": "Replace or add spec-local coverage that exercises the actual impl-gate prompt/guidance path for the #437 R6-equivalent replacement case and for violations of the required enum contract and current-contract non-interception behavior, rather than asserting parser behavior on hardcoded outcomes.",
+      "whyBlocking": "R5 requires the guidance/evaluation behavior to PASS and FAIL specific preservation cases; the current test has a static anti-pattern that would pass without exercising that production behavior.",
+      "origin": "R5",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 claims broad lifecycle retention coverage but tests only prompt/grouping surface",
+      "target": "specs/321-same-spec-contract-context/tests/same-spec-contract-context.test.js: R6 test and coverage artifact",
+      "issue": "R6 includes retention of parser/tooling-failure boundary, cache identity algorithm, semantic counters, retry policy, artifacts, previously-passed handling, and task/integration routing. The test only checks one shared batch, schema/fallback equality, and prompt byte differences. The coverage artifact marks R6 covered despite these acceptance surfaces having no corresponding spec-local assertions.",
+      "requiredChange": "Add focused spec-local assertions or fixtures covering the missing R6 surfaces, or narrow the coverage artifact so it does not claim R6 is covered until those behaviors are tested.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage, and the requirement coverage artifact contradicts the actual test file by marking the full R6 requirement covered.",
+      "origin": "R6",
+      "failureKind": "missing coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 external dependency and fallback prohibitions are untested",
+      "target": "specs/321-same-spec-contract-context/tests/same-spec-contract-context.test.js: R7 test and coverage artifact",
+      "issue": "R7 requires no external dependency and no legacy compatibility fallback, plus dedicated classes in generic src code. The test only checks that a class export exists and task-impl/context-free prompt behavior is unchanged. It would not catch adding a dependency or adding legacy fallback logic.",
+      "requiredChange": "Add spec-local static/runtime assertions for the dependency and legacy-fallback prohibitions, and verify the bounded context invariants are represented by dedicated generic src classes rather than only checking one exported function exists.",
+      "whyBlocking": "The coverage artifact marks R7 covered, but concrete acceptance requirements have no corresponding spec-local test coverage.",
+      "origin": "R7",
+      "failureKind": "missing coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R3 truncation record precision could be stronger",
+      "target": "specs/321-same-spec-contract-context/tests/same-spec-contract-context.test.js: R3 test",
+      "improvement": "Assert exact fixed truncation record formatting and exact original character counts for at least one section instead of matching only /\\d+/.",
+      "whyNonBlocking": "The existing test does exercise item/count/total bounds and whole-item omission; exact count assertions would improve confidence but are not necessary to establish baseline coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/321-same-spec-contract-context/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "7b5f2abfb4b3062b6677d6e9543299f7911cdd5bb5be7e824220b9fd137e9d91"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R5 negative/positive preservation behavior is not exercised",
+      "body": "The test feeds pre-decided PASS/FAIL JSON into parseImplRequirementEvaluation, so it only proves the parser preserves a supplied result. An implementation could omit the required enum/current-contract preservation guidance or fail to assess the #437 R6-equivalent replacement case and this parser-only assertion would still pass if the hardcoded JSON says pass/fail.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R6 claims broad lifecycle retention coverage but tests only prompt/grouping surface",
+      "body": "R6 includes retention of parser/tooling-failure boundary, cache identity algorithm, semantic counters, retry policy, artifacts, previously-passed handling, and task/integration routing. The test only checks one shared batch, schema/fallback equality, and prompt byte differences. The coverage artifact marks R6 covered despite these acceptance surfaces having no corresponding spec-local assertions.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R7 external dependency and fallback prohibitions are untested",
+      "body": "R7 requires no external dependency and no legacy compatibility fallback, plus dedicated classes in generic src code. The test only checks that a class export exists and task-impl/context-free prompt behavior is unchanged. It would not catch adding a dependency or adding legacy fallback logic.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R3 truncation record precision could be stronger",
+      "body": "R3 truncation record precision could be stronger",
+      "category": "unknown"
+    }
+  ]
+}

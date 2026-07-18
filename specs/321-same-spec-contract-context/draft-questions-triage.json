@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "q1 の instruction prefix 除去を repair step で適用する。",
+  "items": [
+    {
+      "title": "1. Remove Instruction Prefix",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "質問本文は質問だけを含む必要があり、先頭の priority marker は question review の structural contract に反する。",
+      "evidence": "draft.json qa[0].question は `must:` で始まり、draft-review-questions.json が同じ q1 を repair target としている。"
+    }
+  ]
+}
