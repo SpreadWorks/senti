@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-18T08:17:51.432Z",
+  "analyzedAt": "2026-07-18T10:21:27.391Z",
   "package": {
     "entries": [
       {
@@ -5982,9 +5982,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "4f3531b58d59f5a942c2275630620433",
-        "lines": 4134,
-        "mtime": "2026-07-18T08:17:24.612Z",
+        "hash": "a0486fa3df8c22b206ff44ba1a2763ab",
+        "lines": 4466,
+        "mtime": "2026-07-18T10:20:50.781Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -6021,6 +6021,9 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
+          "SameSpecContractRecord",
+          "SameSpecContractSection",
+          "SameSpecContractContext",
           "RequirementPromptExcerpt",
           "RequirementGateBatch",
           "buildRequirementGateBatches",
@@ -6105,6 +6108,11 @@
           "normalizeObservationFailurePairs",
           "observationsFromGateEvaluations",
           "priorGateImplObservations",
+          "sameSpecRequirementRecord",
+          "sameSpecDecisionRecord",
+          "sameSpecClarificationRecord",
+          "selectBoundedRecords",
+          "requirementIdIsReferenced",
           "normalizeRequirementPromptInput",
           "renderRequirementPromptSection",
           "summarizeDiffForPrompt",
@@ -6188,6 +6196,9 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
+          "SameSpecContractRecord",
+          "SameSpecContractSection",
+          "SameSpecContractContext",
           "RequirementPromptExcerpt",
           "RequirementGateBatch",
           "buildRequirementGateBatches",
@@ -6227,23 +6238,23 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the gate engine for specs, drafts, task implementation, and integration phases. It combines diff collection, guardrail prompting, strict response parsing, retry handling, and artifact persistence in one orchestrator.",
-        "detail": "The module validates spec and draft artifacts, collects committed and untracked diffs within size limits, and builds bounded prompts for guardrail and per-requirement evaluation. It parses AI output against explicit JSON contracts, raising protocol errors when keys, IDs, or result values do not match the expected schema. Retry bookkeeping, no-progress detection, flip overrides, deferral logic, and gate memory artifacts allow repeated failures to be handled deterministically instead of ad hoc. `RunGateCommand` dispatches phase-specific execution paths and persists issue-log and result artifacts so later flow steps can inspect a stable gate history.",
-        "chapter": "development",
-        "role": "controller",
+        "summary": "Implements the flow gate pipeline that decides whether spec, draft, task implementation, and integration phases can advance. It combines command execution with guardrail evaluation, artifact generation, and retry control.",
+        "detail": "The module gathers gate inputs from specs, drafts, file maps, git diffs, and generated artifacts, then builds phase-specific prompts and validation payloads for rule-based and AI-assisted checks. It enforces strict schemas for evaluation responses, normalizes observations and guardrail results, and turns them into persistent gate reports, issue-log entries, and next-action contracts. Retry behavior is tracked per phase with budgets, recovery baselines, repeated-failure detection, and defer or external-block outcomes when progress is not possible. The command class also coordinates phase inference, side effects, same-spec context reuse, and implementation memory so later gate attempts can use prior evidence and passed checks.",
+        "chapter": "internal_design",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.571Z",
+          "processedAt": "2026-07-18T10:22:04.052Z",
           "attempts": 1
         },
         "keywords": [
-          "gate evaluation",
-          "guardrail validation",
-          "diff-based review",
-          "retry policy",
-          "AI response parsing",
+          "flow gate",
+          "guardrail evaluation",
           "spec validation",
-          "integration gate",
-          "issue log"
+          "retry handling",
+          "artifact persistence",
+          "git diff analysis",
+          "workflow command",
+          "quality gate"
         ]
       },
       {
@@ -13033,9 +13044,9 @@
     ],
     "summary": {
       "total": 239,
-      "totalMethods": 2391
+      "totalMethods": 2399
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-18T08:24:04.662Z"
+  "enrichedAt": "2026-07-18T10:22:04.052Z"
 }
