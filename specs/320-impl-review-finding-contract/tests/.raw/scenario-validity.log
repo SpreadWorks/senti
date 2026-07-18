@@ -1,0 +1,268 @@
+[senti] scenario-validity tests start
+command: node --test specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js
+[senti] scenario-validity file start command=node specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js
+TAP version 13
+# Subtest: impl-review finding contract
+    # Subtest: R1: exposes the target requirement IDs in both prompt and schema
+    not ok 1 - R1: exposes the target requirement IDs in both prompt and schema
+      ---
+      duration_ms: 3.865101
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:50:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + [
+        +   'string',
+        +   'null'
+        + ]
+        - 'string'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'string'
+      actual:
+        0: 'string'
+        1: 'null'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:59:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R2: rejects missing, null, empty, and unknown requirement IDs
+    not ok 2 - R2: rejects missing, null, empty, and unknown requirement IDs
+      ---
+      duration_ms: 2.478813
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:66:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:75:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R5: preserves valid PASS, ADVISORY, and FAIL lifecycle accounting
+    not ok 3 - R5: preserves valid PASS, ADVISORY, and FAIL lifecycle accounting
+      ---
+      duration_ms: 1.157886
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:80:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - [
+        -   'R5'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'R5'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:82:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R6: leaves spec and test review parser contracts unchanged
+    not ok 4 - R6: leaves spec and test review parser contracts unchanged
+      ---
+      duration_ms: 0.443803
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:102:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - [
+        -   'R6'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'R6'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:104:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..4
+not ok 1 - impl-review finding contract
+  ---
+  duration_ms: 9.58537
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js:49:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 23.368362
+Command failed: node specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js
+[senti] scenario-validity file start command=node specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js
+TAP version 13
+# Subtest: impl-review large output and resume
+    # Subtest: R7: validates exactly 41 findings and resumes guarded impl-review state
+    not ok 1 - R7: validates exactly 41 findings and resumes guarded impl-review state
+      ---
+      duration_ms: 8.231723
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js:26:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js:37:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 1 - impl-review large output and resume
+  ---
+  duration_ms: 9.53821
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js:25:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24.095806
+Command failed: node specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js
+[senti] scenario-validity file start command=node specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js
+TAP version 13
+# Subtest: impl-review schema tooling failure
+    # Subtest: R3: retries schema failure within bounds and preserves five diagnostics
+    not ok 1 - R3: retries schema failure within bounds and preserves five diagnostics
+      ---
+      duration_ms: 1.181046
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js:30:3'
+      failureType: 'testCodeFailure'
+      error: 'ReviewFailure.schemaFailure is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        runCmdWithRetry.phase (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js:35:37)
+        runCmdWithRetry (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/src/flow/lib/run-review.js:590:15)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js:33:26)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+      ...
+    # Subtest: R4: leaves artifacts and semantic retry state unchanged
+    not ok 2 - R4: leaves artifacts and semantic retry state unchanged
+      ---
+      duration_ms: 7.873961
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js:66:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected rejection.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'rejects'
+      stack: |-
+        async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js:77:7)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..2
+not ok 1 - impl-review schema tooling failure
+  ---
+  duration_ms: 10.601496
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-320-impl-review-finding-contract/specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js:29:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24.630729
+Command failed: node specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: exposes the target requirement IDs in both prompt and schema
+[senti] requirement R2 observed: R2: rejects missing, null, empty, and unknown requirement IDs
+[senti] requirement R3 observed: R3: retries schema failure within bounds and preserves five diagnostics
+[senti] requirement R4 observed: R4: leaves artifacts and semantic retry state unchanged
+[senti] requirement R5 observed: R5: preserves valid PASS, ADVISORY, and FAIL lifecycle accounting
+[senti] requirement R6 observed: R6: leaves spec and test review parser contracts unchanged
+[senti] requirement R7 observed: R7: validates exactly 41 findings and resumes guarded impl-review state
+[senti] scenario-validity tests end

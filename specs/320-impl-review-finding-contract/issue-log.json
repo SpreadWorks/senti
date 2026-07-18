@@ -1,0 +1,1397 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the vague phrase `必要な最小範囲` without stating a verifiable boundary for what counts as the minimum necessary scope.; The requirement says commonization should be limited to `既存 contract 再利用に必要な最小範囲`, but does not provide measurable criteria that would let independent reviewers agree whether an implementation stayed within that scope.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T22:50:46.927Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[3]"
+          },
+          "observed": "The requirement uses the vague phrase `必要な最小範囲` without stating a verifiable boundary for what counts as the minimum necessary scope.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[3]"
+          },
+          "observed": "The requirement says commonization should be limited to `既存 contract 再利用に必要な最小範囲`, but does not provide measurable criteria that would let independent reviewers agree whether an implementation stayed within that scope.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague phrase `必要な最小範囲` without stating a verifiable boundary for what counts as the minimum necessary scope."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says commonization should be limited to `既存 contract 再利用に必要な最小範囲`, but does not provide measurable criteria that would let independent reviewers agree whether an implementation stayed within that scope."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate rejected an unverifiable minimum-scope phrase in the commonization boundary.",
+      "trigger": "The first draft-gate evaluation reported blocking unambiguous-requirements and complete-context violations at impactOnExisting[3].",
+      "resolution": "Replaced the vague boundary with an auditable module-contract limit and prohibited schema, prompt, parser, and routing changes to other review types.",
+      "guardrailCandidate": "Scope constraints should name the allowed contract owners and the public surfaces that must remain unchanged.",
+      "taskId": null,
+      "timestamp": "2026-07-12T22:51:45.061Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the vague adjective `明確な` in `schema violation を bounded tooling retry と明確な tooling failure diagnostics へ分類する`, without stating verifiable conditions for what diagnostics must contain.; The requirement `schema violation を bounded tooling retry と明確な tooling failure diagnostics へ分類する` is not specific enough for two reviewers to agree on satisfaction because `明確な tooling failure diagnostics` lacks measurable criteria.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T22:52:30.154Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement uses the vague adjective `明確な` in `schema violation を bounded tooling retry と明確な tooling failure diagnostics へ分類する`, without stating verifiable conditions for what diagnostics must contain.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement `schema violation を bounded tooling retry と明確な tooling failure diagnostics へ分類する` is not specific enough for two reviewers to agree on satisfaction because `明確な tooling failure diagnostics` lacks measurable criteria.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague adjective `明確な` in `schema violation を bounded tooling retry と明確な tooling failure diagnostics へ分類する`, without stating verifiable conditions for what diagnostics must contain."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement `schema violation を bounded tooling retry と明確な tooling failure diagnostics へ分類する` is not specific enough for two reviewers to agree on satisfaction because `明確な tooling failure diagnostics` lacks measurable criteria."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate retry rejected an unverifiable tooling-failure diagnostics phrase.",
+      "trigger": "The second draft-gate evaluation reported blocking unambiguous-requirements and complete-context violations at scopeVerification.in[2].",
+      "resolution": "Defined the exact tooling-failure fields required after bounded retry exhaustion: failure class, target review, validation error, current attempt, and maximum attempts.",
+      "guardrailCandidate": "Failure diagnostic requirements should enumerate stable machine-readable fields used by both operators and tests.",
+      "taskId": null,
+      "timestamp": "2026-07-12T22:53:02.570Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft intentionally excludes accepting legacy output without requirementId fallback, but does not state the user-visible impact or compatibility expectation of removing the previously allowed null/missing requirementId behavior.; The draft replaces the impl-review finding requirementId contract, but does not list affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the behavior being replaced.; The answer gives Issue #437 acceptance criteria and parent-approved prelude intent as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns.; The answer gives the request purpose and parent-approved out-of-scope boundary as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns.; The answer gives Issue #437 acceptance criteria, verification, and parent-approved scope as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T22:53:51.564Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.out[3]"
+          },
+          "observed": "The draft intentionally excludes accepting legacy output without requirementId fallback, but does not state the user-visible impact or compatibility expectation of removing the previously allowed null/missing requirementId behavior.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "draft.json"
+          },
+          "observed": "The draft replaces the impl-review finding requirementId contract, but does not list affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the behavior being replaced.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft.json",
+            "locator": "qa[0].evidence"
+          },
+          "observed": "The answer gives Issue #437 acceptance criteria and parent-approved prelude intent as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft.json",
+            "locator": "qa[1].evidence"
+          },
+          "observed": "The answer gives the request purpose and parent-approved out-of-scope boundary as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft.json",
+            "locator": "qa[3].evidence"
+          },
+          "observed": "The answer gives Issue #437 acceptance criteria, verification, and parent-approved scope as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft intentionally excludes accepting legacy output without requirementId fallback, but does not state the user-visible impact or compatibility expectation of removing the previously allowed null/missing requirementId behavior."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft replaces the impl-review finding requirementId contract, but does not list affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the behavior being replaced."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "The answer gives Issue #437 acceptance criteria and parent-approved prelude intent as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "The answer gives the request purpose and parent-approved out-of-scope boundary as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "The answer gives Issue #437 acceptance criteria, verification, and parent-approved scope as its basis, but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found missing migration parity inventory and code-pattern evidence for three QA decisions.",
+      "trigger": "The third draft-gate evaluation reported two migration-parity and three recommendation-evidence violations.",
+      "resolution": "Inventoried the affected impl-review command and JSON contract, unchanged hooks and config, valid and invalid output side effects, compatibility impact, and added concrete source and test evidence to QA decisions.",
+      "guardrailCandidate": "Contract replacement drafts should inventory affected commands, interfaces, hooks, config, artifacts, side effects, compatibility impact, and code-pattern evidence together.",
+      "taskId": null,
+      "timestamp": "2026-07-12T22:54:38.505Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the vague phrase \"通常 resume path\" without defining the concrete resume scenario or verifiable condition.; Two reviewers may not agree what satisfies testing the \"通常 resume path\" because the requirement does not specify the exact path or expected observable outcome.; The requirement uses the vague phrase \"normal impl-review\" without defining which execution conditions or outputs count as normal.; Two reviewers may not agree what satisfies preserving \"normal impl-review PASS/FAIL/ADVISORY\" because the requirement does not state the concrete scenario boundaries for normal behavior.; The answer states a requirement to preserve \"normal impl-review lifecycle\" without defining verifiable conditions for what normal lifecycle includes.; Two reviewers may not agree what satisfies preserving the \"normal impl-review lifecycle\" because the lifecycle elements and expected observable outcomes are not fully specified in this requirement.; The answer uses the vague phrase \"normal next-action resume path\" without defining the concrete resume steps or expected result.; Two reviewers may not agree what satisfies including the \"normal next-action resume path\" because the requirement does not specify the exact path or acceptance condition.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T22:56:27.688Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "$.scopeVerification.in[4]"
+          },
+          "observed": "The requirement uses the vague phrase \"通常 resume path\" without defining the concrete resume scenario or verifiable condition.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "$.scopeVerification.in[4]"
+          },
+          "observed": "Two reviewers may not agree what satisfies testing the \"通常 resume path\" because the requirement does not specify the exact path or expected observable outcome.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "$.impactOnExisting[0]"
+          },
+          "observed": "The requirement uses the vague phrase \"normal impl-review\" without defining which execution conditions or outputs count as normal.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "$.impactOnExisting[0]"
+          },
+          "observed": "Two reviewers may not agree what satisfies preserving \"normal impl-review PASS/FAIL/ADVISORY\" because the requirement does not state the concrete scenario boundaries for normal behavior.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "$.qa[3].answer"
+          },
+          "observed": "The answer states a requirement to preserve \"normal impl-review lifecycle\" without defining verifiable conditions for what normal lifecycle includes.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "$.qa[3].answer"
+          },
+          "observed": "Two reviewers may not agree what satisfies preserving the \"normal impl-review lifecycle\" because the lifecycle elements and expected observable outcomes are not fully specified in this requirement.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "$.qa[3].answer"
+          },
+          "observed": "The answer uses the vague phrase \"normal next-action resume path\" without defining the concrete resume steps or expected result.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "$.qa[3].answer"
+          },
+          "observed": "Two reviewers may not agree what satisfies including the \"normal next-action resume path\" because the requirement does not specify the exact path or acceptance condition.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague phrase \"通常 resume path\" without defining the concrete resume scenario or verifiable condition."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Two reviewers may not agree what satisfies testing the \"通常 resume path\" because the requirement does not specify the exact path or expected observable outcome."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague phrase \"normal impl-review\" without defining which execution conditions or outputs count as normal."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Two reviewers may not agree what satisfies preserving \"normal impl-review PASS/FAIL/ADVISORY\" because the requirement does not state the concrete scenario boundaries for normal behavior."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The answer states a requirement to preserve \"normal impl-review lifecycle\" without defining verifiable conditions for what normal lifecycle includes."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Two reviewers may not agree what satisfies preserving the \"normal impl-review lifecycle\" because the lifecycle elements and expected observable outcomes are not fully specified in this requirement."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The answer uses the vague phrase \"normal next-action resume path\" without defining the concrete resume steps or expected result."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Two reviewers may not agree what satisfies including the \"normal next-action resume path\" because the requirement does not specify the exact path or acceptance condition."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found ambiguous valid-output lifecycle and stopped-flow resume acceptance wording.",
+      "trigger": "The fourth draft-gate evaluation reported eight blocking ambiguity and completeness observations across scopeVerification.in[4], impactOnExisting[0], and qa[3].answer.",
+      "resolution": "Defined the PASS, ADVISORY, and FAIL lifecycle mappings and an exact guarded next-action and review resume scenario with observable semantic or five-field tooling-failure outcomes.",
+      "guardrailCandidate": "Lifecycle and resume requirements should enumerate inputs, state transitions, commands, and observable outputs rather than use normal-path labels.",
+      "taskId": null,
+      "timestamp": "2026-07-12T22:57:31.147Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Rebasing the active worktree onto the Issue #438 base produced an autostash conflict in generated analysis metadata.",
+      "trigger": "git rebase --autostash main applied commit 61519302 and conflicted only on .senti/output/analysis.json analyzedAt.",
+      "resolution": "Kept the newer upstream analyzedAt value, removed conflict markers, verified HEAD is 61519302, and preserved the complete spec directory.",
+      "guardrailCandidate": "When rebasing generated analysis metadata, prefer the newer upstream timestamp after confirming no semantic content differs.",
+      "taskId": null,
+      "timestamp": "2026-07-12T23:49:05.598Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "The earlier spec-review inspection could not bind runtime-log to the active run because expect guards were rejected.",
+      "trigger": "Target-aware runtime-log returned ARGS_ERROR before Issue #438 was integrated.",
+      "resolution": "Rebased onto main commit 61519302 and verified guarded runtime-log now resolves only runId 3b5c1463-e8c1-47dd-920b-635833912000.",
+      "guardrailCandidate": "Every active-flow diagnostic read must accept the same run, issue, and spec guards as dispatcher commands.",
+      "taskId": null,
+      "timestamp": "2026-07-12T23:49:15.644Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The scope requires validating more than 40 nonBlockingImprovements but does not state an explicit upper bound for that bulk processing.; R7 requires coverage for more than 40 valid and invalid nonBlockingImprovements but does not define an explicit maximum count or size for that bulk finding processing.; The acceptance criterion says the 41+ nonBlockingImprovements case is accepted independent of finding count, which allows unbounded bulk processing without an explicit upper bound.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T23:49:50.048Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "scope.in[5]"
+          },
+          "observed": "The scope requires validating more than 40 nonBlockingImprovements but does not state an explicit upper bound for that bulk processing.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[6].desc"
+          },
+          "observed": "R7 requires coverage for more than 40 valid and invalid nonBlockingImprovements but does not define an explicit maximum count or size for that bulk finding processing.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[5]"
+          },
+          "observed": "The acceptance criterion says the 41+ nonBlockingImprovements case is accepted independent of finding count, which allows unbounded bulk processing without an explicit upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The scope requires validating more than 40 nonBlockingImprovements but does not state an explicit upper bound for that bulk processing."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R7 requires coverage for more than 40 valid and invalid nonBlockingImprovements but does not define an explicit maximum count or size for that bulk finding processing."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The acceptance criterion says the 41+ nonBlockingImprovements case is accepted independent of finding count, which allows unbounded bulk processing without an explicit upper bound."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate rejected the large-finding regression wording because it implied unbounded bulk processing.",
+      "trigger": "The first spec-gate evaluation reported three bounded-resource-usage violations in scope.in[5], R7, and acceptance criterion 6.",
+      "resolution": "Bounded the regression fixture to exactly 41 findings and removed count-independent wording without changing production finding limits or provider input/output bounds.",
+      "guardrailCandidate": "Large regression fixtures should state an exact item count when production count policy is outside the change scope.",
+      "taskId": null,
+      "timestamp": "2026-07-12T23:50:34.142Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found missing invalid-ID coverage for blocking findings and an incomplete stopped-state review resume scenario.",
+      "trigger": "The first test-review returned two blocking missing_coverage findings for R1/R2 and R7.",
+      "resolution": "Expanded invalid-ID assertions across both finding buckets and extended the guarded resume fixture through runImplReview plus the registry post-hook to artifact and state completion.",
+      "guardrailCandidate": "Boundary contract tests should exercise every sibling collection and resume tests should continue through the production action after next-action routing.",
+      "taskId": null,
+      "timestamp": "2026-07-12T23:59:39.446Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "The second static review found R1 schema-required coverage and R7 bounded-exhaustion requirement mapping were still incomplete.",
+      "trigger": "Test-review reported two blocking coverage findings after the first test repair.",
+      "resolution": "Asserted required requirementId semantics for both item schemas and added an R7-tagged bounded three-attempt schema-failure test using the same production retry path.",
+      "guardrailCandidate": "Schema tests should assert required-property membership as well as value constraints, and multi-clause requirements need explicit test-name mappings for each clause.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:01:22.120Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "The third static review found valid lifecycle and tooling-failure registry post paths were not exercised end to end.",
+      "trigger": "Test-review reported missing R5 post/routing/artifact coverage and incomplete R4 state-protection coverage.",
+      "resolution": "Added production runImplReview plus registry post and guarded next-action coverage for valid verdicts, and post-path assertions for tooling failure metrics, step state, semantic findings, and artifacts.",
+      "guardrailCandidate": "Lifecycle requirements should be tested through producer, post-hook, persisted state, artifacts, and dispatcher routing rather than isolated helpers only.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:04:05.244Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "The fourth static review found scope-filter ordering and draft/acceptance parity coverage gaps before the final review attempt.",
+      "trigger": "Test-review reported missing R2 boundary ordering coverage and an R6 coverage artifact contradiction.",
+      "resolution": "Added out-of-scope unknown-ID rejection through runImplReview and production draft parser plus acceptance artifact/schema/registry assertions.",
+      "guardrailCandidate": "Boundary-ordering tests should use data that a later filter would discard, and parity requirements should execute every named public surface.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:06:26.908Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "The exhausted test-review found a parse-time await in a non-async R7 test callback.",
+      "trigger": "The fifth static review emitted not_executable for impl-review-resume.test.js.",
+      "resolution": "Marked only the await-containing test callback async and verified the file with node --check; assertions and scenario remain unchanged.",
+      "guardrailCandidate": "Spec-local test repairs after static review should use syntax-only changes when the scenario and assertions are already correct.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:08:23.598Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: corrected spec-local metric persistence assertions after failed test evidence preflight",
+      "trigger": "impl-gate ARTIFACT_PLACEHOLDER from failed spec-local tests",
+      "resolution": "Prompt wording now unambiguously forbids null requirementId, and lifecycle fixtures compare semantic retry fields while separately verifying persisted taskId and timestamp metadata.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:27:32.852Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a schema_failure ReviewFailure type and retry handling when a subprocess already emits a schema_failure marker, but it does not show the actual impl-review output schema validation path converting a schema violation into that marker/structured failure. The added R3 tests simulate ReviewFailure.schemaFailure directly rather than exercising a real invalid impl-review output through the retry/exhaustion path. Therefore the requirement that an impl-review output schema violation use the bounded retry limits and, after exhaustion, return the specified non-semantic structured failure is not fully implemented by the diff shown.; The diff changes draft/loop review prompt and parser behavior by requiring and validating `**Requirement:** <id>` in proposal output (`buildDraftSystemPrompt`, `buildCrossCheckSystemPrompt`, `parseProposals`, `providerOutputInvalid`). That violates the requirement to preserve draft schema/prompt/parser/routing behavior. Valid impl-review routing/artifact paths appear mostly preserved, but R6 is not satisfied because non-impl review proposal behavior is explicitly changed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-13T00:29:36.831Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "The diff adds a schema_failure ReviewFailure type and retry handling when a subprocess already emits a schema_failure marker, but it does not show the actual impl-review output schema validation path converting a schema violation into that marker/structured failure. The added R3 tests simulate ReviewFailure.schemaFailure directly rather than exercising a real invalid impl-review output through the retry/exhaustion path. Therefore the requirement that an impl-review output schema violation use the bounded retry limits and, after exhaustion, return the specified non-semantic structured failure is not fully implemented by the diff shown.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff changes draft/loop review prompt and parser behavior by requiring and validating `**Requirement:** <id>` in proposal output (`buildDraftSystemPrompt`, `buildCrossCheckSystemPrompt`, `parseProposals`, `providerOutputInvalid`). That violates the requirement to preserve draft schema/prompt/parser/routing behavior. Valid impl-review routing/artifact paths appear mostly preserved, but R6 is not satisfied because non-impl review proposal behavior is explicitly changed.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R4",
+        "R5",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R3",
+          "reason": "The diff adds a schema_failure ReviewFailure type and retry handling when a subprocess already emits a schema_failure marker, but it does not show the actual impl-review output schema validation path converting a schema violation into that marker/structured failure. The added R3 tests simulate ReviewFailure.schemaFailure directly rather than exercising a real invalid impl-review output through the retry/exhaustion path. Therefore the requirement that an impl-review output schema violation use the bounded retry limits and, after exhaustion, return the specified non-semantic structured failure is not fully implemented by the diff shown."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "The diff changes draft/loop review prompt and parser behavior by requiring and validating `**Requirement:** <id>` in proposal output (`buildDraftSystemPrompt`, `buildCrossCheckSystemPrompt`, `parseProposals`, `providerOutputInvalid`). That violates the requirement to preserve draft schema/prompt/parser/routing behavior. Valid impl-review routing/artifact paths appear mostly preserved, but R6 is not satisfied because non-impl review proposal behavior is explicitly changed."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: addressed R3 retry evidence and R6 shared review contract observations",
+      "trigger": "impl-gate semantic FAIL on R3 and R6",
+      "resolution": "R3 now exercises real invalid impl-review parsing through the production classifier, marker, and bounded retry path. Shared draft prompt/parser changes were removed; loop findings receive known IDs only at the impl-specific converter from the existing file map.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:32:00.238Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff does not preserve impl-review valid-output behavior. Loop review proposal conversion can now emit requirementId: null when requirementFileMap is empty, while the new ImplReviewFinding/schema contract rejects null requirementId, so existing valid loop-review proposal output without a requirement map no longer round-trips into final impl-review artifacts. The exported buildImplReviewPrompt/parseImplReviewFindings contracts also now require requirementIds and will throw when omitted, changing prior parser/prompt behavior for callers. These are behavior changes beyond preserving registry/config/artifact/routing semantics for valid output.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-13T00:33:13.552Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff does not preserve impl-review valid-output behavior. Loop review proposal conversion can now emit requirementId: null when requirementFileMap is empty, while the new ImplReviewFinding/schema contract rejects null requirementId, so existing valid loop-review proposal output without a requirement map no longer round-trips into final impl-review artifacts. The exported buildImplReviewPrompt/parseImplReviewFindings contracts also now require requirementIds and will throw when omitted, changing prior parser/prompt behavior for callers. These are behavior changes beyond preserving registry/config/artifact/routing semantics for valid output.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R4",
+        "R5",
+        "R7",
+        "R3"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "The diff does not preserve impl-review valid-output behavior. Loop review proposal conversion can now emit requirementId: null when requirementFileMap is empty, while the new ImplReviewFinding/schema contract rejects null requirementId, so existing valid loop-review proposal output without a requirement map no longer round-trips into final impl-review artifacts. The exported buildImplReviewPrompt/parseImplReviewFindings contracts also now require requirementIds and will throw when omitted, changing prior parser/prompt behavior for callers. These are behavior changes beyond preserving registry/config/artifact/routing semantics for valid output."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed ambiguous loop requirement fallback and preserved shared review APIs",
+      "trigger": "impl-gate R6 semantic FAIL on loop attribution",
+      "resolution": "Impl-loop now has dedicated prompt and parser wrappers while shared draft prompt/parser remain unchanged. Each loop proposal must provide one known target requirementId; missing or unknown IDs become schema tooling failures before artifacts. Prompt/parser target-ID arguments are the intentional R1/R2 model-contract replacement, while valid known-ID lifecycle and other review types remain unchanged.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:36:10.687Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff does not fully preserve existing impl-review parser behavior: parseImplReviewJsonOutput removed the prior special case that accepted an empty JSON array (`[]`) as an empty PASS artifact. That was an existing accepted parser path, so the parser behavior is changed rather than preserved. Other reviewed draft/spec/test/acceptance parser/routing hooks appear mostly untouched in the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-13T00:37:04.334Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff does not fully preserve existing impl-review parser behavior: parseImplReviewJsonOutput removed the prior special case that accepted an empty JSON array (`[]`) as an empty PASS artifact. That was an existing accepted parser path, so the parser behavior is changed rather than preserved. Other reviewed draft/spec/test/acceptance parser/routing hooks appear mostly untouched in the diff.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "The diff does not fully preserve existing impl-review parser behavior: parseImplReviewJsonOutput removed the prior special case that accepted an empty JSON array (`[]`) as an empty PASS artifact. That was an existing accepted parser path, so the parser behavior is changed rather than preserved. Other reviewed draft/spec/test/acceptance parser/routing hooks appear mostly untouched in the diff."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "rationale: legacy top-level array is not valid impl-review output",
+      "trigger": "impl-gate R6 semantic FAIL requesting legacy array fallback",
+      "resolution": "The approved alpha contract forbids invalid legacy fallbacks. Clarifications now state that valid output is the known-ID response object and that [] is schema tooling failure; R2 regression coverage fixes this boundary while R6 continues to preserve valid object lifecycle behavior.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:38:07.866Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff does not preserve impl-review schema/prompt/parser behavior for valid legacy output: requirementId changes from nullable/optional to required enum-only, top-level [] output is no longer accepted, review.md now always emits Requirement, and loop proposals now require a Requirement line. It also changes retry/error handling paths for schema failures in run-review.js, so the broader review routing/state behavior is not unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-13T00:39:39.070Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff does not preserve impl-review schema/prompt/parser behavior for valid legacy output: requirementId changes from nullable/optional to required enum-only, top-level [] output is no longer accepted, review.md now always emits Requirement, and loop proposals now require a Requirement line. It also changes retry/error handling paths for schema failures in run-review.js, so the broader review routing/state behavior is not unchanged.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "The diff does not preserve impl-review schema/prompt/parser behavior for valid legacy output: requirementId changes from nullable/optional to required enum-only, top-level [] output is no longer accepted, review.md now always emits Requirement, and loop proposals now require a Requirement line. It also changes retry/error handling paths for schema failures in run-review.js, so the broader review routing/state behavior is not unchanged."
+        }
+      ]
+    },
+    {
+      "step": "draft",
+      "reason": "Inherited Issue 437 flow state lacked current worktree identity and report-step schema",
+      "trigger": "Guarded status returned RUN_ID_NOT_FOUND before rebase and FLOW_STATE_SCHEMA_UNSUPPORTED after rebase",
+      "resolution": "Published exact run/Issue/spec/worktree identity through WorktreeFlowBindingStore.save; inserted one pending report step through FlowStore.mutate with stepIdMigration; flow SHA-256 be36a3f0212d4c63abef2e8c8f527a172ba949a467cb8249a8518a615dfc225e -> b1c1815f7ac9ef1d01a366f2b783b753bb2b79cf0b8646c328784a87ccfce60a",
+      "guardrailCandidate": "Active worktree flow upgrades require binding recovery and an official audited schema migration path",
+      "taskId": null,
+      "timestamp": "2026-07-18T10:41:22.538Z",
+      "issueLogId": "issue-log-78bfe958-9ae3-4add-b615-ec06f5767b32"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: rebased Issue 437 onto finalized Issue 439 contract-context support",
+      "trigger": "Previous impl-gate R6 incorrectly required preservation of the removed bare-array impl-review contract",
+      "resolution": "Issue 439 now passes bounded authoritative same-spec replacement decisions to preservation evaluation, so R1/R2 may invalidate legacy [] while genuine violations of the new required-enum contract remain failures",
+      "taskId": null,
+      "timestamp": "2026-07-18T10:41:22.954Z",
+      "issueLogId": "issue-log-b5083a62-29c2-4563-b3a3-74a40db8fa0c"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Acceptance review classified stale DF-1 as still open because disposition evidence was absent",
+      "trigger": "First acceptance-review returned amend_required and rewound to implement although the R7 async callback fix and passing tests already existed",
+      "resolution": "Added acceptance-review-evidence.json marking DF-1 fixed with source, fresh focused 4/4 PASS, v2 test evidence, retro, and impl-gate PASS references; restore only the previously validated implement-through-retro statuses before reevaluation",
+      "guardrailCandidate": "Record bounded per-finding acceptance disposition evidence when deferred review findings are repaired",
+      "taskId": null,
+      "timestamp": "2026-07-18T10:49:14.391Z",
+      "issueLogId": "issue-log-3fa31024-f104-496d-b2e0-4111a79cf7ea"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Audited recovery restored the acceptance-review retry boundary after stale-disposition rewind",
+      "trigger": "Dedicated evidence changed DF-1 from still_open to fixed after all prerequisite artifacts had already passed",
+      "resolution": "FlowStore.mutate restored implement, test-execute, test-result-review, impl-review, impl-gate, and retro to done and acceptance-review to in_progress after validating v2 tests, focused 4/4 PASS, impl-gate PASS, and retro 7/7; flow SHA-256 6bc9069b9d055042969d1a0ce64386018be1d0bea97b374d7a4ad7629a5cbac1 -> 88f30da8970621cd920fb988bf8aea58a366cf8785edb16b71af12be524153c4",
+      "taskId": null,
+      "timestamp": "2026-07-18T10:49:48.130Z",
+      "issueLogId": "issue-log-e630fdc6-68ab-4830-8120-105e68453966"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/258-review-retry-recovery/tests/review-failure-contract.test.js",
+          "fingerprint": "eead847718436e433d14ba98007c10026569b9333d1455e5a57426d012f0a0cc"
+        },
+        {
+          "path": "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+          "fingerprint": "9e107f3ccaa7fa02cc4b4ceee76a4a95f8d7417dfbc6ddb825187f78f7852ba6"
+        },
+        {
+          "path": "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js",
+          "fingerprint": "a28f2b444c7cdf0c522b6cbfa46442752468ff8a1c36b0e74deca773690ac0e6"
+        },
+        {
+          "path": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js",
+          "fingerprint": "6fa4e75fa7c382966179c580695368088f170ca8c37f8a5c25b4b5370f75f155"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/acceptance-review-evidence.json",
+          "fingerprint": "622e28fbdec2e1a5de784210480e295430ad457f55aeb7272aef48dd6ca96aa1"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/acceptance-review.json",
+          "fingerprint": "3949a3a5b3518d23ed7fdc0d66d61d78d3ec05354e19892acd7721812ac63ff7"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-coverage-repair.json",
+          "fingerprint": "ee4f5566f2349ecef962c23d06e1317fc01e8f5be1740350cadfa31770f7469d"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-coverage-triage.json",
+          "fingerprint": "e387eacb2194aa7b0eab8182d903ce836425292b75a9389a244dd48f6ffd8eaf"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-gate-source.json",
+          "fingerprint": "727dbf5ebf723d74c1493664bc3c91b6663bde3f78574be511e37385878d547a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-questions-repair.json",
+          "fingerprint": "35f34f1d04defe956df5b4814bff2c0006e5412e2794df059b40261dc748ba90"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-questions-triage.json",
+          "fingerprint": "623dac63d8dcb912bede0280b89dd823366db8d445b1da2524c69ddaf6d3eecc"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-review-coverage.json",
+          "fingerprint": "073ffb7fa6bc873934597af5251093b47a29b25dfd68812646c9e28f466f8c55"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-review-questions.json",
+          "fingerprint": "981af867c7c11d1a24ac05b1a8963ccebc15cd6ca4c218b72d9a3f9633590508"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft.json",
+          "fingerprint": "a22815091ab6d9b89c57f75f9ce8595ffacbcc4f2f8c5ed4142bcf2e4aad6c24"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/file-map.json",
+          "fingerprint": "ac50dc67e5792030c83f2c306afdadf2e86f3256bd9e06e936035c5dc30489e7"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/flow-findings.json",
+          "fingerprint": "6ee958004fe4ab86afafbbf20b98d2adb75df69e209ac00cbc4bfa8fdb7101c4"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/flow-findings.json",
+          "fingerprint": "6ee958004fe4ab86afafbbf20b98d2adb75df69e209ac00cbc4bfa8fdb7101c4"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/impl-gate-result.json",
+          "fingerprint": "fd42cd56365c2288ab7552b1da4553f135874141cf719b17cbd08493ade11e9a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/impl-gate-result.json",
+          "fingerprint": "fd42cd56365c2288ab7552b1da4553f135874141cf719b17cbd08493ade11e9a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/impl-review.json",
+          "fingerprint": "f1b5a883f82eec35c2c50f52a79ab0d8f2ac7b12201a94008d3fa5a030cb80b1"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/issue.md",
+          "fingerprint": "c7bb23a6cde7b21f7ad92a0cedbfc2846129a6a188bc06c2ddd1d7ac6288a1e9"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "66d14a2d1b45f43d65695594e8a0dc43a1bc22a523c0032dfe8d3c0b49c1648a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/retro.json",
+          "fingerprint": "59db0704e1771fa1f512ab60b7b1d9874495c560d951bcea924d5151f2933bec"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "f85bd102a214bec72e257a22965b69278d2cced019cc89a3709125aa8d89e98f"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "be88d8425d7ff64b0bfc17b5b67c4ffc5def432d13374f4d23b5282fffa65cba"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-001.json",
+          "fingerprint": "ee0e9d005abb8a83054a293f54d3c4c965c67642ad1f6b0cd3fd7e3acf540909"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-001.md",
+          "fingerprint": "6711caffc3553600fe9035b466e6a3de00110ab6758b2d1f368deea872efaeba"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-002.json",
+          "fingerprint": "6cdcabe0643441ef44f45e588c6f655669961cf777cebdb65537b465aa0604be"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/spec-attempt-001.json",
+          "fingerprint": "e3e357b93fe06cced72a362862cb53a9e1bbc0f78cd32cb648fad5d39e051a93"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-001.json",
+          "fingerprint": "801e3a28bd8477f53067041d4777b32d0c76af082068c686fac6e1486685a89e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-001.md",
+          "fingerprint": "d2308f44d2ec833c891ca705a740351a774b9a99bf63a3a463849f0154fbfc1f"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-002.json",
+          "fingerprint": "39c1ca65df88f22b1d5fa6ba11114299a193a433b15167e88ef56be4a12ad0c6"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-002.md",
+          "fingerprint": "ebe4cbb296a6bd0ac010ea815036b0ec6707cffc392113d38f0013e4ce0401ca"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-003.json",
+          "fingerprint": "01b4f18be0f90ea2604bc87b4098ebc1edfced848f7b2046b8ce17c8fde504fe"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-003.md",
+          "fingerprint": "894f06dadc23d67a54e5b69bbbafc9b0d0b3fcdca806582418fc850cf93fe4f6"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-004.json",
+          "fingerprint": "b684fff2df883fd2f70612daaf6fb5c16b309bcded445dc0afb2feae946158c3"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-004.md",
+          "fingerprint": "8fb92fa36e74e444d9066343b949a4a157a982c447c6580e5d646fbc795ef7b1"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-005.json",
+          "fingerprint": "9158987f8d12ad4da2723b63c6b51205646e3fa209bed18d887be953b1320a49"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-005.md",
+          "fingerprint": "2318384dfefe009751295722cd1d1319c24c9f6e1c449d739fc61ad65f64258e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/scenario-validity-result.json",
+          "fingerprint": "4dcddc76d41e7b0602e89b530fc8a16310e2595bdd9c9d96c5bc35d056c79b44"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec-gate-source.json",
+          "fingerprint": "e8719d8c70d223c35964d4e691817b7afa247bddd3e8ccce7353f56eddc73cba"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec-review.json",
+          "fingerprint": "d4672c7bf0f4d0fc8860d0b08347b9564e84df20705a291ad9211bf866f5cf2b"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec.json",
+          "fingerprint": "932c3a24896325362bd4e901a14a7d62b8e18d48df57cc2605a098b9aa781a03"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec.md",
+          "fingerprint": "772ba1fdaa1cf29fa1149c4d06e9c05ebd5774b5f78558a5576d2387052f5b69"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tasks/T-1.md",
+          "fingerprint": "d6f670cfb2179e524a872359830f49013e5e07cf50e267c870ba3ca611992b27"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tasks/T-2.md",
+          "fingerprint": "36d0a2e8de47547deb88a395176a6e13cf17b2141d748f39c1738a67d6d4d4f5"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tasks/T-3.md",
+          "fingerprint": "59abc517965e83d9f484f848eb3a41f02c3505c9fdb81d569044f696c907eb3f"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-coverage.json",
+          "fingerprint": "51352b5f786d7cc65e9756b393623f49b4ddf2b840b033b242d7c55232637dc9"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-execute-result.json",
+          "fingerprint": "3a68bc0025a320fdbdae1449d8aeb864e82e4add4d4a20756447ddb937f7599d"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-result-review.json",
+          "fingerprint": "9acdf66239053222fabd4ff2d57f23902191b74a81f99d191370e7ecc3d14586"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-result-review.md",
+          "fingerprint": "6c7392d7b03899f8eba471ccd747f5035ca6b3bbba70bccda5c334110820c851"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-review.json",
+          "fingerprint": "120c6bad02b7503ce6ff7737c383d6c50f3f41ebbf33f985b8c40da476e58b06"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-review.md",
+          "fingerprint": "2318384dfefe009751295722cd1d1319c24c9f6e1c449d739fc61ad65f64258e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/.raw/scenario-validity.log",
+          "fingerprint": "c2381fcd064027fb70cc457abe9e5db5c286ed5e1e4e9c5b4148c7f5d347656a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/.raw/test-execution.log",
+          "fingerprint": "ff35a3584653d37e12eba318dd8023d03d314a214b2e12e35db6ae91088f7937"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/fixture-assertions.js",
+          "fingerprint": "c6c6066cc5f636434f904db056bb547dd9560f30980201506becbeb85fa28e6c"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js",
+          "fingerprint": "a4ac781779eb2a236173c46ff4047a50223190b77936b103836399fb539e37a7"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-lifecycle.test.js",
+          "fingerprint": "eac34360ba4395d494da33a67e039487980f50a6670d741b970d3d81b4fffb62"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-lifecycle.test.js",
+          "fingerprint": "eac34360ba4395d494da33a67e039487980f50a6670d741b970d3d81b4fffb62"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js",
+          "fingerprint": "d7e4abe88626d0dba8ccaf01d35a003be7ffecf746a85a6e3d5ecdc1b4d79e20"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js",
+          "fingerprint": "d7e4abe88626d0dba8ccaf01d35a003be7ffecf746a85a6e3d5ecdc1b4d79e20"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js",
+          "fingerprint": "19d23365afdbefcb3c55c11ad3b566b6ca393d43825e2860936fada4df9e2e00"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js",
+          "fingerprint": "19d23365afdbefcb3c55c11ad3b566b6ca393d43825e2860936fada4df9e2e00"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "7d944e078b5dee29e6d08c3c3f8db82888a16f1ca1187ca78d902874af53c4ac"
+        },
+        {
+          "path": "src/flow/lib/review-failure.js",
+          "fingerprint": "9da87341e488bfd5020c735afc5ca43785328015e9705c326f7217135d7ab630"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "fingerprint": "7201ecaf516c443ab3d55936cf6d3d46f659ddea66838a6d27503f9f38c6c258"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "87c35c5532b1785e88d938b86e244d5fd2e5d840d3a62308f004a3d09ae81507"
+        },
+        {
+          "path": "tests/unit/flow/run-review-advisory.test.js",
+          "fingerprint": "fe2627fcd1e09100eb65d12768258d5ff21a7dfc44f6f638294a5788dbe9154f"
+        }
+      ],
+      "rawOutputPath": "specs/320-impl-review-finding-contract/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-18T10:55:28.154Z",
+      "issueLogId": "issue-log-ba392f49-aa3b-4d1f-b2db-cf6777b8f804"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/258-review-retry-recovery/tests/review-failure-contract.test.js",
+          "fingerprint": "eead847718436e433d14ba98007c10026569b9333d1455e5a57426d012f0a0cc"
+        },
+        {
+          "path": "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+          "fingerprint": "9e107f3ccaa7fa02cc4b4ceee76a4a95f8d7417dfbc6ddb825187f78f7852ba6"
+        },
+        {
+          "path": "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js",
+          "fingerprint": "a28f2b444c7cdf0c522b6cbfa46442752468ff8a1c36b0e74deca773690ac0e6"
+        },
+        {
+          "path": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js",
+          "fingerprint": "6fa4e75fa7c382966179c580695368088f170ca8c37f8a5c25b4b5370f75f155"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/acceptance-review-evidence.json",
+          "fingerprint": "622e28fbdec2e1a5de784210480e295430ad457f55aeb7272aef48dd6ca96aa1"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/acceptance-review.json",
+          "fingerprint": "3949a3a5b3518d23ed7fdc0d66d61d78d3ec05354e19892acd7721812ac63ff7"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-coverage-repair.json",
+          "fingerprint": "ee4f5566f2349ecef962c23d06e1317fc01e8f5be1740350cadfa31770f7469d"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-coverage-triage.json",
+          "fingerprint": "e387eacb2194aa7b0eab8182d903ce836425292b75a9389a244dd48f6ffd8eaf"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-gate-source.json",
+          "fingerprint": "727dbf5ebf723d74c1493664bc3c91b6663bde3f78574be511e37385878d547a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-questions-repair.json",
+          "fingerprint": "35f34f1d04defe956df5b4814bff2c0006e5412e2794df059b40261dc748ba90"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-questions-triage.json",
+          "fingerprint": "623dac63d8dcb912bede0280b89dd823366db8d445b1da2524c69ddaf6d3eecc"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-review-coverage.json",
+          "fingerprint": "073ffb7fa6bc873934597af5251093b47a29b25dfd68812646c9e28f466f8c55"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft-review-questions.json",
+          "fingerprint": "981af867c7c11d1a24ac05b1a8963ccebc15cd6ca4c218b72d9a3f9633590508"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/draft.json",
+          "fingerprint": "a22815091ab6d9b89c57f75f9ce8595ffacbcc4f2f8c5ed4142bcf2e4aad6c24"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/file-map.json",
+          "fingerprint": "ac50dc67e5792030c83f2c306afdadf2e86f3256bd9e06e936035c5dc30489e7"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/flow-findings.json",
+          "fingerprint": "6ee958004fe4ab86afafbbf20b98d2adb75df69e209ac00cbc4bfa8fdb7101c4"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/flow-findings.json",
+          "fingerprint": "6ee958004fe4ab86afafbbf20b98d2adb75df69e209ac00cbc4bfa8fdb7101c4"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/impl-gate-result.json",
+          "fingerprint": "fd42cd56365c2288ab7552b1da4553f135874141cf719b17cbd08493ade11e9a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/impl-gate-result.json",
+          "fingerprint": "fd42cd56365c2288ab7552b1da4553f135874141cf719b17cbd08493ade11e9a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/impl-review.json",
+          "fingerprint": "f1b5a883f82eec35c2c50f52a79ab0d8f2ac7b12201a94008d3fa5a030cb80b1"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/issue.md",
+          "fingerprint": "c7bb23a6cde7b21f7ad92a0cedbfc2846129a6a188bc06c2ddd1d7ac6288a1e9"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "66d14a2d1b45f43d65695594e8a0dc43a1bc22a523c0032dfe8d3c0b49c1648a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/retro.json",
+          "fingerprint": "59db0704e1771fa1f512ab60b7b1d9874495c560d951bcea924d5151f2933bec"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "f85bd102a214bec72e257a22965b69278d2cced019cc89a3709125aa8d89e98f"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "be88d8425d7ff64b0bfc17b5b67c4ffc5def432d13374f4d23b5282fffa65cba"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-001.json",
+          "fingerprint": "ee0e9d005abb8a83054a293f54d3c4c965c67642ad1f6b0cd3fd7e3acf540909"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-001.md",
+          "fingerprint": "6711caffc3553600fe9035b466e6a3de00110ab6758b2d1f368deea872efaeba"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-002.json",
+          "fingerprint": "6cdcabe0643441ef44f45e588c6f655669961cf777cebdb65537b465aa0604be"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/spec-attempt-001.json",
+          "fingerprint": "e3e357b93fe06cced72a362862cb53a9e1bbc0f78cd32cb648fad5d39e051a93"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-001.json",
+          "fingerprint": "801e3a28bd8477f53067041d4777b32d0c76af082068c686fac6e1486685a89e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-001.md",
+          "fingerprint": "d2308f44d2ec833c891ca705a740351a774b9a99bf63a3a463849f0154fbfc1f"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-002.json",
+          "fingerprint": "39c1ca65df88f22b1d5fa6ba11114299a193a433b15167e88ef56be4a12ad0c6"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-002.md",
+          "fingerprint": "ebe4cbb296a6bd0ac010ea815036b0ec6707cffc392113d38f0013e4ce0401ca"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-003.json",
+          "fingerprint": "01b4f18be0f90ea2604bc87b4098ebc1edfced848f7b2046b8ce17c8fde504fe"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-003.md",
+          "fingerprint": "894f06dadc23d67a54e5b69bbbafc9b0d0b3fcdca806582418fc850cf93fe4f6"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-004.json",
+          "fingerprint": "b684fff2df883fd2f70612daaf6fb5c16b309bcded445dc0afb2feae946158c3"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-004.md",
+          "fingerprint": "8fb92fa36e74e444d9066343b949a4a157a982c447c6580e5d646fbc795ef7b1"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-005.json",
+          "fingerprint": "9158987f8d12ad4da2723b63c6b51205646e3fa209bed18d887be953b1320a49"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-005.md",
+          "fingerprint": "2318384dfefe009751295722cd1d1319c24c9f6e1c449d739fc61ad65f64258e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/scenario-validity-result.json",
+          "fingerprint": "4dcddc76d41e7b0602e89b530fc8a16310e2595bdd9c9d96c5bc35d056c79b44"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec-gate-source.json",
+          "fingerprint": "e8719d8c70d223c35964d4e691817b7afa247bddd3e8ccce7353f56eddc73cba"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec-review.json",
+          "fingerprint": "d4672c7bf0f4d0fc8860d0b08347b9564e84df20705a291ad9211bf866f5cf2b"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec.json",
+          "fingerprint": "932c3a24896325362bd4e901a14a7d62b8e18d48df57cc2605a098b9aa781a03"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/spec.md",
+          "fingerprint": "772ba1fdaa1cf29fa1149c4d06e9c05ebd5774b5f78558a5576d2387052f5b69"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tasks/T-1.md",
+          "fingerprint": "d6f670cfb2179e524a872359830f49013e5e07cf50e267c870ba3ca611992b27"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tasks/T-2.md",
+          "fingerprint": "36d0a2e8de47547deb88a395176a6e13cf17b2141d748f39c1738a67d6d4d4f5"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tasks/T-3.md",
+          "fingerprint": "59abc517965e83d9f484f848eb3a41f02c3505c9fdb81d569044f696c907eb3f"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-coverage.json",
+          "fingerprint": "51352b5f786d7cc65e9756b393623f49b4ddf2b840b033b242d7c55232637dc9"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-execute-result.json",
+          "fingerprint": "3a68bc0025a320fdbdae1449d8aeb864e82e4add4d4a20756447ddb937f7599d"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-result-review.json",
+          "fingerprint": "9acdf66239053222fabd4ff2d57f23902191b74a81f99d191370e7ecc3d14586"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-result-review.md",
+          "fingerprint": "6c7392d7b03899f8eba471ccd747f5035ca6b3bbba70bccda5c334110820c851"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-review.json",
+          "fingerprint": "120c6bad02b7503ce6ff7737c383d6c50f3f41ebbf33f985b8c40da476e58b06"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/test-review.md",
+          "fingerprint": "2318384dfefe009751295722cd1d1319c24c9f6e1c449d739fc61ad65f64258e"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/.raw/scenario-validity.log",
+          "fingerprint": "c2381fcd064027fb70cc457abe9e5db5c286ed5e1e4e9c5b4148c7f5d347656a"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/.raw/test-execution.log",
+          "fingerprint": "ff35a3584653d37e12eba318dd8023d03d314a214b2e12e35db6ae91088f7937"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/fixture-assertions.js",
+          "fingerprint": "c6c6066cc5f636434f904db056bb547dd9560f30980201506becbeb85fa28e6c"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js",
+          "fingerprint": "a4ac781779eb2a236173c46ff4047a50223190b77936b103836399fb539e37a7"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-lifecycle.test.js",
+          "fingerprint": "eac34360ba4395d494da33a67e039487980f50a6670d741b970d3d81b4fffb62"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-lifecycle.test.js",
+          "fingerprint": "eac34360ba4395d494da33a67e039487980f50a6670d741b970d3d81b4fffb62"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js",
+          "fingerprint": "d7e4abe88626d0dba8ccaf01d35a003be7ffecf746a85a6e3d5ecdc1b4d79e20"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js",
+          "fingerprint": "d7e4abe88626d0dba8ccaf01d35a003be7ffecf746a85a6e3d5ecdc1b4d79e20"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js",
+          "fingerprint": "19d23365afdbefcb3c55c11ad3b566b6ca393d43825e2860936fada4df9e2e00"
+        },
+        {
+          "path": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js",
+          "fingerprint": "19d23365afdbefcb3c55c11ad3b566b6ca393d43825e2860936fada4df9e2e00"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "e5b0d01cd50ba5d77910291384ad37690bba829ca391994f3e3a2cb8d05efba1"
+        },
+        {
+          "path": "src/flow/lib/review-failure.js",
+          "fingerprint": "9da87341e488bfd5020c735afc5ca43785328015e9705c326f7217135d7ab630"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "fingerprint": "7201ecaf516c443ab3d55936cf6d3d46f659ddea66838a6d27503f9f38c6c258"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "87c35c5532b1785e88d938b86e244d5fd2e5d840d3a62308f004a3d09ae81507"
+        },
+        {
+          "path": "tests/unit/flow/run-review-advisory.test.js",
+          "fingerprint": "fe2627fcd1e09100eb65d12768258d5ff21a7dfc44f6f638294a5788dbe9154f"
+        }
+      ],
+      "rawOutputPath": "specs/320-impl-review-finding-contract/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "record-and-proceed",
+      "timestamp": "2026-07-18T11:04:44.215Z",
+      "issueLogId": "issue-log-f2ea2231-e774-4684-9266-a66af85f6bcd"
+    }
+  ]
+}

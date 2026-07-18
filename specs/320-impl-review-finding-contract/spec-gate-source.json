@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The scope requires validating more than 40 nonBlockingImprovements but does not state an explicit upper bound for that bulk processing.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "scope.in[5]"
+          },
+          "observed": "The scope requires validating more than 40 nonBlockingImprovements but does not state an explicit upper bound for that bulk processing.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "R7 requires coverage for more than 40 valid and invalid nonBlockingImprovements but does not define an explicit maximum count or size for that bulk finding processing.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[6].desc"
+          },
+          "observed": "R7 requires coverage for more than 40 valid and invalid nonBlockingImprovements but does not define an explicit maximum count or size for that bulk finding processing.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The acceptance criterion says the 41+ nonBlockingImprovements case is accepted independent of finding count, which allows unbounded bulk processing without an explicit upper bound.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[5]"
+          },
+          "observed": "The acceptance criterion says the 41+ nonBlockingImprovements case is accepted independent of finding count, which allows unbounded bulk processing without an explicit upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "scope.in[5]"
+      },
+      "observed": "The scope requires validating more than 40 nonBlockingImprovements but does not state an explicit upper bound for that bulk processing.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[6].desc"
+      },
+      "observed": "R7 requires coverage for more than 40 valid and invalid nonBlockingImprovements but does not define an explicit maximum count or size for that bulk finding processing.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[5]"
+      },
+      "observed": "The acceptance criterion says the 41+ nonBlockingImprovements case is accepted independent of finding count, which allows unbounded bulk processing without an explicit upper bound.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    }
+  ]
+}

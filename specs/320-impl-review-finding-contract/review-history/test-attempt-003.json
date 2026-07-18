@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-13T00:01:48.507Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/320-impl-review-finding-contract/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 lifecycle coverage is incomplete",
+      "target": "specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js",
+      "issue": "R5 requires valid known-ID outputs to drive full impl-review lifecycle behavior: FAIL increments semantic reviewRetry and keeps impl-review active, ADVISORY resets reviewRetry, writes review artifacts, and promotes impl-gate, and PASS does the same as ADVISORY. The current R5 test only checks JSON verdict formatting and the isolated retry-counter helper. It does not exercise the review post/routing behavior for FAIL or ADVISORY, nor artifact writes for ADVISORY.",
+      "requiredChange": "Add spec-local executable coverage that runs valid known-ID FAIL and ADVISORY impl-review results through the flow post/routing path and asserts state, retry metric, artifact, and promotion behavior required by R5.",
+      "whyBlocking": "An acceptance requirement is marked covered but key required lifecycle behavior has no corresponding spec-local regression test.",
+      "origin": "R5",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 tooling-failure state protections are under-tested",
+      "target": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js",
+      "issue": "R4 requires schema tooling failure not to consume reviewRetry, write/replace artifacts, record semantic/deferred findings, emit semantic PASS/ADVISORY/FAIL, or promote impl-review to impl-gate. The test covers unchanged artifacts and isolated retry-counter behavior, but does not exercise the flow post/routing path for a tooling failure, so promotion/state transition and semantic/deferred finding recording are not covered.",
+      "requiredChange": "Add a spec-local test that feeds a schema tooling failure through the impl-review flow handling/post path and asserts impl-review is not promoted, semantic/deferred findings are not recorded, semantic verdict is not emitted, and reviewRetry is unchanged.",
+      "whyBlocking": "A critical failure-mode requirement has no regression coverage for state transition and semantic recording safeguards.",
+      "origin": "R4",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/320-impl-review-finding-contract/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "2717851d98e646c639671b9c96ab91bbcc135caf37ae2eca62be2ff2924dfedc"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R5 lifecycle coverage is incomplete",
+      "body": "R5 requires valid known-ID outputs to drive full impl-review lifecycle behavior: FAIL increments semantic reviewRetry and keeps impl-review active, ADVISORY resets reviewRetry, writes review artifacts, and promotes impl-gate, and PASS does the same as ADVISORY. The current R5 test only checks JSON verdict formatting and the isolated retry-counter helper. It does not exercise the review post/routing behavior for FAIL or ADVISORY, nor artifact writes for ADVISORY.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R4 tooling-failure state protections are under-tested",
+      "body": "R4 requires schema tooling failure not to consume reviewRetry, write/replace artifacts, record semantic/deferred findings, emit semantic PASS/ADVISORY/FAIL, or promote impl-review to impl-gate. The test covers unchanged artifacts and isolated retry-counter behavior, but does not exercise the flow post/routing path for a tooling failure, so promotion/state transition and semantic/deferred finding recording are not covered.",
+      "category": "unknown"
+    }
+  ]
+}

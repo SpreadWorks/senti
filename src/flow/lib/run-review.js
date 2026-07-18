@@ -19,6 +19,7 @@ import { flattenSteps } from "./step-tree.js";
 import path from "path";
 import fs from "fs";
 import {
+  REVIEW_FAILURE_MARKER_PREFIX,
   ReviewFailure,
   clearReviewStopState,
   writeReviewStopState,
@@ -404,6 +405,7 @@ export function updateReviewRetryCounter(ctx, result) {
   const attemptsBefore = countReviewRetry(flowState.metrics, persistedPhase);
   let isPass;
   if (persistedPhase === "impl") {
+    if (result?.artifacts?.verdict === "TOOLING_FAILURE" || result?.result === "tooling-failure") return;
     isPass = isImplPass(result);
   } else {
     if (result?.artifacts?.verdict === "TOOLING_FAILURE") {
@@ -679,9 +681,21 @@ export async function runCmdWithRetry(cmdFn, opts = {}) {
       phase: opts.phase || "impl",
       result: lastRes,
     });
+    const failureForAttempt = failure.withAttempts({
+      currentAttempt: attempt + 1,
+      maximumAttempts: retryCount + 1,
+    });
+    if (failureForAttempt !== failure) {
+      const marker = failureForAttempt.toMarkerLine();
+      const lines = String(lastRes.stderr || "").split(/\r?\n/);
+      const markerIndex = lines.findIndex((line) => line.trim().startsWith(REVIEW_FAILURE_MARKER_PREFIX));
+      if (markerIndex >= 0) lines[markerIndex] = marker;
+      else lines.unshift(marker);
+      lastRes = { ...lastRes, stderr: lines.join("\n") };
+    }
 
     if (attempt < retryCount) {
-      if (!failure.shouldRetrySubprocess({ attempt: attempt + 1, maxAttempts: retryCount + 1 })) {
+      if (!failureForAttempt.shouldRetrySubprocess({ attempt: attempt + 1, maxAttempts: retryCount + 1 })) {
         return lastRes;
       }
       const next = attempt + 2;
@@ -751,6 +765,11 @@ export class RunReviewCommand extends FlowCommand {
     const stderr = (res.stderr || "").trim();
     if (!res.ok) {
       const failure = ReviewFailure.fromSubprocessResult({ phase: persistedPhase, result: res });
+      if (failure.classification === "schema_failure") {
+        return Envelope.fail("run", "review", failure.toEnvelopeCode(),
+          [`review stopped: ${failure.reason}`],
+          failure.toEnvelopeData());
+      }
       if (failure.shouldPersistStopState()) {
         const persisted = mutateReviewRecoveryState(
           ctx,

@@ -896,17 +896,17 @@ describe("impl review structured artifact helpers", () => {
         title: "Optional naming",
         failureMode: "naming",
         file: "src/flow/commands/review.js",
-        requirementId: null,
+        requirementId: "R4",
         issue: "A local variable name could be clearer.",
         suggestion: "Rename it.",
         rationale: "Readability-only.",
       }],
-    }));
+    }), { requirementIds: new Set(["R4"]) });
 
     assert.equal(parsed.blockingFindings.length, 1);
     assert.equal(parsed.nonBlockingImprovements.length, 1);
     assert.throws(
-      () => parseImplReviewFindings("### 1. Legacy proposal\n**File:** src/example.js"),
+      () => parseImplReviewFindings("### 1. Legacy proposal\n**File:** src/example.js", { requirementIds: new Set(["R4"]) }),
       /impl review output failed schema validation|Unexpected token|JSON/i,
     );
   });
@@ -927,7 +927,7 @@ describe("impl review structured artifact helpers", () => {
           title: "Drop outside",
           failureMode: "spec_behavior_contradiction",
           file: "src/outside.js",
-          requirementId: null,
+          requirementId: "R4",
           issue: "Outside diff.",
           suggestion: "Drop it.",
           rationale: "Out of scope.",
@@ -938,7 +938,7 @@ describe("impl review structured artifact helpers", () => {
           title: "Keep advisory",
           failureMode: "refactor",
           file: "src/flow/commands/review.js",
-          requirementId: null,
+          requirementId: "R4",
           issue: "Optional touched-file issue.",
           suggestion: "Optional fix.",
           rationale: "Non-blocking.",
@@ -947,13 +947,13 @@ describe("impl review structured artifact helpers", () => {
           title: "Drop missing file",
           failureMode: "refactor",
           file: "",
-          requirementId: null,
+          requirementId: "R4",
           issue: "No file.",
           suggestion: "Drop it.",
           rationale: "Missing file.",
         },
       ],
-    }));
+    }), { requirementIds: new Set(["R4"]) });
     const filtered = filterImplReviewFindingsByScope({
       parsed,
       touchedFiles: new Set(["src/flow/commands/review.js"]),
@@ -972,7 +972,7 @@ describe("impl review structured artifact helpers", () => {
         title: "Optional cleanup",
         failureMode: "refactor",
         file: "src/flow/lib/run-review.js",
-        requirementId: null,
+        requirementId: "R4",
         issue: "A branch could be clearer.",
         suggestion: "Rename the branch.",
         rationale: "Readability-only.",
@@ -991,6 +991,7 @@ describe("impl review structured artifact helpers", () => {
   it("builds prompts with the blocking and non-blocking policy", () => {
     const prompt = buildImplReviewPrompt({
       requirementFileMap: { R1: ["src/flow/commands/review.js"] },
+      requirementIds: new Set(["R1"]),
       diff: "diff",
       touchedFiles: ["src/flow/commands/review.js"],
     });
@@ -1003,17 +1004,18 @@ describe("impl review structured artifact helpers", () => {
     assert.match(combined, /security_or_data_integrity_bug/);
     assert.match(combined, /touched file/);
     assert.match(combined, /replacement action/);
-    assert.match(combined, /Use null for file or requirementId/);
+    assert.match(combined, /requirementId is always required/);
   });
 
   it("uses a strict-compatible JSON schema for optional impl review fields", () => {
-    const prompt = buildImplReviewPrompt();
+    const prompt = buildImplReviewPrompt({ requirementIds: new Set(["R1"]) });
     const itemSchema = prompt.jsonSchema.properties.blockingFindings.items;
     const propertyKeys = Object.keys(itemSchema.properties).sort();
 
     assert.deepEqual([...itemSchema.required].sort(), propertyKeys);
     assert.deepEqual(itemSchema.properties.file.type, ["string", "null"]);
-    assert.deepEqual(itemSchema.properties.requirementId.type, ["string", "null"]);
+    assert.equal(itemSchema.properties.requirementId.type, "string");
+    assert.deepEqual(itemSchema.properties.requirementId.enum, ["R1"]);
   });
 });
 

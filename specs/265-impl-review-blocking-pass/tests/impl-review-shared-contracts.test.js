@@ -32,11 +32,12 @@ test("R14: shared regression contract covers structured impl review behavior", a
       title: "Optional prompt cleanup",
       failureMode: "docs",
       file: "src/flow/prompts/impl/review.md",
+      requirementId: "R4",
       issue: "One sentence could be clearer.",
       suggestion: "Clarify that sentence.",
       rationale: "Prompt polish is non-blocking.",
     }],
-  }));
+  }), { requirementIds: new Set(["R4"]) });
   const filtered = filterImplReviewFindingsByScope({
     parsed,
     touchedFiles: new Set(["src/flow/prompts/impl/review.md"]),

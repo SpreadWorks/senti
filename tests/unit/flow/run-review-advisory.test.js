@@ -11,6 +11,7 @@ import {
   updateReviewRetryCounter,
 } from "../../../src/flow/lib/run-review.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
+import { ReviewFailure } from "../../../src/flow/lib/review-failure.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 describe("draft coverage review advisory routing", () => {
@@ -326,6 +327,34 @@ function metricsForImplVerdict(verdict) {
 }
 
 describe("review subprocess retry", () => {
+  it("retries impl schema failures within the tooling limit and preserves diagnostics", async () => {
+    let calls = 0;
+    const result = await runCmdWithRetry(() => {
+      calls += 1;
+      const failure = ReviewFailure.schemaFailure({
+        phase: "impl",
+        targetReview: "impl-review",
+        validationError: "requirementId is unknown",
+        currentAttempt: 1,
+        maximumAttempts: 1,
+      });
+      return {
+        ok: false,
+        status: 1,
+        stdout: "",
+        stderr: failure.toMarkerLine(),
+        signal: null,
+        killed: false,
+      };
+    }, { phase: "impl", retryCount: 2, retryDelayMs: 0 });
+
+    const failure = ReviewFailure.fromSubprocessResult({ phase: "impl", result });
+    assert.equal(calls, 3);
+    assert.equal(failure.classification, "schema_failure");
+    assert.equal(failure.currentAttempt, 3);
+    assert.equal(failure.maximumAttempts, 3);
+  });
+
   it("does not retry deterministic test-review prompt size failures", async () => {
     let calls = 0;
     const result = await runCmdWithRetry(() => {

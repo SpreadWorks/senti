@@ -11,12 +11,14 @@ const CLASSIFICATIONS = Object.freeze([
   "subprocess_failure",
   "provider_failure",
   "input_size_failure",
+  "schema_failure",
   "max_attempts_exceeded",
 ]);
 
 const MARKER_CLASSIFICATIONS = Object.freeze([
   "provider_failure",
   "input_size_failure",
+  "schema_failure",
 ]);
 
 const REVIEW_PHASE_BY_STEP_ID = Object.freeze({
@@ -98,6 +100,20 @@ export class ReviewFailure {
     this.killed = input.killed === true;
     this.attempts = input.attempts ?? null;
     this.max = input.max ?? null;
+    this.targetReview = input.targetReview ? String(input.targetReview) : null;
+    this.validationError = input.validationError ? String(input.validationError) : null;
+    this.currentAttempt = input.currentAttempt ?? null;
+    this.maximumAttempts = input.maximumAttempts ?? null;
+    if (classification === "schema_failure") {
+      requireString(this.targetReview, "targetReview");
+      requireString(this.validationError, "validationError");
+      if (!Number.isInteger(this.currentAttempt) || this.currentAttempt < 1) {
+        throw new Error("currentAttempt must be a positive integer");
+      }
+      if (!Number.isInteger(this.maximumAttempts) || this.maximumAttempts < this.currentAttempt) {
+        throw new Error("maximumAttempts must be an integer greater than or equal to currentAttempt");
+      }
+    }
   }
 
   static classifications() {
@@ -152,6 +168,25 @@ export class ReviewFailure {
     });
   }
 
+  static schemaFailure({
+    phase = "impl",
+    targetReview,
+    validationError,
+    currentAttempt = 1,
+    maximumAttempts = 1,
+  } = {}) {
+    return new ReviewFailure({
+      phase,
+      classification: "schema_failure",
+      reason: `${requireString(targetReview, "targetReview")} output schema validation failed`,
+      retryBudgetConsumed: false,
+      targetReview,
+      validationError: requireString(validationError, "validationError"),
+      currentAttempt,
+      maximumAttempts,
+    });
+  }
+
   static maxAttemptsExceeded({ phase, attempts, max } = {}) {
     const safePhase = requireString(phase, "phase");
     return new ReviewFailure({
@@ -170,6 +205,15 @@ export class ReviewFailure {
     try {
       const data = JSON.parse(line.slice(REVIEW_FAILURE_MARKER_PREFIX.length));
       if (!MARKER_CLASSIFICATIONS.includes(data?.classification)) return null;
+      if (data.classification === "schema_failure") {
+        return ReviewFailure.schemaFailure({
+          phase: data.phase,
+          targetReview: data.targetReview,
+          validationError: data.validationError,
+          currentAttempt: data.currentAttempt,
+          maximumAttempts: data.maximumAttempts,
+        });
+      }
       if (!data.phase || !data.reason || !data.recoveryHint || !data.recoveryCommand) return null;
       return new ReviewFailure({
         phase: data.phase,
@@ -236,9 +280,20 @@ export class ReviewFailure {
   }
 
   shouldRetrySubprocess({ attempt, maxAttempts } = {}) {
-    if (this.classification !== "subprocess_failure") return false;
-    if (this.signal || this.killed) return false;
+    if (this.classification !== "subprocess_failure" && this.classification !== "schema_failure") return false;
+    if (this.classification === "subprocess_failure" && (this.signal || this.killed)) return false;
     return Number(attempt) < Number(maxAttempts);
+  }
+
+  withAttempts({ currentAttempt, maximumAttempts } = {}) {
+    if (this.classification !== "schema_failure") return this;
+    return ReviewFailure.schemaFailure({
+      phase: this.phase,
+      targetReview: this.targetReview,
+      validationError: this.validationError,
+      currentAttempt,
+      maximumAttempts,
+    });
   }
 
   shouldPersistStopState() {
@@ -262,6 +317,12 @@ export class ReviewFailure {
       data.attempts = this.attempts;
       data.max = this.max;
     }
+    if (this.classification === "schema_failure") {
+      data.targetReview = this.targetReview;
+      data.validationError = this.validationError;
+      data.currentAttempt = this.currentAttempt;
+      data.maximumAttempts = this.maximumAttempts;
+    }
     return data;
   }
 
@@ -282,8 +343,15 @@ export class ReviewFailure {
       phase: this.phase,
       classification: this.classification,
       reason: this.reason,
-      recoveryHint: this.recoveryHint,
-      recoveryCommand: this.recoveryCommand,
+      ...(this.classification === "schema_failure" ? {
+        targetReview: this.targetReview,
+        validationError: this.validationError,
+        currentAttempt: this.currentAttempt,
+        maximumAttempts: this.maximumAttempts,
+      } : {
+        recoveryHint: this.recoveryHint,
+        recoveryCommand: this.recoveryCommand,
+      }),
     });
   }
 

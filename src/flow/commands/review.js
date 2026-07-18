@@ -397,6 +397,12 @@ function extractProposalFile(body) {
   return file || null;
 }
 
+function extractProposalRequirementId(body) {
+  if (!body) return null;
+  const match = body.match(/\*\*Requirement:\*\*\s*`?([^`\n]+?)`?\s*$/m);
+  return match?.[1]?.trim() || null;
+}
+
 /**
  * Collect the set of files touched by the current change set.
  * The "touched" set is the union of:
@@ -516,44 +522,49 @@ const IMPL_REVIEW_MEMORY_BLOCKING_LIMIT = 3;
 const IMPL_REVIEW_MEMORY_NON_BLOCKING_LIMIT = 5;
 const IMPL_REVIEW_MEMORY_FIELD_LIMIT = 500;
 
-const IMPL_REVIEW_FINDING_SCHEMA = Object.freeze({
-  type: "object",
-  required: ["title", "failureMode", "file", "requirementId", "issue", "suggestion", "rationale"],
-  additionalProperties: false,
-  properties: {
-    title: { type: "string", minLength: 1 },
-    failureMode: { type: "string", minLength: 1 },
-    file: { type: ["string", "null"] },
-    requirementId: { type: ["string", "null"] },
-    issue: { type: "string", minLength: 1 },
-    suggestion: { type: "string", minLength: 1 },
-    rationale: { type: "string", minLength: 1 },
-  },
-});
+function normalizeImplReviewRequirementIds(requirementIds) {
+  if (!(requirementIds instanceof Set)) {
+    throw new Error("impl review requirementIds must be a Set");
+  }
+  return new Set([...requirementIds].map((id) => String(id).trim()).filter(Boolean));
+}
 
-const IMPL_REVIEW_RESPONSE_SCHEMA = Object.freeze({
-  type: "object",
-  required: ["blockingFindings", "nonBlockingImprovements"],
-  additionalProperties: false,
-  properties: {
-    blockingFindings: {
-      type: "array",
-      items: IMPL_REVIEW_FINDING_SCHEMA,
+function buildImplReviewResponseSchema(requirementIds) {
+  const allowedRequirementIds = [...normalizeImplReviewRequirementIds(requirementIds)].sort();
+  const findingSchema = {
+    type: "object",
+    required: ["title", "failureMode", "file", "requirementId", "issue", "suggestion", "rationale"],
+    additionalProperties: false,
+    properties: {
+      title: { type: "string", minLength: 1 },
+      failureMode: { type: "string", minLength: 1 },
+      file: { type: ["string", "null"] },
+      requirementId: { type: "string", minLength: 1, enum: allowedRequirementIds },
+      issue: { type: "string", minLength: 1 },
+      suggestion: { type: "string", minLength: 1 },
+      rationale: { type: "string", minLength: 1 },
     },
-    nonBlockingImprovements: {
-      type: "array",
-      items: IMPL_REVIEW_FINDING_SCHEMA,
+  };
+  return {
+    type: "object",
+    required: ["blockingFindings", "nonBlockingImprovements"],
+    additionalProperties: false,
+    properties: {
+      blockingFindings: { type: "array", items: findingSchema },
+      nonBlockingImprovements: { type: "array", items: findingSchema },
     },
-  },
-});
+  };
+}
 
-const IMPL_REVIEW_FMT_FALLBACK = [
-  "OUTPUT FORMAT - strictly required:",
-  "Return only a JSON object. No markdown, no preamble, no commentary.",
-  "Schema:",
-  JSON.stringify(IMPL_REVIEW_RESPONSE_SCHEMA, null, 2),
-  "Use empty arrays when there are no findings in a category.",
-].join("\n");
+function buildImplReviewFmtFallback(schema) {
+  return [
+    "OUTPUT FORMAT - strictly required:",
+    "Return only a JSON object. No markdown, no preamble, no commentary.",
+    "Schema:",
+    JSON.stringify(schema, null, 2),
+    "Use empty arrays when there are no findings in a category.",
+  ].join("\n");
+}
 
 function normalizeReviewPath(value) {
   return String(value || "").trim().replace(/\\/g, "/").replace(/^`|`$/g, "");
@@ -566,7 +577,7 @@ function truncateReviewMemoryText(value, limit = IMPL_REVIEW_MEMORY_FIELD_LIMIT)
 }
 
 class ImplReviewFinding {
-  constructor(kind, item) {
+  constructor(kind, item, requirementIds) {
     this.kind = kind;
     this.title = String(item.title || "").trim();
     this.failureMode = String(item.failureMode || "").trim();
@@ -575,6 +586,12 @@ class ImplReviewFinding {
     this.issue = String(item.issue || "").trim();
     this.suggestion = String(item.suggestion || "").trim();
     this.rationale = String(item.rationale || "").trim();
+    if (!this.requirementId) {
+      throw new Error("requirementId must be a non-empty string");
+    }
+    if (!normalizeImplReviewRequirementIds(requirementIds).has(this.requirementId)) {
+      throw new Error(`requirementId is not present in the target spec: ${this.requirementId}`);
+    }
     if (kind === "blocking" && !IMPL_REVIEW_BLOCKING_FAILURE_MODE_SET.has(this.failureMode)) {
       throw new Error(`invalid blocking failureMode: ${this.failureMode}`);
     }
@@ -585,7 +602,7 @@ class ImplReviewFinding {
       title: this.title,
       failureMode: this.failureMode,
       ...(this.file ? { file: this.file } : {}),
-      ...(this.requirementId ? { requirementId: this.requirementId } : {}),
+      requirementId: this.requirementId,
       issue: this.issue,
       suggestion: this.suggestion,
       rationale: this.rationale,
@@ -597,7 +614,7 @@ class ImplReviewFinding {
       title: truncateReviewMemoryText(this.title),
       failureMode: truncateReviewMemoryText(this.failureMode),
       ...(this.file ? { file: truncateReviewMemoryText(this.file) } : {}),
-      ...(this.requirementId ? { requirementId: truncateReviewMemoryText(this.requirementId) } : {}),
+      requirementId: truncateReviewMemoryText(this.requirementId),
       issue: truncateReviewMemoryText(this.issue),
       suggestion: truncateReviewMemoryText(this.suggestion),
       rationale: truncateReviewMemoryText(this.rationale),
@@ -606,15 +623,18 @@ class ImplReviewFinding {
 }
 
 class ImplReviewArtifact {
-  constructor({ blockingFindings = [], nonBlockingImprovements = [], excluded = {}, generatedAt = new Date().toISOString() } = {}) {
+  constructor({ blockingFindings = [], nonBlockingImprovements = [], excluded = {}, generatedAt = new Date().toISOString(), requirementIds = null } = {}) {
+    const allowedRequirementIds = requirementIds instanceof Set
+      ? requirementIds
+      : new Set([...blockingFindings, ...nonBlockingImprovements].map((item) => item.requirementId).filter(Boolean));
     this.version = 1;
     this.phase = "impl";
     this.generatedAt = generatedAt;
     this.blockingFindings = blockingFindings.map((item) =>
-      item instanceof ImplReviewFinding ? item : new ImplReviewFinding("blocking", item),
+      item instanceof ImplReviewFinding ? item : new ImplReviewFinding("blocking", item, allowedRequirementIds),
     );
     this.nonBlockingImprovements = nonBlockingImprovements.map((item) =>
-      item instanceof ImplReviewFinding ? item : new ImplReviewFinding("improvement", item),
+      item instanceof ImplReviewFinding ? item : new ImplReviewFinding("improvement", item, allowedRequirementIds),
     );
     this.verdict = this.blockingFindings.length > 0
       ? "FAIL"
@@ -659,33 +679,36 @@ class ImplReviewArtifact {
   }
 }
 
-function parseImplReviewJsonOutput(raw) {
+function parseImplReviewJsonOutput(raw, requirementIds) {
   const candidate = extractJsonObjectCandidate(raw);
   let parsed;
   try {
     parsed = JSON.parse(candidate);
-  } catch {
-    parsed = JSON.parse(repairJson(candidate));
+  } catch (_) {
+    try {
+      parsed = JSON.parse(repairJson(candidate));
+    } catch (err) {
+      throw new Error(`impl review output failed schema validation: ${err.message}`);
+    }
   }
-  if (Array.isArray(parsed) && parsed.length === 0) {
-    parsed = {
-      blockingFindings: [],
-      nonBlockingImprovements: [],
-    };
-  }
-  const errors = validateSchema(parsed, IMPL_REVIEW_RESPONSE_SCHEMA);
+  const errors = validateSchema(parsed, buildImplReviewResponseSchema(requirementIds));
   if (errors.length > 0) {
     throw new Error(`impl review output failed schema validation: ${errors.join("; ")}`);
   }
   return parsed;
 }
 
-function parseImplReviewFindings(text) {
-  const parsed = parseImplReviewJsonOutput(text);
-  return {
-    blockingFindings: parsed.blockingFindings.map((item) => new ImplReviewFinding("blocking", item)),
-    nonBlockingImprovements: parsed.nonBlockingImprovements.map((item) => new ImplReviewFinding("improvement", item)),
-  };
+function parseImplReviewFindings(text, { requirementIds } = {}) {
+  const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
+  const parsed = parseImplReviewJsonOutput(text, allowedRequirementIds);
+  try {
+    return {
+      blockingFindings: parsed.blockingFindings.map((item) => new ImplReviewFinding("blocking", item, allowedRequirementIds)),
+      nonBlockingImprovements: parsed.nonBlockingImprovements.map((item) => new ImplReviewFinding("improvement", item, allowedRequirementIds)),
+    };
+  } catch (err) {
+    throw new Error(`impl review output failed schema validation: ${err.message}`);
+  }
 }
 
 function isValidRequirementId(requirementIds, id) {
@@ -758,6 +781,7 @@ function formatImplReviewMd(input = {}) {
       lines.push(`### ${i + 1}. ${item.title}`);
       lines.push(`**Failure mode:** ${item.failureMode}`);
       if (item.file) lines.push(`**File:** ${item.file}`);
+      lines.push(`**Requirement:** ${item.requirementId}`);
       lines.push(`**Issue:** ${item.issue}`);
       lines.push(`**Suggestion:** ${item.suggestion}`);
       lines.push(`**Rationale:** ${item.rationale}`);
@@ -784,7 +808,9 @@ function loadPreviousImplReviewMemory(root, specPath) {
   }).toPromptMemory();
 }
 
-function buildImplReviewPrompt({ requirementFileMap = {}, diff = "", touchedFiles = [], previousReview = null, taskSpec = null } = {}) {
+function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff = "", touchedFiles = [], previousReview = null, taskSpec = null } = {}) {
+  const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
+  const responseSchema = buildImplReviewResponseSchema(allowedRequirementIds);
   const touched = Array.from(touchedFiles instanceof Set ? touchedFiles : new Set(touchedFiles)).sort();
   const modeList = IMPL_REVIEW_BLOCKING_FAILURE_MODES.map((mode, index) => `  ${index + 1}. ${mode}`).join("\n");
   const pb = new PromptBuilder()
@@ -796,17 +822,20 @@ function buildImplReviewPrompt({ requirementFileMap = {}, diff = "", touchedFile
       "Classify regression failures, test false positives, scope creep, project-rule violations, naming proposals, refactor proposals, DRY proposals, comment proposals, and docs proposals as non-blocking or out of scope rather than blocking findings.",
       "Non-blocking improvements are optional. Do not generate one unless it names a touched file, describes an observable issue in that file, and provides a replacement action that names the affected function, branch, assertion, prompt sentence, or artifact field.",
       "File-specific findings must use a file from the touched file set.",
-      "A missing_acceptance_requirement blocker may use requirementId instead of file when the requirement exists in the spec.",
+      "requirementId is always required and must use one of the allowed target requirement IDs.",
+      "A missing_acceptance_requirement blocker may omit file only when its requirementId identifies the missing target requirement.",
       "Do not fail the review for non-blocking improvements.",
       "",
       "Return an object with:",
       "- blockingFindings[] with title, failureMode, file, requirementId, issue, suggestion, rationale",
       "- nonBlockingImprovements[] with title, failureMode, file, requirementId, issue, suggestion, rationale",
-      "- Use null for file or requirementId when it does not apply.",
+      "- file may be null only when the missing_acceptance_requirement rule applies.",
+      "- requirementId must never be null; every finding must use an allowed target requirement ID.",
       "- Use empty arrays when there are no findings in a category.",
     ].join("\n"))
-    .setJsonSchema(IMPL_REVIEW_RESPONSE_SCHEMA)
-    .setFmtFallback(IMPL_REVIEW_FMT_FALLBACK)
+    .setJsonSchema(responseSchema)
+    .setFmtFallback(buildImplReviewFmtFallback(responseSchema))
+    .addUserPrompt("## Allowed Target Requirement IDs", [...allowedRequirementIds].sort().join("\n") || "(none)")
     .addUserPrompt("## Requirement-File Mapping", JSON.stringify(requirementFileMap, null, 2))
     .addUserPrompt("## Touched Files", touched.join("\n") || "(none)")
     .addUserPrompt("## Diff", diff || "(none)");
@@ -829,8 +858,8 @@ function resolveRequirementIds(root, flow) {
 }
 
 async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec = null }) {
-  const parsed = parseImplReviewFindings(reviewOutput);
   const requirementIds = resolveRequirementIds(root, flow);
+  const parsed = parseImplReviewFindings(reviewOutput, { requirementIds });
   const filtered = filterImplReviewFindingsByScope({
     parsed,
     touchedFiles,
@@ -977,6 +1006,44 @@ function buildCrossCheckSystemPrompt() {
   ].join("\n");
 }
 
+function implLoopRequirementRules(requirementIds) {
+  const allowedRequirementIds = [...normalizeImplReviewRequirementIds(requirementIds)].sort();
+  return [
+    "Impl-review requirement contract (MANDATORY):",
+    `- Every proposal MUST include '**Requirement:** <id>' using one of: ${allowedRequirementIds.join(", ")}.`,
+    "- Missing or unknown requirement IDs make the provider output invalid.",
+  ].join("\n");
+}
+
+function buildImplLoopReviewSystemPrompt(guardrails, options) {
+  return [
+    buildDraftSystemPrompt(guardrails, options),
+    implLoopRequirementRules(options.requirementIds),
+  ].join("\n\n");
+}
+
+function buildImplLoopCrossCheckSystemPrompt(requirementIds) {
+  return [
+    buildCrossCheckSystemPrompt(),
+    implLoopRequirementRules(requirementIds),
+  ].join("\n\n");
+}
+
+function parseImplLoopProposals(text, { requirementIds } = {}) {
+  const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
+  return parseProposals(text).map((proposal) => {
+    const requirementId = extractProposalRequirementId(proposal.body);
+    if (!allowedRequirementIds.has(requirementId)) {
+      throw new WorkUnitToolingFailure({
+        failureKind: "schema_failure",
+        message: `impl-review loop proposal requirementId is missing or unknown: ${requirementId || "(missing)"}`,
+        rawResponse: text,
+      });
+    }
+    return { ...proposal, requirementId };
+  });
+}
+
 function expandProposalsToGroup(proposals, groupFiles) {
   if (proposals.length === 0) return [];
   const representative = groupFiles[0];
@@ -1108,9 +1175,9 @@ function proposalSuccessPayload(proposals) {
   return { proposals: proposals.map((proposal) => ({ ...proposal })) };
 }
 
-function persistLoopFinalArtifacts({ specDir, proposals }) {
+function persistLoopFinalArtifacts({ specDir, proposals, requirementIds }) {
   if (!specDir) return;
-  const jsonText = loopProposalsToImplReviewJson(proposals);
+  const jsonText = loopProposalsToImplReviewJson(proposals, requirementIds);
   fs.writeFileSync(path.join(specDir, "impl-review.json"), `${jsonText}\n`);
   fs.writeFileSync(path.join(specDir, "review.md"), formatImplReviewMd(new ImplReviewArtifact(JSON.parse(jsonText))));
 }
@@ -1180,6 +1247,7 @@ async function runLoopReviewWithDependencies({
   promptVersion = "impl-review-loop-v1",
   schemaVersion = "impl-review-proposals-v1",
   validateProviderOutput = false,
+  requirementIds = new Set(),
 }) {
   const reviewChunks = createLoopReviewChunks(groups, maxLoopCalls);
   if (groups.length > maxLoopCalls && onBatch) onBatch({ groups, reviewChunks, maxLoopCalls });
@@ -1288,17 +1356,28 @@ async function runLoopReviewWithDependencies({
     }
   }
 
-  if (persistFinalArtifacts) persistLoopFinalArtifacts({ specDir, proposals: allProposals });
+  if (persistFinalArtifacts) {
+    persistLoopFinalArtifacts({ specDir, proposals: allProposals, requirementIds });
+  }
   return { proposals: allProposals, summaries, reviewChunks, reviewCallCount };
 }
 
-function loopProposalsToImplReviewJson(proposals) {
+function requireImplLoopRequirementId(proposal, requirementIds) {
+  if (!requirementIds.has(proposal.requirementId)) {
+    throw new Error(`impl review loop finding has invalid requirementId: ${proposal.requirementId || "(missing)"}`);
+  }
+  return proposal.requirementId;
+}
+
+function loopProposalsToImplReviewJson(proposals, requirementIds = new Set()) {
+  const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
   return JSON.stringify({
     blockingFindings: [],
     nonBlockingImprovements: proposals.map((proposal) => ({
       title: proposal.title,
       failureMode: "refactor",
       ...(proposal.file ? { file: proposal.file } : {}),
+      requirementId: requireImplLoopRequirementId(proposal, allowedRequirementIds),
       issue: proposal.body || proposal.title,
       suggestion: proposal.body || proposal.title,
       rationale: "Loop review proposal.",
@@ -1330,6 +1409,7 @@ async function runActiveImplReviewWithDependencies({
   const reviewOutput = shouldUseLoopReview(touchedFiles.size)
     ? await runLoopReview()
     : await runSingleReview();
+  if (reviewOutput?.verdict === "TOOLING_FAILURE") return reviewOutput;
   return persistImplReview(reviewOutput);
 }
 
@@ -1356,6 +1436,7 @@ async function runReviewWithDependencies(options) {
 async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guardrails, config = {}) {
   const specInput = path.resolve(root, flow.spec);
   const spec = loadSpecJson(specInput);
+  const requirementIds = new Set((spec.requirements || []).map((requirement) => requirement.id).filter(Boolean));
   const fileToReqs = invertFileMap(fileMap, spec.requirements || []);
   const specDir = path.dirname(specInput);
   const matcher = createReviewExcludeMatcher({ root, exclusions: resolveReviewExcludePaths(config) });
@@ -1371,9 +1452,12 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
   });
 
   const draftAgent = ensureAgent("flow.impl.review.propose");
-  const systemPrompt = buildDraftSystemPrompt(
+  const systemPrompt = buildImplLoopReviewSystemPrompt(
     guardrails,
-    buildReviewAcknowledgedRationale(root, flow, guardrails),
+    {
+      ...buildReviewAcknowledgedRationale(root, flow, guardrails),
+      requirementIds,
+    },
   );
 
   const result = await runLoopReviewWithDependencies({
@@ -1385,13 +1469,15 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
     promptVersion: "impl-review-loop-v1",
     schemaVersion: "impl-review-proposals-v1",
     validateProviderOutput: true,
+    requirementIds,
+    parseReviewProposals: (text) => parseImplLoopProposals(text, { requirementIds }),
     buildChunkInput: (chunk) => buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs),
     reviewChunk: (chunk, input) => callReviewAgent(draftAgent, input, "flow.impl.review.propose", systemPrompt),
     crossCheck: (summaries) => {
       console.error("  [loop-review] Running cross-check pass...");
       const crossCheckInput = buildCrossCheckInput(summaries);
       return callReviewAgent(
-        draftAgent, crossCheckInput, "flow.impl.review.propose", buildCrossCheckSystemPrompt(),
+        draftAgent, crossCheckInput, "flow.impl.review.propose", buildImplLoopCrossCheckSystemPrompt(requirementIds),
       );
     },
     onBatch: ({ reviewChunks }) => {
@@ -2062,6 +2148,16 @@ async function runTestReviewWithDependencies({
 
 function classifyReviewCommandError(err, phase) {
   const message = String(err?.stack || err?.message || err || "");
+  const schemaFailure = message.match(/impl review output failed schema validation:\s*([^\n]+)/i);
+  if ((phase == null || phase === "impl") && schemaFailure) {
+    return ReviewFailure.schemaFailure({
+      phase: "impl",
+      targetReview: "impl-review",
+      validationError: schemaFailure[1].trim(),
+      currentAttempt: 1,
+      maximumAttempts: 1,
+    });
+  }
   const recoveryCommand = phase ? `senti flow run review --phase ${phase}` : "senti flow run review";
   return ReviewFailure.fromMessage({ phase: phase || "impl", message, recoveryCommand });
 }
@@ -3569,16 +3665,20 @@ async function runReview(rawArgs) {
     }
   }
   const previousReview = loadPreviousImplReviewMemory(root, flow.spec);
+  const requirementIds = resolveRequirementIds(root, flow);
   const result = await runReviewWithDependencies({
     touchedFiles,
     shouldUseLoopReview: (fileCount) => !taskSpec && shouldUseLoopReview(fileCount),
     runLoopReview: async () => {
       const proposals = await runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails, config);
-      return proposals?.verdict === "TOOLING_FAILURE" ? proposals : loopProposalsToImplReviewJson(proposals);
+      return proposals?.verdict === "TOOLING_FAILURE"
+        ? proposals
+        : loopProposalsToImplReviewJson(proposals, requirementIds);
     },
     runSingleReview: async () => {
       const reviewPrompt = buildImplReviewPrompt({
         requirementFileMap: fileMap,
+        requirementIds,
         diff,
         touchedFiles,
         previousReview,
@@ -3677,6 +3777,8 @@ export {
   runActiveImplReviewWithDependencies, runReviewWithDependencies,
   runSingleShotImplReviewWithDependencies, runNonImplReviewWithDependencies,
   loopProposalsToImplReviewJson,
+  parseImplLoopProposals,
+  classifyReviewCommandError,
   LOOP_REVIEW_THRESHOLD, MAX_LOOP_CALLS,
 };
 

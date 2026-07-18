@@ -82,17 +82,18 @@ test("R1: parser accepts structured blocking and non-blocking impl review JSON o
       title: "Tighten branch name",
       failureMode: "naming",
       file: "src/flow/lib/run-review.js",
+      requirementId: "R6",
       issue: "A branch name is slightly vague.",
       suggestion: "Rename the branch to advisoryOnly.",
       rationale: "This is readability-only and does not block spec behavior.",
     }],
-  }));
+  }), { requirementIds: new Set(["R1", "R6"]) });
 
   assert.equal(parsed.blockingFindings.length, 1);
   assert.equal(parsed.nonBlockingImprovements.length, 1);
   assert.equal(parsed.blockingFindings[0].requirementId, "R6");
   assert.throws(
-    () => parseImplReviewFindings("### 1. Legacy proposal\n**File:** src/x.js"),
+    () => parseImplReviewFindings("### 1. Legacy proposal\n**File:** src/x.js", { requirementIds: new Set(["R1"]) }),
     /impl review output failed schema validation|Unexpected token|JSON/i,
   );
   assert.throws(() => parseImplReviewFindings(JSON.stringify({
@@ -104,12 +105,13 @@ test("R1: parser accepts structured blocking and non-blocking impl review JSON o
       suggestion: "Require rationale.",
     }],
     nonBlockingImprovements: [],
-  })), /rationale|schema validation/i);
+  }), { requirementIds: new Set(["R1"]) }), /rationale|schema validation/i);
 });
 
 test("R2: prompt and parser limit blocking failure modes to the approved three labels", () => {
   const prompt = buildImplReviewPrompt({
     requirementFileMap: { R1: ["src/flow/commands/review.js"] },
+    requirementIds: new Set(["R1"]),
     diff: "diff --git a/src/flow/commands/review.js b/src/flow/commands/review.js",
     touchedFiles: ["src/flow/commands/review.js"],
   });
@@ -123,28 +125,31 @@ test("R2: prompt and parser limit blocking failure modes to the approved three l
       title: `Blocking ${index}`,
       failureMode,
       file: "src/flow/commands/review.js",
+      requirementId: "R1",
       issue: "Observable issue.",
       suggestion: "Apply the required fix.",
       rationale: "This maps to an approved blocking mode.",
     })),
     nonBlockingImprovements: [],
-  })).blockingFindings.map((item) => item.failureMode), BLOCKING_MODES);
+  }), { requirementIds: new Set(["R1"]) }).blockingFindings.map((item) => item.failureMode), BLOCKING_MODES);
   assert.throws(() => parseImplReviewFindings(JSON.stringify({
     blockingFindings: [{
       title: "Style",
       failureMode: "refactor",
       file: "src/flow/commands/review.js",
+      requirementId: "R1",
       issue: "Could be cleaner.",
       suggestion: "Refactor it.",
       rationale: "Preference.",
     }],
     nonBlockingImprovements: [],
-  })), /invalid blocking failureMode|schema validation/i);
+  }), { requirementIds: new Set(["R1"]) }), /invalid blocking failureMode|schema validation/i);
 });
 
 test("R3: excluded impl concerns are advisory or out of scope, never blocking", () => {
   const prompt = buildImplReviewPrompt({
     requirementFileMap: { R1: ["src/flow/commands/review.js"] },
+    requirementIds: new Set(["R1"]),
     diff: "diff",
     touchedFiles: ["src/flow/commands/review.js"],
   });
@@ -167,12 +172,13 @@ test("R3: excluded impl concerns are advisory or out of scope, never blocking", 
       title: "Refactor preference",
       failureMode: "refactor",
       file: "src/flow/commands/review.js",
+      requirementId: "R1",
       issue: "The helper could be shorter.",
       suggestion: "Extract a helper.",
       rationale: "This is a refactor proposal, not an approved blocker.",
     }],
     nonBlockingImprovements: [],
-  })), /invalid blocking failureMode|schema validation/i);
+  }), { requirementIds: new Set(["R1"]) }), /invalid blocking failureMode|schema validation/i);
 });
 
 test("R4: impl-review.json stores verdict, summary, buckets, and excluded scope counts", () => {
@@ -182,6 +188,7 @@ test("R4: impl-review.json stores verdict, summary, buckets, and excluded scope 
       title: "Optional branch wording",
       failureMode: "naming",
       file: "src/flow/lib/run-review.js",
+      requirementId: "R4",
       issue: "The branch name could be clearer.",
       suggestion: "Rename it.",
       rationale: "Pure readability.",
@@ -216,6 +223,7 @@ test("R4: impl review command path writes impl-review.json to the current spec d
           title: "Optional naming",
           failureMode: "naming",
           file: "src/flow/commands/review.js",
+          requirementId: "R4",
           issue: "A local name could be clearer.",
           suggestion: "Rename the local.",
           rationale: "Readability-only.",
@@ -261,6 +269,7 @@ test("R5: review.md renders blocking and non-blocking buckets separately includi
       title: "Optional name",
       failureMode: "naming",
       file: "src/flow/lib/run-review.js",
+      requirementId: "R4",
       issue: "The variable name could be clearer.",
       suggestion: "Rename it.",
       rationale: "Readability-only.",
@@ -297,6 +306,7 @@ test("R5: impl review command path writes review.md with both populated buckets"
           title: "Optional prompt wording",
           failureMode: "docs",
           file: "src/flow/prompts/impl/review.md",
+          requirementId: "R5",
           issue: "One sentence could be clearer.",
           suggestion: "Clarify the sentence.",
           rationale: "Non-blocking prompt polish.",
@@ -322,6 +332,7 @@ test("R6: PASS is based on zero blocking findings and ignores advisory count", (
       title: "Optional cleanup",
       failureMode: "refactor",
       file: "src/flow/commands/review.js",
+      requirementId: "R6",
       issue: "Could be shorter.",
       suggestion: "Extract a helper.",
       rationale: "Readability only.",
@@ -395,6 +406,7 @@ test("R7: impl review command path returns structured PASS ADVISORY and FAIL ver
           title: "Optional branch wording",
           failureMode: "naming",
           file: "src/flow/lib/run-review.js",
+          requirementId: "R7",
           issue: "A branch name could be clearer.",
           suggestion: "Rename it.",
           rationale: "Readability-only.",
@@ -473,6 +485,7 @@ test("R10: previous impl review memory is bounded and includes verdict counts an
         title: `Advisory ${index}`,
         failureMode: "refactor",
         file: "src/flow/commands/review.js",
+        requirementId: "R4",
         issue: "Optional improvement.",
         suggestion: "Keep it visible but bounded.",
         rationale: "Non-blocking.",
@@ -499,6 +512,7 @@ test("R11: implement, impl-review, and reviewer prompts share the same three blo
   ];
   const reviewerPrompt = `${buildImplReviewPrompt({
     requirementFileMap: { R1: ["src/flow/commands/review.js"] },
+    requirementIds: new Set(["R1"]),
     diff: "diff",
     touchedFiles: ["src/flow/commands/review.js"],
   }).systemPrompt}`;
@@ -514,6 +528,7 @@ test("R11: implement, impl-review, and reviewer prompts share the same three blo
 test("R12: non-blocking prompt guidance requires touched file, observable issue, and replacement action", () => {
   const prompt = buildImplReviewPrompt({
     requirementFileMap: { R1: ["src/flow/commands/review.js"] },
+    requirementIds: new Set(["R1"]),
     diff: "diff",
     touchedFiles: ["src/flow/commands/review.js"],
   });
@@ -609,6 +624,7 @@ test("R13: impl review command path writes only scope-filtered findings and excl
             title: "Keep security bug",
             failureMode: "security_or_data_integrity_bug",
             file: "src/flow/commands/review.js",
+            requirementId: "R13",
             issue: "A touched file bug.",
             suggestion: "Fix it.",
             rationale: "Touched file blocker.",
@@ -617,6 +633,7 @@ test("R13: impl review command path writes only scope-filtered findings and excl
             title: "Drop missing file blocker",
             failureMode: "spec_behavior_contradiction",
             file: "",
+            requirementId: "R13",
             issue: "No file.",
             suggestion: "Drop it.",
             rationale: "File-specific blocker without a file.",
@@ -625,6 +642,7 @@ test("R13: impl review command path writes only scope-filtered findings and excl
             title: "Drop outside blocker",
             failureMode: "spec_behavior_contradiction",
             file: "src/outside.js",
+            requirementId: "R13",
             issue: "Outside diff.",
             suggestion: "Drop it.",
             rationale: "Out of scope.",
@@ -635,6 +653,7 @@ test("R13: impl review command path writes only scope-filtered findings and excl
             title: "Keep advisory",
             failureMode: "refactor",
             file: "src/flow/commands/review.js",
+            requirementId: "R13",
             issue: "Optional touched-file issue.",
             suggestion: "Optional fix.",
             rationale: "Non-blocking.",
@@ -643,6 +662,7 @@ test("R13: impl review command path writes only scope-filtered findings and excl
             title: "Drop outside advisory",
             failureMode: "refactor",
             file: "src/outside.js",
+            requirementId: "R13",
             issue: "Outside diff.",
             suggestion: "Drop it.",
             rationale: "Out of scope.",
@@ -668,11 +688,12 @@ test("R14: executable tests exercise impl review contracts", async () => {
       title: "Advisory",
       failureMode: "refactor",
       file: "src/flow/commands/review.js",
+      requirementId: "R1",
       issue: "Optional issue.",
       suggestion: "Optional replacement.",
       rationale: "Non-blocking.",
     }],
-  }));
+  }), { requirementIds: new Set(["R1"]) });
   const filtered = filterImplReviewFindingsByScope({
     parsed,
     touchedFiles: new Set(["src/flow/commands/review.js"]),
@@ -803,6 +824,7 @@ test("R16: task-scoped review uses the same structured artifact and verdict poli
           title: "Optional task cleanup",
           failureMode: "refactor",
           file: "src/flow/commands/review.js",
+          requirementId: "R16",
           issue: "A task-local helper could be smaller.",
           suggestion: "Extract a helper.",
           rationale: "Non-blocking cleanup.",
@@ -821,6 +843,7 @@ test("R16: task-scoped review uses the same structured artifact and verdict poli
 
   const prompt = buildImplReviewPrompt({
     requirementFileMap: { R16: ["src/flow/commands/review.js"] },
+    requirementIds: new Set(["R16"]),
     diff: "diff",
     touchedFiles: ["src/flow/commands/review.js"],
     taskSpec: { relPath: "specs/demo/tasks/T-1.md", content: "# Task T-1\n" },

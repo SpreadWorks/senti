@@ -22,6 +22,7 @@ test("R1: taxonomy exposes the required review failure classifications", () => {
     "max_attempts_exceeded",
     "provider_failure",
     "review_verdict_failure",
+    "schema_failure",
     "subprocess_failure",
   ]);
 });

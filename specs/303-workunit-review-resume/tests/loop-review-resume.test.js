@@ -187,7 +187,7 @@ test("R5: timeout parser and schema failures are checkpointed tooling failures",
 
 test("R6: final review artifacts are produced only after every planned WorkUnit succeeds", async () => {
   const { createMemoryWorkUnitCheckpointStore } = await loadWorkUnitModule();
-  const { loopProposalsToImplReviewJson, runLoopReviewWithDependencies } = reviewCommand;
+  const { loopProposalsToImplReviewJson, parseImplLoopProposals, runLoopReviewWithDependencies } = reviewCommand;
   assert.equal(typeof runLoopReviewWithDependencies, "function");
   assert.equal(typeof loopProposalsToImplReviewJson, "function");
 
@@ -204,16 +204,19 @@ test("R6: final review artifacts are produced only after every planned WorkUnit 
     specDir,
     checkpointStore,
     persistFinalArtifacts: true,
+    requirementIds: new Set(["R1"]),
+    parseReviewProposals: (text) => parseImplLoopProposals(text, { requirementIds: new Set(["R1"]) }),
     buildChunkInput: (chunk) => `diff for ${chunk[0].representative}`,
     reviewChunk: async (chunk) => [
       `### Check ${chunk[0].representative}`,
-      `File: ${chunk[0].representative}`,
+      `**File:** ${chunk[0].representative}`,
+      "**Requirement:** R1",
       "The behavior changed.",
     ].join("\n"),
     crossCheck: async () => "NO_PROPOSALS",
   });
 
-  const finalJson = JSON.parse(loopProposalsToImplReviewJson(result.proposals));
+  const finalJson = JSON.parse(loopProposalsToImplReviewJson(result.proposals, new Set(["R1"])));
   assert.deepEqual(finalJson.blockingFindings, []);
   assert.equal(finalJson.nonBlockingImprovements.length, 2);
   assert.equal(checkpointStore.recordsByStatus("success").length, 2);

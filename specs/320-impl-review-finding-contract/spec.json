@@ -1,0 +1,285 @@
+{
+  "goal": "impl-review の model output contract で全 finding に target spec の既知 requirementId を必須化し、schema validation failure を semantic verdict から分離した bounded tooling failure として返す。",
+  "scope": {
+    "in": [
+      "[must] impl-review の blockingFindings と nonBlockingImprovements に共通する finding schema、generation prompt、parser validation を一致させる。",
+      "[must] 全 finding の requirementId を non-empty string とし、target spec の requirements に存在する ID だけを許可する。",
+      "[must] missing、null、unknown requirementId とその他の schema violation を bounded tooling retry 対象にする。",
+      "[must] tooling retry exhaustion を failure class、target review、validation error、current attempt、maximum attempts を持つ structured failure envelope で返す。",
+      "[must] valid output の PASS/ADVISORY/FAIL、reviewRetry、artifact、step promotion、routing を維持する。",
+      "[must] exactly 41 件の nonBlockingImprovements と stopped impl-review state の guarded resume を spec-local unit/e2e fixture で検証する。"
+    ],
+    "out": [
+      "`Preset not found: node-cli` warning の原因調査または修正。",
+      "Issue #436 が実装する機能内容の変更。",
+      "finding の品質改善、件数制限、severity policy の変更。",
+      "draft、spec、test、acceptance review の schema、prompt、parser、routing の変更。",
+      "全 review retry architecture の再設計。",
+      "missing、null、unknown requirementId を受理する compatibility fallback。"
+    ]
+  },
+  "constraints": [
+    "Node.js built-in modules と既存 project helpers だけを使用し、外部依存を追加しない。",
+    "`src/` に project、Issue、runId 固有値または fixture 固有分岐を含めない。",
+    "Model/provider output を system boundary として validation し、validation 済みの内部 interface は信頼する。",
+    "Finding invariant は `ImplReviewFinding`、review failure invariant は `ReviewFailure` または同等の専用 class に所有させ、新しい meaningful failure/result を object-literal type tag で表現しない。",
+    "Alpha policy に従い、invalid legacy output を受理する fallback を追加しない。",
+    "共通化は impl-review finding contract または impl-review tooling-failure envelope を直接共有する既存 module に限定する。",
+    "Flow registry の impl-review pre/post hooks と config entries は変更しない。",
+    "Schema failure は semantic reviewRetry を消費せず、semantic/deferred finding、review artifact、step promotion を生成しない。",
+    "Provider internal retry と flow-side tooling retry は既存上限を維持し、無限 retry を追加しない。",
+    "テストを通すために既存 assertion を弱めず、変更後 contract と回帰面を追加 coverage で検証する。"
+  ],
+  "design_principles": [
+    "Prompt、schema、parser が同じ allowed requirement ID contract を表現する。",
+    "Schema/tooling failure と semantic review result の lifecycle を交差させない。",
+    "Valid output の既存 behavior を behavior-level tests で固定する。",
+    "Failure diagnostics は operator と test が同じ stable fields で判定できる形にする。",
+    "Impl-review 固有 contract を修正し、他 review 種別へ policy を波及させない。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/commands/review.js` owns the impl-review prompt, dynamic response schema, finding normalization, requirement-ID boundary validation, and review artifact writes."
+      },
+      {
+        "text": "`src/flow/lib/review-failure.js` owns review failure classification, retry eligibility, structured recovery diagnostics, and envelope fields."
+      },
+      {
+        "text": "`src/flow/lib/run-review.js` owns bounded flow-side subprocess retries, preserves attempt counts, and returns the final structured tooling failure without semantic post-processing."
+      },
+      {
+        "text": "`tests/unit/flow/commands/review.test.js` and `tests/unit/flow/run-review-advisory.test.js` cover the shared impl output and review lifecycle regression surfaces."
+      },
+      {
+        "text": "`specs/320-impl-review-finding-contract/tests/` owns spec-local requirement coverage, including exactly 41-finding and stopped-flow resume fixtures."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Impl review resolves the target spec requirement IDs and passes the same allowed values into the generation prompt and response schema before invoking the provider."
+      },
+      {
+        "text": "Provider output is parsed at the boundary; every finding is constructed only when requirementId is non-empty and belongs to the target spec."
+      },
+      {
+        "text": "A valid payload proceeds to scope filtering and writes review.md plus impl-review.json; artifact verdict drives the existing PASS, ADVISORY, or FAIL lifecycle."
+      },
+      {
+        "text": "A schema violation exits the producer path before artifact writes, is classified as schema tooling failure, and is retried only through the existing bounded provider and flow-side tooling retry paths."
+      },
+      {
+        "text": "After flow-side exhaustion, RunReviewCommand returns a structured failure containing failure class, target review, validation error, current attempt, and maximum attempts; semantic retry and registry promotion are not invoked."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] The current impl-review prompt and schema allow null requirementId while the consumer also resolves target requirement IDs; result=contract mismatch confirmed.",
+        "evidence": "`src/flow/commands/review.js` defines IMPL_REVIEW_FINDING_SCHEMA.requirementId as string|null, buildImplReviewPrompt says null is allowed, and runImplReview resolves spec requirement IDs for scope filtering."
+      },
+      {
+        "text": "[VERIFY] The current finding model omits empty requirementId and validates blocking failureMode only; result=finding invariant does not enforce the consumer contract.",
+        "evidence": "`ImplReviewFinding` in `src/flow/commands/review.js` normalizes requirementId to an empty string and conditionally omits it from toJSON/toPromptMemory."
+      },
+      {
+        "text": "[VERIFY] Existing flow-side subprocess retry is bounded but schema failures finish as generic subprocess errors without schema diagnostics; result=classification gap confirmed.",
+        "evidence": "`src/flow/lib/run-review.js` caps MAX_REVIEW_SUBPROCESS_RETRIES at 2. `ReviewFailure.fromSubprocessResult` in `src/flow/lib/review-failure.js` recognizes provider/input-size markers and otherwise returns subprocess_failure."
+      },
+      {
+        "text": "[VERIFY] Existing semantic retry accounting can remain unchanged when tooling failure returns before semantic artifact processing; result=lifecycle boundary matches the draft policy.",
+        "evidence": "`updateReviewRetryCounter` in `src/flow/lib/run-review.js` increments impl reviewRetry from semantic result artifacts; schema failure currently occurs before runImplReview writes a semantic artifact."
+      },
+      {
+        "text": "Use every finding as a requirement-scoped finding and require a known target-spec ID.",
+        "evidence": "Issue #437 requires valid requirementId on each finding, especially nonBlockingImprovements. A separate unscoped representation is not required by the request or current impl-review artifact consumers.",
+        "consideredAlternatives": "Adding an unscoped observation variant was rejected because it expands the finding contract and review schema without a demonstrated consumer need."
+      },
+      {
+        "text": "Extend the existing ReviewFailure model for schema tooling failure rather than normalize invalid output into a semantic verdict.",
+        "evidence": "ReviewFailure already owns classification, retry eligibility, recovery fields, and envelope serialization; reusing that owner preserves the OOP invariant boundary.",
+        "consideredAlternatives": "Returning semantic FAIL or an invalid impl-review artifact was rejected because either path consumes semantic lifecycle state or records findings that never passed the contract."
+      },
+      {
+        "text": "[MIGRATION] Replace only the impl-review model output JSON contract; retain the existing command, hooks, config, valid artifacts, counters, states, and routing.",
+        "evidence": "Affected command: `senti flow run review` when executing impl-review. Replaced interface: blockingFindings/nonBlockingImprovements finding schema. Retained surfaces: registry hooks, config entries, review.md, impl-review.json, PASS/ADVISORY/FAIL, reviewRetry, step state, routing."
+      },
+      {
+        "text": "[MIGRATION] Reject missing, null, or unknown requirementId without compatibility fallback and expose a tooling failure instead of a semantic result.",
+        "evidence": "User-visible impact: invalid model output no longer produces review artifacts or a semantic verdict. Valid known-ID output keeps the same command result and artifacts. This is an intentional alpha contract replacement."
+      }
+    ]
+  },
+  "background": "Impl-review currently requires the requirementId field structurally but allows null and instructs the provider to use null. The consumer later resolves target requirement IDs, so repeated provider outputs can contain dozens of findings that cannot satisfy the effective contract. These schema failures are non-semantic: they must not consume reviewRetry, write review artifacts, defer findings, or promote the step. The fix makes the generation and consumer contracts identical and returns field-complete tooling diagnostics after existing bounded retries are exhausted.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The impl-review generation prompt and JSON schema shall require a non-empty requirementId on every blockingFindings and nonBlockingImprovements item and shall expose only requirement IDs present in the target spec as allowed values.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Impl-review boundary parsing shall reject missing, null, empty, or target-spec-unknown requirementId values before scope filtering or artifact creation; every accepted ImplReviewFinding shall preserve a known requirementId in JSON and prompt memory.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "An impl-review output schema violation shall use the existing bounded provider and flow-side tooling retry limits and, after exhaustion, return a non-semantic structured failure containing failure class, target review, validation error, current attempt, and maximum attempts.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Schema tooling failure shall not consume reviewRetry, write or replace review.md or impl-review.json, record semantic/deferred findings, emit semantic PASS/ADVISORY/FAIL, or promote impl-review to impl-gate.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "For valid known-ID output, blocking findings shall produce FAIL, increment semantic reviewRetry, and keep impl-review active; only non-blocking findings shall produce ADVISORY, reset reviewRetry, write both review artifacts, and promote impl-gate; empty arrays shall produce PASS with the same reset, artifact, and promotion behavior as ADVISORY.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "The change shall preserve draft, spec, test, and acceptance review schema/prompt/parser/routing behavior and shall keep impl-review registry hooks, config entries, artifact paths, semantic counter behavior, state transitions, and routing unchanged for valid output.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "Spec-local regression tests shall cover exactly 41 valid and invalid nonBlockingImprovements, bounded schema-failure exhaustion, and a stopped impl-review state whose guarded next-action and review resume without manual counter, state, or artifact edits.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "For R1 and R2, a payload containing blocking and non-blocking findings with requirementId values from the target spec passes schema validation and every persisted finding contains that ID; missing, null, empty, and unknown IDs each fail before filtering and artifact writes.",
+    "For R3, a test that returns the same schema-invalid impl-review output through all provider and flow-side attempts terminates within the configured limits and returns failure class, target review, validation error, current attempt, and maximum attempts with current attempt equal to maximum attempts.",
+    "For R4, schema-failure tests compare state and files before and after execution and observe no reviewRetry delta, semantic/deferred finding, review.md or impl-review.json write/replacement, semantic verdict, or impl-gate promotion.",
+    "For R5, valid known-ID fixtures prove blocking findings yield FAIL plus one semantic reviewRetry increment and no promotion; only non-blocking findings yield ADVISORY plus counter reset, both artifacts, and impl-gate promotion; empty arrays yield PASS with the same reset, artifacts, and promotion.",
+    "For R6, targeted existing tests for draft/spec/test/acceptance review and impl-review registry/counter/artifact routing pass without changing their expected contracts, hooks, config, or artifact paths.",
+    "For R7, a spec-local fixture with exactly 41 nonBlockingImprovements is accepted when every item has a known requirementId and returns tooling failure when any one item lacks or uses an unknown requirementId.",
+    "For R7, a spec-local e2e fixture starts from impl-review state after schema failure with no semantic verdict, artifact write, or reviewRetry delta; after applying the fixed code baseline, guarded next-action resolves impl-review and guarded review returns PASS, ADVISORY, FAIL, or the five-field bounded tooling failure without fixture-side counter/state/artifact repair.",
+    "Every spec-local test file under `specs/320-impl-review-finding-contract/tests/` contains a `// spec: R<N>` header covering its asserted requirements."
+  ],
+  "clarifications": [
+    {
+      "q": "Can an impl-review finding omit requirementId when it has a touched file?",
+      "a": "No. Every blocking and non-blocking finding is requirement-scoped and must use an ID from the target spec; file remains an independent scope field."
+    },
+    {
+      "q": "Does schema failure produce an impl-review artifact with TOOLING_FAILURE verdict?",
+      "a": "No. It returns a tooling failure envelope before semantic artifact creation. Existing review artifacts, if present from an earlier valid attempt, are not replaced by the invalid attempt."
+    },
+    {
+      "q": "Which retry counter applies to schema-invalid output?",
+      "a": "Existing bounded provider and flow-side tooling retries apply. The semantic reviewRetry counter remains unchanged."
+    },
+    {
+      "q": "Does this change other review types?",
+      "a": "No. Draft, spec, test, and acceptance review contracts and routing remain unchanged."
+    },
+    {
+      "q": "Is a legacy empty JSON array a valid impl-review PASS response?",
+      "a": "No. Valid impl-review output is the response object with blockingFindings and nonBlockingImprovements arrays. R2 and the alpha contract-replacement policy reject a top-level array as schema tooling failure; R6 preserves lifecycle behavior only for valid known-ID response objects."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Allow null requirementId and discard invalid findings during scope filtering.",
+      "reason": "Rejected because discarded invalid output would be normalized into a semantic result and could hide a producer contract failure."
+    },
+    {
+      "option": "Add a separate unscoped observation finding variant.",
+      "reason": "Rejected because no current consumer requires it and it expands the impl-review contract beyond Issue #437."
+    },
+    {
+      "option": "Count schema violations as semantic FAIL.",
+      "reason": "Rejected because no semantic verdict exists before schema validation and reviewRetry must retain its semantic meaning."
+    },
+    {
+      "option": "Generalize schema tooling failure handling across all review types.",
+      "reason": "Rejected because Issue #437 is bounded to the impl-review contract and requires other review behavior to remain unchanged."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "impl-review",
+    "requirementId",
+    "nonBlockingImprovements",
+    "schema validation",
+    "ReviewFailure",
+    "ImplReviewFinding",
+    "reviewRetry",
+    "tooling failure",
+    "bounded retry",
+    "run-review",
+    "review artifacts",
+    "flow resume"
+  ],
+  "implementationTargets": [
+    "src/flow/commands/review.js",
+    "src/flow/lib/review-failure.js",
+    "src/flow/lib/run-review.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "specs/320-impl-review-finding-contract/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Enforce finding requirement IDs",
+      "goal": "Align the impl-review prompt, dynamic schema, parser, and finding invariant so every accepted finding carries a target-spec requirement ID.",
+      "acceptance": [
+        "Prompt and schema expose the same target-spec requirement ID values.",
+        "Missing, null, empty, and unknown IDs fail before filtering and artifact writes.",
+        "Valid blocking and non-blocking findings retain requirementId in JSON and prompt memory."
+      ],
+      "implementation_notes": "Keep this contract inside the existing impl-review ownership in src/flow/commands/review.js. Do not modify other review schemas.",
+      "test_strategy": "Add focused parser, prompt, schema, finding-model, and 41-item spec-local unit tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Classify schema tooling failures",
+      "goal": "Route impl-review schema violations through existing bounded tooling retries and return field-complete non-semantic failure diagnostics after exhaustion.",
+      "acceptance": [
+        "Schema failures retry only within existing provider and flow-side limits.",
+        "Exhaustion returns all five diagnostic fields with current attempt equal to maximum attempts.",
+        "Invalid output does not mutate semantic counters, findings, artifacts, or step state."
+      ],
+      "implementation_notes": "Extend the existing ReviewFailure class and run-review retry boundary rather than introducing an object-literal failure union or changing registry hooks.",
+      "test_strategy": "Add ReviewFailure, subprocess marker, bounded-attempt, no-artifact, and no-counter unit/integration tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Prove review lifecycle parity",
+      "goal": "Lock valid-output lifecycle, unaffected review types, large finding sets, and stopped-state resume behavior to observable regression tests.",
+      "acceptance": [
+        "Valid FAIL, ADVISORY, and PASS fixtures preserve counter, artifact, state, and routing behavior.",
+        "Draft, spec, test, and acceptance review regression contracts remain passing.",
+        "A stopped-state fixture resumes through guarded next-action and review without manual state edits."
+      ],
+      "implementation_notes": "Use generic fixtures under the spec directory; do not embed Issue #436 or its runId in src/. Reuse existing flow fixtures and command harnesses.",
+      "test_strategy": "Run spec-local unit/e2e coverage, targeted shared review tests, then the project regression required by the flow.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-12T23:53:36.382Z",
+    "notes": "Approved: known requirementId contract, non-semantic schema tooling failure with bounded five-field diagnostics, valid PASS/ADVISORY/FAIL parity, unchanged other review types, exactly 41-item fixture, and guarded resume are verifiable and all spec guardrails passed."
+  }
+}

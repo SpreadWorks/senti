@@ -1,0 +1,2536 @@
+{
+  "spec": "specs/320-impl-review-finding-contract/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/320-impl-review-finding-contract",
+  "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-07-12T22:44:33.653Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-07-12T22:44:33.653Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-07-12T22:44:33.653Z",
+          "finishedAt": "2026-07-12T22:47:16.434Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 9,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-12T22:47:16.402Z",
+            "endedAt": "2026-07-12T22:47:16.442Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-07-12T22:47:16.434Z",
+          "finishedAt": "2026-07-12T22:47:36.256Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 11,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-12T22:47:24.632Z",
+            "endedAt": "2026-07-12T22:47:36.284Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-07-12T22:47:36.256Z",
+          "finishedAt": "2026-07-12T22:48:07.531Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 14,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-12T22:48:07.498Z",
+            "endedAt": "2026-07-12T22:48:07.539Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-07-12T22:48:07.531Z",
+          "finishedAt": "2026-07-12T22:48:37.891Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 16,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-12T22:48:37.862Z",
+            "endedAt": "2026-07-12T22:48:37.899Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-07-12T22:48:37.891Z",
+          "finishedAt": "2026-07-12T22:49:36.109Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 19,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-12T22:49:36.080Z",
+            "endedAt": "2026-07-12T22:49:36.117Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-07-12T22:49:36.109Z",
+          "finishedAt": "2026-07-12T22:49:51.737Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 21,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-12T22:49:46.635Z",
+            "endedAt": "2026-07-12T22:49:51.786Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-07-12T22:49:51.737Z",
+          "finishedAt": "2026-07-12T22:49:51.747Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-07-12T22:49:51.747Z",
+          "finishedAt": "2026-07-12T22:49:51.756Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "done",
+          "startedAt": "2026-07-12T22:49:51.756Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 39,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-12T22:58:45.894Z",
+            "endedAt": "2026-07-12T22:59:01.726Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-12T22:59:01.708Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-07-12T22:59:01.708Z",
+          "finishedAt": "2026-07-12T23:02:05.418Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 43,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-12T23:02:05.388Z",
+            "endedAt": "2026-07-12T23:02:05.425Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-review",
+          "status": "done",
+          "startedAt": "2026-07-12T23:02:05.418Z",
+          "finishedAt": "2026-07-12T23:03:45.175Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 45,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-12T23:02:14.383Z",
+            "endedAt": "2026-07-12T23:03:45.199Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-triage",
+          "status": "done",
+          "startedAt": "2026-07-12T23:03:45.175Z",
+          "finishedAt": "2026-07-12T23:03:45.185Z"
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-07-12T23:03:45.185Z",
+          "finishedAt": "2026-07-12T23:03:45.195Z"
+        },
+        {
+          "id": "spec-gate",
+          "status": "done",
+          "startedAt": "2026-07-12T23:03:45.195Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 54,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-12T23:51:19.869Z",
+            "endedAt": "2026-07-12T23:51:35.679Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-12T23:51:35.661Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-07-12T23:51:35.661Z",
+          "finishedAt": "2026-07-12T23:53:42.053Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 60,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-12T23:53:42.023Z",
+            "endedAt": "2026-07-12T23:53:42.068Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-07-12T23:53:42.053Z",
+          "finishedAt": "2026-07-12T23:57:32.056Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 63,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-12T23:57:32.016Z",
+            "endedAt": "2026-07-12T23:57:32.065Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-07-12T23:57:32.056Z",
+          "finishedAt": "2026-07-12T23:57:45.773Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 65,
+            "attempt": 1,
+            "command": "flow run scenario-validity",
+            "startedAt": "2026-07-12T23:57:45.223Z",
+            "endedAt": "2026-07-12T23:57:45.777Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-review",
+          "status": "done",
+          "startedAt": "2026-07-12T23:57:45.773Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 80,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-13T00:06:33.196Z",
+            "endedAt": "2026-07-13T00:06:47.894Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-13T00:06:47.889Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 103,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-13T00:23:30.445Z",
+            "endedAt": "2026-07-13T00:23:30.486Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 137,
+            "attempt": 1,
+            "command": "flow run test-execute",
+            "startedAt": "2026-07-13T00:38:43.968Z",
+            "endedAt": "2026-07-13T00:38:45.435Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 138,
+            "attempt": 1,
+            "command": "flow run test-result-review",
+            "startedAt": "2026-07-13T00:39:06.105Z",
+            "endedAt": "2026-07-13T00:39:06.135Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-review",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 111,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-13T00:26:00.711Z",
+            "endedAt": "2026-07-13T00:26:06.462Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-gate",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 146,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-18T10:46:22.407Z",
+            "endedAt": "2026-07-18T10:46:43.138Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 148,
+            "attempt": 1,
+            "command": "flow run retro",
+            "startedAt": "2026-07-18T10:47:03.037Z",
+            "endedAt": "2026-07-18T10:47:03.100Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "acceptance-review",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 156,
+            "attempt": 1,
+            "command": "flow run acceptance-review",
+            "startedAt": "2026-07-18T10:49:57.103Z",
+            "endedAt": "2026-07-18T10:49:57.187Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "final-regression",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 160,
+            "attempt": 1,
+            "command": "flow run final-regression",
+            "startedAt": "2026-07-18T11:05:20.593Z",
+            "endedAt": "2026-07-18T11:05:20.745Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-18T11:05:20.730Z"
+        },
+        {
+          "id": "report",
+          "status": "done",
+          "startedAt": "2026-07-18T11:05:20.730Z",
+          "runtimeLog": {
+            "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+            "sequence": 164,
+            "attempt": 1,
+            "command": "flow run report",
+            "startedAt": "2026-07-18T11:08:46.357Z",
+            "endedAt": "2026-07-18T11:08:46.579Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-18T11:08:46.535Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-07-18T11:08:46.535Z",
+              "finishedAt": "2026-07-18T11:09:14.305Z",
+              "runtimeLog": {
+                "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+                "sequence": 168,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-07-18T11:09:13.777Z",
+                "endedAt": "2026-07-18T11:09:14.319Z",
+                "exitCode": 0
+              }
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-07-18T11:09:14.305Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 437,
+  "request": "Goal: Align the impl-review prompt, output parser/schema, and finding contract so every blocking and non-blocking requirement-scoped finding has a valid requirementId from the target spec; classify schema validation failures as tooling failures rather than semantic verdicts. Scope: update generic impl-review prompt/schema boundary and bounded flow-side tooling retry diagnostics; preserve normal PASS/FAIL, semantic retry, counters, state promotion, artifacts, routing, and all other review types; add unit/e2e regression coverage for valid findings, missing/unknown IDs, bounded tooling exhaustion, and 40+ nonBlockingImprovements equivalent to Issue #436. Out of Scope: node-cli preset warning, Issue #436 feature behavior, finding quality/count limits, global retry redesign, compatibility fallback for invalid legacy output. Constraints: Node.js built-ins only, generic src, OOP invariants, boundary validation, no test weakening. Verification includes confirming the normal Issue #436 resume path after rebasing onto the fixed base without manual counter/state/artifact repair.",
+  "notes": [
+    {
+      "text": "branch: user explicitly selected isolated Git worktree for Issue #437",
+      "taskId": null,
+      "ts": "2026-07-12T22:43:38.511Z"
+    },
+    {
+      "text": "base-branch: parent selected option 1, branch from current main because Issue #437 is an independent prerequisite bug",
+      "taskId": null,
+      "ts": "2026-07-12T22:44:04.707Z"
+    },
+    {
+      "text": "draft-q1: parent approved Goal/Scope/Out of Scope for Issue #437 without revision",
+      "taskId": null,
+      "ts": "2026-07-12T22:44:27.564Z"
+    },
+    {
+      "text": "draft-refine: resolved q1-q4 from Issue #437 and the parent-approved prelude intent; no new user judgment required",
+      "taskId": null,
+      "ts": "2026-07-12T22:49:32.106Z"
+    },
+    {
+      "text": "draft-gate: parent adopted the gate finding and limited commonization to existing modules directly sharing the impl-review finding contract or tooling-failure envelope; draft/spec/test/acceptance schema, prompt, parser, and routing remain unchanged",
+      "taskId": null,
+      "ts": "2026-07-12T22:51:51.703Z"
+    },
+    {
+      "text": "draft-gate retry: parent required schema violations to use bounded tooling retry and to report failure class, target review, validation error, current attempt, and maximum attempts without semantic lifecycle updates",
+      "taskId": null,
+      "ts": "2026-07-12T22:53:08.257Z"
+    },
+    {
+      "text": "draft-gate third retry: parent adopted the full migration parity inventory and concrete source/test evidence for qa[0], qa[1], and qa[3]",
+      "taskId": null,
+      "ts": "2026-07-12T22:54:44.650Z"
+    },
+    {
+      "text": "final draft-gate retry: parent specified exact valid-output PASS/ADVISORY/FAIL state transitions and the guarded stopped-flow rebase/next-action/review acceptance scenario",
+      "taskId": null,
+      "ts": "2026-07-12T22:57:35.918Z"
+    },
+    {
+      "text": "spec-gate: parent bounded the Issue #436 regression fixture to exactly 41 findings and kept production count policy plus provider input/output bounds out of scope",
+      "taskId": null,
+      "ts": "2026-07-12T23:50:41.398Z"
+    },
+    {
+      "text": "approval: parent approved the gate-passed spec because the known requirementId contract, non-semantic tooling failure, bounded diagnostics, valid lifecycle parity, unaffected review types, exactly-41 fixture, and guarded resume are verifiable",
+      "taskId": null,
+      "ts": "2026-07-12T23:53:29.008Z"
+    },
+    {
+      "text": "Implementation approach approved by user: option 1. Use one target requirement-ID schema factory across prompt/parser, enforce ImplReviewFinding invariant and loop proposal ID preservation, integrate schema_failure into existing bounded tooling path while preventing post hooks, retry counters, artifacts, semantic verdicts, and promotion; preserve valid lifecycle and other review types. Proceed with guarded implement and stop before finalize.",
+      "taskId": null,
+      "ts": "2026-07-13T00:13:19.528Z"
+    }
+  ],
+  "worktree": true,
+  "plugins": {
+    "flowCommandHooks": [
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/finalize-cleanup.js",
+        "className": "WorkflowFinalizeCleanupHook",
+        "command": "finalize-cleanup",
+        "hook": "post",
+        "priority": 0
+      },
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/prepare.js",
+        "className": "WorkflowPrepareHook",
+        "command": "prepare",
+        "hook": "post",
+        "priority": 0
+      }
+    ]
+  },
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:44:57.151Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:45:03.869Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:45:15.510Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:46:05.475Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:46:09.886Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1078,
+      "durationMs": 11229,
+      "tokens": {
+        "input": 5749,
+        "output": 448,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T22:47:36.231Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-12T22:47:36.272Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:47:46.015Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 4702,
+      "tokens": {
+        "input": 11340,
+        "output": 76,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T22:49:51.713Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-12T22:49:51.774Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 671,
+      "durationMs": 15674,
+      "tokens": {
+        "input": 19162,
+        "output": 685,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T22:50:46.893Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:50:46.916Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:51:45.088Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 765,
+      "durationMs": 16697,
+      "tokens": {
+        "input": 16927,
+        "output": 697,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T22:52:30.102Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:52:30.135Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:53:02.598Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1858,
+      "durationMs": 20322,
+      "tokens": {
+        "input": 16966,
+        "output": 890,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T22:53:51.528Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:53:51.554Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:54:38.530Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2522,
+      "durationMs": 22498,
+      "tokens": {
+        "input": 17319,
+        "output": 1000,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T22:56:27.655Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:56:27.677Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:57:31.174Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 15645,
+      "tokens": {
+        "input": 17737,
+        "output": 533,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T22:59:01.675Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-12T22:59:01.696Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T22:59:19.051Z"
+    },
+    {
+      "phase": "spec-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1383,
+      "durationMs": 90356,
+      "tokens": {
+        "input": 45689,
+        "output": 2741,
+        "cacheRead": 282240,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T23:03:45.122Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-12T23:03:45.156Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:49:05.626Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:49:15.673Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 961,
+      "durationMs": 17158,
+      "tokens": {
+        "input": 10437,
+        "output": 739,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T23:49:50.014Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:49:50.037Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:50:34.171Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 15624,
+      "tokens": {
+        "input": 8174,
+        "output": 533,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T23:51:35.629Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-12T23:51:35.651Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:52:15.975Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1765,
+      "durationMs": 12382,
+      "tokens": {
+        "input": 17358,
+        "output": 506,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-12T23:58:14.134Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:58:14.173Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:58:24.336Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:58:24.413Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-12T23:59:39.474Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1950,
+      "durationMs": 21017,
+      "tokens": {
+        "input": 5355,
+        "output": 913,
+        "cacheRead": 14208,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:00:36.470Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:00:36.504Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:00:44.834Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:01:22.148Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2130,
+      "durationMs": 20450,
+      "tokens": {
+        "input": 15563,
+        "output": 938,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:01:48.503Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:01:48.550Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:02:03.825Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:04:05.275Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1830,
+      "durationMs": 20331,
+      "tokens": {
+        "input": 17237,
+        "output": 831,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:04:32.412Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:04:32.494Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:04:47.987Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:06:26.936Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 733,
+      "durationMs": 14337,
+      "tokens": {
+        "input": 9596,
+        "output": 581,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:06:47.841Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:06:47.877Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:06:53.201Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:08:23.629Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 955,
+      "durationMs": 16975,
+      "tokens": {
+        "input": 23898,
+        "output": 727,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:25:17.901Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:25:17.934Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 52,
+      "durationMs": 5291,
+      "tokens": {
+        "input": 24189,
+        "output": 22,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:26:06.398Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-13T00:26:06.437Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:27:32.882Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 451,
+      "durationMs": 9670,
+      "tokens": {
+        "input": 24824,
+        "output": 312,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:28:23.384Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 511,
+      "durationMs": 12681,
+      "tokens": {
+        "input": 24494,
+        "output": 465,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:28:36.095Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 709,
+      "durationMs": 11124,
+      "tokens": {
+        "input": 18217,
+        "output": 401,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:28:47.246Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 430,
+      "durationMs": 13937,
+      "tokens": {
+        "input": 22296,
+        "output": 566,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:29:01.214Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 408,
+      "durationMs": 11975,
+      "tokens": {
+        "input": 21860,
+        "output": 494,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:29:13.223Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 543,
+      "durationMs": 10336,
+      "tokens": {
+        "input": 23670,
+        "output": 379,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:29:23.587Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 488,
+      "durationMs": 13121,
+      "tokens": {
+        "input": 12713,
+        "output": 356,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:29:36.736Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:29:36.759Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:32:00.267Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 473,
+      "durationMs": 9377,
+      "tokens": {
+        "input": 10206,
+        "output": 278,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:32:58.077Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 718,
+      "durationMs": 15349,
+      "tokens": {
+        "input": 22410,
+        "output": 662,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:33:13.455Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:33:13.481Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:36:10.721Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 462,
+      "durationMs": 15488,
+      "tokens": {
+        "input": 15471,
+        "output": 622,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:37:04.236Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:37:04.261Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:38:07.895Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 506,
+      "durationMs": 15398,
+      "tokens": {
+        "input": 23708,
+        "output": 628,
+        "cacheRead": 1920,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-13T00:39:38.976Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-13T00:39:39.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-18T10:41:22.588Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-18T10:41:23.002Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-18T10:46:43.042Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-18T10:49:14.438Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-18T10:49:48.176Z"
+    }
+  ],
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "e16b08d23d7d4bd7606b0a22be8174a703fabe6dc8a75f6e0eaa2dfc3042b0f5",
+        "paths": [
+          "specs/320-impl-review-finding-contract/test-execute-result.json",
+          "specs/320-impl-review-finding-contract/test-result-review.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/review-failure.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-13T00:29:36.821Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "627b8f3431985079d258b0ea324f895aae4223c88212fb622d679c0b448ecca8",
+        "paths": [
+          "specs/320-impl-review-finding-contract/test-execute-result.json",
+          "specs/320-impl-review-finding-contract/test-result-review.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/review-failure.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-13T00:33:13.542Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "b135a3035fdd2be9cd681c1dc62b2b5ca926300c9f3cff7655488f7355a10ee6",
+        "paths": [
+          "specs/320-impl-review-finding-contract/test-execute-result.json",
+          "specs/320-impl-review-finding-contract/test-result-review.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/review-failure.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-13T00:37:04.322Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "b135a3035fdd2be9cd681c1dc62b2b5ca926300c9f3cff7655488f7355a10ee6",
+        "paths": [
+          "specs/320-impl-review-finding-contract/test-execute-result.json",
+          "specs/320-impl-review-finding-contract/test-result-review.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/review-failure.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-13T00:39:39.060Z"
+    }
+  ],
+  "stepAttempts": [
+    {
+      "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 5,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "retro",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-18T10:46:43.052Z"
+    }
+  ],
+  "acceptanceReview": {
+    "verdict": "pass",
+    "artifactPath": "specs/320-impl-review-finding-contract/acceptance-review.json",
+    "findings": [],
+    "deferredFindings": [
+      {
+        "findingId": "DF-1",
+        "sourceStep": "test-review",
+        "sourceArtifact": "test-review.json",
+        "sourceFindingId": "review-finding-1",
+        "finalDisposition": "fixed",
+        "evidenceRefs": [
+          "test-review.json#review-finding-1",
+          "tests/impl-review-resume.test.js#R7: async callback executes guarded resume coverage",
+          ".tmp/issue437-focused-after-main-r4.log#4/4 PASS",
+          "test-execute-result.json#R7",
+          "retro.json#R7",
+          "impl-gate-result.json#R7"
+        ]
+      }
+    ],
+    "requirementAmendmentProposals": [],
+    "mechanicalBlockers": [],
+    "hardBlockers": [],
+    "nextAction": null,
+    "targetStep": null,
+    "round": 1,
+    "updatedAt": "2026-07-18T10:49:57.173Z"
+  },
+  "outbox": [
+    {
+      "idempotencyKey": "flow-outbox-v1:3b5c1463-e8c1-47dd-920b-635833912000:flow:report:report",
+      "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+      "taskId": null,
+      "stepId": "report",
+      "operation": "report",
+      "status": "done",
+      "attempt": 2,
+      "startedAt": "2026-07-18T11:08:46.372Z",
+      "updatedAt": "2026-07-18T11:08:46.507Z",
+      "result": {
+        "result": "ok",
+        "changed": [
+          "specs/320-impl-review-finding-contract/report.json"
+        ],
+        "artifacts": {
+          "report": {
+            "data": {
+              "implementation": {
+                "diffStat": ".../tests/review-failure-contract.test.js          |    1 +\n .../tests/impl-review-shared-contracts.test.js     |    3 +-\n .../tests/impl-review-structured-artifact.test.js  |   37 +-\n .../tests/loop-review-resume.test.js               |    9 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  305 +++++\n .../draft-questions-repair.json                    |   36 +\n .../draft-questions-triage.json                    |   36 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   40 +\n specs/320-impl-review-finding-contract/draft.json  |  111 ++\n .../320-impl-review-finding-contract/file-map.json |   46 +\n .../flow-findings.json                             |   16 +\n specs/320-impl-review-finding-contract/flow.json   | 1376 ++++++++++++++++++++\n .../impl-gate-result.json                          |  149 +++\n .../impl-review.json                               |   28 +\n .../issue-log.json                                 |  723 ++++++++++\n specs/320-impl-review-finding-contract/issue.md    |  150 +++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   84 ++\n .../review-history/impl-attempt-001.json           |   52 +\n .../review-history/impl-attempt-001.md             |   23 +\n .../review-history/impl-attempt-002.json           |   31 +\n .../review-history/impl-attempt-002.md             |   16 +\n .../review-history/spec-attempt-001.json           |   16 +\n .../review-history/spec-attempt-001.md             |   11 +\n .../review-history/test-attempt-001.json           |   70 +\n .../review-history/test-attempt-001.md             |   24 +\n .../review-history/test-attempt-002.json           |   70 +\n .../review-history/test-attempt-002.md             |   24 +\n .../review-history/test-attempt-003.json           |   70 +\n .../review-history/test-attempt-003.md             |   24 +\n .../review-history/test-attempt-004.json           |   70 +\n .../review-history/test-attempt-004.md             |   24 +\n .../review-history/test-attempt-005.json           |   50 +\n .../review-history/test-attempt-005.md             |   18 +\n specs/320-impl-review-finding-contract/review.md   |   16 +\n .../scenario-validity-result.json                  |  106 ++\n .../spec-gate-source.json                          |  120 ++\n .../spec-review.json                               |   13 +\n .../spec-review.md                                 |   11 +\n specs/320-impl-review-finding-contract/spec.json   |  285 ++++\n specs/320-impl-review-finding-contract/spec.md     |  135 ++\n .../320-impl-review-finding-contract/tasks/T-1.md  |   20 +\n .../320-impl-review-finding-contract/tasks/T-2.md  |   20 +\n .../320-impl-review-finding-contract/tasks/T-3.md  |   20 +\n .../test-coverage.json                             |  130 ++\n .../test-execute-result.json                       |  236 ++++\n .../test-result-review.json                        |   33 +\n .../test-result-review.md                          |   12 +\n .../test-review.json                               |   37 +\n .../test-review.md                                 |   18 +\n .../tests/.raw/scenario-validity.log               |  268 ++++\n .../tests/.raw/test-execution.log                  |  113 ++\n .../tests/fixture-assertions.js                    |    9 +\n .../tests/impl-review-contract.test.js             |  183 +++\n .../tests/impl-review-lifecycle.test.js            |  136 ++\n .../tests/impl-review-resume.test.js               |  116 ++\n .../tests/impl-review-tooling-failure.test.js      |  196 +++\n src/flow/commands/review.js                        |  244 +++-\n src/flow/lib/review-failure.js                     |   76 +-\n src/flow/lib/run-review.js                         |   21 +-\n tests/unit/flow/commands/review.test.js            |   24 +-\n tests/unit/flow/run-review-advisory.test.js        |   29 +\n 66 files changed, 6323 insertions(+), 98 deletions(-)",
+                "commits": [
+                  "WIP: checkpoint Issue 437 before main integration"
+                ]
+              },
+              "retro": {
+                "total": 7,
+                "done": 7,
+                "partial": 0,
+                "not_done": 0,
+                "not_applicable_count": 0,
+                "na_count": 0,
+                "not_testable_count": 0,
+                "rate": 1,
+                "notes": "aggregated from test-execute-result.json",
+                "requirements": [
+                  {
+                    "desc": "The impl-review generation prompt and JSON schema shall require a non-empty requirementId on every blockingFindings and nonBlockingImprovements item and shall expose only requirement IDs present in the target spec as allowed values.",
+                    "status": "done",
+                    "note": "R1: exposes the target requirement IDs in both prompt and schema"
+                  },
+                  {
+                    "desc": "Impl-review boundary parsing shall reject missing, null, empty, or target-spec-unknown requirementId values before scope filtering or artifact creation; every accepted ImplReviewFinding shall preserve a known requirementId in JSON and prompt memory.",
+                    "status": "done",
+                    "note": "R2: rejects missing, null, empty, and unknown requirement IDs"
+                  },
+                  {
+                    "desc": "An impl-review output schema violation shall use the existing bounded provider and flow-side tooling retry limits and, after exhaustion, return a non-semantic structured failure containing failure class, target review, validation error, current attempt, and maximum attempts.",
+                    "status": "done",
+                    "note": "R3: retries schema failure within bounds and preserves five diagnostics"
+                  },
+                  {
+                    "desc": "Schema tooling failure shall not consume reviewRetry, write or replace review.md or impl-review.json, record semantic/deferred findings, emit semantic PASS/ADVISORY/FAIL, or promote impl-review to impl-gate.",
+                    "status": "done",
+                    "note": "R4: leaves artifacts and semantic retry state unchanged"
+                  },
+                  {
+                    "desc": "For valid known-ID output, blocking findings shall produce FAIL, increment semantic reviewRetry, and keep impl-review active; only non-blocking findings shall produce ADVISORY, reset reviewRetry, write both review artifacts, and promote impl-gate; empty arrays shall produce PASS with the same reset, artifact, and promotion behavior as ADVISORY.",
+                    "status": "done",
+                    "note": "R5: preserves valid PASS, ADVISORY, and FAIL lifecycle accounting"
+                  },
+                  {
+                    "desc": "The change shall preserve draft, spec, test, and acceptance review schema/prompt/parser/routing behavior and shall keep impl-review registry hooks, config entries, artifact paths, semantic counter behavior, state transitions, and routing unchanged for valid output.",
+                    "status": "done",
+                    "note": "R6: leaves spec and test review parser contracts unchanged"
+                  },
+                  {
+                    "desc": "Spec-local regression tests shall cover exactly 41 valid and invalid nonBlockingImprovements, bounded schema-failure exhaustion, and a stopped impl-review state whose guarded next-action and review resume without manual counter, state, or artifact edits.",
+                    "status": "done",
+                    "note": "R7: validates exactly 41 findings and resumes guarded impl-review state"
+                  }
+                ]
+              },
+              "upgrade": null,
+              "issueLog": {
+                "count": 31,
+                "fullLogPath": "specs/320-impl-review-finding-contract/issue-log.json",
+                "importantTotal": 18,
+                "importantShown": 10,
+                "importantOmitted": 8,
+                "recentOtherTotal": 13,
+                "recentOtherShown": 5,
+                "recentOtherOmitted": 8,
+                "entries": [
+                  {
+                    "classification": "important",
+                    "step": "draft-gate",
+                    "reason": "The requirement uses the vague adjective `明確な` in `schema violation を bounded tooling retry と明確な tooling failure diagnostics へ分類する`, without stating verifiable conditions for what diagnostics must contain.; The requirement `schema violat...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "important",
+                    "step": "draft-gate",
+                    "reason": "Draft gate retry rejected an unverifiable tooling-failure diagnostics phrase.",
+                    "resolution": "Defined the exact tooling-failure fields required after bounded retry exhaustion: failure class, target review, validation error, current attempt, and maximum attempts."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "draft-gate",
+                    "reason": "The requirement uses the vague phrase \"通常 resume path\" without defining the concrete resume scenario or verifiable condition.; Two reviewers may not agree what satisfies testing the \"通常 resume path\" because the requirement does not speci...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "important",
+                    "step": "draft-gate",
+                    "reason": "Draft gate found ambiguous valid-output lifecycle and stopped-flow resume acceptance wording.",
+                    "resolution": "Defined the PASS, ADVISORY, and FAIL lifecycle mappings and an exact guarded next-action and review resume scenario with observable semantic or five-field tooling-failure outcomes."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "spec-review",
+                    "reason": "The earlier spec-review inspection could not bind runtime-log to the active run because expect guards were rejected.",
+                    "resolution": "Rebased onto main commit 61519302 and verified guarded runtime-log now resolves only runId 3b5c1463-e8c1-47dd-920b-635833912000."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "test-review",
+                    "reason": "The second static review found R1 schema-required coverage and R7 bounded-exhaustion requirement mapping were still incomplete.",
+                    "resolution": "Asserted required requirementId semantics for both item schemas and added an R7-tagged bounded three-attempt schema-failure test using the same production retry path."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "test-review",
+                    "reason": "The third static review found valid lifecycle and tooling-failure registry post paths were not exercised end to end.",
+                    "resolution": "Added production runImplReview plus registry post and guarded next-action coverage for valid verdicts, and post-path assertions for tooling failure metrics, step state, semantic findings, and artifacts."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "fix: corrected spec-local metric persistence assertions after failed test evidence preflight",
+                    "resolution": "Prompt wording now unambiguously forbids null requirementId, and lifecycle fixtures compare semantic retry fields while separately verifying persisted taskId and timestamp metadata."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "spec-gate",
+                    "reason": "The diff adds a schema_failure ReviewFailure type and retry handling when a subprocess already emits a schema_failure marker, but it does not show the actual impl-review output schema validation path converting a schema violation into th...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "fix: addressed R3 retry evidence and R6 shared review contract observations",
+                    "resolution": "R3 now exercises real invalid impl-review parsing through the production classifier, marker, and bounded retry path. Shared draft prompt/parser changes were removed; loop findings receive known IDs only at the impl-specific converter fro..."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "test-review",
+                    "reason": "The fourth static review found scope-filter ordering and draft/acceptance parity coverage gaps before the final review attempt.",
+                    "resolution": "Added out-of-scope unknown-ID rejection through runImplReview and production draft parser plus acceptance artifact/schema/registry assertions."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "test-review",
+                    "reason": "The exhausted test-review found a parse-time await in a non-async R7 test callback.",
+                    "resolution": "Marked only the await-containing test callback async and verified the file with node --check; assertions and scenario remain unchanged."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "spec-gate",
+                    "reason": "The diff does not preserve impl-review valid-output behavior. Loop review proposal conversion can now emit requirementId: null when requirementFileMap is empty, while the new ImplReviewFinding/schema contract rejects null requirementId, ...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "spec-gate",
+                    "reason": "The diff does not fully preserve existing impl-review parser behavior: parseImplReviewJsonOutput removed the prior special case that accepted an empty JSON array (`[]`) as an empty PASS artifact. That was an existing accepted parser path...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "acceptance-review",
+                    "reason": "Acceptance review classified stale DF-1 as still open because disposition evidence was absent",
+                    "resolution": "Added acceptance-review-evidence.json marking DF-1 fixed with source, fresh focused 4/4 PASS, v2 test evidence, retro, and impl-gate PASS references; restore only the previously validated implement-through-retro statuses before reevaluation"
+                  }
+                ]
+              },
+              "metrics": {
+                "docsRead": 3,
+                "srcRead": 11,
+                "question": 0,
+                "issueLog": 20
+              },
+              "tokenMetrics": {
+                "input": 502565,
+                "output": 18023,
+                "cacheRead": 411904,
+                "cacheCreation": 0,
+                "cost": null,
+                "callCount": 28,
+                "durationMs": 479144,
+                "phaseDurations": [
+                  {
+                    "phase": "draft-questions-review",
+                    "durationMs": 11229
+                  },
+                  {
+                    "phase": "draft-coverage-review",
+                    "durationMs": 4702
+                  },
+                  {
+                    "phase": "draft-gate",
+                    "durationMs": 90836
+                  },
+                  {
+                    "phase": "spec-review",
+                    "durationMs": 90356
+                  },
+                  {
+                    "phase": "spec-gate",
+                    "durationMs": 32782
+                  },
+                  {
+                    "phase": "test-review",
+                    "durationMs": 88517
+                  },
+                  {
+                    "phase": "impl-review",
+                    "durationMs": 22266
+                  },
+                  {
+                    "phase": "impl-gate",
+                    "durationMs": 138456
+                  }
+                ]
+              },
+              "tests": {
+                "total": 7,
+                "passed": 7,
+                "failed": 0,
+                "verdict": "pass",
+                "invalidReason": null,
+                "rawOutputPath": "specs/320-impl-review-finding-contract/tests/.raw/test-execution.log",
+                "projectRegression": {
+                  "required": false,
+                  "result": "skipped",
+                  "mode": "none",
+                  "category": "full-regression-deferred",
+                  "reason": "full project regression deferred to final-regression",
+                  "classified_paths": [
+                    {
+                      "path": "specs/258-review-retry-recovery/tests/review-failure-contract.test.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "src/flow/commands/review.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "src/flow/lib/review-failure.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "src/flow/lib/run-review.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "tests/unit/flow/commands/review.test.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "tests/unit/flow/run-review-advisory.test.js",
+                      "category": "full-regression-deferred"
+                    }
+                  ],
+                  "trigger_relevant_changed_files": [
+                    {
+                      "status": "modified",
+                      "path": "specs/258-review-retry-recovery/tests/review-failure-contract.test.js",
+                      "fingerprint": "eead847718436e433d14ba98007c10026569b9333d1455e5a57426d012f0a0cc"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+                      "fingerprint": "9e107f3ccaa7fa02cc4b4ceee76a4a95f8d7417dfbc6ddb825187f78f7852ba6"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js",
+                      "fingerprint": "a28f2b444c7cdf0c522b6cbfa46442752468ff8a1c36b0e74deca773690ac0e6"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js",
+                      "fingerprint": "6fa4e75fa7c382966179c580695368088f170ca8c37f8a5c25b4b5370f75f155"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/commands/review.js",
+                      "fingerprint": "7d944e078b5dee29e6d08c3c3f8db82888a16f1ca1187ca78d902874af53c4ac"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/review-failure.js",
+                      "fingerprint": "9da87341e488bfd5020c735afc5ca43785328015e9705c326f7217135d7ab630"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-review.js",
+                      "fingerprint": "5f7e54286a307c9c5e7d6ede652d710e17215538a0fcc213d1b38cc107e1b635"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/commands/review.test.js",
+                      "fingerprint": "87c35c5532b1785e88d938b86e244d5fd2e5d840d3a62308f004a3d09ae81507"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/run-review-advisory.test.js",
+                      "fingerprint": "fe2627fcd1e09100eb65d12768258d5ff21a7dfc44f6f638294a5788dbe9154f"
+                    }
+                  ],
+                  "changed_files": [
+                    {
+                      "status": "modified",
+                      "path": "specs/258-review-retry-recovery/tests/review-failure-contract.test.js",
+                      "fingerprint": "eead847718436e433d14ba98007c10026569b9333d1455e5a57426d012f0a0cc"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+                      "fingerprint": "9e107f3ccaa7fa02cc4b4ceee76a4a95f8d7417dfbc6ddb825187f78f7852ba6"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js",
+                      "fingerprint": "a28f2b444c7cdf0c522b6cbfa46442752468ff8a1c36b0e74deca773690ac0e6"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js",
+                      "fingerprint": "6fa4e75fa7c382966179c580695368088f170ca8c37f8a5c25b4b5370f75f155"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/commands/review.js",
+                      "fingerprint": "7d944e078b5dee29e6d08c3c3f8db82888a16f1ca1187ca78d902874af53c4ac"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/review-failure.js",
+                      "fingerprint": "9da87341e488bfd5020c735afc5ca43785328015e9705c326f7217135d7ab630"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-review.js",
+                      "fingerprint": "5f7e54286a307c9c5e7d6ede652d710e17215538a0fcc213d1b38cc107e1b635"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/commands/review.test.js",
+                      "fingerprint": "87c35c5532b1785e88d938b86e244d5fd2e5d840d3a62308f004a3d09ae81507"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/run-review-advisory.test.js",
+                      "fingerprint": "fe2627fcd1e09100eb65d12768258d5ff21a7dfc44f6f638294a5788dbe9154f"
+                    }
+                  ]
+                },
+                "finalRegression": {
+                  "status": "done",
+                  "result": "fail",
+                  "failureKind": "dependency_failure",
+                  "failureCategory": "dependency",
+                  "failureNature": "execution",
+                  "skipKind": null,
+                  "rawOutputPath": "specs/320-impl-review-finding-contract/tests/.raw/final-regression-attempt-002.log",
+                  "command": "node tests/run.js",
+                  "process": {
+                    "started": true,
+                    "exitCode": 1,
+                    "signal": null,
+                    "timedOut": false,
+                    "spawnError": null
+                  },
+                  "exitCode": 1,
+                  "failureSummary": "TAP version 13\n# Subtest: T-1: entry enforcement (guardrail + prompts + spec gate tasks check)\n    # Subtest: guardrail.json includes task-single-responsibility with phase=[spec, task-spec]\n    ok 1 - guardrail.json includes task-single-responsibility with phase=[spec, task-spec]\n      ---\n      duration_ms: 1.782929\n      type: 'test'\n      ...",
+                  "currentDiffRelationship": "non-current-diff",
+                  "changedFiles": [
+                    {
+                      "status": "modified",
+                      "path": "specs/258-review-retry-recovery/tests/review-failure-contract.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/320-impl-review-finding-contract/acceptance-review-evidence.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/320-impl-review-finding-contract/acceptance-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/draft-coverage-repair.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/draft-coverage-triage.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/draft-gate-source.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/draft-questions-repair.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/draft-questions-triage.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/draft-review-coverage.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/draft-review-questions.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/draft.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/file-map.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/flow-findings.json"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/320-impl-review-finding-contract/flow-findings.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/impl-gate-result.json"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/320-impl-review-finding-contract/impl-gate-result.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/impl-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/issue.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/plugin-artifacts/workflow/prepare.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/320-impl-review-finding-contract/retro.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/draft-coverage-attempt-001.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/draft-questions-attempt-001.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-001.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-001.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-002.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-002.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/spec-attempt-001.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/spec-attempt-001.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-001.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-001.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-002.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-002.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-003.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-003.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-004.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-004.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-005.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-005.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/review.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/scenario-validity-result.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/spec-gate-source.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/spec-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/spec-review.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/spec.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/spec.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tasks/T-1.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tasks/T-2.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tasks/T-3.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/test-coverage.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/test-execute-result.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/test-result-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/test-result-review.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/test-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/test-review.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tests/.raw/scenario-validity.log"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tests/.raw/test-execution.log"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tests/fixture-assertions.js"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-lifecycle.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-lifecycle.test.js"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/commands/review.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/review-failure.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-review.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/commands/review.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/run-review-advisory.test.js"
+                    }
+                  ],
+                  "changedFileFingerprints": [
+                    {
+                      "path": "specs/258-review-retry-recovery/tests/review-failure-contract.test.js",
+                      "fingerprint": "eead847718436e433d14ba98007c10026569b9333d1455e5a57426d012f0a0cc"
+                    },
+                    {
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+                      "fingerprint": "9e107f3ccaa7fa02cc4b4ceee76a4a95f8d7417dfbc6ddb825187f78f7852ba6"
+                    },
+                    {
+                      "path": "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js",
+                      "fingerprint": "a28f2b444c7cdf0c522b6cbfa46442752468ff8a1c36b0e74deca773690ac0e6"
+                    },
+                    {
+                      "path": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js",
+                      "fingerprint": "6fa4e75fa7c382966179c580695368088f170ca8c37f8a5c25b4b5370f75f155"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/acceptance-review-evidence.json",
+                      "fingerprint": "622e28fbdec2e1a5de784210480e295430ad457f55aeb7272aef48dd6ca96aa1"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/acceptance-review.json",
+                      "fingerprint": "3949a3a5b3518d23ed7fdc0d66d61d78d3ec05354e19892acd7721812ac63ff7"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/draft-coverage-repair.json",
+                      "fingerprint": "ee4f5566f2349ecef962c23d06e1317fc01e8f5be1740350cadfa31770f7469d"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/draft-coverage-triage.json",
+                      "fingerprint": "e387eacb2194aa7b0eab8182d903ce836425292b75a9389a244dd48f6ffd8eaf"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/draft-gate-source.json",
+                      "fingerprint": "727dbf5ebf723d74c1493664bc3c91b6663bde3f78574be511e37385878d547a"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/draft-questions-repair.json",
+                      "fingerprint": "35f34f1d04defe956df5b4814bff2c0006e5412e2794df059b40261dc748ba90"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/draft-questions-triage.json",
+                      "fingerprint": "623dac63d8dcb912bede0280b89dd823366db8d445b1da2524c69ddaf6d3eecc"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/draft-review-coverage.json",
+                      "fingerprint": "073ffb7fa6bc873934597af5251093b47a29b25dfd68812646c9e28f466f8c55"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/draft-review-questions.json",
+                      "fingerprint": "981af867c7c11d1a24ac05b1a8963ccebc15cd6ca4c218b72d9a3f9633590508"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/draft.json",
+                      "fingerprint": "a22815091ab6d9b89c57f75f9ce8595ffacbcc4f2f8c5ed4142bcf2e4aad6c24"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/file-map.json",
+                      "fingerprint": "ac50dc67e5792030c83f2c306afdadf2e86f3256bd9e06e936035c5dc30489e7"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/flow-findings.json",
+                      "fingerprint": "6ee958004fe4ab86afafbbf20b98d2adb75df69e209ac00cbc4bfa8fdb7101c4"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/flow-findings.json",
+                      "fingerprint": "6ee958004fe4ab86afafbbf20b98d2adb75df69e209ac00cbc4bfa8fdb7101c4"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/impl-gate-result.json",
+                      "fingerprint": "fd42cd56365c2288ab7552b1da4553f135874141cf719b17cbd08493ade11e9a"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/impl-gate-result.json",
+                      "fingerprint": "fd42cd56365c2288ab7552b1da4553f135874141cf719b17cbd08493ade11e9a"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/impl-review.json",
+                      "fingerprint": "f1b5a883f82eec35c2c50f52a79ab0d8f2ac7b12201a94008d3fa5a030cb80b1"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/issue.md",
+                      "fingerprint": "c7bb23a6cde7b21f7ad92a0cedbfc2846129a6a188bc06c2ddd1d7ac6288a1e9"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/plugin-artifacts/workflow/prepare.json",
+                      "fingerprint": "66d14a2d1b45f43d65695594e8a0dc43a1bc22a523c0032dfe8d3c0b49c1648a"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/retro.json",
+                      "fingerprint": "59db0704e1771fa1f512ab60b7b1d9874495c560d951bcea924d5151f2933bec"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/draft-coverage-attempt-001.json",
+                      "fingerprint": "f85bd102a214bec72e257a22965b69278d2cced019cc89a3709125aa8d89e98f"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/draft-questions-attempt-001.json",
+                      "fingerprint": "be88d8425d7ff64b0bfc17b5b67c4ffc5def432d13374f4d23b5282fffa65cba"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-001.json",
+                      "fingerprint": "ee0e9d005abb8a83054a293f54d3c4c965c67642ad1f6b0cd3fd7e3acf540909"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-001.md",
+                      "fingerprint": "6711caffc3553600fe9035b466e6a3de00110ab6758b2d1f368deea872efaeba"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-002.json",
+                      "fingerprint": "6cdcabe0643441ef44f45e588c6f655669961cf777cebdb65537b465aa0604be"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/impl-attempt-002.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/spec-attempt-001.json",
+                      "fingerprint": "e3e357b93fe06cced72a362862cb53a9e1bbc0f78cd32cb648fad5d39e051a93"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/spec-attempt-001.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-001.json",
+                      "fingerprint": "801e3a28bd8477f53067041d4777b32d0c76af082068c686fac6e1486685a89e"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-001.md",
+                      "fingerprint": "d2308f44d2ec833c891ca705a740351a774b9a99bf63a3a463849f0154fbfc1f"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-002.json",
+                      "fingerprint": "39c1ca65df88f22b1d5fa6ba11114299a193a433b15167e88ef56be4a12ad0c6"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-002.md",
+                      "fingerprint": "ebe4cbb296a6bd0ac010ea815036b0ec6707cffc392113d38f0013e4ce0401ca"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-003.json",
+                      "fingerprint": "01b4f18be0f90ea2604bc87b4098ebc1edfced848f7b2046b8ce17c8fde504fe"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-003.md",
+                      "fingerprint": "894f06dadc23d67a54e5b69bbbafc9b0d0b3fcdca806582418fc850cf93fe4f6"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-004.json",
+                      "fingerprint": "b684fff2df883fd2f70612daaf6fb5c16b309bcded445dc0afb2feae946158c3"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-004.md",
+                      "fingerprint": "8fb92fa36e74e444d9066343b949a4a157a982c447c6580e5d646fbc795ef7b1"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-005.json",
+                      "fingerprint": "9158987f8d12ad4da2723b63c6b51205646e3fa209bed18d887be953b1320a49"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review-history/test-attempt-005.md",
+                      "fingerprint": "2318384dfefe009751295722cd1d1319c24c9f6e1c449d739fc61ad65f64258e"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/review.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/scenario-validity-result.json",
+                      "fingerprint": "4dcddc76d41e7b0602e89b530fc8a16310e2595bdd9c9d96c5bc35d056c79b44"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/spec-gate-source.json",
+                      "fingerprint": "e8719d8c70d223c35964d4e691817b7afa247bddd3e8ccce7353f56eddc73cba"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/spec-review.json",
+                      "fingerprint": "d4672c7bf0f4d0fc8860d0b08347b9564e84df20705a291ad9211bf866f5cf2b"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/spec-review.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/spec.json",
+                      "fingerprint": "932c3a24896325362bd4e901a14a7d62b8e18d48df57cc2605a098b9aa781a03"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/spec.md",
+                      "fingerprint": "772ba1fdaa1cf29fa1149c4d06e9c05ebd5774b5f78558a5576d2387052f5b69"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tasks/T-1.md",
+                      "fingerprint": "d6f670cfb2179e524a872359830f49013e5e07cf50e267c870ba3ca611992b27"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tasks/T-2.md",
+                      "fingerprint": "36d0a2e8de47547deb88a395176a6e13cf17b2141d748f39c1738a67d6d4d4f5"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tasks/T-3.md",
+                      "fingerprint": "59abc517965e83d9f484f848eb3a41f02c3505c9fdb81d569044f696c907eb3f"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/test-coverage.json",
+                      "fingerprint": "51352b5f786d7cc65e9756b393623f49b4ddf2b840b033b242d7c55232637dc9"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/test-execute-result.json",
+                      "fingerprint": "3a68bc0025a320fdbdae1449d8aeb864e82e4add4d4a20756447ddb937f7599d"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/test-result-review.json",
+                      "fingerprint": "9acdf66239053222fabd4ff2d57f23902191b74a81f99d191370e7ecc3d14586"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/test-result-review.md",
+                      "fingerprint": "6c7392d7b03899f8eba471ccd747f5035ca6b3bbba70bccda5c334110820c851"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/test-review.json",
+                      "fingerprint": "120c6bad02b7503ce6ff7737c383d6c50f3f41ebbf33f985b8c40da476e58b06"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/test-review.md",
+                      "fingerprint": "2318384dfefe009751295722cd1d1319c24c9f6e1c449d739fc61ad65f64258e"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/.raw/scenario-validity.log",
+                      "fingerprint": "c2381fcd064027fb70cc457abe9e5db5c286ed5e1e4e9c5b4148c7f5d347656a"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/.raw/test-execution.log",
+                      "fingerprint": "ff35a3584653d37e12eba318dd8023d03d314a214b2e12e35db6ae91088f7937"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/fixture-assertions.js",
+                      "fingerprint": "c6c6066cc5f636434f904db056bb547dd9560f30980201506becbeb85fa28e6c"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js",
+                      "fingerprint": "a4ac781779eb2a236173c46ff4047a50223190b77936b103836399fb539e37a7"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-lifecycle.test.js",
+                      "fingerprint": "eac34360ba4395d494da33a67e039487980f50a6670d741b970d3d81b4fffb62"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-lifecycle.test.js",
+                      "fingerprint": "eac34360ba4395d494da33a67e039487980f50a6670d741b970d3d81b4fffb62"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js",
+                      "fingerprint": "d7e4abe88626d0dba8ccaf01d35a003be7ffecf746a85a6e3d5ecdc1b4d79e20"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js",
+                      "fingerprint": "d7e4abe88626d0dba8ccaf01d35a003be7ffecf746a85a6e3d5ecdc1b4d79e20"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js",
+                      "fingerprint": "19d23365afdbefcb3c55c11ad3b566b6ca393d43825e2860936fada4df9e2e00"
+                    },
+                    {
+                      "path": "specs/320-impl-review-finding-contract/tests/impl-review-tooling-failure.test.js",
+                      "fingerprint": "19d23365afdbefcb3c55c11ad3b566b6ca393d43825e2860936fada4df9e2e00"
+                    },
+                    {
+                      "path": "src/flow/commands/review.js",
+                      "fingerprint": "e5b0d01cd50ba5d77910291384ad37690bba829ca391994f3e3a2cb8d05efba1"
+                    },
+                    {
+                      "path": "src/flow/lib/review-failure.js",
+                      "fingerprint": "9da87341e488bfd5020c735afc5ca43785328015e9705c326f7217135d7ab630"
+                    },
+                    {
+                      "path": "src/flow/lib/run-review.js",
+                      "fingerprint": "7201ecaf516c443ab3d55936cf6d3d46f659ddea66838a6d27503f9f38c6c258"
+                    },
+                    {
+                      "path": "tests/unit/flow/commands/review.test.js",
+                      "fingerprint": "87c35c5532b1785e88d938b86e244d5fd2e5d840d3a62308f004a3d09ae81507"
+                    },
+                    {
+                      "path": "tests/unit/flow/run-review-advisory.test.js",
+                      "fingerprint": "fe2627fcd1e09100eb65d12768258d5ff21a7dfc44f6f638294a5788dbe9154f"
+                    }
+                  ],
+                  "fixAttempts": 1,
+                  "selectedAction": "record-and-proceed",
+                  "remainingRisk": "final-regression remains failed; category=dependency",
+                  "retryable": false,
+                  "nextAction": "report",
+                  "nextRecommendedAction": "record-and-proceed",
+                  "recordAndProceed": {
+                    "eligible": true,
+                    "validated": true,
+                    "evidence": "record-and-proceed selected for dependency"
+                  },
+                  "humanSummary": "result=fail failureCategory=dependency failureKind=dependency_failure raw_output=specs/320-impl-review-finding-contract/tests/.raw/final-regression-attempt-002.log fixAttempts=1 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=dependency"
+                }
+              },
+              "sync": {
+                "status": "skipped",
+                "reason": "sync was skipped"
+              },
+              "tasks": [],
+              "taskTotal": 0,
+              "tasksTruncated": 0,
+              "broadModeHistory": [],
+              "broadModeHistoryTotal": 0,
+              "broadModeHistoryTruncated": 0
+            },
+            "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    WIP: checkpoint Issue 437 before main integration\n    66 files changed, 6323 insertions(+), 98 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 3\n    src read .................... 11\n    Q&A ......................... 0\n    issue-log ................... 20\n    agent calls ................. 28\n    input tokens ................ 502,565\n    output tokens ............... 18,023\n    cache-read tokens ........... 411,904\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 479.1s\n      draft-questions-review .... 11.2s\n      draft-coverage-review ..... 4.7s\n      draft-gate ................ 90.8s\n      spec-review ............... 90.4s\n      spec-gate ................. 32.8s\n      test-review ............... 88.5s\n      impl-review ............... 22.3s\n      impl-gate ................. 138.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/320-impl-review-finding-contract/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=dependency_failure failureCategory=dependency raw_output=specs/320-impl-review-finding-contract/tests/.raw/final-regression-attempt-002.log fixAttempts=1 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=dependency\n\n  Issue Log Summary (31 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/320-impl-review-finding-contract/issue-log.json\n\n    Important (10 of 18)\n    - [draft-gate] The requirement uses the vague adjective `明確な` in `schema violation を bounded tooling retry と明確な tooling failure diagnostics へ分類する`, without stating verifiable conditions for what diagnostics must contain.; The requirement `schema violat...\n    - [draft-gate] Draft gate retry rejected an unverifiable tooling-failure diagnostics phrase.\n    - [draft-gate] The requirement uses the vague phrase \"通常 resume path\" without defining the concrete resume scenario or verifiable condition.; Two reviewers may not agree what satisfies testing the \"通常 resume path\" because the requirement does not speci...\n    - [draft-gate] Draft gate found ambiguous valid-output lifecycle and stopped-flow resume acceptance wording.\n    - [spec-review] The earlier spec-review inspection could not bind runtime-log to the active run because expect guards were rejected.\n    - [test-review] The second static review found R1 schema-required coverage and R7 bounded-exhaustion requirement mapping were still incomplete.\n    - [test-review] The third static review found valid lifecycle and tooling-failure registry post paths were not exercised end to end.\n    - [impl-gate] fix: corrected spec-local metric persistence assertions after failed test evidence preflight\n    - [spec-gate] The diff adds a schema_failure ReviewFailure type and retry handling when a subprocess already emits a schema_failure marker, but it does not show the actual impl-review output schema validation path converting a schema violation into th...\n    - [impl-gate] fix: addressed R3 retry evidence and R6 shared review contract observations\n    ... 8 important issue-log entries omitted\n\n    Recent Other (5 of 13)\n    - [test-review] The fourth static review found scope-filter ordering and draft/acceptance parity coverage gaps before the final review attempt.\n    - [test-review] The exhausted test-review found a parse-time await in a non-async R7 test callback.\n    - [spec-gate] The diff does not preserve impl-review valid-output behavior. Loop review proposal conversion can now emit requirementId: null when requirementFileMap is empty, while the new ImplReviewFinding/schema contract rejects null requirementId, ...\n    - [spec-gate] The diff does not fully preserve existing impl-review parser behavior: parseImplReviewJsonOutput removed the prior special case that accepted an empty JSON array (`[]`) as an empty PASS artifact. That was an existing accepted parser path...\n    - [acceptance-review] Acceptance review classified stale DF-1 as still open because disposition evidence was absent\n    ... 8 other issue-log entries omitted"
+          },
+          "issueComment": {
+            "status": "skipped",
+            "reason": "gh unavailable"
+          }
+        }
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:3b5c1463-e8c1-47dd-920b-635833912000:flow:finalize-commit:finalize-commit",
+      "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+      "taskId": null,
+      "stepId": "finalize-commit",
+      "operation": "finalize-commit",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-18T11:09:13.798Z",
+      "updatedAt": "2026-07-18T11:09:14.264Z",
+      "result": {
+        "status": "done",
+        "message": "fix: enforce impl review requirement IDs"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:3b5c1463-e8c1-47dd-920b-635833912000:flow:finalize-merge:finalize-merge",
+      "runId": "3b5c1463-e8c1-47dd-920b-635833912000",
+      "taskId": null,
+      "stepId": "finalize-merge",
+      "operation": "finalize-merge",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-18T11:09:49.329Z",
+      "updatedAt": "2026-07-18T11:09:49.329Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-07-18T11:09:13.939Z"
+  }
+}

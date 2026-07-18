@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-13T00:00:36.473Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/320-impl-review-finding-contract/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 blocking finding schema requirement is not covered",
+      "target": "specs/320-impl-review-finding-contract/tests/impl-review-contract.test.js",
+      "issue": "The R1 test only asserts requirementId type/minLength/enum on nonBlockingImprovements and only asserts enum on blockingFindings indirectly in the R5 test. It never verifies that blockingFindings items require a non-empty requirementId, nor that requirementId appears in the required-property list for either item schema.",
+      "requiredChange": "Add spec-local assertions that both blockingFindings.items and nonBlockingImprovements.items require requirementId and enforce non-empty known target-spec IDs.",
+      "whyBlocking": "R1 explicitly requires the prompt and JSON schema to require a non-empty requirementId on every blockingFindings and nonBlockingImprovements item. The current tests could pass while blocking findings omit requirementId or while requirementId is optional.",
+      "origin": "R1",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 coverage artifact overstates bounded schema-failure coverage",
+      "target": "Requirement-to-Test Coverage Artifact and specs/320-impl-review-finding-contract/tests/impl-review-resume.test.js",
+      "issue": "The artifact marks R7 covered only by impl-review-resume.test.js, but that file covers the 41-item boundary and stopped-state resume path only. It does not cover bounded schema-failure exhaustion, which R7 explicitly includes.",
+      "requiredChange": "Either add an R7-tagged spec-local assertion for bounded schema-failure exhaustion or update the coverage artifact/test tagging so R7 maps to an actual test that covers that requirement clause.",
+      "whyBlocking": "The requirement coverage artifact contradicts the actual test files for a must requirement, and implementation could satisfy the resume test while leaving the R7 bounded-exhaustion clause untested.",
+      "origin": "R7",
+      "failureKind": "coverage_artifact_contradiction"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/320-impl-review-finding-contract/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "69e539949c4ddefc425f356e531ee1903935cd9defc57dfb5f0cce22a0836987"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R1 blocking finding schema requirement is not covered",
+      "body": "The R1 test only asserts requirementId type/minLength/enum on nonBlockingImprovements and only asserts enum on blockingFindings indirectly in the R5 test. It never verifies that blockingFindings items require a non-empty requirementId, nor that requirementId appears in the required-property list for either item schema.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R7 coverage artifact overstates bounded schema-failure coverage",
+      "body": "The artifact marks R7 covered only by impl-review-resume.test.js, but that file covers the 41-item boundary and stopped-state resume path only. It does not cover bounded schema-failure exhaustion, which R7 explicitly includes.",
+      "category": "unknown"
+    }
+  ]
+}

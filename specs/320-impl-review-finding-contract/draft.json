@@ -1,0 +1,111 @@
+{
+  "devType": "bugfix",
+  "goal": "impl-review の finding 契約を prompt と parser/schema で一致させ、有効な requirementId を要求するとともに schema validation failure を semantic verdict から分離した bounded tooling failure として扱う。",
+  "analysis": {
+    "problem": "impl-review の output schema と prompt は requirementId に null を許す一方、consumer は requirement scope の判定で target spec の ID を必要とする。この契約不一致により provider retry 後も同じ invalid shape が返り、schema failure が semantic review result ではないのに failure class、target review、validation error、current attempt、maximum attempts を示す tooling failure として完結しない。",
+    "proposedApproach": "impl-review に限って finding の requirementId 契約と許容値を prompt、schema、boundary validation で統一し、schema violation は既存の bounded provider/subprocess retry 境界を使う tooling failure として failure class、target、validation error、attempt 情報を返す。semantic result が成立した場合だけ既存の counter、state、artifact、routing を動かす。",
+    "validation": "既知 requirementId を持つ output について blocking findings ありの FAIL、blocking なしかつ non-blocking ありの ADVISORY、両配列 empty の PASS を検証する。missing/null/unknown ID の bounded tooling failure、40 件超の finding、他 review 種別の非回帰に加え、schema failure 後に semantic verdict/artifact/reviewRetry 更新がない stopped impl-review state を fixed base へ rebase し、manual state 編集なしの guarded next-action と review が impl-review と semantic verdict または5診断 fieldを返すことを検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "`src/flow/commands/review.js` の現行 impl-review schema は requirementId を required field に含めるが値に null を許し、prompt も null を許すよう指示している。",
+      "`src/flow/commands/review.js` の現行 finding filter は missing_acceptance_requirement の特例だけ target spec の requirement ID 集合を照合し、それ以外の finding の未知 ID を boundary error にしない。",
+      "`src/flow/lib/run-review.js` は semantic FAIL のみ reviewRetry を消費する既存境界を持ち、provider/input-size failure と subprocess retry を semantic retry から分離している。",
+      "Issue #437 は 40/41 件の nonBlockingImprovements がすべて requirementId 欠落で schema validation に失敗した事例を再現条件としている。",
+      "must: 親が prelude intent を承認し、全 impl-review finding の既知 requirementId 必須化、schema failure の tooling failure 化、valid output の FAIL/ADVISORY/PASS ごとの reviewRetry、artifact、step promotion の維持を確認した。"
+    ],
+    "decisionPoints": [
+      "must: requirement に紐づかない observation を許可するか、すべての impl-review finding を既知 requirement に紐づけるかを prompt と schema の単一契約で決める。",
+      "must: schema/tooling retry exhaustion の failure envelope に failure class、target review、validation error、attempt 情報を含める。",
+      "must: semantic verdict がない schema violation で reviewRetry、state promotion、semantic/deferred artifact を変更しない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Node.js built-in modules のみ使用し、外部依存を追加しない。",
+      "must: `src/` は project、Issue、runId 固有値を含まない汎用 contract とする。",
+      "must: 意味のある finding/failure 値は constructor で invariant を保証する既存 class 設計に合わせる。",
+      "must: validation は model/provider output の system boundary に置き、invalid legacy output の compatibility fallback は追加しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 既存 provider internal retry と flow-side tooling retry の所有境界を保った task 分解を spec で定義する。",
+      "must: 40 件超の valid/invalid nonBlockingImprovements と、schema failure 後に semantic verdict/artifact/reviewRetry 更新がない stopped impl-review state を fixed base へ rebaseして guarded next-action と review を実行する検証シナリオを spec で具体化する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: impl-review prompt、output schema/parser、finding requirementId contract を一致させる。",
+      "must: target spec に存在する requirement ID の allowed-value validation を system boundary で行う。",
+      "must: schema violation を既存 policy の bounded tooling retry 対象とし、exhaustion 時の tooling failure に failure class、target review、validation error、current attempt、maximum attempts を含める。",
+      "must: semantic result と tooling failure の counter、state、artifact、routing 境界を維持する。",
+      "must: valid/invalid finding、40 件超、bounded exhaustion、他 review 非回帰をテストし、schema failure 後に semantic verdict/artifact/reviewRetry 更新がない stopped impl-review state を fixed base へ rebaseした後、manual counter/state/artifact 編集なしの guarded `senti flow get next-action` が `impl-review` を返し、続く guarded review が semantic PASS/FAIL/ADVISORY または failure class、target review、validation error、current attempt、maximum attempts を持つ bounded tooling failure を返すことを検証する。"
+    ],
+    "out": [
+      "must: `Preset not found: node-cli` warning を調査・修正対象にしない。",
+      "must: Issue #436 が実装する機能内容を変更しない。",
+      "must: finding 品質、件数制限、severity policy、全 review retry architecture を再設計しない。",
+      "must: missing、null、または target spec に存在しない requirementId を持つ model output は互換 fallback なしで tooling failure とし、既知 requirementId を持つ valid output の CLI behavior は変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: 既知 requirementId の valid output で blocking findings があれば FAIL、semantic reviewRetry increment、impl-review 継続とする。blocking findings がなく non-blocking findings があれば ADVISORY、reviewRetry reset、review artifacts 生成、impl-gate promotion とする。両配列が empty なら PASS とし、ADVISORY と同じ reviewRetry reset、artifact generation、impl-gate promotion とする。",
+    "must: schema/tooling failure では reviewRetry を消費せず、semantic finding、semantic FAIL、deferred finding、impl-review artifact を記録しない。",
+    "must: draft/spec/test/acceptance review の prompt、schema、counter、state、artifact、routing を変更しない。",
+    "should: 共通化は impl-review finding contract または impl-review tooling-failure envelope を直接共有する既存 module の変更に限定し、draft/spec/test/acceptance review の schema、prompt、parser、routing は変更しない。",
+    "must: 影響する user-facing command は `senti flow run review` の impl-review 実行だけとし、置換する interface は model output の blockingFindings/nonBlockingImprovements JSON contract に限定する。",
+    "must: flow registry の impl-review pre/post hooks と config entries は変更せず、valid output では `review.md`、`impl-review.json`、PASS/FAIL/ADVISORY、reviewRetry、step state、routing の既存 behavior を維持する。",
+    "must: schema failure では `review.md` と `impl-review.json` を生成せず、reviewRetry、semantic/deferred findings、step promotion を更新しない。",
+    "must: missing、null、unknown requirementId の model output は互換 fallback なしで tooling failure とし、既知 requirementId を持つ output の command result と generated artifacts は維持する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "impl-review の各 finding と target spec の requirement ID の関係をどのように扱いますか。",
+      "answer": "must: 両 finding bucket の各 finding に target spec の既知 requirementId を必須とする。",
+      "evidence": "`src/flow/commands/review.js` の existing code pattern では IMPL_REVIEW_FINDING_SCHEMA と buildImplReviewPrompt が null を許す一方、filterImplReviewFindingsByScope は requirement ID 集合を参照する。Issue #437 と親承認 intent はこの不一致を既知 ID 必須で解消する。",
+      "why": "現行 prompt/schema の null 許容と consumer の requirement scope 要求の不一致が今回の停止原因だから。",
+      "considered": "missing requirementId を filter で捨てる案は schema failure を semantic result に混在させるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "requirement に紐づかない observation と impl-review finding の契約をどのように扱いますか。",
+      "answer": "must: 別の unscoped observation 表現は追加せず、impl-review finding はすべて requirement-scoped とする。",
+      "evidence": "`src/flow/commands/review.js` の existing code pattern は impl-review の IMPL_REVIEW_RESPONSE_SCHEMA、buildImplReviewPrompt、runImplReview を同じ module で所有し、他 review schema は別 contract としている。AGENTS.md の alpha policy と親承認 Out of Scope は invalid legacy fallback と schema 全体の再設計を除外する。",
+      "why": "unscoped 表現を追加する必要性が示されておらず、新しい finding 種別は Issue が対象とする impl-review finding contract 以外の representation を追加するため。",
+      "considered": "prompt/schema の両方へ専用 unscoped observation variant を追加する案は、必要性がなく review contract 再設計になるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "schema violation 時の retry、diagnostics、semantic lifecycle をどのように扱いますか。",
+      "answer": "must: schema violation は semantic lifecycle を更新せず、bounded tooling retry 後に failure class、impl-review target、validation error、current attempt、maximum attempts を持つ tooling failure で停止する。",
+      "evidence": "Issue #437 Acceptance Criteria は同じ diagnostics と bounded retry、reviewRetry/artifact 非更新を明記し、`src/flow/lib/run-review.js` は tooling/subprocess retry を semantic reviewRetry から分離している。",
+      "why": "schema validation が成立しない出力には semantic verdict が存在せず、semantic retry や deferred finding に正規化すると counter と artifact の意味が壊れるため。",
+      "considered": "schema violation を semantic FAIL として数える案と invalid finding artifact を残す案は、Issue の counter/artifact 境界に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "既存 review lifecycle と Issue #436 相当ケースの回帰範囲をどのように扱いますか。",
+      "answer": "must: 既知 requirementId の valid output で blocking findings があれば FAIL、semantic reviewRetry increment、impl-review 継続とする。blocking findings なしで non-blocking findings があれば ADVISORY、reviewRetry reset、review artifacts 生成、impl-gate promotion とし、両配列 empty なら PASS として同じ reset/artifact/promotion を行う。40 件超の valid/invalid finding を検証し、schema failure 後に semantic verdict/artifact/reviewRetry 更新がない stopped impl-review state を fixed base へ rebaseした後、manual counter/state/artifact 編集なしの guarded `senti flow get next-action` が `impl-review` を返し、続く guarded review が semantic PASS/FAIL/ADVISORY または failure class、target review、validation error、current attempt、maximum attempts を持つ bounded tooling failure を返すことを回帰条件に含める。",
+      "evidence": "`src/flow/lib/run-review.js` の existing code pattern は runCmdWithRetry と updateReviewRetryCounter で tooling retry と semantic reviewRetry/post-hook を分離する。`tests/unit/flow/commands/review.test.js` と `tests/unit/flow/run-review-advisory.test.js` は impl output parsing と counter/hook behavior の既存回帰面を持ち、Issue #437 は40+ fixture と stopped impl-review state からの guarded next-action/review を追加条件にする。",
+      "why": "修正対象が prompt/schema boundary に限定されても、既存 counter/state/artifact/routing と実障害の再現条件を同時に検証しなければ回帰を検出できないため。",
+      "considered": "少数 finding の unit test だけに限定する案は件数依存でないことと実停止経路を証明できないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T22:50:13Z",
+    "notes": "Issue #437 と親が承認した prelude intent に基づき、全 QA を回答済みとして確認した。"
+  }
+}
