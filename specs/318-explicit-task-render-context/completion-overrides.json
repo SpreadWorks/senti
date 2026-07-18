@@ -1,0 +1,160 @@
+{
+  "entries": {
+    "test-review": {
+      "stepId": "test-review",
+      "userApproval": true,
+      "reason": "Parent specification authority approved this audited manual recovery, not a semantic PASS conversion, after five actual semantic attempts were exhausted. History attempt 005 SHA-256 1a8ef9016c7146a4e79c69821ccacc07355c6d6ef7b942b7c0e24701d6381815 is a TOOLING_FAILURE with no reviewer response; recovery semantic history attempt 006 SHA-256 fd17298d53fbf69d696eb595a0ef099575a4d94854780dd5f742ad286e1697bd preserved four blockers that are resolved by the current tests. The outer parser incorrectly defaulted the missing attempt-005 output to PASS and reset the semantic retry metric. Current test SHA-256 b6a579e20177a3a1233e9ae93d91f04f2c50953f62d1ae2ac36c55562955af0f has 25 tests and 140 assertion call sites; scenario-validity and focused RED each contain 25 records with 8 passing baselines, 17 expected product failures, and zero invalid or tooling failures. Independent audit final severity is HIGH 0 and MEDIUM 0. No additional AI review retry was run or authorized; mandatory implementation and acceptance gates remain in force. Semantic correction: the four attempt-006 findings were valid when issued and were later resolved by the recorded test changes; following the spec-280 stale-finding precedent, their dispositions are accepted_risk rather than false_positive. For those four entries, the accepted risk is only manual completion without another semantic reviewer after actual 5 of 5 exhaustion, not unresolved test-design risk. The four independent-audit LOW entries and their successor owners are unchanged.",
+      "approvedAt": "2026-07-18T17:35:46.191Z",
+      "approvedBy": "codex-agent under parent specification authority",
+      "findings": [
+        {
+          "findingId": "test-006-blocking-001",
+          "disposition": "accepted_risk",
+          "successorOwner": "test-execute",
+          "acceptedRisk": "This finding was valid at attempt 006. It is concretely resolved by current test SHA-256 b6a579e20177a3a1233e9ae93d91f04f2c50953f62d1ae2ac36c55562955af0f at specs/318-explicit-task-render-context/tests/render-contract.test.js:228, where a 201-task Proxy fixture requires rejection while element, lookup, iterator, id, and parent access counters all remain zero. The only accepted risk is proceeding without a further semantic review after the actual 5 of 5 semantic attempts were exhausted; no unresolved test-design risk is claimed. Post-implementation test-execute owns runtime verification."
+        },
+        {
+          "findingId": "test-006-blocking-002",
+          "disposition": "accepted_risk",
+          "successorOwner": "impl-review",
+          "acceptedRisk": "This finding was valid at attempt 006. It is concretely resolved by current test SHA-256 b6a579e20177a3a1233e9ae93d91f04f2c50953f62d1ae2ac36c55562955af0f at specs/318-explicit-task-render-context/tests/render-contract.test.js:265, where n=0,1,50,200 fixtures bound TaskCollection id and parent reads and require exact public collection and TaskRenderPlan size, path, renderer, entry, mapping, and body invariants. The only accepted risk is proceeding without a further semantic review after the actual 5 of 5 semantic attempts were exhausted; no unresolved test-design risk is claimed for this blocker. Impl-review owns source-level O(n), recursion, pairwise-scan, and allocation verification."
+        },
+        {
+          "findingId": "test-006-blocking-003",
+          "disposition": "accepted_risk",
+          "successorOwner": "test-execute",
+          "acceptedRisk": "This finding was valid at attempt 006. It is concretely resolved by current test SHA-256 b6a579e20177a3a1233e9ae93d91f04f2c50953f62d1ae2ac36c55562955af0f at specs/318-explicit-task-render-context/tests/render-contract.test.js:146, where the TaskId constructor rejection table includes the UNC value \\\\server\\share, with schema rejection parity in the adjacent invalid table. The only accepted risk is proceeding without a further semantic review after the actual 5 of 5 semantic attempts were exhausted; no unresolved test-design risk is claimed. Post-implementation test-execute owns runtime verification."
+        },
+        {
+          "findingId": "test-006-blocking-004",
+          "disposition": "accepted_risk",
+          "successorOwner": "test-execute",
+          "acceptedRisk": "This finding was valid at attempt 006. It is concretely resolved by current test SHA-256 b6a579e20177a3a1233e9ae93d91f04f2c50953f62d1ae2ac36c55562955af0f at specs/318-explicit-task-render-context/tests/render-contract.test.js:947, where renderSpecView table-drives invalid ID, unknown parent, and 201-task rejection while preserving spec, generated, orphan, outside-task bytes, and exact task-directory entries. The only accepted risk is proceeding without a further semantic review after the actual 5 of 5 semantic attempts were exhausted; no unresolved test-design risk is claimed. Post-implementation test-execute owns runtime verification."
+        },
+        {
+          "findingId": "independent-audit-low-cached-pairwise-allocation",
+          "disposition": "accepted_risk",
+          "successorOwner": "impl-review",
+          "acceptedRisk": "Tests bound raw id and parent reads and exact output cardinalities but cannot prove that an implementation does not hide pairwise work or excess allocation behind cached values. Impl-review must inspect TaskCollection and TaskRenderPlan source for O(n) allocation, recursion, and pairwise scans; impl-gate and acceptance-review remain mandatory."
+        },
+        {
+          "findingId": "independent-audit-low-sync-201",
+          "disposition": "accepted_risk",
+          "successorOwner": "test-execute",
+          "acceptedRisk": "The plan suite covers invalid, duplicate, and unknown-parent sync immutability but does not isolate a sync-specific 201-task fixture. Test-execute is the nearest runtime owner; acceptance-review must verify R6 boundary coverage and final-regression remains mandatory."
+        },
+        {
+          "findingId": "independent-audit-low-active-a-matching-b",
+          "disposition": "accepted_risk",
+          "successorOwner": "acceptance-review",
+          "acceptedRisk": "Metadata isolation covers foreign active flow plus absent, exact colocated, and mismatched metadata, but not the combined active-A with matching selected-B arrangement as a distinct fixture. Acceptance-review owns final R4 disposition after test-execute; final-regression remains mandatory."
+        },
+        {
+          "findingId": "independent-audit-low-shared-regression",
+          "disposition": "accepted_risk",
+          "successorOwner": "final-regression",
+          "acceptedRisk": "The spec-local suite proves the requested production entry points but does not yet add every shared-suite regression. Test-execute and acceptance-review run first, and final-regression is the single successor owner for project-wide compatibility evidence."
+        }
+      ]
+    },
+    "scenario-validity": {
+      "stepId": "scenario-validity",
+      "userApproval": true,
+      "reason": "Parent specification authority approved documentary accepted-risk evidence for controlled promotion of actual exact-main baseline replay r2. The canonical producer cannot import retained plan-rewind baseline replay/history evidence. This is attempt 002 evidence, not conversion of blocked attempt 001 into PASS. TAP SHA-256 58c2c6b2f50dbe6ae0979d8b36f85fe79d20bdca3860963eb8382bcd17f83372 contains R1-R8 ordinary assertion failures with zero invalid/tooling failures; independent audit reports HIGH 0 and MEDIUM 0. No unresolved semantic risk is accepted, and test-review, test-execute, acceptance-review, and final-regression remain mandatory.",
+      "approvedAt": "2026-07-18T20:15:05.035Z",
+      "approvedBy": "codex-agent under parent specification authority",
+      "findings": [
+        {
+          "findingId": "scenario-validity-baseline-replay-history-import",
+          "disposition": "accepted_risk",
+          "successorOwner": "test-review, test-execute, acceptance-review, final-regression",
+          "acceptedRisk": "The accepted risk is documentary manual completion because the canonical scenario-validity producer has no plan-rewind baseline replay/history import path. Actual exact-main replay r2 is retained byte-for-byte and mechanically validates R1-R8 as expected_fail. No semantic finding remains unresolved; all successor verification stages remain mandatory."
+        }
+      ]
+    },
+    "impl-gate": {
+      "stepId": "impl-gate",
+      "userApproval": true,
+      "reason": "Parent specification authority approved accepted-risk completion for a non-semantic tooling_provider_failure, not a PASS conversion. 6 official impl-gate histories each preserve two provider parse attempts, and 14 response hashes preserve concatenated-JSON evidence. Independent audit is HIGH 0 and MEDIUM 0; focused R1/LOW1 evidence is GREEN. Canonical test-execute SHA-256 7e0f498443d0b55b34e8958004b80f70fc691992c673f3756a1fb848ef368c13 is explicitly pre-fix and must not be represented as current. Remaining LOW findings transfer to acceptance-review and final-regression.",
+      "approvedAt": "2026-07-18T20:59:47.110Z",
+      "approvedBy": "codex-agent under parent specification authority",
+      "findings": [
+        {
+          "findingId": "impl-gate-concatenated-json-tooling-failure",
+          "disposition": "accepted_risk",
+          "successorOwner": "acceptance-review, final-regression",
+          "acceptedRisk": "Accepted risk is manual impl-gate completion after repeated normal and fresh-repair provider outputs contained concatenated JSON. No semantic PASS is claimed; acceptance-review and final-regression remain mandatory."
+        },
+        {
+          "findingId": "impl-gate-canonical-test-execute-pre-fix",
+          "disposition": "accepted_risk",
+          "successorOwner": "acceptance-review, final-regression",
+          "acceptedRisk": "Canonical test-execute remains pre-fix: source fingerprint 825e478daa00e8730d7348f1f488f667d7ed135160d3709249410e3973cbb000 differs from current 9b16ddabccbccff42094f117c8a52abd0c0286e23b3205696962940de605d5c9, and canonical 26 tests precede current 27. Focused GREEN evidence is preserved separately; acceptance-review must retain this distinction and final-regression owns current project-wide execution."
+        },
+        {
+          "findingId": "impl-gate-independent-audit-low-cached-pairwise-allocation",
+          "disposition": "accepted_risk",
+          "successorOwner": "acceptance-review, final-regression",
+          "acceptedRisk": "Tests bound raw id and parent reads and exact output cardinalities but cannot prove that an implementation does not hide pairwise work or excess allocation behind cached values. Impl-review must inspect TaskCollection and TaskRenderPlan source for O(n) allocation, recursion, and pairwise scans; impl-gate and acceptance-review remain mandatory. This residual LOW remains explicitly transferred after impl-gate tooling recovery."
+        },
+        {
+          "findingId": "impl-gate-independent-audit-low-sync-201",
+          "disposition": "accepted_risk",
+          "successorOwner": "acceptance-review, final-regression",
+          "acceptedRisk": "The plan suite covers invalid, duplicate, and unknown-parent sync immutability but does not isolate a sync-specific 201-task fixture. Test-execute is the nearest runtime owner; acceptance-review must verify R6 boundary coverage and final-regression remains mandatory. This residual LOW remains explicitly transferred after impl-gate tooling recovery."
+        },
+        {
+          "findingId": "impl-gate-independent-audit-low-active-a-matching-b",
+          "disposition": "accepted_risk",
+          "successorOwner": "acceptance-review, final-regression",
+          "acceptedRisk": "Metadata isolation covers foreign active flow plus absent, exact colocated, and mismatched metadata, but not the combined active-A with matching selected-B arrangement as a distinct fixture. Acceptance-review owns final R4 disposition after test-execute; final-regression remains mandatory. This residual LOW remains explicitly transferred after impl-gate tooling recovery."
+        },
+        {
+          "findingId": "impl-gate-independent-audit-low-shared-regression",
+          "disposition": "accepted_risk",
+          "successorOwner": "final-regression",
+          "acceptedRisk": "The spec-local suite proves the requested production entry points but does not yet add every shared-suite regression. Test-execute and acceptance-review run first, and final-regression is the single successor owner for project-wide compatibility evidence. This residual LOW remains explicitly transferred after impl-gate tooling recovery."
+        }
+      ]
+    },
+    "final-regression": {
+      "stepId": "final-regression",
+      "userApproval": true,
+      "reason": "Parent specification authority approved recovery option A as accepted-risk completion for final-regression. This is not a semantic PASS, not record-and-proceed, and does not alter final-regression-result.json or report.json. Attempt 004 remains the last valid full-suite evidence; attempts after it expose tooling and classifier limitations. Independent audit reports HIGH 0 and MEDIUM 0. Parent explicitly accepts the bounded risk that the latest zero-detail classifier source and test changes have focused and related GREEN evidence but no subsequent full-suite execution.",
+      "approvedAt": "2026-07-18T23:14:32.974Z",
+      "approvedBy": "codex-agent under parent specification authority",
+      "findings": [
+        {
+          "findingId": "final-regression-attempt-004-existing-guard",
+          "disposition": "accepted_risk",
+          "successorOwner": "finalize-commit",
+          "acceptedRisk": "Attempt 004 is retained as valid full-suite raw evidence at specs/318-explicit-task-render-context/tests/.raw/final-regression-attempt-004.log with SHA-256 cb8a1e19b7e89fda948e21155e54af08f6e4cc30a40d32e4456407041ccf67fa. It contains the only failing assertion: the pre-existing flow-state source-sink guard. The implicated baseline blobs are unchanged across main, HEAD, and worktree: src/flow/lib/run-finalize-cleanup.js blob d60cfdfe92ddcc399b8ebb58f13630a6b08d1fd5 and tests/unit/flow/flow-state-source-sinks.test.js blob 9637eda44f25e44126528fdc69379e11248f3d96. Parent accepts this known non-current existing failure without converting it to PASS or record-and-proceed."
+        },
+        {
+          "findingId": "final-regression-post-attempt-004-repairs",
+          "disposition": "accepted_risk",
+          "successorOwner": "finalize-commit",
+          "acceptedRisk": "Post-attempt-004 report delivery repairs are supported by focused and related evidence. Dispatcher context propagation: focused GREEN 22eaf1c0e4a94bf42cf20d478b242cea451ee472ca3619083cd90eb60f882bcb and related GREEN 6c4edc9f146c399589c9179c051de7bb24d0ab1d9de788342397ba44baeed6ca. Exact outbox recovery: RED 10af2abc993266250a9cf4168663f3309953be9db082c48815f888f0799038db, focused GREEN 061d37b05fd634122ae0c75b0911f1ba378b670144ad43e81b596f21a6769bf4, related GREEN f1def6d8dcf0d62d14cdcee64d5b97ac8cc42bb6c34fb0435e63b691c7928235. ABA prevention: RED 4e1491f200f73ebfdb693940d095882217450355cab1113f3bfc68a48bebe2e1, focused GREEN 8441ded03ea8cc91b0aa94839d086388c55c18d098074c9d847c760e21ab79c0, related GREEN 71c10841fdc0603276e271335c50a17540e0aa0db35f4097c93cbbc42d1d04d1."
+        },
+        {
+          "findingId": "final-regression-attempt-005-zero-test-tooling",
+          "disposition": "accepted_risk",
+          "successorOwner": "finalize-commit",
+          "acceptedRisk": "Attempt 005 raw SHA-256 bba2ec9b630fb44a33b5a89007915d515cf78424e71951ee18c10185f3718c70 contains unit 0, integration 0, acceptance 0 and no TAP assertion or failure detail. The direct retained 38-byte raw at specs/318-explicit-task-render-context/tests/.raw/post-report-full-regression.log has SHA-256 d3dbeb1185dea7aff00afd65e4ee9baf79c51780a874e01093d3330870c1d8cc and the same zero totals. The old classifier produced stale artifact SHA-256 d1a8258bfeef4caca6cacc5d798dc2629c44742da251d69270118e96ac5c57de as assertion/existing_failure with record eligibility. That classification is explicitly rejected as tooling evidence, not accepted as a semantic assertion result."
+        },
+        {
+          "findingId": "final-regression-zero-detail-classifier",
+          "disposition": "accepted_risk",
+          "successorOwner": "finalize-commit",
+          "acceptedRisk": "The zero-detail classifier fix fails closed to infra_failure, environment/execution, stop, and recordAndProceed eligible=false. RED SHA-256 8979863e92e52a1bb5f34ed54014c1cf27bcba1031ca658fb6eb2d146c1bb614; focused GREEN SHA-256 a358c1401a243ddf79a4a815e9a2f30eab8e773ca8de852831867a8164487556; related GREEN SHA-256 4801933ddadff8cd01c55fdc03d0887b5ec3f7f8d728d4d7b862d92d66ca6ad5. Current source SHA-256 is d324f35594d7168ad01e70751dad98d29a673caf4c83d9c4882f76d2e5ad5644 and current test SHA-256 is cc0cefe8a7ef7d984566fba901201f576722d2030cc21e437c5c3b61dcb71ce2. Parent accepts that these latest two files were not followed by another full-suite run; actual TAP assertion and multi-failure behavior remain covered by focused and related GREEN evidence."
+        },
+        {
+          "findingId": "final-regression-stale-report-scope",
+          "disposition": "accepted_risk",
+          "successorOwner": "finalize-commit",
+          "acceptedRisk": "report.json SHA-256 46809c8bd9bda7798338b459cd84aacffd3f96eff7bd49fdb93ee74bfe012e81 is intentionally retained without regeneration or Issue repost. It still references attempt 004, the earlier 138-fingerprint decision, Issue Log Summary 45, and excludes the post-report dispatcher, exact outbox recovery, ABA prevention, attempt 005 tooling evidence, and latest zero-detail classifier changes. Parent accepts this precisely bounded stale-report scope. Independent audit remains HIGH 0 and MEDIUM 0."
+        }
+      ]
+    }
+  }
+}

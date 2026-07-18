@@ -18,6 +18,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { loadSpecJson } from "../../../src/lib/spec-json.js";
+import { RenderArtifactSnapshot } from "../../helpers/render-artifact-snapshot.js";
 
 const SENTI = path.resolve("src/senti.js");
 
@@ -79,6 +80,18 @@ function run(tmp, argv) {
   });
 }
 
+function specTask(id, parent = null) {
+  return {
+    id,
+    title: `Task ${id}`,
+    goal: `Goal ${id}`,
+    parent,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  };
+}
+
 describe("flow set approval (spec 221 R5, R7)", () => {
   let tmp;
   afterEach(() => tmp && fs.rmSync(tmp, { recursive: true, force: true }));
@@ -126,6 +139,34 @@ describe("flow set approval (spec 221 R5, R7)", () => {
     // loadSpecJson validates by default
     const updated = loadSpecJson(path.join(specDir, "spec.json"));
     assert.ok(updated.user_approval);
+  });
+
+  it("R5: invalid task collections preserve spec, views, tasks, and flow bytes", () => {
+    const fixtures = [
+      { label: "duplicate", tasks: [specTask("T-1"), specTask("T-1")] },
+      { label: "unknown-parent", tasks: [specTask("child", "missing")] },
+      {
+        label: "over-limit",
+        tasks: Array.from({ length: 201 }, (_, index) => specTask(`T-${index}`)),
+      },
+    ];
+
+    for (const fixture of fixtures) {
+      tmp = createProject();
+      const specDir = setupSpec(tmp, `invalid-${fixture.label}`, { tasks: fixture.tasks });
+      const tasksDir = path.join(specDir, "tasks");
+      fs.mkdirSync(tasksDir, { recursive: true });
+      fs.writeFileSync(path.join(tasksDir, "existing.md"), "existing task\n");
+      fs.writeFileSync(path.join(tasksDir, "orphan.md"), "orphan task\n");
+      const snapshot = new RenderArtifactSnapshot(specDir);
+
+      const result = run(tmp, ["flow", "set", "approval", "--approved"]);
+
+      assert.notEqual(result.status, 0, `${fixture.label}: invalid approval succeeded`);
+      snapshot.assertUnchanged(fixture.label);
+      fs.rmSync(tmp, { recursive: true, force: true });
+      tmp = null;
+    }
   });
 
   it("R5: exits non-zero when no active flow exists", () => {

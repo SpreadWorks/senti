@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-18T16:11:43.178Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/318-explicit-task-render-context/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 lookup exposure is untested",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "issue": "The R2 test verifies TaskCollection size, rejection cases, forward parent acceptance, and iteration identities, but it never exercises the public lookup API. An implementation could keep lookup entries as raw strings or expose unvalidated identities through lookup while still passing these tests.",
+      "requiredChange": "Add a spec-local R2 assertion that uses TaskCollection's public lookup method/API and verifies returned task identities and parent identities are TaskId-backed validated values.",
+      "whyBlocking": "R2 explicitly requires public iteration and lookup to expose validated task identities, and the coverage artifact marks R2 covered by this file.",
+      "origin": "R2",
+      "failureKind": "missing-test-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 ambient active-flow fallback is not isolated",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "issue": "The R4 SpecRenderContext test covers absent colocated flow metadata only in a root with no ambient active flow. It does not reproduce the pre-fix risk that absent or mismatched colocated metadata might read ambient active-flow state and use its featureBranch/Issue metadata.",
+      "requiredChange": "Add a spec-local R4 case with an ambient active flow for a different spec and no matching colocated flow for the selected spec, then assert SpecRenderContext uses feature/<selected-directory> and User request.",
+      "whyBlocking": "R4 specifically forbids reading ambient active-flow state for absent or mismatched colocated metadata; current tests could pass while that forbidden behavior remains.",
+      "origin": "R4",
+      "failureKind": "missing-test-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 invalid ID and duplicate rejection are not covered for flow sync",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "issue": "R6 requires syncSpecTasksToFlow to leave flow.json unchanged for invalid ID, duplicate, or unknown parent. The tests only cover unknown parent rejection and valid sync behavior.",
+      "requiredChange": "Add R6 spec-local flow snapshot tests for an invalid task ID and a duplicate task ID, asserting syncSpecTasksToFlow throws and flow.json bytes are unchanged.",
+      "whyBlocking": "The requirement names three rejection classes for FlowStore mutation safety, but two have no corresponding spec-local coverage despite the artifact marking R6 covered.",
+      "origin": "R6",
+      "failureKind": "missing-test-coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R3 complexity constraints are only indirectly checked",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "improvement": "Consider adding a static or instrumentation-oriented assertion that render planning does not perform recursive or pairwise task scans, if the production API exposes a practical hook.",
+      "whyNonBlocking": "The existing tests cover path confinement, write cardinality, and side-effect ordering; algorithmic complexity is difficult to prove with executable tests and this is a helpful strengthening rather than a concrete contradiction."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/318-explicit-task-render-context/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "515a579a0aeed14dd5583bb783d80caf028bc3af4005333b03d2f463fd974b8b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R2 lookup exposure is untested",
+      "body": "The R2 test verifies TaskCollection size, rejection cases, forward parent acceptance, and iteration identities, but it never exercises the public lookup API. An implementation could keep lookup entries as raw strings or expose unvalidated identities through lookup while still passing these tests.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R4 ambient active-flow fallback is not isolated",
+      "body": "The R4 SpecRenderContext test covers absent colocated flow metadata only in a root with no ambient active flow. It does not reproduce the pre-fix risk that absent or mismatched colocated metadata might read ambient active-flow state and use its featureBranch/Issue metadata.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R6 invalid ID and duplicate rejection are not covered for flow sync",
+      "body": "R6 requires syncSpecTasksToFlow to leave flow.json unchanged for invalid ID, duplicate, or unknown parent. The tests only cover unknown parent rejection and valid sync behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "non-blocking",
+      "title": "R3 complexity constraints are only indirectly checked",
+      "body": "R3 complexity constraints are only indirectly checked",
+      "category": "unknown"
+    }
+  ]
+}

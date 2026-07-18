@@ -467,7 +467,10 @@ export async function dispatch({
       const cmd = new CommandClass();
       input._envelopeType = envelopeType;
       input._envelopeKey = envelopeKey;
-      result = await cmd.run(container, input);
+      const commandInput = hookCtx.flowOutboxEntry
+        ? { ...input, flowOutboxEntry: hookCtx.flowOutboxEntry }
+        : input;
+      result = await cmd.run(container, commandInput);
     } catch (err) {
       caught = err;
     }

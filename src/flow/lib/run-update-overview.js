@@ -20,15 +20,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { applyOverviewAdditions } from "./overview-merge.js";
-import { renderSpecView } from "./render-spec-view.js";
+import { applySpecViewPlan, buildSpecViewPlan } from "./render-spec-view.js";
 import { FlowCommand } from "./base-command.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { getSpecDir } from "../../lib/flow-helpers.js";
+import { saveSpecJson } from "../../lib/spec-json.js";
 
 const MAX_SPEC_JSON_BYTES = 256 * 1024;
 
-export function persistOverviewUpdate({ specDir, additions, taskId, meta }) {
+export function persistOverviewUpdate({ specDir, additions, taskId }) {
   const specJsonPath = path.join(specDir, "spec.json");
 
   const stat = fs.statSync(specJsonPath);
@@ -41,15 +42,13 @@ export function persistOverviewUpdate({ specDir, additions, taskId, meta }) {
   const spec = JSON.parse(raw);
 
   const next = applyOverviewAdditions(spec, additions, taskId);
-
-  fs.writeFileSync(specJsonPath, `${JSON.stringify(next, null, 2)}\n`);
-  const renderResult = renderSpecView({
+  const renderPlan = buildSpecViewPlan({
     root: path.dirname(path.dirname(specDir)),
     specPath: specJsonPath,
-    state: { featureBranch: meta?.featureBranch },
     spec: next,
-    meta,
   });
+  saveSpecJson(specJsonPath, next, { validate: false });
+  const renderResult = applySpecViewPlan(renderPlan);
 
   return { specJsonPath, specMdPath: path.join(specDir, "spec.md"), rendered: renderResult.changed };
 }
@@ -149,17 +148,9 @@ export class RunUpdateOverviewCommand extends FlowCommand {
 
     const taskId = state.currentTaskId || null;
 
-    const meta = {
-      title: path.basename(specDir),
-      featureBranch: state.featureBranch || null,
-      created: null,
-      status: "Draft",
-      input: state.issue ? `GitHub Issue #${state.issue}` : "User request",
-    };
-
     try {
       const { specJsonPath, specMdPath } = persistOverviewUpdate({
-        specDir, additions, taskId, meta,
+        specDir, additions, taskId,
       });
       return Envelope.ok("run", "update-overview", {
         specJsonPath,

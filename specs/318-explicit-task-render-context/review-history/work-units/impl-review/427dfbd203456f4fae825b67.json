@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json"
+    ],
+    "inputHash": "4d47f3c7156e1a9a7a55381077390c1608f1f4250988a740752e79ee9f25faeb",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json"
+  ],
+  "inputHash": "4d47f3c7156e1a9a7a55381077390c1608f1f4250988a740752e79ee9f25faeb",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T20:20:22.314Z",
+  "finishedAt": "2026-07-18T20:20:22.314Z",
+  "rawResponse": "### 1. Avoid storing duplicate identity fields\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json`  \n**Requirement:** R4  \n**Issue:** Metadata such as `phase`, `kind`, `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion` is duplicated both at the top level and inside `identity`. This creates avoidable consistency risk across persisted review units.  \n**Suggestion:** Keep these fields canonical in one location, preferably `identity`, and have readers derive or project the top-level values when needed.\n\n### 2. Normalize raw response and parsed proposals\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json`  \n**Requirement:** R4  \n**Issue:** `rawResponse` stores the full proposal text, while `success.proposals[]` stores the parsed version of the same content. This duplicates review data and can drift if one representation is edited or regenerated independently.  \n**Suggestion:** Persist either the raw provider output for audit or the parsed structured proposals as canonical data. If both are required, mark `rawResponse` as audit-only and avoid using it as a second source of truth.\n\n### 3. Extract repeated work-unit envelope structure\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json`  \n**Requirement:** R5  \n**Issue:** The newly added work-unit JSON files repeat the same envelope shape with only identifiers, target files, hashes, timestamps, and response payloads changing. This makes generated artifacts noisy and harder to inspect for meaningful differences.  \n**Suggestion:** Use a shared schema/template for the invariant envelope and persist only variable fields per work unit, or ensure these files are generated from a single serializer so the repeated structure is not manually maintained.\n\n### 4. Remove duplicated proposal numbering from structured titles\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json`  \n**Requirement:** R4  \n**Issue:** Each parsed proposal `title` includes a numeric prefix such as `\"1. Add Explicit Task Count Bounds\"`, duplicating the proposal’s array position. This makes reordering or merging proposals more error-prone.  \n**Suggestion:** Store titles without ordinal prefixes, for example `\"Add Explicit Task Count Bounds\"`, and let renderers add numbering at display time.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid storing duplicate identity fields",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json`  \n**Requirement:** R4  \n**Issue:** Metadata such as `phase`, `kind`, `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion` is duplicated both at the top level and inside `identity`. This creates avoidable consistency risk across persisted review units.  \n**Suggestion:** Keep these fields canonical in one location, preferably `identity`, and have readers derive or project the top-level values when needed.",
+        "file": "specs/318-explicit-task-render-context/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Normalize raw response and parsed proposals",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json`  \n**Requirement:** R4  \n**Issue:** `rawResponse` stores the full proposal text, while `success.proposals[]` stores the parsed version of the same content. This duplicates review data and can drift if one representation is edited or regenerated independently.  \n**Suggestion:** Persist either the raw provider output for audit or the parsed structured proposals as canonical data. If both are required, mark `rawResponse` as audit-only and avoid using it as a second source of truth.",
+        "file": "specs/318-explicit-task-render-context/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Extract repeated work-unit envelope structure",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json`  \n**Requirement:** R5  \n**Issue:** The newly added work-unit JSON files repeat the same envelope shape with only identifiers, target files, hashes, timestamps, and response payloads changing. This makes generated artifacts noisy and harder to inspect for meaningful differences.  \n**Suggestion:** Use a shared schema/template for the invariant envelope and persist only variable fields per work unit, or ensure these files are generated from a single serializer so the repeated structure is not manually maintained.",
+        "file": "specs/318-explicit-task-render-context/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Remove duplicated proposal numbering from structured titles",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json`  \n**Requirement:** R4  \n**Issue:** Each parsed proposal `title` includes a numeric prefix such as `\"1. Add Explicit Task Count Bounds\"`, duplicating the proposal’s array position. This makes reordering or merging proposals more error-prone.  \n**Suggestion:** Store titles without ordinal prefixes, for example `\"Add Explicit Task Count Bounds\"`, and let renderers add numbering at display time.",
+        "file": "specs/318-explicit-task-render-context/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

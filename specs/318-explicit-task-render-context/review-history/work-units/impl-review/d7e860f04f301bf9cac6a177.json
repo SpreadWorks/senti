@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json"
+    ],
+    "inputHash": "1bd2a849f9f43a8f6e3612992bde4923c14290b5f4810e5c1bcaae1ebc2cb44d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json"
+  ],
+  "inputHash": "1bd2a849f9f43a8f6e3612992bde4923c14290b5f4810e5c1bcaae1ebc2cb44d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T20:20:05.628Z",
+  "finishedAt": "2026-07-18T20:20:05.628Z",
+  "rawResponse": "### 1. Remove duplicated metadata fields\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json`  \n**Requirement:** R8  \n**Issue:** `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion` are duplicated at the top level and inside `identity`, creating consistency risk if one copy is updated without the other.  \n**Suggestion:** Keep identity metadata in one location, preferably `identity`, and have consumers read from that canonical object.\n\n### 2. Avoid storing proposals twice\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json`  \n**Requirement:** R8  \n**Issue:** `rawResponse` contains the same proposal text that is also parsed into `success.proposals[*].body`. This duplicates long markdown payloads and can drift if one representation is edited.  \n**Suggestion:** Store either the raw provider response or the parsed structured proposals as canonical. If both are required for auditability, add a checksum or make `rawResponse` explicitly immutable/debug-only.\n\n### 3. Normalize successful empty results\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json`  \n**Requirement:** R8  \n**Issue:** Empty review output is represented both as `rawResponse: \"NO_PROPOSALS\"` and `success.proposals: []`. That special string adds a second convention for the same state.  \n**Suggestion:** Prefer `success.proposals: []` as the structured source of truth and omit `rawResponse` for no-op results, or replace the sentinel string with a boolean such as `hasProposals: false`.\n\n### 4. Fix malformed proposal text before persisting\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json`  \n**Requirement:** R8  \n**Issue:** Proposal 2 has malformed markdown/text: ``TASK_ID_PATTERN is already anchored with `^` and `,`` appears to be missing the closing `$` pattern reference. This makes the review artifact harder to trust and read.  \n**Suggestion:** Correct the persisted `rawResponse` and matching `success.proposals[1].body` text to say the regex is anchored with `^` and `$`.\n\n### 5. Keep proposal file attribution consistent with actionable scope\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json`  \n**Requirement:** R8  \n**Issue:** Proposal 3 is filed against `src/flow/lib/get-prompt.js`, but the issue describes `renderSpecView` API behavior and removed parameters. The file attribution and issue focus do not line up cleanly.  \n**Suggestion:** Reassign that proposal to `src/flow/lib/render-spec-view.js` if the API shape is the concern, or rewrite the issue to describe only the touched `get-prompt.js` call-site cleanup.",
+  "success": {
+    "proposals": []
+  }
+}

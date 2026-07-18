@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0dc516b2ddd08aaba2747b55",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0015",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/helpers/render-artifact-snapshot.js",
+      "tests/unit/flow/run-update-overview.test.js",
+      "tests/unit/flow/set-approval.test.js"
+    ],
+    "inputHash": "4912b82b307c09d4a641373de96eae09249086162b4f3068632c462d16fc4adf",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0dc516b2ddd08aaba2747b55"
+  },
+  "targetFiles": [
+    "tests/helpers/render-artifact-snapshot.js",
+    "tests/unit/flow/run-update-overview.test.js",
+    "tests/unit/flow/set-approval.test.js"
+  ],
+  "inputHash": "4912b82b307c09d4a641373de96eae09249086162b4f3068632c462d16fc4adf",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T20:22:30.147Z",
+  "finishedAt": "2026-07-18T20:22:30.147Z",
+  "rawResponse": "### 1. Extract duplicated invalid task fixtures\n**File:** `tests/helpers/render-artifact-snapshot.js`  \n**Requirement:** R5  \n**Issue:** `specTask` and the invalid task collection fixtures are duplicated in `tests/unit/flow/run-update-overview.test.js` and `tests/unit/flow/set-approval.test.js`. That makes future changes to task validity cases easy to miss in one test file.  \n**Suggestion:** Add small exported helpers such as `makeSpecTask()` and `invalidTaskCollectionFixtures()` to this helper file, then import them from both tests.\n\n### 2. Add explicit bounds to snapshot loading\n**File:** `tests/helpers/render-artifact-snapshot.js`  \n**Requirement:** R5  \n**Issue:** `RenderArtifactSnapshot` reads every task file in `tasks/` with no explicit entry or size bound. This conflicts with the `bounded-resource-usage` guardrail because bulk filesystem loading can grow without limit.  \n**Suggestion:** Add explicit limits, for example `maxTaskEntries` and `maxTaskBytes`, defaulting to the project’s expected task limit. Fail fast if the directory exceeds the bound or if a task file is too large before reading all contents.\n\n### 3. Avoid duplicated cleanup inside loop\n**File:** `tests/unit/flow/set-approval.test.js`  \n**Requirement:** R5  \n**Issue:** The test manually removes `tmp` inside the loop and also relies on `afterEach` cleanup. Setting `tmp = null` avoids double cleanup, but the mixed ownership makes the test harder to follow.  \n**Suggestion:** Use a local `projectDir` inside the loop and clean it up with `try/finally`, leaving the shared `tmp`/`afterEach` pattern for tests that only create one project.\n\n### 4. Simplify repeated invalid-collection test setup\n**File:** `tests/unit/flow/run-update-overview.test.js`  \n**Requirement:** R5  \n**Issue:** The invalid collection test repeats setup details that are conceptually about preserving render artifacts: creating `tasks/`, writing existing task files, and constructing the snapshot. Similar setup also exists in `set-approval.test.js`.  \n**Suggestion:** Move the repeated artifact setup into a local helper such as `writeExistingRenderArtifacts(dir)` or into the shared render artifact helper module, then keep each test focused on the command or function under test.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract duplicated invalid task fixtures",
+        "body": "**File:** `tests/helpers/render-artifact-snapshot.js`  \n**Requirement:** R5  \n**Issue:** `specTask` and the invalid task collection fixtures are duplicated in `tests/unit/flow/run-update-overview.test.js` and `tests/unit/flow/set-approval.test.js`. That makes future changes to task validity cases easy to miss in one test file.  \n**Suggestion:** Add small exported helpers such as `makeSpecTask()` and `invalidTaskCollectionFixtures()` to this helper file, then import them from both tests.",
+        "file": "tests/helpers/render-artifact-snapshot.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Add explicit bounds to snapshot loading",
+        "body": "**File:** `tests/helpers/render-artifact-snapshot.js`  \n**Requirement:** R5  \n**Issue:** `RenderArtifactSnapshot` reads every task file in `tasks/` with no explicit entry or size bound. This conflicts with the `bounded-resource-usage` guardrail because bulk filesystem loading can grow without limit.  \n**Suggestion:** Add explicit limits, for example `maxTaskEntries` and `maxTaskBytes`, defaulting to the project’s expected task limit. Fail fast if the directory exceeds the bound or if a task file is too large before reading all contents.",
+        "file": "tests/helpers/render-artifact-snapshot.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Avoid duplicated cleanup inside loop",
+        "body": "**File:** `tests/unit/flow/set-approval.test.js`  \n**Requirement:** R5  \n**Issue:** The test manually removes `tmp` inside the loop and also relies on `afterEach` cleanup. Setting `tmp = null` avoids double cleanup, but the mixed ownership makes the test harder to follow.  \n**Suggestion:** Use a local `projectDir` inside the loop and clean it up with `try/finally`, leaving the shared `tmp`/`afterEach` pattern for tests that only create one project.",
+        "file": "tests/unit/flow/set-approval.test.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Simplify repeated invalid-collection test setup",
+        "body": "**File:** `tests/unit/flow/run-update-overview.test.js`  \n**Requirement:** R5  \n**Issue:** The invalid collection test repeats setup details that are conceptually about preserving render artifacts: creating `tasks/`, writing existing task files, and constructing the snapshot. Similar setup also exists in `set-approval.test.js`.  \n**Suggestion:** Move the repeated artifact setup into a local helper such as `writeExistingRenderArtifacts(dir)` or into the shared render artifact helper module, then keep each test focused on the command or function under test.",
+        "file": "tests/unit/flow/run-update-overview.test.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

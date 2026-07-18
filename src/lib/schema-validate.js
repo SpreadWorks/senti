@@ -3,7 +3,8 @@
  *
  * Generic JSON Schema subset validator.
  * Supports: type, required, properties, additionalProperties, enum,
- * oneOf, items, minimum, minLength, minItems, deprecated.
+ * oneOf, items, minimum, minLength, maxLength, pattern, minItems, maxItems,
+ * deprecated.
  */
 
 /**
@@ -52,6 +53,17 @@ export function validateSchema(value, schema, path = "") {
     if (schema.minLength != null && value.length < schema.minLength) {
       errors.push(`${path || "(root)"}: minLength ${schema.minLength}, got ${value.length}`);
     }
+    if (schema.maxLength != null && value.length > schema.maxLength) {
+      errors.push(`${path || "(root)"}: maxLength ${schema.maxLength}, got ${value.length}`);
+    }
+    if (schema.pattern != null) {
+      const pattern = new RegExp(schema.pattern);
+      const match = pattern.exec(value);
+      const anchored = hasExplicitFullStringAnchors(schema.pattern);
+      if (match === null || (anchored && (match.index !== 0 || match[0] !== value))) {
+        errors.push(`${path || "(root)"}: must match pattern ${schema.pattern}`);
+      }
+    }
   }
 
   // number / integer constraints
@@ -65,6 +77,10 @@ export function validateSchema(value, schema, path = "") {
   if (schemaHasType(schema, "array") && Array.isArray(value)) {
     if (schema.minItems != null && value.length < schema.minItems) {
       errors.push(`${path || "(root)"}: minItems ${schema.minItems}, got ${value.length}`);
+    }
+    if (schema.maxItems != null && value.length > schema.maxItems) {
+      errors.push(`${path || "(root)"}: maxItems ${schema.maxItems}, got ${value.length}`);
+      return errors;
     }
     if (schema.items) {
       for (let i = 0; i < value.length; i++) {
@@ -88,7 +104,7 @@ export function validateSchema(value, schema, path = "") {
     if (schema.properties) {
       for (const [key, propSchema] of Object.entries(schema.properties)) {
         const propPath = path ? `${path}.${key}` : key;
-        if (value[key] == null) continue; // absent optional
+        if (value[key] === undefined) continue; // absent optional
 
         if (propSchema.deprecated) {
           errors.push(`${propPath}: deprecated field`);
@@ -133,6 +149,17 @@ function checkType(value, type) {
 
 function schemaHasType(schema, type) {
   return schema.type === type || (Array.isArray(schema.type) && schema.type.includes(type));
+}
+
+function hasExplicitFullStringAnchors(pattern) {
+  if (typeof pattern !== "string" || pattern[0] !== "^" || !pattern.endsWith("$")) {
+    return false;
+  }
+  let precedingBackslashes = 0;
+  for (let index = pattern.length - 2; index >= 0 && pattern[index] === "\\"; index -= 1) {
+    precedingBackslashes += 1;
+  }
+  return precedingBackslashes % 2 === 0;
 }
 
 function typeOf(value) {

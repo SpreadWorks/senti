@@ -14,8 +14,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { FlowManager } from "../../lib/flow-manager.js";
-import { tryLoadSpecJson } from "../../lib/spec-json.js";
+import { tryLoadSpecJson, validateSpecJsonObject } from "../../lib/spec-json.js";
 import { buildInitialTaskSteps, promoteNextPending } from "../../lib/flow-helpers.js";
+import {
+  TaskCollection,
+  TaskOutputPath,
+} from "../../spec/lib/render-contract.js";
 
 /**
  * Synchronize spec.json tasks[] into flow.json tasks[] (append-only).
@@ -37,14 +41,15 @@ export function syncSpecTasksToFlow({ root }) {
   if (!specPath) return { added: [], skipped: true, reason: "no spec path" };
 
   const absSpecPath = path.isAbsolute(specPath) ? specPath : path.join(root, specPath);
-  const spec = tryLoadSpecJson(absSpecPath);
+  const spec = tryLoadSpecJson(absSpecPath, { validate: false });
   if (!spec) return { added: [], skipped: true, reason: "spec.json not found" };
 
-  const specTasks = Array.isArray(spec.tasks) ? spec.tasks : [];
-  if (specTasks.length === 0) return { added: [] };
+  const collection = new TaskCollection(spec.tasks ?? []);
+  validateSpecJsonObject(spec);
+  if (collection.size === 0) return { added: [] };
 
   const existingIds = new Set((state.tasks || []).map((t) => t.id));
-  const newTasks = specTasks.filter((t) => !existingIds.has(t.id));
+  const newTasks = [...collection].filter((task) => !existingIds.has(task.id.value));
   if (newTasks.length === 0) return { added: [] };
 
   // REQ-6: auto-compute added_round for new tasks at approval time.
@@ -62,12 +67,17 @@ export function syncSpecTasksToFlow({ root }) {
   // Spec 226: at the end of the batch, call promoteNextPending to auto-promote
   // the first pending task (forest leaf priority) into currentTaskId if it was
   // null. This is call site (1) of the single-caller boundary.
-  const added = [];
+  const tasksDir = path.join(path.dirname(absSpecPath), "tasks");
+  const preparedTasks = newTasks.map((specTask) => buildFlowTask(
+    specTask,
+    new TaskOutputPath(tasksDir, specTask.id),
+    root,
+    assignedRound,
+  ));
+  const added = preparedTasks.map((task) => task.id);
   fm._store.mutate((s) => {
-    for (const sTask of newTasks) {
-      const fTask = buildFlowTask(sTask, state.spec, assignedRound);
-      s.tasks.push(fTask);
-      added.push(sTask.id);
+    for (const task of preparedTasks) {
+      s.tasks.push(task);
     }
     promoteNextPending(s);
   });
@@ -75,15 +85,14 @@ export function syncSpecTasksToFlow({ root }) {
   return { added };
 }
 
-function buildFlowTask(specTask, flowSpecPath, assignedRound) {
-  const specDir = path.dirname(flowSpecPath);
+function buildFlowTask(specTask, outputPath, root, assignedRound) {
   return {
-    id: specTask.id,
-    spec: `${specDir}/tasks/${specTask.id}.md`,
+    id: specTask.id.value,
+    spec: path.relative(root, outputPath.value).split(path.sep).join("/"),
     origin: specTask.origin,
     // Spec 226: transcribe parent from spec.json (was: always null).
     // Null/undefined stays null (flat list compatibility).
-    parent: specTask.parent == null ? null : specTask.parent,
+    parent: specTask.parent == null ? null : specTask.parent.value,
     status: specTask.status || "pending",
     steps: buildInitialTaskSteps(specTask.origin),
     requirements: [],

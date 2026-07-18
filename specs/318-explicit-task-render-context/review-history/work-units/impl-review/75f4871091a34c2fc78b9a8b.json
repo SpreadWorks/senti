@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-explicit-task-render-context/draft-questions-triage.json",
+      "specs/318-explicit-task-render-context/draft-review-coverage.json",
+      "specs/318-explicit-task-render-context/draft-review-questions.json",
+      "specs/318-explicit-task-render-context/draft.json",
+      "specs/318-explicit-task-render-context/file-map.json"
+    ],
+    "inputHash": "d7e0931a0f8a19939bc6c3339ad2641fddd7789bbaa57818724b53a06b63e98c",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "specs/318-explicit-task-render-context/draft-questions-triage.json",
+    "specs/318-explicit-task-render-context/draft-review-coverage.json",
+    "specs/318-explicit-task-render-context/draft-review-questions.json",
+    "specs/318-explicit-task-render-context/draft.json",
+    "specs/318-explicit-task-render-context/file-map.json"
+  ],
+  "inputHash": "d7e0931a0f8a19939bc6c3339ad2641fddd7789bbaa57818724b53a06b63e98c",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T20:18:14.332Z",
+  "finishedAt": "2026-07-18T20:18:14.332Z",
+  "rawResponse": "### 1. Define explicit task collection bounds\n**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R2  \n**Issue:** `TaskCollection` is expected to validate collection size, uniqueness, and parent existence, but the draft does not define concrete upper bounds for task count or parent-chain depth. This violates `bounded-resource-usage` for bulk task processing.  \n**Suggestion:** Add explicit limits, for example max tasks per spec and max parent-chain depth, and require `TaskCollection` to enforce them before render/view/sync writes.\n\n### 2. Fix incomplete regex formatting\n**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R1  \n**Issue:** Several strings include `` `^[A-Za-z0-9][A-Za-z0-9_-]{0,99} `` without a closing backtick, making the contract harder to read and easy to copy incorrectly.  \n**Suggestion:** Normalize every occurrence to `` `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` `` or explicitly state whether the anchors are represented outside the regex.\n\n### 3. Remove inconsistent indentation in `impactOnExisting`\n**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R7  \n**Issue:** The final three `impactOnExisting` entries are indented more deeply than the other array items, suggesting accidental nesting even though the JSON remains valid.  \n**Suggestion:** Align all array entries consistently to reduce review friction and avoid misleading structure.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Define explicit task collection bounds",
+        "body": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R2  \n**Issue:** `TaskCollection` is expected to validate collection size, uniqueness, and parent existence, but the draft does not define concrete upper bounds for task count or parent-chain depth. This violates `bounded-resource-usage` for bulk task processing.  \n**Suggestion:** Add explicit limits, for example max tasks per spec and max parent-chain depth, and require `TaskCollection` to enforce them before render/view/sync writes.",
+        "file": "specs/318-explicit-task-render-context/draft.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Fix incomplete regex formatting",
+        "body": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R1  \n**Issue:** Several strings include `` `^[A-Za-z0-9][A-Za-z0-9_-]{0,99} `` without a closing backtick, making the contract harder to read and easy to copy incorrectly.  \n**Suggestion:** Normalize every occurrence to `` `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` `` or explicitly state whether the anchors are represented outside the regex.",
+        "file": "specs/318-explicit-task-render-context/draft.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Remove inconsistent indentation in `impactOnExisting`",
+        "body": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R7  \n**Issue:** The final three `impactOnExisting` entries are indented more deeply than the other array items, suggesting accidental nesting even though the JSON remains valid.  \n**Suggestion:** Align all array entries consistently to reduce review friction and avoid misleading structure.",
+        "file": "specs/318-explicit-task-render-context/draft.json",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

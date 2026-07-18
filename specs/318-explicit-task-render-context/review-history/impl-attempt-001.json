@@ -1,0 +1,831 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-18T18:12:51.806Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 42,
+    "total": 42
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "1. Factor repeated manual-review rationale into shared fields",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/completion-overrides.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Multiple `acceptedRisk` entries repeat the same long rationale: the finding was valid at attempt 006, the current test SHA resolved it, and the only accepted risk is proceeding without another semantic review after 5 of 5 attempts. This makes the override hard to review and easy to update inconsistently.  \n**Suggestion:** Add shared entry-level fields such as `currentTestSha`, `semanticAttemptsExhausted`, and `manualCompletionRisk`, then keep each finding’s `acceptedRisk` focused only on the finding-specific evidence and successor ownership.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Multiple `acceptedRisk` entries repeat the same long rationale: the finding was valid at attempt 006, the current test SHA resolved it, and the only accepted risk is proceeding without another semantic review after 5 of 5 attempts. This makes the override hard to review and easy to update inconsistently.  \n**Suggestion:** Add shared entry-level fields such as `currentTestSha`, `semanticAttemptsExhausted`, and `manualCompletionRisk`, then keep each finding’s `acceptedRisk` focused only on the finding-specific evidence and successor ownership.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Shorten and structure the top-level reason",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/completion-overrides.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** The `reason` field is a very long prose blob containing several distinct facts: authority, failed tooling attempt, retry accounting, test counts, audit severity, semantic correction, and successor ownership. This reduces readability and makes future validation harder.  \n**Suggestion:** Split the content into named fields or an array of concise rationale items, for example `authorityRationale`, `attemptHistory`, `testEvidence`, `auditSummary`, and `dispositionRationale`.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** The `reason` field is a very long prose blob containing several distinct facts: authority, failed tooling attempt, retry accounting, test counts, audit severity, semantic correction, and successor ownership. This reduces readability and makes future validation harder.  \n**Suggestion:** Split the content into named fields or an array of concise rationale items, for example `authorityRationale`, `attemptHistory`, `testEvidence`, `auditSummary`, and `dispositionRationale`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Normalize repeated successor-owner wording",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/completion-overrides.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Successor ownership appears both in the structured `successorOwner` field and again in prose inside several `acceptedRisk` values. That duplicates the same responsibility assignment in two places.  \n**Suggestion:** Treat `successorOwner` as the authoritative field and remove repeated ownership sentences from `acceptedRisk`, unless a finding needs extra context beyond the owner name.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Successor ownership appears both in the structured `successorOwner` field and again in prose inside several `acceptedRisk` values. That duplicates the same responsibility assignment in two places.  \n**Suggestion:** Treat `successorOwner` as the authoritative field and remove repeated ownership sentences from `acceptedRisk`, unless a finding needs extra context beyond the owner name.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Factor repeated manual-review rationale into shared fields",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/completion-overrides.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Multiple `acceptedRisk` entries repeat the same long rationale: the finding was valid at attempt 006, the current test SHA resolved it, and the only accepted risk is proceeding without another semantic review after 5 of 5 attempts. This makes the override hard to review and easy to update inconsistently.  \n**Suggestion:** Add shared entry-level fields such as `currentTestSha`, `semanticAttemptsExhausted`, and `manualCompletionRisk`, then keep each finding’s `acceptedRisk` focused only on the finding-specific evidence and successor ownership.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Multiple `acceptedRisk` entries repeat the same long rationale: the finding was valid at attempt 006, the current test SHA resolved it, and the only accepted risk is proceeding without another semantic review after 5 of 5 attempts. This makes the override hard to review and easy to update inconsistently.  \n**Suggestion:** Add shared entry-level fields such as `currentTestSha`, `semanticAttemptsExhausted`, and `manualCompletionRisk`, then keep each finding’s `acceptedRisk` focused only on the finding-specific evidence and successor ownership.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Shorten and structure the top-level reason",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/completion-overrides.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** The `reason` field is a very long prose blob containing several distinct facts: authority, failed tooling attempt, retry accounting, test counts, audit severity, semantic correction, and successor ownership. This reduces readability and makes future validation harder.  \n**Suggestion:** Split the content into named fields or an array of concise rationale items, for example `authorityRationale`, `attemptHistory`, `testEvidence`, `auditSummary`, and `dispositionRationale`.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** The `reason` field is a very long prose blob containing several distinct facts: authority, failed tooling attempt, retry accounting, test counts, audit severity, semantic correction, and successor ownership. This reduces readability and makes future validation harder.  \n**Suggestion:** Split the content into named fields or an array of concise rationale items, for example `authorityRationale`, `attemptHistory`, `testEvidence`, `auditSummary`, and `dispositionRationale`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Normalize repeated successor-owner wording",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/completion-overrides.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Successor ownership appears both in the structured `successorOwner` field and again in prose inside several `acceptedRisk` values. That duplicates the same responsibility assignment in two places.  \n**Suggestion:** Treat `successorOwner` as the authoritative field and remove repeated ownership sentences from `acceptedRisk`, unless a finding needs extra context beyond the owner name.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Successor ownership appears both in the structured `successorOwner` field and again in prose inside several `acceptedRisk` values. That duplicates the same responsibility assignment in two places.  \n**Suggestion:** Treat `successorOwner` as the authoritative field and remove repeated ownership sentences from `acceptedRisk`, unless a finding needs extra context beyond the owner name.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove duplicated violation payload",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft-gate-source.json",
+      "requirementId": "R3",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft-gate-source.json`  \n**Requirement:** R3  \n**Issue:** The same violation object is duplicated in both `evaluations[0].observations[0]` and top-level `observations[0]`, including identical `kind`, `failureMode`, `requirementRef`, `where`, `observed`, `severity`, and `refs`. This creates maintenance risk if one copy changes and the other does not.  \n**Suggestion:** Keep the canonical detailed observation in one place and have the other location reference it by `findingId` or a compact summary, if the schema allows. If both locations are required by downstream consumers, consider generating one from the other rather than storing two independent copies.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft-gate-source.json`  \n**Requirement:** R3  \n**Issue:** The same violation object is duplicated in both `evaluations[0].observations[0]` and top-level `observations[0]`, including identical `kind`, `failureMode`, `requirementRef`, `where`, `observed`, `severity`, and `refs`. This creates maintenance risk if one copy changes and the other does not.  \n**Suggestion:** Keep the canonical detailed observation in one place and have the other location reference it by `findingId` or a compact summary, if the schema allows. If both locations are required by downstream consumers, consider generating one from the other rather than storing two independent copies.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove duplicated violation payload",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft-gate-source.json",
+      "requirementId": "R3",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft-gate-source.json`  \n**Requirement:** R3  \n**Issue:** The same violation object is duplicated in both `evaluations[0].observations[0]` and top-level `observations[0]`, including identical `kind`, `failureMode`, `requirementRef`, `where`, `observed`, `severity`, and `refs`. This creates maintenance risk if one copy changes and the other does not.  \n**Suggestion:** Keep the canonical detailed observation in one place and have the other location reference it by `findingId` or a compact summary, if the schema allows. If both locations are required by downstream consumers, consider generating one from the other rather than storing two independent copies.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft-gate-source.json`  \n**Requirement:** R3  \n**Issue:** The same violation object is duplicated in both `evaluations[0].observations[0]` and top-level `observations[0]`, including identical `kind`, `failureMode`, `requirementRef`, `where`, `observed`, `severity`, and `refs`. This creates maintenance risk if one copy changes and the other does not.  \n**Suggestion:** Keep the canonical detailed observation in one place and have the other location reference it by `findingId` or a compact summary, if the schema allows. If both locations are required by downstream consumers, consider generating one from the other rather than storing two independent copies.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove redundant numbering from item titles",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft-questions-repair.json",
+      "requirementId": "R4",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft-questions-repair.json`  \n**Requirement:** R4  \n**Issue:** Each `items[].title` embeds an ordinal like `\"1. ...\"`, duplicating the array order and making future insertions/reordering noisier.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft-questions-repair.json`  \n**Requirement:** R4  \n**Issue:** Each `items[].title` embeds an ordinal like `\"1. ...\"`, duplicating the array order and making future insertions/reordering noisier.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Remove redundant numbering from item titles",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft-questions-triage.json",
+      "requirementId": "R4",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft-questions-triage.json`  \n**Requirement:** R4  \n**Issue:** Each `items[].title` embeds an ordinal that duplicates the array position and can become stale if items are reordered.  \n**Suggestion:** Drop the leading `\"1. \"`, `\"2. \"`, etc. from `title` values and rely on array order or `target` for identity.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft-questions-triage.json`  \n**Requirement:** R4  \n**Issue:** Each `items[].title` embeds an ordinal that duplicates the array position and can become stale if items are reordered.  \n**Suggestion:** Drop the leading `\"1. \"`, `\"2. \"`, etc. from `title` values and rely on array order or `target` for identity.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove duplicated numbering from repair target titles",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft-review-questions.json",
+      "requirementId": "R4",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** Each `repairTargets[].title` embeds an ordinal like `\"1. ...\"`, duplicating the item’s position in the array. This makes the data harder to reorder or filter without stale numbering.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`, and let renderers add numbering when displaying the list.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** Each `repairTargets[].title` embeds an ordinal like `\"1. ...\"`, duplicating the item’s position in the array. This makes the data harder to reorder or filter without stale numbering.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`, and let renderers add numbering when displaying the list.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove duplicated numbering from repair target titles",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft-review-questions.json",
+      "requirementId": "R4",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** Each `repairTargets[].title` embeds an ordinal like `\"1. ...\"`, duplicating the item’s position in the array. This makes the data harder to reorder or filter without stale numbering.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`, and let renderers add numbering when displaying the list.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** Each `repairTargets[].title` embeds an ordinal like `\"1. ...\"`, duplicating the item’s position in the array. This makes the data harder to reorder or filter without stale numbering.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`, and let renderers add numbering when displaying the list.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Add an Explicit Task Count Bound",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft.json",
+      "requirementId": "R2",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R2  \n**Issue:** `TaskCollection` validates duplicate IDs and parent references, but the draft does not clearly require an upper bound for task collection size. That leaves bulk task validation/rendering underspecified against the `bounded-resource-usage` guardrail.  \n**Suggestion:** Add an explicit max task count requirement, ideally reusing the existing schema limit if one exists, and require render/view/sync to reject collections above that bound before writing.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R2  \n**Issue:** `TaskCollection` validates duplicate IDs and parent references, but the draft does not clearly require an upper bound for task collection size. That leaves bulk task validation/rendering underspecified against the `bounded-resource-usage` guardrail.  \n**Suggestion:** Add an explicit max task count requirement, ideally reusing the existing schema limit if one exists, and require render/view/sync to reject collections above that bound before writing.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Deduplicate Migration Parity Mapping Text",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft.json",
+      "requirementId": "R6",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R6  \n**Issue:** The `knownFacts` section repeats the same ownership mapping for `TaskCollection`, `TaskOutputPath`, and `SpecRenderContext` across `runSpecRender`, `renderSpecView`, and `syncSpecTasksToFlow`.  \n**Suggestion:** Replace the repeated prose with a compact mapping table/object keyed by consumer, with shared value-object responsibilities stated once.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R6  \n**Issue:** The `knownFacts` section repeats the same ownership mapping for `TaskCollection`, `TaskOutputPath`, and `SpecRenderContext` across `runSpecRender`, `renderSpecView`, and `syncSpecTasksToFlow`.  \n**Suggestion:** Replace the repeated prose with a compact mapping table/object keyed by consumer, with shared value-object responsibilities stated once.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Fix Regex Formatting Inconsistency",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft.json",
+      "requirementId": "R1",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R1  \n**Issue:** Several strings start inline code formatting for `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}` but do not close the backtick, making the requirement text harder to scan and easier to misread.  \n**Suggestion:** Normalize every occurrence to a complete inline code span, for example `` `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` ``, and include the ending `$` if exact full-string matching is intended.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R1  \n**Issue:** Several strings start inline code formatting for `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}` but do not close the backtick, making the requirement text harder to scan and easier to misread.  \n**Suggestion:** Normalize every occurrence to a complete inline code span, for example `` `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` ``, and include the ending `$` if exact full-string matching is intended.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Remove Or Populate Empty Flow Planning Arrays",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/flow.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/flow.json`  \n**Requirement:** R8  \n**Issue:** `requirements` and `tasks` are both empty even though the flow has progressed through spec, approval, test, and implementation phases. This creates dead or misleading state in the flow artifact.  \n**Suggestion:** Either populate these arrays from the approved spec requirements/tasks or omit them if this flow format no longer uses them.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/flow.json`  \n**Requirement:** R8  \n**Issue:** `requirements` and `tasks` are both empty even though the flow has progressed through spec, approval, test, and implementation phases. This creates dead or misleading state in the flow artifact.  \n**Suggestion:** Either populate these arrays from the approved spec requirements/tasks or omit them if this flow format no longer uses them.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Remove Or Compress Volatile Attempt History",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/issue-log.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/issue-log.json`  \n**Requirement:** R8  \n**Issue:** The log contains many long, highly repetitive historical entries describing intermediate review attempts, assertion counts, and retry mechanics. Much of this appears operational rather than durable issue evidence, making the file noisy and harder to review.  \n**Suggestion:** Keep only durable final dispositions and source-relevant findings, or replace repeated attempt narratives with a compact summary entry that preserves final rationale, affected requirements, and evidence IDs.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/issue-log.json`  \n**Requirement:** R8  \n**Issue:** The log contains many long, highly repetitive historical entries describing intermediate review attempts, assertion counts, and retry mechanics. Much of this appears operational rather than durable issue evidence, making the file noisy and harder to review.  \n**Suggestion:** Keep only durable final dispositions and source-relevant findings, or replace repeated attempt narratives with a compact summary entry that preserves final rationale, affected requirements, and evidence IDs.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Add Explicit Task Count Bounds",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/issue.md",
+      "requirementId": "R2",
+      "issue": "**File:** `specs/318-explicit-task-render-context/issue.md`  \n**Requirement:** R2  \n**Issue:** `TaskCollection` acceptance criteria require validating uniqueness and parent existence across the collection, but the issue does not state an explicit maximum collection size. This risks violating `bounded-resource-usage` because bulk validation could be interpreted as unbounded.  \n**Suggestion:** Add a concrete upper bound, such as “render/sync must reject more than 200 tasks before per-task path construction or writes.”",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/issue.md`  \n**Requirement:** R2  \n**Issue:** `TaskCollection` acceptance criteria require validating uniqueness and parent existence across the collection, but the issue does not state an explicit maximum collection size. This risks violating `bounded-resource-usage` because bulk validation could be interpreted as unbounded.  \n**Suggestion:** Add a concrete upper bound, such as “render/sync must reject more than 200 tasks before per-task path construction or writes.”",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Bound Path Planning Work Before Writes",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/issue.md",
+      "requirementId": "R3",
+      "issue": "**File:** `specs/318-explicit-task-render-context/issue.md`  \n**Requirement:** R3  \n**Issue:** `TaskOutputPath` requires validating path confinement before the first write, but the issue does not cap how many output paths may be planned in one operation.  \n**Suggestion:** State that path planning is limited by the same maximum task count and must reject over-limit inputs before allocating or resolving all output paths.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/issue.md`  \n**Requirement:** R3  \n**Issue:** `TaskOutputPath` requires validating path confinement before the first write, but the issue does not cap how many output paths may be planned in one operation.  \n**Suggestion:** State that path planning is limited by the same maximum task count and must reject over-limit inputs before allocating or resolving all output paths.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Consolidate duplicated review findings",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R8  \n**Issue:** The same five findings are represented twice: once under `repairTargets` and again under `findings`, with duplicated title/body/category metadata. This increases drift risk if one copy is updated without the other.  \n**Suggestion:** Keep one canonical findings list and derive the alternate view when needed, or reduce `repairTargets` to references containing only `target` plus finding `id`.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R8  \n**Issue:** The same five findings are represented twice: once under `repairTargets` and again under `findings`, with duplicated title/body/category metadata. This increases drift risk if one copy is updated without the other.  \n**Suggestion:** Keep one canonical findings list and derive the alternate view when needed, or reduce `repairTargets` to references containing only `target` plus finding `id`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Shorten repeated render-planning constraints",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/spec.json",
+      "requirementId": "R3",
+      "issue": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R3  \n**Issue:** The same constraints appear repeatedly across `requirements`, `acceptance_criteria`, `tasks.acceptance`, and `tasks.implementation_notes`: exactly one path per task, bounded task counts, O(n) planning, and no pre-write side effects.  \n**Suggestion:** Keep the precise normative wording in R3/R5, then make the task and AC text refer to those requirements instead of restating the full algorithmic contract multiple times.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R3  \n**Issue:** The same constraints appear repeatedly across `requirements`, `acceptance_criteria`, `tasks.acceptance`, and `tasks.implementation_notes`: exactly one path per task, bounded task counts, O(n) planning, and no pre-write side effects.  \n**Suggestion:** Keep the precise normative wording in R3/R5, then make the task and AC text refer to those requirements instead of restating the full algorithmic contract multiple times.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Rename ambiguous metadata fallback wording",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/spec.json",
+      "requirementId": "R4",
+      "issue": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R4  \n**Issue:** The phrase “selected-spec defaults” is used many times, but the actual values are only sometimes repeated inline. That name is slightly vague because it hides that the defaults are specifically `feature/<selected-directory>` and `User request`.  \n**Suggestion:** Introduce a clearer term such as “standalone render metadata defaults” the first time it appears, define the two values once, and use that term consistently throughout the spec.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R4  \n**Issue:** The phrase “selected-spec defaults” is used many times, but the actual values are only sometimes repeated inline. That name is slightly vague because it hides that the defaults are specifically `feature/<selected-directory>` and `User request`.  \n**Suggestion:** Introduce a clearer term such as “standalone render metadata defaults” the first time it appears, define the two values once, and use that term consistently throughout the spec.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Remove stale “done” status from pre-implementation requirements",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/spec.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R8  \n**Issue:** Every requirement is marked `\"status\": \"done\"` even though this file is the implementation spec and its tasks remain `\"status\": \"pending\"`. That creates inconsistent state inside the same artifact.  \n**Suggestion:** Either remove `status` from requirements entirely or align it with the task lifecycle, for example using `\"planned\"` until implementation evidence exists.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R8  \n**Issue:** Every requirement is marked `\"status\": \"done\"` even though this file is the implementation spec and its tasks remain `\"status\": \"pending\"`. That creates inconsistent state inside the same artifact.  \n**Suggestion:** Either remove `status` from requirements entirely or align it with the task lifecycle, for example using `\"planned\"` until implementation evidence exists.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Remove Unused Function Parameters From Call Sites and API Shape",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/get-prompt.js",
+      "requirementId": "R4",
+      "issue": "**File:** `src/flow/lib/get-prompt.js`\n**Requirement:** R4\n**Issue:** The call site correctly removes `state`, but `renderSpecView` also removed `meta` from its signature. Any remaining callers in the touched API surface that still pass `meta` would now be silently ignored due to destructuring, which can hide dead/obsolete usage during migration.\n**Suggestion:** Within the touched files, keep the API explicit by adding a defensive check for unsupported keys or by updating all known touched call sites to use the reduced shape. For example, destructure a single `options` object and reject `state`/`meta` if present, so callers do not assume ambient metadata is still honored.",
+      "suggestion": "**File:** `src/flow/lib/get-prompt.js`\n**Requirement:** R4\n**Issue:** The call site correctly removes `state`, but `renderSpecView` also removed `meta` from its signature. Any remaining callers in the touched API surface that still pass `meta` would now be silently ignored due to destructuring, which can hide dead/obsolete usage during migration.\n**Suggestion:** Within the touched files, keep the API explicit by adding a defensive check for unsupported keys or by updating all known touched call sites to use the reduced shape. For example, destructure a single `options` object and reject `state`/`meta` if present, so callers do not assume ambient metadata is still honored.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Avoid Double Validation Path for Preloaded Specs",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/render-spec-view.js",
+      "requirementId": "R7",
+      "issue": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R7\n**Issue:** `renderSpecView` now skips `validateSpecJsonObject(currentSpec)` when a `spec` object is passed in. Since the old code rendered whatever `spec` it received after `loadSpecJson` validation in the non-preloaded case, this can preserve an internal invalid-spec path and make behavior depend on whether the caller passed `spec` or `specPath`.\n**Suggestion:** Validate `currentSpec` unconditionally, or document and enforce that callers passing `spec` must provide an already validated object. A simple improvement is:\n```js\nconst currentSpec = spec || loadSpecJson(specJsonPath, { validate: false });\nvalidateSpecJsonObject(currentSpec);\n```",
+      "suggestion": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R7\n**Issue:** `renderSpecView` now skips `validateSpecJsonObject(currentSpec)` when a `spec` object is passed in. Since the old code rendered whatever `spec` it received after `loadSpecJson` validation in the non-preloaded case, this can preserve an internal invalid-spec path and make behavior depend on whether the caller passed `spec` or `specPath`.\n**Suggestion:** Validate `currentSpec` unconditionally, or document and enforce that callers passing `spec` must provide an already validated object. A simple improvement is:\n```js\nconst currentSpec = spec || loadSpecJson(specJsonPath, { validate: false });\nvalidateSpecJsonObject(currentSpec);\n```",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Rename `collection` to Clarify Domain",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/render-spec-view.js",
+      "requirementId": "R3",
+      "issue": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R3\n**Issue:** `collection` is generic and does not make it obvious that this is the validated task collection used to construct the render plan.\n**Suggestion:** Rename it to `taskCollection` and pass that into `TaskRenderPlan`. This improves readability around the R3/R5 sequencing:\n```js\nconst taskCollection = new TaskCollection(currentSpec.tasks ?? []);\n...\ncollection: taskCollection,\n```",
+      "suggestion": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R3\n**Issue:** `collection` is generic and does not make it obvious that this is the validated task collection used to construct the render plan.\n**Suggestion:** Rename it to `taskCollection` and pass that into `TaskRenderPlan`. This improves readability around the R3/R5 sequencing:\n```js\nconst taskCollection = new TaskCollection(currentSpec.tasks ?? []);\n...\ncollection: taskCollection,\n```",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Validate schema before constructing `TaskCollection`",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/sync-spec-tasks.js",
+      "requirementId": "R7",
+      "issue": "**File:** `src/flow/lib/sync-spec-tasks.js`  \n**Requirement:** R7  \n**Issue:** `tryLoadSpecJson(..., { validate: false })` is followed by `new TaskCollection(spec.tasks ?? [])` before `validateSpecJsonObject(spec)`. If `TaskCollection` rejects malformed task data first, CLI/schema error reporting may differ from the existing schema validation path.  \n**Suggestion:** Move `validateSpecJsonObject(spec)` immediately after loading `spec`, then construct `TaskCollection` from validated data.",
+      "suggestion": "**File:** `src/flow/lib/sync-spec-tasks.js`  \n**Requirement:** R7  \n**Issue:** `tryLoadSpecJson(..., { validate: false })` is followed by `new TaskCollection(spec.tasks ?? [])` before `validateSpecJsonObject(spec)`. If `TaskCollection` rejects malformed task data first, CLI/schema error reporting may differ from the existing schema validation path.  \n**Suggestion:** Move `validateSpecJsonObject(spec)` immediately after loading `spec`, then construct `TaskCollection` from validated data.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Centralize the task ID regex in the schema",
+      "failureMode": "refactor",
+      "file": "src/flow/schemas/spec.schema.json",
+      "requirementId": "R1",
+      "issue": "**File:** `src/flow/schemas/spec.schema.json`  \n**Requirement:** R1  \n**Issue:** The same task ID pattern is duplicated for `tasks[].id` and `tasks[].parent`. If the pattern changes later, one copy can drift from the other.  \n**Suggestion:** Add a schema definition such as `$defs.taskId` and reference it from both `id` and `parent`, preserving the exact pattern string required by R1.",
+      "suggestion": "**File:** `src/flow/schemas/spec.schema.json`  \n**Requirement:** R1  \n**Issue:** The same task ID pattern is duplicated for `tasks[].id` and `tasks[].parent`. If the pattern changes later, one copy can drift from the other.  \n**Suggestion:** Add a schema definition such as `$defs.taskId` and reference it from both `id` and `parent`, preserving the exact pattern string required by R1.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Bound Recursive Schema Validation",
+      "failureMode": "refactor",
+      "file": "src/lib/schema-validate.js",
+      "requirementId": "R1",
+      "issue": "**File:** `src/lib/schema-validate.js`  \n**Requirement:** R1  \n**Issue:** `validateSchema` recursively validates nested arrays/objects without an explicit depth or node-count limit, which violates `bounded-resource-usage` for recursive processing.  \n**Suggestion:** Add internal validation options such as `maxDepth` and `maxNodes`, increment them through recursive calls, and return a schema error once either bound is exceeded.",
+      "suggestion": "**File:** `src/lib/schema-validate.js`  \n**Requirement:** R1  \n**Issue:** `validateSchema` recursively validates nested arrays/objects without an explicit depth or node-count limit, which violates `bounded-resource-usage` for recursive processing.  \n**Suggestion:** Add internal validation options such as `maxDepth` and `maxNodes`, increment them through recursive calls, and return a schema error once either bound is exceeded.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Avoid Recompiling Pattern Regexes Per Value",
+      "failureMode": "refactor",
+      "file": "src/lib/schema-validate.js",
+      "requirementId": "R1",
+      "issue": "**File:** `src/lib/schema-validate.js`  \n**Requirement:** R1  \n**Issue:** `new RegExp(schema.pattern)` is created on every string validation. This is small here, but it duplicates work and scatters pattern handling inside the hot validation path.  \n**Suggestion:** Precompile schema regexes when loading the schema, or add a tiny helper/cache keyed by `schema.pattern` so repeated task IDs and parents reuse the same `RegExp`.",
+      "suggestion": "**File:** `src/lib/schema-validate.js`  \n**Requirement:** R1  \n**Issue:** `new RegExp(schema.pattern)` is created on every string validation. This is small here, but it duplicates work and scatters pattern handling inside the hot validation path.  \n**Suggestion:** Precompile schema regexes when loading the schema, or add a tiny helper/cache keyed by `schema.pattern` so repeated task IDs and parents reuse the same `RegExp`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Extract Task Rendering Side-Effect Loop",
+      "failureMode": "refactor",
+      "file": "src/spec/commands/render.js",
+      "requirementId": "R3",
+      "issue": "**File:** `src/spec/commands/render.js`  \n**Requirement:** R3  \n**Issue:** `runSpecRender` now mixes render contract construction with the task file write loop, including directory creation, writes, and stdout formatting inline.  \n**Suggestion:** Extract a local helper like `writeTaskRenderPlan({ taskPlan, tasksDir, root })` to keep `runSpecRender` focused on validation/context/plan construction and make the side-effect boundary easier to audit.",
+      "suggestion": "**File:** `src/spec/commands/render.js`  \n**Requirement:** R3  \n**Issue:** `runSpecRender` now mixes render contract construction with the task file write loop, including directory creation, writes, and stdout formatting inline.  \n**Suggestion:** Extract a local helper like `writeTaskRenderPlan({ taskPlan, tasksDir, root })` to keep `runSpecRender` focused on validation/context/plan construction and make the side-effect boundary easier to audit.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Collapse `TaskId` Validation to a Single Regex Check",
+      "failureMode": "refactor",
+      "file": "src/spec/lib/render-contract.js",
+      "requirementId": "R1",
+      "issue": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R1\n**Issue:** `TASK_ID_PATTERN` is already anchored with `^` and `$`, so `TASK_ID_PATTERN.exec(value)` plus `match[0] !== value` duplicates full-string validation logic.\n**Suggestion:** Replace it with `if (typeof value !== \"string\" || !TASK_ID_PATTERN.test(value))`. This is simpler, matches the schema contract directly, and avoids carrying redundant match state.",
+      "suggestion": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R1\n**Issue:** `TASK_ID_PATTERN` is already anchored with `^` and `$`, so `TASK_ID_PATTERN.exec(value)` plus `match[0] !== value` duplicates full-string validation logic.\n**Suggestion:** Replace it with `if (typeof value !== \"string\" || !TASK_ID_PATTERN.test(value))`. This is simpler, matches the schema contract directly, and avoids carrying redundant match state.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Name `ValidatedTask` Around Its Runtime Role",
+      "failureMode": "refactor",
+      "file": "src/spec/lib/render-contract.js",
+      "requirementId": "R2",
+      "issue": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** `ValidatedTask` describes a past action rather than the object’s role. Since the class represents the normalized task record exposed by `TaskCollection`, the name is a little vague beside `TaskId`, `TaskOutputPath`, and `TaskRenderPlan`.\n**Suggestion:** Rename it to `TaskEntry` or `TaskRecord`. That keeps the naming aligned with the other domain objects and makes constructor usage in `TaskCollection` read more naturally.",
+      "suggestion": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** `ValidatedTask` describes a past action rather than the object’s role. Since the class represents the normalized task record exposed by `TaskCollection`, the name is a little vague beside `TaskId`, `TaskOutputPath`, and `TaskRenderPlan`.\n**Suggestion:** Rename it to `TaskEntry` or `TaskRecord`. That keeps the naming aligned with the other domain objects and makes constructor usage in `TaskCollection` read more naturally.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Freeze the Lookup Map or Avoid Storing It Mutably",
+      "failureMode": "refactor",
+      "file": "src/spec/lib/render-contract.js",
+      "requirementId": "R2",
+      "issue": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** `TaskCollection` freezes the instance and entries array, but `#byId` remains a mutable `Map`. Private fields prevent outside access, but the object’s internal validated lookup state is still mutable by class methods added later, which is inconsistent with the rest of the immutable design.\n**Suggestion:** Either store a frozen plain object lookup created from the entries, or add a comment/utility boundary making `#byId` intentionally internal and never mutated after construction. A frozen lookup would better match the current design pattern.",
+      "suggestion": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** `TaskCollection` freezes the instance and entries array, but `#byId` remains a mutable `Map`. Private fields prevent outside access, but the object’s internal validated lookup state is still mutable by class methods added later, which is inconsistent with the rest of the immutable design.\n**Suggestion:** Either store a frozen plain object lookup created from the entries, or add a comment/utility boundary making `#byId` intentionally internal and never mutated after construction. A frozen lookup would better match the current design pattern.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "5. Remove Redundant Path Escape Check in `TaskOutputPath`",
+      "failureMode": "refactor",
+      "file": "src/spec/lib/render-contract.js",
+      "requirementId": "R3",
+      "issue": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R3\n**Issue:** `TaskId` already rejects slash, backslash, dot-segment, drive-prefix, whitespace, and non-ASCII input through its strict pattern, so `path.dirname(candidate) !== resolvedTasksDir` is defensive but unreachable for valid `TaskId` values.\n**Suggestion:** Keep the dirname check only if you want an explicit belt-and-suspenders invariant for R3, but document that it is intentional defense in depth. Otherwise, remove it to reduce dead-path logic and rely on `TaskId` as the single validation source.",
+      "suggestion": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R3\n**Issue:** `TaskId` already rejects slash, backslash, dot-segment, drive-prefix, whitespace, and non-ASCII input through its strict pattern, so `path.dirname(candidate) !== resolvedTasksDir` is defensive but unreachable for valid `TaskId` values.\n**Suggestion:** Keep the dirname check only if you want an explicit belt-and-suspenders invariant for R3, but document that it is intentional defense in depth. Otherwise, remove it to reduce dead-path logic and rely on `TaskId` as the single validation source.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Avoid Repeated Markdown Normalization Logic in the Test Body",
+      "failureMode": "refactor",
+      "file": "tests/unit/flow/run-update-overview.test.js",
+      "requirementId": "R4",
+      "issue": "**File:** `tests/unit/flow/run-update-overview.test.js`\n**Requirement:** R4\n**Issue:** The determinism test now mixes three concerns inline: same-directory determinism, directory-specific fallback metadata, and cross-directory markdown normalization. The local `normalizeSelectedMeta` helper is specific but embedded inside the test, making the assertion flow harder to scan.\n**Suggestion:** Move `normalizeSelectedMeta(markdown, basename)` to a small file-level helper near `makeFixture()`. That keeps the test focused on assertions and makes the selected-context metadata behavior easier to reuse if more render-context tests are added.",
+      "suggestion": "**File:** `tests/unit/flow/run-update-overview.test.js`\n**Requirement:** R4\n**Issue:** The determinism test now mixes three concerns inline: same-directory determinism, directory-specific fallback metadata, and cross-directory markdown normalization. The local `normalizeSelectedMeta` helper is specific but embedded inside the test, making the assertion flow harder to scan.\n**Suggestion:** Move `normalizeSelectedMeta(markdown, basename)` to a small file-level helper near `makeFixture()`. That keeps the test focused on assertions and makes the selected-context metadata behavior easier to reuse if more render-context tests are added.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Align Schema Validation Order Across Render Paths",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/render-spec-view.js",
+      "requirementId": "R7",
+      "issue": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R7\n**Issue:** `renderSpecView` may skip schema validation when a preloaded `spec` is passed, while `sync-spec-tasks.js` constructs `TaskCollection` before schema validation. These two paths now have inconsistent validation sequencing and error behavior for the same spec/task contract.\n**Suggestion:** Use one shared ordering everywhere: load or receive spec, run `validateSpecJsonObject(spec)`, then construct `TaskCollection` and render/sync plans. If prevalidated specs are allowed, make that explicit with an option name and enforce it consistently.",
+      "suggestion": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R7\n**Issue:** `renderSpecView` may skip schema validation when a preloaded `spec` is passed, while `sync-spec-tasks.js` constructs `TaskCollection` before schema validation. These two paths now have inconsistent validation sequencing and error behavior for the same spec/task contract.\n**Suggestion:** Use one shared ordering everywhere: load or receive spec, run `validateSpecJsonObject(spec)`, then construct `TaskCollection` and render/sync plans. If prevalidated specs are allowed, make that explicit with an option name and enforce it consistently.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Centralize Task ID Pattern Across Schema, Spec Text, and Runtime",
+      "failureMode": "refactor",
+      "file": "src/flow/schemas/spec.schema.json",
+      "requirementId": "R1",
+      "issue": "**File:** `src/flow/schemas/spec.schema.json`\n**Requirement:** R1\n**Issue:** The task ID regex appears in multiple places: schema fields for `id` and `parent`, spec prose, and runtime `TASK_ID_PATTERN` handling in `render-contract.js`. The per-file reviews already show formatting drift in prose and duplicate schema definitions, which means the contract can diverge across files.\n**Suggestion:** Define the pattern once in schema `$defs`, reference it for all schema fields, and ensure runtime/tests/spec prose either import or explicitly cite the same canonical pattern source.",
+      "suggestion": "**File:** `src/flow/schemas/spec.schema.json`\n**Requirement:** R1\n**Issue:** The task ID regex appears in multiple places: schema fields for `id` and `parent`, spec prose, and runtime `TASK_ID_PATTERN` handling in `render-contract.js`. The per-file reviews already show formatting drift in prose and duplicate schema definitions, which means the contract can diverge across files.\n**Suggestion:** Define the pattern once in schema `$defs`, reference it for all schema fields, and ensure runtime/tests/spec prose either import or explicitly cite the same canonical pattern source.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Normalize Task Collection Naming Across Callers and Domain Objects",
+      "failureMode": "refactor",
+      "file": "src/spec/lib/render-contract.js",
+      "requirementId": "R2",
+      "issue": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** The same concept is named unevenly across files: `collection` in `render-spec-view.js`, `TaskCollection` in the domain layer, and `ValidatedTask` for entries. This weakens the intended explicit task render context vocabulary.\n**Suggestion:** Use consistent domain names such as `taskCollection` at call sites and rename `ValidatedTask` to `TaskEntry` or `TaskRecord` so the runtime API reads consistently with `TaskCollection`, `TaskId`, `TaskOutputPath`, and `TaskRenderPlan`.",
+      "suggestion": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** The same concept is named unevenly across files: `collection` in `render-spec-view.js`, `TaskCollection` in the domain layer, and `ValidatedTask` for entries. This weakens the intended explicit task render context vocabulary.\n**Suggestion:** Use consistent domain names such as `taskCollection` at call sites and rename `ValidatedTask` to `TaskEntry` or `TaskRecord` so the runtime API reads consistently with `TaskCollection`, `TaskId`, `TaskOutputPath`, and `TaskRenderPlan`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Deduplicate Render Planning Constraints Between Spec Artifacts",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/spec.json",
+      "requirementId": "R3",
+      "issue": "**File:** `specs/318-explicit-task-render-context/spec.json`\n**Requirement:** R3\n**Issue:** Render planning constraints are repeated across `spec.json`, `draft.json`, `issue.md`, and task acceptance notes: bounded task counts, one path per task, O(n) planning, path confinement before writes, and no side effects before validation. This creates cross-file drift risk as the requirement evolves.\n**Suggestion:** Keep the normative contract in one canonical requirement section, then have related issue, draft, task, and acceptance entries reference that requirement by ID instead of restating the full behavior.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/spec.json`\n**Requirement:** R3\n**Issue:** Render planning constraints are repeated across `spec.json`, `draft.json`, `issue.md`, and task acceptance notes: bounded task counts, one path per task, O(n) planning, path confinement before writes, and no side effects before validation. This creates cross-file drift risk as the requirement evolves.\n**Suggestion:** Keep the normative contract in one canonical requirement section, then have related issue, draft, task, and acceptance entries reference that requirement by ID instead of restating the full behavior.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "5. Use One Canonical Review Finding Representation",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json",
+      "requirementId": "R8",
+      "issue": "**File:** `specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json`\n**Requirement:** R8\n**Issue:** Review findings and operational rationale are duplicated across several artifacts: `repairTargets` vs `findings`, top-level vs nested observations, repeated accepted-risk text, and repeated successor-owner prose. These are the same kinds of duplication spread across files, not isolated local issues.\n**Suggestion:** Store canonical finding data once with stable IDs, and let summaries, repair targets, observations, and completion overrides reference those IDs plus only local disposition fields.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json`\n**Requirement:** R8\n**Issue:** Review findings and operational rationale are duplicated across several artifacts: `repairTargets` vs `findings`, top-level vs nested observations, repeated accepted-risk text, and repeated successor-owner prose. These are the same kinds of duplication spread across files, not isolated local issues.\n**Suggestion:** Store canonical finding data once with stable IDs, and let summaries, repair targets, observations, and completion overrides reference those IDs plus only local disposition fields.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "6. Normalize Numbered Review Titles Across Draft Review Files",
+      "failureMode": "refactor",
+      "file": "specs/318-explicit-task-render-context/draft-questions-repair.json",
+      "requirementId": "R4",
+      "issue": "**File:** `specs/318-explicit-task-render-context/draft-questions-repair.json`\n**Requirement:** R4\n**Issue:** Multiple draft review artifacts embed ordinal prefixes in title fields, including `draft-questions-repair.json`, `draft-questions-triage.json`, and `draft-review-questions.json`. This is a cross-file representation inconsistency because ordering is data structure metadata, not title content.\n**Suggestion:** Remove numeric prefixes from all review title fields and rely on array order, IDs, or renderer-generated numbering consistently across these artifacts.",
+      "suggestion": "**File:** `specs/318-explicit-task-render-context/draft-questions-repair.json`\n**Requirement:** R4\n**Issue:** Multiple draft review artifacts embed ordinal prefixes in title fields, including `draft-questions-repair.json`, `draft-questions-triage.json`, and `draft-review-questions.json`. This is a cross-file representation inconsistency because ordering is data structure metadata, not title content.\n**Suggestion:** Remove numeric prefixes from all review title fields and rely on array order, IDs, or renderer-generated numbering consistently across these artifacts.",
+      "rationale": "Loop review proposal."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/318-explicit-task-render-context/impl-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "impl-gate",
+    "completionKind": "normal",
+    "progressSignature": "934088092308c450881a64fee852bc72404fde6553805cf8bf7cf5e31757275e"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Factor repeated manual-review rationale into shared fields",
+      "body": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Multiple `acceptedRisk` entries repeat the same long rationale: the finding was valid at attempt 006, the current test SHA resolved it, and the only accepted risk is proceeding without another semantic review after 5 of 5 attempts. This makes the override hard to review and easy to update inconsistently.  \n**Suggestion:** Add shared entry-level fields such as `currentTestSha`, `semanticAttemptsExhausted`, and `manualCompletionRisk`, then keep each finding’s `acceptedRisk` focused only on the finding-specific evidence and successor ownership.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Shorten and structure the top-level reason",
+      "body": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** The `reason` field is a very long prose blob containing several distinct facts: authority, failed tooling attempt, retry accounting, test counts, audit severity, semantic correction, and successor ownership. This reduces readability and makes future validation harder.  \n**Suggestion:** Split the content into named fields or an array of concise rationale items, for example `authorityRationale`, `attemptHistory`, `testEvidence`, `auditSummary`, and `dispositionRationale`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-003",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Normalize repeated successor-owner wording",
+      "body": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Successor ownership appears both in the structured `successorOwner` field and again in prose inside several `acceptedRisk` values. That duplicates the same responsibility assignment in two places.  \n**Suggestion:** Treat `successorOwner` as the authoritative field and remove repeated ownership sentences from `acceptedRisk`, unless a finding needs extra context beyond the owner name.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-004",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Factor repeated manual-review rationale into shared fields",
+      "body": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Multiple `acceptedRisk` entries repeat the same long rationale: the finding was valid at attempt 006, the current test SHA resolved it, and the only accepted risk is proceeding without another semantic review after 5 of 5 attempts. This makes the override hard to review and easy to update inconsistently.  \n**Suggestion:** Add shared entry-level fields such as `currentTestSha`, `semanticAttemptsExhausted`, and `manualCompletionRisk`, then keep each finding’s `acceptedRisk` focused only on the finding-specific evidence and successor ownership.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-005",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Shorten and structure the top-level reason",
+      "body": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** The `reason` field is a very long prose blob containing several distinct facts: authority, failed tooling attempt, retry accounting, test counts, audit severity, semantic correction, and successor ownership. This reduces readability and makes future validation harder.  \n**Suggestion:** Split the content into named fields or an array of concise rationale items, for example `authorityRationale`, `attemptHistory`, `testEvidence`, `auditSummary`, and `dispositionRationale`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-006",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Normalize repeated successor-owner wording",
+      "body": "**File:** `specs/318-explicit-task-render-context/completion-overrides.json`  \n**Requirement:** R8  \n**Issue:** Successor ownership appears both in the structured `successorOwner` field and again in prose inside several `acceptedRisk` values. That duplicates the same responsibility assignment in two places.  \n**Suggestion:** Treat `successorOwner` as the authoritative field and remove repeated ownership sentences from `acceptedRisk`, unless a finding needs extra context beyond the owner name.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-007",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove duplicated violation payload",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft-gate-source.json`  \n**Requirement:** R3  \n**Issue:** The same violation object is duplicated in both `evaluations[0].observations[0]` and top-level `observations[0]`, including identical `kind`, `failureMode`, `requirementRef`, `where`, `observed`, `severity`, and `refs`. This creates maintenance risk if one copy changes and the other does not.  \n**Suggestion:** Keep the canonical detailed observation in one place and have the other location reference it by `findingId` or a compact summary, if the schema allows. If both locations are required by downstream consumers, consider generating one from the other rather than storing two independent copies.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-008",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove duplicated violation payload",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft-gate-source.json`  \n**Requirement:** R3  \n**Issue:** The same violation object is duplicated in both `evaluations[0].observations[0]` and top-level `observations[0]`, including identical `kind`, `failureMode`, `requirementRef`, `where`, `observed`, `severity`, and `refs`. This creates maintenance risk if one copy changes and the other does not.  \n**Suggestion:** Keep the canonical detailed observation in one place and have the other location reference it by `findingId` or a compact summary, if the schema allows. If both locations are required by downstream consumers, consider generating one from the other rather than storing two independent copies.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-009",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove redundant numbering from item titles",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft-questions-repair.json`  \n**Requirement:** R4  \n**Issue:** Each `items[].title` embeds an ordinal like `\"1. ...\"`, duplicating the array order and making future insertions/reordering noisier.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-010",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Remove redundant numbering from item titles",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft-questions-triage.json`  \n**Requirement:** R4  \n**Issue:** Each `items[].title` embeds an ordinal that duplicates the array position and can become stale if items are reordered.  \n**Suggestion:** Drop the leading `\"1. \"`, `\"2. \"`, etc. from `title` values and rely on array order or `target` for identity.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-011",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove duplicated numbering from repair target titles",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** Each `repairTargets[].title` embeds an ordinal like `\"1. ...\"`, duplicating the item’s position in the array. This makes the data harder to reorder or filter without stale numbering.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`, and let renderers add numbering when displaying the list.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-012",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove duplicated numbering from repair target titles",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** Each `repairTargets[].title` embeds an ordinal like `\"1. ...\"`, duplicating the item’s position in the array. This makes the data harder to reorder or filter without stale numbering.  \n**Suggestion:** Store titles without numeric prefixes, e.g. `\"TaskId contract is implementation-detail heavy\"`, and let renderers add numbering when displaying the list.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-013",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Add an Explicit Task Count Bound",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R2  \n**Issue:** `TaskCollection` validates duplicate IDs and parent references, but the draft does not clearly require an upper bound for task collection size. That leaves bulk task validation/rendering underspecified against the `bounded-resource-usage` guardrail.  \n**Suggestion:** Add an explicit max task count requirement, ideally reusing the existing schema limit if one exists, and require render/view/sync to reject collections above that bound before writing.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-014",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Deduplicate Migration Parity Mapping Text",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R6  \n**Issue:** The `knownFacts` section repeats the same ownership mapping for `TaskCollection`, `TaskOutputPath`, and `SpecRenderContext` across `runSpecRender`, `renderSpecView`, and `syncSpecTasksToFlow`.  \n**Suggestion:** Replace the repeated prose with a compact mapping table/object keyed by consumer, with shared value-object responsibilities stated once.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-015",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Fix Regex Formatting Inconsistency",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft.json`  \n**Requirement:** R1  \n**Issue:** Several strings start inline code formatting for `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}` but do not close the backtick, making the requirement text harder to scan and easier to misread.  \n**Suggestion:** Normalize every occurrence to a complete inline code span, for example `` `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` ``, and include the ending `$` if exact full-string matching is intended.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-016",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Remove Or Populate Empty Flow Planning Arrays",
+      "body": "**File:** `specs/318-explicit-task-render-context/flow.json`  \n**Requirement:** R8  \n**Issue:** `requirements` and `tasks` are both empty even though the flow has progressed through spec, approval, test, and implementation phases. This creates dead or misleading state in the flow artifact.  \n**Suggestion:** Either populate these arrays from the approved spec requirements/tasks or omit them if this flow format no longer uses them.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-017",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Remove Or Compress Volatile Attempt History",
+      "body": "**File:** `specs/318-explicit-task-render-context/issue-log.json`  \n**Requirement:** R8  \n**Issue:** The log contains many long, highly repetitive historical entries describing intermediate review attempts, assertion counts, and retry mechanics. Much of this appears operational rather than durable issue evidence, making the file noisy and harder to review.  \n**Suggestion:** Keep only durable final dispositions and source-relevant findings, or replace repeated attempt narratives with a compact summary entry that preserves final rationale, affected requirements, and evidence IDs.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-018",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Add Explicit Task Count Bounds",
+      "body": "**File:** `specs/318-explicit-task-render-context/issue.md`  \n**Requirement:** R2  \n**Issue:** `TaskCollection` acceptance criteria require validating uniqueness and parent existence across the collection, but the issue does not state an explicit maximum collection size. This risks violating `bounded-resource-usage` because bulk validation could be interpreted as unbounded.  \n**Suggestion:** Add a concrete upper bound, such as “render/sync must reject more than 200 tasks before per-task path construction or writes.”",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-019",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Bound Path Planning Work Before Writes",
+      "body": "**File:** `specs/318-explicit-task-render-context/issue.md`  \n**Requirement:** R3  \n**Issue:** `TaskOutputPath` requires validating path confinement before the first write, but the issue does not cap how many output paths may be planned in one operation.  \n**Suggestion:** State that path planning is limited by the same maximum task count and must reject over-limit inputs before allocating or resolving all output paths.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-020",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Consolidate duplicated review findings",
+      "body": "**File:** `specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R8  \n**Issue:** The same five findings are represented twice: once under `repairTargets` and again under `findings`, with duplicated title/body/category metadata. This increases drift risk if one copy is updated without the other.  \n**Suggestion:** Keep one canonical findings list and derive the alternate view when needed, or reduce `repairTargets` to references containing only `target` plus finding `id`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-021",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Shorten repeated render-planning constraints",
+      "body": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R3  \n**Issue:** The same constraints appear repeatedly across `requirements`, `acceptance_criteria`, `tasks.acceptance`, and `tasks.implementation_notes`: exactly one path per task, bounded task counts, O(n) planning, and no pre-write side effects.  \n**Suggestion:** Keep the precise normative wording in R3/R5, then make the task and AC text refer to those requirements instead of restating the full algorithmic contract multiple times.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-022",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Rename ambiguous metadata fallback wording",
+      "body": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R4  \n**Issue:** The phrase “selected-spec defaults” is used many times, but the actual values are only sometimes repeated inline. That name is slightly vague because it hides that the defaults are specifically `feature/<selected-directory>` and `User request`.  \n**Suggestion:** Introduce a clearer term such as “standalone render metadata defaults” the first time it appears, define the two values once, and use that term consistently throughout the spec.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-023",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Remove stale “done” status from pre-implementation requirements",
+      "body": "**File:** `specs/318-explicit-task-render-context/spec.json`  \n**Requirement:** R8  \n**Issue:** Every requirement is marked `\"status\": \"done\"` even though this file is the implementation spec and its tasks remain `\"status\": \"pending\"`. That creates inconsistent state inside the same artifact.  \n**Suggestion:** Either remove `status` from requirements entirely or align it with the task lifecycle, for example using `\"planned\"` until implementation evidence exists.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-024",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Remove Unused Function Parameters From Call Sites and API Shape",
+      "body": "**File:** `src/flow/lib/get-prompt.js`\n**Requirement:** R4\n**Issue:** The call site correctly removes `state`, but `renderSpecView` also removed `meta` from its signature. Any remaining callers in the touched API surface that still pass `meta` would now be silently ignored due to destructuring, which can hide dead/obsolete usage during migration.\n**Suggestion:** Within the touched files, keep the API explicit by adding a defensive check for unsupported keys or by updating all known touched call sites to use the reduced shape. For example, destructure a single `options` object and reject `state`/`meta` if present, so callers do not assume ambient metadata is still honored.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-025",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Avoid Double Validation Path for Preloaded Specs",
+      "body": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R7\n**Issue:** `renderSpecView` now skips `validateSpecJsonObject(currentSpec)` when a `spec` object is passed in. Since the old code rendered whatever `spec` it received after `loadSpecJson` validation in the non-preloaded case, this can preserve an internal invalid-spec path and make behavior depend on whether the caller passed `spec` or `specPath`.\n**Suggestion:** Validate `currentSpec` unconditionally, or document and enforce that callers passing `spec` must provide an already validated object. A simple improvement is:\n```js\nconst currentSpec = spec || loadSpecJson(specJsonPath, { validate: false });\nvalidateSpecJsonObject(currentSpec);\n```",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-026",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Rename `collection` to Clarify Domain",
+      "body": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R3\n**Issue:** `collection` is generic and does not make it obvious that this is the validated task collection used to construct the render plan.\n**Suggestion:** Rename it to `taskCollection` and pass that into `TaskRenderPlan`. This improves readability around the R3/R5 sequencing:\n```js\nconst taskCollection = new TaskCollection(currentSpec.tasks ?? []);\n...\ncollection: taskCollection,\n```",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-027",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Validate schema before constructing `TaskCollection`",
+      "body": "**File:** `src/flow/lib/sync-spec-tasks.js`  \n**Requirement:** R7  \n**Issue:** `tryLoadSpecJson(..., { validate: false })` is followed by `new TaskCollection(spec.tasks ?? [])` before `validateSpecJsonObject(spec)`. If `TaskCollection` rejects malformed task data first, CLI/schema error reporting may differ from the existing schema validation path.  \n**Suggestion:** Move `validateSpecJsonObject(spec)` immediately after loading `spec`, then construct `TaskCollection` from validated data.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-028",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Centralize the task ID regex in the schema",
+      "body": "**File:** `src/flow/schemas/spec.schema.json`  \n**Requirement:** R1  \n**Issue:** The same task ID pattern is duplicated for `tasks[].id` and `tasks[].parent`. If the pattern changes later, one copy can drift from the other.  \n**Suggestion:** Add a schema definition such as `$defs.taskId` and reference it from both `id` and `parent`, preserving the exact pattern string required by R1.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-029",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Bound Recursive Schema Validation",
+      "body": "**File:** `src/lib/schema-validate.js`  \n**Requirement:** R1  \n**Issue:** `validateSchema` recursively validates nested arrays/objects without an explicit depth or node-count limit, which violates `bounded-resource-usage` for recursive processing.  \n**Suggestion:** Add internal validation options such as `maxDepth` and `maxNodes`, increment them through recursive calls, and return a schema error once either bound is exceeded.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-030",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Avoid Recompiling Pattern Regexes Per Value",
+      "body": "**File:** `src/lib/schema-validate.js`  \n**Requirement:** R1  \n**Issue:** `new RegExp(schema.pattern)` is created on every string validation. This is small here, but it duplicates work and scatters pattern handling inside the hot validation path.  \n**Suggestion:** Precompile schema regexes when loading the schema, or add a tiny helper/cache keyed by `schema.pattern` so repeated task IDs and parents reuse the same `RegExp`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-031",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Extract Task Rendering Side-Effect Loop",
+      "body": "**File:** `src/spec/commands/render.js`  \n**Requirement:** R3  \n**Issue:** `runSpecRender` now mixes render contract construction with the task file write loop, including directory creation, writes, and stdout formatting inline.  \n**Suggestion:** Extract a local helper like `writeTaskRenderPlan({ taskPlan, tasksDir, root })` to keep `runSpecRender` focused on validation/context/plan construction and make the side-effect boundary easier to audit.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-032",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Collapse `TaskId` Validation to a Single Regex Check",
+      "body": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R1\n**Issue:** `TASK_ID_PATTERN` is already anchored with `^` and `$`, so `TASK_ID_PATTERN.exec(value)` plus `match[0] !== value` duplicates full-string validation logic.\n**Suggestion:** Replace it with `if (typeof value !== \"string\" || !TASK_ID_PATTERN.test(value))`. This is simpler, matches the schema contract directly, and avoids carrying redundant match state.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-033",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Name `ValidatedTask` Around Its Runtime Role",
+      "body": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** `ValidatedTask` describes a past action rather than the object’s role. Since the class represents the normalized task record exposed by `TaskCollection`, the name is a little vague beside `TaskId`, `TaskOutputPath`, and `TaskRenderPlan`.\n**Suggestion:** Rename it to `TaskEntry` or `TaskRecord`. That keeps the naming aligned with the other domain objects and makes constructor usage in `TaskCollection` read more naturally.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-034",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Freeze the Lookup Map or Avoid Storing It Mutably",
+      "body": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** `TaskCollection` freezes the instance and entries array, but `#byId` remains a mutable `Map`. Private fields prevent outside access, but the object’s internal validated lookup state is still mutable by class methods added later, which is inconsistent with the rest of the immutable design.\n**Suggestion:** Either store a frozen plain object lookup created from the entries, or add a comment/utility boundary making `#byId` intentionally internal and never mutated after construction. A frozen lookup would better match the current design pattern.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-035",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "5. Remove Redundant Path Escape Check in `TaskOutputPath`",
+      "body": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R3\n**Issue:** `TaskId` already rejects slash, backslash, dot-segment, drive-prefix, whitespace, and non-ASCII input through its strict pattern, so `path.dirname(candidate) !== resolvedTasksDir` is defensive but unreachable for valid `TaskId` values.\n**Suggestion:** Keep the dirname check only if you want an explicit belt-and-suspenders invariant for R3, but document that it is intentional defense in depth. Otherwise, remove it to reduce dead-path logic and rely on `TaskId` as the single validation source.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-036",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Avoid Repeated Markdown Normalization Logic in the Test Body",
+      "body": "**File:** `tests/unit/flow/run-update-overview.test.js`\n**Requirement:** R4\n**Issue:** The determinism test now mixes three concerns inline: same-directory determinism, directory-specific fallback metadata, and cross-directory markdown normalization. The local `normalizeSelectedMeta` helper is specific but embedded inside the test, making the assertion flow harder to scan.\n**Suggestion:** Move `normalizeSelectedMeta(markdown, basename)` to a small file-level helper near `makeFixture()`. That keeps the test focused on assertions and makes the selected-context metadata behavior easier to reuse if more render-context tests are added.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-037",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Align Schema Validation Order Across Render Paths",
+      "body": "**File:** `src/flow/lib/render-spec-view.js`\n**Requirement:** R7\n**Issue:** `renderSpecView` may skip schema validation when a preloaded `spec` is passed, while `sync-spec-tasks.js` constructs `TaskCollection` before schema validation. These two paths now have inconsistent validation sequencing and error behavior for the same spec/task contract.\n**Suggestion:** Use one shared ordering everywhere: load or receive spec, run `validateSpecJsonObject(spec)`, then construct `TaskCollection` and render/sync plans. If prevalidated specs are allowed, make that explicit with an option name and enforce it consistently.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-038",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Centralize Task ID Pattern Across Schema, Spec Text, and Runtime",
+      "body": "**File:** `src/flow/schemas/spec.schema.json`\n**Requirement:** R1\n**Issue:** The task ID regex appears in multiple places: schema fields for `id` and `parent`, spec prose, and runtime `TASK_ID_PATTERN` handling in `render-contract.js`. The per-file reviews already show formatting drift in prose and duplicate schema definitions, which means the contract can diverge across files.\n**Suggestion:** Define the pattern once in schema `$defs`, reference it for all schema fields, and ensure runtime/tests/spec prose either import or explicitly cite the same canonical pattern source.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-039",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Normalize Task Collection Naming Across Callers and Domain Objects",
+      "body": "**File:** `src/spec/lib/render-contract.js`\n**Requirement:** R2\n**Issue:** The same concept is named unevenly across files: `collection` in `render-spec-view.js`, `TaskCollection` in the domain layer, and `ValidatedTask` for entries. This weakens the intended explicit task render context vocabulary.\n**Suggestion:** Use consistent domain names such as `taskCollection` at call sites and rename `ValidatedTask` to `TaskEntry` or `TaskRecord` so the runtime API reads consistently with `TaskCollection`, `TaskId`, `TaskOutputPath`, and `TaskRenderPlan`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-040",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Deduplicate Render Planning Constraints Between Spec Artifacts",
+      "body": "**File:** `specs/318-explicit-task-render-context/spec.json`\n**Requirement:** R3\n**Issue:** Render planning constraints are repeated across `spec.json`, `draft.json`, `issue.md`, and task acceptance notes: bounded task counts, one path per task, O(n) planning, path confinement before writes, and no side effects before validation. This creates cross-file drift risk as the requirement evolves.\n**Suggestion:** Keep the normative contract in one canonical requirement section, then have related issue, draft, task, and acceptance entries reference that requirement by ID instead of restating the full behavior.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-041",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "5. Use One Canonical Review Finding Representation",
+      "body": "**File:** `specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json`\n**Requirement:** R8\n**Issue:** Review findings and operational rationale are duplicated across several artifacts: `repairTargets` vs `findings`, top-level vs nested observations, repeated accepted-risk text, and repeated successor-owner prose. These are the same kinds of duplication spread across files, not isolated local issues.\n**Suggestion:** Store canonical finding data once with stable IDs, and let summaries, repair targets, observations, and completion overrides reference those IDs plus only local disposition fields.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-042",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "6. Normalize Numbered Review Titles Across Draft Review Files",
+      "body": "**File:** `specs/318-explicit-task-render-context/draft-questions-repair.json`\n**Requirement:** R4\n**Issue:** Multiple draft review artifacts embed ordinal prefixes in title fields, including `draft-questions-repair.json`, `draft-questions-triage.json`, and `draft-review-questions.json`. This is a cross-file representation inconsistency because ordering is data structure metadata, not title content.\n**Suggestion:** Remove numeric prefixes from all review title fields and rely on array order, IDs, or renderer-generated numbering consistently across these artifacts.",
+      "category": "refactor"
+    }
+  ]
+}

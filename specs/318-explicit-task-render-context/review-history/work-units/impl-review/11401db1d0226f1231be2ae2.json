@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+      "specs/318-explicit-task-render-context/review-history/work-units/impl-review/daa1ec06b7749cf79bff0b16.json",
+      "specs/318-explicit-task-render-context/scenario-validity-result.json",
+      "specs/318-explicit-task-render-context/spec-gate-source.json"
+    ],
+    "inputHash": "55aea84466449bf39bead8b66e78e9364df93b74153c339fcf54f29a8f59b0c4",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+    "specs/318-explicit-task-render-context/review-history/work-units/impl-review/daa1ec06b7749cf79bff0b16.json",
+    "specs/318-explicit-task-render-context/scenario-validity-result.json",
+    "specs/318-explicit-task-render-context/spec-gate-source.json"
+  ],
+  "inputHash": "55aea84466449bf39bead8b66e78e9364df93b74153c339fcf54f29a8f59b0c4",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T20:20:41.337Z",
+  "finishedAt": "2026-07-18T20:20:41.337Z",
+  "rawResponse": "### 1. Remove duplicated proposal payloads\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R8  \n**Issue:** The proposal content is stored twice: once as formatted Markdown in `rawResponse`, and again as structured entries under `success.proposals`. This creates drift risk and makes the artifact larger than needed.  \n**Suggestion:** Keep `success.proposals` as the canonical representation and omit `rawResponse`, or store only a provider transcript reference if the raw response is required for audit.\n\n### 2. Remove duplicated proposal payloads\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`  \n**Requirement:** R8  \n**Issue:** `rawResponse` repeats the same proposal titles, file paths, requirement IDs, issues, and suggestions already represented in `success.proposals`.  \n**Suggestion:** Drop `rawResponse` from successful structured review artifacts, or derive it from `success.proposals` at render time.\n\n### 3. Remove duplicated proposal payloads\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/daa1ec06b7749cf79bff0b16.json`  \n**Requirement:** R8  \n**Issue:** The same review proposals are duplicated in both `rawResponse` and `success.proposals`, including repeated file and requirement metadata.  \n**Suggestion:** Use `success.proposals` as the single source of truth and avoid storing the Markdown copy unless the raw provider output is explicitly needed.\n\n### 4. Avoid repeating target file lists inside work-unit identity\n**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/daa1ec06b7749cf79bff0b16.json`  \n**Requirement:** R8  \n**Issue:** `targetFiles` appears both at the top level and inside `identity.targetFiles` with identical content. The same duplication also applies to fields like `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId`.  \n**Suggestion:** Keep immutable identity fields under `identity` and remove the duplicated top-level copies, or keep top-level fields and reduce `identity` to only fields that are not otherwise represented.\n\n### 5. Centralize repeated scenario command data\n**File:** `specs/318-explicit-task-render-context/scenario-validity-result.json`  \n**Requirement:** R8  \n**Issue:** The full test command is stored once at the top level and repeated in every `summary[].evidence.command`. This is noisy and risks inconsistency if one entry is updated independently.  \n**Suggestion:** Keep the command only at the top level, and let each evidence entry reference the shared command implicitly or by a short command ID.\n\n### 6. Deduplicate gate observations\n**File:** `specs/318-explicit-task-render-context/spec-gate-source.json`  \n**Requirement:** R8  \n**Issue:** Each guardrail observation is duplicated under both `evaluations[].observations` and the top-level `observations` array. The repeated objects are identical, so updates can drift.  \n**Suggestion:** Store observations once, preferably under `evaluations`, and generate the flattened top-level view only when needed by consumers.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated proposal payloads",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R8  \n**Issue:** The proposal content is stored twice: once as formatted Markdown in `rawResponse`, and again as structured entries under `success.proposals`. This creates drift risk and makes the artifact larger than needed.  \n**Suggestion:** Keep `success.proposals` as the canonical representation and omit `rawResponse`, or store only a provider transcript reference if the raw response is required for audit.",
+        "file": "specs/318-explicit-task-render-context/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Remove duplicated proposal payloads",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`  \n**Requirement:** R8  \n**Issue:** `rawResponse` repeats the same proposal titles, file paths, requirement IDs, issues, and suggestions already represented in `success.proposals`.  \n**Suggestion:** Drop `rawResponse` from successful structured review artifacts, or derive it from `success.proposals` at render time.",
+        "file": "specs/318-explicit-task-render-context/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Remove duplicated proposal payloads",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/daa1ec06b7749cf79bff0b16.json`  \n**Requirement:** R8  \n**Issue:** The same review proposals are duplicated in both `rawResponse` and `success.proposals`, including repeated file and requirement metadata.  \n**Suggestion:** Use `success.proposals` as the single source of truth and avoid storing the Markdown copy unless the raw provider output is explicitly needed.",
+        "file": "specs/318-explicit-task-render-context/review-history/work-units/impl-review/daa1ec06b7749cf79bff0b16.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Avoid repeating target file lists inside work-unit identity",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/work-units/impl-review/daa1ec06b7749cf79bff0b16.json`  \n**Requirement:** R8  \n**Issue:** `targetFiles` appears both at the top level and inside `identity.targetFiles` with identical content. The same duplication also applies to fields like `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId`.  \n**Suggestion:** Keep immutable identity fields under `identity` and remove the duplicated top-level copies, or keep top-level fields and reduce `identity` to only fields that are not otherwise represented.",
+        "file": "specs/318-explicit-task-render-context/review-history/work-units/impl-review/daa1ec06b7749cf79bff0b16.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "5. Centralize repeated scenario command data",
+        "body": "**File:** `specs/318-explicit-task-render-context/scenario-validity-result.json`  \n**Requirement:** R8  \n**Issue:** The full test command is stored once at the top level and repeated in every `summary[].evidence.command`. This is noisy and risks inconsistency if one entry is updated independently.  \n**Suggestion:** Keep the command only at the top level, and let each evidence entry reference the shared command implicitly or by a short command ID.",
+        "file": "specs/318-explicit-task-render-context/scenario-validity-result.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "6. Deduplicate gate observations",
+        "body": "**File:** `specs/318-explicit-task-render-context/spec-gate-source.json`  \n**Requirement:** R8  \n**Issue:** Each guardrail observation is duplicated under both `evaluations[].observations` and the top-level `observations` array. The repeated objects are identical, so updates can drift.  \n**Suggestion:** Store observations once, preferably under `evaluations`, and generate the flattened top-level view only when needed by consumers.",
+        "file": "specs/318-explicit-task-render-context/spec-gate-source.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

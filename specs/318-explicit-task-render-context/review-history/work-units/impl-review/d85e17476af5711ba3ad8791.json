@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "src/flow/lib/get-prompt.js",
+      "src/flow/lib/render-spec-view.js",
+      "src/flow/lib/run-update-overview.js",
+      "src/flow/lib/set-approval.js"
+    ],
+    "inputHash": "835a95ee0f1f890437e1c7158446a0184eeacdca284237427aba3886b4f7f9f1",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+    "src/flow/lib/get-prompt.js",
+    "src/flow/lib/render-spec-view.js",
+    "src/flow/lib/run-update-overview.js",
+    "src/flow/lib/set-approval.js"
+  ],
+  "inputHash": "835a95ee0f1f890437e1c7158446a0184eeacdca284237427aba3886b4f7f9f1",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T20:21:50.558Z",
+  "finishedAt": "2026-07-18T20:21:50.558Z",
+  "rawResponse": "I’ll review only the touched files in the supplied diff and focus on maintainability/style issues plus the bounded-resource guardrail. Since this is a diff-only review, I won’t inspect unrelated code paths.### 1. Extract Repeated Snapshot Assertions\n**File:** `specs/318-explicit-task-render-context/tests/render-contract.test.js`  \n**Requirement:** R8  \n**Issue:** Several tests repeat the same setup pattern: create existing generated/orphan/output files, snapshot byte contents and directory entries, run a rejection path, then assert byte-for-byte preservation. This duplication makes future contract changes harder to apply consistently.  \n**Suggestion:** Add small helpers such as `snapshotFiles(paths)`, `assertFilesUnchanged(snapshot)`, and `assertDirectoryEntriesUnchanged(dir, beforeNames)`, then reuse them in the CLI rejection and internal view rejection tests.\n\n### 2. Remove Obsolete `state` Option From Test Calls\n**File:** `specs/318-explicit-task-render-context/tests/render-contract.test.js`  \n**Requirement:** R8  \n**Issue:** `renderSpecView` no longer consumes `state`, but some tests still pass `state: null` or a foreign `state` object. That obscures the new contract that render metadata comes from colocated `flow.json` through `SpecRenderContext`, not from caller-supplied ambient state.  \n**Suggestion:** Drop the unused `state` properties from test calls, or add one focused compatibility test if retaining ignored `state` is intentional.\n\n### 3. Centralize Plan-Then-Persist-Then-Apply Flow\n**File:** `src/flow/lib/render-spec-view.js`  \n**Requirement:** R7  \n**Issue:** `run-update-overview.js` and `set-approval.js` now both implement the same sequence manually: build render plan, save `spec.json`, apply render plan. This creates a design pattern that callers must remember and duplicate.  \n**Suggestion:** Add an exported helper in `render-spec-view.js`, for example `renderPlannedSpecViewAfterSave({ root, specPath, spec, save })`, or a clearer two-step helper name matching the project style. Then both callers can use one shared flow.\n\n### 4. Rename `MissingSpecViewRenderPlan`\n**File:** `src/flow/lib/render-spec-view.js`  \n**Requirement:** R7  \n**Issue:** `MissingSpecViewRenderPlan` sounds like an absent plan, but it is actually a completed no-op plan for the optional-missing case. That makes the `applySpecViewPlan` type check slightly misleading.  \n**Suggestion:** Rename it to something like `NoopSpecViewRenderPlan` or `OptionalMissingSpecViewPlan` to reflect that it intentionally applies to `{ rendered: false }`.\n\n### 5. Avoid Recomputing Render Metadata Through Multiple `toRenderMeta()` Calls\n**File:** `specs/318-explicit-task-render-context/tests/render-contract.test.js`  \n**Requirement:** R8  \n**Issue:** The `SpecRenderContext` test repeatedly calls `toRenderMeta()` on the same context. If the implementation ever stops returning a cached immutable value, the test could become noisy or subtly time-dependent because metadata includes filesystem-derived dates.  \n**Suggestion:** Store each metadata result once, for example `const absentMeta = absentContext.toRenderMeta();`, and assert against that object. This also improves readability.",
+  "success": {
+    "proposals": [
+      {
+        "title": "I’ll review only the touched files in the supplied diff and focus on maintainability/style issues plus the bounded-resource guardrail. Since this is a diff-only review, I won’t inspect unrelated code paths.### 1. Extract Repeated Snapshot Assertions",
+        "body": "**File:** `specs/318-explicit-task-render-context/tests/render-contract.test.js`  \n**Requirement:** R8  \n**Issue:** Several tests repeat the same setup pattern: create existing generated/orphan/output files, snapshot byte contents and directory entries, run a rejection path, then assert byte-for-byte preservation. This duplication makes future contract changes harder to apply consistently.  \n**Suggestion:** Add small helpers such as `snapshotFiles(paths)`, `assertFilesUnchanged(snapshot)`, and `assertDirectoryEntriesUnchanged(dir, beforeNames)`, then reuse them in the CLI rejection and internal view rejection tests.",
+        "file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Remove Obsolete `state` Option From Test Calls",
+        "body": "**File:** `specs/318-explicit-task-render-context/tests/render-contract.test.js`  \n**Requirement:** R8  \n**Issue:** `renderSpecView` no longer consumes `state`, but some tests still pass `state: null` or a foreign `state` object. That obscures the new contract that render metadata comes from colocated `flow.json` through `SpecRenderContext`, not from caller-supplied ambient state.  \n**Suggestion:** Drop the unused `state` properties from test calls, or add one focused compatibility test if retaining ignored `state` is intentional.",
+        "file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Centralize Plan-Then-Persist-Then-Apply Flow",
+        "body": "**File:** `src/flow/lib/render-spec-view.js`  \n**Requirement:** R7  \n**Issue:** `run-update-overview.js` and `set-approval.js` now both implement the same sequence manually: build render plan, save `spec.json`, apply render plan. This creates a design pattern that callers must remember and duplicate.  \n**Suggestion:** Add an exported helper in `render-spec-view.js`, for example `renderPlannedSpecViewAfterSave({ root, specPath, spec, save })`, or a clearer two-step helper name matching the project style. Then both callers can use one shared flow.",
+        "file": "src/flow/lib/render-spec-view.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Rename `MissingSpecViewRenderPlan`",
+        "body": "**File:** `src/flow/lib/render-spec-view.js`  \n**Requirement:** R7  \n**Issue:** `MissingSpecViewRenderPlan` sounds like an absent plan, but it is actually a completed no-op plan for the optional-missing case. That makes the `applySpecViewPlan` type check slightly misleading.  \n**Suggestion:** Rename it to something like `NoopSpecViewRenderPlan` or `OptionalMissingSpecViewPlan` to reflect that it intentionally applies to `{ rendered: false }`.",
+        "file": "src/flow/lib/render-spec-view.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Avoid Recomputing Render Metadata Through Multiple `toRenderMeta()` Calls",
+        "body": "**File:** `specs/318-explicit-task-render-context/tests/render-contract.test.js`  \n**Requirement:** R8  \n**Issue:** The `SpecRenderContext` test repeatedly calls `toRenderMeta()` on the same context. If the implementation ever stops returning a cached immutable value, the test could become noisy or subtly time-dependent because metadata includes filesystem-derived dates.  \n**Suggestion:** Store each metadata result once, for example `const absentMeta = absentContext.toRenderMeta();`, and assert against that object. This also improves readability.",
+        "file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

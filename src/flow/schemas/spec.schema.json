@@ -154,7 +154,7 @@
         "required": ["id", "title", "goal", "origin", "added_round", "status"],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "id": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$" },
           "title": { "type": "string", "minLength": 1, "maxLength": 200 },
           "goal": { "type": "string", "minLength": 1, "maxLength": 1000 },
           "acceptance": {
@@ -164,7 +164,7 @@
           },
           "implementation_notes": { "type": "string", "maxLength": 5000 },
           "test_strategy": { "type": "string", "maxLength": 2000 },
-          "parent": { "type": ["string", "null"], "minLength": 1, "maxLength": 100 },
+          "parent": { "type": ["string", "null"], "minLength": 1, "maxLength": 100, "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$" },
           "origin": { "type": "string", "enum": ["plan"] },
           "added_round": { "type": "integer", "minimum": 0 },
           "status": { "type": "string", "enum": ["pending", "in_progress", "done", "skipped"] }

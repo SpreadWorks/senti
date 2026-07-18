@@ -16,6 +16,11 @@ import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { validateSchema } from "../../lib/schema-validate.js";
 import { getSpecDir } from "../../lib/flow-helpers.js";
+import {
+  SpecRenderContext,
+  TaskCollection,
+  TaskRenderPlan,
+} from "../lib/render-contract.js";
 
 const SCHEMA_PATH = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -310,24 +315,18 @@ async function runSpecRender(rawArgs, container) {
     process.exit(EXIT_ERROR);
   }
 
-  const specDirName = path.basename(specDir);
-  const flowManager = container.get("flowManager");
-  const state = flowManager.load();
-  const featureBranch = state?.featureBranch || `feature/${specDirName}`;
-  const created = fs.statSync(specJsonPath).mtime.toISOString().slice(0, 10);
-
-  const meta = {
-    title: specDirName,
-    featureBranch,
-    created,
-    status: "Draft",
-    input: state?.issue ? `GitHub Issue #${state.issue}` : "User request",
-  };
-
-  const output = renderSpecMarkdown(spec, meta);
+  const collection = new TaskCollection(spec.tasks ?? []);
+  const renderContext = new SpecRenderContext({ root, specDir, specJsonPath });
   const outPath = outArg
     ? (path.isAbsolute(outArg) ? outArg : path.join(root, outArg))
     : path.join(specDir, "spec.md");
+  const tasksDir = path.join(specDir, "tasks");
+  const taskPlan = new TaskRenderPlan({
+    collection,
+    tasksDir,
+    renderTask: renderTaskMarkdown,
+  });
+  const output = renderSpecMarkdown(spec, renderContext.toRenderMeta());
 
   fs.writeFileSync(outPath, output);
   process.stdout.write(`rendered: ${path.relative(root, outPath)}\n`);
@@ -335,14 +334,11 @@ async function runSpecRender(rawArgs, container) {
   // Spec 226: render tasks/<id>.md for each task entry. Additive only —
   // orphan files in tasks/ are NOT deleted (append-only principle per spec 215).
   // Uses async writes + Promise.all to avoid per-iteration synchronous I/O.
-  if (Array.isArray(spec.tasks) && spec.tasks.length > 0) {
-    const tasksDir = path.join(specDir, "tasks");
+  if (taskPlan.size > 0) {
     fs.mkdirSync(tasksDir, { recursive: true });
-    const writes = spec.tasks.map(async (t) => {
-      const taskMd = renderTaskMarkdown(t);
-      const taskPath = path.join(tasksDir, `${t.id}.md`);
-      await fs.promises.writeFile(taskPath, taskMd);
-      process.stdout.write(`rendered: ${path.relative(root, taskPath)}\n`);
+    const writes = [...taskPlan].map(async (entry) => {
+      await fs.promises.writeFile(entry.outputPath.value, entry.markdown);
+      process.stdout.write(`rendered: ${path.relative(root, entry.outputPath.value)}\n`);
     });
     await Promise.all(writes);
   }

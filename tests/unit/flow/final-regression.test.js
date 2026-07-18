@@ -128,6 +128,72 @@ describe("flow run final-regression", () => {
     });
   });
 
+  it("prioritizes a TAP assertion failure over an earlier successful not-found warning", async () => {
+    tmp = createTmpDir("final-regression-assertion-after-warning-");
+    const ctx = setupProject(tmp, [
+      "printf '%s\\n' '# [text] WARN: analysis.json not found. Proceeding with empty analysis context.'",
+      "printf '%s\\n' '# Subtest: flow state path ownership stays in the shared writer'",
+      "printf '%s\\n' 'not ok 274 - flow state path ownership stays in the shared writer'",
+      "printf '%s\\n' '  ---'",
+      "printf '%s\\n' \"  failureType: 'testCodeFailure'\"",
+      "printf '%s\\n' \"  error: 'direct flow.json sinks detected'\"",
+      "printf '%s\\n' \"  code: 'ERR_ASSERTION'\"",
+      "printf '%s\\n' '  ...'",
+      "exit 1",
+      "",
+    ].join("\n"));
+
+    const result = await new RunFinalRegressionCommand().execute(ctx);
+
+    const artifact = assertFinalRegressionFailure(tmp, result, {
+      failureKind: "unattributed_existing_failure",
+      retryable: false,
+      nextAction: "user-confirmation",
+    });
+    assert.equal(artifact.failureCategory, "existing_failure");
+    assert.equal(artifact.failureNature, "assertion");
+    assert.match(artifact.failureSummary, /not ok 274.*flow state path ownership/);
+    assert.match(artifact.failureSummary, /direct flow\.json sinks detected/);
+    assert.doesNotMatch(artifact.failureSummary, /analysis\.json not found/);
+  });
+
+  it("attributes all real TAP failures while summarizing the first failure block", async () => {
+    tmp = createTmpDir("final-regression-multiple-tap-failures-");
+    const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
+    writeFile(tmp, FIXTURE_PATH, [
+      "printf '%s\\n' '# not ok 900 - diagnostic comment only'",
+      "printf '%s\\n' '# Subtest: existing assertion'",
+      "printf '%s\\n' 'not ok 1 - existing assertion'",
+      "printf '%s\\n' '  ---'",
+      "printf '%s\\n' \"  error: 'tests/unit/existing.test.js failed'\"",
+      "printf '%s\\n' \"  code: 'ERR_ASSERTION'\"",
+      "printf '%s\\n' '  ...'",
+      "printf '%s\\n' '# Subtest: current assertion'",
+      "printf '%s\\n' 'not ok 2 - current assertion'",
+      "printf '%s\\n' '  ---'",
+      `printf '%s\\n' "  error: '${FIXTURE_PATH} failed'"`,
+      "printf '%s\\n' \"  code: 'ERR_ASSERTION'\"",
+      "printf '%s\\n' '  ...'",
+      "exit 1",
+      "",
+    ].join("\n"));
+
+    const result = await new RunFinalRegressionCommand().execute(ctx);
+
+    const artifact = assertFinalRegressionFailure(tmp, result, {
+      failureKind: "caused_by_current_change",
+      retryable: true,
+      nextAction: "regression-repair",
+    });
+    assert.equal(artifact.failureCategory, "caused_by_current_change");
+    assert.equal(artifact.failureNature, "assertion");
+    assert.equal(artifact.currentDiffRelationship, "current-diff");
+    assert.equal(artifact.recordAndProceed.eligible, false);
+    assert.match(artifact.failureSummary, /not ok 1 - existing assertion/);
+    assert.doesNotMatch(artifact.failureSummary, /diagnostic comment only/);
+    assert.doesNotMatch(artifact.failureSummary, /not ok 2 - current assertion/);
+  });
+
   it("classifies silent non-zero test runner exits as infrastructure failure", async () => {
     tmp = createTmpDir("final-regression-silent-fail-");
     const ctx = setupProject(tmp, "exit 1\n");
@@ -139,6 +205,29 @@ describe("flow run final-regression", () => {
       retryable: false,
       nextAction: "stop",
     });
+  });
+
+  it("fails closed when a non-zero runner reports zero totals without test failure detail", async () => {
+    tmp = createTmpDir("final-regression-zero-detail-fail-");
+    const ctx = setupProject(tmp, [
+      "printf '%s\\n' 'unit: 0'",
+      "printf '%s\\n' 'integration: 0'",
+      "printf '%s\\n' 'acceptance: 0'",
+      "exit 1",
+      "",
+    ].join("\n"));
+
+    const result = await new RunFinalRegressionCommand().execute(ctx);
+
+    const artifact = assertFinalRegressionFailure(tmp, result, {
+      failureKind: "infra_failure",
+      retryable: false,
+      nextAction: "stop",
+    });
+    assert.equal(artifact.failureCategory, "environment");
+    assert.equal(artifact.failureNature, "execution");
+    assert.equal(artifact.recordAndProceed.eligible, false);
+    assert.equal(artifact.nextRecommendedAction, "stop");
   });
 
   it("classifies child-process EPERM output distinctly", async () => {

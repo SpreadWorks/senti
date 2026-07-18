@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The TaskId runtime grammar requirement contains an unterminated inline pattern (`^[A-Za-z0-9][A-Za-z0-9_-]{0,99}.), making the exact required schema pattern unclear.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[2]"
+          },
+          "observed": "The TaskId runtime grammar requirement contains an unterminated inline pattern (`^[A-Za-z0-9][A-Za-z0-9_-]{0,99}.), making the exact required schema pattern unclear.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "R1 contains an unterminated inline pattern (`^[A-Za-z0-9][A-Za-z0-9_-]{0,99} for tasks[].id...), making it unclear where the regex ends and preventing independent reviewers from agreeing on the exact accepted grammar.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "R1 contains an unterminated inline pattern (`^[A-Za-z0-9][A-Za-z0-9_-]{0,99} for tasks[].id...), making it unclear where the regex ends and preventing independent reviewers from agreeing on the exact accepted grammar.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "constraints[2]"
+      },
+      "observed": "The TaskId runtime grammar requirement contains an unterminated inline pattern (`^[A-Za-z0-9][A-Za-z0-9_-]{0,99}.), making the exact required schema pattern unclear.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[0].desc"
+      },
+      "observed": "R1 contains an unterminated inline pattern (`^[A-Za-z0-9][A-Za-z0-9_-]{0,99} for tasks[].id...), making it unclear where the regex ends and preventing independent reviewers from agreeing on the exact accepted grammar.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    }
+  ]
+}

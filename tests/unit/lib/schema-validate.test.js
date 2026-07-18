@@ -91,6 +91,13 @@ describe("validateSchema", () => {
       assert.equal(errors.length, 1);
       assert.match(errors[0], /a/);
     });
+
+    it("rejects null for a required string property", () => {
+      const schema = { type: "object", required: ["a"], properties: { a: { type: "string" } } };
+      const errors = validateSchema({ a: null }, schema);
+      assert.equal(errors.length, 1);
+      assert.match(errors[0], /a.*string/);
+    });
   });
 
   describe("properties", () => {

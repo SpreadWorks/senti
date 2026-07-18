@@ -99,6 +99,8 @@ const FAILURE_EVIDENCE_JOINER_CHARS = FAILURE_EVIDENCE_INPUT_COUNT - 1;
 const MAX_FAILURE_EVIDENCE_SOURCE_CHARS = Math.floor(
   (MAX_FAILURE_EVIDENCE_CHARS - FAILURE_EVIDENCE_JOINER_CHARS) / FAILURE_EVIDENCE_INPUT_COUNT,
 );
+const ZERO_TEST_SUMMARY_LINE = /^(?:unit|integration|acceptance):\s*0$|^#\s*(?:tests|suites|pass|fail|cancelled|skipped|todo)\s+0$/i;
+const GENERIC_COMMAND_FAILURE_LINE = /^command failed(?::|\s)/i;
 export const FINAL_REGRESSION_HEARTBEAT_MS = DEFAULT_PROCESS_HEARTBEAT_MS;
 
 class TextFailureClassifier {
@@ -630,7 +632,11 @@ function failureNatureFor(failureKind, process) {
 }
 
 function recordAndProceedEligibleFor(category, failureKind) {
-  if (failureKind === FAILURE_KINDS.INVALID_PROJECT_TEST || failureKind === FAILURE_KINDS.CURRENT_CHANGE) return false;
+  if (
+    failureKind === FAILURE_KINDS.INVALID_PROJECT_TEST
+    || failureKind === FAILURE_KINDS.CURRENT_CHANGE
+    || failureKind === FAILURE_KINDS.INFRA
+  ) return false;
   return RECORD_AND_PROCEED_CATEGORIES.has(category);
 }
 
@@ -640,7 +646,8 @@ function nextRecommendedActionFor({ failureKind, eligible, fixAttempts }) {
 }
 
 function failureSummaryFor(result, failureKind) {
-  const lines = processOutputLines(result).filter((line) => String(line).trim().length > 0);
+  const lines = (firstAssertionFailureBlockLines(result) || processOutputLines(result))
+    .filter((line) => String(line).trim().length > 0);
   const text = lines.slice(0, 8).join("\n").trim();
   return boundedText(text || `final-regression failed: ${failureKind}`, 2000);
 }
@@ -873,6 +880,50 @@ function failureEvidenceText(result, discoveryError) {
   return boundedText(text, MAX_FAILURE_EVIDENCE_CHARS);
 }
 
+function hasOnlyZeroTestSummary(result) {
+  const lines = [result?.stdout, result?.stderr]
+    .flatMap((value) => String(value ?? "").split(/\r?\n/))
+    .map((line) => line.trim())
+    .filter(Boolean);
+  let sawZeroSummary = false;
+  for (const line of lines) {
+    if (ZERO_TEST_SUMMARY_LINE.test(line)) {
+      sawZeroSummary = true;
+      continue;
+    }
+    if (GENERIC_COMMAND_FAILURE_LINE.test(line)) continue;
+    return false;
+  }
+  return sawZeroSummary;
+}
+
+function assertionFailureBlocks(result) {
+  if (result?.started === false || result?.spawnError || result?.timedOut) return null;
+  const lines = processOutputLines(result);
+  const starts = lines
+    .map((line, index) => /^\s*not ok\s+\d+\s+-/i.test(line) ? index : -1)
+    .filter((index) => index !== -1);
+  if (starts.length === 0) return null;
+  return starts.map((start, blockIndex) => {
+    let end = starts[blockIndex + 1] ?? lines.length;
+    for (let index = start + 1; index < end; index += 1) {
+      if (/^\s*#\s*Subtest:/i.test(lines[index])) {
+        end = index;
+        break;
+      }
+    }
+    return lines.slice(start, end);
+  });
+}
+
+function firstAssertionFailureBlockLines(result) {
+  return assertionFailureBlocks(result)?.[0] || null;
+}
+
+function allAssertionFailureBlockLines(result) {
+  return assertionFailureBlocks(result)?.flat() || null;
+}
+
 function normalizeFailureMatchText(text) {
   return String(text ?? "").replaceAll("\\", "/").toLowerCase();
 }
@@ -928,11 +979,13 @@ function changedFilesWithinMatchLimit(changedFiles) {
 }
 
 export function classifyFinalRegressionFailure({ result, discoveryError = null, root = null, state = null, config = {}, changedFiles = [] }) {
-  const text = failureEvidenceText(result, discoveryError);
+  const assertionLines = discoveryError ? null : allAssertionFailureBlockLines(result);
+  const text = assertionLines ? assertionLines.join("\n") : failureEvidenceText(result, discoveryError);
   const normalizedText = normalizeFailureMatchText(text);
   if (discoveryError) return new InvalidCommandRegressionFailure();
   if (result?.timedOut) return new TimeoutRegressionFailure();
   if (normalizedText.trim() === "" && result?.exitCode) return new InfrastructureRegressionFailure();
+  if (result?.exitCode && hasOnlyZeroTestSummary(result)) return new InfrastructureRegressionFailure();
   if (/^command failed:/.test(normalizedText.trim()) && result?.exitCode) return new InfrastructureRegressionFailure();
   for (const classifier of TEXT_FAILURE_CLASSIFIERS) {
     const failure = classifier.classify(normalizedText);

@@ -1,0 +1,59 @@
+{
+  "spec": "specs/318-explicit-task-render-context/spec.json",
+  "date": "2026-07-18T21:00:08.836Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The spec schema and TaskId constructor shall both accept exactly strings matching the JSON Schema pattern string \"^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$\", where the final dollar sign is the end-of-string anchor, for tasks[].id and non-null tasks[].parent; both shall reject empty, over-100-character, slash, backslash, dot-segment, drive-prefix, UNC-style, whitespace, and non-ASCII inputs before any consumer side effect.",
+      "status": "done",
+      "note": "R1: TaskId and schema enforce the same exact identity grammar"
+    },
+    {
+      "desc": "TaskCollection construction shall reject more than the schema-declared 200 task entries before allocating per-task state, then use two linear passes and O(n) auxiliary TaskId and lookup entries to validate every ID and non-null parent, reject duplicates, reject parents absent from the complete ID set, and accept a valid parent serialized later; public iteration and lookup shall expose validated task identities.",
+      "status": "done",
+      "note": "R2: TaskCollection owns size, uniqueness, and complete parent validation"
+    },
+    {
+      "desc": "For a TaskCollection of n entries, where 0 <= n <= 200, CLI and internal view shall construct exactly n TaskOutputPath values and at most n task Markdown bodies and write-plan entries before the first directory creation or file write; each path shall resolve the target tasks directory and candidate `<TaskId>.md` to absolute paths and require the candidate dirname to equal the resolved tasks directory. Plan construction shall use O(n) auxiliary entries and no recursive or pairwise collection scan.",
+      "status": "done",
+      "note": "R3: TaskOutputPath produces exactly one confined path per validated task"
+    },
+    {
+      "desc": "SpecRenderContext shall derive title and creation date from the selected spec.json and use featureBranch/Issue metadata only from a flow.json in the same directory whose state.spec exactly identifies that selected repo-relative spec.json; absent or mismatched colocated metadata shall produce `feature/<selected-directory>` and `User request` without reading ambient active-flow state.",
+      "status": "done",
+      "note": "R4: SpecRenderContext accepts exact colocated metadata and otherwise uses selected-spec defaults"
+    },
+    {
+      "desc": "runSpecRender and renderSpecView shall use TaskCollection, every TaskOutputPath, and SpecRenderContext before rendering side effects; any R1-R4 rejection shall leave the selected spec.md, tasks directory, existing task files, orphan task files, requested --out path, and files outside the selected spec directory byte-for-byte unchanged.",
+      "status": "done",
+      "note": "R5: CLI render rejects the complete invalid collection before every output write"
+    },
+    {
+      "desc": "syncSpecTasksToFlow shall construct TaskCollection before FlowStore mutation and shall build appended task IDs, parent values, and `tasks/<id>.md` paths only from validated values; any invalid ID, duplicate, or unknown parent shall leave flow.json byte-for-byte unchanged.",
+      "status": "done",
+      "note": "R6: approval sync rejects unknown parents before changing flow.json bytes"
+    },
+    {
+      "desc": "For valid input, the change shall retain CLI --spec/--out resolution, schema error reporting, rendered stdout paths, deterministic spec/task Markdown bytes, additive orphan-file behavior, internal optional-missing result and changed list, and approval sync append-only filtering, assigned_round calculation, field transcription, task-step construction, and pending-task promotion.",
+      "status": "done",
+      "note": "R7: valid explicit render preserves deterministic bytes without ambient flow metadata"
+    },
+    {
+      "desc": "Spec-local node:test coverage with `// spec: R<N>` headers shall exercise R1-R7 through production classes and entry points, including pre-fix failure reproductions and before/after filesystem and flow-state snapshots, without directly rewriting flow state or generated artifacts to manufacture pass conditions.",
+      "status": "done",
+      "note": "R8: internal view rejection preserves existing generated and orphan files byte-for-byte"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

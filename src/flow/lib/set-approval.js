@@ -15,7 +15,7 @@ import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadSpecJson, saveSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
-import { renderSpecView } from "./render-spec-view.js";
+import { applySpecViewPlan, buildSpecViewPlan } from "./render-spec-view.js";
 
 const NOTES_MAX_LENGTH = 2000;
 
@@ -69,13 +69,13 @@ export default class SetApprovalCommand extends FlowCommand {
     const jsonPath = resolveSpecJsonPath(specPath);
     const spec = loadSpecJson(jsonPath, { validate: false });
     spec.user_approval = userApproval;
-    saveSpecJson(jsonPath, spec);
-    const rendered = renderSpecView({
+    const renderPlan = buildSpecViewPlan({
       root: ctx.root,
       specPath: ctx.flowState.spec,
-      state: ctx.flowState,
       spec,
     });
+    saveSpecJson(jsonPath, spec, { validate: false });
+    const rendered = applySpecViewPlan(renderPlan);
 
     return { user_approval: userApproval, rendered: rendered.changed };
   }

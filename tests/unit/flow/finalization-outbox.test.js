@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -13,10 +15,14 @@ import {
   FlowOutbox,
   FlowOutboxEntry,
   FlowOutboxIdentity,
+  FlowOutboxStore,
 } from "../../../src/flow/lib/flow-outbox.js";
+import * as flowOutboxModule from "../../../src/flow/lib/flow-outbox.js";
 import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
+import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { makeFlowManager, setupFlow } from "../../helpers/flow-setup.js";
 
 function finalizationIdentity(stepId) {
   return new FlowOutboxIdentity({
@@ -25,6 +31,20 @@ function finalizationIdentity(stepId) {
     stepId,
     operation: stepId,
   });
+}
+
+function failedAttemptTwo(stepId = "report", failure = "issue comment idempotencyKey is required") {
+  const identity = finalizationIdentity(stepId);
+  const outbox = new FlowOutbox();
+  outbox.begin(identity, "2026-07-17T00:00:00.000Z");
+  outbox.fail(identity, new Error("first failure"), "2026-07-17T00:00:01.000Z");
+  outbox.begin(identity, "2026-07-17T00:00:02.000Z");
+  outbox.fail(identity, new Error(failure), "2026-07-17T00:00:03.000Z");
+  return { identity, outbox, failure };
+}
+
+function recoveryClaim(identity, attempt, failure) {
+  return new flowOutboxModule.FlowOutboxRecoveryClaim({ identity, attempt, failure });
 }
 
 describe("resumable finalization outbox", () => {
@@ -54,6 +74,100 @@ describe("resumable finalization outbox", () => {
     assert.equal(resumed.status, "done");
     assert.equal(resumed.attempt, 2);
     assert.equal(outbox.entries.length, 1);
+  });
+
+  it("reopens an exactly bound failed entry without changing its key or attempt", () => {
+    const { identity, outbox, failure } = failedAttemptTwo();
+    const reopened = outbox.reopenFailedExact(
+      recoveryClaim(identity, 2, failure),
+      "2026-07-17T00:00:04.000Z",
+    );
+
+    assert.equal(reopened.status, "pending");
+    assert.equal(reopened.attempt, 2);
+    assert.equal(reopened.idempotencyKey, identity.idempotencyKey);
+    assert.equal(reopened.failure, null);
+  });
+
+  it("rejects a second use of the same exact recovery claim", () => {
+    const { identity, outbox, failure } = failedAttemptTwo();
+    const claim = recoveryClaim(identity, 2, failure);
+    outbox.reopenFailedExact(claim, "2026-07-17T00:00:04.000Z");
+    const once = outbox.toJSON();
+
+    assert.throws(
+      () => outbox.reopenFailedExact(claim, "2026-07-17T00:00:05.000Z"),
+      /exact recovery requires a failed outbox entry/,
+    );
+    assert.deepEqual(outbox.toJSON(), once);
+  });
+
+  it("rejects ABA claim reuse after the reopened entry fails with the same binding", () => {
+    const { identity, outbox, failure } = failedAttemptTwo();
+    const claim = recoveryClaim(identity, 2, failure);
+    outbox.reopenFailedExact(claim, "2026-07-17T00:00:04.000Z");
+    outbox.fail(identity, new Error(failure), "2026-07-17T00:00:05.000Z");
+    const failedAgain = outbox.toJSON();
+    assert.deepEqual(failedAgain[0].exactRecoveryReceipt, {
+      idempotencyKey: identity.idempotencyKey,
+      attempt: 2,
+      failure,
+    });
+
+    assert.throws(
+      () => outbox.reopenFailedExact(claim, "2026-07-17T00:00:06.000Z"),
+      /exact recovery was already consumed/,
+    );
+    assert.deepEqual(outbox.toJSON(), failedAgain);
+  });
+
+  it("rejects foreign key, attempt, and failure mismatches without changing any entry", () => {
+    const { identity, outbox, failure } = failedAttemptTwo();
+    const foreignIdentity = finalizationIdentity("finalize-commit");
+    outbox.begin(foreignIdentity, "2026-07-17T00:00:04.000Z");
+    const before = outbox.toJSON();
+    const claims = [
+      recoveryClaim(finalizationIdentity("finalize-sync"), 2, failure),
+      recoveryClaim(identity, 1, failure),
+      recoveryClaim(identity, 2, "different failure"),
+    ];
+
+    for (const claim of claims) {
+      assert.throws(() => outbox.reopenFailedExact(claim), /exact recovery/);
+      assert.deepEqual(outbox.toJSON(), before);
+    }
+  });
+
+  it("preserves the old durable state when exact recovery atomic write fails", () => {
+    const root = createTmpDir("flow-outbox-exact-recovery-");
+    try {
+      const state = setupFlow(root);
+      const flowManager = makeFlowManager(root);
+      const identity = finalizationIdentity("report");
+      const store = new FlowOutboxStore(flowManager);
+      store.begin(identity);
+      store.fail(identity, new Error("first failure"));
+      store.begin(identity);
+      const failure = "issue comment idempotencyKey is required";
+      store.fail(identity, new Error(failure));
+      const flowPath = path.join(root, state.spec.replace(/spec\.json$/, "flow.json"));
+      const before = fs.readFileSync(flowPath);
+      const mutate = flowManager.mutate.bind(flowManager);
+      flowManager.mutate = (mutator, options = {}) => mutate(mutator, {
+        ...options,
+        faultInjector({ phase }) {
+          if (phase === "before-state-temp-write") throw new Error("injected exact recovery write failure");
+        },
+      });
+
+      assert.throws(
+        () => store.reopenFailedExact(recoveryClaim(identity, 2, failure)),
+        /injected exact recovery write failure/,
+      );
+      assert.deepEqual(fs.readFileSync(flowPath), before);
+    } finally {
+      removeTmpDir(root);
+    }
   });
 
   it("resumes a done outbox entry without executing the side effect twice", async () => {

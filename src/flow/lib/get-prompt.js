@@ -319,7 +319,6 @@ export default class GetPromptCommand extends FlowCommand {
       const rendered = renderSpecView({
         root: ctx.root,
         specPath: state.spec,
-        state,
         optional: true,
       });
       if (rendered.rendered) artifacts.specView = rendered.changed;

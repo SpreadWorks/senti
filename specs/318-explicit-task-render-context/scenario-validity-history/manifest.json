@@ -1,0 +1,239 @@
+{
+  "version": "1",
+  "sourceStage": "scenario-validity",
+  "createdAt": "2026-07-18T20:15:05.035Z",
+  "flowTarget": {
+    "runId": "a6b9012b-271a-4de5-875a-eca9b439f19b",
+    "issue": 414,
+    "spec": "specs/318-explicit-task-render-context/spec.json"
+  },
+  "baseline": {
+    "head": "171824f5c00de25c4cf20dd329a4d79d9c0060c5",
+    "tree": "66e9e880754eccdc28a8ecb393dd320a74401161"
+  },
+  "currentTest": {
+    "path": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+    "sha256": "89e403638b6767d8587916e815673f2c7e2455dd20c3143b2a43d57ba83e22ea"
+  },
+  "authoritySnapshot": {
+    "flow": "938022c2a4166ab406c0181c55716e70292b28fe5c3d0452d3f2bac92b5b7901",
+    "spec": "4e5ba799c75743baf89f9868bd0e64c4016054102eeb0710f479352056f7dd3f",
+    "test": "89e403638b6767d8587916e815673f2c7e2455dd20c3143b2a43d57ba83e22ea",
+    "source": {
+      "fileCount": 334,
+      "sha256": "19a222750c36016bba25cf3bb82a6ba37b201398010b1c3fb44d789ec896433d"
+    }
+  },
+  "gitPreconditionReceipt": {
+    "path": ".tmp/414-scenario-baseline-replay-r2/promotion-input.json",
+    "sha256": "0a1b99e50874d6969b39cf9b0f7b3f9e3454d7fe564f197b383a0d243cd58d4e",
+    "candidateHead": "eb69829ecfbe00c7faf6aff7605e05fbb214c49d",
+    "candidateTree": "c98d0e3f56cc45912ef7823108ba87f3d06c7fca",
+    "status": [
+      " M specs/318-explicit-task-render-context/draft-gate-source.json",
+      " M specs/318-explicit-task-render-context/draft-questions-repair.json",
+      " M specs/318-explicit-task-render-context/draft-questions-triage.json",
+      " M specs/318-explicit-task-render-context/draft-review-coverage.json",
+      " M specs/318-explicit-task-render-context/draft-review-questions.json",
+      " M specs/318-explicit-task-render-context/draft.json",
+      " M specs/318-explicit-task-render-context/flow.json",
+      " M specs/318-explicit-task-render-context/issue-log.json",
+      " M specs/318-explicit-task-render-context/scenario-validity-result.json",
+      " M specs/318-explicit-task-render-context/spec-review.json",
+      " M specs/318-explicit-task-render-context/spec.json",
+      " M specs/318-explicit-task-render-context/spec.md",
+      " M specs/318-explicit-task-render-context/tests/.raw/scenario-validity.log",
+      " M specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "?? specs/318-explicit-task-render-context/review-history/draft-coverage-attempt-002.json",
+      "?? specs/318-explicit-task-render-context/review-history/draft-questions-attempt-002.json",
+      "?? specs/318-explicit-task-render-context/review-history/spec-attempt-002.json",
+      "?? specs/318-explicit-task-render-context/review-history/spec-attempt-002.md"
+    ],
+    "diffRaw": [
+      ":100644 100644 ac293f05 00000000 M\tspecs/318-explicit-task-render-context/draft-gate-source.json",
+      ":100644 100644 d1d8ed8b 00000000 M\tspecs/318-explicit-task-render-context/draft-questions-repair.json",
+      ":100644 100644 b060927d 00000000 M\tspecs/318-explicit-task-render-context/draft-questions-triage.json",
+      ":100644 100644 a48945ba 00000000 M\tspecs/318-explicit-task-render-context/draft-review-coverage.json",
+      ":100644 100644 b6e3d363 00000000 M\tspecs/318-explicit-task-render-context/draft-review-questions.json",
+      ":100644 100644 17463650 00000000 M\tspecs/318-explicit-task-render-context/draft.json",
+      ":100644 100644 55c8b834 00000000 M\tspecs/318-explicit-task-render-context/flow.json",
+      ":100644 100644 3a7d62cc 00000000 M\tspecs/318-explicit-task-render-context/issue-log.json",
+      ":100644 100644 8507445f 00000000 M\tspecs/318-explicit-task-render-context/scenario-validity-result.json",
+      ":100644 100644 a29ee342 00000000 M\tspecs/318-explicit-task-render-context/spec-review.json",
+      ":100644 100644 f218cb40 00000000 M\tspecs/318-explicit-task-render-context/spec.json",
+      ":100644 100644 6cf1bf28 00000000 M\tspecs/318-explicit-task-render-context/spec.md",
+      ":100644 100644 5daa77a0 00000000 M\tspecs/318-explicit-task-render-context/tests/.raw/scenario-validity.log",
+      ":100644 100644 6c4ad28b 00000000 M\tspecs/318-explicit-task-render-context/tests/render-contract.test.js"
+    ]
+  },
+  "auditDecision": {
+    "decision": "controlled-audited-manual-scenario-evidence-promotion",
+    "approvedBy": "parent specification authority",
+    "highFindings": 0,
+    "mediumFindings": 0,
+    "semanticRiskUnresolved": false,
+    "rationale": "Promote actual exact-main baseline replay attempt 002 without converting blocked attempt 001 into PASS; retain successor test-review, test-execute, acceptance-review, and final-regression controls."
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "sourceStage": "scenario-validity",
+      "outcome": "SCENARIO_VALIDITY_BLOCKED",
+      "result": "block",
+      "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "process": {
+        "started": false,
+        "exitCode": null,
+        "signal": null,
+        "timedOut": false,
+        "spawnError": null
+      },
+      "runtimeLog": {
+        "runId": "a6b9012b-271a-4de5-875a-eca9b439f19b",
+        "sequence": 175,
+        "attempt": 1,
+        "command": "flow run scenario-validity",
+        "startedAt": "2026-07-18T19:10:24.568Z",
+        "endedAt": "2026-07-18T19:10:24.698Z",
+        "exitCode": 1
+      },
+      "files": [
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-001/scenario-validity-result.json",
+          "size": 4865,
+          "sha256": "7bdd66851ac9fd66fc41beecebab8a7f7259c1abb863fbe770034665147dc7b8"
+        },
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-001/scenario-validity.log",
+          "size": 931,
+          "sha256": "1b96bcd3f465ba710ac865e6ec453a727244a4b8b5325aa14c76df0c952c3e22"
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "sourceStage": "exact-main-baseline-replay-r2",
+      "outcome": "expected_fail",
+      "result": "pass",
+      "command": "node --test --test-reporter=tap --test-reporter-destination=/home/nakano/workspace/senti/.senti/worktree/feature-318-explicit-task-render-context/.tmp/414-scenario-baseline-replay-r2/baseline-red.tap specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "process": {
+        "started": true,
+        "exitCode": 1,
+        "signal": null,
+        "timedOut": false,
+        "spawnError": null
+      },
+      "requirements": [
+        {
+          "id": "R1",
+          "classification": "expected_fail",
+          "testName": "R1: TaskId and schema enforce the same exact identity grammar",
+          "rawOutputLines": {
+            "start_line": 3,
+            "end_line": 27
+          }
+        },
+        {
+          "id": "R2",
+          "classification": "expected_fail",
+          "testName": "R2: TaskCollection owns size, uniqueness, and complete parent validation",
+          "rawOutputLines": {
+            "start_line": 34,
+            "end_line": 60
+          }
+        },
+        {
+          "id": "R3",
+          "classification": "expected_fail",
+          "testName": "R3: TaskOutputPath produces exactly one confined path per validated task",
+          "rawOutputLines": {
+            "start_line": 115,
+            "end_line": 141
+          }
+        },
+        {
+          "id": "R4",
+          "classification": "expected_fail",
+          "testName": "R4: SpecRenderContext accepts exact colocated metadata and otherwise uses selected-spec defaults",
+          "rawOutputLines": {
+            "start_line": 250,
+            "end_line": 278
+          }
+        },
+        {
+          "id": "R5",
+          "classification": "expected_fail",
+          "testName": "R5: CLI render rejects the complete invalid collection before every output write",
+          "rawOutputLines": {
+            "start_line": 279,
+            "end_line": 297
+          }
+        },
+        {
+          "id": "R6",
+          "classification": "expected_fail",
+          "testName": "R6: approval sync rejects unknown parents before changing flow.json bytes",
+          "rawOutputLines": {
+            "start_line": 315,
+            "end_line": 335
+          }
+        },
+        {
+          "id": "R7",
+          "classification": "expected_fail",
+          "testName": "R7: valid explicit render preserves deterministic bytes without ambient flow metadata",
+          "rawOutputLines": {
+            "start_line": 364,
+            "end_line": 528
+          }
+        },
+        {
+          "id": "R8",
+          "classification": "expected_fail",
+          "testName": "R8: internal view rejection preserves existing generated and orphan files byte-for-byte",
+          "rawOutputLines": {
+            "start_line": 709,
+            "end_line": 729
+          }
+        }
+      ],
+      "files": [
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-002/baseline-red.tap",
+          "size": 28518,
+          "sha256": "58c2c6b2f50dbe6ae0979d8b36f85fe79d20bdca3860963eb8382bcd17f83372"
+        },
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-002/baseline-red-result.json",
+          "size": 1645,
+          "sha256": "1377485a909f5928086f776c8c5f62e0e2cc2bca4cc3fc177ae3a136cf809e0c"
+        },
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-002/overlay-manifest.json",
+          "size": 1175,
+          "sha256": "fd96cdb7a81e4ca396d720b679a71576e5bcf4f0868c1120a2682c9da4c23b7d"
+        },
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-002/overlay-verification.post-run.json",
+          "size": 3144,
+          "sha256": "f59741ebb1c8d723604d0036bfe106d302387412801c793b859bd9b2e03fdd4a"
+        },
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-002/module-provenance.pre-run.json",
+          "size": 1815,
+          "sha256": "12ac02e23d41f9ebc399f12b69ff3c6b7071040f15e4df31c78c47b3a8c08e42"
+        },
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-002/detached-src-purity.pre-run.txt",
+          "size": 11847,
+          "sha256": "6d317581bb0ee9b6445c3397080d276c6971109571dc37cdd7981b7d53028751"
+        },
+        {
+          "path": "specs/318-explicit-task-render-context/scenario-validity-history/attempt-002/detached-src-purity.post-run.txt",
+          "size": 11847,
+          "sha256": "6d317581bb0ee9b6445c3397080d276c6971109571dc37cdd7981b7d53028751"
+        }
+      ]
+    }
+  ]
+}

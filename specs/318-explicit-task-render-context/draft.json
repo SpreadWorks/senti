@@ -1,0 +1,148 @@
+{
+  "devType": "bugfix",
+  "goal": "spec render に渡される task identity、task 集合、task 出力先、render context を明示的な value object で検証し、対象 spec 外への書き込みと別 flow metadata の混入を最初の書き込み前に拒否する。",
+  "analysis": {
+    "problem": "`spec.json.tasks[*].id` と `parent` は schema の長さ制約しかなく、render/view/sync の各経路で raw string のまま Markdown file path と flow task path に展開される。また render metadata は指定された spec ではなく暗黙の active flow state から取得され得る。このため separator、traversal、absolute-path-equivalent ID、重複 ID、不明 parent、対象外 path、別 spec の metadata 混入を write 前に一貫して拒否できない。",
+    "proposedApproach": "Issue #414 が指定する `TaskId`、`TaskCollection`、`TaskOutputPath`、`SpecRenderContext` を invariant を保持する専用 class として導入する。schema と runtime boundary を同じ task identity contract に揃え、render/view/sync の全 consumer が検証済み object を受け取り、全 task と context の検証完了後にだけ既存の Markdown/flow 出力を行う。",
+    "validation": "不正 ID、重複、不明 parent、target directory 外への path 解決、指定 spec と異なる active flow metadata を個別に再現し、拒否時に spec.md、tasks directory、task Markdown、flow state のいずれも変更されないことを確認する。既存の正常な task tree、spec render CLI、view 更新、approval task sync の回帰テストも通すことで、Issue の root cause と既存 public behavior の両方を検証できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #414 は監査 finding F-007 / F-023 を対象とし、`TaskId`、`TaskCollection`、`TaskOutputPath`、`SpecRenderContext` の4つの validated value object を受け入れ条件として明記している。",
+      "`src/flow/schemas/spec.schema.json` の task ID と parent は現在 minLength 1 / maxLength 100 のみで、文字種や separator を制約していない。",
+      "`src/spec/commands/render.js` と `src/flow/lib/render-spec-view.js` は `${task.id}.md` を組み立て、task 全体の cross-entry validation より前に spec.md を書き込む。",
+      "`src/spec/commands/render.js` は `--spec` 指定時も active flow state の feature branch と Issue 番号を metadata に利用する。",
+      "`src/flow/lib/sync-spec-tasks.js` は active flow state の spec path を読み、task ID、parent、生成 task spec path を raw 値から flow state に転記する。",
+      "既存テストは `T-1`、`T-child-2`、`C2`、`Leaf` など英数字と hyphen を含む task ID、および root/child task tree を正常系として使用する。",
+      "migration parity mapping: `runSpecRender` は `--spec` / `--out` parsing、schema validation、spec.md write、rendered path の stdout、orphan task file を削除しない orchestration を保持する。`renderSpecMarkdown` / `renderTaskMarkdown` は deterministic content を保持し、TaskCollection が validated tasks、TaskOutputPath が各 tasks/*.md path、SpecRenderContext が specified-spec metadata を供給する。",
+      "migration parity mapping: `renderSpecView` は optional missing-spec result、spec.md/tasks view write、changed path list、prompt/approval/overview update call sites を保持する。TaskCollection が validated tasks、TaskOutputPath が各 tasks/*.md path、SpecRenderContext が specified-spec metadata を供給する。",
+      "migration parity mapping: `syncSpecTasksToFlow` は新規 task の append、added_round、parent/status/steps transcription、最初の pending task promotion を保持する。TaskCollection が全 task identity/parent を FlowStore mutate 前に検証し、TaskId が flow task の id と task spec path segment を供給する。",
+      "draft guardrail は既存 public behavior の migration parity、検証可能な要件、既存機能への影響の明示を要求する。"
+    ],
+    "decisionPoints": [
+      "[must] TaskId の schema/runtime 共通 contract を `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` とし、ASCII 英数字で開始する1..100文字の ASCII 英数字・underscore・hyphen だけを許可する。",
+      "[must] TaskCollection が forward parent reference を許可しつつ、重複 ID と collection 外 parent を拒否する条件を定義する。",
+      "[must] TaskOutputPath の confinement 対象と path 解決の filesystem boundary を定義する。",
+      "[must] SpecRenderContext は target spec directory の flow.json が同じ spec.json を指す場合だけ featureBranch/issue を採用する。同居する一致 metadata がなければ featureBranch=`feature/<spec directory basename>`、input=`User request` とし、別 active flow を参照しない。",
+      "[must] render/view/sync で validation を完了する時点と拒否時の side-effect-free 条件を定義する。",
+      "[must] 既存 CLI `--spec` / `--out`、spec.md、tasks/*.md、internal view、approval task sync の各 retained behavior を `runSpecRender`、Markdown renderer、`renderSpecView`、`syncSpecTasksToFlow` と4 value object の owner mapping に従って維持する。"
+    ],
+    "resolvedByProjectRules": [
+      "[must] 外部依存を追加せず、Node.js 組み込み module のみを使用する。",
+      "[must] TaskId は task identity の文字種・長さ invariant、TaskCollection は collection size・ID uniqueness・parent existence invariant、TaskOutputPath は task output path confinement invariant、SpecRenderContext は selected-spec metadata binding invariant をそれぞれ専用 class で表現し、constructor で検証する。",
+      "[must] 同じ validation pattern が2箇所以上に現れる場合は共通 module に集約する。",
+      "[must] alpha policy に従い、不正な旧形式を受け入れる後方互換 bypass は追加しない。",
+      "[must] TaskId は ID 単体の invariant、TaskCollection は uniqueness/parent invariant、TaskOutputPath は task output confinement、SpecRenderContext は specified-spec metadata binding を所有し、render/view/sync entry は対応する owner の検証完了後に既存 behavior を実行する。",
+      "[must] source 変更後は flow が prescribed する `finalize-sync` を実行して成功を確認し、publish / dist-tag / release は実行しない。"
+    ],
+    "requiresUserJudgment": [
+      "なし。Issue #414 が public outcome を定義済みで、module/API 配置は既存 source と project rules を根拠に spec step で決められる。"
+    ],
+    "deferredToSpec": [
+      "[must] 4つの value object を配置する module と export surface を spec step で定義する。",
+      "[must] schema に `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` を表現し、runtime error message を spec step で定義する。",
+      "[must] TaskId/TaskCollection/TaskOutputPath/SpecRenderContext の valid/invalid unit cases と render/view/sync の success/rejection integration casesを配置する test file と fixture helper を spec step で定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] TaskId は schema/runtime の両方で `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` を検証し、separator、dot segment、drive/UNC prefix を文字集合の境界で拒否する。",
+      "[must] TaskCollection は task ID の一意性と parent の存在を collection 全体で検証し、重複と不明 parent を拒否する。",
+      "[must] TaskOutputPath は task Markdown の解決先が target spec の tasks directory 内に confinement されることを最初の write 前に検証する。",
+      "[must] SpecRenderContext は指定 spec と同居する metadata のみを読み、別 active flow の context を混入させない。",
+      "[must] CLI render、internal view、approval sync の全経路は raw task 値ではなく検証済み value object を使用する。",
+      "[must] いずれかの検証が失敗した場合、spec.md、tasks directory、task Markdown、flow state に副作用を残さない。",
+      "[must] `senti spec render` の `--spec` / `--out`、schema validation、deterministic spec/task Markdown、stdout、additive orphan-file behavior を新しい validation path 経由で維持する。",
+      "[must] internal view の optional missing-spec result、changed path list、prompt/approval/overview update からの利用を新しい validation path 経由で維持する。",
+      "[must] approval sync の append-only task addition、round assignment、parent/status/steps transcription、pending task promotion を新しい TaskCollection path 経由で維持する。",
+      "[must] 不正系の failure reproduction と既存正常系の regression test を実装前後で検証する。"
+    ],
+    "out": [
+      "[must] Issue #414 に記載されていない監査 finding は修正しない。",
+      "[must] task lifecycle、promotion、completion semantics は再設計しない。",
+      "[must] render 以外の一般 filesystem sandbox は導入しない。",
+      "[must] 外部依存を追加せず、npm publish、npm dist-tag、official release を実行しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` に一致する既存 task ID、root/child tree、spec render CLI、spec.md と tasks/*.md の内容を維持する。",
+    "[must] `--spec` で非 active spec を render した場合、metadata はその指定 spec に対応する値だけを表示する。",
+      "[must] approval sync は検証済み task だけを append し、既存 task の append-only behavior と promotion behavior を維持する。",
+      "[must] 以前 schema validation を通過した separator/traversal/absolute-path-equivalent/duplicate/unknown-parent task と別 active flow metadata fallback は意図的に除去し、新 contract で明示的に拒否する。",
+      "[must] retained CLI/view/sync surface ごとに behavior-level test を設け、registration や mock routing だけを parity evidence にしない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] Issue #414 の対象を、render-time の `TaskId`、`TaskCollection`、`TaskOutputPath`、`SpecRenderContext` と render/view/sync consumer の検証に限定し、task lifecycle semantics や他の監査 finding は変更しない方針でよいですか。",
+      "answer": "[must] 対象を4つの render-time value object と render/view/sync consumer に限定し、task lifecycle semantics と他 finding は変更しない。",
+      "evidence": "Issue #414 の Scope、Acceptance Criteria、Out Of Scope は対象4 source、4 value object、render/view/sync path、unrelated finding 除外を明記している。",
+      "why": "監査 finding F-007 / F-023 の root cause を1つの bounded concern として解消し、並行 campaign の変更を吸収しないため。",
+      "considered": "task lifecycle 全体の validation 再設計は Issue 外であり除外した。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "[must] TaskId の schema と runtime validation に `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` を適用し、path syntax を拒否しながら既存の有効な task ID を維持する必要がありますか。",
+      "answer": "[must] TaskId の schema と runtime validation に `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$` を適用し、ASCII 英数字で開始する1..100文字の ASCII 英数字・underscore・hyphen だけを許可する。これにより separator、dot segment、drive/UNC prefix を拒否し、既存 ID を維持する。",
+      "evidence": "Issue #414 の TaskId acceptance criterion と `src/flow/schemas/spec.schema.json` の現行 1..100 文字制約、および既存 task tests の `T-1` / `T-child-2` fixtures。",
+      "why": "schema-only または runtime-only validation では consumer 間で contract がずれ、raw ID が path に展開される root cause を残すため。",
+      "considered": "全 Unicode を許可して path 禁止値だけ個別除外する案は schema/runtime の一貫した検証と reviewability を弱めるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "[must] TaskCollection は task 配列内の記載順に依存せず forward parent reference を許可し、全 ID を収集した後に重複 ID と collection 外 parent を拒否する方針でよいですか。",
+      "answer": "[must] TaskCollection は配列順に依存せず、全 ID を収集した collection 全体で重複 ID と collection 外 parent を拒否する。",
+      "evidence": "Issue #414 は TaskCollection に ID uniqueness と parent existence の検証を要求し、project rule は専用 class constructor で invariant を強制する。",
+      "why": "parent が child より後に記載されるだけで拒否すると、parent existence ではなく serialization order を新しい制約にしてしまうため。",
+      "considered": "単一 pass で先行 ID だけを parent として許可する案は Issue にない順序制約を追加するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "[must] TaskOutputPath は task Markdown の出力先を target spec directory 内に限定し、対象外へ解決される入力を最初の write 前に拒否する必要がありますか。",
+      "answer": "[must] Task Markdown の解決先を target spec directory 内に限定し、対象外への path 解決は spec.md や tasks directory を含む最初の write 前に拒否する。",
+      "evidence": "Issue #414 の TaskOutputPath acceptance criterion と side-effect-free rejection criterion。現行 `render.js` / `render-spec-view.js` は raw `${task.id}.md` を write path に使用している。",
+      "why": "write 後の検出では対象外 file または部分更新が残り、path confinement と no-side-effect の両方を満たせないため。",
+      "considered": "task file write の直前に1件ずつ検証する案は、先行する spec.md や valid task file の部分更新を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "[must] 指定 spec に対応する metadata がない standalone render でも、別の active flow metadata を表示せず、指定 spec だけから得られる context で render する必要がありますか。",
+      "answer": "[must] target spec directory の flow.json が同じ spec.json を指す場合だけ featureBranch/issue を使用する。一致する colocated metadata がなければ featureBranch=`feature/<spec directory basename>`、input=`User request` とし、別 active flow state には fallback しない。",
+      "evidence": "Issue #414 の SpecRenderContext acceptance criterion。現行 `src/spec/commands/render.js` は `--spec` 指定時も `flowManager.load()` の featureBranch / issue を使用する。",
+      "why": "指定 spec と context の identity を同じ boundary で束縛しなければ、flow A の branch/Issue が spec B の generated view に混入するため。",
+      "considered": "active flow state を優先する既存 fallback は Issue が示す context mixing を維持するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "[must] render/view/sync は task collection、全 task output path、render context の検証を完了してから最初の file/state write を行い、拒否時の無変更を file snapshot と flow state snapshot で証明する方針でよいですか。",
+      "answer": "[must] render/view/sync は collection、全 task output path、context の検証完了後に最初の file/state write を行う。不正 ID、重複 ID、不明 parent、target 外 path、別 spec context の各 rejection case で、実行前後の spec.md、tasks directory、task Markdown、flow state が同一であることを test で証明する。",
+      "evidence": "Issue #414 は全 rejection path の no-side-effect と failure reproduction を要求し、現行 render/view は spec.md write 後に task path を処理する。",
+      "why": "全 validation を write boundary 前に集約しなければ、後続 task の不正で spec.md や先行 task file の部分更新が残るため。",
+      "considered": "各 write 直前の逐次 validation は部分更新を防げず、rollback は不要な複雑性を追加するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T14:01:01.553Z",
+    "notes": "Issue #414 の明示要件と parent-preapproved routine choices に基づく。"
+  }
+}

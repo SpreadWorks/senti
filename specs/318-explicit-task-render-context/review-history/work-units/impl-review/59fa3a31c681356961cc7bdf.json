@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-explicit-task-render-context/plugin-artifacts/workflow/prepare.json",
+      "specs/318-explicit-task-render-context/review-history/draft-coverage-attempt-001.json",
+      "specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json",
+      "specs/318-explicit-task-render-context/review-history/impl-attempt-001.json",
+      "specs/318-explicit-task-render-context/review-history/impl-attempt-001.md",
+      "specs/318-explicit-task-render-context/review.md"
+    ],
+    "inputHash": "235ba2d894ca2e4c4d84066c3d7b09d652fe441eec31626b85ee9810c4225768",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/318-explicit-task-render-context/plugin-artifacts/workflow/prepare.json",
+    "specs/318-explicit-task-render-context/review-history/draft-coverage-attempt-001.json",
+    "specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json",
+    "specs/318-explicit-task-render-context/review-history/impl-attempt-001.json",
+    "specs/318-explicit-task-render-context/review-history/impl-attempt-001.md",
+    "specs/318-explicit-task-render-context/review.md"
+  ],
+  "inputHash": "235ba2d894ca2e4c4d84066c3d7b09d652fe441eec31626b85ee9810c4225768",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T20:19:00.741Z",
+  "finishedAt": "2026-07-18T20:19:00.741Z",
+  "rawResponse": "### 1. Deduplicate Repeated Improvement Entries\n**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.json`\n**Requirement:** R8\n**Issue:** `nonBlockingImprovements` and `findings` contain duplicated proposals, including identical repeated entries for completion overrides, draft gate source, draft review questions, and several broader summaries. This inflates the artifact from 42 findings while many are repeats.\n**Suggestion:** Store each unique finding once, keyed by stable `id`, and remove duplicate entries from both arrays. If repeated grouping is needed, add a separate summary/grouping field that references finding IDs.\n\n### 2. Avoid Duplicating Rendered Proposal Text Across Fields\n**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.json`\n**Requirement:** R8\n**Issue:** Each `nonBlockingImprovements[]` entry stores the full proposal text twice, once in `issue` and again in `suggestion`, and both fields include nested `**File:**`, `**Requirement:**`, `**Issue:**`, and `**Suggestion:**` markdown. This duplicates data and makes the JSON harder to consume.\n**Suggestion:** Split the data into structured fields: `file`, `requirementId`, `issue`, and `suggestion`, where `issue` contains only the issue description and `suggestion` contains only the suggested change.\n\n### 3. Remove Out-Of-Scope Finding Payloads From Attempt Artifact\n**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.json`\n**Requirement:** R8\n**Issue:** The review artifact includes proposals for files that are not present in this diff, such as `src/flow/lib/render-spec-view.js`, `src/spec/lib/render-contract.js`, and `specs/318-explicit-task-render-context/spec.json`. That conflicts with the scoped review contract represented by this change set.\n**Suggestion:** Filter `nonBlockingImprovements` and `findings` to only reference files present in this diff, or move historical out-of-scope findings to a separate archived source artifact.\n\n### 4. Fix Duplicated Markdown Rendering\n**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.md`\n**Requirement:** R8\n**Issue:** Each rendered improvement repeats the same `File`, `Requirement`, `Issue`, and `Suggestion` content inside both the `Issue` and `Suggestion` sections, making the markdown noisy and difficult to review.\n**Suggestion:** Render each finding once with clean fields: title, failure mode, file, requirement, issue description, suggestion, and rationale. Do not embed preformatted proposal markdown inside those fields.\n\n### 5. Normalize Nested Numbering In Headings\n**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.md`\n**Requirement:** R8\n**Issue:** Headings like `### 1. 1. Factor repeated manual-review rationale into shared fields` duplicate numbering from both the markdown renderer and the stored title.\n**Suggestion:** Remove numeric prefixes from stored finding titles or strip them during markdown rendering so headings render as `### 1. Factor repeated manual-review rationale into shared fields`.\n\n### 6. Consolidate Duplicate Draft Question Findings\n**File:** `specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json`\n**Requirement:** R8\n**Issue:** The same five findings are represented in both `repairTargets` and `findings`, with duplicated title/body/category metadata.\n**Suggestion:** Keep one canonical `findings` array and make `repairTargets` reference finding IDs plus target IDs, or remove `repairTargets` if it is only a filtered duplicate view.\n\n### 7. Remove Redundant Top-Level Issue Number\n**File:** `specs/318-explicit-task-render-context/plugin-artifacts/workflow/prepare.json`\n**Requirement:** R8\n**Issue:** The file stores issue `414` twice: top-level `issue` and `result.issueNumber`. These can drift if the artifact is edited manually.\n**Suggestion:** Keep only `result.issueNumber`, or make the top-level `issue` a generated projection rather than persisted duplicated state.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Deduplicate Repeated Improvement Entries",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.json`\n**Requirement:** R8\n**Issue:** `nonBlockingImprovements` and `findings` contain duplicated proposals, including identical repeated entries for completion overrides, draft gate source, draft review questions, and several broader summaries. This inflates the artifact from 42 findings while many are repeats.\n**Suggestion:** Store each unique finding once, keyed by stable `id`, and remove duplicate entries from both arrays. If repeated grouping is needed, add a separate summary/grouping field that references finding IDs.",
+        "file": "specs/318-explicit-task-render-context/review-history/impl-attempt-001.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Avoid Duplicating Rendered Proposal Text Across Fields",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.json`\n**Requirement:** R8\n**Issue:** Each `nonBlockingImprovements[]` entry stores the full proposal text twice, once in `issue` and again in `suggestion`, and both fields include nested `**File:**`, `**Requirement:**`, `**Issue:**`, and `**Suggestion:**` markdown. This duplicates data and makes the JSON harder to consume.\n**Suggestion:** Split the data into structured fields: `file`, `requirementId`, `issue`, and `suggestion`, where `issue` contains only the issue description and `suggestion` contains only the suggested change.",
+        "file": "specs/318-explicit-task-render-context/review-history/impl-attempt-001.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Remove Out-Of-Scope Finding Payloads From Attempt Artifact",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.json`\n**Requirement:** R8\n**Issue:** The review artifact includes proposals for files that are not present in this diff, such as `src/flow/lib/render-spec-view.js`, `src/spec/lib/render-contract.js`, and `specs/318-explicit-task-render-context/spec.json`. That conflicts with the scoped review contract represented by this change set.\n**Suggestion:** Filter `nonBlockingImprovements` and `findings` to only reference files present in this diff, or move historical out-of-scope findings to a separate archived source artifact.",
+        "file": "specs/318-explicit-task-render-context/review-history/impl-attempt-001.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Fix Duplicated Markdown Rendering",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.md`\n**Requirement:** R8\n**Issue:** Each rendered improvement repeats the same `File`, `Requirement`, `Issue`, and `Suggestion` content inside both the `Issue` and `Suggestion` sections, making the markdown noisy and difficult to review.\n**Suggestion:** Render each finding once with clean fields: title, failure mode, file, requirement, issue description, suggestion, and rationale. Do not embed preformatted proposal markdown inside those fields.",
+        "file": "specs/318-explicit-task-render-context/review-history/impl-attempt-001.md",
+        "requirementId": "R8"
+      },
+      {
+        "title": "5. Normalize Nested Numbering In Headings",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/impl-attempt-001.md`\n**Requirement:** R8\n**Issue:** Headings like `### 1. 1. Factor repeated manual-review rationale into shared fields` duplicate numbering from both the markdown renderer and the stored title.\n**Suggestion:** Remove numeric prefixes from stored finding titles or strip them during markdown rendering so headings render as `### 1. Factor repeated manual-review rationale into shared fields`.",
+        "file": "specs/318-explicit-task-render-context/review-history/impl-attempt-001.md",
+        "requirementId": "R8"
+      },
+      {
+        "title": "6. Consolidate Duplicate Draft Question Findings",
+        "body": "**File:** `specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json`\n**Requirement:** R8\n**Issue:** The same five findings are represented in both `repairTargets` and `findings`, with duplicated title/body/category metadata.\n**Suggestion:** Keep one canonical `findings` array and make `repairTargets` reference finding IDs plus target IDs, or remove `repairTargets` if it is only a filtered duplicate view.",
+        "file": "specs/318-explicit-task-render-context/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "7. Remove Redundant Top-Level Issue Number",
+        "body": "**File:** `specs/318-explicit-task-render-context/plugin-artifacts/workflow/prepare.json`\n**Requirement:** R8\n**Issue:** The file stores issue `414` twice: top-level `issue` and `result.issueNumber`. These can drift if the artifact is edited manually.\n**Suggestion:** Keep only `result.issueNumber`, or make the top-level `issue` a generated projection rather than persisted duplicated state.",
+        "file": "specs/318-explicit-task-render-context/plugin-artifacts/workflow/prepare.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

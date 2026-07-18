@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-18T16:39:40.175Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 0,
+    "total": 4
+  },
+  "coverageArtifact": "specs/318-explicit-task-render-context/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 pre-allocation contract is not exercised",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js:167",
+      "issue": "The R2 test only asserts that 201 tasks are rejected. It does not verify the required ordering that TaskCollection rejects the over-200 collection before reading or constructing per-task TaskId/lookup state.",
+      "requiredChange": "Add a spec-local R2 assertion using observable task objects/proxies or an equivalent hook so the 201-task rejection is proven to occur before any per-task id/parent validation or lookup allocation work.",
+      "whyBlocking": "R2 explicitly requires rejection before per-task state allocation, and the current coverage would pass for an implementation that validates or allocates all 201 entries before throwing.",
+      "origin": "R2",
+      "failureKind": "missing-regression-test"
+    },
+    {
+      "kind": "blocking",
+      "title": "R2/R3 linear-complexity constraints lack regression coverage",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+      "issue": "The tests do not exercise the required two linear passes/O(n) auxiliary behavior for TaskCollection or the no recursive/pairwise collection scan requirement for render planning. The current assertions would pass with nested scans on the 200-task maximum.",
+      "requiredChange": "Add bounded instrumentation that counts task/id/parent accesses during TaskCollection construction and render-plan construction at representative sizes, failing on superlinear or repeated pairwise access patterns.",
+      "whyBlocking": "The acceptance requirements include algorithmic constraints intended to prevent unsafe scaling/path behavior, but no current test would catch a pairwise implementation.",
+      "origin": "R2/R3",
+      "failureKind": "missing-regression-test"
+    },
+    {
+      "kind": "blocking",
+      "title": "TaskId UNC-style rejection is not directly covered",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js:135",
+      "issue": "R1 requires both the schema and TaskId constructor to reject UNC-style inputs. The schema invalid cases include `\\\\server\\share`, but the TaskId invalid constructor cases do not.",
+      "requiredChange": "Add `\\\\server\\share` to the TaskId constructor rejection cases.",
+      "whyBlocking": "The coverage artifact marks R1 covered for both schema and TaskId, but one explicitly named invalid input class is only tested against the schema.",
+      "origin": "R1",
+      "failureKind": "coverage-artifact-contradiction"
+    },
+    {
+      "kind": "blocking",
+      "title": "renderSpecView rejection preservation is under-covered",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js:585",
+      "issue": "R5 requires renderSpecView rejections from R1-R4 validation to leave generated files and task directories unchanged, but the internal-view rejection test only covers duplicate IDs. Invalid IDs, unknown parents, and over-limit collections are not exercised through renderSpecView with before/after snapshots.",
+      "requiredChange": "Extend the internal renderSpecView rejection coverage to include invalid ID, unknown parent, and over-200 task fixtures with byte-for-byte snapshots of existing spec/task/orphan files and task directory entries.",
+      "whyBlocking": "R5 names renderSpecView separately from the CLI, and the current tests would pass if renderSpecView only preserved files for duplicate IDs while mutating on other invalid collection classes.",
+      "origin": "R5",
+      "failureKind": "missing-regression-test"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/318-explicit-task-render-context/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "9da9ec4aa345c022d389dafec8244a598939e9b780a76b5c0be35ddf8606ed7d"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "test-006-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "R2 pre-allocation contract is not exercised",
+      "body": "The R2 test only asserts that 201 tasks are rejected. It does not verify the required ordering that TaskCollection rejects the over-200 collection before reading or constructing per-task TaskId/lookup state.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "R2/R3 linear-complexity constraints lack regression coverage",
+      "body": "The tests do not exercise the required two linear passes/O(n) auxiliary behavior for TaskCollection or the no recursive/pairwise collection scan requirement for render planning. The current assertions would pass with nested scans on the 200-task maximum.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "TaskId UNC-style rejection is not directly covered",
+      "body": "R1 requires both the schema and TaskId constructor to reject UNC-style inputs. The schema invalid cases include `\\\\server\\share`, but the TaskId invalid constructor cases do not.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "renderSpecView rejection preservation is under-covered",
+      "body": "R5 requires renderSpecView rejections from R1-R4 validation to leave generated files and task directories unchanged, but the internal-view rejection test only covers duplicate IDs. Invalid IDs, unknown parents, and over-limit collections are not exercised through renderSpecView with before/after snapshots.",
+      "category": "unknown"
+    }
+  ]
+}

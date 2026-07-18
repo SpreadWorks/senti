@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-18T16:06:55.117Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/318-explicit-task-render-context/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Schema-side TaskId rejection coverage is incomplete",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js R1 test",
+      "issue": "The R1 test checks the exact pattern string and one invalid parent value through validateSchema, but it does not exercise schema rejection for tasks[].id and non-null tasks[].parent across the required invalid classes: empty, over-100-character, slash, backslash, dot-segment, drive-prefix, UNC-style, whitespace, and non-ASCII.",
+      "requiredChange": "Add spec-local schema validation assertions for both tasks[].id and non-null tasks[].parent covering the required invalid identity classes, while keeping the existing TaskId constructor parity checks.",
+      "whyBlocking": "R1 explicitly requires both the schema and TaskId constructor to reject the full invalid set; the current schema test could pass with most schema-side invalid cases untested.",
+      "origin": "R1",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 planning-order and cardinality behavior is not exercised through production entry points",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js R3 tests",
+      "issue": "The production CLI test only asserts the final task files and bytes. It would still pass if runSpecRender created directories or wrote files before completing all TaskOutputPath planning, constructed extra TaskOutputPath values, produced more than n markdown bodies or write-plan entries transiently, or used recursive/pairwise scans. The internal renderSpecView entry point is not covered for the R3 planning contract.",
+      "requiredChange": "Add production-entry coverage that observes planning-before-write behavior and cardinality for runSpecRender and renderSpecView, such as instrumenting fs side effects and exported contract constructors/renderers so the test fails if any directory creation or write occurs before exactly n confined task paths are planned.",
+      "whyBlocking": "R3 is primarily about pre-side-effect planning, cardinality, and algorithm shape; the current final-file assertions can pass without exercising that production behavior.",
+      "origin": "R3",
+      "failureKind": "static-anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "SpecRenderContext title and creation-date derivation is not covered at the owning contract",
+      "target": "specs/318-explicit-task-render-context/tests/render-contract.test.js R4 test",
+      "issue": "The R4 test verifies colocated flow metadata selection and fallback feature/input values, but it does not assert that SpecRenderContext itself derives the title and creation date from the selected spec.json.",
+      "requiredChange": "Extend the R4 SpecRenderContext test to assert toRenderMeta().title and toRenderMeta().created are derived from the selected spec.json path/stat data, including in the absent or mismatched metadata cases.",
+      "whyBlocking": "R4 specifically requires SpecRenderContext to derive title and creation date from the selected spec.json; without direct assertions, that acceptance requirement has no corresponding spec-local coverage at the target API.",
+      "origin": "R4",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/318-explicit-task-render-context/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "d688605361d4f56e7a810d178826ce96e95aecc26009432f05b4a923fe87850e"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Schema-side TaskId rejection coverage is incomplete",
+      "body": "The R1 test checks the exact pattern string and one invalid parent value through validateSchema, but it does not exercise schema rejection for tasks[].id and non-null tasks[].parent across the required invalid classes: empty, over-100-character, slash, backslash, dot-segment, drive-prefix, UNC-style, whitespace, and non-ASCII.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R3 planning-order and cardinality behavior is not exercised through production entry points",
+      "body": "The production CLI test only asserts the final task files and bytes. It would still pass if runSpecRender created directories or wrote files before completing all TaskOutputPath planning, constructed extra TaskOutputPath values, produced more than n markdown bodies or write-plan entries transiently, or used recursive/pairwise scans. The internal renderSpecView entry point is not covered for the R3 planning contract.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "SpecRenderContext title and creation-date derivation is not covered at the owning contract",
+      "body": "The R4 test verifies colocated flow metadata selection and fallback feature/input values, but it does not assert that SpecRenderContext itself derives the title and creation date from the selected spec.json.",
+      "category": "unknown"
+    }
+  ]
+}

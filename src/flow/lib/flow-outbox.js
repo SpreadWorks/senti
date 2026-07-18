@@ -56,6 +56,33 @@ export class FlowOutboxIdentity {
   }
 }
 
+export class FlowOutboxRecoveryReceipt {
+  constructor({ idempotencyKey, attempt, failure }) {
+    this.idempotencyKey = requireString(idempotencyKey, "exact recovery receipt idempotencyKey");
+    if (!Number.isSafeInteger(attempt) || attempt < 1) {
+      throw new Error("exact recovery receipt attempt must be a positive integer");
+    }
+    this.attempt = attempt;
+    this.failure = requireString(failure, "exact recovery receipt failure");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      idempotencyKey: this.idempotencyKey,
+      attempt: this.attempt,
+      failure: this.failure,
+    };
+  }
+
+  static fromStored(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("stored exact recovery receipt must be an object");
+    }
+    return new FlowOutboxRecoveryReceipt(value);
+  }
+}
+
 export class FlowOutboxEntry {
   constructor({
     identity,
@@ -65,6 +92,7 @@ export class FlowOutboxEntry {
     updatedAt,
     result = null,
     failure = null,
+    exactRecoveryReceipt = null,
   }) {
     if (!(identity instanceof FlowOutboxIdentity)) throw new Error("outbox identity is required");
     if (!OUTBOX_STATUSES.has(status)) throw new Error(`invalid outbox status: ${status}`);
@@ -76,6 +104,9 @@ export class FlowOutboxEntry {
     }
     if (status === "done" && failure != null) throw new Error("done outbox entry cannot retain a failure");
     if (status === "failed") requireString(failure, "outbox failure");
+    if (exactRecoveryReceipt != null && !(exactRecoveryReceipt instanceof FlowOutboxRecoveryReceipt)) {
+      throw new Error("outbox exact recovery receipt must be a FlowOutboxRecoveryReceipt");
+    }
     this.identity = identity;
     this.status = status;
     this.attempt = attempt;
@@ -83,6 +114,7 @@ export class FlowOutboxEntry {
     this.updatedAt = updatedAt;
     this.result = cloneJson(result);
     this.failure = failure;
+    this.exactRecoveryReceipt = exactRecoveryReceipt;
     Object.freeze(this);
   }
 
@@ -98,6 +130,7 @@ export class FlowOutboxEntry {
       attempt: this.attempt + 1,
       startedAt: requireTimestamp(at, "outbox retry timestamp"),
       updatedAt: at,
+      exactRecoveryReceipt: this.exactRecoveryReceipt,
     });
   }
 
@@ -113,6 +146,7 @@ export class FlowOutboxEntry {
       attempt: this.attempt,
       startedAt: this.startedAt,
       updatedAt,
+      exactRecoveryReceipt: this.exactRecoveryReceipt,
     });
   }
 
@@ -126,6 +160,7 @@ export class FlowOutboxEntry {
       startedAt: this.startedAt,
       updatedAt: requireTimestamp(at, "outbox completion timestamp"),
       result,
+      exactRecoveryReceipt: this.exactRecoveryReceipt,
     });
   }
 
@@ -139,6 +174,7 @@ export class FlowOutboxEntry {
       startedAt: this.startedAt,
       updatedAt: requireTimestamp(at, "outbox failure timestamp"),
       failure: message,
+      exactRecoveryReceipt: this.exactRecoveryReceipt,
     });
   }
 
@@ -151,6 +187,7 @@ export class FlowOutboxEntry {
       updatedAt: this.updatedAt,
       ...(this.status === "done" ? { result: cloneJson(this.result) } : {}),
       ...(this.status === "failed" ? { failure: this.failure } : {}),
+      ...(this.exactRecoveryReceipt ? { exactRecoveryReceipt: this.exactRecoveryReceipt.toJSON() } : {}),
     };
   }
 
@@ -161,6 +198,45 @@ export class FlowOutboxEntry {
     return new FlowOutboxEntry({
       ...value,
       identity: FlowOutboxIdentity.fromStored(value),
+      exactRecoveryReceipt: value.exactRecoveryReceipt == null
+        ? null
+        : FlowOutboxRecoveryReceipt.fromStored(value.exactRecoveryReceipt),
+    });
+  }
+}
+
+export class FlowOutboxRecoveryClaim {
+  constructor({ identity, attempt, failure }) {
+    if (!(identity instanceof FlowOutboxIdentity)) throw new Error("exact recovery identity is required");
+    if (!Number.isSafeInteger(attempt) || attempt < 1) {
+      throw new Error("exact recovery attempt must be a positive integer");
+    }
+    this.identity = identity;
+    this.attempt = attempt;
+    this.failure = requireString(failure, "exact recovery failure");
+    Object.freeze(this);
+  }
+
+  reopen(entry, at) {
+    if (!(entry instanceof FlowOutboxEntry) || !entry.identity.equals(this.identity)) {
+      throw new Error("exact recovery target does not match the outbox entry");
+    }
+    if (entry.status !== "failed") throw new Error("exact recovery requires a failed outbox entry");
+    if (entry.exactRecoveryReceipt) throw new Error("exact recovery was already consumed for this outbox entry");
+    if (entry.attempt !== this.attempt) throw new Error("exact recovery attempt does not match the outbox entry");
+    if (entry.failure !== this.failure) throw new Error("exact recovery failure does not match the outbox entry");
+    const updatedAt = requireTimestamp(at, "exact recovery timestamp");
+    return new FlowOutboxEntry({
+      identity: entry.identity,
+      status: "pending",
+      attempt: entry.attempt,
+      startedAt: entry.startedAt,
+      updatedAt,
+      exactRecoveryReceipt: new FlowOutboxRecoveryReceipt({
+        idempotencyKey: this.identity.idempotencyKey,
+        attempt: this.attempt,
+        failure: this.failure,
+      }),
     });
   }
 }
@@ -223,6 +299,15 @@ export class FlowOutbox {
     return next;
   }
 
+  reopenFailedExact(claim, at = new Date().toISOString()) {
+    if (!(claim instanceof FlowOutboxRecoveryClaim)) throw new Error("exact recovery claim is required");
+    const current = this.find(claim.identity);
+    if (!current) throw new Error("exact recovery target was not found in the outbox");
+    const next = claim.reopen(current, at);
+    this.#replace(next);
+    return next;
+  }
+
   merge(entry) {
     if (!(entry instanceof FlowOutboxEntry)) throw new Error("outbox entry is required");
     const current = this.find(entry.identity);
@@ -269,6 +354,10 @@ export class FlowOutboxStore {
 
   touch(identity) {
     return this.#mutate((outbox) => outbox.touch(identity));
+  }
+
+  reopenFailedExact(claim) {
+    return this.#mutate((outbox) => outbox.reopenFailedExact(claim));
   }
 
   #mutate(operation) {

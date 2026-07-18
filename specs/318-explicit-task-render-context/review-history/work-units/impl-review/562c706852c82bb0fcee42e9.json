@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-explicit-task-render-context/test-result-review.md",
+      "specs/318-explicit-task-render-context/test-review.json",
+      "specs/318-explicit-task-render-context/test-review.md",
+      "specs/318-explicit-task-render-context/tests/.raw/scenario-validity.log",
+      "specs/318-explicit-task-render-context/tests/.raw/test-execution.log"
+    ],
+    "inputHash": "31bb8ad9a0b5b9c83b7a4ea03230b490183a3a4b76c4451ce93d6e7b7d90db23",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "specs/318-explicit-task-render-context/test-result-review.md",
+    "specs/318-explicit-task-render-context/test-review.json",
+    "specs/318-explicit-task-render-context/test-review.md",
+    "specs/318-explicit-task-render-context/tests/.raw/scenario-validity.log",
+    "specs/318-explicit-task-render-context/tests/.raw/test-execution.log"
+  ],
+  "inputHash": "31bb8ad9a0b5b9c83b7a4ea03230b490183a3a4b76c4451ce93d6e7b7d90db23",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-18T20:21:23.909Z",
+  "finishedAt": "2026-07-18T20:21:23.909Z",
+  "rawResponse": "### 1. Remove Stale Failing Raw Log\n**File:** `specs/318-explicit-task-render-context/tests/.raw/scenario-validity.log`  \n**Requirement:** R1  \n**Issue:** This added raw log records 18 failing tests from a different worktree path (`issue-414-scenario-baseline-replay-r2`), while the reviewed test artifacts report `PASS`. Keeping a stale failure transcript alongside the passing execution log creates contradictory evidence and looks like dead/generated residue.  \n**Suggestion:** Delete `scenario-validity.log` from this change set unless it is explicitly consumed by the review pipeline. If it must remain, regenerate it from the current worktree so it matches the passing test state.\n\n### 2. Avoid Duplicating Test Review State Across Markdown And JSON\n**File:** `specs/318-explicit-task-render-context/test-review.md`  \n**Requirement:** R8  \n**Issue:** `test-review.md` repeats the same verdict, coverage artifact, and empty findings already represented structurally in `test-review.json`. This creates duplicate review state that can drift.  \n**Suggestion:** Prefer the JSON artifact as the source of truth and either omit this Markdown mirror or generate it mechanically from `test-review.json` during the pipeline.\n\n### 3. Add Missing Final Newline\n**File:** `specs/318-explicit-task-render-context/test-review.md`  \n**Requirement:** R8  \n**Issue:** The file is added without a trailing newline, which is inconsistent with normal text artifact formatting and can cause noisy future diffs.  \n**Suggestion:** Add a final newline at EOF.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Stale Failing Raw Log",
+        "body": "**File:** `specs/318-explicit-task-render-context/tests/.raw/scenario-validity.log`  \n**Requirement:** R1  \n**Issue:** This added raw log records 18 failing tests from a different worktree path (`issue-414-scenario-baseline-replay-r2`), while the reviewed test artifacts report `PASS`. Keeping a stale failure transcript alongside the passing execution log creates contradictory evidence and looks like dead/generated residue.  \n**Suggestion:** Delete `scenario-validity.log` from this change set unless it is explicitly consumed by the review pipeline. If it must remain, regenerate it from the current worktree so it matches the passing test state.",
+        "file": "specs/318-explicit-task-render-context/tests/.raw/scenario-validity.log",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Avoid Duplicating Test Review State Across Markdown And JSON",
+        "body": "**File:** `specs/318-explicit-task-render-context/test-review.md`  \n**Requirement:** R8  \n**Issue:** `test-review.md` repeats the same verdict, coverage artifact, and empty findings already represented structurally in `test-review.json`. This creates duplicate review state that can drift.  \n**Suggestion:** Prefer the JSON artifact as the source of truth and either omit this Markdown mirror or generate it mechanically from `test-review.json` during the pipeline.",
+        "file": "specs/318-explicit-task-render-context/test-review.md",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Add Missing Final Newline",
+        "body": "**File:** `specs/318-explicit-task-render-context/test-review.md`  \n**Requirement:** R8  \n**Issue:** The file is added without a trailing newline, which is inconsistent with normal text artifact formatting and can cause noisy future diffs.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/318-explicit-task-render-context/test-review.md",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

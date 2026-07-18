@@ -1,0 +1,135 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/318-explicit-task-render-context/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+  "process": {
+    "started": false,
+    "exitCode": null,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "block",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "test_name": "R1: TaskId and schema enforce the same exact identity grammar",
+        "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "test_name": "R2: TaskCollection owns size, uniqueness, and complete parent validation",
+        "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "test_name": "R3: TaskOutputPath produces exactly one confined path per validated task",
+        "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "test_name": "R4: SpecRenderContext accepts exact colocated metadata and otherwise uses selected-spec defaults",
+        "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "test_name": "R5: CLI render rejects the complete invalid collection before every output write",
+        "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "test_name": "R6: approval sync rejects unknown parents before changing flow.json bytes",
+        "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "test_name": "R7: valid explicit render preserves deterministic bytes without ambient flow metadata",
+        "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "test_name": "R8: internal view rejection preserves existing generated and orphan files byte-for-byte",
+        "command": "node --test specs/318-explicit-task-render-context/tests/render-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    }
+  ],
+  "preflight": {
+    "invalid_paths": [
+      "src/flow/lib/get-prompt.js",
+      "src/flow/lib/render-spec-view.js",
+      "src/flow/lib/run-update-overview.js",
+      "src/flow/lib/set-approval.js",
+      "src/flow/lib/sync-spec-tasks.js",
+      "src/flow/schemas/spec.schema.json",
+      "src/lib/schema-validate.js",
+      "src/spec/commands/render.js",
+      "src/spec/lib/render-contract.js",
+      "tests/helpers/render-artifact-snapshot.js",
+      "tests/unit/flow/run-update-overview.test.js",
+      "tests/unit/flow/set-approval.test.js"
+    ]
+  }
+}
