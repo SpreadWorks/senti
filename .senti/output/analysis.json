@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-18T10:21:27.391Z",
+  "analyzedAt": "2026-07-18T11:10:15.239Z",
   "package": {
     "entries": [
       {
@@ -2646,9 +2646,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "da660a3ad23a99de8e42cd25267c31c4",
-        "lines": 3703,
-        "mtime": "2026-06-19T03:34:14.327Z",
+        "hash": "3760fa0b9daf5f3f09bdc3fe29f0cd0f",
+        "lines": 3805,
+        "mtime": "2026-07-18T11:09:51.670Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2669,11 +2669,15 @@
           "parseProposals",
           "formatCodebaseContextForPrompt",
           "extractProposalFile",
+          "extractProposalRequirementId",
           "collectTouchedFiles",
           "prepareLoopReviewInputsWithExclusions",
           "filterProposalsByScope",
           "writeReviewMd",
           "formatReviewMd",
+          "normalizeImplReviewRequirementIds",
+          "buildImplReviewResponseSchema",
+          "buildImplReviewFmtFallback",
           "normalizeReviewPath",
           "truncateReviewMemoryText",
           "parseImplReviewJsonOutput",
@@ -2694,6 +2698,10 @@
           "buildPerFileReviewInput",
           "buildCrossCheckInput",
           "buildCrossCheckSystemPrompt",
+          "implLoopRequirementRules",
+          "buildImplLoopReviewSystemPrompt",
+          "buildImplLoopCrossCheckSystemPrompt",
+          "parseImplLoopProposals",
           "expandProposalsToGroup",
           "invertFileMap",
           "collectPerFileDiffs",
@@ -2709,6 +2717,7 @@
           "toolingFailureResult",
           "executeWorkUnit",
           "runLoopReviewWithDependencies",
+          "requireImplLoopRequirementId",
           "loopProposalsToImplReviewJson",
           "runSingleShotImplReviewWithDependencies",
           "runNonImplReviewWithDependencies",
@@ -2879,29 +2888,32 @@
           "runSingleShotImplReviewWithDependencies",
           "runNonImplReviewWithDependencies",
           "loopProposalsToImplReviewJson",
+          "parseImplLoopProposals",
+          "classifyReviewCommandError",
           "LOOP_REVIEW_THRESHOLD",
           "MAX_LOOP_CALLS"
         ],
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command and its full review pipeline across implementation, test, spec, and draft phases. It combines git diff collection, AI prompting, schema validation, retry loops, and artifact persistence.",
-        "detail": "The module gathers review inputs from specs, requirement maps, touched files, and git diffs, then scopes analysis with exclusion rules and merge-base resolution. It builds specialized prompts for multiple review phases, including large-diff loop review, test coverage review, specification review, and draft QA or coverage review. AI responses are parsed through strict schemas with repair fallbacks, then filtered against touched files and requirement IDs to reduce irrelevant findings. Results are written as Markdown and JSON artifacts, with history snapshots, tooling-failure handling, and retry logic for unstable outputs.",
+        "summary": "Implements the `flow review` command and the full review pipeline for spec, draft, implementation, and test phases. It builds prompts, scopes diffs, validates AI output, and writes review artifacts back into the spec directory.",
+        "detail": "This module acts as the main review command entry point, combining CLI parsing, agent resolution, git diff collection, and phase dispatch in one place. It contains phase-specific review flows for implementation, test, spec, and draft review, with custom prompt builders, JSON schema validation, repair parsing, and markdown/JSON artifact formatting. The implementation review path is especially elaborate, supporting looped chunk review, requirement-to-file mapping, touched-file filtering, prior review memory, and failure-mode normalization. It also persists review history, writes structured artifacts such as `impl-review.json`, `review.md`, and `test-review.json`, and enforces repository-safe path handling for generated fixes.",
         "chapter": "cli_commands",
-        "role": "Multi-phase flow review orchestrator",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-06-19T03:35:18.335Z",
+          "processedAt": "2026-07-18T11:10:43.878Z",
           "attempts": 1
         },
         "keywords": [
-          "code review",
-          "flow review",
-          "git diff analysis",
-          "AI prompt orchestration",
-          "schema validation",
-          "review artifacts",
-          "retry loop",
-          "test coverage review"
+          "flow review command",
+          "code review pipeline",
+          "implementation review",
+          "spec review",
+          "test review",
+          "prompt builder",
+          "artifact generation",
+          "diff analysis",
+          "schema validation"
         ]
       },
       {
@@ -5285,9 +5297,9 @@
       },
       {
         "file": "src/flow/lib/review-failure.js",
-        "hash": "df03d77b5a7bc39ae8fde22043725fcb",
-        "lines": 337,
-        "mtime": "2026-06-09T08:02:50.454Z",
+        "hash": "60fc7b6ba93445ccd398a4aa645a1ced",
+        "lines": 405,
+        "mtime": "2026-07-18T11:09:51.670Z",
         "className": "review-failure",
         "methods": [
           "reviewPhaseForStepId",
@@ -5321,23 +5333,23 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "fcf92359",
-        "enrich": {
-          "processedAt": "2026-06-09T17:08:05.013Z",
-          "attempts": 2
-        },
-        "summary": "Models review failures, classifies their causes, and produces retry or stop guidance for review steps. It supports explicit failure markers as well as heuristic classification of subprocess and provider errors.",
-        "detail": "The module defines a fixed classification set and a mapping from step IDs to review phases so failures can be interpreted consistently across the flow. It normalizes free-form reasons, builds retry commands, and distinguishes conditions such as input-size failures, provider outages, and generic subprocess problems. A `ReviewFailure` class encapsulates validation, serialization, marker generation, and policy decisions like whether a failure is retriable. Helper functions also write, clear, and render persisted stop state, allowing the next-action system to surface structured recovery instructions instead of raw stderr.",
+        "summary": "Defines structured review failure handling, including classifications, retry commands, marker serialization, and stop-state helpers. It standardizes how review errors are represented and recovered across phases.",
+        "detail": "This file centralizes review failure semantics in a `ReviewFailure` model with fixed classifications such as schema, provider, input-size, and subprocess failures. It maps flow step IDs to review phases, derives retry and reset recovery commands, and includes heuristics to classify raw error text into actionable failure types. The module also supports emitting and parsing machine-readable failure markers so subprocess-based review runs can pass structured failure information through stdout or stderr. Additional helpers manage persisted stop state and produce user-facing recovery views for next actions and retry guidance.",
         "chapter": "internal_design",
-        "role": "Failure classification and stop-state model for review phases.",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-18T11:10:43.878Z",
+          "attempts": 1
+        },
         "keywords": [
           "review failure",
-          "failure classification",
-          "retry command",
+          "error classification",
+          "retry recovery",
+          "failure marker",
           "stop state",
           "provider error",
-          "input size limit",
-          "review marker",
-          "subprocess failure"
+          "schema failure",
+          "input size limit"
         ]
       },
       {
@@ -6667,9 +6679,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "ea26ead7132925fe48f0bc31ca15b527",
-        "lines": 816,
-        "mtime": "2026-07-17T05:52:33.663Z",
+        "hash": "f7326145b3b542858ec76a1b1c1b3c83",
+        "lines": 835,
+        "mtime": "2026-07-18T11:09:51.671Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -6758,22 +6770,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Runs automated review phases for draft, spec, test, and implementation stages. It tracks verdicts, retries subprocess execution, and feeds recovery logic back into the flow state.",
-        "detail": "The module maps review phases to flow nodes, artifact names, retry counters, and next-step routing rules, including special draft review routes. It parses subprocess stdout and stderr for structured verdicts, counts, and JSON artifact paths, then normalizes implementation review results into a consistent shape. Retry management combines configured max-attempt resolution, tooling-level subprocess retries, recovery baselines, and deferred outcomes when failures should pause instead of abort immediately. It also classifies structured mechanical findings such as coverage failures, persists source finding IDs, records attempts in flow history, and can reset downstream implementation evidence after proposal-driven review outcomes.",
-        "chapter": "cli_commands",
-        "role": "controller",
+        "summary": "Orchestrates execution of review subprocesses inside the flow engine, including retry policy, result parsing, and review-phase routing. It bridges command execution with flow state, retry accounting, and downstream recovery behavior.",
+        "detail": "This module wraps review execution in a `RunReviewCommand` and related helpers that call the review script, parse phase-specific output, and translate results into flow envelopes. It defines review verdicts, phase mappings, retry thresholds, and downstream reset rules, especially for implementation review where failures can affect later flow steps. The file includes structured parsers for implementation, test, spec, and draft review outputs, plus subprocess retry logic with bounded backoff for transient failures. It also persists review source finding IDs, records review outcomes in flow state, appends issue log entries for tooling failures, and decides the next step or deferral behavior from verdicts and retry exhaustion.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.583Z",
+          "processedAt": "2026-07-18T11:10:43.878Z",
           "attempts": 1
         },
         "keywords": [
-          "review phase",
-          "verdict parsing",
-          "retry policy",
-          "implementation review",
-          "draft review",
-          "coverage failure",
-          "subprocess retry"
+          "run review orchestration",
+          "flow command",
+          "subprocess retry",
+          "review verdict",
+          "phase routing",
+          "flow state",
+          "artifact parser",
+          "implementation review retry",
+          "issue logging"
         ]
       },
       {
@@ -13044,9 +13058,9 @@
     ],
     "summary": {
       "total": 239,
-      "totalMethods": 2399
+      "totalMethods": 2408
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-18T10:22:04.052Z"
+  "enrichedAt": "2026-07-18T11:10:43.878Z"
 }
