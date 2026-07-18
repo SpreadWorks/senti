@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-18T13:42:19.005Z",
+  "analyzedAt": "2026-07-18T14:58:59.514Z",
   "package": {
     "entries": [
       {
@@ -4234,9 +4234,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "26ae999f30ed69110c7720e2d9afaae4",
-        "lines": 369,
-        "mtime": "2026-07-17T05:53:21.166Z",
+        "hash": "6adc6ea4246f224f251f085326ee08af",
+        "lines": 409,
+        "mtime": "2026-07-18T14:58:39.344Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -4253,6 +4253,8 @@
           "attachRetryRecovery",
           "buildRetryRecoveryForState",
           "attachLatestStepAttempt",
+          "buildPlanGateSemanticDeferralRecovery",
+          "buildGateRetryRecovery",
           "promoteNextTaskAndFirstStep",
           "promoteNextAvailableTarget",
           "completedNextAction"
@@ -4270,6 +4272,7 @@
           "./review-failure.js",
           "./gate-recovery-display.js",
           "./run-review.js",
+          "./run-gate.js",
           "./retry-recovery.js",
           "./task-scope.js",
           "../../lib/flow-envelope.js",
@@ -4282,22 +4285,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "Computes the next actionable instruction block for the current flow state. It merges rule files, schema-driven instructions, retry recovery hints, and progression logic into one CLI response.",
-        "detail": "The command loads step rules and JSON schemas from a configurable schema directory and caches the rule set for repeated use. It detects unresolved in-progress targets, resolves the correct flow or task step, and rejects states that have no matching definition entry. The result builder can inject persistent rule text, context descriptors, review or gate stop views, retry recovery data, and the latest step-attempt count into the response payload. When progress can continue automatically, it promotes the next pending leaf or task; when everything is terminal, it returns a completed next-action response.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Resolves the next actionable step in a flow and returns a structured completion or failure envelope. It coordinates task promotion, rule selection, and recovery metadata for stalled or retryable states.",
+        "detail": "This module builds the next-action decision around the current flow state, including active tasks, step trees, and unresolved in-progress targets. It loads and caches step rule definitions, derives context descriptors, and injects persistent rule blocks when a target requires durable guidance. Recovery handling is a major concern: the command attaches retry, gate, and review recovery views so the caller can resume from failures with explicit limits and phases. It also promotes the next pending task or leaf step when the current target is complete, and throws explicit errors when required step definitions are missing.",
+        "chapter": "internal_design",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.535Z",
+          "processedAt": "2026-07-18T14:59:30.423Z",
           "attempts": 1
         },
         "keywords": [
-          "next action",
-          "instruction resolver",
-          "rule engine",
-          "retry recovery",
+          "flow orchestration",
+          "next action resolver",
+          "workflow state",
           "step promotion",
-          "workflow CLI",
-          "schema-driven output"
+          "retry recovery",
+          "review recovery",
+          "gate recovery"
         ]
       },
       {
@@ -6072,9 +6075,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "7c56350424126bd491d493344349ec8a",
-        "lines": 4853,
-        "mtime": "2026-07-18T12:29:42.563Z",
+        "hash": "b2b1d3393b25fffce10e74b7f2a0dc5a",
+        "lines": 4918,
+        "mtime": "2026-07-18T14:58:39.345Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -6092,6 +6095,8 @@
           "warnGateRetryBudget",
           "buildGateRetryExhaustedEnvelope",
           "classifyGateRetryExhaustionSource",
+          "DurableGateSemanticDeferralInspection",
+          "inspectDurableGateSemanticDeferral",
           "checkRetryBelowMax",
           "GateOutputAttemptEvidence",
           "GateOutputProtocolFailure",
@@ -6282,6 +6287,8 @@
           "warnGateRetryBudget",
           "buildGateRetryExhaustedEnvelope",
           "classifyGateRetryExhaustionSource",
+          "DurableGateSemanticDeferralInspection",
+          "inspectDurableGateSemanticDeferral",
           "checkRetryBelowMax",
           "GateOutputAttemptEvidence",
           "GateOutputProtocolFailure",
@@ -6348,26 +6355,27 @@
         "extends": "Error",
         "usedBy": [
           "src/flow/lib/gate-recovery-display.js",
+          "src/flow/lib/get-next-action.js",
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate engine for draft, spec, task-implementation, and integration phases. It drives validation, AI-based guardrail checks, retry behavior, and artifact output for the run-gate command.",
-        "detail": "The module combines command execution with a large set of helpers for collecting Git diffs, compacting prompt inputs, and building structured evaluation prompts for guardrail articles and requirement-level checks. It validates spec and draft lifecycle artifacts, enforces strict JSON response schemas from agents, and normalizes pass or fail observations into durable gate reports. Retry control includes per-phase budgets, recovery baselines, repeated-failure detection, defer or block classification, and issue-log integration to prevent unproductive reruns. The implementation also persists gate memory and source artifacts so later attempts can reuse prior context and compare against identical repository states.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Implements the gate execution pipeline for draft, spec, task implementation, and integration phases. It evaluates guardrails and requirement coverage, manages retries and deferrals, and persists gate artifacts and issue history.",
+        "detail": "This module orchestrates gate runs by collecting source inputs such as specs, drafts, git diffs, file maps, and generated artifacts, then shaping them into bounded prompts for automated evaluation. It contains strict parsing and schema validation for agent responses, with dedicated error types and fallback formats to enforce JSON-only protocol compliance. The implementation also tracks retry budgets, recovery baselines, prior failures, and durable semantic deferral rules so repeated gate failures can be classified, deferred, or escalated consistently. Additional logic persists result artifacts, issue logs, and implementation memory, while the command class dispatches phase-specific execution paths and post-gate side effects.",
+        "chapter": "internal_design",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-18T12:30:41.682Z",
+          "processedAt": "2026-07-18T14:59:30.423Z",
           "attempts": 1
         },
         "keywords": [
-          "run-gate command",
-          "flow gate",
           "guardrail evaluation",
-          "spec validation",
-          "implementation diff",
+          "workflow gate",
+          "diff analysis",
+          "artifact validation",
+          "requirement batching",
           "retry policy",
-          "issue log",
-          "artifact persistence"
+          "semantic deferral",
+          "issue logging"
         ]
       },
       {
@@ -13166,9 +13174,9 @@
     ],
     "summary": {
       "total": 240,
-      "totalMethods": 2450
+      "totalMethods": 2454
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-18T13:44:12.995Z"
+  "enrichedAt": "2026-07-18T14:59:30.423Z"
 }
