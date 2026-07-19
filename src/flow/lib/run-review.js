@@ -56,6 +56,7 @@ const REVIEW_VERDICT_PATTERN = new RegExp(`verdict=(${REVIEW_VERDICT_VALUES.join
 const REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "review-retry-exhausted";
 const REVIEW_RECOVERY_TRIGGER_STOP = "review-stop";
 const REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL = "review-verdict-fail";
+const REVIEW_FINDING_DISPOSITIONS = new Set(["must-fix", "informational", "deferred"]);
 const MAX_IMPL_DOWNSTREAM_RESET_STEPS = 20;
 // Review proposals invalidate all implementation leaves from fresh test
 // execution through finalize cleanup; both endpoints are intentionally reset.
@@ -238,13 +239,30 @@ function reviewFindingId(finding, index) {
   return finding?.findingId || finding?.id || finding?.proposalId || `review-finding-${index + 1}`;
 }
 
-function persistReviewSourceFindingIds(specDir, sourceArtifact, artifact) {
+function assertDispositionedReviewFinding(finding, index) {
+  const label = `finding[${index}]`;
+  const disposition = String(finding?.disposition || "").trim();
+  if (!REVIEW_FINDING_DISPOSITIONS.has(disposition)) {
+    throw new Error(`${label}.disposition is required and must be must-fix, informational, or deferred`);
+  }
+  if (typeof finding?.rationale !== "string" || finding.rationale.trim() === "") {
+    throw new Error(`${label}.rationale must be a non-empty string`);
+  }
+  if (typeof finding?.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(finding.fingerprint)) {
+    throw new Error(`${label}.fingerprint must be a lowercase SHA-256 string`);
+  }
+  return finding;
+}
+
+function persistReviewSourceFindingIds(specDir, sourceArtifact, artifact, { defer = false, requireDisposition = false } = {}) {
   const normalized = JSON.parse(JSON.stringify(artifact));
   const findings = reviewFindingsFromArtifact(normalized);
   findings.forEach((finding, index) => {
+    if (requireDisposition) assertDispositionedReviewFinding(finding, index);
     if (!finding.findingId && !finding.id && !finding.proposalId) {
       finding.findingId = reviewFindingId(finding, index);
     }
+    if (defer && finding.disposition === "must-fix") finding.disposition = "deferred";
   });
   fs.writeFileSync(path.join(specDir, sourceArtifact), JSON.stringify(normalized, null, 2) + "\n");
   return { artifact: normalized, findings };
@@ -314,16 +332,32 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
   if (phase === "test" && reviewArtifactHasStructuredCoverageFailure(specDir)) return null;
   let findings = reviewFindingsFromArtifact(artifact);
   if (findings.length === 0 || !findings.every(isReviewSemanticFinding)) return null;
-  ({ artifact, findings } = persistReviewSourceFindingIds(specDir, sourceArtifact, artifact));
+  const requireDisposition = phase === "test" || phase === "impl";
+  if (requireDisposition) findings.forEach(assertDispositionedReviewFinding);
+  const repairFindings = requireDisposition
+    ? findings.filter((finding) => finding.disposition === "must-fix" || finding.disposition === "deferred")
+    : findings;
+  if (repairFindings.length === 0) return null;
+  const repairFingerprints = requireDisposition
+    ? new Set(repairFindings.map((finding) => finding.fingerprint))
+    : null;
+  ({ artifact, findings } = persistReviewSourceFindingIds(specDir, sourceArtifact, artifact, {
+    defer: requireDisposition,
+    requireDisposition,
+  }));
   deferExhaustedSemanticFindings({
     root: ctx.root,
     flowState: ctx.flowState,
-    sourceStep: REVIEW_NODE_ID_BY_PHASE[phase],
+    sourceStep: reviewStepId(ctx, phase),
     sourceArtifact,
     attempts,
+    ...(repairFingerprints && { fingerprints: repairFingerprints }),
   });
-  ctx.flowManager.updateStepStatus(REVIEW_NODE_ID_BY_PHASE[phase], "done");
-  return reviewDeferredResult(phase, attempts, findings.length);
+  ctx.flowManager.updateStepStatus(reviewStepId(ctx, phase), "done");
+  const findingCount = requireDisposition
+    ? repairFingerprints.size
+    : findings.length;
+  return reviewDeferredResult(phase, attempts, findingCount);
 }
 
 /**
@@ -392,10 +426,20 @@ export function updateReviewRetryCounter(ctx, result) {
   if (flowState.currentTaskId != null) {
     const stepId = reviewStepId(ctx, "impl");
     const pass = isImplPass(result);
+    const attempt = nextStepAttemptNumber(flowState, stepId);
+    const maxAttempts = resolveMaxAttempts({ scope: "task", stepId, context: flowState }) ?? 1;
+    if (!pass && attempt >= maxAttempts) {
+      const deferred = tryDeferReviewRetryExhaustion(ctx, "impl", attempt);
+      if (deferred) {
+        Object.assign(result, deferred);
+        recordReviewDeferral(ctx, result, "impl", attempt);
+        return;
+      }
+    }
     const outcome = pass
       ? new DecisionOutcome({ decision: "PASS", nextAction: result?.next || "refresh-next-action" })
       : new RetryOutcome({ nextAction: "run-review-task" });
-    recordReviewOutcome(ctx, result, "impl", nextStepAttemptNumber(flowState, stepId), outcome);
+    recordReviewOutcome(ctx, result, "impl", attempt, outcome);
     return;
   }
   const persistedPhase = result?.artifacts?.retryPhase || reviewPhaseKeyForCtx(ctx, ctx?.phase);

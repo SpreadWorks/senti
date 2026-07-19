@@ -107,6 +107,18 @@ function setupFixture(tmp, {
   writeFile(tmp, SPEC_MARKDOWN_PATH, specMarkdown);
   // Post-T8: run-gate loads spec.json via the single validated load path.
   writeJson(tmp, `specs/${SPEC_ID}/spec.json`, specJson);
+  writeJson(tmp, `specs/${SPEC_ID}/impl-review.json`, {
+    version: 1,
+    phase: "impl",
+    runId: `run-${SPEC_ID}`,
+    planRewindAt: null,
+    generatedAt: new Date().toISOString(),
+    verdict: "PASS",
+    summary: { blocking: 0, nonBlocking: 0, total: 0 },
+    blockingFindings: [],
+    nonBlockingImprovements: [],
+    excluded: { missingFile: 0, outOfScope: 0 },
+  });
   if (fileMap) writeJson(tmp, `specs/${SPEC_ID}/file-map.json`, fileMap);
   if (integrationTrustRequirementIds) {
     writeIntegrationGateTrustArtifacts(tmp, {

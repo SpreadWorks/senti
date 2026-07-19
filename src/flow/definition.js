@@ -931,6 +931,7 @@ const TASK_DEFINITION = Object.freeze([
     instructionsKey: "task.task-review",
     contextKinds: ["task_spec", "diff", "testlog"],
     outputSchemaRef: "next-action/review.schema.json",
+    maxAttempts: 4,
     failurePolicy: "retry",
   }),
   new FlowNode({

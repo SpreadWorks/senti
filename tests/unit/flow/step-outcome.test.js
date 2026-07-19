@@ -40,9 +40,21 @@ import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js"
 function semanticFinding(findingId) {
   return {
     findingId,
+    fingerprint: "b".repeat(64),
     result: "fail",
     category: "semantic",
     reason: "A semantic requirement is not satisfied.",
+    disposition: "informational",
+    rationale: "This semantic finding has no mandatory authority.",
+  };
+}
+
+function dispositionedSemanticFinding(findingId) {
+  return {
+    ...semanticFinding(findingId),
+    fingerprint: "b".repeat(64),
+    disposition: "must-fix",
+    rationale: "A mandatory semantic requirement remains unsatisfied.",
   };
 }
 
@@ -129,7 +141,7 @@ describe("typed step outcomes", () => {
       writeJson(root, spec, { requirements: [] });
       writeJson(specDir, "test-review.json", {
         verdict: "FAIL",
-        blockingFindings: [semanticFinding("review-semantic")],
+        blockingFindings: [dispositionedSemanticFinding("review-semantic")],
       });
 
       const reviewState = {

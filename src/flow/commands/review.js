@@ -56,6 +56,12 @@ import {
   contractFromImplReviewArtifact,
   contractFromTestReviewArtifact,
 } from "../lib/flow-judgment-contract.js";
+import {
+  FindingDispositionPolicy,
+  MustFixDisposition,
+  ReviewFindingCycle,
+  ReviewFindingFingerprint,
+} from "../lib/finding-disposition-policy.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -517,7 +523,8 @@ const IMPL_REVIEW_BLOCKING_FAILURE_MODES = Object.freeze([
   "spec_behavior_contradiction",
   "security_or_data_integrity_bug",
 ]);
-const IMPL_REVIEW_BLOCKING_FAILURE_MODE_SET = new Set(IMPL_REVIEW_BLOCKING_FAILURE_MODES);
+const IMPL_REVIEW_DISPOSITIONS = Object.freeze(["must-fix", "deferred", "informational"]);
+const IMPL_REVIEW_DISPOSITION_SET = new Set(IMPL_REVIEW_DISPOSITIONS);
 const IMPL_REVIEW_MEMORY_BLOCKING_LIMIT = 3;
 const IMPL_REVIEW_MEMORY_NON_BLOCKING_LIMIT = 5;
 const IMPL_REVIEW_MEMORY_FIELD_LIMIT = 500;
@@ -533,15 +540,17 @@ function buildImplReviewResponseSchema(requirementIds) {
   const allowedRequirementIds = [...normalizeImplReviewRequirementIds(requirementIds)].sort();
   const findingSchema = {
     type: "object",
-    required: ["title", "failureMode", "file", "requirementId", "issue", "suggestion", "rationale"],
+    required: ["findingKey", "title", "failureMode", "file", "requirementId", "issue", "suggestion", "disposition", "rationale"],
     additionalProperties: false,
     properties: {
+      findingKey: { type: "string", minLength: 1, maxLength: 100 },
       title: { type: "string", minLength: 1 },
       failureMode: { type: "string", minLength: 1 },
       file: { type: ["string", "null"] },
       requirementId: { type: "string", minLength: 1, enum: allowedRequirementIds },
       issue: { type: "string", minLength: 1 },
       suggestion: { type: "string", minLength: 1 },
+      disposition: { type: "string", enum: [...IMPL_REVIEW_DISPOSITIONS] },
       rationale: { type: "string", minLength: 1 },
     },
   };
@@ -579,46 +588,94 @@ function truncateReviewMemoryText(value, limit = IMPL_REVIEW_MEMORY_FIELD_LIMIT)
 class ImplReviewFinding {
   constructor(kind, item, requirementIds) {
     this.kind = kind;
+    this.findingKey = String(item.findingKey || "").trim();
     this.title = String(item.title || "").trim();
     this.failureMode = String(item.failureMode || "").trim();
     this.file = normalizeReviewPath(item.file || "");
     this.requirementId = String(item.requirementId || "").trim();
+    this.guardrailId = String(item.guardrailId || "").trim();
     this.issue = String(item.issue || "").trim();
     this.suggestion = String(item.suggestion || "").trim();
+    this.disposition = String(item.disposition || "").trim();
     this.rationale = String(item.rationale || "").trim();
+    this.repeatCount = Number.isSafeInteger(item.repeatCount) && item.repeatCount > 0
+      ? item.repeatCount
+      : 1;
+    if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(this.findingKey)) {
+      throw new Error("findingKey must be a stable lowercase slug");
+    }
     if (!this.requirementId) {
       throw new Error("requirementId must be a non-empty string");
     }
     if (!normalizeImplReviewRequirementIds(requirementIds).has(this.requirementId)) {
       throw new Error(`requirementId is not present in the target spec: ${this.requirementId}`);
     }
-    if (kind === "blocking" && !IMPL_REVIEW_BLOCKING_FAILURE_MODE_SET.has(this.failureMode)) {
-      throw new Error(`invalid blocking failureMode: ${this.failureMode}`);
+    if (!IMPL_REVIEW_DISPOSITION_SET.has(this.disposition)) {
+      throw new Error(`disposition must be one of ${IMPL_REVIEW_DISPOSITIONS.join(", ")}`);
     }
+    if (!this.rationale) {
+      throw new Error("rationale must be a non-empty string");
+    }
+    const fingerprint = ReviewFindingFingerprint.fromFinding({
+      ...item,
+      category: this.failureMode,
+      failureMode: this.failureMode,
+      requirementId: this.requirementId,
+      ...(this.guardrailId ? { guardrailId: this.guardrailId } : {}),
+      file: this.file || null,
+      title: this.title,
+      issue: this.issue,
+    });
+    this.fingerprint = fingerprint.value;
+    this.findingId = String(item.findingId || fingerprint.value).trim();
+    if (!this.findingId) throw new Error("findingId must be a non-empty string");
   }
 
   toJSON() {
     return {
+      findingKey: this.findingKey,
       title: this.title,
       failureMode: this.failureMode,
       ...(this.file ? { file: this.file } : {}),
       requirementId: this.requirementId,
+      ...(this.guardrailId ? { guardrailId: this.guardrailId } : {}),
       issue: this.issue,
       suggestion: this.suggestion,
+      disposition: this.disposition,
       rationale: this.rationale,
+      findingId: this.findingId,
+      fingerprint: this.fingerprint,
+      repeatCount: this.repeatCount,
     };
   }
 
   toPromptMemory() {
     return {
+      findingKey: truncateReviewMemoryText(this.findingKey),
       title: truncateReviewMemoryText(this.title),
       failureMode: truncateReviewMemoryText(this.failureMode),
       ...(this.file ? { file: truncateReviewMemoryText(this.file) } : {}),
       requirementId: truncateReviewMemoryText(this.requirementId),
+      ...(this.guardrailId ? { guardrailId: truncateReviewMemoryText(this.guardrailId) } : {}),
       issue: truncateReviewMemoryText(this.issue),
       suggestion: truncateReviewMemoryText(this.suggestion),
+      disposition: this.disposition,
       rationale: truncateReviewMemoryText(this.rationale),
+      findingId: this.findingId,
+      fingerprint: this.fingerprint,
+      repeatCount: this.repeatCount,
     };
+  }
+
+  withDisposition(disposition, requirementIds) {
+    return new ImplReviewFinding(this.kind, {
+      ...this.toJSON(),
+      disposition: disposition.disposition,
+      findingId: disposition.findingId,
+      fingerprint: disposition.fingerprint,
+      repeatCount: disposition.repeatCount,
+      guardrailId: disposition.guardrailId,
+    }, requirementIds);
   }
 }
 
@@ -763,11 +820,14 @@ function formatImplReviewMd(input = {}) {
     for (let i = 0; i < artifact.blockingFindings.length; i++) {
       const item = artifact.blockingFindings[i];
       lines.push(`### ${i + 1}. ${item.title}`);
+      lines.push(`**Finding key:** ${item.findingKey}`);
       lines.push(`**Failure mode:** ${item.failureMode}`);
       if (item.file) lines.push(`**File:** ${item.file}`);
       if (item.requirementId) lines.push(`**Requirement:** ${item.requirementId}`);
+      if (item.guardrailId) lines.push(`**Guardrail:** ${item.guardrailId}`);
       lines.push(`**Issue:** ${item.issue}`);
       lines.push(`**Suggestion:** ${item.suggestion}`);
+      lines.push(`**Disposition:** ${item.disposition}`);
       lines.push(`**Rationale:** ${item.rationale}`);
       lines.push("");
     }
@@ -779,11 +839,14 @@ function formatImplReviewMd(input = {}) {
     for (let i = 0; i < artifact.nonBlockingImprovements.length; i++) {
       const item = artifact.nonBlockingImprovements[i];
       lines.push(`### ${i + 1}. ${item.title}`);
+      lines.push(`**Finding key:** ${item.findingKey}`);
       lines.push(`**Failure mode:** ${item.failureMode}`);
       if (item.file) lines.push(`**File:** ${item.file}`);
       lines.push(`**Requirement:** ${item.requirementId}`);
+      if (item.guardrailId) lines.push(`**Guardrail:** ${item.guardrailId}`);
       lines.push(`**Issue:** ${item.issue}`);
       lines.push(`**Suggestion:** ${item.suggestion}`);
+      lines.push(`**Disposition:** ${item.disposition}`);
       lines.push(`**Rationale:** ${item.rationale}`);
       lines.push("");
     }
@@ -795,11 +858,14 @@ function formatImplReviewMd(input = {}) {
   return lines.join("\n");
 }
 
-function loadPreviousImplReviewMemory(root, specPath) {
+function loadPreviousImplReviewMemory(root, specPath, taskId = null) {
   const specDir = path.dirname(path.resolve(root, specPath));
   const reviewJsonPath = path.join(specDir, "impl-review.json");
   if (!fs.existsSync(reviewJsonPath)) return null;
   const data = JSON.parse(fs.readFileSync(reviewJsonPath, "utf8"));
+  const artifactTaskId = data.taskId == null ? null : String(data.taskId).trim();
+  const expectedTaskId = taskId == null ? null : String(taskId).trim();
+  if (artifactTaskId !== expectedTaskId) return null;
   return new ImplReviewArtifact({
     generatedAt: data.generatedAt,
     blockingFindings: Array.isArray(data.blockingFindings) ? data.blockingFindings : [],
@@ -812,23 +878,29 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
   const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
   const responseSchema = buildImplReviewResponseSchema(allowedRequirementIds);
   const touched = Array.from(touchedFiles instanceof Set ? touchedFiles : new Set(touchedFiles)).sort();
-  const modeList = IMPL_REVIEW_BLOCKING_FAILURE_MODES.map((mode, index) => `  ${index + 1}. ${mode}`).join("\n");
+  const modeList = IMPL_REVIEW_BLOCKING_FAILURE_MODES.map((mode) => `- ${mode}`).join("\n");
   const pb = new PromptBuilder()
-    .setRole("You are an implementation reviewer. Determine whether the implementation can proceed based only on narrow blocking findings.")
+    .setRole("You are an implementation reviewer. Report findings for the typed disposition policy to evaluate against requirements and guardrails.")
     .setRules([
       "Return JSON only.",
-      "Use blockingFindings[] only for these failure modes:",
+      "Every finding must include disposition and a non-empty rationale.",
+      "Use disposition=must-fix when the finding is tied to a mandatory requirement or blocking guardrail.",
+      "Use disposition=informational when no mandatory requirement or blocking guardrail requires repair.",
+      "Do not emit disposition=deferred on a first report; the implementation assigns it when the same fingerprint reaches the retry bound.",
+      "Maintainability, project-rule, naming, refactor, DRY, comment, and docs findings may be must-fix when requirement or guardrail evidence makes them mandatory.",
+      "For a blocking guardrail finding, use the exact guardrail id as failureMode so the policy can resolve its authority.",
+      "Assign findingKey as a stable lowercase slug. Reuse it for the same problem even when wording changes, and use a distinct key for a different problem tied to the same authority.",
+      "The following are common must-fix failure modes, not a closed allowlist:",
       modeList,
-      "Classify regression failures, test false positives, scope creep, project-rule violations, naming proposals, refactor proposals, DRY proposals, comment proposals, and docs proposals as non-blocking or out of scope rather than blocking findings.",
       "Non-blocking improvements are optional. Do not generate one unless it names a touched file, describes an observable issue in that file, and provides a replacement action that names the affected function, branch, assertion, prompt sentence, or artifact field.",
       "File-specific findings must use a file from the touched file set.",
       "requirementId is always required and must use one of the allowed target requirement IDs.",
       "A missing_acceptance_requirement blocker may omit file only when its requirementId identifies the missing target requirement.",
-      "Do not fail the review for non-blocking improvements.",
+      "Put must-fix findings in blockingFindings[]. Put informational findings in nonBlockingImprovements[].",
       "",
       "Return an object with:",
-      "- blockingFindings[] with title, failureMode, file, requirementId, issue, suggestion, rationale",
-      "- nonBlockingImprovements[] with title, failureMode, file, requirementId, issue, suggestion, rationale",
+      "- blockingFindings[] with findingKey, title, failureMode, file, requirementId, issue, suggestion, disposition, rationale",
+      "- nonBlockingImprovements[] with findingKey, title, failureMode, file, requirementId, issue, suggestion, disposition, rationale",
       "- file may be null only when the missing_acceptance_requirement rule applies.",
       "- requirementId must never be null; every finding must use an allowed target requirement ID.",
       "- Use empty arrays when there are no findings in a category.",
@@ -857,6 +929,104 @@ function resolveRequirementIds(root, flow) {
   return new Set((Array.isArray(spec.requirements) ? spec.requirements : []).map((req) => req.id).filter(Boolean));
 }
 
+function loadImplReviewPolicyContext(root, flow) {
+  const spec = loadSpecJson(path.resolve(root, flow.spec), { validate: false });
+  const requirements = new Map(
+    (Array.isArray(spec.requirements) ? spec.requirements : [])
+      .filter((requirement) => requirement?.id)
+      .map((requirement) => [requirement.id, requirement]),
+  );
+  const guardrails = new Map(
+    filterByPhase(loadMergedGuardrails(root), "review")
+      .filter((guardrail) => guardrail?.id)
+      .map((guardrail) => [guardrail.id, { id: guardrail.id, severity: "blocking" }]),
+  );
+  return { requirements, guardrails };
+}
+
+function priorImplReviewFingerprintCounts(specDir, taskId, cycle) {
+  const historyDir = path.join(specDir, "review-history");
+  const counts = new Map();
+  if (!fs.existsSync(historyDir)) return counts;
+  for (const name of fs.readdirSync(historyDir)) {
+    if (!/^impl-attempt-\d{3}\.json$/.test(name)) continue;
+    let artifact;
+    try {
+      artifact = JSON.parse(fs.readFileSync(path.join(historyDir, name), "utf8"));
+    } catch {
+      continue;
+    }
+    const artifactTaskId = artifact.taskId == null ? null : String(artifact.taskId).trim();
+    if (artifactTaskId !== taskId) continue;
+    if (!cycle.matchesArtifact(artifact)) continue;
+    const seen = new Set();
+    for (const finding of artifact.findings || []) {
+      if (typeof finding?.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(finding.fingerprint)) continue;
+      seen.add(finding.fingerprint);
+    }
+    for (const fingerprint of seen) counts.set(fingerprint, (counts.get(fingerprint) || 0) + 1);
+  }
+  return counts;
+}
+
+function applyImplReviewDispositionPolicy({ root, flow, filtered, requirementIds, specDir, taskSpec }) {
+  const { requirements, guardrails } = loadImplReviewPolicyContext(root, flow);
+  const taskId = taskSpec?.task?.id == null ? null : String(taskSpec.task.id).trim();
+  const cycle = new ReviewFindingCycle(flow);
+  const priorCounts = priorImplReviewFingerprintCounts(specDir, taskId, cycle);
+  const maxOccurrences = resolveMaxAttempts({
+    scope: taskId === null ? "flow" : "task",
+    stepId: taskId === null ? "impl-review" : "task-review",
+    context: flow,
+  }) ?? 1;
+  const policy = new FindingDispositionPolicy({ maxOccurrences });
+  const seen = new Map();
+  const blockingFindings = [];
+  const nonBlockingImprovements = [];
+  const classify = (finding) => {
+    const guardrail = guardrails.get(finding.failureMode) || null;
+    const requirement = guardrail ? null : requirements.get(finding.requirementId) || null;
+    const candidate = {
+      ...finding.toJSON(),
+      scope: taskId === null ? "flow" : "task",
+      phase: taskId === null ? "impl-review" : "task-review",
+      taskId,
+      category: finding.failureMode,
+      guardrailId: guardrail?.id || null,
+    };
+    delete candidate.findingId;
+    delete candidate.fingerprint;
+    delete candidate.repeatCount;
+    const fingerprint = ReviewFindingFingerprint.fromFinding(candidate).value;
+    if (seen.has(fingerprint)) {
+      const previous = seen.get(fingerprint);
+      if (previous.title !== finding.title || previous.issue !== finding.issue) {
+        throw new Error(`findingKey collision for ${finding.findingKey}`);
+      }
+      return;
+    }
+    seen.set(fingerprint, finding);
+    const disposition = policy.classify({
+      finding: {
+        ...candidate,
+        findingId: fingerprint,
+        fingerprint,
+      },
+      requirement,
+      guardrail,
+      repeatCount: (priorCounts.get(fingerprint) || 0) + 1,
+    });
+    const typed = finding.withDisposition(disposition, requirementIds);
+    if (disposition instanceof MustFixDisposition || disposition.disposition === "deferred") {
+      blockingFindings.push(typed);
+    }
+    else nonBlockingImprovements.push(typed);
+  };
+  filtered.blockingFindings.forEach(classify);
+  filtered.nonBlockingImprovements.forEach(classify);
+  return { blockingFindings, nonBlockingImprovements, excluded: filtered.excluded };
+}
+
 async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec = null }) {
   const requirementIds = resolveRequirementIds(root, flow);
   const parsed = parseImplReviewFindings(reviewOutput, { requirementIds });
@@ -865,10 +1035,23 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
     touchedFiles,
     requirementIds,
   });
-  const artifact = new ImplReviewArtifact(filtered);
   const specDir = path.dirname(path.resolve(root, flow.spec));
+  const dispositioned = applyImplReviewDispositionPolicy({
+    root,
+    flow,
+    filtered,
+    requirementIds,
+    specDir,
+    taskSpec,
+  });
+  const artifact = new ImplReviewArtifact({ ...dispositioned, requirementIds });
   const reviewJsonPath = path.join(specDir, "impl-review.json");
   const artifactJson = artifact.toJSON();
+  Object.assign(artifactJson, new ReviewFindingCycle(flow).toJSON());
+  if (taskSpec) {
+    artifactJson.taskId = taskSpec.task.id;
+    artifactJson.target = taskSpec.relPath;
+  }
   artifactJson.contractSummary = contractFromImplReviewArtifact(artifactJson, {
     artifactPath: path.relative(root, reviewJsonPath).split(path.sep).join("/"),
   }).summary.toJSON();
@@ -1369,19 +1552,34 @@ function requireImplLoopRequirementId(proposal, requirementIds) {
   return proposal.requirementId;
 }
 
+function loopProposalFindingKey(proposal, requirementId) {
+  const identity = JSON.stringify({
+    requirementId,
+    file: proposal.file || null,
+    title: proposal.title,
+    body: proposal.body || null,
+  });
+  return `loop-${crypto.createHash("sha256").update(identity).digest("hex").slice(0, 20)}`;
+}
+
 function loopProposalsToImplReviewJson(proposals, requirementIds = new Set()) {
   const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
   return JSON.stringify({
     blockingFindings: [],
-    nonBlockingImprovements: proposals.map((proposal) => ({
-      title: proposal.title,
-      failureMode: "refactor",
-      ...(proposal.file ? { file: proposal.file } : {}),
-      requirementId: requireImplLoopRequirementId(proposal, allowedRequirementIds),
-      issue: proposal.body || proposal.title,
-      suggestion: proposal.body || proposal.title,
-      rationale: "Loop review proposal.",
-    })),
+    nonBlockingImprovements: proposals.map((proposal) => {
+      const requirementId = requireImplLoopRequirementId(proposal, allowedRequirementIds);
+      return {
+        findingKey: loopProposalFindingKey(proposal, requirementId),
+        title: proposal.title,
+        failureMode: "refactor",
+        ...(proposal.file ? { file: proposal.file } : {}),
+        requirementId,
+        issue: proposal.body || proposal.title,
+        suggestion: proposal.body || proposal.title,
+        disposition: "informational",
+        rationale: "Loop review proposal.",
+      };
+    }),
   });
 }
 
@@ -1772,6 +1970,16 @@ class TestReviewFinding {
       this.improvement = normalizeTestReviewText(item.improvement, "Advisory test improvement.");
       this.whyNonBlocking = normalizeTestReviewText(item.whyNonBlocking, "Implementation can proceed without this improvement.");
     }
+    this.disposition = kind === "blocking" ? "must-fix" : "informational";
+    this.rationale = kind === "blocking" ? this.whyBlocking : this.whyNonBlocking;
+    this.fingerprint = ReviewFindingFingerprint.fromFinding({
+      category: this.failureKind || kind,
+      requirementId: this.target,
+      file: this.target.includes("/") ? this.target : null,
+      title: this.title,
+      issue: kind === "blocking" ? this.issue : this.improvement,
+    }).value;
+    this.findingId = this.fingerprint;
   }
 
   toJSON() {
@@ -1779,6 +1987,10 @@ class TestReviewFinding {
       kind: this.kind,
       title: this.title,
       target: this.target,
+      findingId: this.findingId,
+      fingerprint: this.fingerprint,
+      disposition: this.disposition,
+      rationale: this.rationale,
     };
     if (this.kind === "blocking") {
       return {
@@ -3436,7 +3648,8 @@ function normalizeReviewFindingRecords({ phase, sourceArtifact, attempt, artifac
     const normalizedSeverity = normalizeFindingSeverity(severity);
     const idx = records.length + 1;
     records.push({
-      id: item.id || normalizedFindingId(phase, attempt, normalizedSeverity, idx),
+      id: item.findingId || item.id || normalizedFindingId(phase, attempt, normalizedSeverity, idx),
+      findingId: item.findingId || item.id || normalizedFindingId(phase, attempt, normalizedSeverity, idx),
       phase,
       sourceArtifact,
       attempt,
@@ -3444,6 +3657,12 @@ function normalizeReviewFindingRecords({ phase, sourceArtifact, attempt, artifac
       title: String(item.title || "Untitled finding").trim(),
       body: findingText(item),
       category: findingCategory(phase, item),
+      ...(item.fingerprint && { fingerprint: item.fingerprint }),
+      ...(item.disposition && { disposition: item.disposition }),
+      ...(item.rationale && { rationale: item.rationale }),
+      ...(item.requirementId && { requirementId: item.requirementId }),
+      ...(item.guardrailId && { guardrailId: item.guardrailId }),
+      ...(item.repeatCount && { repeatCount: item.repeatCount }),
     });
   };
   for (const item of findings) push(item, item.severity || "blocking");
@@ -3664,7 +3883,7 @@ async function runReview(rawArgs) {
       );
     }
   }
-  const previousReview = loadPreviousImplReviewMemory(root, flow.spec);
+  const previousReview = loadPreviousImplReviewMemory(root, flow.spec, taskSpec?.task?.id ?? null);
   const requirementIds = resolveRequirementIds(root, flow);
   const result = await runReviewWithDependencies({
     touchedFiles,

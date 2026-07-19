@@ -26,6 +26,7 @@ import {
   formatImplReviewMd,
   formatImplReviewJson,
   buildImplReviewPrompt,
+  runImplReview,
   collectTestFiles,
   filterProposalsByScope,
   collectTouchedFiles,
@@ -39,6 +40,7 @@ import {
   assertTestReviewPromptWithinLimit,
   runTestReviewWithDependencies,
   resolveMergeBase,
+  loopProposalsToImplReviewJson,
 } from "../../../../src/flow/commands/review.js";
 
 function assertAllMatch(text, patterns) {
@@ -881,24 +883,58 @@ describe("filterProposalsByScope (spec 201 R-P1/R-P3)", () => {
 });
 
 describe("impl review structured artifact helpers", () => {
+  it("requires a typed disposition and rationale for every impl review finding", () => {
+    const typedFinding = {
+      findingKey: "missing-artifact",
+      title: "Missing artifact",
+      failureMode: "missing_acceptance_requirement",
+      file: null,
+      requirementId: "R4",
+      issue: "impl-review.json is not written.",
+      suggestion: "Write impl-review.json.",
+      disposition: "must-fix",
+      rationale: "R4 requires a machine-readable artifact.",
+    };
+    const parse = (entry) => parseImplReviewFindings(JSON.stringify({
+      blockingFindings: [entry],
+      nonBlockingImprovements: [],
+    }), { requirementIds: new Set(["R4"]) });
+
+    const parsed = parse(typedFinding);
+    assert.equal(parsed.blockingFindings[0].disposition, "must-fix");
+
+    for (const missingField of ["findingKey", "disposition", "rationale"]) {
+      const invalid = { ...typedFinding };
+      delete invalid[missingField];
+      assert.throws(
+        () => parse(invalid),
+        new RegExp(`${missingField}.*(required|non-empty)`, "i"),
+      );
+    }
+  });
+
   it("parses JSON findings and rejects legacy proposal markdown", () => {
     const parsed = parseImplReviewFindings(JSON.stringify({
       blockingFindings: [{
+        findingKey: "missing-artifact",
         title: "Missing artifact",
         failureMode: "missing_acceptance_requirement",
         file: null,
         requirementId: "R4",
         issue: "impl-review.json is not written.",
         suggestion: "Write impl-review.json.",
+        disposition: "must-fix",
         rationale: "The spec requires a machine-readable artifact.",
       }],
       nonBlockingImprovements: [{
+        findingKey: "optional-naming",
         title: "Optional naming",
         failureMode: "naming",
         file: "src/flow/commands/review.js",
         requirementId: "R4",
         issue: "A local variable name could be clearer.",
         suggestion: "Rename it.",
+        disposition: "informational",
         rationale: "Readability-only.",
       }],
     }), { requirementIds: new Set(["R4"]) });
@@ -915,41 +951,49 @@ describe("impl review structured artifact helpers", () => {
     const parsed = parseImplReviewFindings(JSON.stringify({
       blockingFindings: [
         {
+          findingKey: "keep-missing-requirement",
           title: "Keep missing requirement",
           failureMode: "missing_acceptance_requirement",
           file: null,
           requirementId: "R4",
           issue: "Missing artifact.",
           suggestion: "Write it.",
+          disposition: "must-fix",
           rationale: "Requirement blocker.",
         },
         {
+          findingKey: "drop-outside",
           title: "Drop outside",
           failureMode: "spec_behavior_contradiction",
           file: "src/outside.js",
           requirementId: "R4",
           issue: "Outside diff.",
           suggestion: "Drop it.",
+          disposition: "must-fix",
           rationale: "Out of scope.",
         },
       ],
       nonBlockingImprovements: [
         {
+          findingKey: "keep-advisory",
           title: "Keep advisory",
           failureMode: "refactor",
           file: "src/flow/commands/review.js",
           requirementId: "R4",
           issue: "Optional touched-file issue.",
           suggestion: "Optional fix.",
+          disposition: "informational",
           rationale: "Non-blocking.",
         },
         {
+          findingKey: "drop-missing-file",
           title: "Drop missing file",
           failureMode: "refactor",
           file: "",
           requirementId: "R4",
           issue: "No file.",
           suggestion: "Drop it.",
+          disposition: "informational",
           rationale: "Missing file.",
         },
       ],
@@ -969,12 +1013,14 @@ describe("impl review structured artifact helpers", () => {
     const input = {
       blockingFindings: [],
       nonBlockingImprovements: [{
+        findingKey: "optional-cleanup",
         title: "Optional cleanup",
         failureMode: "refactor",
         file: "src/flow/lib/run-review.js",
         requirementId: "R4",
         issue: "A branch could be clearer.",
         suggestion: "Rename the branch.",
+        disposition: "informational",
         rationale: "Readability-only.",
       }],
       excluded: { missingFile: 0, outOfScope: 0 },
@@ -1005,6 +1051,7 @@ describe("impl review structured artifact helpers", () => {
     assert.match(combined, /touched file/);
     assert.match(combined, /replacement action/);
     assert.match(combined, /requirementId is always required/);
+    assert.match(combined, /findingKey/);
   });
 
   it("uses a strict-compatible JSON schema for optional impl review fields", () => {
@@ -1016,6 +1063,211 @@ describe("impl review structured artifact helpers", () => {
     assert.deepEqual(itemSchema.properties.file.type, ["string", "null"]);
     assert.equal(itemSchema.properties.requirementId.type, "string");
     assert.deepEqual(itemSchema.properties.requirementId.enum, ["R1"]);
+    assert.deepEqual(itemSchema.properties.disposition.enum, ["must-fix", "deferred", "informational"]);
+  });
+
+  it("assigns a stable findingKey to loop review proposals", () => {
+    const proposal = {
+      title: "Extract shared branch",
+      body: "Extract the duplicated branch.",
+      file: "src/example.js",
+      requirementId: "R1",
+    };
+    const first = parseImplReviewFindings(
+      loopProposalsToImplReviewJson([proposal], new Set(["R1"])),
+      { requirementIds: new Set(["R1"]) },
+    );
+    const second = parseImplReviewFindings(
+      loopProposalsToImplReviewJson([proposal], new Set(["R1"])),
+      { requirementIds: new Set(["R1"]) },
+    );
+
+    assert.match(first.nonBlockingImprovements[0].findingKey, /^loop-[a-f0-9]{20}$/);
+    assert.equal(
+      first.nonBlockingImprovements[0].findingKey,
+      second.nonBlockingImprovements[0].findingKey,
+    );
+  });
+
+  it("aggregates a stable fingerprint and defers the must-fix finding at the bounded attempt", async () => {
+    const tmp = createTmpDir("impl-review-disposition-");
+    try {
+      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
+        requirements: [{ id: "R4", priority: "must", desc: "Write the review artifact." }],
+      }, null, 2)}\n`);
+      const finding = {
+        findingKey: "missing-artifact",
+        title: "Missing artifact",
+        failureMode: "missing_acceptance_requirement",
+        file: null,
+        requirementId: "R4",
+        issue: "impl-review.json is not written.",
+        suggestion: "Write impl-review.json.",
+        disposition: "must-fix",
+        rationale: "R4 requires a machine-readable artifact.",
+      };
+      const flow = { spec: "specs/demo/spec.json" };
+      const reviewOutput = JSON.stringify({
+        blockingFindings: [finding, { ...finding }],
+        nonBlockingImprovements: [],
+      });
+
+      await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
+      await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
+      await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
+      const result = await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
+      const artifact = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
+
+      assert.equal(result.artifacts.verdict, "FAIL");
+      assert.equal(artifact.summary.total, 1);
+      assert.equal(artifact.nonBlockingImprovements.length, 0);
+      assert.equal(artifact.blockingFindings[0].disposition, "deferred");
+      assert.equal(artifact.blockingFindings[0].repeatCount, 4);
+      assert.equal(artifact.blockingFindings[0].findingId, artifact.blockingFindings[0].fingerprint);
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+
+  it("keeps one fingerprint across wording changes and rejects same-key collisions", async () => {
+    const tmp = createTmpDir("impl-review-finding-key-");
+    try {
+      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
+        requirements: [{ id: "R1", priority: "must", desc: "Implement R1." }],
+      })}\n`);
+      const base = {
+        findingKey: "r1-missing-branch",
+        title: "Required branch is missing",
+        failureMode: "maintainability",
+        file: "src/example.js",
+        requirementId: "R1",
+        issue: "The R1 branch is absent.",
+        suggestion: "Add the R1 branch.",
+        disposition: "must-fix",
+        rationale: "R1 makes this branch mandatory.",
+      };
+      const flow = { spec: "specs/demo/spec.json" };
+      await runImplReview({
+        root: tmp,
+        flow,
+        touchedFiles: new Set(["src/example.js"]),
+        reviewOutput: JSON.stringify({ blockingFindings: [base], nonBlockingImprovements: [] }),
+      });
+      const first = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
+      await runImplReview({
+        root: tmp,
+        flow,
+        touchedFiles: new Set(["src/example.js"]),
+        reviewOutput: JSON.stringify({
+          blockingFindings: [{
+            ...base,
+            title: "R1 still lacks its branch",
+            issue: "No R1-specific branch is present.",
+          }],
+          nonBlockingImprovements: [],
+        }),
+      });
+      const second = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
+
+      assert.equal(second.blockingFindings[0].fingerprint, first.blockingFindings[0].fingerprint);
+      assert.equal(second.blockingFindings[0].repeatCount, 2);
+      await assert.rejects(
+        () => runImplReview({
+          root: tmp,
+          flow,
+          touchedFiles: new Set(["src/example.js"]),
+          reviewOutput: JSON.stringify({
+            blockingFindings: [
+              base,
+              { ...base, title: "Different defect", issue: "A separate R1 defect." },
+            ],
+            nonBlockingImprovements: [],
+          }),
+        }),
+        /findingKey collision/,
+      );
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+
+  it("derives the blocking bucket from requirement authority instead of trusting the model bucket", async () => {
+    const tmp = createTmpDir("impl-review-policy-bucket-");
+    try {
+      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
+        requirements: [{ id: "R1", priority: "must", desc: "Keep the implementation maintainable." }],
+      }, null, 2)}\n`);
+      const result = await runImplReview({
+        root: tmp,
+        flow: { spec: "specs/demo/spec.json" },
+        touchedFiles: new Set(["src/example.js"]),
+        reviewOutput: JSON.stringify({
+          blockingFindings: [],
+          nonBlockingImprovements: [{
+            findingKey: "duplicated-mandatory-branch",
+            title: "Duplicated mandatory branch",
+            failureMode: "maintainability",
+            file: "src/example.js",
+            requirementId: "R1",
+            issue: "The required branch is duplicated.",
+            suggestion: "Extract the shared branch.",
+            disposition: "must-fix",
+            rationale: "R1 makes the maintainability constraint mandatory.",
+          }],
+        }),
+      });
+      const artifact = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
+
+      assert.equal(result.artifacts.verdict, "FAIL");
+      assert.equal(artifact.blockingFindings.length, 1);
+      assert.equal(artifact.blockingFindings[0].disposition, "must-fix");
+      assert.equal(artifact.nonBlockingImprovements.length, 0);
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+
+  it("defaults an unprioritized requirement to mandatory and keeps distinct findings separate", async () => {
+    const tmp = createTmpDir("impl-review-distinct-authority-findings-");
+    try {
+      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
+        requirements: [{ id: "R1", desc: "Keep both required branches correct." }],
+      }, null, 2)}\n`);
+      const common = {
+        failureMode: "maintainability",
+        file: "src/example.js",
+        requirementId: "R1",
+        suggestion: "Repair the named branch.",
+        disposition: "must-fix",
+        rationale: "R1 makes both branches mandatory.",
+      };
+      await runImplReview({
+        root: tmp,
+        flow: { spec: "specs/demo/spec.json" },
+        touchedFiles: new Set(["src/example.js"]),
+        reviewOutput: JSON.stringify({
+          blockingFindings: [
+            { ...common, findingKey: "first-branch-missing", title: "First branch is missing", issue: "The first branch is absent." },
+            { ...common, findingKey: "second-branch-stale", title: "Second branch returns stale data", issue: "The second branch is stale." },
+          ],
+          nonBlockingImprovements: [],
+        }),
+      });
+      const artifact = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
+
+      assert.equal(artifact.blockingFindings.length, 2);
+      assert.equal(artifact.blockingFindings[0].disposition, "must-fix");
+      assert.notEqual(
+        artifact.blockingFindings[0].fingerprint,
+        artifact.blockingFindings[1].fingerprint,
+      );
+    } finally {
+      removeTmpDir(tmp);
+    }
   });
 });
 

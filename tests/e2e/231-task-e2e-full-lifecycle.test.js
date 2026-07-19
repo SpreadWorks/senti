@@ -27,12 +27,14 @@ const PASS_GATE = JSON.stringify({
 
 const FAIL_REVIEW = JSON.stringify({
   blockingFindings: [{
+    findingKey: "zero-operands-wrong-sum",
     title: "Zero operands return the wrong sum",
     failureMode: "spec_behavior_contradiction",
     file: "src/value.js",
     requirementId: "R1",
     issue: "The implementation returns zero whenever either operand is zero.",
     suggestion: "Return left + right for every numeric operand.",
+    disposition: "must-fix",
     rationale: "R1 requires ordinary addition for all numeric inputs.",
   }],
   nonBlockingImprovements: [],
@@ -254,6 +256,7 @@ function setupFixture(tmp) {
       id: "T-1",
       title: "Implement addition",
       goal: "Implement R1 in src/value.js.",
+      spec: `specs/${SPEC_ID}/tasks/T-1.md`,
       parent: null,
       origin: "plan",
       added_round: 0,
@@ -294,6 +297,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
 
     const failedReview = runEnvelope(tmp, ["flow", "run", "review"]);
     assert.equal(failedReview.data.artifacts.verdict, "FAIL");
+    assert.equal(failedReview.data.artifacts.taskId, "T-1");
     assertNext(tmp, "task-review", "T-1");
 
     // Repair mutates only the implementation source. Flow state and evidence
@@ -304,6 +308,17 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
       "}",
       "",
     ].join("\n"));
+    const failedFinding = JSON.parse(
+      fs.readFileSync(path.join(tmp, "specs/001-cli-lifecycle/impl-review.json"), "utf8"),
+    ).blockingFindings[0];
+    runEnvelope(tmp, [
+      "flow", "set", "issue-log",
+      "--step", "task-review",
+      "--reason", "Removed the invalid zero-value branch reported by task review.",
+      "--normalized-finding-id", failedFinding.findingId,
+      "--repair-ref-file", "src/value.js",
+      "--task-id", "T-1",
+    ]);
     const passedTaskReview = runEnvelope(tmp, ["flow", "run", "review"]);
     assert.equal(passedTaskReview.data.artifacts.verdict, "PASS");
     assertNext(tmp, "task-gate", "T-1");
@@ -321,6 +336,15 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     const passedFlowReview = runEnvelope(tmp, ["flow", "run", "review"]);
     assert.equal(passedFlowReview.data.artifacts.verdict, "PASS");
     assertNext(tmp, "impl-gate", null);
+    const reviewHistoryDir = path.join(tmp, "specs/001-cli-lifecycle/review-history");
+    const matchingHistory = fs.readdirSync(reviewHistoryDir)
+      .filter((name) => /^impl-attempt-\d{3}\.json$/.test(name))
+      .map((name) => JSON.parse(fs.readFileSync(path.join(reviewHistoryDir, name), "utf8")))
+      .filter((artifact) => artifact.blockingFindings?.some(
+        (finding) => finding.findingId === failedFinding.findingId,
+      ));
+    assert.ok(matchingHistory.length > 0);
+    assert.deepEqual(matchingHistory.map((artifact) => artifact.taskId ?? null), ["T-1"]);
 
     runEnvelope(tmp, ["flow", "run", "gate", "--phase", "integration", "--skip-guardrail"]);
     assertNext(tmp, "retro", null);

@@ -80,6 +80,25 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /Codebase-context design gaps belong to `spec-review` \/ `spec-triage` \/ `spec-repair`/);
     });
 
+    it("requires typed finding disposition policy in flow and task implementation review", () => {
+      for (const key of ["impl.impl-review", "task.task-review"]) {
+        const content = getStepInstructions(key);
+
+        assert.match(content, /typed disposition/i, key);
+        assert.match(content, /rationale/i, key);
+        assert.match(content, /must[- ]fix/i, key);
+        assert.match(content, /requirement.*guardrail|guardrail.*requirement/i, key);
+        assert.match(content, /fingerprint/i, key);
+        assert.match(content, /findingKey/, key);
+        assert.match(content, /informational.*deferred|deferred.*informational/i, key);
+        assert.doesNotMatch(
+          content,
+          /project-rule violations, naming proposals, refactor proposals, DRY proposals[^\n]+non-blocking or out of scope/i,
+          key,
+        );
+      }
+    });
+
     it("flow skill source documents runtime log options instead of env prefixes", () => {
       const content = fs.readFileSync(path.join(PKG_DIR, "skills", "senti.flow", "SKILL.md"), "utf8");
       const removedLogOption = `--log-${"file"}`;

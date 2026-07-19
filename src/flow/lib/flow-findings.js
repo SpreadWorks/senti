@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import { latestPlanRewind } from "./plan-rewind.js";
 
@@ -28,6 +29,24 @@ function requireString(value, field) {
     throw new Error(`${field} exceeds ${MAX_SOURCE_REF_CHARS} characters`);
   }
   return value;
+}
+
+function requireMirrorString(value, field) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${field} must be a non-empty string`);
+  }
+  if (value.length > MAX_MIRROR_FIELD_CHARS) {
+    throw new Error(`${field} exceeds ${MAX_MIRROR_FIELD_CHARS} characters`);
+  }
+  return value.trim();
+}
+
+function requireFindingFingerprint(value, field = "fingerprint") {
+  const fingerprint = requireString(value, field).toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(fingerprint)) {
+    throw new Error(`${field} must be a lowercase SHA-256 string`);
+  }
+  return fingerprint;
 }
 
 export function normalizeSourceArtifactPath(value, field = "sourceArtifact") {
@@ -99,6 +118,11 @@ export class FlowFinding {
     this.sourceStep = requireString(input.sourceStep, "sourceStep");
     this.sourceArtifact = normalizeSourceArtifactPath(input.sourceArtifact, "sourceArtifact");
     this.sourceFindingId = requireString(input.sourceFindingId, "sourceFindingId");
+    this.runId = input.runId == null ? null : requireString(input.runId, "runId");
+    this.fingerprint = requireFindingFingerprint(input.fingerprint);
+    this.disposition = requireString(input.disposition, "disposition");
+    if (this.disposition !== "deferred") throw new Error("disposition must be deferred");
+    this.rationale = requireMirrorString(input.rationale, "rationale");
     this.retryExhausted = requireBoolean(input.retryExhausted, "retryExhausted");
     this.attempts = requireInteger(input.attempts, "attempts");
     this.round = requireInteger(input.round, "round");
@@ -119,6 +143,10 @@ export class FlowFinding {
       sourceStep: this.sourceStep,
       sourceArtifact: this.sourceArtifact,
       sourceFindingId: this.sourceFindingId,
+      runId: this.runId,
+      fingerprint: this.fingerprint,
+      disposition: this.disposition,
+      rationale: this.rationale,
       retryExhausted: this.retryExhausted,
       attempts: this.attempts,
       round: this.round,
@@ -131,11 +159,14 @@ export class FlowFinding {
 
 export class FlowFindingsArtifact {
   constructor(input = {}) {
+    if (input.version != null && input.version !== 2) {
+      throw new Error("flow findings version must be 2");
+    }
     const entries = Array.isArray(input.entries) ? input.entries : [];
     if (entries.length > MAX_FLOW_FINDINGS) {
       throw new Error(`flow findings entry count exceeds ${MAX_FLOW_FINDINGS}`);
     }
-    this.version = 1;
+    this.version = 2;
     this.entries = Object.freeze(entries.map((entry) => (
       entry instanceof FlowFinding ? entry : new FlowFinding(entry)
     )));
@@ -167,10 +198,14 @@ export function readFlowFindingsArtifact(specDir, { flowState = null } = {}) {
   const file = flowFindingsPath(specDir);
   if (!fs.existsSync(file)) return new FlowFindingsArtifact({ entries: [] });
   const artifact = new FlowFindingsArtifact(readJson(file));
+  if (flowState === null) return artifact;
+  const expectedRunId = flowState?.runId == null ? null : String(flowState.runId).trim();
   const rewind = latestPlanRewind(flowState);
-  if (!rewind) return artifact;
   return new FlowFindingsArtifact({
-    entries: artifact.entries.filter((entry) => entry.planRewindAt === rewind.rewoundAt),
+    entries: artifact.entries.filter((entry) => (
+      entry.runId === expectedRunId
+      && entry.planRewindAt === (rewind?.rewoundAt ?? null)
+    )),
   });
 }
 
@@ -201,6 +236,8 @@ export function appendDeferredFlowFinding({
   sourceStep,
   sourceArtifact,
   sourceFindingId,
+  fingerprint,
+  rationale,
   attempts,
   round = null,
   finalDisposition = null,
@@ -209,10 +246,11 @@ export function appendDeferredFlowFinding({
   const existing = readFlowFindingsArtifact(specDir);
   const planRewindAt = latestPlanRewind(flowState)?.rewoundAt ?? null;
   const normalizedSourceArtifact = normalizeSourceArtifactPath(sourceArtifact);
+  const normalizedFingerprint = requireFindingFingerprint(fingerprint);
+  const runId = flowState?.runId == null ? null : requireString(flowState.runId, "flowState.runId");
   const existingIndex = existing.entries.findIndex((entry) => (
-    entry.sourceStep === sourceStep
-      && entry.sourceArtifact === normalizedSourceArtifact
-      && entry.sourceFindingId === sourceFindingId
+    entry.fingerprint === normalizedFingerprint
+      && entry.runId === runId
       && entry.planRewindAt === planRewindAt
   ));
   if (existingIndex >= 0) {
@@ -223,6 +261,9 @@ export function appendDeferredFlowFinding({
       attempts,
       round: round ?? attempts,
       completionKind: "deferred",
+      disposition: "deferred",
+      rationale: requireMirrorString(rationale, "rationale"),
+      runId,
       finalDisposition: current.finalDisposition ?? finalDisposition,
       planRewindAt,
     });
@@ -235,6 +276,10 @@ export function appendDeferredFlowFinding({
     sourceStep,
     sourceArtifact: normalizedSourceArtifact,
     sourceFindingId,
+    fingerprint: normalizedFingerprint,
+    disposition: "deferred",
+    rationale: requireMirrorString(rationale, "rationale"),
+    runId,
     retryExhausted: true,
     attempts,
     round: round ?? nextRound(existing),
@@ -320,22 +365,58 @@ function stableSourceFindingId(sourceStep, finding, index) {
     || `${sourceStep}:${index + 1}`;
 }
 
+function sourceFindingFingerprint(sourceStep, finding) {
+  if (typeof finding?.fingerprint === "string" && /^[a-f0-9]{64}$/.test(finding.fingerprint)) {
+    return finding.fingerprint;
+  }
+  const canonical = JSON.stringify({
+    sourceStep,
+    requirementId: String(finding?.requirementId || finding?.guardrail_id || "").trim(),
+    category: String(finding?.category || finding?.failureMode || finding?.failureKind || "").trim(),
+    file: String(finding?.file || finding?.location?.file || "").trim().replace(/\\/g, "/"),
+    issue: String(finding?.issue || finding?.reason || finding?.title || "").trim(),
+  });
+  return crypto.createHash("sha256").update(canonical).digest("hex");
+}
+
+function sourceFindingRationale(finding) {
+  return String(
+    finding?.rationale
+      || finding?.reason
+      || finding?.whyBlocking
+      || finding?.issue
+      || finding?.title
+      || "Retry exhaustion deferred this finding for bounded final disposition.",
+  ).trim();
+}
+
 export function deferExhaustedSemanticFindings({
   root,
   flowState,
   sourceStep,
   sourceArtifact,
   attempts,
+  fingerprints = null,
 } = {}) {
   const specDir = specDirFromFlowState(root, flowState);
   const artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
-  const sourceFindings = sourceFindingsForArtifact(artifact, sourceStep);
-  const deferred = sourceFindings.map((finding, index) => appendDeferredFlowFinding({
+  const selectedFingerprints = fingerprints instanceof Set ? fingerprints : null;
+  const sourceFindings = sourceFindingsForArtifact(artifact, sourceStep).filter((finding) => (
+    selectedFingerprints === null || selectedFingerprints.has(finding?.fingerprint)
+  ));
+  const byFingerprint = new Map();
+  sourceFindings.forEach((finding, index) => {
+    const fingerprint = sourceFindingFingerprint(sourceStep, finding);
+    if (!byFingerprint.has(fingerprint)) byFingerprint.set(fingerprint, { finding, index });
+  });
+  const deferred = [...byFingerprint].map(([fingerprint, { finding, index }]) => appendDeferredFlowFinding({
     root,
     flowState,
     sourceStep,
     sourceArtifact,
     sourceFindingId: stableSourceFindingId(sourceStep, finding, index),
+    fingerprint,
+    rationale: sourceFindingRationale(finding),
     attempts,
     round: attempts,
     finalDisposition: "still_open",

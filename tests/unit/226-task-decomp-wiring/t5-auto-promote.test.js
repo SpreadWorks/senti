@@ -219,6 +219,20 @@ describe("T-5: auto-promote function and callers", () => {
       tasks,
       currentTaskId: "T-1",
     });
+    fs.writeFileSync(path.join(specDir, "impl-review.json"), `${JSON.stringify({
+      version: 1,
+      phase: "impl",
+      runId: "run-test",
+      planRewindAt: null,
+      taskId: "T-1",
+      target: "specs/226-gate-impl/tasks/T-1.md",
+      generatedAt: new Date().toISOString(),
+      verdict: "PASS",
+      blockingFindings: [],
+      nonBlockingImprovements: [],
+      repairTargets: [],
+      summary: { blocking: 0, nonBlocking: 0, total: 0 },
+    }, null, 2)}\n`);
     fs.writeFileSync(path.join(tmp, "src/value.js"), "export const value = 2;\n");
     const fm = makeFlowManager(tmp);
 
