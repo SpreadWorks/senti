@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-12T14:38:07.678Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 5,
+    "advisory": 0,
+    "total": 5
+  },
+  "coverageArtifact": "specs/318-impl-repair-acceptance/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 producer coverage relies on source-text matching for several artifacts",
+      "target": "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js",
+      "issue": "The test for required fingerprint producers only regex-searches producer source files for writeRepairEvidenceArtifact or stampRepairFingerprint. That can pass if the helper is mentioned but not used on the executable artifact path, and it does not exercise impl-gate, retro, or acceptance-review artifact production behavior.",
+      "requiredChange": "Replace or supplement the regex source check with executable spec-local coverage that runs or directly invokes each required producer path and asserts the emitted artifact records the current repair fingerprint.",
+      "whyBlocking": "R4 requires every artifact produced by those steps to record the current repair fingerprint; the current static anti-pattern could pass without exercising production behavior.",
+      "origin": "R4",
+      "failureKind": "static_anti_pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 public CLI acceptance lifecycle coverage is missing",
+      "target": "specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js and specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+      "issue": "R8 requires public CLI behavior coverage for exhaustive requirement judgments, notMet repair routing, and notVerifiable approval safety without directly mutating flow state or evidence. The CLI test covers repair closure and no-repair PASS, while the acceptance cases directly construct artifacts and mutate an in-memory flow manager.",
+      "requiredChange": "Add spec-local CLI tests that drive acceptance-review and acceptance-decision behavior through the public commands for exhaustive judgments, notMet routing, and notVerifiable approval safety.",
+      "whyBlocking": "An acceptance requirement has no corresponding public CLI coverage and the existing unit-style tests bypass the target API required by R8.",
+      "origin": "R8",
+      "failureKind": "missing_required_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 audit empty-field rejection coverage is incomplete",
+      "target": "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js",
+      "issue": "The test only verifies ImplRepairEntry rejects an empty sourceFindingIds list. It does not cover rejection of other required empty audit fields such as changedPaths, reason, invalidatedArtifacts, or createdAt.",
+      "requiredChange": "Add focused assertions that ImplRepairEntry rejects each required audit field when empty.",
+      "whyBlocking": "R2 explicitly requires dedicated classes to reject empty audit fields; the current tests leave most required audit fields uncovered.",
+      "origin": "R2",
+      "failureKind": "missing_required_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 plugin fingerprint coverage is missing",
+      "target": "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js",
+      "issue": "The fingerprint test covers src, .senti/config.json, the active spec, active spec tests, and generated evidence exclusion, but it does not verify additions, removals, or content changes under plugins/.",
+      "requiredChange": "Add plugin-path cases showing the repair fingerprint changes for plugin file addition, removal, and content change.",
+      "whyBlocking": "R3 requires fingerprint changes for any addition, removal, or content change under plugins/; that required input class has no corresponding test coverage.",
+      "origin": "R3",
+      "failureKind": "missing_required_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 mechanical-blocker routing is not exercised",
+      "target": "specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+      "issue": "The tests assert verdict precedence returns blocked for mechanicalBlockers, but do not exercise acceptance routing for a mechanical blocker to ensure the flow fails closed and does not advance to repair, acceptance-decision, or final-regression.",
+      "requiredChange": "Add a routing test for an acceptance-review artifact with mechanicalBlockers that asserts fail-closed step behavior.",
+      "whyBlocking": "R6 requires acceptance routing to fail closed on mechanical blockers; current routing coverage omits that critical path.",
+      "origin": "R6",
+      "failureKind": "missing_required_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/318-impl-repair-acceptance/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 5,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "dd42a7ece4bb73da654be517e608ba4f0c2b28fdb17589de4174dbdad665edf1"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R4 producer coverage relies on source-text matching for several artifacts",
+      "body": "The test for required fingerprint producers only regex-searches producer source files for writeRepairEvidenceArtifact or stampRepairFingerprint. That can pass if the helper is mentioned but not used on the executable artifact path, and it does not exercise impl-gate, retro, or acceptance-review artifact production behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R8 public CLI acceptance lifecycle coverage is missing",
+      "body": "R8 requires public CLI behavior coverage for exhaustive requirement judgments, notMet repair routing, and notVerifiable approval safety without directly mutating flow state or evidence. The CLI test covers repair closure and no-repair PASS, while the acceptance cases directly construct artifacts and mutate an in-memory flow manager.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R2 audit empty-field rejection coverage is incomplete",
+      "body": "The test only verifies ImplRepairEntry rejects an empty sourceFindingIds list. It does not cover rejection of other required empty audit fields such as changedPaths, reason, invalidatedArtifacts, or createdAt.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R3 plugin fingerprint coverage is missing",
+      "body": "The fingerprint test covers src, .senti/config.json, the active spec, active spec tests, and generated evidence exclusion, but it does not verify additions, removals, or content changes under plugins/.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R6 mechanical-blocker routing is not exercised",
+      "body": "The tests assert verdict precedence returns blocked for mechanicalBlockers, but do not exercise acceptance routing for a mechanical blocker to ensure the flow fails closed and does not advance to repair, acceptance-decision, or final-regression.",
+      "category": "unknown"
+    }
+  ]
+}

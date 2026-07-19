@@ -11,7 +11,7 @@ import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import {
-  getFlowBranchLeafIds,
+  flowLeafIdsBetween,
   resolveMaxAttempts,
   resetImplEvidenceAfterReviewProposals as resetImplEvidenceStateAfterReviewProposals,
 } from "../definition.js";
@@ -37,6 +37,10 @@ import {
   readBoundedSourceArtifact,
   specDirFromFlowState,
 } from "./flow-findings.js";
+import {
+  assertRepairFingerprint,
+  buildRepairFingerprint,
+} from "./impl-repair-artifacts.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const IMPL_REVIEW_PHASE = "impl";
@@ -50,7 +54,10 @@ const REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL = "review-verdict-fail";
 const MAX_IMPL_DOWNSTREAM_RESET_STEPS = 20;
 // Review proposals invalidate all implementation leaves from fresh test
 // execution through finalize cleanup; both endpoints are intentionally reset.
-const IMPL_REVIEW_DOWNSTREAM_STEP_IDS = inclusiveFlowLeafStepIdsBetween("test-execute", "finalize-cleanup");
+const IMPL_REVIEW_DOWNSTREAM_STEP_IDS = flowLeafIdsBetween("test-execute", "finalize-cleanup");
+if (IMPL_REVIEW_DOWNSTREAM_STEP_IDS.length > MAX_IMPL_DOWNSTREAM_RESET_STEPS) {
+  throw new Error(`impl downstream reset leaf count exceeds max ${MAX_IMPL_DOWNSTREAM_RESET_STEPS}`);
+}
 
 // ---------------------------------------------------------------------------
 // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
@@ -79,19 +86,6 @@ function persistedPhaseKey(ctxPhase) {
 
 function isImplementationReviewPhase(phase) {
   return phase == null || phase === IMPL_REVIEW_PHASE;
-}
-
-function inclusiveFlowLeafStepIdsBetween(startId, endId) {
-  const ids = getFlowBranchLeafIds("impl");
-  if (ids.length > MAX_IMPL_DOWNSTREAM_RESET_STEPS) {
-    throw new Error(`impl downstream reset leaf count exceeds max ${MAX_IMPL_DOWNSTREAM_RESET_STEPS}`);
-  }
-  const start = ids.indexOf(startId);
-  const end = ids.indexOf(endId);
-  if (start < 0 || end < start) {
-    throw new Error(`flow definition range not found: ${startId}..${endId}`);
-  }
-  return Object.freeze(ids.slice(start, end + 1));
 }
 
 function taskCursorRequiredReviewFailure(decision, state) {
@@ -644,6 +638,19 @@ export class RunReviewCommand extends FlowCommand {
         taskReviewSpec = taskSpec;
       } else if (decision.kind === "broad") {
         broadMode = assertAuditedBroadMode(decision, "impl-review");
+      }
+      if (!taskReviewSpec) {
+        const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
+        const fingerprint = buildRepairFingerprint({ root, specPath: ctx.flowState.spec });
+        for (const file of ["test-execute-result.json", "test-result-review.json"]) {
+          const artifactPath = path.join(specDir, file);
+          if (!fs.existsSync(artifactPath)) throw new Error(`${file} is required before impl-review`);
+          assertRepairFingerprint({
+            artifact: JSON.parse(fs.readFileSync(artifactPath, "utf8")),
+            fingerprint,
+            label: file,
+          });
+        }
       }
     }
 

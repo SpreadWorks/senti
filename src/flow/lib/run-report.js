@@ -26,6 +26,7 @@ import {
   validateUpgradeResultArtifact,
 } from "./test-artifacts.js";
 import { readRetroResultIfExists } from "./retro-artifacts.js";
+import { assertCurrentRepairEvidenceFiles } from "./impl-repair-artifacts.js";
 
 export function buildUpgradeReportDataFromArtifacts(specDir) {
   const resultPath = path.join(specDir, UPGRADE_RESULT_FILE);
@@ -59,6 +60,12 @@ export class RunReportCommand extends FlowCommand {
     try { redolog = loadIssueLog(root, state.spec); } catch (_) { /* no redolog */ }
 
     const specDir = path.dirname(path.resolve(root, state.spec));
+    assertCurrentRepairEvidenceFiles({
+      root,
+      state,
+      specDir,
+      files: ["test-execute-result.json", "test-result-review.json", "retro.json"],
+    });
     const retroResult = readRetroResultIfExists(specDir, "run-report");
     const hasTestExecuteResult = fs.existsSync(path.join(specDir, "test-execute-result.json"));
     const hasTestResultReview = fs.existsSync(path.join(specDir, "test-result-review.json"));

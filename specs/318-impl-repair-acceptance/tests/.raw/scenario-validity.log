@@ -1,0 +1,309 @@
+[senti] scenario-validity tests start
+command: node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js
+[senti] scenario-validity file start command=node specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js
+TAP version 13
+# Subtest: R7: guarded CLI envelopes retain target checks during repair
+not ok 1 - R7: guarded CLI envelopes retain target checks during repair
+  ---
+  duration_ms: 53.182675
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js:137:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot set properties of null (setting 'status')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    setupProject (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js:78:45)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js:140:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R8: CLI repair completion invalidates old evidence and retest writes the new fingerprint
+not ok 2 - R8: CLI repair completion invalidates old evidence and retest writes the new fingerprint
+  ---
+  duration_ms: 44.40707
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js:163:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot set properties of null (setting 'status')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    setupProject (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js:78:45)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js:166:41)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 110.04985
+Command failed: node specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js
+[senti] scenario-validity file start command=node specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js
+TAP version 13
+# Subtest: R1: flow definition exposes implementation triage and repair routing
+not ok 1 - R1: flow definition exposes implementation triage and repair routing
+  ---
+  duration_ms: 3.393138
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:36:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        'impl-review',
+    -   'impl-triage',
+    -   'impl-repair',
+        'impl-gate',
+    +   'retro',
+    +   'acceptance-review'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'impl-review'
+    1: 'impl-triage'
+    2: 'impl-repair'
+    3: 'impl-gate'
+  actual:
+    0: 'impl-review'
+    1: 'impl-gate'
+    2: 'retro'
+    3: 'acceptance-review'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:40:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: implementation triage and repair values enforce audit invariants
+not ok 2 - R2: implementation triage and repair values enforce audit invariants
+  ---
+  duration_ms: 0.683443
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:69:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    implementation repair domain module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadRepairModule (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:16:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:75:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R3: repair fingerprint covers defined inputs and fails closed at bounds
+not ok 3 - R3: repair fingerprint covers defined inputs and fails closed at bounds
+  ---
+  duration_ms: 0.689444
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:113:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    implementation repair domain module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadRepairModule (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:16:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:118:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: mismatched downstream evidence is invalidated while plan inputs remain
+not ok 4 - R4: mismatched downstream evidence is invalidated while plan inputs remain
+  ---
+  duration_ms: 0.451243
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:161:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    implementation repair domain module must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    loadRepairModule (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:16:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js:165:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: retained command registry surfaces include repair-aware lifecycle commands
+ok 5 - R7: retained command registry surfaces include repair-aware lifecycle commands
+  ---
+  duration_ms: 0.335602
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 1
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21.14391
+Command failed: node specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js
+[senti] scenario-validity file start command=node specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js
+TAP version 13
+# Subtest: R5: requirement judgments enforce semantic evidence invariants
+not ok 1 - R5: requirement judgments enforce semantic evidence invariants
+  ---
+  duration_ms: 13.662951
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:87:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /status/i. Input:
+    
+    'TypeError: RequirementAcceptanceJudgment is not a constructor'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: 'RequirementAcceptanceJudgment is not a constructor'
+  name: 'TypeError'
+  stack: |-
+    file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:89:23
+    getActual (node:assert:609:5)
+    Function.throws (node:assert:757:24)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:89:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:89:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R5: acceptance artifact covers every requirement exactly once
+not ok 2 - R5: acceptance artifact covers every requirement exactly once
+  ---
+  duration_ms: 3.447778
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:101:1'
+  failureType: 'testCodeFailure'
+  error: 'acceptance-review schema validation failed: goalSatisfactionScore: required field is missing; requirementAlignmentScore: required field is missing; implementationQualityScore: required field is missing; acceptanceScore: required field is missing; thresholds: required field is missing; attempt: required field is missing; findings: required field is missing; requirementAmendmentProposals: required field is missing'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    validateAcceptanceReviewArtifact (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/src/flow/lib/acceptance-review-artifacts.js?t=1783866287328:156:32)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:104:16)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: acceptance verdict precedence is blocker, notMet, notVerifiable, then pass
+ok 3 - R6: acceptance verdict precedence is blocker, notMet, notVerifiable, then pass
+  ---
+  duration_ms: 5.82235
+  type: 'test'
+  ...
+# Subtest: R6: acceptance routing reaches repair, approval, or final regression
+not ok 4 - R6: acceptance routing reaches repair, approval, or final regression
+  ---
+  duration_ms: 5.702589
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:136:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot set properties of null (setting 'status')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    setupFlow (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:75:59)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:159:38)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: notVerifiable decision is approval-required and has no implicit unsafe choice
+not ok 5 - R6: notVerifiable decision is approval-required and has no implicit unsafe choice
+  ---
+  duration_ms: 8.922327
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:170:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(node)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: ~
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-318-impl-repair-acceptance/specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js:173:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 1
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 54.263681
+Command failed: node specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: flow definition exposes implementation triage and repair routing
+[senti] requirement R2 observed: R2: implementation triage and repair values enforce audit invariants
+[senti] requirement R3 observed: R3: repair fingerprint covers defined inputs and fails closed at bounds
+[senti] requirement R4 observed: R4: mismatched downstream evidence is invalidated while plan inputs remain
+[senti] requirement R5 observed: R5: requirement judgments enforce semantic evidence invariants
+[senti] requirement R6 observed: R6: acceptance verdict precedence is blocker, notMet, notVerifiable, then pass
+[senti] requirement R7 observed: R7: guarded CLI envelopes retain target checks during repair
+[senti] requirement R8 observed: R8: CLI repair completion invalidates old evidence and retest writes the new fingerprint
+[senti] scenario-validity tests end

@@ -50,6 +50,10 @@ import {
   runProcessDetailed,
 } from "./test-regression.js";
 import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
+import {
+  buildRepairFingerprint,
+  writeRepairEvidenceArtifact,
+} from "./impl-repair-artifacts.js";
 
 const MAX_TEST_EXECUTE_REQUIREMENTS = 500;
 const NO_TESTS_DECLARED_REASON = "no_tests_declared";
@@ -340,7 +344,13 @@ export default class RunTestExecuteCommand extends FlowCommand {
         summary: persistedSummary,
         regression,
       };
-      fs.writeFileSync(resultPath, JSON.stringify(artifact, null, 2) + "\n");
+      const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+      writeRepairEvidenceArtifact({
+        specDir,
+        stepId: "test-execute",
+        artifact,
+        fingerprint,
+      });
       removeTempRequirementSummary(specDir);
       tempSummaryWritten = false;
 

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/prompts/impl/impl-review.md",
+      "src/flow/registry.js"
+    ],
+    "inputHash": "acfad55fca5bbbe9e7744edeb5001f0d285cb756b5342f79c6a9aaa499e457ae",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "src/flow/prompts/impl/impl-review.md",
+    "src/flow/registry.js"
+  ],
+  "inputHash": "acfad55fca5bbbe9e7744edeb5001f0d285cb756b5342f79c6a9aaa499e457ae",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T20:29:11.605Z",
+  "finishedAt": "2026-07-12T20:29:11.605Z",
+  "rawResponse": "### 1. Clarify triage wording to avoid mixed responsibilities\n**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** The FAIL path says to “Continue to `impl-triage`” and then “Address only `blockingFindings[]` through the triage artifact.” “Address” can imply doing repair work during review/triage, which conflicts with “do not repair directly from the review step.”  \n**Suggestion:** Reword step 3 to make the artifact responsibility explicit, e.g. “Use the triage artifact to select and carry forward only `blockingFindings[]` for `impl-repair`.” This keeps review, triage, and repair responsibilities distinct.\n\n### 2. Avoid hard-coding choices if lifecycle choices may expand\n**File:** `src/flow/registry.js`  \n**Issue:** The help text now hard-codes only `accept_risk_and_continue` and `abort`. If the acceptance-decision command later supports additional explicit choices, the help text can drift from the implementation.  \n**Suggestion:** If the valid choices already exist as constants or schema values in this file, generate this help line from that source instead of duplicating the literals in the help string.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Clarify triage wording to avoid mixed responsibilities",
+        "body": "**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** The FAIL path says to “Continue to `impl-triage`” and then “Address only `blockingFindings[]` through the triage artifact.” “Address” can imply doing repair work during review/triage, which conflicts with “do not repair directly from the review step.”  \n**Suggestion:** Reword step 3 to make the artifact responsibility explicit, e.g. “Use the triage artifact to select and carry forward only `blockingFindings[]` for `impl-repair`.” This keeps review, triage, and repair responsibilities distinct.",
+        "file": "src/flow/prompts/impl/impl-review.md"
+      },
+      {
+        "title": "2. Avoid hard-coding choices if lifecycle choices may expand",
+        "body": "**File:** `src/flow/registry.js`  \n**Issue:** The help text now hard-codes only `accept_risk_and_continue` and `abort`. If the acceptance-decision command later supports additional explicit choices, the help text can drift from the implementation.  \n**Suggestion:** If the valid choices already exist as constants or schema values in this file, generate this help line from that source instead of duplicating the literals in the help string.",
+        "file": "src/flow/registry.js"
+      }
+    ]
+  }
+}

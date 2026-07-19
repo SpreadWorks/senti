@@ -82,6 +82,11 @@ import {
   completeDraftArtifactChange,
   completeSpecArtifactChange,
 } from "./artifact-completion.js";
+import {
+  assertRepairFingerprint,
+  buildRepairFingerprint,
+  writeRepairEvidenceArtifact,
+} from "./impl-repair-artifacts.js";
 
 export { resolveGateStepId };
 
@@ -172,6 +177,15 @@ function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
     return Envelope.fail("run", "gate", result.code, [
       `test artifact validation failed: ${result.reason}`,
     ], { phase, level, spec: specPath });
+  }
+  const fingerprint = buildRepairFingerprint({ root, specPath });
+  for (const file of ["test-execute-result.json", "test-result-review.json"]) {
+    const artifactPath = path.join(specDir, file);
+    assertRepairFingerprint({
+      artifact: JSON.parse(fs.readFileSync(artifactPath, "utf8")),
+      fingerprint,
+      label: file,
+    });
   }
   return null;
 }
@@ -3041,13 +3055,20 @@ function persistIntegrationGateResult({ root, state, result }) {
     phase: "integration",
     artifactPath: artifactPathRelative,
   }).summary.toJSON();
-  fs.writeFileSync(artifactPath, JSON.stringify(artifact, null, 2) + "\n");
+  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+  const written = writeRepairEvidenceArtifact({
+    specDir,
+    stepId: "impl-gate",
+    artifact,
+    fingerprint,
+  });
   result.changed = Array.from(new Set([...(Array.isArray(result.changed) ? result.changed : []), artifactPathRelative]));
   result.artifacts = {
     ...sourceArtifacts,
     verdict: artifact.verdict,
     artifactPath: artifactPathRelative,
     contractSummary: artifact.contractSummary,
+    repairFingerprint: written.artifact.repairFingerprint,
   };
   return result;
 }
@@ -3684,10 +3705,14 @@ export class RunGateCommand extends FlowCommand {
 }
 
 export default RunGateCommand;
-async function runGatePhaseWithDependencies({ phase, specDir, gateResult }) {
+async function runGatePhaseWithDependencies({ phase, specDir, gateResult, fingerprint = null }) {
   const basename = phase === "integration" ? "impl-gate-result.json" : `${phase}-gate-result.json`;
   fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(path.join(specDir, basename), `${JSON.stringify(gateResult, null, 2)}\n`);
+  if (phase === "integration" && fingerprint) {
+    writeRepairEvidenceArtifact({ specDir, stepId: "impl-gate", artifact: gateResult, fingerprint });
+  } else {
+    fs.writeFileSync(path.join(specDir, basename), `${JSON.stringify(gateResult, null, 2)}\n`);
+  }
   return { changed: [basename] };
 }
 

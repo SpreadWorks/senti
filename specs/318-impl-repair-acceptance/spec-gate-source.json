@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The spec identifies retained public command, guard, envelope, artifact, hook, and behavior-test surfaces, but does not map each retained behavior to its new owner or to an explicit removal decision as required for migration parity.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[6]"
+          },
+          "observed": "The spec identifies retained public command, guard, envelope, artifact, hook, and behavior-test surfaces, but does not map each retained behavior to its new owner or to an explicit removal decision as required for migration parity.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[6]"
+      },
+      "observed": "The spec identifies retained public command, guard, envelope, artifact, hook, and behavior-test surfaces, but does not map each retained behavior to its new owner or to an explicit removal decision as required for migration parity.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

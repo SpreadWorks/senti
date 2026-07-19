@@ -10,9 +10,14 @@ import {
   classifyGateRetryExhaustionSource,
 } from "../../../src/flow/lib/run-gate.js";
 import {
-  buildAcceptanceReviewArtifactFromEvidence,
+  artifactFromAcceptanceJudgments,
+  buildAcceptanceReviewContext,
   writeAcceptanceReviewArtifact,
 } from "../../../src/flow/lib/acceptance-review-artifacts.js";
+import {
+  buildRepairFingerprint,
+  writeRepairEvidenceArtifact,
+} from "../../../src/flow/lib/impl-repair-artifacts.js";
 import { readFlowFindingsArtifact } from "../../../src/flow/lib/flow-findings.js";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 
@@ -47,6 +52,8 @@ function fakeFlowManager(updates) {
 
 function prepareSpecRoot() {
   tmp = createTmpDir("retry-exhaustion-defer-");
+  writeJson(tmp, ".senti/config.json", { name: "deferred-finding-test" });
+  writeFile(tmp, "src/demo.js", "export const demo = true;\n");
   writeJson(tmp, "specs/demo/spec.json", {
     requirements: [{ id: "R1", desc: "demo requirement", priority: "must" }],
   });
@@ -57,15 +64,99 @@ function prepareSpecRoot() {
   };
 }
 
-function prepareAcceptanceEvidence(specDir) {
-  writeJson(specDir, "scenario-validity-result.json", { result: "pass" });
-  writeFile(specDir, "tests/retry-exhaustion.test.js", "test('R1: demo requirement', () => {});\n");
-  writeJson(specDir, "test-execute-result.json", {
-    version: "2",
-    summary: [{ id: "R1", result: "pass" }],
+function prepareAcceptanceEvidence({ root, specDir, specPath }) {
+  const testFile = "specs/demo/tests/retry-exhaustion.test.js";
+  const scenarioRaw = "specs/demo/tests/.raw/scenario-validity.log";
+  const executionRaw = "specs/demo/tests/.raw/test-execution.log";
+  writeFile(root, testFile, "test('R1: demo requirement', () => {});\n");
+  writeFile(root, scenarioRaw, "R1 expected failure\n");
+  writeFile(root, executionRaw, "R1 pass\n");
+  writeJson(specDir, "scenario-validity-result.json", {
+    version: "1",
+    raw_output_path: scenarioRaw,
+    command: `node ${testFile}`,
+    process: { started: true, exitCode: 1, signal: null, timedOut: false, spawnError: null },
+    result: "pass",
+    summary: [{
+      id: "R1",
+      classification: "expected_fail",
+      evidence: {
+        test_file: testFile,
+        test_name: "R1: demo requirement",
+        command: `node ${testFile}`,
+        raw_output_lines: { start_line: 1, end_line: 1 },
+      },
+    }],
   });
-  writeJson(specDir, "test-result-review.json", { verdict: "pass" });
-  writeJson(specDir, "retro.json", { result: "pass" });
+  const fingerprint = buildRepairFingerprint({ root, specPath });
+  writeRepairEvidenceArtifact({ specDir, stepId: "test-execute", fingerprint, artifact: {
+    version: "2",
+    raw_output_path: executionRaw,
+    summary: [{
+      id: "R1",
+      result: "pass",
+      evidence: {
+        test_file: testFile,
+        test_name: "R1: demo requirement",
+        command: `node --test ${testFile}`,
+        raw_output_lines: { start_line: 1, end_line: 1 },
+      },
+    }],
+    regression: {
+      required: false,
+      result: "skipped",
+      mode: "none",
+      changed_files: [],
+      trigger_relevant_changed_files: [],
+      category: "spec-artifact-only",
+      reason: "unit fixture",
+      classified_paths: [],
+    },
+  }});
+  writeRepairEvidenceArtifact({ specDir, stepId: "test-result-review", fingerprint, artifact: {
+    verdict: "pass",
+    checked_items: [{ check: "project_regression_verification", result: "pass", detail: "verified" }],
+    result_file_path: "specs/demo/test-execute-result.json",
+    raw_output_path: executionRaw,
+  }});
+  writeRepairEvidenceArtifact({ specDir, stepId: "impl-review", fingerprint, artifact: {
+    version: 1,
+    phase: "impl",
+    generatedAt: new Date().toISOString(),
+    verdict: "PASS",
+    summary: { blocking: 0, nonBlocking: 0, total: 0 },
+    blockingFindings: [],
+    nonBlockingImprovements: [],
+    excluded: { missingFile: 0, outOfScope: 0 },
+  }});
+  writeRepairEvidenceArtifact({ specDir, stepId: "impl-gate", fingerprint, artifact: {
+    verdict: "pass",
+    issues: [],
+    nextAction: "retro",
+    level: "integration",
+    phase: "integration",
+    evaluations: [],
+    reasons: [],
+  }});
+  writeRepairEvidenceArtifact({ specDir, stepId: "retro", fingerprint, artifact: {
+    spec: specPath,
+    date: new Date().toISOString(),
+    mode: "result-file",
+    requirements: [{ desc: "demo requirement", status: "done", note: "R1: demo requirement" }],
+    unplanned: [],
+    summary: {
+      total: 1,
+      done: 1,
+      partial: 0,
+      not_done: 0,
+      not_applicable_count: 0,
+      na_count: 0,
+      not_testable_count: 0,
+      rate: 1,
+      notes: "unit fixture",
+    },
+  }});
+  return fingerprint;
 }
 
 test("review retry exhaustion defers semantic findings without prose keyword blocking", () => {
@@ -142,7 +233,7 @@ test("acceptance-review consumes deferred findings and mirrors final disposition
     },
     flowManager: fakeFlowManager([]),
   }, "test");
-  prepareAcceptanceEvidence(fixture.specDir);
+  const fingerprint = prepareAcceptanceEvidence(fixture);
 
   const deferredFindingId = readFlowFindingsArtifact(fixture.specDir).toJSON().entries[0].findingId;
   writeJson(fixture.specDir, "acceptance-review-evidence.json", {
@@ -152,15 +243,49 @@ test("acceptance-review consumes deferred findings and mirrors final disposition
       evidenceRefs: ["test-review.json#test-semantic"],
     }],
   });
-  const artifact = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
+  const state = {
+    spec: fixture.specPath,
+    request: "Verify the deferred demo requirement.",
+  };
+  const diff = [
+    "diff --git a/src/demo.js b/src/demo.js",
+    "--- a/src/demo.js",
+    "+++ b/src/demo.js",
+    "@@ -1 +1 @@",
+    "-export const demo = false;",
+    "+export const demo = true;",
+    "",
+  ].join("\n");
+  const context = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
+  const artifact = artifactFromAcceptanceJudgments({
+    context,
+    requirementJudgments: [{
+      requirementId: "R1",
+      status: "met",
+      requestRefs: ["flow.request"],
+      requirementRefs: ["spec.json#R1"],
+      diffRefs: ["diff:src/demo.js"],
+      repairRefs: ["acceptance:no-repair"],
+      testRefs: ["test-execute-result.json#R1"],
+      missingEvidence: [],
+    }],
+  });
   assert.equal(artifact.verdict, "pass");
   assert.equal(artifact.deferredFindings[0].finalDisposition, "fixed");
+  assert.equal(artifact.requirementJudgments[0].requirementId, "R1");
+  assert.equal(artifact.repairFingerprint, fingerprint.hash);
 
-  writeAcceptanceReviewArtifact({ specDir: fixture.specDir, artifact });
+  writeAcceptanceReviewArtifact({
+    specDir: fixture.specDir,
+    artifact,
+    requirementIds: ["R1"],
+    fingerprint,
+  });
   const mirrored = readFlowFindingsArtifact(fixture.specDir).toJSON().entries[0];
   assert.equal(mirrored.finalDisposition, "fixed");
 
   fs.renameSync(path.join(fixture.specDir, "test-review.json"), path.join(fixture.specDir, "test-review.json.bak"));
-  const missingSource = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
+  const missingContext = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
+  const missingSource = artifactFromAcceptanceJudgments({ context: missingContext, requirementJudgments: [] });
   assert.equal(missingSource.verdict, "blocked");
 });

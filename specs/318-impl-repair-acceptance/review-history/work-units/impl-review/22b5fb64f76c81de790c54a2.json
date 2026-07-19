@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "22b5fb64f76c81de790c54a2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-4d93083fe330c7ff",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/commands/review.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/get-next-action.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-retro.js",
+      "src/flow/lib/run-test-execute.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/prompts/impl/impl-review.md",
+      "src/flow/schemas/acceptance-review.schema.json",
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "4d93083fe330c7ffa46a49a15dc9a506401f9807051c3695a9172a9e134a8142",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "22b5fb64f76c81de790c54a2"
+  },
+  "targetFiles": [
+    "src/flow/commands/review.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/get-next-action.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-retro.js",
+    "src/flow/lib/run-test-execute.js",
+    "src/flow/lib/set-step.js",
+    "src/flow/prompts/impl/impl-review.md",
+    "src/flow/schemas/acceptance-review.schema.json",
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "4d93083fe330c7ffa46a49a15dc9a506401f9807051c3695a9172a9e134a8142",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T20:30:09.452Z",
+  "finishedAt": "2026-07-12T20:30:09.452Z",
+  "rawResponse": "### 1. Centralize repair evidence validation\n**File:** `src/flow/lib/run-gate.js`\n**Issue:** Repair evidence fingerprint validation is being introduced in several files with different shapes: `run-gate.js` manually reads/parses/asserts artifacts, while `run-report.js`, `run-review.js`, `run-retro.js`, `run-final-regression.js`, and `run-finalize.js` reference or duplicate similar repair evidence checks. This creates cross-file drift risk around required files, optional files, fingerprint construction, and error behavior.\n**Suggestion:** Add or extend one shared helper, for example `assertCurrentRepairEvidenceFiles(...)`, with explicit support for mandatory vs optional artifacts. Use it consistently across gate, review, retro, report, final regression, and finalize flows.\n\n### 2. Share repair artifact filename constants\n**File:** `src/flow/lib/run-review.js`\n**Issue:** Artifact names such as `test-execute-result.json`, `test-result-review.json`, and `retro.json` are repeated across `run-review.js`, `run-retro.js`, `run-report.js`, `run-finalize.js`, and `run-gate.js`. Some files use local constants while others inline literals, making future artifact renames or requirement changes easy to miss.\n**Suggestion:** Move repair evidence filenames and common file sets into a shared artifact module, for example `REPAIR_TEST_EXECUTE_RESULT`, `REPAIR_TEST_RESULT_REVIEW`, `REPAIR_RETRO_RESULT`, and named sets such as `REQUIRED_REPORT_REPAIR_EVIDENCE_FILES`.\n\n### 3. Unify implementation step ID sets\n**File:** `src/flow/lib/get-next-action.js`\n**Issue:** Implementation-phase step IDs are now embedded or repeated in multiple places, including lifecycle logic in `definition.js`, next-action classification in `get-next-action.js`, and step completion/reset logic in `set-step.js`. This can cause inconsistent behavior when implementation flow steps are added or renamed.\n**Suggestion:** Define shared implementation step groups, such as `IMPLEMENTATION_STEP_IDS`, `IMPLEMENTATION_REPAIR_STEP_IDS`, and `IMPLEMENTATION_REPAIR_RESET_STEP_IDS`, then reuse them across flow definition, next-action, and set-step logic.\n\n### 4. Align acceptance review schema bounds across full and projected schemas\n**File:** `src/flow/schemas/acceptance-review.schema.json`\n**Issue:** Both `acceptance-review.schema.json` and `next-action/acceptance-review.schema.json` expose acceptance-review arrays and verdict-like fields, but bounds and shape strictness are proposed independently. This risks the full artifact and next-action projection accepting different sizes or object shapes.\n**Suggestion:** Factor shared schema definitions where supported, or mirror a common `$defs` structure in both files for verdicts, blocker arrays, requirement judgments, evidence refs, and size limits.\n\n### 5. Standardize implementation repair completion payload names\n**File:** `src/flow/lib/set-step.js`\n**Issue:** Related implementation repair steps return different payload keys, such as `dispositions` for `impl-triage` and `repair` plus `invalidations` for `impl-repair`. Meanwhile prompts and lifecycle code refer to triage, repair, findings, and artifacts with slightly different terminology.\n**Suggestion:** Use a consistent response envelope for related implementation repair steps, such as `{ artifact, invalidations }`, and align prompt wording with the same terms so command consumers do not need step-specific parsing branches.\n\n### 6. Centralize acceptance evidence diff naming and path scope\n**File:** `src/flow/lib/run-acceptance-review.js`\n**Issue:** Acceptance diff collection, acceptance path filtering, and acceptance evidence binding validation appear to be evolving separately across `run-acceptance-review.js` and `acceptance-review-artifacts.js`. Names like `implementationDiff()` obscure that the data is acceptance-review evidence, while downstream code validates acceptance-specific refs.\n**Suggestion:** Rename the collector to an acceptance-specific name, such as `collectAcceptanceEvidenceDiff()`, and expose a shared acceptance diff scope helper used by both collection and validation code.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize repair evidence validation",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Issue:** Repair evidence fingerprint validation is being introduced in several files with different shapes: `run-gate.js` manually reads/parses/asserts artifacts, while `run-report.js`, `run-review.js`, `run-retro.js`, `run-final-regression.js`, and `run-finalize.js` reference or duplicate similar repair evidence checks. This creates cross-file drift risk around required files, optional files, fingerprint construction, and error behavior.\n**Suggestion:** Add or extend one shared helper, for example `assertCurrentRepairEvidenceFiles(...)`, with explicit support for mandatory vs optional artifacts. Use it consistently across gate, review, retro, report, final regression, and finalize flows.",
+        "file": "src/flow/lib/run-gate.js"
+      },
+      {
+        "title": "2. Share repair artifact filename constants",
+        "body": "**File:** `src/flow/lib/run-review.js`\n**Issue:** Artifact names such as `test-execute-result.json`, `test-result-review.json`, and `retro.json` are repeated across `run-review.js`, `run-retro.js`, `run-report.js`, `run-finalize.js`, and `run-gate.js`. Some files use local constants while others inline literals, making future artifact renames or requirement changes easy to miss.\n**Suggestion:** Move repair evidence filenames and common file sets into a shared artifact module, for example `REPAIR_TEST_EXECUTE_RESULT`, `REPAIR_TEST_RESULT_REVIEW`, `REPAIR_RETRO_RESULT`, and named sets such as `REQUIRED_REPORT_REPAIR_EVIDENCE_FILES`.",
+        "file": "src/flow/lib/run-review.js"
+      },
+      {
+        "title": "3. Unify implementation step ID sets",
+        "body": "**File:** `src/flow/lib/get-next-action.js`\n**Issue:** Implementation-phase step IDs are now embedded or repeated in multiple places, including lifecycle logic in `definition.js`, next-action classification in `get-next-action.js`, and step completion/reset logic in `set-step.js`. This can cause inconsistent behavior when implementation flow steps are added or renamed.\n**Suggestion:** Define shared implementation step groups, such as `IMPLEMENTATION_STEP_IDS`, `IMPLEMENTATION_REPAIR_STEP_IDS`, and `IMPLEMENTATION_REPAIR_RESET_STEP_IDS`, then reuse them across flow definition, next-action, and set-step logic.",
+        "file": "src/flow/lib/get-next-action.js"
+      },
+      {
+        "title": "4. Align acceptance review schema bounds across full and projected schemas",
+        "body": "**File:** `src/flow/schemas/acceptance-review.schema.json`\n**Issue:** Both `acceptance-review.schema.json` and `next-action/acceptance-review.schema.json` expose acceptance-review arrays and verdict-like fields, but bounds and shape strictness are proposed independently. This risks the full artifact and next-action projection accepting different sizes or object shapes.\n**Suggestion:** Factor shared schema definitions where supported, or mirror a common `$defs` structure in both files for verdicts, blocker arrays, requirement judgments, evidence refs, and size limits.",
+        "file": "src/flow/schemas/acceptance-review.schema.json"
+      },
+      {
+        "title": "5. Standardize implementation repair completion payload names",
+        "body": "**File:** `src/flow/lib/set-step.js`\n**Issue:** Related implementation repair steps return different payload keys, such as `dispositions` for `impl-triage` and `repair` plus `invalidations` for `impl-repair`. Meanwhile prompts and lifecycle code refer to triage, repair, findings, and artifacts with slightly different terminology.\n**Suggestion:** Use a consistent response envelope for related implementation repair steps, such as `{ artifact, invalidations }`, and align prompt wording with the same terms so command consumers do not need step-specific parsing branches.",
+        "file": "src/flow/lib/set-step.js"
+      },
+      {
+        "title": "6. Centralize acceptance evidence diff naming and path scope",
+        "body": "**File:** `src/flow/lib/run-acceptance-review.js`\n**Issue:** Acceptance diff collection, acceptance path filtering, and acceptance evidence binding validation appear to be evolving separately across `run-acceptance-review.js` and `acceptance-review-artifacts.js`. Names like `implementationDiff()` obscure that the data is acceptance-review evidence, while downstream code validates acceptance-specific refs.\n**Suggestion:** Rename the collector to an acceptance-specific name, such as `collectAcceptanceEvidenceDiff()`, and expose a shared acceptance diff scope helper used by both collection and validation code.",
+        "file": "src/flow/lib/run-acceptance-review.js"
+      }
+    ]
+  }
+}

@@ -1,43 +1,25 @@
 {
   "type": "object",
   "required": [
-    "goalSatisfactionScore",
-    "requirementAlignmentScore",
-    "implementationQualityScore",
-    "acceptanceScore",
-    "thresholds",
+    "version",
+    "repairFingerprint",
     "mechanicalBlockers",
     "hardBlockers",
-    "attempt",
-    "findings",
-    "requirementAmendmentProposals",
+    "requirementJudgments",
+    "deferredFindings",
     "userDecision",
-    "blockedDecision",
     "verdict"
   ],
   "additionalProperties": true,
   "properties": {
-    "version": { "type": "integer" },
-    "goalSatisfactionScore": { "type": "number", "minimum": 0 },
-    "requirementAlignmentScore": { "type": "number", "minimum": 0 },
-    "implementationQualityScore": { "type": "number", "minimum": 0 },
-    "acceptanceScore": { "type": "number", "minimum": 0 },
-    "thresholds": {
-      "type": "object",
-      "required": ["goalSatisfactionPass", "requirementAlignmentPass", "implementationQualityPass"],
-      "additionalProperties": true,
-      "properties": {
-        "goalSatisfactionPass": { "type": "number", "minimum": 0 },
-        "requirementAlignmentPass": { "type": "number", "minimum": 0 },
-        "implementationQualityPass": { "type": "number", "minimum": 0 }
-      }
-    },
+    "version": { "type": "integer", "enum": [2] },
+    "repairFingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "mechanicalBlockers": {
       "type": "array",
       "items": {
         "type": "object",
         "required": ["blockerId", "kind", "summary"],
-        "additionalProperties": true,
+        "additionalProperties": false,
         "properties": {
           "blockerId": { "type": "string", "minLength": 1 },
           "kind": { "type": "string", "minLength": 1 },
@@ -46,72 +28,73 @@
       }
     },
     "hardBlockers": { "type": "array", "items": { "type": "object" } },
-    "attempt": { "type": "integer", "minimum": 1 },
-    "findings": {
+    "requirementJudgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "requirementId",
+          "status",
+          "requestRefs",
+          "requirementRefs",
+          "diffRefs",
+          "repairRefs",
+          "testRefs",
+          "missingEvidence"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "requirementId": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["met", "notMet", "notVerifiable"] },
+          "requestRefs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "requirementRefs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "diffRefs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "repairRefs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "testRefs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "missingEvidence": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "deferredFindings": {
       "type": "array",
       "items": {
         "type": "object",
         "required": [
           "findingId",
-          "summary",
-          "severity",
-          "category",
-          "mappedRequirementIds",
-          "linkedRequirementAmendmentProposalIds",
-          "evidenceRefs",
-          "confidence",
-          "shouldReimplement",
-          "reimplementationReason",
-          "requiresUserDecision"
+          "sourceStep",
+          "sourceArtifact",
+          "sourceFindingId",
+          "finalDisposition",
+          "evidenceRefs"
         ],
-        "additionalProperties": true,
+        "additionalProperties": false,
         "properties": {
           "findingId": { "type": "string", "minLength": 1 },
-          "summary": { "type": "string", "minLength": 1 },
-          "severity": { "type": "string", "minLength": 1 },
-          "category": { "type": "string", "minLength": 1 },
-          "mappedRequirementIds": { "type": "array", "items": { "type": "string" } },
-          "linkedRequirementAmendmentProposalIds": { "type": "array", "items": { "type": "string" } },
-          "evidenceRefs": { "type": "array", "items": { "type": "string" } },
-          "confidence": { "type": "string", "minLength": 1 },
-          "shouldReimplement": { "type": "boolean" },
-          "reimplementationReason": { "type": "string" },
-          "requiresUserDecision": { "type": "boolean" }
+          "sourceStep": { "type": "string", "minLength": 1 },
+          "sourceArtifact": { "type": "string", "minLength": 1 },
+          "sourceFindingId": { "type": "string", "minLength": 1 },
+          "finalDisposition": { "type": "string", "minLength": 1 },
+          "evidenceRefs": { "type": "array", "items": { "type": "string", "minLength": 1 } }
         }
       }
     },
-    "requirementAmendmentProposals": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "proposalId",
-          "proposalType",
-          "targetRequirementIds",
-          "proposedRequirementSummary",
-          "reason",
-          "relationToOriginalRequest",
-          "linkedFindingIds",
-          "shouldReimplementAfterAmendment"
-        ],
-        "additionalProperties": true,
-        "properties": {
-          "proposalId": { "type": "string", "minLength": 1 },
-          "proposalType": { "type": "string", "minLength": 1 },
-          "targetRequirementIds": { "type": "array", "items": { "type": "string" } },
-          "proposedRequirementSummary": { "type": "string", "minLength": 1 },
-          "reason": { "type": "string", "minLength": 1 },
-          "relationToOriginalRequest": { "type": "string", "minLength": 1 },
-          "linkedFindingIds": { "type": "array", "items": { "type": "string" } },
-          "shouldReimplementAfterAmendment": { "type": "boolean" }
-        }
-      }
+    "userDecision": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["choice", "decidedAt"],
+          "additionalProperties": false,
+          "properties": {
+            "choice": { "type": "string", "enum": ["accept_risk_and_continue", "abort"] },
+            "decidedAt": { "type": "string", "minLength": 1 }
+          }
+        },
+        { "type": "null" }
+      ]
     },
-    "userDecision": { "oneOf": [{ "type": "object" }, { "type": "null" }] },
-    "blockedDecision": { "oneOf": [{ "type": "object" }, { "type": "null" }] },
     "verdict": {
       "type": "string",
-      "enum": ["pass", "amend_required", "user_decision_required", "blocked"]
+      "enum": ["pass", "repair_required", "user_decision_required", "blocked"]
     },
     "reportRefs": { "type": "array", "items": { "type": "string" } }
   }

@@ -1,0 +1,119 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/318-impl-repair-acceptance/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js",
+        "test_name": "R1: flow definition exposes implementation triage and repair routing",
+        "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 309
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js",
+        "test_name": "R2: implementation triage and repair values enforce audit invariants",
+        "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 309
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js",
+        "test_name": "R3: repair fingerprint covers defined inputs and fails closed at bounds",
+        "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 309
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js",
+        "test_name": "R4: mismatched downstream evidence is invalidated while plan inputs remain",
+        "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 309
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "test_name": "R5: requirement judgments enforce semantic evidence invariants",
+        "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 309
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "test_name": "R6: acceptance verdict precedence is blocker, notMet, notVerifiable, then pass",
+        "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 309
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js",
+        "test_name": "R7: guarded CLI envelopes retain target checks during repair",
+        "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 309
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js",
+        "test_name": "R8: CLI repair completion invalidates old evidence and retest writes the new fingerprint",
+        "command": "node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 309
+        }
+      }
+    }
+  ]
+}

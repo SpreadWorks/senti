@@ -14,6 +14,11 @@ import { loadSpecJson, normalizeRequirements, resolveSpecDir } from "../../lib/s
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { validateTestExecuteResultV2, validateTestResultReview } from "./test-artifacts.js";
+import {
+  assertRepairFingerprint,
+  buildRepairFingerprint,
+  writeRepairEvidenceArtifact,
+} from "./impl-repair-artifacts.js";
 
 const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
@@ -113,9 +118,12 @@ export class RunRetroCommand extends FlowCommand {
     }
 
     const result = readJson(resultPath);
+    const fingerprint = buildRepairFingerprint({ root, specPath });
     try {
       validateTestResultReview(review);
       validateTestExecuteResultV2(result);
+      assertRepairFingerprint({ artifact: review, fingerprint, label: TEST_RESULT_REVIEW_FILE });
+      assertRepairFingerprint({ artifact: result, fingerprint, label: TEST_EXECUTE_RESULT_FILE });
     } catch (err) {
       return Envelope.fail(
         "run",
@@ -153,7 +161,12 @@ export class RunRetroCommand extends FlowCommand {
     }
 
     fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(retroPath, JSON.stringify(retro, null, 2) + "\n", "utf8");
+    const written = writeRepairEvidenceArtifact({
+      specDir,
+      stepId: "retro",
+      artifact: retro,
+      fingerprint,
+    });
 
     return {
       result: "ok",
@@ -164,6 +177,7 @@ export class RunRetroCommand extends FlowCommand {
         summary: retro.summary,
         requirements: retro.requirements,
         mode: "result-file",
+        repairFingerprint: written.artifact.repairFingerprint,
       },
     };
   }

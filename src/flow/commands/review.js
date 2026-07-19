@@ -56,6 +56,11 @@ import {
   contractFromImplReviewArtifact,
   contractFromTestReviewArtifact,
 } from "../lib/flow-judgment-contract.js";
+import {
+  buildRepairFingerprint,
+  prepareImplTriageArtifact,
+  stampRepairFingerprint,
+} from "../lib/impl-repair-artifacts.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -652,8 +657,14 @@ class ImplReviewArtifact {
       generatedAt: this.generatedAt,
       verdict: this.verdict,
       summary: this.summary,
-      blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
-      nonBlockingImprovements: this.nonBlockingImprovements.map((item) => item.toJSON()),
+      blockingFindings: this.blockingFindings.map((item, index) => ({
+        ...item.toJSON(),
+        findingId: `F-${index + 1}`,
+      })),
+      nonBlockingImprovements: this.nonBlockingImprovements.map((item, index) => ({
+        ...item.toJSON(),
+        findingId: `I-${index + 1}`,
+      })),
       excluded: this.excluded,
     };
   }
@@ -839,7 +850,8 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
   const artifact = new ImplReviewArtifact(filtered);
   const specDir = path.dirname(path.resolve(root, flow.spec));
   const reviewJsonPath = path.join(specDir, "impl-review.json");
-  const artifactJson = artifact.toJSON();
+  const fingerprint = buildRepairFingerprint({ root, specPath: flow.spec });
+  const artifactJson = stampRepairFingerprint({ artifact: artifact.toJSON(), fingerprint });
   artifactJson.contractSummary = contractFromImplReviewArtifact(artifactJson, {
     artifactPath: path.relative(root, reviewJsonPath).split(path.sep).join("/"),
   }).summary.toJSON();
@@ -862,17 +874,34 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
     attemptNumber,
     artifact: artifactJson,
   });
+  const triageFindings = [
+    ...artifactJson.blockingFindings.map((finding) => ({ ...finding, decision: "apply" })),
+    ...artifactJson.nonBlockingImprovements.map((finding) => ({ ...finding, decision: "reject" })),
+  ];
+  if (triageFindings.length > 0 && !taskSpec) {
+    prepareImplTriageArtifact({
+      specDir,
+      sourceStep: "impl-review",
+      sourceArtifact: "impl-review.json",
+      findings: triageFindings,
+      fingerprint,
+    });
+  }
   return {
     result: "ok",
     changed: [
       path.relative(root, reviewMdWrite.latestPath),
       path.relative(root, reviewJsonWrite.latestPath),
+      ...(triageFindings.length > 0 && !taskSpec
+        ? [path.relative(root, path.join(specDir, "impl-triage.json"))]
+        : []),
     ],
     artifacts: {
       phase: "impl",
       verdict: artifact.verdict,
       blockingCount: artifact.summary.blocking,
       nonBlockingCount: artifact.summary.nonBlocking,
+      repairFingerprint: fingerprint.hash,
       ...(taskSpec ? { taskId: taskSpec.task.id, target: taskSpec.relPath } : {}),
     },
     next: artifact.verdict === "FAIL" ? null : (taskSpec ? "task-gate" : "impl-gate"),
@@ -1298,7 +1327,8 @@ function loopProposalsToImplReviewJson(proposals) {
     nonBlockingImprovements: proposals.map((proposal) => ({
       title: proposal.title,
       failureMode: "refactor",
-      ...(proposal.file ? { file: proposal.file } : {}),
+      file: proposal.file || null,
+      requirementId: null,
       issue: proposal.body || proposal.title,
       suggestion: proposal.body || proposal.title,
       rationale: "Loop review proposal.",

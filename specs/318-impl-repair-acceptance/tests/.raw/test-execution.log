@@ -1,0 +1,135 @@
+[senti] spec-local tests start
+command: node --test specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js
+TAP version 13
+# warn: failed to fetch issue \#413: exit=1 | no git remotes found
+# warn: failed to fetch issue \#413: exit=1 | no git remotes found
+# [senti] gate retry: 0/5 used (5 remaining) [AI-FAIL=0] for phase "integration"
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.spec.gate, profile=fake-review)
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.acceptance.review, profile=fake-review)
+# warn: failed to fetch issue \#413: exit=1 | no git remotes found
+# [senti] gate retry: 0/5 used (5 remaining) [AI-FAIL=0] for phase "integration"
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.spec.gate, profile=fake-review)
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.acceptance.review, profile=fake-review)
+# warn: failed to fetch issue \#413: exit=1 | no git remotes found
+# [senti] gate retry: 0/5 used (5 remaining) [AI-FAIL=0] for phase "integration"
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.spec.gate, profile=fake-review)
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.acceptance.review, profile=fake-review)
+# warn: failed to fetch issue \#413: exit=1 | no git remotes found
+# [senti] gate retry: 0/5 used (5 remaining) [AI-FAIL=0] for phase "integration"
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.spec.gate, profile=fake-review)
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.acceptance.review, profile=fake-review)
+# Subtest: R7: guarded CLI envelopes retain target checks during repair
+ok 1 - R7: guarded CLI envelopes retain target checks during repair
+  ---
+  duration_ms: 4954.681088
+  type: 'test'
+  ...
+# Subtest: R5: repaired CLI acceptance consumes the repair audit while preserving R8 closure
+ok 2 - R5: repaired CLI acceptance consumes the repair audit while preserving R8 closure
+  ---
+  duration_ms: 8792.701395
+  type: 'test'
+  ...
+# Subtest: R4: CLI no-repair PASS path stamps gate, retro, and acceptance artifacts for R8
+ok 3 - R4: CLI no-repair PASS path stamps gate, retro, and acceptance artifacts for R8
+  ---
+  duration_ms: 7113.422142
+  type: 'test'
+  ...
+# Subtest: R6: guarded acceptance-review CLI emits exhaustive judgments and routes notMet to triage for R8
+ok 4 - R6: guarded acceptance-review CLI emits exhaustive judgments and routes notMet to triage for R8
+  ---
+  duration_ms: 7679.514913
+  type: 'test'
+  ...
+# Subtest: R8: guarded notVerifiable CLI remains at an explicit approval decision
+ok 5 - R8: guarded notVerifiable CLI remains at an explicit approval decision
+  ---
+  duration_ms: 8143.502595
+  type: 'test'
+  ...
+# Subtest: R1: flow definition exposes implementation triage and repair routing
+ok 6 - R1: flow definition exposes implementation triage and repair routing
+  ---
+  duration_ms: 2.849414
+  type: 'test'
+  ...
+# Subtest: R2: implementation triage and repair values enforce audit invariants
+ok 7 - R2: implementation triage and repair values enforce audit invariants
+  ---
+  duration_ms: 6.853275
+  type: 'test'
+  ...
+# Subtest: R3: repair fingerprint covers defined inputs and fails closed at bounds
+ok 8 - R3: repair fingerprint covers defined inputs and fails closed at bounds
+  ---
+  duration_ms: 71.55357
+  type: 'test'
+  ...
+# Subtest: R4: mismatched downstream evidence is invalidated while plan inputs remain
+ok 9 - R4: mismatched downstream evidence is invalidated while plan inputs remain
+  ---
+  duration_ms: 5.657349
+  type: 'test'
+  ...
+# Subtest: R4: the shared evidence writer stamps every required producer artifact
+ok 10 - R4: the shared evidence writer stamps every required producer artifact
+  ---
+  duration_ms: 3.477858
+  type: 'test'
+  ...
+# Subtest: R7: retained command registry surfaces include repair-aware lifecycle commands
+ok 11 - R7: retained command registry surfaces include repair-aware lifecycle commands
+  ---
+  duration_ms: 0.224041
+  type: 'test'
+  ...
+# Subtest: R5: requirement judgments enforce semantic evidence invariants
+ok 12 - R5: requirement judgments enforce semantic evidence invariants
+  ---
+  duration_ms: 8.591925
+  type: 'test'
+  ...
+# Subtest: R5: acceptance artifact covers every requirement exactly once
+ok 13 - R5: acceptance artifact covers every requirement exactly once
+  ---
+  duration_ms: 10.000972
+  type: 'test'
+  ...
+# Subtest: R6: acceptance verdict precedence is blocker, notMet, notVerifiable, then pass
+ok 14 - R6: acceptance verdict precedence is blocker, notMet, notVerifiable, then pass
+  ---
+  duration_ms: 5.467229
+  type: 'test'
+  ...
+# Subtest: R6: acceptance routing reaches repair, approval, or final regression
+ok 15 - R6: acceptance routing reaches repair, approval, or final regression
+  ---
+  duration_ms: 36.079267
+  type: 'test'
+  ...
+# Subtest: R6: notVerifiable decision is approval-required and has no implicit unsafe choice
+ok 16 - R6: notVerifiable decision is approval-required and has no implicit unsafe choice
+  ---
+  duration_ms: 22.587277
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 37383.534434
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] spec-local tests end

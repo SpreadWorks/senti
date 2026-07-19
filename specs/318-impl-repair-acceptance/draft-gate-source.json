@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement uses vague adjectives in “fresh, auditable” without stating verifiable conditions for freshness or auditability at this location.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "$.goal"
+          },
+          "observed": "The requirement uses vague adjectives in “fresh, auditable” without stating verifiable conditions for freshness or auditability at this location.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement to retain “guarded envelope behavior” does not define the envelope fields or checks two reviewers should use to determine whether the behavior was retained.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "$.impactOnExisting[5]"
+          },
+          "observed": "The requirement to retain “guarded envelope behavior” does not define the envelope fields or checks two reviewers should use to determine whether the behavior was retained.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The phrase “associated raw test logs” does not identify which generated log artifacts are in scope, making the retained artifact surface ambiguous.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "$.impactOnExisting[7]"
+          },
+          "observed": "The phrase “associated raw test logs” does not identify which generated log artifacts are in scope, making the retained artifact surface ambiguous.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "draft.json",
+        "locator": "$.goal"
+      },
+      "observed": "The requirement uses vague adjectives in “fresh, auditable” without stating verifiable conditions for freshness or auditability at this location.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "draft.json",
+        "locator": "$.impactOnExisting[5]"
+      },
+      "observed": "The requirement to retain “guarded envelope behavior” does not define the envelope fields or checks two reviewers should use to determine whether the behavior was retained.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "draft.json",
+        "locator": "$.impactOnExisting[7]"
+      },
+      "observed": "The phrase “associated raw test logs” does not identify which generated log artifacts are in scope, making the retained artifact surface ambiguous.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    }
+  ]
+}

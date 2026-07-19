@@ -1,0 +1,1137 @@
+{
+  "version": 1,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "hash": "a4fb3e6eef287f146607014ab36a3754404cf9159f2b603783a1b8876c96ad29",
+    "paths": [
+      ".senti/config.json",
+      "specs/318-impl-repair-acceptance/spec.json",
+      "specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js",
+      "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js",
+      "specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js",
+      "src/AGENTS.md",
+      "src/CLAUDE.md",
+      "src/check.js",
+      "src/check/commands/config.js",
+      "src/check/commands/freshness.js",
+      "src/check/commands/scan.js",
+      "src/data/agents.js",
+      "src/data/docs.js",
+      "src/data/lang.js",
+      "src/data/project.js",
+      "src/data/skills.js",
+      "src/data/text.js",
+      "src/docs.js",
+      "src/docs/commands/agents.js",
+      "src/docs/commands/build.js",
+      "src/docs/commands/changelog.js",
+      "src/docs/commands/data.js",
+      "src/docs/commands/enrich.js",
+      "src/docs/commands/forge.js",
+      "src/docs/commands/init.js",
+      "src/docs/commands/readme.js",
+      "src/docs/commands/review.js",
+      "src/docs/commands/scan.js",
+      "src/docs/commands/text.js",
+      "src/docs/commands/translate.js",
+      "src/docs/lib/analysis-entry.js",
+      "src/docs/lib/analysis-filter.js",
+      "src/docs/lib/chapter-resolver.js",
+      "src/docs/lib/command-context.js",
+      "src/docs/lib/concurrency.js",
+      "src/docs/lib/data-source-loader.js",
+      "src/docs/lib/data-source.js",
+      "src/docs/lib/directive-parser.js",
+      "src/docs/lib/docs-context.js",
+      "src/docs/lib/forge-prompts.js",
+      "src/docs/lib/lang-factory.js",
+      "src/docs/lib/lang/comments.js",
+      "src/docs/lib/lang/js.js",
+      "src/docs/lib/lang/md.js",
+      "src/docs/lib/lang/php.js",
+      "src/docs/lib/lang/py.js",
+      "src/docs/lib/lang/yaml.js",
+      "src/docs/lib/minify.js",
+      "src/docs/lib/php-array-parser.js",
+      "src/docs/lib/renderable.js",
+      "src/docs/lib/resolver-factory.js",
+      "src/docs/lib/review-parser.js",
+      "src/docs/lib/scan-source.js",
+      "src/docs/lib/scanner.js",
+      "src/docs/lib/template-merger.js",
+      "src/docs/lib/test-env-detection.js",
+      "src/docs/lib/text-prompts.js",
+      "src/docs/lib/toml-parser.js",
+      "src/flow.js",
+      "src/flow/commands/merge.js",
+      "src/flow/commands/report.js",
+      "src/flow/commands/review.js",
+      "src/flow/definition.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/acknowledged-rationale.js",
+      "src/flow/lib/artifact-completion.js",
+      "src/flow/lib/auto-check-static.js",
+      "src/flow/lib/base-command.js",
+      "src/flow/lib/check-tasks-monotonic.js",
+      "src/flow/lib/draft-lifecycle.js",
+      "src/flow/lib/draft-review-routes.js",
+      "src/flow/lib/fetch-issue.js",
+      "src/flow/lib/flow-context.js",
+      "src/flow/lib/flow-findings.js",
+      "src/flow/lib/flow-judgment-contract.js",
+      "src/flow/lib/gate-recovery-display.js",
+      "src/flow/lib/gate-step.js",
+      "src/flow/lib/get-check.js",
+      "src/flow/lib/get-context.js",
+      "src/flow/lib/get-guardrail.js",
+      "src/flow/lib/get-issue.js",
+      "src/flow/lib/get-next-action.js",
+      "src/flow/lib/get-prompt.js",
+      "src/flow/lib/get-qa-count.js",
+      "src/flow/lib/get-resolve-context.js",
+      "src/flow/lib/get-runtime-log.js",
+      "src/flow/lib/get-status.js",
+      "src/flow/lib/get-step-instructions.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/issue-body-cache.js",
+      "src/flow/lib/observation.js",
+      "src/flow/lib/overview-merge.js",
+      "src/flow/lib/regression-file-snapshot.js",
+      "src/flow/lib/render-spec-view.js",
+      "src/flow/lib/req-map.js",
+      "src/flow/lib/resolve-auto-check-input.js",
+      "src/flow/lib/resolve-context-envelope.js",
+      "src/flow/lib/resolve-preparing-run-id.js",
+      "src/flow/lib/retro-artifacts.js",
+      "src/flow/lib/retry-accounting.js",
+      "src/flow/lib/retry-recovery.js",
+      "src/flow/lib/review-failure.js",
+      "src/flow/lib/run-acceptance-review.js",
+      "src/flow/lib/run-auto-check.js",
+      "src/flow/lib/run-complete-task.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-finalize-cleanup.js",
+      "src/flow/lib/run-finalize-commit.js",
+      "src/flow/lib/run-finalize-merge.js",
+      "src/flow/lib/run-finalize-sync.js",
+      "src/flow/lib/run-finalize.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-impl-confirm.js",
+      "src/flow/lib/run-lint.js",
+      "src/flow/lib/run-prepare-spec.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "src/flow/lib/run-report-show.js",
+      "src/flow/lib/run-report.js",
+      "src/flow/lib/run-resume.js",
+      "src/flow/lib/run-retro.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/run-scenario-validity.js",
+      "src/flow/lib/run-start-task.js",
+      "src/flow/lib/run-sync.js",
+      "src/flow/lib/run-test-execute.js",
+      "src/flow/lib/run-test-result-review.js",
+      "src/flow/lib/run-update-overview.js",
+      "src/flow/lib/set-acceptance-decision.js",
+      "src/flow/lib/set-approval.js",
+      "src/flow/lib/set-auto.js",
+      "src/flow/lib/set-broad.js",
+      "src/flow/lib/set-files.js",
+      "src/flow/lib/set-init.js",
+      "src/flow/lib/set-issue-log.js",
+      "src/flow/lib/set-issue.js",
+      "src/flow/lib/set-metric.js",
+      "src/flow/lib/set-note.js",
+      "src/flow/lib/set-req.js",
+      "src/flow/lib/set-request.js",
+      "src/flow/lib/set-retry.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/lib/set-summary.js",
+      "src/flow/lib/step-tree.js",
+      "src/flow/lib/sync-spec-tasks.js",
+      "src/flow/lib/task-scope.js",
+      "src/flow/lib/test-artifacts.js",
+      "src/flow/lib/test-headers.js",
+      "src/flow/lib/test-regression.js",
+      "src/flow/lib/work-unit.js",
+      "src/flow/prompts/impl/acceptance-decision.md",
+      "src/flow/prompts/impl/acceptance-review.md",
+      "src/flow/prompts/impl/final-regression.md",
+      "src/flow/prompts/impl/finalize-cleanup.md",
+      "src/flow/prompts/impl/finalize-commit.md",
+      "src/flow/prompts/impl/finalize-merge.md",
+      "src/flow/prompts/impl/finalize-sync.md",
+      "src/flow/prompts/impl/impl-gate.md",
+      "src/flow/prompts/impl/impl-repair.md",
+      "src/flow/prompts/impl/impl-review.md",
+      "src/flow/prompts/impl/impl-triage.md",
+      "src/flow/prompts/impl/implement.md",
+      "src/flow/prompts/impl/retro.md",
+      "src/flow/prompts/impl/test-execute.md",
+      "src/flow/prompts/impl/test-result-review.md",
+      "src/flow/prompts/partials/draft-qa-rules.md",
+      "src/flow/prompts/plan/approval.md",
+      "src/flow/prompts/plan/draft-coverage-repair.md",
+      "src/flow/prompts/plan/draft-coverage-review.md",
+      "src/flow/prompts/plan/draft-coverage-triage.md",
+      "src/flow/prompts/plan/draft-gate.md",
+      "src/flow/prompts/plan/draft-questions-repair.md",
+      "src/flow/prompts/plan/draft-questions-review.md",
+      "src/flow/prompts/plan/draft-questions-triage.md",
+      "src/flow/prompts/plan/draft-refine.md",
+      "src/flow/prompts/plan/draft.md",
+      "src/flow/prompts/plan/scenario-validity.md",
+      "src/flow/prompts/plan/spec-gate.md",
+      "src/flow/prompts/plan/spec-repair.md",
+      "src/flow/prompts/plan/spec-review.md",
+      "src/flow/prompts/plan/spec-triage.md",
+      "src/flow/prompts/plan/spec.md",
+      "src/flow/prompts/plan/test-review.md",
+      "src/flow/prompts/plan/test.md",
+      "src/flow/prompts/task/task-impl.md",
+      "src/flow/prompts/task/task-review.md",
+      "src/flow/registry.js",
+      "src/flow/schemas/acceptance-review.schema.json",
+      "src/flow/schemas/next-action/acceptance-review.schema.json",
+      "src/flow/schemas/next-action/approval.schema.json",
+      "src/flow/schemas/next-action/draft.schema.json",
+      "src/flow/schemas/next-action/final-regression.schema.json",
+      "src/flow/schemas/next-action/finalize.schema.json",
+      "src/flow/schemas/next-action/gate.schema.json",
+      "src/flow/schemas/next-action/impl.schema.json",
+      "src/flow/schemas/next-action/retro.schema.json",
+      "src/flow/schemas/next-action/review.schema.json",
+      "src/flow/schemas/next-action/scenario-validity.schema.json",
+      "src/flow/schemas/next-action/spec.schema.json",
+      "src/flow/schemas/next-action/test-execute.schema.json",
+      "src/flow/schemas/next-action/test-result-review.schema.json",
+      "src/flow/schemas/next-action/update-overview.schema.json",
+      "src/flow/schemas/retro.schema.json",
+      "src/flow/schemas/spec.schema.json",
+      "src/flow/schemas/test-execute-result.schema.json",
+      "src/flow/schemas/test-result-review.schema.json",
+      "src/help.js",
+      "src/hook.js",
+      "src/hook/commands/list.js",
+      "src/lib/NOTICE",
+      "src/lib/active-flow-registry.js",
+      "src/lib/agent-config-files.js",
+      "src/lib/agent-defaults.js",
+      "src/lib/agent-metrics.js",
+      "src/lib/agent.js",
+      "src/lib/agents-md.js",
+      "src/lib/cli.js",
+      "src/lib/command-registry.js",
+      "src/lib/command.js",
+      "src/lib/config.js",
+      "src/lib/constants.js",
+      "src/lib/container.js",
+      "src/lib/dispatcher.js",
+      "src/lib/error-preview.js",
+      "src/lib/finalize-cleanup-paths.js",
+      "src/lib/flow-envelope.js",
+      "src/lib/flow-helpers.js",
+      "src/lib/flow-manager.js",
+      "src/lib/flow-options.js",
+      "src/lib/flow-store.js",
+      "src/lib/flow-target-guard.js",
+      "src/lib/formatter.js",
+      "src/lib/git-helpers.js",
+      "src/lib/gitignore.js",
+      "src/lib/glob.js",
+      "src/lib/guardrail.js",
+      "src/lib/hooks.js",
+      "src/lib/i18n.js",
+      "src/lib/include.js",
+      "src/lib/json-parse.js",
+      "src/lib/lint.js",
+      "src/lib/log-masking.js",
+      "src/lib/log.js",
+      "src/lib/makefile.js",
+      "src/lib/multi-select.js",
+      "src/lib/official-plugins.js",
+      "src/lib/path-match.js",
+      "src/lib/plugin-registry.js",
+      "src/lib/preparing-flow-store.js",
+      "src/lib/preset-deploy.js",
+      "src/lib/presets.js",
+      "src/lib/process.js",
+      "src/lib/progress.js",
+      "src/lib/prompt-builder.js",
+      "src/lib/provider.js",
+      "src/lib/runtime-log.js",
+      "src/lib/schema-validate.js",
+      "src/lib/skill-rules.js",
+      "src/lib/skills.js",
+      "src/lib/spec-json.js",
+      "src/lib/step-id-rename.js",
+      "src/lib/test-command-sources.js",
+      "src/lib/types.js",
+      "src/locale/en/messages.json",
+      "src/locale/en/prompts.json",
+      "src/locale/en/ui.json",
+      "src/locale/ja/messages.json",
+      "src/locale/ja/prompts.json",
+      "src/locale/ja/ui.json",
+      "src/metrics.js",
+      "src/metrics/commands/review.js",
+      "src/metrics/commands/token.js",
+      "src/plugin.js",
+      "src/presets-cmd.js",
+      "src/presets/base/data/package.js",
+      "src/presets/base/data/structure.js",
+      "src/presets/base/guardrail-rewrite-rubric.md",
+      "src/presets/base/guardrail.json",
+      "src/presets/base/preset.json",
+      "src/presets/base/templates/en/AGENTS.senti.md",
+      "src/presets/base/templates/en/development.md",
+      "src/presets/base/templates/en/layout.md",
+      "src/presets/base/templates/en/overview.md",
+      "src/presets/base/templates/en/project_structure.md",
+      "src/presets/base/templates/en/stack_and_ops.md",
+      "src/presets/base/templates/ja/AGENTS.senti.md",
+      "src/presets/base/templates/ja/development.md",
+      "src/presets/base/templates/ja/layout.md",
+      "src/presets/base/templates/ja/overview.md",
+      "src/presets/base/templates/ja/project_structure.md",
+      "src/presets/base/templates/ja/stack_and_ops.md",
+      "src/presets/base/tests/acceptance/fixtures/.senti/config.json",
+      "src/presets/base/tests/acceptance/fixtures/package.json",
+      "src/presets/base/tests/acceptance/fixtures/src/config.js",
+      "src/presets/base/tests/acceptance/fixtures/src/http-client.js",
+      "src/presets/base/tests/acceptance/fixtures/src/index.js",
+      "src/presets/base/tests/acceptance/fixtures/src/logger.js",
+      "src/presets/base/tests/acceptance/test.js",
+      "src/scripts/rename-phase-steps.js",
+      "src/senti.js",
+      "src/setup.js",
+      "src/skills/partials/ai-question-style.md",
+      "src/skills/partials/choice-format.md",
+      "src/skills/partials/context-recording.md",
+      "src/skills/partials/core-principle.md",
+      "src/skills/partials/flow-tracking.md",
+      "src/skills/partials/issue-log-recording.md",
+      "src/skills/partials/placeholder-artifact-permission.md",
+      "src/skills/partials/worktree-mode.md",
+      "src/skills/rules.json",
+      "src/skills/senti.flow-auto/SKILL.md",
+      "src/skills/senti.flow-resume/SKILL.md",
+      "src/skills/senti.flow-status/SKILL.md",
+      "src/skills/senti.flow-sync/SKILL.md",
+      "src/skills/senti.flow/SKILL.md",
+      "src/spec.js",
+      "src/spec/commands/render.js",
+      "src/upgrade.js"
+    ],
+    "pathHashes": {
+      ".senti/config.json": "8fd25faa85fcf084900bcea27909edcda0e78feb7abacd6c76963e2645cd3b84",
+      "specs/318-impl-repair-acceptance/spec.json": "3fe9703ce899c2961b0c6ef526201408f67c8408d97e3dfcacd750c04b3169a9",
+      "specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js": "7a82b86e56e37064b14c39274451951ab79138ae0575d5e49c18dd70d96fa4e5",
+      "specs/318-impl-repair-acceptance/tests/repair-lifecycle.test.js": "a46b03e8e51f8730cabc2a2d994e42e9a7117e20bb32501c788527eee92cb34d",
+      "specs/318-impl-repair-acceptance/tests/semantic-acceptance.test.js": "dfacb0c72737dc12a3c591f9960a98b97e583a33d5bc42378b2804349669ad7b",
+      "src/AGENTS.md": "daccf7c377211f441498beea03b033f8d9ef090d8423e45d2cfd02f1c9b84ecf",
+      "src/CLAUDE.md": "14eaedc42cd9bcc88e9b88dd1d0d43361a42c145ffea9d371ed93c9521ffadaf",
+      "src/check.js": "e15f13d8157f13ff3fb33fc80c6dd8e2315f54e8b544bfa7cbea0fa5beae0545",
+      "src/check/commands/config.js": "68fad904b7aec494f3c0b5c6f3d20124b004e9998254180e86603a64ae3c20a2",
+      "src/check/commands/freshness.js": "a76f797022c7a8b182f30cb0ac51e58b3af4a415915e1b2e4dd1744db76f9ae6",
+      "src/check/commands/scan.js": "774a0256854ea24bab74b7235d736d5c19f973d75a28256635fdd16b780e67d1",
+      "src/data/agents.js": "c62e89b11a8f9792b74755b51952f3d0cf52bfcfefa4fd2ebb011d843e46f1c0",
+      "src/data/docs.js": "71f78fc3372bdd029fb4fb6e5339adcd4ec6c96f9449f74de67b307b9a5335f6",
+      "src/data/lang.js": "599f069abb2be0344c973187a1880ec75ccbe9a6395373a2893e7c60e1898b3b",
+      "src/data/project.js": "9eb6892d1a94d0535eaf923b4c1e5753baaeaca57991fa592d598bd092a2d284",
+      "src/data/skills.js": "52930527ece51b908dbcc4682805b254440884af78ec3271872d329287048ab4",
+      "src/data/text.js": "1b680f1d34f05eebb3b6dd4544e14b2d9420978c92ba85801681bac37345c267",
+      "src/docs.js": "ae0cb710361557af3a6f24ef7ce5d7318c29ce8a3418c95f197b9927eadf46f6",
+      "src/docs/commands/agents.js": "d981716485b07bf0448cc3b867b0bfe70045e54b8e19ac2d15980604e9a8ea3d",
+      "src/docs/commands/build.js": "224d42904919efe0f25ca1e5b56833a3f0129b6e93ab907a277c698e2d03eb7f",
+      "src/docs/commands/changelog.js": "c6b1316d8f3894840d10674b7ed29e0606b1d6e2f89b3fb4e2426f87893ba924",
+      "src/docs/commands/data.js": "878f9a2ff30bea98ac23508af170f95532916696ed80fc8db4268b91c1bb1ca5",
+      "src/docs/commands/enrich.js": "b827f8916f090cee3929c3b60a1e9814b9510bb1520707a0d860adeacdd45a95",
+      "src/docs/commands/forge.js": "914720dcf30be58c90979d3cb8f46fb87892578f11072cfbab2c6f0d83a8337b",
+      "src/docs/commands/init.js": "7348fdda85aeba044fb3685848b0a7ce306db1cbe7b93186f3a170a2333d1954",
+      "src/docs/commands/readme.js": "0bf4a97269d81f19976726e552551246944e37030e3fbafd04d2dc4169542102",
+      "src/docs/commands/review.js": "34c6e3d9c893d1fd71993f512685224f58aeb4349915341d2880f30562ce6d8c",
+      "src/docs/commands/scan.js": "fe5669dea69e486eba29e327e27ae03ebf72ad885f2da3c5aa37108b596c2da0",
+      "src/docs/commands/text.js": "2a9a3ee33328d2e5790033f630924301c2df3d7b22ee10ba6268951bb2ae22b5",
+      "src/docs/commands/translate.js": "4cc36b874e213827b1ab436e9878bf26e28e3a0de898b9199dc2c88736b9c239",
+      "src/docs/lib/analysis-entry.js": "894887a5c512bcfda729cb92e96c746de6baaa3aedcd263c1650954168e5b137",
+      "src/docs/lib/analysis-filter.js": "ef9e35c85248aa9ba12793650544242a538e36ea4ba35bd2eb4ad8b2e9746bcb",
+      "src/docs/lib/chapter-resolver.js": "0f7b9373eac2a74de4575fb71d9a15ebbfe1b9da1deb3f2a3efb3b3197774b6e",
+      "src/docs/lib/command-context.js": "89a7a877f33cb21cf5d442956c4e7df743a8ce7c25c059dfcfb9e06646d134c2",
+      "src/docs/lib/concurrency.js": "54c38466d6b0bf7b2543c9465c9361f5d6e571f8645886ef6fa1891e6d78df02",
+      "src/docs/lib/data-source-loader.js": "502ac3258749f2d5eaceb958618578b76601894073ff322a1a20e66c9967ed2a",
+      "src/docs/lib/data-source.js": "3f1af4fb5d1b09a57c69c2b28d750d8ea52ae21f964988a21ac2434073d54daa",
+      "src/docs/lib/directive-parser.js": "eb13bb50b9bcb240111c3a692cd631f0053c4a5cf13412866c8b9c403c72fe5f",
+      "src/docs/lib/docs-context.js": "284d707ee9f64d011fa2d1831ea270e9c718c967f123431fe080cdb81faea6f8",
+      "src/docs/lib/forge-prompts.js": "9e490ba3ce7cade0612fbe17ce3d81e13858fb06b79527c1eb84a5d88add5b01",
+      "src/docs/lib/lang-factory.js": "8377bd565341796207e7618251766f790c87a021b9e4a75c9802ff1508d878d5",
+      "src/docs/lib/lang/comments.js": "ba2a1650c8c0b05b1c17d4662e13ddb31342b7fbdb2fa65db6ec7fe4440c56f5",
+      "src/docs/lib/lang/js.js": "ebbe4b0273fed6ca06e36483a8ff46f1ee2d1753c212628bc958d63e0ad4bfcf",
+      "src/docs/lib/lang/md.js": "bf761ba2b12ca319c62f1d97e02f166df4c9268becc110a85177160ab60b2a2c",
+      "src/docs/lib/lang/php.js": "39f1e6e76fde45564a3d0f7919202cad38403822272e51a3a1ae375798d84135",
+      "src/docs/lib/lang/py.js": "b74684b1b33124ec4c1e304d1bfe5e42e81aa7088aeb5038e9f927254760d3fb",
+      "src/docs/lib/lang/yaml.js": "a720ec01f4be2d6ddc8f5be86fea20babe5b3ece8889e7b20fa79e39f157f74d",
+      "src/docs/lib/minify.js": "2ed98a0123f2398400ed8f6cbcf9a28e0b06dbfe446b60712d2c3d131197a998",
+      "src/docs/lib/php-array-parser.js": "9bd2e1ea16ce2fcbd21bf13b1786579d2511758767d19c17e1238d8795c281bc",
+      "src/docs/lib/renderable.js": "83b70a96d66f49f89262b9b522d932985e9151b7c8d3d0fc0fc042102b2267d5",
+      "src/docs/lib/resolver-factory.js": "821aeaaa0da5d0a8ac4a5935f51acc35c22ccd42063f1769e59e51f2f508e9d5",
+      "src/docs/lib/review-parser.js": "64a3b8dd8e12b97ae85cafb7722e479e14283737ff5f0a1b67d2381e1c6eaf43",
+      "src/docs/lib/scan-source.js": "79dc11992fb19cfd53bfdb59fe36d44c284292485597f478f293e19f4e5cc34f",
+      "src/docs/lib/scanner.js": "9a62efc7283942452e75784c451660c231dcac2dacf200d8df62717ca120a7c0",
+      "src/docs/lib/template-merger.js": "03189685d6d2a967845b6a6263841d176086a2b0e7e803efef9176212b1970b9",
+      "src/docs/lib/test-env-detection.js": "447f26a78ebf26148f2d11f468c2646329b4df60fe6a49ff21edb5fb4df0c472",
+      "src/docs/lib/text-prompts.js": "0adc6f2e7009470efb3931bff928a04b3173ca8ddad0e7d76a504a4d9a659065",
+      "src/docs/lib/toml-parser.js": "cd1f4540a88670ae8afe9ca8df227d3b2cd60f1ee0a0b071fc5b63627c2cce7b",
+      "src/flow.js": "a7723e05a0741b6e4ba6c942f811684a5a56ed94064d95912625c9d403c48d5a",
+      "src/flow/commands/merge.js": "2b51ec38de80a044b2f07fd593982fbd2aa9b18dff2ff5d488ddc94e1c475d97",
+      "src/flow/commands/report.js": "85fb2df0f9984152ad44ddaee04dcd84a5313aa6c5aa7963a1d11fdc10ab2a63",
+      "src/flow/commands/review.js": "999101b900c92ff671db09bdbdda7f3e871de4abb858ffeea56b7ce19b583707",
+      "src/flow/definition.js": "e65686342be9a1d8822802661d7130f30d2c6a3273e490c2d17b69467823e38c",
+      "src/flow/lib/acceptance-review-artifacts.js": "e99dec05def23e67447fa2b4667b7ea1db09d8620e2e3da2a12329039af7c91f",
+      "src/flow/lib/acknowledged-rationale.js": "ce065163e7e0b4f902058e4b8cc4b95d2a62ae178b87684e54ce296e95bcd792",
+      "src/flow/lib/artifact-completion.js": "3b7c0769d8ecbe9d40c7868d1789604ecd39d34bb07275672e8ad828e43e2056",
+      "src/flow/lib/auto-check-static.js": "02d8f078531051df282730bf47108f4bcac051e737ea8713ea07b9bdbb573258",
+      "src/flow/lib/base-command.js": "42c688e42d76c623bcc336f3fa455ce29d3e96fc07223e86a1879508f354026a",
+      "src/flow/lib/check-tasks-monotonic.js": "aadc47ea4dd789c70ef7b34f0fd2a1c7aaa7670fa79aa226e8b6218f354a62ca",
+      "src/flow/lib/draft-lifecycle.js": "df5d23902cd9bafc008cc2682a8690902227b2ae084a9e0c33dae1874593b5bc",
+      "src/flow/lib/draft-review-routes.js": "dd3208264708a5a7384ebaa6fa18455dbff10e9c8f6709ee64bf8b9bc69a3b1f",
+      "src/flow/lib/fetch-issue.js": "70e0cc65aba6d1c6056e082f7ed86dc8b2fdd10fffe96e0522e664e2e3bc5a46",
+      "src/flow/lib/flow-context.js": "5fe2b3821aff79d984764d4fc7d2f7e7e17521ab5ba6feb7818d443a2b890620",
+      "src/flow/lib/flow-findings.js": "60f34fbc8dfca9083423853561f07f9972b28606fb8b4f34a297dcd72c2984be",
+      "src/flow/lib/flow-judgment-contract.js": "2a7d82cc9cf9decba13caaac55ea72eab280a1b5ddf7d7a401315d70d679f272",
+      "src/flow/lib/gate-recovery-display.js": "7c04df6d662b95f155051ccf241afe322547af5414f17cd869f4b8043878f41b",
+      "src/flow/lib/gate-step.js": "730f4570a227008858d53e06e27b3d2b7f259648a62adf7eeae9c0fc2dffe62f",
+      "src/flow/lib/get-check.js": "e747f296ae29932b7e622dc72ab970ef056c0929a6cc251c9d2eb37dccdb1548",
+      "src/flow/lib/get-context.js": "e1f32c6ee59f67cf61f3bcfc5acd7f967dfdfc565f3ae52f4bfc9121241e6055",
+      "src/flow/lib/get-guardrail.js": "db5f85a46e538e5b94e79fc2805608f7ea2d831b684b1edd8d19d1d54bcbb03e",
+      "src/flow/lib/get-issue.js": "aa1d3a0fbe1d6f94ea11970c8bafe3681baa04c4366642f4007f551faaffb7e7",
+      "src/flow/lib/get-next-action.js": "9aa3556170197b388cd6adf89857b1df39243963c86506e4f60d063a1e731ee0",
+      "src/flow/lib/get-prompt.js": "86c7ad4fb8e5d2ef1d9ce889f90c969b4633900b15882929d1f550ec26af7dc6",
+      "src/flow/lib/get-qa-count.js": "ece073c129c26885f24cc6ff9b0a06490916062bf38cd2c542c3cddd79f9784d",
+      "src/flow/lib/get-resolve-context.js": "7176189f97120b08176cfcc94c89480362db9caff2d7251539c8e71a142a2c51",
+      "src/flow/lib/get-runtime-log.js": "a6dad50c13e056421cd96b08aa1fc32546263ae6d6f245905a765623464d00cd",
+      "src/flow/lib/get-status.js": "d440a1fe2941e60402b9bbd6df70e5d7a4b1c8f3cd8ccc5f8031ab254d38d1b8",
+      "src/flow/lib/get-step-instructions.js": "8e115ecc0dd8c76f6ca884e5e1166fff93d9eb5bd59c32c892bde9e1ad7342d8",
+      "src/flow/lib/impl-repair-artifacts.js": "d023f24772239c93f682c53e4b01e1571b681fdd00c3eb14e9f54eee2008ab59",
+      "src/flow/lib/issue-body-cache.js": "15b2080a5eb619070a5468a49ec4b07e6bfc756eada0b4bb14fbc11696129058",
+      "src/flow/lib/observation.js": "8fa9eadd7a3752ffd4dcce7f1c93738ce888aebcda1f089051ef3b9c333edfc7",
+      "src/flow/lib/overview-merge.js": "a4ca5b115824545fc1c2fe2005aa4db47b7570670e257631ef4f3fd0876b81cc",
+      "src/flow/lib/regression-file-snapshot.js": "6aa0bf3297bd7bf12e80670d6238eaca23849973d41fae5f5ebbc9af44829afa",
+      "src/flow/lib/render-spec-view.js": "a4ee41356b0a83de9d5f3cf0c228277d7e756137b30c14c881fa25ef3342c20f",
+      "src/flow/lib/req-map.js": "85c3c29b95542a0e5f06d72dc9a410d17e3a270250076d2d0de1b9102532506e",
+      "src/flow/lib/resolve-auto-check-input.js": "00b0df63ce5e68bdf510d58f529c6323a523f6f1a897f9690b8e59f1715689ac",
+      "src/flow/lib/resolve-context-envelope.js": "cecafb0cfa824011d47d12437d28fff9a005a8db56b1b140d69172bead2d7a88",
+      "src/flow/lib/resolve-preparing-run-id.js": "59577b4d2c2ed427222e6ab9111e4d7fbdb3331282b4df9889b6da9c461d9e10",
+      "src/flow/lib/retro-artifacts.js": "6ca06fe55e6ac2e7848d352d55a444a4a979a0abbc75d665ad6175990db0894c",
+      "src/flow/lib/retry-accounting.js": "7bfc25dee0e45597e8696b56592589557f00f8bcb9ca189278119cf29d774976",
+      "src/flow/lib/retry-recovery.js": "cd7f223bd68bcbc0157bb2d4969a622740fa9d862f002c9fc509191280b62b34",
+      "src/flow/lib/review-failure.js": "ff1900ce49576848e36b1beda88c8d9d3edf2c2d40ece7f42e5134707b1bc4b1",
+      "src/flow/lib/run-acceptance-review.js": "8d958ffbcce17132a3aa9a2964c4da7d63b6e40dd7e1160ba69ad1c16ef37a84",
+      "src/flow/lib/run-auto-check.js": "0b4a1967258172a79f4de81a440d347e183e84d7957e808c79cd125bf443dac4",
+      "src/flow/lib/run-complete-task.js": "f47f31a407ce3a387b4723335f81eb81cdb75eafc13f350c8acb113821d9c9fd",
+      "src/flow/lib/run-final-regression.js": "bb7c11baa3fe435c3767a02980e9ee6c79fa4e16e33b6cd410f7bbc8d26ab45c",
+      "src/flow/lib/run-finalize-cleanup.js": "adf4343c11c3ed5d236e0d82906326c980133f3adc0ff548ce76cd9b751f6380",
+      "src/flow/lib/run-finalize-commit.js": "a49765f105c05d442a88556e2d55ff11e251a44350f36b2277261fb4d00ee9e7",
+      "src/flow/lib/run-finalize-merge.js": "d67f6081f36a14f478c64ec99eb2b16cc7f72e22e45fb15c6ea7042ff25c937e",
+      "src/flow/lib/run-finalize-sync.js": "76e09b12bfbfcee9c71bb0274afa6cd68af20087ca71af28f39b4832094ba887",
+      "src/flow/lib/run-finalize.js": "de26360f8e227dc2ac4a92459d147b01f020cdbbc11957ec79adc464370315e0",
+      "src/flow/lib/run-gate.js": "15478dc8c4319ca82e073ff9b0058c02a70bd69a49ee6395e7d6e67e316d1ba7",
+      "src/flow/lib/run-impl-confirm.js": "eb7d46e50695afcaf61698825fe4887bad9316e83270533e36a10d96fd092406",
+      "src/flow/lib/run-lint.js": "899aff22eee47a26e5abc92489e1091293705c9c8a203acf7f70956172296697",
+      "src/flow/lib/run-prepare-spec.js": "04a5043c385933c165e215876bd5a47e738e11da0818d007ee8762ed6152d9db",
+      "src/flow/lib/run-reopen-draft.js": "76ae001a6e224e15a7748161aa8bec454bf4039bc4e34d615ad369783da11328",
+      "src/flow/lib/run-report-show.js": "339d66e2223b5fed62792d624cfff3548f7692f22417707a3e1024099687dfab",
+      "src/flow/lib/run-report.js": "e08ab77e2b19a861ee042a92cd88d6ecb5d0bcc60b7a347b02542aff9940feec",
+      "src/flow/lib/run-resume.js": "618befe683819119d1405cc798a8ef68dfd02b16b4e394f076caad33d1bd2826",
+      "src/flow/lib/run-retro.js": "20428463e859ba6a0a5e87b9ef4c072baba4d6d052192c6d43834075a1ecb0cb",
+      "src/flow/lib/run-review.js": "9cee7b4454b38fff382b91304dfedefd588ee424bf78313be36a04e0779093f8",
+      "src/flow/lib/run-scenario-validity.js": "a7ade8b8045407c1beceaaa06a1ea4156073480e80f5d874f19e873f6c63df6d",
+      "src/flow/lib/run-start-task.js": "2c27aabdf2ee76a90178a6a8d51f395535e1b8b6dfd64ddd32d7019d7986a5c0",
+      "src/flow/lib/run-sync.js": "bb7261f1785daeab33119dfdc1338e399428ff60f60a8b109d0f29f0790fa888",
+      "src/flow/lib/run-test-execute.js": "937882b8b1f5a3238badb0b71549c69fd67f8bc286fcec34d6dab246e9868240",
+      "src/flow/lib/run-test-result-review.js": "9f70fb0d77a0cb004ce4ccd450697d9efc0635f3554bbb8242dbb55331300f17",
+      "src/flow/lib/run-update-overview.js": "6f783363d3eb44bf41588030e0bcb00f9db8ffca5973c91baf3ec2fc25285e0e",
+      "src/flow/lib/set-acceptance-decision.js": "b715251ff2210b06ed06081f78c33c8c825f88b1347d43a5d0c64b00caa5d38d",
+      "src/flow/lib/set-approval.js": "cebcd71963189eeaa561a3dc4261497bc0ef09ac5932ff5e6fd1e7a1781f85d1",
+      "src/flow/lib/set-auto.js": "b0b7bfa5c29648df567517f4b9b9d515d831e92395d92e5e21a8cb797ffa0415",
+      "src/flow/lib/set-broad.js": "b878958d2324bed971ae01572af034f45113d33c6dedc894d93929ecca128fc0",
+      "src/flow/lib/set-files.js": "0df4fc7d96e3846b21b6006cb48495004f04af07a2fa59ce26f9e4c95bd7f686",
+      "src/flow/lib/set-init.js": "ccccf66313c7350723e327eae3cb870762cebf5fd30f4bacfa70dd048faa6aeb",
+      "src/flow/lib/set-issue-log.js": "40d97fb77dc06f1aea7406ac11508651e332a616639aaee42777ae72b74eeaa6",
+      "src/flow/lib/set-issue.js": "59a68f928daa4c71f703888d7783f71fee9f8b8b92d39a893d693f68cbd22dc0",
+      "src/flow/lib/set-metric.js": "7d97991d2fde5f81c14ec2c1f3012e2e590447bdb2f031a213b4b0f36ebf13e6",
+      "src/flow/lib/set-note.js": "37f5631294b932a6a0a2f29170f1146c5d7a9273aa5aa1fe84405348b7091b0a",
+      "src/flow/lib/set-req.js": "8cc11f077e7c6a0e37aa53803016c1bfaa26b34f88941e2f7bfef117324cce8c",
+      "src/flow/lib/set-request.js": "9bfc0cfcc228551bfc0e0f54def464578a8490dcaad529c679740b642d2c7839",
+      "src/flow/lib/set-retry.js": "59ef8b378ddf7230a4723bfdd936dbd0666e07ce9a35af8451d3aef0e02add64",
+      "src/flow/lib/set-step.js": "f166db2f711016182a15225fbc732fca235bdfcb41c250a28050bf6459651959",
+      "src/flow/lib/set-summary.js": "ba0ba771eb1392979aef02eabd478087a578af40174480eb55ee52e5722ba988",
+      "src/flow/lib/step-tree.js": "70c99fe0dd35116618d34c67a909b89c14558cba465e671c1bc6e9847ebfc4a9",
+      "src/flow/lib/sync-spec-tasks.js": "db5676311975ad758eeacfd2c91316dbf9ef32d2bc985a2b0825f7e93eca5ba1",
+      "src/flow/lib/task-scope.js": "5aedc8af4b3765f983a03fccc1810f38763e802a55758f6c6f7098e63b7da9a5",
+      "src/flow/lib/test-artifacts.js": "ae11c5d036dcb254a08f6c348a96c4603ec9fe1e7e107d1a3628b8e2d4297169",
+      "src/flow/lib/test-headers.js": "9765e29980be8662302fe224b6f14fd658819bdb73304d6fa3058fc018258457",
+      "src/flow/lib/test-regression.js": "d0978c961224e6dc403ea3d9d8af008d7a48d66d3e9d86aca2192ef350d45c7b",
+      "src/flow/lib/work-unit.js": "7fc59175bac94d3769d9f0e428ab5a03524735f1da35ee4f6a05abcdb14663a2",
+      "src/flow/prompts/impl/acceptance-decision.md": "112a0e3351aec5d7b99911f718f90377a85644bc818b8dea32b51ddc949ad546",
+      "src/flow/prompts/impl/acceptance-review.md": "ddf1c62cc597755469b15f7df9cb8b3f6f392633d94289461a70aece08fb64a6",
+      "src/flow/prompts/impl/final-regression.md": "925e7d95122147a4c72811489f95a1a64df0710939bbcd6ee8b0068adfa95bb1",
+      "src/flow/prompts/impl/finalize-cleanup.md": "425a07069142513f86b8c41d7ae00917e232984a151df1a85803be8e5b8f229b",
+      "src/flow/prompts/impl/finalize-commit.md": "4df96748d24a8edf36f3175fdf3484cdae8876cca1e180c44790a2d05768f366",
+      "src/flow/prompts/impl/finalize-merge.md": "ecea4130eb53b304271634e271e944421012018e818de59cece686c91f1cca44",
+      "src/flow/prompts/impl/finalize-sync.md": "504da7f9ec5203fa29b1a419db9b9825de4994928bdeea0dc65acc74afde46a9",
+      "src/flow/prompts/impl/impl-gate.md": "645af420bd5c8933f8ba6b857048976bf7bd4efd84f75b3e400102de1cc6f2e7",
+      "src/flow/prompts/impl/impl-repair.md": "9b18a092e595adee577de7bfd3529a5e1ba9439ab8d5225e571117289b09e97d",
+      "src/flow/prompts/impl/impl-review.md": "1aab75524ff3fac89b477053ac614bd188c25a3341049b6af36e7a7fc95b97aa",
+      "src/flow/prompts/impl/impl-triage.md": "d8442a88bd980f8694f31536744a0464462132195a26200588cae49594be05ac",
+      "src/flow/prompts/impl/implement.md": "1d6e7401763b5b2662ae7ecccd5a8d0a9a63d9afedeb3e57e886e4b107617214",
+      "src/flow/prompts/impl/retro.md": "748b35cf801631f7a76e242c5fa44d64346622db5a1493ca8aa44b4066089745",
+      "src/flow/prompts/impl/test-execute.md": "33acf8210bbc3738d3b63da310d937f0e4b8ead523be0f36d0cc714ff626a207",
+      "src/flow/prompts/impl/test-result-review.md": "a6db16a2ce182f907752a45606a6813bc85bb39007773e3ab88e775a5f33476d",
+      "src/flow/prompts/partials/draft-qa-rules.md": "70d843460dde479df8498d92c695a0e103ebfefea95a9d1c54d3b475370a489d",
+      "src/flow/prompts/plan/approval.md": "55b710e90c9800360fa56ab53229cc81c37656ddc8f0af763f4694005c1227e7",
+      "src/flow/prompts/plan/draft-coverage-repair.md": "08216fed46b636fbcca91e62e65466bedfb67452b46007caa7e92987a156063c",
+      "src/flow/prompts/plan/draft-coverage-review.md": "046dda58aa3fa69af91bf3b6ce285f2a05d958a8477221b8b2b118d035e917c9",
+      "src/flow/prompts/plan/draft-coverage-triage.md": "914d697796b09910de44a4308d68390886639560b996b0132369201670ec5b2a",
+      "src/flow/prompts/plan/draft-gate.md": "8f70281abb4d1a65fbd0b4693b165ea221e5691b2e713339164aad01f7a7e90f",
+      "src/flow/prompts/plan/draft-questions-repair.md": "3de61ef919afc15ffb20419aeba23801600fc349e429242c0d67aa1ac688482e",
+      "src/flow/prompts/plan/draft-questions-review.md": "8d750f4c8dc85001f82ae5ad0d0132c3cd6e397e3b0fa85eeb9ee006050a40d4",
+      "src/flow/prompts/plan/draft-questions-triage.md": "0f25134f61e39df056c93a4c7fb57df66128041976c158b401cdf1a991d7e929",
+      "src/flow/prompts/plan/draft-refine.md": "ec6943277763f095605bdb6d229178cde36621940ca5e6072a03b09be84d1065",
+      "src/flow/prompts/plan/draft.md": "9a64bd2e1d5734b714f25d72b42e4d6b300fc78acd4e5303e093602148a1e097",
+      "src/flow/prompts/plan/scenario-validity.md": "4deb536c50a7895afa239f9df58ef2e870290b98ddc67d9b3e46bed6eb5357da",
+      "src/flow/prompts/plan/spec-gate.md": "3766eb7f0dbbd267845af4cc343d0e15d5ea07b91cc775c2eeab70be615bee76",
+      "src/flow/prompts/plan/spec-repair.md": "e89fa448233741dad21a7e917f1b63bbc3916e2e920ea85550ee85ba72b38553",
+      "src/flow/prompts/plan/spec-review.md": "2c0b1cb399fba6974d475878adb22245706075c4f457828a6fbd4da9f2f161cd",
+      "src/flow/prompts/plan/spec-triage.md": "df8f368b39fe5cb38469ab6759e17b82dc012906e4f4a7ff746456b07bd7afe6",
+      "src/flow/prompts/plan/spec.md": "197e7ea6948f38b09dbd765d0841e25b55c2596273306562b27f3ff7a415a903",
+      "src/flow/prompts/plan/test-review.md": "03ec13f0914ba4d46b78f8bc464a4f33ee8f93fee3bb3cc8bb2b24644073a61d",
+      "src/flow/prompts/plan/test.md": "b9f0633f1846084df2cd16c3763438f46b26b84174e4ae7a90e09007b14027ae",
+      "src/flow/prompts/task/task-impl.md": "ee160785ad0fd89f5d324f05cea49da4c5d3198c6d5885ef734526b8a46d9232",
+      "src/flow/prompts/task/task-review.md": "49486e85749118f7ea7275e6a57157db70ef32c6141d68616b65eba1237833cd",
+      "src/flow/registry.js": "bb4d44a3b6dca6b3cfabd9121d7cfca835d6bad7f078ab7def0193d2b3780741",
+      "src/flow/schemas/acceptance-review.schema.json": "c734bc2ceed311cf1f47b3065f08894c1812dfba4319526546d5ef910a3ff656",
+      "src/flow/schemas/next-action/acceptance-review.schema.json": "9128cbe682cb684e99e215d6555e1c61a648112b954f4113fa70805778318aad",
+      "src/flow/schemas/next-action/approval.schema.json": "229029c75cb4a4c16c9134d7332f94bab3ad6d0207468636846d8fbd82501c1b",
+      "src/flow/schemas/next-action/draft.schema.json": "d00a9225ec0a0e6c231ee635d6e578534fabf61dc707534905abaf6d23e56573",
+      "src/flow/schemas/next-action/final-regression.schema.json": "85edfa3384d0c0cd0ed201c09ae652731c142e0a7a9570be034f114f04d82a2d",
+      "src/flow/schemas/next-action/finalize.schema.json": "3115a06685e78fe97e680e6afe78a00288056e237f980ec9b5fb1eecd727db60",
+      "src/flow/schemas/next-action/gate.schema.json": "67bcb714edad336b31db28c418998bad6baeff5f54fe999ef053937498471a8d",
+      "src/flow/schemas/next-action/impl.schema.json": "e0622e21b056dee0bf522aeec1709c388cecc43b479be8dc6d0963da0a120c1f",
+      "src/flow/schemas/next-action/retro.schema.json": "033cb2b3987186f830ca24148bb13ae09d962426024778394d0e66a3f3e4dd04",
+      "src/flow/schemas/next-action/review.schema.json": "e2b0e65584cc5a0a42547dd0f4b120e9006d56eb78eb153a7f89770ae70bb59f",
+      "src/flow/schemas/next-action/scenario-validity.schema.json": "165c52797771df9683a70454df84b16fab7c8ec25b5faccb0832260729728773",
+      "src/flow/schemas/next-action/spec.schema.json": "56a43ed20ed4b965acd9c7af77ce64b21ac870c50d59269026dcc270012882bc",
+      "src/flow/schemas/next-action/test-execute.schema.json": "71f83d726cfa6a06196951f4c562c52b9e94b124f69fb7ccd38136c00733b68f",
+      "src/flow/schemas/next-action/test-result-review.schema.json": "5dc6569d0f04c6e7711704c358a45d5dfaf1fe5126fa3425887625de120f0eb0",
+      "src/flow/schemas/next-action/update-overview.schema.json": "1843e0099cc57dcdf4376625fde4c2eec37e7c35030fa55c03259de81e71562f",
+      "src/flow/schemas/retro.schema.json": "a3d6850e77217bdacd001ad09c99b6dcb195123c16894d049269de000753439b",
+      "src/flow/schemas/spec.schema.json": "f1c7302606afffb1d10b87e62c5a928d96620fe33fb3db7a7bf9b4739ef3f5c8",
+      "src/flow/schemas/test-execute-result.schema.json": "67b905d879ecef3209142a69d52a98dd101b2f89ac853412f2d651e5664f60eb",
+      "src/flow/schemas/test-result-review.schema.json": "404336fa4c9f22313afad4df1349191d5fd4cfdb08b9155ff431763ea5cafcc6",
+      "src/help.js": "6212f8059dc64338b279235b1050f81a3c9580f69de75f17d27628e08eeb86af",
+      "src/hook.js": "3cd583d75df0a6097a58db524f47c8d97986d5864bc711ac5972e86c47494fcd",
+      "src/hook/commands/list.js": "7a03b7410ca64b902ed0cf2378c574de4a1193894add7ad79f2ad5b121bae3b3",
+      "src/lib/NOTICE": "b1cc919481f81f93fb7606d364906273d5393d05d6034cadd38299e6baf808a1",
+      "src/lib/active-flow-registry.js": "d202de1c18e00aca738a7c94676524a967c0248c26e8f25a00e696b6900316ce",
+      "src/lib/agent-config-files.js": "5b3cc957fe1e350dbf0927b88696ddd5521f8ad86ca4e25bbbe4f926073b12b1",
+      "src/lib/agent-defaults.js": "59e6a1db00d80fd8dfb435bb624ef50cb1ba5fdd8ed6f459f23e080f3a157049",
+      "src/lib/agent-metrics.js": "1bc5eb36a7b02ec9dd726f2e4c90e0aeb62449d7d4878aeb879ebafd97f79cf7",
+      "src/lib/agent.js": "423508401d13a3bdb379a18ff55cdbb4b89a708284a129b731de8a1dc2860405",
+      "src/lib/agents-md.js": "243d6545ce5f3a9b9cbda19638bcc32226a1bbe037be054ffabe2b48eb993cba",
+      "src/lib/cli.js": "2ee5e325ef3d679e067a1d75d6420fa0169dccfd5eec01a0e593dc6c9a78dd6c",
+      "src/lib/command-registry.js": "cb8b90e86eb6bb1d79033ae7499aee7efe85aabe87729b8d9f5d06739c4134e2",
+      "src/lib/command.js": "2b9000df79e655394a86d0fbd3c790bf161597bd3e46ccb87472924a80418450",
+      "src/lib/config.js": "5b59d2100dba864aad4269dbc163157b78890e0814390d93a59583327fb637d5",
+      "src/lib/constants.js": "e41200e84b56831a742ff2a7264d5ee2b9cb24aa1f3556bd35ed9a2075e7ca62",
+      "src/lib/container.js": "ed78066795067db5505f7f339071cf172d7e768c549bd2c135b38f151f836979",
+      "src/lib/dispatcher.js": "c8ae7d31a473f52e1faa76227b5c68816d8e2f5a4bacfdf5bf3918375e565374",
+      "src/lib/error-preview.js": "9625abe9ac3c5b43379f07fd82bb14e7ff05b94cb2df3e6575b7b123bc9d3e40",
+      "src/lib/finalize-cleanup-paths.js": "c8e0edd6abe5c21bfb54bd16e3b9cd9b9f7cdc4cca79f06f163fb824423ff5cc",
+      "src/lib/flow-envelope.js": "76b4779aa22b954fee2951ae064f470c160b69f26a1a2b6822d302976593e062",
+      "src/lib/flow-helpers.js": "7703d843dc9e93131f8110ea8e4f32a6a34b6e868944dc1da42df0f760093197",
+      "src/lib/flow-manager.js": "dcd3a7796e93f0caaca38dcbbd1b32a8f18671d3778dc2fda5f37f4be9b9f2f2",
+      "src/lib/flow-options.js": "5bc8c399e54f298cc7add1a1e2b5c59cc60b065507f44eb3b032128b29300963",
+      "src/lib/flow-store.js": "449a2b99c568bd1d7e93f574b2dbd4cda1866301b18cd37cce44a015099cf069",
+      "src/lib/flow-target-guard.js": "923b24d3259f5c77135ddbbaf79f0804e54aa81860ac5ab2229e37a797bacd5c",
+      "src/lib/formatter.js": "df7dde0d0f2ae5981f0353a4ec0421284a3234969b419981f2945f46b1481175",
+      "src/lib/git-helpers.js": "976a0a57d864cd5a54ba33c2c41efac942a56fd8a4aa7b7c5614fe325ea3ef26",
+      "src/lib/gitignore.js": "768b9dc7a9be564f293fb648084b158a1f37d43efc8cf40bc3a8b26d08f4f567",
+      "src/lib/glob.js": "a8c17eae2d5124dea5d0981f507c7398af6fd2acd9f76cd77cc60f934968ec9c",
+      "src/lib/guardrail.js": "83cd51bfa5109a43911352a9819118c811bf467b265090ee123b472a0084e99f",
+      "src/lib/hooks.js": "f72e431c5f76526a46282de0c4cc88d8c6c6bebf12f4d61b77c9d4874d2cb870",
+      "src/lib/i18n.js": "c7d369a52a7bf59fa34e70ae3b6fc58bb336b179af556f028e8d5ceb5f7e6bad",
+      "src/lib/include.js": "379a4cf85259be0ed1b13b2a69de5952ba0b77023e3614b9e6fc5f4f36c94902",
+      "src/lib/json-parse.js": "d1e748024ab63cc57bd0dd774c665f0283dc844f0821f1281ee0b5dd7c9807c3",
+      "src/lib/lint.js": "d524cfb698000072cecaf103ec501997258f5de4bc2b15f2ffa84f197d25b90a",
+      "src/lib/log-masking.js": "1a4bcd21aebdb0ad302db84650443f1a5f70cffd618704337074ebad8905629a",
+      "src/lib/log.js": "19bbefd8048c36bfe640518c1967d266f8dd7b741a837005a6f6c6b2b948fc0d",
+      "src/lib/makefile.js": "8fbea583310b8aca90aef887d71df74cf9351c66a1cce133a302a9f6176ebb57",
+      "src/lib/multi-select.js": "fe401f4e584b8bc5457943af1630b093a1e9f42242377d8cdb7d9712fca37e0f",
+      "src/lib/official-plugins.js": "02dbb4a6530a728ae7bf17158c412bacbf38ff277cf14e0cf3f71a6379e6c261",
+      "src/lib/path-match.js": "a5082468aef2433f715811f118f10270405cf59163b68bc533656354375f203f",
+      "src/lib/plugin-registry.js": "e15eb03fb367502fc1ca540a793c655f2d2c8204964585f9d2207ac472efb585",
+      "src/lib/preparing-flow-store.js": "eeea5b547ec1c0076e1b7b3f4e6743ccf212d9a6d494d34e9bc60a2fc555fca6",
+      "src/lib/preset-deploy.js": "b93e406cf7b10bbe7fa97a868b051cf84c3b09dfdb4a46294f2111f05b9e5b9a",
+      "src/lib/presets.js": "f58ed32c49ae01391e403dc518c0865f29fd0f10206ad18cbc9990efda7a3fc2",
+      "src/lib/process.js": "08d927fde236f8a81b56ac0d54c796133eafdde9379e5c19bb1787d08008ad36",
+      "src/lib/progress.js": "cda3c5c25e119e2c9e538217d44ffc2afc2ba6d1d901b789423fe2ef693fcea8",
+      "src/lib/prompt-builder.js": "8ce20eaeed4454ce17c6438e261b58aba78f72e695eb345a92c465c78716f581",
+      "src/lib/provider.js": "519be8c2df0067cf3767eebd2362e3fbfc6864da51f033af332de8014528146c",
+      "src/lib/runtime-log.js": "d92ad9eec203f1d5bd65ba7a1a8b501ca228450f7b495a0ccced6d88c3459bb2",
+      "src/lib/schema-validate.js": "71f927dc9c6c356218920dfecf2fe83fdbcf5f73998ac262728465066dfbb1ca",
+      "src/lib/skill-rules.js": "02e0838a6862a0cc9f45eb1ff9c378295707686a86e181024c970cece55b1eed",
+      "src/lib/skills.js": "d4fdc99082497a2b8112db83168a4466d6beed6c5c20a117f92cd60a256cc1e1",
+      "src/lib/spec-json.js": "a3a35c7946448fc29f014f53cdeb20611932c78e44fe8d68d7c4ea37e2430f4f",
+      "src/lib/step-id-rename.js": "d1cf73565365a07a6e0b4fa6959952f07d125e99911f7dd3be5aff81ccc83799",
+      "src/lib/test-command-sources.js": "81a6467949f68737e70d296f51f76e9a50e0679c16b2d090ae44c9f283bc98c0",
+      "src/lib/types.js": "9ba20ea28c73182d9e70f06b31f5965c36941f1f4016f77a12ee95dc2dff27e2",
+      "src/locale/en/messages.json": "251215ccbd8e94a757e96574dd85ea5a3945820781931f475c5b71f4d6fb0250",
+      "src/locale/en/prompts.json": "5e65e772a750cd4903b4a03880f572398252484b678fff97249f611e0198b2b7",
+      "src/locale/en/ui.json": "152ea6eda9c971e774ae36d91e4f8a236852401179860e9966be4a3f2b8b48cc",
+      "src/locale/ja/messages.json": "e70eff887eb2667f844ed7de989cceaa039db213d3e5b0794af2cfcbb5401a28",
+      "src/locale/ja/prompts.json": "e181b1729c60b97ae0b5d626711584628da0acfafd4aaf172f6890adb0982741",
+      "src/locale/ja/ui.json": "c47339bf6266f547e5991a1c291a53171f536a9dc4ec79ef5e0504e75cbc061c",
+      "src/metrics.js": "c7d9ee39d932d03d97194c276934b8473fa9dbbd1c414a735e5494c56ec68e95",
+      "src/metrics/commands/review.js": "7c90fa43517529bf12087efd14ac3e9439f67f224ad88af99d5001703a8422e8",
+      "src/metrics/commands/token.js": "cbd91ce6b0e2f9a0a7d3fd19a76e0b8a969c800ad31793662b432cf92f33d7fe",
+      "src/plugin.js": "f490019de2568e352bc049215e175108a6916255dfa0ecabde207e52efc71b9e",
+      "src/presets-cmd.js": "62ebc21b682b0558ee6b4bc41c6554feb193d28ed8894bf2bef4815361fe41f3",
+      "src/presets/base/data/package.js": "b07b223da612085a57e0cee25fce9daf658722dd6aa229dcd5f18feaa8943cb2",
+      "src/presets/base/data/structure.js": "b82021edf1d1635e46eb5b950002423143bce0fb37d8fe1d024e39b4456a5427",
+      "src/presets/base/guardrail-rewrite-rubric.md": "5337cbede278db22d61e0c121b5a1cc55b2e68914b292dc492cdb49622de5113",
+      "src/presets/base/guardrail.json": "1fa0d4e2558a70ee87df4aaae5c826e8e4930a61f229b03579db2c433adc926c",
+      "src/presets/base/preset.json": "7eef788440faea2bf437c3194d0c049c91c3930ef95195a5e1302e019780b04a",
+      "src/presets/base/templates/en/AGENTS.senti.md": "d07537f7a6f9f565bce00464ad014cb239693c8b6fb42502907040a554ffcc7f",
+      "src/presets/base/templates/en/development.md": "f3bb52054464d653e4e0079f41b19aee299993318ed225aa95802b758c25f6f4",
+      "src/presets/base/templates/en/layout.md": "ef5041fb55bcac418e14a856b5b53fb7abe34b0062d9a156e04c00dc7023ce5c",
+      "src/presets/base/templates/en/overview.md": "ab1b6b1ad5e03276b2d87e9a089bbbbeb97cc2fa107a17cf5d40e398c9bd8de1",
+      "src/presets/base/templates/en/project_structure.md": "9e6725c4b43db27b7f76ef47b91f2a95ee8aa0017a8114e72749e4fa8b7fbca1",
+      "src/presets/base/templates/en/stack_and_ops.md": "ea2c1dcfb7d0a165f73e69b7a691038fe6f8ac69341f83499aa6884939dc5202",
+      "src/presets/base/templates/ja/AGENTS.senti.md": "ac7872c77c452d4bae96938b2ec922000b81aa76d22b6965bc2832d7d97de266",
+      "src/presets/base/templates/ja/development.md": "e037b3549d4871ae50f2de6948e58ce0688f9b61ddedc0f95ad8bac620c07016",
+      "src/presets/base/templates/ja/layout.md": "ef5041fb55bcac418e14a856b5b53fb7abe34b0062d9a156e04c00dc7023ce5c",
+      "src/presets/base/templates/ja/overview.md": "b049000c8be6b53ab423329fea3ae7fb850b0c3395da2eef8a2d97510e5c609a",
+      "src/presets/base/templates/ja/project_structure.md": "9f4432dd7114cd370dd95f18601d3c14d572bc27a898d64c8a38e507b20ccf39",
+      "src/presets/base/templates/ja/stack_and_ops.md": "822a385d3ed4c8709204607cc11b34f88826d687be6f9f7fb311c886a7894a66",
+      "src/presets/base/tests/acceptance/fixtures/.senti/config.json": "f76abeaaa83ce8d52171d04854868e48ff905e3497e11e7686b17e89561990e6",
+      "src/presets/base/tests/acceptance/fixtures/package.json": "c38c7295115ff05ffd4b24585807ad3c810e3e093c3b3eb02c2af4727c7b53b0",
+      "src/presets/base/tests/acceptance/fixtures/src/config.js": "8f4d72665db82271c2735c30832eead58bd838f4a1a6b98c3dad9a3f9a61afa1",
+      "src/presets/base/tests/acceptance/fixtures/src/http-client.js": "90f9d07b9d4a1187aac10f8aab7af89bfda639f8175b18b42a0af429ed86051e",
+      "src/presets/base/tests/acceptance/fixtures/src/index.js": "fac7862b4088a74e8823567becf5c24e5c361b5979538de9cc2c4f4de8c93fd1",
+      "src/presets/base/tests/acceptance/fixtures/src/logger.js": "762adaf319930df4e0c3d896b11d0d2772ccb4be6f7c90c72c2cefe833016250",
+      "src/presets/base/tests/acceptance/test.js": "15c950e529187b3e3dbd372e75599290a745b4298ae8f9818523b4498601cf2b",
+      "src/scripts/rename-phase-steps.js": "eab5f18c4efbc6a73a2232c74c576847d1880c85b7d609f6cb795962b63e781e",
+      "src/senti.js": "e8351ccf831207b332de2ce69687beb45574bf3a997a0251fc8402aabab6ab0b",
+      "src/setup.js": "fa713547d9e03edc955f1895e732568f24e427aec70cdddf2ceb6835545f6e95",
+      "src/skills/partials/ai-question-style.md": "b8f68e66b7b867edda8a0c55d4b2f043644674f943b746c865d1507b585c543d",
+      "src/skills/partials/choice-format.md": "3cf319ea034298af154d066e675107f860bcf63fe5114820618f26750bf0b3b3",
+      "src/skills/partials/context-recording.md": "b72de71ed09cb2f63e972b92fbc683337eef37c57cdaadd10b7c86173ebeed5c",
+      "src/skills/partials/core-principle.md": "19a2116b52a6fd17c9533f5b219f62175e1a6fdff17fde006910b21be68bf823",
+      "src/skills/partials/flow-tracking.md": "88a8c0fa66304603b361de96a5245f343282d1cc40d621826c57a2eed9a69bec",
+      "src/skills/partials/issue-log-recording.md": "8d760323538056745968a8735a0a6ee6607bc8655034bc092fe461aaf97d3500",
+      "src/skills/partials/placeholder-artifact-permission.md": "e58ea5c70170bdce6525d6ef7c3d1317e16247666af0c0e744b5c5b08c978bf4",
+      "src/skills/partials/worktree-mode.md": "e3bdd313dfaefd1f51f7f72d2f882ce7546b1257d1a85224aba1472ca6f9b284",
+      "src/skills/rules.json": "30d2a43819fd599de2e00511e8afe65613b1f1d4aa85f04e58fb8da8b12a96de",
+      "src/skills/senti.flow-auto/SKILL.md": "142e6cd8f1222d4c37e0b79d31aee51ceccdd797af5f4ba8464f384035ba623c",
+      "src/skills/senti.flow-resume/SKILL.md": "ae82ecc529a20fe6651f0e2e262177161fe915bf64e73e95f38f88ce6a18c696",
+      "src/skills/senti.flow-status/SKILL.md": "47fa3e0e58e16237c6e98e5a6f6b6a148c61729af5bd754e9692045d0de305cf",
+      "src/skills/senti.flow-sync/SKILL.md": "f570e14ad38a039189db73929f00850f154c98986c2235788c8014381e631959",
+      "src/skills/senti.flow/SKILL.md": "e38687b7cd85d7763fe9e8fa80e0e87dd4218c7d7878c30127f1a61c4208b2f3",
+      "src/spec.js": "99cd780f3644434334559de5d9eb7f420eb492cbafea255114270efc3f256431",
+      "src/spec/commands/render.js": "699d53db70fb28251f051581d7f0f82b0a0d26ce10fb1c50bf1200797aba998a",
+      "src/upgrade.js": "5d3312389687e85c3b09c6af658a3deaf03ce2baa4915b81b27aea02a94f8c1a"
+    },
+    "truncated": false
+  },
+  "generatedAt": "2026-07-12T21:41:37.967Z",
+  "items": [
+    {
+      "findingId": "I-1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/review.js`  \n**Issue:** `blockingFindings` and `nonBlockingImprovements` now duplicate the same “serialize then add prefixed findingId” pattern.  \n**Suggestion:** Add a small helper such as `serializeFindingsWithIds(items, prefix)` and use it for both `F` and `I` findings.",
+      "evidenceRefs": [
+        "impl-review.json#I-1"
+      ]
+    },
+    {
+      "findingId": "I-2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/review.js`  \n**Issue:** The condition `triageFindings.length > 0 && !taskSpec` is repeated in both the write path and the `changed` list construction.  \n**Suggestion:** Introduce `const shouldWriteTriage = triageFindings.length > 0 && !taskSpec;` before the `if`, then reuse it in both places.",
+      "evidenceRefs": [
+        "impl-review.json#I-2"
+      ]
+    },
+    {
+      "findingId": "I-3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/review.js`  \n**Issue:** The new `triageFindings` array bulk-processes every blocking and non-blocking finding without an explicit local upper bound, which conflicts with the bounded-resource-usage guardrail unless the bound is enforced elsewhere in this path.  \n**Suggestion:** Reuse the same maximum finding count enforced by the review artifact parser, or add a named cap before building/writing `impl-triage.json`, failing validation if the combined finding count exceeds it.",
+      "evidenceRefs": [
+        "impl-review.json#I-3"
+      ]
+    },
+    {
+      "findingId": "I-4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/definition.js`  \n**Issue:** `proposalCount` is still declared in `resolveImplReviewLifecycle`, but the shown implementation no longer uses it.  \n**Suggestion:** Remove `const proposalCount = input.result?.artifacts?.proposalCount ?? 0;` if it is now dead code.",
+      "evidenceRefs": [
+        "impl-review.json#I-4"
+      ]
+    },
+    {
+      "findingId": "I-5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Issue:** `validateImplReviewEvidence()` duplicates the same verdict derivation and finding-bucket validation now added in `contractFromImplReviewArtifact()` in `src/flow/lib/flow-judgment-contract.js`.\n**Suggestion:** Move the impl-review consistency check into one shared helper exported from one of the touched files, or make one function call the other. This keeps the `PASS` / `ADVISORY` / `FAIL` bucket rules in one place.",
+      "evidenceRefs": [
+        "impl-review.json#I-5"
+      ]
+    },
+    {
+      "findingId": "I-6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Issue:** `validateRetroEvidence()` creates `new Set([\"done\", \"not_done\", \"not_applicable\"])` for every requirement entry.\n**Suggestion:** Define a module-level constant such as `const RETRO_REQUIREMENT_STATUSES = new Set([...])` and reuse it in the loop.",
+      "evidenceRefs": [
+        "impl-review.json#I-6"
+      ]
+    },
+    {
+      "findingId": "I-7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Issue:** `dispositionEvidence()` sounds like a value rather than a reader/parser function, while nearby functions use clearer verbs like `readImplRepairLedger()`.\n**Suggestion:** Rename it to `readDispositionEvidence()` or `readDeferredDispositionEvidence()` to make the side effect and returned data clearer.",
+      "evidenceRefs": [
+        "impl-review.json#I-7"
+      ]
+    },
+    {
+      "findingId": "I-8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Issue:** `validateRequirementSummaryMembership()` returns `missing`, but immediately throws when `missing.length > 0`, so the successful return is always an empty array. Callers assign it to `missingRequired`, which makes the function look like it computes missing IDs even though it only validates.\n**Suggestion:** Either rename it to `assertRequirementSummaryMembership()` and return nothing, or change it to return `{ missing, unknown }` without throwing so callers can use the result intentionally.",
+      "evidenceRefs": [
+        "impl-review.json#I-8"
+      ]
+    },
+    {
+      "findingId": "I-9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/flow-judgment-contract.js`\n**Issue:** `contractForStepFromSpecDir()` hardcodes `[\"impl-review\", \"impl-gate\", \"test-result-review\", \"acceptance-review\"]` inline for fingerprint checks.\n**Suggestion:** Extract this to a module-level constant like `FINGERPRINTED_CONTRACT_STEPS` to document the policy and avoid another inline list if the set changes.",
+      "evidenceRefs": [
+        "impl-review.json#I-9"
+      ]
+    },
+    {
+      "findingId": "I-10",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-next-action.js`  \n**Issue:** `isFlowImplementationStep()` now embeds a longer step-id array inline, which reallocates on each call and makes future lifecycle edits easier to miss.  \n**Suggestion:** Move the IDs into a module-level `Set`, e.g. `FLOW_IMPLEMENTATION_STEP_IDS`, and use `.has(target.stepId)`.",
+      "evidenceRefs": [
+        "impl-review.json#I-10"
+      ]
+    },
+    {
+      "findingId": "I-11",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-next-action.js`  \n**Issue:** The new aborted branch returns a full null-filled response object inline. If other terminal/no-action states use the same envelope shape, this adds another place to keep fields synchronized.  \n**Suggestion:** Extract a small helper such as `buildTerminalNextAction(action)` or reuse an existing response builder if one exists in this file.",
+      "evidenceRefs": [
+        "impl-review.json#I-11"
+      ]
+    },
+    {
+      "findingId": "I-12",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-acceptance-review.js`  \n**Issue:** `isAcceptanceDiffPath()` and `implementationDiff()` both normalize `state.spec`, derive `specDir`, and construct acceptance test paths.  \n**Suggestion:** Add a helper like `buildAcceptanceDiffScope(state)` returning `{ specPath, specDir, specTests, rawEvidence, paths }`, then use it for both the git pathspecs and untracked-file filtering.",
+      "evidenceRefs": [
+        "impl-review.json#I-12"
+      ]
+    },
+    {
+      "findingId": "I-13",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-acceptance-review.js`  \n**Issue:** `implementationDiff()` now collects tracked diff plus bounded untracked content for acceptance-review evidence. The name sounds like a pure implementation-code diff and hides the acceptance-specific filtering.  \n**Suggestion:** Rename it to `collectAcceptanceDiff()` or `buildAcceptanceEvidenceDiff()`.",
+      "evidenceRefs": [
+        "impl-review.json#I-13"
+      ]
+    },
+    {
+      "findingId": "I-14",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-acceptance-review.js`  \n**Issue:** `ACCEPTANCE_RESPONSE_SCHEMA` has unbounded `requirementJudgments`, ref arrays, `missingEvidence`, and string lengths. This violates the bounded-resource-usage guardrail for bulk AI response processing.  \n**Suggestion:** Build the schema from the acceptance context so `requirementJudgments.maxItems` equals the number of requirements, and add reasonable `maxItems`/`maxLength` limits for refs and missing-evidence strings.",
+      "evidenceRefs": [
+        "impl-review.json#I-14"
+      ]
+    },
+    {
+      "findingId": "I-15",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-acceptance-review.js`  \n**Issue:** `parseAcceptanceResponse()` passes arbitrary response text into `JSON.parse()` and then `repairJson()`. If the agent returns a very large response, repair/parsing can consume unbounded CPU and memory.  \n**Suggestion:** Check `text.length` against an explicit `MAX_ACCEPTANCE_RESPONSE_CHARS` before parsing or repairing.",
+      "evidenceRefs": [
+        "impl-review.json#I-15"
+      ]
+    },
+    {
+      "findingId": "I-16",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-acceptance-review.js`  \n**Issue:** The diff and evidence are each capped at `MAX_ACCEPTANCE_PROMPT_CHARS`, but the final prompt can exceed that limit once combined with rules, schema, and fallback text.  \n**Suggestion:** After `PromptBuilder.build()`, validate the combined prompt payload length or split the constants into `MAX_ACCEPTANCE_DIFF_CHARS`, `MAX_ACCEPTANCE_EVIDENCE_CHARS`, and `MAX_ACCEPTANCE_TOTAL_PROMPT_CHARS`.",
+      "evidenceRefs": [
+        "impl-review.json#I-16"
+      ]
+    },
+    {
+      "findingId": "I-17",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-final-regression.js`\n**Issue:** `finalRegressionSkipDecision` now builds and asserts the repair fingerprint inline, adding repair-artifact validation logic to a function otherwise focused on skip/classification decisions.\n**Suggestion:** Compute the fingerprint once at the caller level, or introduce a small helper such as `assertCurrentTestExecuteFingerprint({ root, state, specDir })`. This keeps skip-decision logic focused and makes the repair-fingerprint assertion easier to reuse consistently.",
+      "evidenceRefs": [
+        "impl-review.json#I-17"
+      ]
+    },
+    {
+      "findingId": "I-18",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-finalize.js`\n**Issue:** `test-execute-result.json` and `test-result-review.json` are now referenced both as path variables and as string literals in the `files` array. This creates minor duplication and makes future renames easier to miss.\n**Suggestion:** Define artifact filename constants near the existing path construction, then derive both the paths and the `assertCurrentRepairEvidenceFiles` list from those constants.",
+      "evidenceRefs": [
+        "impl-review.json#I-18"
+      ]
+    },
+    {
+      "findingId": "I-19",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-finalize.js`\n**Issue:** `assertCurrentRepairEvidenceFiles` is called before `readRetroResultIfExists`, but the surrounding code treats `retro.json` as optional. If `assertCurrentRepairEvidenceFiles` requires every listed file to exist, this changes optional behavior into required behavior.\n**Suggestion:** Either pass only files that are mandatory at this point, or rename/use an API that clearly supports optional files. If `retro.json` is intentionally required after repair, make that explicit with a local comment or a more specific assertion helper name.",
+      "evidenceRefs": [
+        "impl-review.json#I-19"
+      ]
+    },
+    {
+      "findingId": "I-20",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Issue:** `checkIntegrationTestArtifacts` manually builds a fingerprint, reads two JSON files, parses them, and calls `assertRepairFingerprint`. `run-report.js` now uses `assertCurrentRepairEvidenceFiles` for the same kind of validation, so the validation pattern is inconsistent and partly duplicated.  \n**Suggestion:** Replace the manual loop with `assertCurrentRepairEvidenceFiles({ root, state, specDir, files: [...] })` if the helper supports this call site, or add a small local helper so repair evidence validation is expressed the same way across gate/report flows.",
+      "evidenceRefs": [
+        "impl-review.json#I-20"
+      ]
+    },
+    {
+      "findingId": "I-21",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Issue:** `persistIntegrationGateResult` and `runGatePhaseWithDependencies` now both know that integration gate results should be written through `writeRepairEvidenceArtifact` with `stepId: \"impl-gate\"`. That duplicates artifact routing knowledge and makes future filename or metadata changes easier to miss.  \n**Suggestion:** Extract a helper such as `writeImplGateResultArtifact({ specDir, artifact, fingerprint })` and use it from both call sites. It can return the written artifact/path so callers do not need to separately assume the basename.",
+      "evidenceRefs": [
+        "impl-review.json#I-21"
+      ]
+    },
+    {
+      "findingId": "I-22",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-report.js`  \n**Issue:** The list `[\"test-execute-result.json\", \"test-result-review.json\", \"retro.json\"]` is embedded directly in `RunReportCommand.run`. Similar artifact filename sets are likely to recur as R4 enforcement expands, which increases the chance of inconsistent coverage.  \n**Suggestion:** Move the list to a named constant near the top of the file, for example `REPORT_REPAIR_EVIDENCE_FILES`, so the intent is explicit and future additions are localized.",
+      "evidenceRefs": [
+        "impl-review.json#I-22"
+      ]
+    },
+    {
+      "findingId": "I-23",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The direct `fs.writeFileSync(retroPath, ...)` call was replaced by `writeRepairEvidenceArtifact`, but `retroPath` may now only exist for path construction or prior checks. If it is no longer needed, keeping it makes the write target less obvious.  \n**Suggestion:** If `retroPath` is unused after this change, remove it. If callers still need the exact path, derive it from the `writeRepairEvidenceArtifact` result instead of maintaining two write-path concepts.",
+      "evidenceRefs": [
+        "impl-review.json#I-23"
+      ]
+    },
+    {
+      "findingId": "I-24",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** The new impl-review fingerprint check duplicates artifact names and validation flow already present in `src/flow/lib/run-retro.js`, increasing drift risk if artifact names or validation rules change.  \n**Suggestion:** Move the “load test-execute-result/test-result-review and assert repair fingerprint” logic into a small shared helper in an existing artifact module, then call it from both review and retro.",
+      "evidenceRefs": [
+        "impl-review.json#I-24"
+      ]
+    },
+    {
+      "findingId": "I-25",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `JSON.parse(fs.readFileSync(artifactPath, \"utf8\"))` reads the full artifact without an explicit size bound, which conflicts with the bounded-resource-usage guardrail.  \n**Suggestion:** Use an existing bounded artifact reader if available, or add a small size check before reading/parsing these two JSON files.",
+      "evidenceRefs": [
+        "impl-review.json#I-25"
+      ]
+    },
+    {
+      "findingId": "I-26",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `\"test-execute-result.json\"` and `\"test-result-review.json\"` are hard-coded inline, while `run-retro.js` already has named constants for these artifacts.  \n**Suggestion:** Introduce shared constants or local constants in `run-review.js` so error messages, path construction, and labels use the same source of truth.",
+      "evidenceRefs": [
+        "impl-review.json#I-26"
+      ]
+    },
+    {
+      "findingId": "I-27",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** The direct `fs.writeFileSync(resultPath, ...)` call was replaced by `writeRepairEvidenceArtifact(...)`. If `resultPath` is now only retained for that removed write, it becomes dead code and may mislead readers into thinking the path is still authoritative here.  \n**Suggestion:** Remove the `resultPath` variable/import dependency if it is no longer referenced elsewhere in the file, or use it explicitly if the artifact writer is expected to target that exact path.",
+      "evidenceRefs": [
+        "impl-review.json#I-27"
+      ]
+    },
+    {
+      "findingId": "I-28",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** `writeReviewArtifacts` mutates `review` by assigning `review.contractSummary` before writing. The function name sounds like an output-only writer, but it also enriches the artifact, which makes call-site behavior less obvious.  \n**Suggestion:** Build the final artifact explicitly before writing, for example:\n\n```js\nconst artifact = {\n  ...review,\n  contractSummary: contractFromTestResultReviewArtifact(...).summary.toJSON(),\n};\n```\n\nThen pass `artifact` to `writeRepairEvidenceArtifact(...)` and `writeMarkdown(...)`.",
+      "evidenceRefs": [
+        "impl-review.json#I-28"
+      ]
+    },
+    {
+      "findingId": "I-29",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** `path.relative(root, reviewPath).split(path.sep).join(\"/\")` is a repeated path-normalization pattern likely used elsewhere in flow artifacts. Keeping it inline makes the artifact-writing code noisier and increases the chance of inconsistent path formatting.  \n**Suggestion:** Extract a small local helper in this file, such as `toArtifactPath(root, filePath)`, and use it when building `contractSummary`.",
+      "evidenceRefs": [
+        "impl-review.json#I-29"
+      ]
+    },
+    {
+      "findingId": "I-30",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`\n**Issue:** The new `impl-triage` and `impl-repair` branches add more special-case completion logic directly inside the `\"done\"` path. This method already contains step-specific handling, and the new branches continue that growth pattern.\n**Suggestion:** Move these branches into small private helpers such as `completeImplTriageStep(ctx, state, id, status)` and `completeImplRepairStep(ctx, state, id, status)`, or a single dispatch table for artifact-backed step completions. This keeps `run()` focused on routing and makes future implementation leaves easier to add consistently.",
+      "evidenceRefs": [
+        "impl-review.json#I-30"
+      ]
+    },
+    {
+      "findingId": "I-31",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`\n**Issue:** `flowLeafIdsBetween(\"test-execute\", \"finalize-cleanup\")` encodes important workflow behavior inline. The range determines which downstream leaves are reset after repair, but the boundary meaning is not obvious at the call site.\n**Suggestion:** Assign it to a named constant or helper, for example `implementationRepairResetStepIds()` or `DOWNSTREAM_IMPL_REPAIR_RESET_RANGE`, so the reset policy is explicit and easier to audit against R1.",
+      "evidenceRefs": [
+        "impl-review.json#I-31"
+      ]
+    },
+    {
+      "findingId": "I-32",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`\n**Issue:** The new completion responses use different payload keys: `dispositions` for `impl-triage`, and `repair` plus `invalidations` for `impl-repair`. That may be correct semantically, but it creates a slightly inconsistent response shape for related implementation-repair flow steps.\n**Suggestion:** Consider grouping step-specific completion artifacts under a consistent key such as `artifact` or `completion`, for example `{ id, status, next, artifact: completed.artifact }` and `{ id, status, artifact: completed.entry, invalidations }`. This makes command consumers less likely to grow step-specific parsing branches unnecessarily.",
+      "evidenceRefs": [
+        "impl-review.json#I-32"
+      ]
+    },
+    {
+      "findingId": "I-33",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/prompts/impl/acceptance-review.md`\n**Issue:** The prompt now requires `impl-repair.json` or an explicit no-repair record, but it does not name where that no-repair record comes from or how it is represented. That ambiguity can produce inconsistent reviewer output or invented citation strings, which the same prompt later forbids.\n**Suggestion:** Add a short concrete phrase identifying the artifact/source for the no-repair record, for example “the command-provided explicit no-repair record” or the exact artifact path/key if one exists.",
+      "evidenceRefs": [
+        "impl-review.json#I-33"
+      ]
+    },
+    {
+      "findingId": "I-34",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** The FAIL path says to “Continue to `impl-triage`” and then “Address only `blockingFindings[]` through the triage artifact.” “Address” can imply doing repair work during review/triage, which conflicts with “do not repair directly from the review step.”  \n**Suggestion:** Reword step 3 to make the artifact responsibility explicit, e.g. “Use the triage artifact to select and carry forward only `blockingFindings[]` for `impl-repair`.” This keeps review, triage, and repair responsibilities distinct.",
+      "evidenceRefs": [
+        "impl-review.json#I-34"
+      ]
+    },
+    {
+      "findingId": "I-35",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`  \n**Issue:** The help text now hard-codes only `accept_risk_and_continue` and `abort`. If the acceptance-decision command later supports additional explicit choices, the help text can drift from the implementation.  \n**Suggestion:** If the valid choices already exist as constants or schema values in this file, generate this help line from that source instead of duplicating the literals in the help string.",
+      "evidenceRefs": [
+        "impl-review.json#I-35"
+      ]
+    },
+    {
+      "findingId": "I-36",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** Several arrays and strings are unbounded, including `mechanicalBlockers`, `hardBlockers`, `requirementJudgments`, `deferredFindings`, evidence ref arrays, and free-form strings. This violates the `bounded-resource-usage` guardrail because bulk output size is not capped.  \n**Suggestion:** Add explicit `maxItems` for arrays and `maxLength` for strings, using project-appropriate limits for blocker counts, requirement judgments, evidence refs, and report refs.",
+      "evidenceRefs": [
+        "impl-review.json#I-36"
+      ]
+    },
+    {
+      "findingId": "I-37",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** The schema repeats the same “array of non-empty strings” shape for `requestRefs`, `requirementRefs`, `diffRefs`, `repairRefs`, `testRefs`, `missingEvidence`, `evidenceRefs`, and `reportRefs`, with small inconsistencies such as some requiring `minItems` and others not.  \n**Suggestion:** Introduce local `$defs`, for example `nonEmptyString`, `refArray`, and `requiredRefArray`, then reference them with `$ref`. This reduces duplication and makes future tightening, such as adding `maxItems`/`maxLength`, less error-prone.",
+      "evidenceRefs": [
+        "impl-review.json#I-37"
+      ]
+    },
+    {
+      "findingId": "I-38",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** `mechanicalBlockers` now has a strict object shape with `additionalProperties: false`, but `hardBlockers` remains an array of arbitrary objects. That inconsistency weakens the schema and makes downstream handling less predictable.  \n**Suggestion:** Define a strict `hardBlockers.items` schema with required identifiers/summary fields, or reuse a shared blocker definition if hard and mechanical blockers intentionally share structure.",
+      "evidenceRefs": [
+        "impl-review.json#I-38"
+      ]
+    },
+    {
+      "findingId": "I-39",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`  \n**Issue:** The projected response arrays are also unbounded: `requirementJudgments`, `mechanicalBlockers`, and `hardBlockers`. This has the same bounded-resource risk as the full acceptance-review schema.  \n**Suggestion:** Add `maxItems` to each array and, if item shapes remain generic objects, consider bounding object size via stricter item schemas or `maxProperties`.",
+      "evidenceRefs": [
+        "impl-review.json#I-39"
+      ]
+    },
+    {
+      "findingId": "I-40",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`  \n**Issue:** The `verdict` enum is duplicated here and in `src/flow/schemas/acceptance-review.schema.json`. The recent `amend_required` to `repair_required` rename had to be made in both places, which is easy to miss in future changes.  \n**Suggestion:** If the schema loader supports JSON Schema references, factor the verdict enum into a shared `$defs` entry or shared schema file and reference it from both touched schemas. If external refs are not supported, add an in-file `$defs.verdict` in each file to at least keep local usage consistent.",
+      "evidenceRefs": [
+        "impl-review.json#I-40"
+      ]
+    },
+    {
+      "findingId": "I-41",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Issue:** The two new tests duplicate temp root setup, spec creation, touched file setup, and advisory finding payload construction.  \n**Suggestion:** Add small local helpers such as `prepareImplReviewFixture()` and `advisoryImprovement()` within this test file, then let each test only declare the findings that differ.",
+      "evidenceRefs": [
+        "impl-review.json#I-41"
+      ]
+    },
+    {
+      "findingId": "I-42",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Issue:** `prepareAcceptanceEvidence` now writes scenario validity, fingerprint-matched repair evidence, impl-review, impl-gate, retro, and test review artifacts. The name understates the side effects.  \n**Suggestion:** Rename it to something more explicit, for example `prepareFingerprintMatchedAcceptanceEvidence` or `preparePassingAcceptancePipelineEvidence`.",
+      "evidenceRefs": [
+        "impl-review.json#I-42"
+      ]
+    },
+    {
+      "findingId": "I-43",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Issue:** `prepareAcceptanceEvidence` became a large multi-artifact fixture builder with repeated `writeRepairEvidenceArtifact({ specDir, stepId, fingerprint, artifact })` calls. This makes the test harder to scan and obscures which artifacts are essential to the assertion.  \n**Suggestion:** Extract focused helpers such as `writePassingTestExecuteEvidence`, `writePassingImplGateEvidence`, and `writePassingRetroEvidence`, or use a small local wrapper like `writeFingerprintedEvidence(stepId, artifact)` to reduce repetition.",
+      "evidenceRefs": [
+        "impl-review.json#I-43"
+      ]
+    },
+    {
+      "findingId": "I-44",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Issue:** The fixture uses `new Date().toISOString()` in multiple artifact payloads. These values are not asserted and can make snapshots, debugging, or future equality checks noisier.  \n**Suggestion:** Define a constant timestamp such as `const fixtureTimestamp = \"2026-01-01T00:00:00.000Z\";` and reuse it in generated fixture artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#I-44"
+      ]
+    },
+    {
+      "findingId": "I-45",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Issue:** The test constructs the same `state` and `diff` inputs inline, then calls `buildAcceptanceReviewContext` twice.  \n**Suggestion:** Move the state/diff fixture into a helper such as `buildDemoAcceptanceContext(fixture)` or reuse a single `context` when possible, keeping the test focused on final disposition and missing-source behavior.",
+      "evidenceRefs": [
+        "impl-review.json#I-45"
+      ]
+    },
+    {
+      "findingId": "I-46",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Issue:** The new `\"rejects missing buckets...\"` test repeats `assert.throws(() => contractFromImplReviewArtifact(...), /.../)` several times with only input and expected message changing.  \n**Suggestion:** Replace the repeated assertions with an array of `{ artifact, message }` cases and loop over them. This reduces duplication and makes future verdict/bucket validation cases easier to add.",
+      "evidenceRefs": [
+        "impl-review.json#I-46"
+      ]
+    },
+    {
+      "findingId": "I-47",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Issue:** The helper name `updatesFor` is generic and does not say what system behavior it exercises.  \n**Suggestion:** Rename it to something like `postHookUpdatesForImplReview` or `runImplReviewPostHook` so the test reads more clearly at each assertion site.",
+      "evidenceRefs": [
+        "impl-review.json#I-47"
+      ]
+    },
+    {
+      "findingId": "I-48",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Issue:** `noRepairUpdates` is reused as the expected value for both PASS and ADVISORY. It is not mutated today, but sharing a mutable array in assertions can make later test edits more fragile.  \n**Suggestion:** Use a small factory such as `expectedNoRepairUpdates()` or inline the expected arrays if preferred. This keeps each assertion isolated while preserving readability.",
+      "evidenceRefs": [
+        "impl-review.json#I-48"
+      ]
+    },
+    {
+      "findingId": "I-49",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`\n**Issue:** Multiple files now validate repair evidence with slightly different patterns: `run-gate.js` manually reads/parses artifacts and asserts fingerprints, while `run-report.js`, `run-review.js`, `run-retro.js`, `run-finalize.js`, and `run-final-regression.js` appear to use or duplicate related repair-evidence validation logic. This creates drift risk around required files, fingerprint rules, and bounded reads.\n**Suggestion:** Move the shared “assert current repair evidence files” flow into one helper that owns filename handling, bounded reads, parsing, and fingerprint assertion. Use it consistently across gate, review, retro, report, finalize, and final-regression paths.",
+      "evidenceRefs": [
+        "impl-review.json#I-49"
+      ]
+    },
+    {
+      "findingId": "I-50",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`\n**Issue:** Artifact filenames such as `test-execute-result.json`, `test-result-review.json`, and `retro.json` are repeated across `run-review.js`, `run-retro.js`, `run-report.js`, `run-finalize.js`, `run-gate.js`, and tests. This makes future artifact renames or required-evidence changes easy to apply inconsistently.\n**Suggestion:** Define shared constants or a small artifact registry for repair evidence filenames, then derive paths, validation lists, and test fixtures from that source.",
+      "evidenceRefs": [
+        "impl-review.json#I-50"
+      ]
+    },
+    {
+      "findingId": "I-51",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Issue:** `validateImplReviewEvidence()` and `contractFromImplReviewArtifact()` both appear to validate the same impl-review verdict/bucket consistency rules. That duplicates lifecycle contract logic across artifact validation and judgment contract construction.\n**Suggestion:** Extract a shared impl-review consistency validator and call it from both places, or make one function consume the other’s normalized contract result.",
+      "evidenceRefs": [
+        "impl-review.json#I-51"
+      ]
+    },
+    {
+      "findingId": "I-52",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`\n**Issue:** Acceptance-review verdicts and projected response shapes are duplicated between the full acceptance-review schema and the next-action projection schema. The recent verdict rename had to be reflected in both, which is a cross-file consistency risk.\n**Suggestion:** Factor shared verdict/blocker/ref definitions into reusable `$defs` or a shared schema file if the loader supports it. At minimum, mirror local `$defs` naming and bounds in both schemas.",
+      "evidenceRefs": [
+        "impl-review.json#I-52"
+      ]
+    },
+    {
+      "findingId": "I-53",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`\n**Issue:** Related implementation-repair flow steps return different payload keys, such as `dispositions` for `impl-triage` and `repair` for `impl-repair`. Other files such as `get-next-action.js`, lifecycle definitions, and command consumers may need step-specific parsing branches because the interface is not uniform.\n**Suggestion:** Use a consistent envelope for step completion results, such as `{ id, status, next, artifact, invalidations }`, while keeping step-specific data inside `artifact`.",
+      "evidenceRefs": [
+        "impl-review.json#I-53"
+      ]
+    },
+    {
+      "findingId": "I-54",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-acceptance-review.js`\n**Issue:** `implementationDiff()` appears to collect acceptance-review evidence, while nearby files and prompts refer to acceptance evidence, repair evidence, and implementation repair artifacts. The name can mislead callers about scope and ownership.\n**Suggestion:** Rename it to `collectAcceptanceDiff()` or `buildAcceptanceEvidenceDiff()` and align related helper names with the acceptance-review terminology used in schemas and prompts.",
+      "evidenceRefs": [
+        "impl-review.json#I-54"
+      ]
+    }
+  ]
+}

@@ -12,10 +12,12 @@
    - If a proposal concerns an intentional guardrail exception and the applicable guardrail article permits acknowledged exceptions, remediate by recording the guardrail id in `spec.json.constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`. Do not use `design_principles`, approval notes, overview entries, task text, or review notes as exception acknowledgments.
    - **If `impl-review.json.verdict` is `FAIL`**:
      1. Read `impl-review.json` and `review.md`.
-     2. Address only `blockingFindings[]`.
-     3. Do not treat `nonBlockingImprovements[]` as mandatory repair work.
-     4. **Do NOT re-run tests here.** When code changes are applied during review, the dispatcher resets downstream execution and reruns it through the single execution point.
+     2. Continue to `impl-triage`; do not repair directly from the review step.
+     3. Address only `blockingFindings[]` through the triage artifact.
+     4. Do not treat `nonBlockingImprovements[]` as mandatory repair work.
+     5. **Do NOT re-run tests here.** Completed `impl-repair` returns to the single `test-execute` execution point.
    - **If verdict is `PASS` or `ADVISORY`**:
+     - `impl-triage` and `impl-repair` are marked complete without an interactive repair.
      - Display: "レビューの結果、修正の必要はありませんでした。"
    - **Retry limit:** Each `senti flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this flow-scope limit (spec 253).
    - At semantic retry exhaustion, unresolved blocking findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition before final-regression.

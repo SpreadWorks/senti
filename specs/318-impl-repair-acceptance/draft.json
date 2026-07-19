@@ -1,0 +1,162 @@
+{
+  "devType": "bugfix",
+  "goal": "Issue #413: close the implementation repair through semantic acceptance flow so every post-repair evidence artifact matches the current repair fingerprint, every invalidation records its reason and previous fingerprint, and every requirement is evaluated before final regression.",
+  "analysis": {
+    "problem": "Current implementation review can reset downstream steps and delete selected artifacts after proposals, but the flow has no explicit implementation triage and repair states, no fingerprint-backed invalidation ledger for repair-driven evidence, and no requirement-granular acceptance judgment over the original request, requirements, diff, repair audit, and test evidence.",
+    "proposedApproach": "Add explicit implementation triage and repair lifecycle states, make every completed repair re-enter test-execute, attach downstream evidence to a repair fingerprint covering product source, plugin source, project flow configuration, the approved spec, and spec-owned tests, invalidate evidence whose recorded fingerprint is missing or differs from the current fingerprint, and replace aggregate acceptance scoring as the deciding contract with requirement-unit met, notMet, and notVerifiable judgments.",
+    "validation": "This addresses the root problem because repaired code cannot reuse evidence with a missing or different fingerprint, every invalidation records its reason and previous fingerprint, and acceptance must prove each requirement from the original intent through the resulting diff and fingerprint-matched test evidence before final regression can begin."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #413 adds explicit impl-triage and impl-repair states and requires every repair to return through test-execute before downstream review or acceptance.",
+      "must: The repair fingerprint covers additions, removals, and content changes under src/, plugins/, .senti/config.json, the active spec.json, and the active spec tests/ tree; generated evidence artifacts and logs are excluded from its inputs.",
+      "must: Every evidence artifact produced by test-execute, test-result-review, impl-review, impl-gate, retro, or acceptance-review records the current repair fingerprint; an artifact is stale when that fingerprint is missing or differs from the current repair fingerprint.",
+      "must: Any repair fingerprint change invalidates every test-execute-through-acceptance-review artifact whose recorded fingerprint is missing or differs from the current fingerprint.",
+      "must: The invalidation ledger preserves the reason and previous fingerprint for each repair-driven invalidation.",
+      "must: Acceptance evaluates the original request, explicit requirements, produced diff, repair audit evidence, and test evidence at requirement granularity.",
+      "must: A notMet result routes to repair, while notVerifiable routes only to a decision path that requires explicit approval.",
+      "must: Risk acceptance and abort cannot be selected automatically on the notVerifiable path.",
+      "must: A CLI-only FAIL to repair to retest to PASS scenario rejects artifacts whose repair fingerprint is missing or differs from the current fingerprint and cannot use them to satisfy acceptance.",
+      "must: Existing successful flow behavior remains passing, and tests do not force success by directly mutating flow state or artifacts.",
+      "should: After changing documented flow behavior, run senti build and include every resulting docs/ diff in the same change; when senti build produces no docs/ diff, no manual docs edit is required.",
+      "must: Current definition.js resets test-execute through finalize-cleanup after review proposals and removes selected artifacts, but it does not expose explicit impl-triage or impl-repair flow leaves.",
+      "must: Current acceptance evidence synthesis derives aggregate scores primarily from artifact presence, test result status, coverage summaries, and deferred findings rather than semantic requirement-unit judgments."
+    ],
+    "decisionPoints": [
+      "must: Define one repair lifecycle contract shared by review-driven and acceptance-driven repair that records finding disposition, changed paths, pre-repair fingerprint, post-repair fingerprint, and invalidation reason.",
+      "must: Preserve the repair fingerprint input boundary and invalidate only evidence produced from test-execute through acceptance-review, leaving plan artifacts and spec tests intact.",
+      "must: Define a requirement-unit acceptance result model that distinguishes met, notMet, and notVerifiable outcomes.",
+      "must: Preserve explicit human control for risk acceptance and abort while keeping notMet repair routing mechanical."
+    ],
+    "resolvedByProjectRules": [
+      "must: Use only Node.js built-in modules and add no external dependency.",
+      "must: Represent meaningful repair, fingerprint, ledger, and acceptance values with dedicated classes that enforce invariants instead of discriminated object literals.",
+      "must: Follow alpha policy by replacing incomplete contracts directly rather than retaining compatibility paths for superseded artifact formats.",
+      "must: Treat source behavior as authoritative where generated docs differ, and run senti upgrade after changing skill or preset prompt sources.",
+      "must: Keep Issue #413 as one concern and leave unrelated campaign findings outside this spec."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Decompose the repair lifecycle, evidence invalidation, semantic acceptance model, and CLI regression proof into independently reviewable task boundaries.",
+      "must: Specify artifact schemas, fingerprint inputs, ledger invariants, and transition preconditions precisely enough for automated tests.",
+      "must: Map each acceptance criterion to failing pre-fix reproduction and post-fix verification evidence.",
+      "should: Identify every changed src/skills or src/presets prompt source, run senti upgrade for those paths, and run senti build to identify generated docs/ outputs from the implemented flow changes."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Add and wire impl-triage and impl-repair flow states for implementation and acceptance findings.",
+      "must: Re-enter test-execute after every completed implementation repair.",
+      "must: Record the current repair fingerprint on artifacts from test-execute through acceptance-review and invalidate each artifact whose fingerprint is missing or differs after repair, recording invalidation reason and previous fingerprint in a ledger.",
+      "must: Evaluate request, requirements, diff, repair audit evidence, and test evidence for every requirement unit during acceptance-review.",
+      "must: Route notMet to repair and notVerifiable only to an approval-required decision path that cannot auto-select risk acceptance or abort.",
+      "must: Add failing-first and regression coverage, including a CLI-only fingerprint-mismatch rejection scenario and existing success paths.",
+      "should: Run senti upgrade after changing any src/skills or src/presets prompt source, and run senti build after changing documented flow behavior; commit every generated diff from those commands."
+    ],
+    "out": [
+      "must: Do not address campaign findings other than F-002 and F-003 or opportunistic defects outside Issue #413.",
+      "must: Do not publish packages, change npm distribution tags, or execute a formal release.",
+      "must: Do not bypass flow evidence by directly mutating state or artifacts in acceptance tests.",
+      "must: Do not integrate unrelated Wave 2 flow semantic work from D-10, D-11, or D-13."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Existing successful implementation review, gate, retro, acceptance, and final-regression flows continue to pass through the refined lifecycle.",
+    "must: Existing review proposals no longer jump directly back into an ambiguous implementation state; flow get next-action and flow get status expose impl-triage, impl-repair, and then test-execute, whose result records the post-repair fingerprint.",
+    "must: Existing downstream evidence with a missing repair fingerprint or a fingerprint different from the current product, config, spec, and test inputs is rejected instead of satisfying later gates or acceptance.",
+    "must: Acceptance artifact consumers receive one met, notMet, or notVerifiable judgment per requirement with references to request, diff, repair audit, and test evidence; notMet targets impl-triage and notVerifiable targets acceptance-decision.",
+    "should: test:ci integration occurs only after the Issue-stated D-03 scheduling boundary is satisfied.",
+    "must: Public command inventory includes flow run review, flow run acceptance-review, flow set acceptance-decision, flow get next-action, and flow get status; retain command names, target guard options, the ok/type/key/data/errors envelope fields, success envelopes for matching runId/Issue/spec guards, and ACTIVE_FLOW_MISMATCH failures for mismatched guards.",
+    "must: Hook and side-effect inventory includes implementation review routing, downstream step reset, downstream evidence removal, acceptance outcome routing, and final-regression promotion; impl-triage and impl-repair own review disposition and repair re-entry, the fingerprint ledger owns evidence invalidation, and acceptance-review owns requirement-unit judgment and final-regression promotion.",
+    "must: Generated artifact inventory includes impl-review.json, impl-review.md, test-execute-result.json, test-result-review.json, test-result-review.md, impl-gate-result.json, retro.json, acceptance-review.json, final-regression-result.json, report.json, tests/.raw/upgrade.log, tests/.raw/test-execution.log, and tests/.raw/requirement-summary.json; retain their no-repair PASS-path roles while rejecting any test-execute-through-acceptance-review artifact whose recorded repair fingerprint is missing or differs from the current fingerprint.",
+    "must: Configuration inventory has no retained or removed config entry in scope; command configuration remains unchanged.",
+    "must: Behavior-level verification exercises flow run review through impl-triage, impl-repair, and test-execute; flow get next-action and flow get status expose those states; and the CLI-only repair scenario proves downstream artifacts are regenerated before acceptance.",
+    "must: Behavior-level verification exercises acceptance-review with met, notMet, and notVerifiable requirement results, proves notMet returns to repair, proves notVerifiable requires explicit acceptance-decision input, and proves no path auto-selects risk acceptance or abort.",
+    "must: Behavior-level verification retains the no-repair PASS path from implementation review through final-regression, asserts the ok/type/key/data/errors fields for each exercised command, and reads each retained JSON artifact through its existing consumer."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Does Issue #413 require one closed lifecycle in which implementation findings enter impl-triage and impl-repair and every completed repair returns to test-execute before any downstream evidence can be accepted?",
+      "answer": "must: Implementation findings enter explicit impl-triage and impl-repair states, and every completed repair re-enters test-execute before downstream review, gate, retro, or acceptance evidence can be accepted.",
+      "evidence": "Issue #413 Required Changes and Acceptance Criteria explicitly require both states and unconditional test-execute re-entry; current src/flow/definition.js has neither state and resets review proposals directly from test-execute onward.",
+      "why": "The requested closure is incomplete if any repair can bypass a test-execute result carrying the post-repair fingerprint or re-enter an ambiguous implementation step.",
+      "considered": "Keeping the current direct downstream reset was rejected because it provides no explicit triage or repair audit boundary.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: Must additions, removals, or content changes under src/, plugins/, .senti/config.json, the active spec.json, or active spec tests/ change the repair fingerprint and invalidate every test-execute-through-acceptance-review artifact whose recorded fingerprint is missing or different, while appending the invalidation reason and previous fingerprint?",
+      "answer": "must: The repair fingerprint covers src/, plugins/, .senti/config.json, the active spec.json, and active spec tests/ but excludes generated evidence; any change to those inputs invalidates every test-execute-through-acceptance-review artifact whose fingerprint is missing or differs and records the reason and previous fingerprint in the ledger.",
+      "evidence": "Issue #413 states the invalidation range and both required ledger fields verbatim; current definition.js removes a fixed artifact list without a fingerprint or ledger entry.",
+      "why": "Step reset alone cannot prove that surviving evidence belongs to the exact product, config, spec, and test inputs used after repair or explain a fingerprint mismatch.",
+      "considered": "Timestamp-only and unconditional deletion approaches were rejected because neither compares the defined evidence inputs nor preserves the prior evidence identity.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: Must acceptance-review judge each requirement unit using the original request, explicit requirement, produced diff, repair audit evidence, and test evidence whose fingerprint matches the current repair fingerprint rather than aggregate artifact-presence scores alone?",
+      "answer": "must: Acceptance-review produces a judgment for every requirement unit using the original request, explicit requirement, produced diff, repair audit evidence, and test evidence whose fingerprint matches the current repair fingerprint.",
+      "evidence": "Issue #413 lists all five evidence inputs and requirement granularity; current acceptance-review-artifacts.js derives pass primarily from required artifact presence, test status, coverage summary, and aggregate scores.",
+      "why": "Artifact completeness is necessary but does not establish that the delivered diff semantically satisfies each requested outcome.",
+      "considered": "Retaining aggregate scores as the deciding contract was rejected because a high aggregate can hide an unmet individual requirement.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: Does notMet route mechanically to repair while notVerifiable enters only an approval-required decision whose risk-acceptance and abort choices can never be auto-selected?",
+      "answer": "must: notMet routes to repair; notVerifiable routes only to an approval-required decision, and risk acceptance or abort always requires an explicit user choice.",
+      "evidence": "Issue #413 Required Changes and Acceptance Criteria define both routes and explicitly prohibit automatic selection of risk acceptance or abort.",
+      "why": "An unmet requirement has a deterministic repair path, while insufficient evidence requires a human risk decision that automation must not make.",
+      "considered": "Auto-selecting repair for notVerifiable was rejected because it may not resolve an external verification limit; auto-selecting risk or abort was rejected by the Issue safety contract.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: Must automated verification first fail on pre-fix source and then prove a CLI-only FAIL to repair to retest to PASS flow rejects test-execute-through-acceptance-review artifacts with a missing or mismatched repair fingerprint without direct test mutation of flow state or artifacts?",
+      "answer": "must: Verification includes a failing pre-fix reproduction and a CLI-only FAIL to repair to retest to PASS scenario that rejects evidence with a missing or mismatched repair fingerprint without tests directly mutating flow state or artifacts.",
+      "evidence": "Issue #413 Verification and Acceptance Criteria explicitly require the failing-first proof, CLI-only scenario, stale-artifact rejection, and prohibition on direct mutation.",
+      "why": "A state-injection test could pass without exercising the public flow transitions and evidence invalidation contract under repair.",
+      "considered": "Unit-only state mutation was rejected as acceptance evidence, though focused unit tests may supplement the required behavior-level CLI proof.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: Must the refined repair and acceptance contracts preserve existing successful flow behavior while intentionally replacing incomplete downstream evidence semantics?",
+      "answer": "must: Existing successful flow behavior remains passing while incomplete repair and acceptance evidence semantics are replaced by the refined contracts.",
+      "evidence": "Issue #413 Verification requires existing success-path behavior to pass and describes the current gaps as reproducible incomplete semantics rather than behavior to preserve.",
+      "why": "The repair must reject missing or mismatched fingerprints without regressing the no-repair PASS path whose evidence fingerprint already matches the current inputs and whose requirements are met.",
+      "considered": "Preserving acceptance of missing or mismatched repair fingerprints for compatibility was rejected under the alpha policy and because it is the defect being fixed.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "should: Should the change run senti build after changing documented flow behavior, include every resulting docs/ diff, run senti upgrade after changing src/skills or src/presets prompt sources, and defer test:ci integration until D-03 is complete?",
+      "answer": "should: Run senti build after changing documented flow behavior and include every resulting docs/ diff; run senti upgrade after changing src/skills or src/presets prompt sources; integrate the new suite into test:ci only after D-03 is complete.",
+      "evidence": "Issue #413 requires necessary docs updates and schedules test:ci integration after D-03; AGENTS.md requires senti upgrade after src/skills or src/presets changes.",
+      "why": "The two project commands provide verifiable generated-surface checks, while the explicit D-03 dependency prevents premature strict-suite integration.",
+      "considered": "Unconditional docs churn and early test:ci integration were rejected because both ignore the Issue's change-driven and dependency-driven boundaries.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T14:00:31Z",
+    "notes": "Issue-preserving draft approved under the parent-provided flow authorization after all QA entries were answered from Issue #413, project rules, and verified source context."
+  }
+}
