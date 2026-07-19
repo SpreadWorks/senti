@@ -868,9 +868,9 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: senti flow set acceptance-decision --choice <choice>",
         "",
-        "Resolve a non-pass acceptance-review verdict.",
-        "user_decision_required choices: amend_and_retry, abort, accept_risk_and_continue",
-        "blocked choices: repair_and_reevaluate, abort",
+        "Resolve a notVerifiable acceptance-review verdict with an explicit user choice.",
+        "Choices: accept_risk_and_continue, abort",
+        "No choice is inferred from autoApprove or an omitted --choice option.",
       ].join("\n"),
     },
     auto: {

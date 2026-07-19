@@ -19,6 +19,7 @@ import path from "node:path";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { RunRetroCommand } from "../../../src/flow/lib/run-retro.js";
+import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
 
 function createRepo() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "retro-req-"));
@@ -55,9 +56,12 @@ function writeSpec(tmp, specId, requirements) {
 }
 
 function writeArtifacts(specDir, summary, verdict = "pass") {
+  const root = path.dirname(path.dirname(specDir));
+  const specPath = path.relative(root, path.join(specDir, "spec.json"));
   const rawOutput = path.join(specDir, "tests", ".raw", "test-execution.log");
   fs.mkdirSync(path.dirname(rawOutput), { recursive: true });
   fs.writeFileSync(rawOutput, "raw output\n");
+  const repairFingerprint = buildRepairFingerprint({ root, specPath }).hash;
   fs.writeFileSync(path.join(specDir, "test-execute-result.json"), JSON.stringify({
     version: "2",
     raw_output_path: path.relative(path.dirname(specDir), rawOutput),
@@ -72,12 +76,14 @@ function writeArtifacts(specDir, summary, verdict = "pass") {
       reason: "unit fixture",
       classified_paths: [],
     },
+    repairFingerprint,
   }, null, 2));
   fs.writeFileSync(path.join(specDir, "test-result-review.json"), JSON.stringify({
     verdict,
     checked_items: [{ check: "project_regression_verification", result: "pass" }],
     result_file_path: path.join(specDir, "test-execute-result.json"),
     raw_output_path: rawOutput,
+    repairFingerprint,
   }, null, 2));
 }
 
@@ -108,7 +114,7 @@ describe("R5: retro reads test-execute-result.json (spec 251)", () => {
       root: tmp,
       dryRun: true,
       flowState: {
-        spec: `specs/${specId}/spec.md`,
+        spec: `specs/${specId}/spec.json`,
         baseBranch: "main",
         requirements: [],
       },
@@ -116,7 +122,7 @@ describe("R5: retro reads test-execute-result.json (spec 251)", () => {
 
     const cmd = new RunRetroCommand();
     const out = await cmd.execute(ctx);
-    assert.equal(out.result, "dry-run");
+    assert.equal(out.result, "dry-run", JSON.stringify(out));
     assert.equal(out.artifacts.summary.total, 1);
     assert.equal(out.artifacts.summary.done, 1);
   });
@@ -132,7 +138,7 @@ describe("R5: retro reads test-execute-result.json (spec 251)", () => {
       root: tmp,
       dryRun: true,
       flowState: {
-        spec: `specs/${specId}/spec.md`,
+        spec: `specs/${specId}/spec.json`,
         baseBranch: "main",
         requirements: [],
       },

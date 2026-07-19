@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "phase": "integration",
+      "round": 1,
+      "status": "blocking",
+      "statusReason": "The diff implements validated impl-triage and impl-repair ledger classes for impl-review blocking findings, including duplicate/missing/unknown finding validation and non-empty audit fields. However, the provided diff does not show acceptance-review notMet judgments being persisted into impl-triage; it only includes helper support for acceptance-review ids. Therefore the requirement is not fully demonstrated for every required source.",
+      "updatedAt": "2026-07-12T21:18:57.449Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "The diff implements validated impl-triage and impl-repair ledger classes for impl-review blocking findings, including duplicate/missing/unknown finding validation and non-empty audit fields. However, the provided diff does not show acceptance-review notMet judgments being persisted into impl-triage; it only includes helper support for acceptance-review ids. Therefore the requirement is not fully demonstrated for every required source.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "integration",
+      "round": 2,
+      "status": "blocking",
+      "statusReason": "The diff implements most of the repair audit machinery, including versioned impl-repair ledger entries with source finding ids, changed paths, reason, previous/current fingerprints, invalidated artifact paths, and timestamps, plus validation for empty audit fields. However, impl-triage is only generated and validated for impl-review blockingFindings, while impl-review artifacts can also contain nonBlockingImprovements. R2 requires one validated disposition for every finding from impl-review, so advisory/non-blocking impl-review findings are not covered by persisted triage dispositions.",
+      "updatedAt": "2026-07-12T21:20:27.750Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "The diff implements most of the repair audit machinery, including versioned impl-repair ledger entries with source finding ids, changed paths, reason, previous/current fingerprints, invalidated artifact paths, and timestamps, plus validation for empty audit fields. However, impl-triage is only generated and validated for impl-review blockingFindings, while impl-review artifacts can also contain nonBlockingImprovements. R2 requires one validated disposition for every finding from impl-review, so advisory/non-blocking impl-review findings are not covered by persisted triage dispositions.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "integration",
+      "round": 3,
+      "status": "blocking",
+      "statusReason": "Spec-local test coverage header omits R1, so the diff does not provide required `// spec: R<N> ...` header coverage for requirement R1.; Spec-local test coverage header omits R2, so the diff does not provide required `// spec: R<N> ...` header coverage for requirement R2.; Spec-local test coverage header omits R3, so the diff does not provide required `// spec: R<N> ...` header coverage for requirement R3.",
+      "updatedAt": "2026-07-12T21:28:42.941Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R2"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js",
+            "locator": "// spec: R4 R5 R6 R7 R8"
+          },
+          "observed": "Spec-local test coverage header omits R1, so the diff does not provide required `// spec: R<N> ...` header coverage for requirement R1.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js",
+            "locator": "// spec: R4 R5 R6 R7 R8"
+          },
+          "observed": "Spec-local test coverage header omits R2, so the diff does not provide required `// spec: R<N> ...` header coverage for requirement R2.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "specs/318-impl-repair-acceptance/tests/repair-closure-cli.test.js",
+            "locator": "// spec: R4 R5 R6 R7 R8"
+          },
+          "observed": "Spec-local test coverage header omits R3, so the diff does not provide required `// spec: R<N> ...` header coverage for requirement R3.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    }
+  ]
+}

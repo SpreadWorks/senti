@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/schemas/acceptance-review.schema.json",
+      "src/flow/schemas/next-action/acceptance-review.schema.json"
+    ],
+    "inputHash": "7818cadec173da9cdd91706f9af241b6977d0ba3c25c544f570428ed3d8cd5e9",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "src/flow/schemas/acceptance-review.schema.json",
+    "src/flow/schemas/next-action/acceptance-review.schema.json"
+  ],
+  "inputHash": "7818cadec173da9cdd91706f9af241b6977d0ba3c25c544f570428ed3d8cd5e9",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T20:29:32.187Z",
+  "finishedAt": "2026-07-12T20:29:32.187Z",
+  "rawResponse": "I’ll review the two schema diffs only and look for quality/design issues within that scope, including the bounded-resource guardrail.### 1. Add explicit bounds for arrays and strings\n**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** Several arrays and strings are unbounded, including `mechanicalBlockers`, `hardBlockers`, `requirementJudgments`, `deferredFindings`, evidence ref arrays, and free-form strings. This violates the `bounded-resource-usage` guardrail because bulk output size is not capped.  \n**Suggestion:** Add explicit `maxItems` for arrays and `maxLength` for strings, using project-appropriate limits for blocker counts, requirement judgments, evidence refs, and report refs.\n\n### 2. Add bounds to next-action acceptance-review projection\n**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`  \n**Issue:** The projected response arrays are also unbounded: `requirementJudgments`, `mechanicalBlockers`, and `hardBlockers`. This has the same bounded-resource risk as the full acceptance-review schema.  \n**Suggestion:** Add `maxItems` to each array and, if item shapes remain generic objects, consider bounding object size via stricter item schemas or `maxProperties`.\n\n### 3. Deduplicate repeated evidence reference array schemas\n**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** The schema repeats the same “array of non-empty strings” shape for `requestRefs`, `requirementRefs`, `diffRefs`, `repairRefs`, `testRefs`, `missingEvidence`, `evidenceRefs`, and `reportRefs`, with small inconsistencies such as some requiring `minItems` and others not.  \n**Suggestion:** Introduce local `$defs`, for example `nonEmptyString`, `refArray`, and `requiredRefArray`, then reference them with `$ref`. This reduces duplication and makes future tightening, such as adding `maxItems`/`maxLength`, less error-prone.\n\n### 4. Tighten `hardBlockers` item shape for consistency\n**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** `mechanicalBlockers` now has a strict object shape with `additionalProperties: false`, but `hardBlockers` remains an array of arbitrary objects. That inconsistency weakens the schema and makes downstream handling less predictable.  \n**Suggestion:** Define a strict `hardBlockers.items` schema with required identifiers/summary fields, or reuse a shared blocker definition if hard and mechanical blockers intentionally share structure.\n\n### 5. Avoid duplicating verdict enum values across schemas\n**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`  \n**Issue:** The `verdict` enum is duplicated here and in `src/flow/schemas/acceptance-review.schema.json`. The recent `amend_required` to `repair_required` rename had to be made in both places, which is easy to miss in future changes.  \n**Suggestion:** If the schema loader supports JSON Schema references, factor the verdict enum into a shared `$defs` entry or shared schema file and reference it from both touched schemas. If external refs are not supported, add an in-file `$defs.verdict` in each file to at least keep local usage consistent.",
+  "success": {
+    "proposals": [
+      {
+        "title": "I’ll review the two schema diffs only and look for quality/design issues within that scope, including the bounded-resource guardrail.### 1. Add explicit bounds for arrays and strings",
+        "body": "**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** Several arrays and strings are unbounded, including `mechanicalBlockers`, `hardBlockers`, `requirementJudgments`, `deferredFindings`, evidence ref arrays, and free-form strings. This violates the `bounded-resource-usage` guardrail because bulk output size is not capped.  \n**Suggestion:** Add explicit `maxItems` for arrays and `maxLength` for strings, using project-appropriate limits for blocker counts, requirement judgments, evidence refs, and report refs.",
+        "file": "src/flow/schemas/acceptance-review.schema.json"
+      },
+      {
+        "title": "2. Add bounds to next-action acceptance-review projection",
+        "body": "**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`  \n**Issue:** The projected response arrays are also unbounded: `requirementJudgments`, `mechanicalBlockers`, and `hardBlockers`. This has the same bounded-resource risk as the full acceptance-review schema.  \n**Suggestion:** Add `maxItems` to each array and, if item shapes remain generic objects, consider bounding object size via stricter item schemas or `maxProperties`.",
+        "file": "src/flow/schemas/next-action/acceptance-review.schema.json"
+      },
+      {
+        "title": "3. Deduplicate repeated evidence reference array schemas",
+        "body": "**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** The schema repeats the same “array of non-empty strings” shape for `requestRefs`, `requirementRefs`, `diffRefs`, `repairRefs`, `testRefs`, `missingEvidence`, `evidenceRefs`, and `reportRefs`, with small inconsistencies such as some requiring `minItems` and others not.  \n**Suggestion:** Introduce local `$defs`, for example `nonEmptyString`, `refArray`, and `requiredRefArray`, then reference them with `$ref`. This reduces duplication and makes future tightening, such as adding `maxItems`/`maxLength`, less error-prone.",
+        "file": "src/flow/schemas/acceptance-review.schema.json"
+      },
+      {
+        "title": "4. Tighten `hardBlockers` item shape for consistency",
+        "body": "**File:** `src/flow/schemas/acceptance-review.schema.json`  \n**Issue:** `mechanicalBlockers` now has a strict object shape with `additionalProperties: false`, but `hardBlockers` remains an array of arbitrary objects. That inconsistency weakens the schema and makes downstream handling less predictable.  \n**Suggestion:** Define a strict `hardBlockers.items` schema with required identifiers/summary fields, or reuse a shared blocker definition if hard and mechanical blockers intentionally share structure.",
+        "file": "src/flow/schemas/acceptance-review.schema.json"
+      },
+      {
+        "title": "5. Avoid duplicating verdict enum values across schemas",
+        "body": "**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`  \n**Issue:** The `verdict` enum is duplicated here and in `src/flow/schemas/acceptance-review.schema.json`. The recent `amend_required` to `repair_required` rename had to be made in both places, which is easy to miss in future changes.  \n**Suggestion:** If the schema loader supports JSON Schema references, factor the verdict enum into a shared `$defs` entry or shared schema file and reference it from both touched schemas. If external refs are not supported, add an in-file `$defs.verdict` in each file to at least keep local usage consistent.",
+        "file": "src/flow/schemas/next-action/acceptance-review.schema.json"
+      }
+    ]
+  }
+}

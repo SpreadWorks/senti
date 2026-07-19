@@ -62,6 +62,11 @@ import {
   ReviewFindingCycle,
   ReviewFindingFingerprint,
 } from "../lib/finding-disposition-policy.js";
+import {
+  buildRepairFingerprint,
+  prepareImplTriageArtifact,
+  stampRepairFingerprint,
+} from "../lib/impl-repair-artifacts.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -1046,7 +1051,8 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
   });
   const artifact = new ImplReviewArtifact({ ...dispositioned, requirementIds });
   const reviewJsonPath = path.join(specDir, "impl-review.json");
-  const artifactJson = artifact.toJSON();
+  const fingerprint = buildRepairFingerprint({ root, specPath: flow.spec });
+  const artifactJson = stampRepairFingerprint({ artifact: artifact.toJSON(), fingerprint });
   Object.assign(artifactJson, new ReviewFindingCycle(flow).toJSON());
   if (taskSpec) {
     artifactJson.taskId = taskSpec.task.id;
@@ -1074,17 +1080,37 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
     attemptNumber,
     artifact: artifactJson,
   });
+  const triageFindings = [
+    ...artifactJson.blockingFindings.map((finding) => ({
+      ...finding,
+      decision: finding.disposition === "must-fix" ? "apply" : "reject",
+    })),
+    ...artifactJson.nonBlockingImprovements.map((finding) => ({ ...finding, decision: "reject" })),
+  ];
+  if (triageFindings.length > 0 && !taskSpec) {
+    prepareImplTriageArtifact({
+      specDir,
+      sourceStep: "impl-review",
+      sourceArtifact: "impl-review.json",
+      findings: triageFindings,
+      fingerprint,
+    });
+  }
   return {
     result: "ok",
     changed: [
       path.relative(root, reviewMdWrite.latestPath),
       path.relative(root, reviewJsonWrite.latestPath),
+      ...(triageFindings.length > 0 && !taskSpec
+        ? [path.relative(root, path.join(specDir, "impl-triage.json"))]
+        : []),
     ],
     artifacts: {
       phase: "impl",
       verdict: artifact.verdict,
       blockingCount: artifact.summary.blocking,
       nonBlockingCount: artifact.summary.nonBlocking,
+      repairFingerprint: fingerprint.hash,
       ...(taskSpec ? { taskId: taskSpec.task.id, target: taskSpec.relPath } : {}),
     },
     next: artifact.verdict === "FAIL" ? null : (taskSpec ? "task-gate" : "impl-gate"),

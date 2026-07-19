@@ -1,0 +1,4 @@
+   - Apply only findings whose `impl-triage.json` disposition is `apply`.
+   - Do not run tests or delete evidence manually.
+   - Repair completion computes the current repair fingerprint, appends `impl-repair.json`, records per-artifact invalidation metadata, resets downstream leaves, and promotes `test-execute`.
+   - **On complete:** run `senti flow set step impl-repair done`.

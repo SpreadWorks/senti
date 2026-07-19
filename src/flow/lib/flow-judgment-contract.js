@@ -15,6 +15,10 @@ import {
   isPlanEvidenceFresh,
   latestPlanRewind,
 } from "./plan-rewind.js";
+import {
+  assertRepairFingerprint,
+  buildRepairFingerprint,
+} from "./impl-repair-artifacts.js";
 
 export const COMPLETION_OVERRIDE_FILE = "completion-overrides.json";
 
@@ -204,7 +208,11 @@ export class StepCompletionPolicy {
   static defaultPolicies() {
     return new Map([
       ["test-review", new StepCompletionPolicy({ stepId: "test-review", allowedVerdicts: ["PASS", "ADVISORY"] })],
-      ["impl-review", new StepCompletionPolicy({ stepId: "impl-review", allowedVerdicts: ["PASS", "ADVISORY"] })],
+      ["impl-review", new StepCompletionPolicy({
+        stepId: "impl-review",
+        allowedVerdicts: ["PASS", "ADVISORY", "FAIL"],
+        requireNoBlocking: false,
+      })],
       ["impl-gate", new StepCompletionPolicy({ stepId: "impl-gate", allowedVerdicts: ["pass"] })],
       ["test-result-review", new StepCompletionPolicy({ stepId: "test-result-review", allowedVerdicts: ["pass"], requireNoBlocking: false })],
       ["acceptance-review", new StepCompletionPolicy({
@@ -482,10 +490,24 @@ export function contractFromTestReviewArtifact(artifact, opts = {}) {
 }
 
 export function contractFromImplReviewArtifact(artifact, opts = {}) {
+  if (!Array.isArray(artifact?.blockingFindings)) {
+    throw new Error("impl-review blockingFindings must be an array");
+  }
+  if (!Array.isArray(artifact.nonBlockingImprovements)) {
+    throw new Error("impl-review nonBlockingImprovements must be an array");
+  }
+  const expectedVerdict = artifact.blockingFindings.length > 0
+    ? "FAIL"
+    : artifact.nonBlockingImprovements.length > 0
+      ? "ADVISORY"
+      : "PASS";
+  if (artifact.verdict !== expectedVerdict) {
+    throw new Error(`impl-review verdict must be ${expectedVerdict} for the recorded finding buckets`);
+  }
   return new FlowJudgmentContract({
     ...contractInput("impl-review", artifact, opts),
     verdict: artifact.verdict,
-    blockingFindings: artifact.blockingFindings || [],
+    blockingFindings: artifact.blockingFindings,
     failureKind: null,
     nextAction: artifact.verdict === "PASS" || artifact.verdict === "ADVISORY" ? "impl-gate" : null,
   });
@@ -594,6 +616,11 @@ export function contractForStepFromSpecDir({ root, specDir, stepId }) {
   const artifactPath = path.join(specDir, artifactFile);
   const artifactPathRelative = repoRelative(root, artifactPath);
   const artifact = readJsonStrict(artifactPath);
+  if (["impl-review", "impl-gate", "test-result-review", "acceptance-review"].includes(stepId)) {
+    const specPath = path.posix.join(repoRelative(root, specDir), "spec.json");
+    const currentFingerprint = buildRepairFingerprint({ root, specPath });
+    assertRepairFingerprint({ artifact, fingerprint: currentFingerprint, label: artifactFile });
+  }
   if (stepId === "test-review") {
     return contractFromTestReviewArtifact(artifact, { artifactPath: artifactPathRelative });
   }

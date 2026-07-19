@@ -123,7 +123,7 @@ function buildContextDescriptor(kinds, target, state) {
 
 function isFlowImplementationStep(target) {
   return target?.scope === "flow"
-    && ["implement", "impl-review", "impl-gate"].includes(target.stepId);
+    && ["implement", "impl-review", "impl-triage", "impl-repair", "impl-gate"].includes(target.stepId);
 }
 
 function attachRetryRecovery(result, stopKey, stopView, retryRecovery) {
@@ -272,6 +272,17 @@ export default class GetNextActionCommand extends FlowCommand {
     }
     let state = ctx.flowState;
 
+    if (state.acceptanceReview?.status === "aborted") {
+      return {
+        taskId: null,
+        step: null,
+        action: "aborted",
+        instructions: null,
+        context: null,
+        output_schema: null,
+        requires_approval: false,
+      };
+    }
     if (new FlowCompletion(state).complete) return completedNextAction();
 
     assertNoUnresolvedInProgressTarget(state);

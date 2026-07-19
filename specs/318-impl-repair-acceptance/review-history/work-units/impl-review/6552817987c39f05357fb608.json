@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "6552817987c39f05357fb608",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-107b0734e7017aa5",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/commands/review.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/get-next-action.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-retro.js",
+      "src/flow/lib/run-test-execute.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/prompts/impl/impl-review.md",
+      "src/flow/schemas/acceptance-review.schema.json",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/run-review-advisory.test.js"
+    ],
+    "inputHash": "107b0734e7017aa5c30b6c7217e73a24fdbad0ffd07ed0d500760ce5f7952a91",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "6552817987c39f05357fb608"
+  },
+  "targetFiles": [
+    "src/flow/commands/review.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/get-next-action.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-retro.js",
+    "src/flow/lib/run-test-execute.js",
+    "src/flow/lib/set-step.js",
+    "src/flow/prompts/impl/impl-review.md",
+    "src/flow/schemas/acceptance-review.schema.json",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/run-review-advisory.test.js"
+  ],
+  "inputHash": "107b0734e7017aa5c30b6c7217e73a24fdbad0ffd07ed0d500760ce5f7952a91",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T21:27:40.103Z",
+  "finishedAt": "2026-07-12T21:27:40.103Z",
+  "rawResponse": "### 1. Centralize repair evidence validation\n**File:** `src/flow/lib/run-gate.js`\n**Issue:** Multiple files now validate repair evidence with slightly different patterns: `run-gate.js` manually reads/parses artifacts and asserts fingerprints, while `run-report.js`, `run-review.js`, `run-retro.js`, `run-finalize.js`, and `run-final-regression.js` appear to use or duplicate related repair-evidence validation logic. This creates drift risk around required files, fingerprint rules, and bounded reads.\n**Suggestion:** Move the shared “assert current repair evidence files” flow into one helper that owns filename handling, bounded reads, parsing, and fingerprint assertion. Use it consistently across gate, review, retro, report, finalize, and final-regression paths.\n\n### 2. Share repair artifact filename constants\n**File:** `src/flow/lib/run-review.js`\n**Issue:** Artifact filenames such as `test-execute-result.json`, `test-result-review.json`, and `retro.json` are repeated across `run-review.js`, `run-retro.js`, `run-report.js`, `run-finalize.js`, `run-gate.js`, and tests. This makes future artifact renames or required-evidence changes easy to apply inconsistently.\n**Suggestion:** Define shared constants or a small artifact registry for repair evidence filenames, then derive paths, validation lists, and test fixtures from that source.\n\n### 3. Consolidate impl-review verdict and bucket validation\n**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Issue:** `validateImplReviewEvidence()` and `contractFromImplReviewArtifact()` both appear to validate the same impl-review verdict/bucket consistency rules. That duplicates lifecycle contract logic across artifact validation and judgment contract construction.\n**Suggestion:** Extract a shared impl-review consistency validator and call it from both places, or make one function consume the other’s normalized contract result.\n\n### 4. Align acceptance review schema definitions\n**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`\n**Issue:** Acceptance-review verdicts and projected response shapes are duplicated between the full acceptance-review schema and the next-action projection schema. The recent verdict rename had to be reflected in both, which is a cross-file consistency risk.\n**Suggestion:** Factor shared verdict/blocker/ref definitions into reusable `$defs` or a shared schema file if the loader supports it. At minimum, mirror local `$defs` naming and bounds in both schemas.\n\n### 5. Normalize implementation-repair step response shapes\n**File:** `src/flow/lib/set-step.js`\n**Issue:** Related implementation-repair flow steps return different payload keys, such as `dispositions` for `impl-triage` and `repair` for `impl-repair`. Other files such as `get-next-action.js`, lifecycle definitions, and command consumers may need step-specific parsing branches because the interface is not uniform.\n**Suggestion:** Use a consistent envelope for step completion results, such as `{ id, status, next, artifact, invalidations }`, while keeping step-specific data inside `artifact`.\n\n### 6. Use consistent naming for acceptance diff collection\n**File:** `src/flow/lib/run-acceptance-review.js`\n**Issue:** `implementationDiff()` appears to collect acceptance-review evidence, while nearby files and prompts refer to acceptance evidence, repair evidence, and implementation repair artifacts. The name can mislead callers about scope and ownership.\n**Suggestion:** Rename it to `collectAcceptanceDiff()` or `buildAcceptanceEvidenceDiff()` and align related helper names with the acceptance-review terminology used in schemas and prompts.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize repair evidence validation",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Issue:** Multiple files now validate repair evidence with slightly different patterns: `run-gate.js` manually reads/parses artifacts and asserts fingerprints, while `run-report.js`, `run-review.js`, `run-retro.js`, `run-finalize.js`, and `run-final-regression.js` appear to use or duplicate related repair-evidence validation logic. This creates drift risk around required files, fingerprint rules, and bounded reads.\n**Suggestion:** Move the shared “assert current repair evidence files” flow into one helper that owns filename handling, bounded reads, parsing, and fingerprint assertion. Use it consistently across gate, review, retro, report, finalize, and final-regression paths.",
+        "file": "src/flow/lib/run-gate.js"
+      },
+      {
+        "title": "2. Share repair artifact filename constants",
+        "body": "**File:** `src/flow/lib/run-review.js`\n**Issue:** Artifact filenames such as `test-execute-result.json`, `test-result-review.json`, and `retro.json` are repeated across `run-review.js`, `run-retro.js`, `run-report.js`, `run-finalize.js`, `run-gate.js`, and tests. This makes future artifact renames or required-evidence changes easy to apply inconsistently.\n**Suggestion:** Define shared constants or a small artifact registry for repair evidence filenames, then derive paths, validation lists, and test fixtures from that source.",
+        "file": "src/flow/lib/run-review.js"
+      },
+      {
+        "title": "3. Consolidate impl-review verdict and bucket validation",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Issue:** `validateImplReviewEvidence()` and `contractFromImplReviewArtifact()` both appear to validate the same impl-review verdict/bucket consistency rules. That duplicates lifecycle contract logic across artifact validation and judgment contract construction.\n**Suggestion:** Extract a shared impl-review consistency validator and call it from both places, or make one function consume the other’s normalized contract result.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js"
+      },
+      {
+        "title": "4. Align acceptance review schema definitions",
+        "body": "**File:** `src/flow/schemas/next-action/acceptance-review.schema.json`\n**Issue:** Acceptance-review verdicts and projected response shapes are duplicated between the full acceptance-review schema and the next-action projection schema. The recent verdict rename had to be reflected in both, which is a cross-file consistency risk.\n**Suggestion:** Factor shared verdict/blocker/ref definitions into reusable `$defs` or a shared schema file if the loader supports it. At minimum, mirror local `$defs` naming and bounds in both schemas.",
+        "file": "src/flow/schemas/next-action/acceptance-review.schema.json"
+      },
+      {
+        "title": "5. Normalize implementation-repair step response shapes",
+        "body": "**File:** `src/flow/lib/set-step.js`\n**Issue:** Related implementation-repair flow steps return different payload keys, such as `dispositions` for `impl-triage` and `repair` for `impl-repair`. Other files such as `get-next-action.js`, lifecycle definitions, and command consumers may need step-specific parsing branches because the interface is not uniform.\n**Suggestion:** Use a consistent envelope for step completion results, such as `{ id, status, next, artifact, invalidations }`, while keeping step-specific data inside `artifact`.",
+        "file": "src/flow/lib/set-step.js"
+      },
+      {
+        "title": "6. Use consistent naming for acceptance diff collection",
+        "body": "**File:** `src/flow/lib/run-acceptance-review.js`\n**Issue:** `implementationDiff()` appears to collect acceptance-review evidence, while nearby files and prompts refer to acceptance evidence, repair evidence, and implementation repair artifacts. The name can mislead callers about scope and ownership.\n**Suggestion:** Rename it to `collectAcceptanceDiff()` or `buildAcceptanceEvidenceDiff()` and align related helper names with the acceptance-review terminology used in schemas and prompts.",
+        "file": "src/flow/lib/run-acceptance-review.js"
+      }
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-finalize.js"
+    ],
+    "inputHash": "7a4e5daaf87b32267fed976ffbd41d45c69126d55040c1f9f291d335973f6ab1",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/run-finalize.js"
+  ],
+  "inputHash": "7a4e5daaf87b32267fed976ffbd41d45c69126d55040c1f9f291d335973f6ab1",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T20:28:00.458Z",
+  "finishedAt": "2026-07-12T20:28:00.458Z",
+  "rawResponse": "### 1. Avoid Recomputing Repair Fingerprint Inside Skip Decision\n**File:** `src/flow/lib/run-final-regression.js`\n**Issue:** `finalRegressionSkipDecision` now builds and asserts the repair fingerprint inline, adding repair-artifact validation logic to a function otherwise focused on skip/classification decisions.\n**Suggestion:** Compute the fingerprint once at the caller level, or introduce a small helper such as `assertCurrentTestExecuteFingerprint({ root, state, specDir })`. This keeps skip-decision logic focused and makes the repair-fingerprint assertion easier to reuse consistently.\n\n### 2. Replace Repeated Artifact Filename Literals With Shared Constants\n**File:** `src/flow/lib/run-finalize.js`\n**Issue:** `test-execute-result.json` and `test-result-review.json` are now referenced both as path variables and as string literals in the `files` array. This creates minor duplication and makes future renames easier to miss.\n**Suggestion:** Define artifact filename constants near the existing path construction, then derive both the paths and the `assertCurrentRepairEvidenceFiles` list from those constants.\n\n### 3. Clarify Whether `retro.json` Is Required Evidence\n**File:** `src/flow/lib/run-finalize.js`\n**Issue:** `assertCurrentRepairEvidenceFiles` is called before `readRetroResultIfExists`, but the surrounding code treats `retro.json` as optional. If `assertCurrentRepairEvidenceFiles` requires every listed file to exist, this changes optional behavior into required behavior.\n**Suggestion:** Either pass only files that are mandatory at this point, or rename/use an API that clearly supports optional files. If `retro.json` is intentionally required after repair, make that explicit with a local comment or a more specific assertion helper name.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid Recomputing Repair Fingerprint Inside Skip Decision",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Issue:** `finalRegressionSkipDecision` now builds and asserts the repair fingerprint inline, adding repair-artifact validation logic to a function otherwise focused on skip/classification decisions.\n**Suggestion:** Compute the fingerprint once at the caller level, or introduce a small helper such as `assertCurrentTestExecuteFingerprint({ root, state, specDir })`. This keeps skip-decision logic focused and makes the repair-fingerprint assertion easier to reuse consistently.",
+        "file": "src/flow/lib/run-final-regression.js"
+      },
+      {
+        "title": "2. Replace Repeated Artifact Filename Literals With Shared Constants",
+        "body": "**File:** `src/flow/lib/run-finalize.js`\n**Issue:** `test-execute-result.json` and `test-result-review.json` are now referenced both as path variables and as string literals in the `files` array. This creates minor duplication and makes future renames easier to miss.\n**Suggestion:** Define artifact filename constants near the existing path construction, then derive both the paths and the `assertCurrentRepairEvidenceFiles` list from those constants.",
+        "file": "src/flow/lib/run-finalize.js"
+      },
+      {
+        "title": "3. Clarify Whether `retro.json` Is Required Evidence",
+        "body": "**File:** `src/flow/lib/run-finalize.js`\n**Issue:** `assertCurrentRepairEvidenceFiles` is called before `readRetroResultIfExists`, but the surrounding code treats `retro.json` as optional. If `assertCurrentRepairEvidenceFiles` requires every listed file to exist, this changes optional behavior into required behavior.\n**Suggestion:** Either pass only files that are mandatory at this point, or rename/use an API that clearly supports optional files. If `retro.json` is intentionally required after repair, make that explicit with a local comment or a more specific assertion helper name.",
+        "file": "src/flow/lib/run-finalize.js"
+      }
+    ]
+  }
+}

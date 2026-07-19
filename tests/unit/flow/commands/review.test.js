@@ -1030,8 +1030,107 @@ describe("impl review structured artifact helpers", () => {
 
     assert.equal(json.verdict, "ADVISORY");
     assert.deepEqual(json.summary, { blocking: 0, nonBlocking: 1, total: 1 });
+    assert.match(json.nonBlockingImprovements[0].findingId, /^[a-f0-9]{64}$/);
     assert.match(md, /## Non-blocking Improvements/);
     assert.match(md, /Optional cleanup/);
+  });
+
+  it("persists explicit reject dispositions for advisory findings", async () => {
+    const tmp = createTmpDir();
+    try {
+      fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "src/example.js"), "export const value = 1;\n");
+      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), JSON.stringify({
+        requirements: [{ id: "R1", priority: "should" }],
+      }));
+      await runImplReview({
+        root: tmp,
+        flow: { spec: "specs/demo/spec.json" },
+        touchedFiles: new Set(["src/example.js"]),
+        reviewOutput: JSON.stringify({
+          blockingFindings: [],
+          nonBlockingImprovements: [{
+            findingKey: "optional-cleanup",
+            title: "Optional cleanup",
+            failureMode: "refactor",
+            file: "src/example.js",
+            requirementId: "R1",
+            issue: "The branch could be clearer.",
+            suggestion: "Rename the branch.",
+            disposition: "informational",
+            rationale: "Readability-only.",
+          }],
+        }),
+      });
+
+      const review = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
+      const triage = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-triage.json"), "utf8"));
+      assert.equal(review.verdict, "ADVISORY");
+      assert.match(review.nonBlockingImprovements[0].findingId, /^[a-f0-9]{64}$/);
+      assert.deepEqual(
+        triage.items.map(({ findingId, decision }) => ({ findingId, decision })),
+        [{ findingId: review.nonBlockingImprovements[0].findingId, decision: "reject" }],
+      );
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+
+  it("persists apply and reject dispositions for mixed FAIL findings", async () => {
+    const tmp = createTmpDir();
+    try {
+      fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "src/example.js"), "export const value = 1;\n");
+      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
+      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), JSON.stringify({
+        requirements: [
+          { id: "R1", priority: "must" },
+          { id: "R2", priority: "should" },
+        ],
+      }));
+      await runImplReview({
+        root: tmp,
+        flow: { spec: "specs/demo/spec.json" },
+        touchedFiles: new Set(["src/example.js"]),
+        reviewOutput: JSON.stringify({
+          blockingFindings: [{
+            findingKey: "behavior-mismatch",
+            title: "Behavior mismatch",
+            failureMode: "spec_behavior_contradiction",
+            file: "src/example.js",
+            requirementId: "R1",
+            issue: "The behavior contradicts R1.",
+            suggestion: "Implement R1.",
+            disposition: "must-fix",
+            rationale: "R1 is required.",
+          }],
+          nonBlockingImprovements: [{
+            findingKey: "optional-cleanup",
+            title: "Optional cleanup",
+            failureMode: "refactor",
+            file: "src/example.js",
+            requirementId: "R2",
+            issue: "The branch could be clearer.",
+            suggestion: "Rename the branch.",
+            disposition: "informational",
+            rationale: "Readability-only.",
+          }],
+        }),
+      });
+
+      const review = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
+      const triage = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-triage.json"), "utf8"));
+      assert.deepEqual(
+        triage.items.map(({ findingId, decision }) => ({ findingId, decision })),
+        [
+          { findingId: review.blockingFindings[0].findingId, decision: "apply" },
+          { findingId: review.nonBlockingImprovements[0].findingId, decision: "reject" },
+        ],
+      );
+    } finally {
+      removeTmpDir(tmp);
+    }
   });
 
   it("builds prompts with the blocking and non-blocking policy", () => {

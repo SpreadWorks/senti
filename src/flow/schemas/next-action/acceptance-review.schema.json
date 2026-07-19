@@ -4,10 +4,9 @@
   "properties": {
     "verdict": {
       "type": "string",
-      "enum": ["pass", "amend_required", "user_decision_required", "blocked"]
+      "enum": ["pass", "repair_required", "user_decision_required", "blocked"]
     },
-    "findings": { "type": "array", "items": { "type": "object" } },
-    "requirementAmendmentProposals": { "type": "array", "items": { "type": "object" } },
+    "requirementJudgments": { "type": "array", "items": { "type": "object" } },
     "mechanicalBlockers": { "type": "array", "items": { "type": "object" } },
     "hardBlockers": { "type": "array", "items": { "type": "object" } }
   }

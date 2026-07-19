@@ -1,0 +1,7 @@
+   - Read `impl-triage.json` and its referenced source artifact.
+   - Confirm there is exactly one disposition for every source finding and no unknown finding id.
+   - `apply` findings proceed to `impl-repair`; `reject` requires a concrete rationale and evidence reference.
+   - If every implementation-review finding is `reject`, completion records an explicit no-repair path and proceeds to `impl-gate` without fabricating a repair ledger entry.
+   - Acceptance `notMet` findings cannot be rejected; they require `apply` and a fresh repair/retest cycle.
+   - Do not edit flow state or downstream evidence directly.
+   - **On complete:** run `senti flow set step impl-triage done`.

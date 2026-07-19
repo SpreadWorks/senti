@@ -1,4 +1,5 @@
 import { writeFile, writeJson } from "./tmp-dir.js";
+import { buildRepairFingerprint } from "../../src/flow/lib/impl-repair-artifacts.js";
 
 export function writeIntegrationGateTrustArtifacts(root, { specId, requirementIds }) {
   const rawOutputPath = `specs/${specId}/tests/.raw/test-execution.log`;
@@ -14,6 +15,10 @@ export function writeIntegrationGateTrustArtifacts(root, { specId, requirementId
     ...requirementIds.map((id, index) => `ok ${index + 1} - ${id}: validates integration gate trust`),
     "",
   ].join("\n"));
+  const repairFingerprint = buildRepairFingerprint({
+    root,
+    specPath: `specs/${specId}/spec.json`,
+  }).hash;
   writeJson(root, `specs/${specId}/test-execute-result.json`, {
     version: "2",
     raw_output_path: rawOutputPath,
@@ -37,6 +42,7 @@ export function writeIntegrationGateTrustArtifacts(root, { specId, requirementId
       trigger_relevant_changed_files: [],
       changed_files: [],
     },
+    repairFingerprint,
   });
   writeJson(root, `specs/${specId}/test-result-review.json`, {
     verdict: "pass",
@@ -45,5 +51,6 @@ export function writeIntegrationGateTrustArtifacts(root, { specId, requirementId
     ],
     result_file_path: `specs/${specId}/test-execute-result.json`,
     raw_output_path: rawOutputPath,
+    repairFingerprint,
   });
 }

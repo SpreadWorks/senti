@@ -238,9 +238,12 @@ const IMPL_REVIEW_RESET_RANGE = Object.freeze([
   "test-execute",
   "test-result-review",
   "impl-review",
+  "impl-triage",
+  "impl-repair",
   "impl-gate",
   "retro",
   "acceptance-review",
+  "acceptance-decision",
   "final-regression",
   "report",
   "finalize-commit",
@@ -349,14 +352,37 @@ function resolvePlanReviewLifecycle(input) {
 }
 
 function resolveImplReviewLifecycle(input) {
-  if (input.result?.artifacts?.deferred === true) return [];
+  const artifacts = input.result?.artifacts;
+  const flowScoped = artifacts?.phase === "impl" && artifacts?.taskId == null;
+  if (input.result?.artifacts?.deferred === true) {
+    if (!flowScoped) return [];
+    return [
+      new SetStepStatus({ step: "impl-triage", status: "done" }),
+      new SetStepStatus({ step: "impl-repair", status: "done" }),
+    ];
+  }
   const verdict = input.result?.artifacts?.verdict;
   const proposalCount = input.result?.artifacts?.proposalCount ?? 0;
   const actions = [];
   if (input.result?.artifacts?.phase === "impl") {
     actions.push(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
+    if (!flowScoped) {
+      if (verdict === "PASS" || verdict === "ADVISORY") {
+        actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
+      }
+      return actions;
+    }
     if (verdict === "PASS" || verdict === "ADVISORY") {
-      actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
+      actions.push(
+        new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }),
+        new SetStepStatus({ step: "impl-triage", status: "done" }),
+        new SetStepStatus({ step: "impl-repair", status: "done" }),
+      );
+    } else if (verdict === "FAIL") {
+      actions.push(
+        new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }),
+        new SetStepStatus({ step: "impl-triage", status: "in_progress" }),
+      );
     }
     return actions;
   }
@@ -821,6 +847,24 @@ const FLOW_DEFINITION = Object.freeze([
         failurePolicy: "retry",
       }),
       new FlowNode({
+        id: "impl-triage",
+        label: "Implementation review triage",
+        action: "write-impl-triage",
+        instructionsKey: "impl.impl-triage",
+        contextKinds: ["spec", "diff"],
+        outputSchemaRef: "next-action/impl.schema.json",
+        maxAttempts: 1,
+      }),
+      new FlowNode({
+        id: "impl-repair",
+        label: "Implementation repair",
+        action: "run-impl-repair",
+        instructionsKey: "impl.impl-repair",
+        contextKinds: ["spec", "diff"],
+        outputSchemaRef: "next-action/impl.schema.json",
+        maxAttempts: 3,
+      }),
+      new FlowNode({
         id: "impl-gate",
         label: "Gate (impl)",
         action: "run-gate",
@@ -851,6 +895,16 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 1,
         sideEffects: ["promoteFinalRegression"],
         failurePolicy: "amend-spec",
+      }),
+      new FlowNode({
+        id: "acceptance-decision",
+        label: "Acceptance decision",
+        action: "set-acceptance-decision",
+        instructionsKey: "impl.acceptance-decision",
+        contextKinds: ["spec", "diff", "test"],
+        outputSchemaRef: "next-action/acceptance-review.schema.json",
+        requiresApproval: true,
+        maxAttempts: 1,
       }),
       new FlowNode({
         id: "final-regression",
@@ -974,6 +1028,14 @@ export function collectGatePhaseEntries() {
 
 export function collectFlowLeafIds() {
   return collectLeafIds(FLOW_DEFINITION);
+}
+
+export function flowLeafIdsBetween(startId, endId) {
+  const ids = collectFlowLeafIds();
+  const start = ids.indexOf(startId);
+  const end = ids.indexOf(endId);
+  if (start < 0 || end < start) throw new Error(`flow definition range not found: ${startId}..${endId}`);
+  return ids.slice(start, end + 1);
 }
 
 export function collectTaskLeafIds() {

@@ -17,6 +17,7 @@ import { runAutoCheckCore } from "./run-auto-check.js";
 import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
 import {
   findActiveNode,
+  flowLeafIdsBetween,
   resolveSideEffects,
   taskIdForResolvedStep,
 } from "../definition.js";
@@ -37,6 +38,10 @@ import {
   isPlanEvidenceFresh,
   latestPlanRewind,
 } from "./plan-rewind.js";
+import {
+  completeImplTriage,
+  completeImplRepair,
+} from "./impl-repair-artifacts.js";
 
 function collectSideEffects(stepId) {
   return resolveSideEffects({ scope: "flow", stepId }) || [];
@@ -277,6 +282,22 @@ export default class SetStepCommand extends FlowCommand {
       if (id === "approval") {
         const fail = preValidateApprovalStep({ root: ctx.root, state });
         if (fail) return fail;
+      }
+      if (id === "impl-triage") {
+        const specDir = resolveSpecDir(path.resolve(ctx.root, state.spec));
+        const completed = completeImplTriage({ specDir, flowManager: ctx.flowManager });
+        if (!completed.requiresRepair) {
+          return { id, status, next: "impl-gate", dispositions: completed.artifact.items };
+        }
+      }
+      if (id === "impl-repair") {
+        const completed = completeImplRepair({
+          root: ctx.root,
+          state,
+          flowManager: ctx.flowManager,
+          resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+        });
+        return { id, status, repair: completed.entry, invalidations: completed.invalidations };
       }
       if (id === "implement") {
         const fail = await preValidateImplementStepCompletion({ root: ctx.root, state, requestedStatus: status });

@@ -35,6 +35,10 @@ import {
   withChangedFileFingerprints,
 } from "./test-regression.js";
 import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
+import {
+  assertRepairFingerprint,
+  buildRepairFingerprint,
+} from "./impl-repair-artifacts.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -832,6 +836,10 @@ function projectPolicySkipDecision({ err, changedFiles }) {
 
 function finalRegressionSkipDecision({ root, state, config, specDir, changedFiles, rootCommand }) {
   const testExecute = readJsonIfExists(testExecuteArtifactPath(specDir));
+  if (testExecute) {
+    const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+    assertRepairFingerprint({ artifact: testExecute, fingerprint, label: "test-execute-result.json" });
+  }
   const commandIdentity = commandIdentityFor(rootCommand).toJSON();
   const analysis = readAnalysisIfExists(root);
   const classification = classifyRegression({ root, state, analysis, config, changedFiles });

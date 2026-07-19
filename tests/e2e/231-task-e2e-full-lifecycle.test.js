@@ -25,6 +25,19 @@ const PASS_GATE = JSON.stringify({
   evaluations: [{ guardrail_id: "R1", result: "pass", reason: "R1 is implemented." }],
 });
 
+const PASS_ACCEPTANCE = JSON.stringify({
+  requirementJudgments: [{
+    requirementId: "R1",
+    status: "met",
+    requestRefs: ["flow.request"],
+    requirementRefs: ["spec.json#R1"],
+    diffRefs: ["diff:src/value.js"],
+    repairRefs: ["acceptance:no-repair"],
+    testRefs: ["test-execute-result.json#R1"],
+    missingEvidence: [],
+  }],
+});
+
 const FAIL_REVIEW = JSON.stringify({
   blockingFindings: [{
     findingKey: "zero-operands-wrong-sum",
@@ -114,6 +127,7 @@ function setupFixture(tmp) {
     [
       { includes: "if (!left || !right) return 0;", response: FAIL_REVIEW },
       { includes: "guardrail_id MUST be one of the requirement ids", response: PASS_GATE },
+      { includes: "semantic acceptance reviewer", response: PASS_ACCEPTANCE },
     ],
     PASS_REVIEW,
   );
@@ -247,6 +261,7 @@ function setupFixture(tmp) {
   setupFlow(tmp, {
     spec: SPEC_PATH,
     runId: `run-${SPEC_ID}`,
+    request: "Implement numeric addition through the complete CLI lifecycle.",
     baseBranch: "main",
     featureBranch: FEATURE_BRANCH,
     worktree: false,
@@ -351,7 +366,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     runEnvelope(tmp, ["flow", "run", "retro"]);
     assertNext(tmp, "acceptance-review", null);
     const acceptance = runEnvelope(tmp, ["flow", "run", "acceptance-review"]);
-    assert.equal(acceptance.data.verdict, "pass");
+    assert.equal(acceptance.data.verdict, "pass", JSON.stringify(acceptance));
     assertNext(tmp, "final-regression", null);
 
     const regression = runEnvelope(tmp, ["flow", "run", "final-regression"]);

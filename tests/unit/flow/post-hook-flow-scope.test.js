@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
+import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { makeFlowManager, replaceFlowState, setupFlow } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
@@ -31,7 +32,7 @@ function testExecuteArtifact() {
   };
 }
 
-function testResultReviewArtifact() {
+function testResultReviewArtifact(repairFingerprint) {
   return {
     verdict: "pass",
     checked_items: [{
@@ -41,6 +42,7 @@ function testResultReviewArtifact() {
     }],
     result_file_path: "specs/001-test/test-execute-result.json",
     raw_output_path: "specs/001-test/tests/.raw/test-execution.log",
+    repairFingerprint,
   };
 }
 
@@ -108,7 +110,8 @@ describe("flow-level artifact post-hook scope", () => {
   it("completes test-result-review at flow scope when currentTaskId is non-null", async () => {
     tmp = createTmpDir("unit-test-result-review-post-hook-scope-");
     const flowState = setupPostHookFlow(tmp, "test-result-review");
-    writeJson(tmp, "specs/001-test/test-result-review.json", testResultReviewArtifact());
+    const fingerprint = buildRepairFingerprint({ root: tmp, specPath: SPEC_PATH });
+    writeJson(tmp, "specs/001-test/test-result-review.json", testResultReviewArtifact(fingerprint.hash));
 
     await FLOW_COMMANDS.run["test-result-review"].post({
       root: tmp,

@@ -21,6 +21,11 @@ import {
   validateTestExecuteResultV2,
 } from "./test-artifacts.js";
 import { contractFromTestResultReviewArtifact } from "./flow-judgment-contract.js";
+import {
+  assertRepairFingerprint,
+  buildRepairFingerprint,
+  writeRepairEvidenceArtifact,
+} from "./impl-repair-artifacts.js";
 
 function pass(check, detail) {
   return { check, result: "pass", detail };
@@ -84,11 +89,16 @@ function writeMarkdown(specDir, review) {
   fs.writeFileSync(path.join(specDir, TEST_RESULT_REVIEW_MD_FILE), lines.join("\n"));
 }
 
-function writeReviewArtifacts({ root, specDir, reviewPath, review }) {
+function writeReviewArtifacts({ root, specDir, reviewPath, review, fingerprint }) {
   review.contractSummary = contractFromTestResultReviewArtifact(review, {
     artifactPath: path.relative(root, reviewPath).split(path.sep).join("/"),
   }).summary.toJSON();
-  fs.writeFileSync(reviewPath, JSON.stringify(review, null, 2) + "\n");
+  writeRepairEvidenceArtifact({
+    specDir,
+    stepId: "test-result-review",
+    artifact: review,
+    fingerprint,
+  });
   writeMarkdown(specDir, review);
 }
 
@@ -104,6 +114,8 @@ export default class RunTestResultReviewCommand extends FlowCommand {
 
     const spec = readJsonStrict(path.join(specDir, "spec.json"));
     const loadedResult = readJsonStrict(resultPath);
+    const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+    assertRepairFingerprint({ artifact: loadedResult, fingerprint, label: TEST_EXECUTE_RESULT_FILE });
     const rawOutputText = readRawOutputText(rawOutputPath);
     const rawLines = rawOutputText.split(/\r?\n/);
     const requirements = spec.requirements || [];
@@ -120,7 +132,7 @@ export default class RunTestResultReviewCommand extends FlowCommand {
         result_file_path: path.relative(root, resultPath).split(path.sep).join("/"),
         raw_output_path: path.relative(root, rawOutputPath).split(path.sep).join("/"),
       };
-      writeReviewArtifacts({ root, specDir, reviewPath, review });
+      writeReviewArtifacts({ root, specDir, reviewPath, review, fingerprint });
       return {
         result: "fail",
         changed: [
@@ -149,7 +161,7 @@ export default class RunTestResultReviewCommand extends FlowCommand {
       raw_output_path: path.relative(root, rawOutputPath).split(path.sep).join("/"),
     };
 
-    writeReviewArtifacts({ root, specDir, reviewPath, review });
+    writeReviewArtifacts({ root, specDir, reviewPath, review, fingerprint });
 
     return {
       result: review.verdict === "pass" ? "ok" : "fail",

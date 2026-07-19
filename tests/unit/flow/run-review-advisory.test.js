@@ -12,6 +12,10 @@ import {
 } from "../../../src/flow/lib/run-review.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { ReviewFailure } from "../../../src/flow/lib/review-failure.js";
+import {
+  CompletionValidator,
+  contractFromImplReviewArtifact,
+} from "../../../src/flow/lib/flow-judgment-contract.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 describe("draft coverage review advisory routing", () => {
@@ -242,6 +246,71 @@ describe("test-review one-shot verdict routing", () => {
 });
 
 describe("impl review structured verdict routing", () => {
+  it("accepts consistent PASS, ADVISORY, and FAIL completion contracts", () => {
+    const cases = [
+      { verdict: "PASS", blockingFindings: [], nonBlockingImprovements: [] },
+      { verdict: "ADVISORY", blockingFindings: [], nonBlockingImprovements: [{ title: "Improve" }] },
+      { verdict: "FAIL", blockingFindings: [{ findingId: "F-1" }], nonBlockingImprovements: [] },
+    ];
+    for (const artifact of cases) {
+      const contract = contractFromImplReviewArtifact(artifact);
+      const validation = new CompletionValidator().validate({ contract, requestedStatus: "done" });
+      assert.equal(validation.kind, "normal", artifact.verdict);
+      assert.equal(contract.summary.completionKind, "normal", artifact.verdict);
+    }
+  });
+
+  it("rejects missing buckets and verdicts inconsistent with recorded findings", () => {
+    assert.throws(
+      () => contractFromImplReviewArtifact({ verdict: "PASS", nonBlockingImprovements: [] }),
+      /blockingFindings must be an array/,
+    );
+    assert.throws(
+      () => contractFromImplReviewArtifact({ verdict: "PASS", blockingFindings: [] }),
+      /nonBlockingImprovements must be an array/,
+    );
+    assert.throws(
+      () => contractFromImplReviewArtifact({
+        verdict: "PASS",
+        blockingFindings: {},
+        nonBlockingImprovements: [],
+      }),
+      /blockingFindings must be an array/,
+    );
+    assert.throws(
+      () => contractFromImplReviewArtifact({
+        verdict: "PASS",
+        blockingFindings: [],
+        nonBlockingImprovements: {},
+      }),
+      /nonBlockingImprovements must be an array/,
+    );
+    assert.throws(
+      () => contractFromImplReviewArtifact({
+        verdict: "PASS",
+        blockingFindings: [{ findingId: "F-1" }],
+        nonBlockingImprovements: [],
+      }),
+      /verdict must be FAIL/,
+    );
+    assert.throws(
+      () => contractFromImplReviewArtifact({
+        verdict: "FAIL",
+        blockingFindings: [],
+        nonBlockingImprovements: [{ title: "Improve" }],
+      }),
+      /verdict must be ADVISORY/,
+    );
+    assert.throws(
+      () => contractFromImplReviewArtifact({
+        verdict: "ADVISORY",
+        blockingFindings: [],
+        nonBlockingImprovements: [],
+      }),
+      /verdict must be PASS/,
+    );
+  });
+
   it("parses ADVISORY as non-blocking and routes to impl-gate", () => {
     const result = parseImplReviewOutput(
       { ok: true },
@@ -275,32 +344,33 @@ describe("impl review structured verdict routing", () => {
     }]);
   });
 
-  it("post-hook completes review only for PASS and ADVISORY", async () => {
-    const passUpdates = [];
-    await FLOW_COMMANDS.run.review.post({
-      phase: null,
-      flowState: {},
-      flowManager: {
-        appendMetric() {},
-        updateStepStatus(stepId, status) { passUpdates.push({ stepId, status }); },
-      },
-    }, {
-      artifacts: { phase: "impl", verdict: "PASS", blockingCount: 0, nonBlockingCount: 0 },
-    });
-    assert.deepEqual(passUpdates, [{ stepId: "impl-review", status: "done" }]);
+  it("post-hook closes no-repair leaves and routes FAIL to impl-triage", async () => {
+    async function updatesFor(verdict, blockingCount, nonBlockingCount) {
+      const updates = [];
+      await FLOW_COMMANDS.run.review.post({
+        phase: null,
+        flowState: {},
+        flowManager: {
+          appendMetric() {},
+          updateStepStatus(stepId, status) { updates.push({ stepId, status }); },
+        },
+      }, {
+        artifacts: { phase: "impl", verdict, blockingCount, nonBlockingCount },
+      });
+      return updates;
+    }
 
-    const failUpdates = [];
-    await FLOW_COMMANDS.run.review.post({
-      phase: null,
-      flowState: {},
-      flowManager: {
-        appendMetric() {},
-        updateStepStatus(stepId, status) { failUpdates.push({ stepId, status }); },
-      },
-    }, {
-      artifacts: { phase: "impl", verdict: "FAIL", blockingCount: 1, nonBlockingCount: 0 },
-    });
-    assert.deepEqual(failUpdates, []);
+    const noRepairUpdates = [
+      { stepId: "impl-review", status: "done" },
+      { stepId: "impl-triage", status: "done" },
+      { stepId: "impl-repair", status: "done" },
+    ];
+    assert.deepEqual(await updatesFor("PASS", 0, 0), noRepairUpdates);
+    assert.deepEqual(await updatesFor("ADVISORY", 0, 1), noRepairUpdates);
+    assert.deepEqual(await updatesFor("FAIL", 1, 0), [
+      { stepId: "impl-review", status: "done" },
+      { stepId: "impl-triage", status: "in_progress" },
+    ]);
   });
 });
 
