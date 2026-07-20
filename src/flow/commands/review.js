@@ -997,15 +997,26 @@ class ImplReviewPersistenceStrategy {
   }
 }
 
+const TRUSTED_LOOP_IMPL_REVIEW_OUTPUT_CAPABILITY = Symbol("trusted loop impl review output");
+const TRUSTED_LOOP_IMPL_REVIEW_OUTPUTS = new WeakSet();
+
 class TrustedLoopImplReviewOutput {
   #value;
 
-  constructor(value) {
+  constructor(value, capability) {
+    if (capability !== TRUSTED_LOOP_IMPL_REVIEW_OUTPUT_CAPABILITY) {
+      throw new Error("trusted loop impl review output requires serializer creation capability");
+    }
     if (typeof value !== "string" || value === "") {
       throw new Error("trusted loop impl review output must be a non-empty string");
     }
     this.#value = value;
+    TRUSTED_LOOP_IMPL_REVIEW_OUTPUTS.add(this);
     Object.freeze(this);
+  }
+
+  static isAuthentic(value) {
+    return TRUSTED_LOOP_IMPL_REVIEW_OUTPUTS.has(value);
   }
 
   toString() {
@@ -1697,7 +1708,7 @@ function loopProposalsToImplReviewJson(proposals, requirementIds = new Set()) {
         rationale: "Loop review proposal.",
       };
     }),
-  }));
+  }), TRUSTED_LOOP_IMPL_REVIEW_OUTPUT_CAPABILITY);
 }
 
 async function runSingleShotImplReviewWithDependencies({ specDir, reviewText }) {
@@ -1724,7 +1735,7 @@ async function runActiveImplReviewWithDependencies({
   const useLoopReview = shouldUseLoopReview(touchedFiles.size);
   const reviewOutput = useLoopReview ? await runLoopReview() : await runSingleReview();
   if (reviewOutput?.verdict === "TOOLING_FAILURE") return reviewOutput;
-  const persistenceStrategy = useLoopReview && reviewOutput instanceof TrustedLoopImplReviewOutput
+  const persistenceStrategy = useLoopReview && TrustedLoopImplReviewOutput.isAuthentic(reviewOutput)
     ? TRUSTED_LOOP_IMPL_REVIEW_PERSISTENCE
     : STRICT_IMPL_REVIEW_PERSISTENCE;
   return persistenceStrategy.persistWith(persistImplReview, reviewOutput);

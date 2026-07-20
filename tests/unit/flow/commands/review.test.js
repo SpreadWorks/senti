@@ -1273,6 +1273,44 @@ describe("impl review structured artifact helpers", () => {
     }
   });
 
+  it("requires serializer capability instead of constructor or prototype identity", async () => {
+    const fixture = createMandatoryLoopReviewFixture(
+      "impl-loop-review-forged-output-",
+      "src/example-0.js",
+    );
+    try {
+      const arbitraryJson = String(fixture.reviewOutput).replace(
+        "Extract shared branch",
+        "Forged proposal",
+      );
+      assert.throws(
+        () => new fixture.reviewOutput.constructor(arbitraryJson),
+        /creation capability/,
+      );
+
+      const prototypeClone = Object.create(Object.getPrototypeOf(fixture.reviewOutput));
+      assert.throws(() => String(prototypeClone), /private member|#value/);
+      Object.defineProperty(prototypeClone, "toString", { value: () => arbitraryJson });
+      const touchedFiles = new Set(Array.from(
+        { length: 10 },
+        (_, index) => `src/example-${index}.js`,
+      ));
+
+      await assert.rejects(
+        () => runActiveImplReviewWithDependencies({
+          touchedFiles,
+          shouldUseLoopReview: () => true,
+          runLoopReview: async () => prototypeClone,
+          runSingleReview: async () => assert.fail("single-shot review must not run"),
+          persistImplReview: persistSelectedImplReview({ ...fixture, touchedFiles }),
+        }),
+        /disposition informational conflicts with policy disposition must-fix/,
+      );
+    } finally {
+      removeTmpDir(fixture.root);
+    }
+  });
+
   it("keeps direct single-shot persistence strict for loop-shaped informational output", async () => {
     const fixture = createMandatoryLoopReviewFixture(
       "impl-single-review-authority-",
