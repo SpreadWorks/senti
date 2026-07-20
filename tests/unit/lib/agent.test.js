@@ -280,11 +280,11 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
     assert.equal(resolved.timeoutMs, 600000);
   });
 
-  it("defaults timeoutMs to 300000 when not configured", () => {
+  it("defaults timeoutMs to 900000 when not configured", () => {
     const cfg = { agent: { default: "claude/opus" } };
     const agent = makeAgent(null, { config: cfg });
     const resolved = agent.resolve();
-    assert.equal(resolved.timeoutMs, 300000);
+    assert.equal(resolved.timeoutMs, 900000);
   });
 
   it("throws when SENTI_PROFILE references an undefined profile", () => {
