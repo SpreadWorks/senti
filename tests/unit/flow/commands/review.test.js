@@ -39,6 +39,7 @@ import {
   TEST_REVIEW_PROMPT_CHAR_LIMIT,
   assertTestReviewPromptWithinLimit,
   runTestReviewWithDependencies,
+  runActiveImplReviewWithDependencies,
   resolveMergeBase,
   loopProposalsToImplReviewJson,
 } from "../../../../src/flow/commands/review.js";
@@ -882,6 +883,30 @@ describe("filterProposalsByScope (spec 201 R-P1/R-P3)", () => {
   });
 });
 
+function createMandatoryLoopReviewFixture(prefix, file) {
+  const root = createTmpDir(prefix);
+  fs.mkdirSync(path.join(root, "specs/demo"), { recursive: true });
+  fs.writeFileSync(path.join(root, "specs/demo/spec.json"), `${JSON.stringify({
+    requirements: [{ id: "R1", priority: "must", desc: "Keep the implementation maintainable." }],
+  }, null, 2)}\n`);
+  return {
+    root,
+    flow: { spec: "specs/demo/spec.json" },
+    reviewOutput: loopProposalsToImplReviewJson([{
+      title: "Extract shared branch",
+      body: "Extract the duplicated branch.",
+      file,
+      requirementId: "R1",
+    }], new Set(["R1"])),
+  };
+}
+
+function persistSelectedImplReview({ root, flow, touchedFiles, taskSpec = null }) {
+  return (reviewOutput, persistence) => persistence
+    ? persistence.persist({ root, flow, reviewOutput, touchedFiles, taskSpec })
+    : runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec });
+}
+
 describe("impl review structured artifact helpers", () => {
   it("requires a typed disposition and rationale for every impl review finding", () => {
     const typedFinding = {
@@ -1186,6 +1211,136 @@ describe("impl review structured artifact helpers", () => {
       first.nonBlockingImprovements[0].findingKey,
       second.nonBlockingImprovements[0].findingKey,
     );
+  });
+
+  it("persists trusted loop proposals as informational even when their requirement is mandatory", async () => {
+    const fixture = createMandatoryLoopReviewFixture(
+      "impl-loop-review-authority-",
+      "src/example-0.js",
+    );
+    try {
+      const touchedFiles = new Set(Array.from(
+        { length: 10 },
+        (_, index) => `src/example-${index}.js`,
+      ));
+
+      const result = await runActiveImplReviewWithDependencies({
+        touchedFiles,
+        shouldUseLoopReview: () => true,
+        runLoopReview: async () => fixture.reviewOutput,
+        runSingleReview: async () => assert.fail("single-shot review must not run"),
+        persistImplReview: persistSelectedImplReview({ ...fixture, touchedFiles }),
+      });
+      const artifact = JSON.parse(fs.readFileSync(path.join(fixture.root, "specs/demo/impl-review.json"), "utf8"));
+      const triage = JSON.parse(fs.readFileSync(path.join(fixture.root, "specs/demo/impl-triage.json"), "utf8"));
+
+      assert.equal(result.artifacts.verdict, "ADVISORY");
+      assert.equal(artifact.blockingFindings.length, 0);
+      assert.equal(artifact.nonBlockingImprovements.length, 1);
+      assert.equal(artifact.nonBlockingImprovements[0].requirementId, "R1");
+      assert.equal(artifact.nonBlockingImprovements[0].disposition, "informational");
+      assert.equal(triage.items[0].decision, "reject");
+      assert.ok(fs.existsSync(path.join(fixture.root, "specs/demo/review-history/impl-attempt-001.json")));
+      assert.match(artifact.repairFingerprint, /^[a-f0-9]{64}$/);
+    } finally {
+      removeTmpDir(fixture.root);
+    }
+  });
+
+  it("does not select trusted persistence from loop-shaped JSON alone", async () => {
+    const fixture = createMandatoryLoopReviewFixture(
+      "impl-loop-review-untrusted-json-",
+      "src/example-0.js",
+    );
+    try {
+      const touchedFiles = new Set(Array.from(
+        { length: 10 },
+        (_, index) => `src/example-${index}.js`,
+      ));
+
+      await assert.rejects(
+        () => runActiveImplReviewWithDependencies({
+          touchedFiles,
+          shouldUseLoopReview: () => true,
+          runLoopReview: async () => String(fixture.reviewOutput),
+          runSingleReview: async () => assert.fail("single-shot review must not run"),
+          persistImplReview: persistSelectedImplReview({ ...fixture, touchedFiles }),
+        }),
+        /disposition informational conflicts with policy disposition must-fix/,
+      );
+    } finally {
+      removeTmpDir(fixture.root);
+    }
+  });
+
+  it("keeps direct single-shot persistence strict for loop-shaped informational output", async () => {
+    const fixture = createMandatoryLoopReviewFixture(
+      "impl-single-review-authority-",
+      "src/example.js",
+    );
+    try {
+      await assert.rejects(
+        () => runImplReview({
+          ...fixture,
+          touchedFiles: new Set(["src/example.js"]),
+        }),
+        /disposition informational conflicts with policy disposition must-fix/,
+      );
+    } finally {
+      removeTmpDir(fixture.root);
+    }
+  });
+
+  it("keeps task review persistence strict for loop-shaped informational output", async () => {
+    const fixture = createMandatoryLoopReviewFixture(
+      "impl-task-review-authority-",
+      "src/example.js",
+    );
+    try {
+      await assert.rejects(
+        () => runImplReview({
+          ...fixture,
+          touchedFiles: new Set(["src/example.js"]),
+          taskSpec: { task: { id: "T-1" }, relPath: "specs/demo/tasks/T-1.md" },
+        }),
+        /disposition informational conflicts with policy disposition must-fix/,
+      );
+    } finally {
+      removeTmpDir(fixture.root);
+    }
+  });
+
+  it("uses strict persistence when the active branch selects single-shot review", async () => {
+    const fixture = createMandatoryLoopReviewFixture(
+      "impl-single-review-branch-",
+      "src/example.js",
+    );
+    try {
+      const touchedFiles = new Set(["src/example.js"]);
+      let loopCalls = 0;
+      let singleCalls = 0;
+
+      await assert.rejects(
+        () => runActiveImplReviewWithDependencies({
+          touchedFiles,
+          shouldUseLoopReview: () => false,
+          runLoopReview: async () => {
+            loopCalls += 1;
+            return fixture.reviewOutput;
+          },
+          runSingleReview: async () => {
+            singleCalls += 1;
+            return fixture.reviewOutput;
+          },
+          persistImplReview: persistSelectedImplReview({ ...fixture, touchedFiles }),
+        }),
+        /disposition informational conflicts with policy disposition must-fix/,
+      );
+      assert.equal(loopCalls, 0);
+      assert.equal(singleCalls, 1);
+    } finally {
+      removeTmpDir(fixture.root);
+    }
   });
 
   it("aggregates a stable fingerprint and defers the must-fix finding at the bounded attempt", async () => {

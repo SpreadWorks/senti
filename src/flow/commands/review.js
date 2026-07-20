@@ -974,7 +974,84 @@ function priorImplReviewFingerprintCounts(specDir, taskId, cycle) {
   return counts;
 }
 
-function applyImplReviewDispositionPolicy({ root, flow, filtered, requirementIds, specDir, taskSpec }) {
+class ImplReviewPersistenceStrategy {
+  constructor() {
+    if (new.target === ImplReviewPersistenceStrategy) {
+      throw new Error("ImplReviewPersistenceStrategy is abstract");
+    }
+  }
+
+  persistWith(persistImplReview, reviewOutput) {
+    if (typeof persistImplReview !== "function") {
+      throw new Error("impl review persistence callback must be a function");
+    }
+    return persistImplReview(String(reviewOutput), this);
+  }
+
+  persist(context) {
+    return runImplReviewWithPersistence(context, this);
+  }
+
+  resolveAuthority() {
+    throw new Error("ImplReviewPersistenceStrategy.resolveAuthority must be implemented");
+  }
+}
+
+class TrustedLoopImplReviewOutput {
+  #value;
+
+  constructor(value) {
+    if (typeof value !== "string" || value === "") {
+      throw new Error("trusted loop impl review output must be a non-empty string");
+    }
+    this.#value = value;
+    Object.freeze(this);
+  }
+
+  toString() {
+    return this.#value;
+  }
+}
+
+class StrictImplReviewPersistence extends ImplReviewPersistenceStrategy {
+  constructor() {
+    super();
+    Object.freeze(this);
+  }
+
+  resolveAuthority({ finding, requirements, guardrails }) {
+    const guardrail = guardrails.get(finding.failureMode) || null;
+    const requirement = guardrail ? null : requirements.get(finding.requirementId) || null;
+    return { requirement, guardrail };
+  }
+}
+
+class TrustedLoopImplReviewPersistence extends ImplReviewPersistenceStrategy {
+  constructor() {
+    super();
+    Object.freeze(this);
+  }
+
+  resolveAuthority() {
+    return { requirement: null, guardrail: null };
+  }
+}
+
+const STRICT_IMPL_REVIEW_PERSISTENCE = new StrictImplReviewPersistence();
+const TRUSTED_LOOP_IMPL_REVIEW_PERSISTENCE = new TrustedLoopImplReviewPersistence();
+
+function applyImplReviewDispositionPolicy({
+  root,
+  flow,
+  filtered,
+  requirementIds,
+  specDir,
+  taskSpec,
+  persistenceStrategy,
+}) {
+  if (!(persistenceStrategy instanceof ImplReviewPersistenceStrategy)) {
+    throw new Error("impl review persistence strategy must be typed");
+  }
   const { requirements, guardrails } = loadImplReviewPolicyContext(root, flow);
   const taskId = taskSpec?.task?.id == null ? null : String(taskSpec.task.id).trim();
   const cycle = new ReviewFindingCycle(flow);
@@ -989,8 +1066,11 @@ function applyImplReviewDispositionPolicy({ root, flow, filtered, requirementIds
   const blockingFindings = [];
   const nonBlockingImprovements = [];
   const classify = (finding) => {
-    const guardrail = guardrails.get(finding.failureMode) || null;
-    const requirement = guardrail ? null : requirements.get(finding.requirementId) || null;
+    const { requirement, guardrail } = persistenceStrategy.resolveAuthority({
+      finding,
+      requirements,
+      guardrails,
+    });
     const candidate = {
       ...finding.toJSON(),
       scope: taskId === null ? "flow" : "task",
@@ -1032,7 +1112,13 @@ function applyImplReviewDispositionPolicy({ root, flow, filtered, requirementIds
   return { blockingFindings, nonBlockingImprovements, excluded: filtered.excluded };
 }
 
-async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec = null }) {
+async function runImplReviewWithPersistence({
+  root,
+  flow,
+  reviewOutput,
+  touchedFiles,
+  taskSpec = null,
+}, persistenceStrategy) {
   const requirementIds = resolveRequirementIds(root, flow);
   const parsed = parseImplReviewFindings(reviewOutput, { requirementIds });
   const filtered = filterImplReviewFindingsByScope({
@@ -1048,6 +1134,7 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
     requirementIds,
     specDir,
     taskSpec,
+    persistenceStrategy,
   });
   const artifact = new ImplReviewArtifact({ ...dispositioned, requirementIds });
   const reviewJsonPath = path.join(specDir, "impl-review.json");
@@ -1116,6 +1203,10 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
     next: artifact.verdict === "FAIL" ? null : (taskSpec ? "task-gate" : "impl-gate"),
     output: "",
   };
+}
+
+async function runImplReview(context) {
+  return STRICT_IMPL_REVIEW_PERSISTENCE.persist(context);
 }
 
 /**
@@ -1590,7 +1681,7 @@ function loopProposalFindingKey(proposal, requirementId) {
 
 function loopProposalsToImplReviewJson(proposals, requirementIds = new Set()) {
   const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
-  return JSON.stringify({
+  return new TrustedLoopImplReviewOutput(JSON.stringify({
     blockingFindings: [],
     nonBlockingImprovements: proposals.map((proposal) => {
       const requirementId = requireImplLoopRequirementId(proposal, allowedRequirementIds);
@@ -1606,7 +1697,7 @@ function loopProposalsToImplReviewJson(proposals, requirementIds = new Set()) {
         rationale: "Loop review proposal.",
       };
     }),
-  });
+  }));
 }
 
 async function runSingleShotImplReviewWithDependencies({ specDir, reviewText }) {
@@ -1630,11 +1721,13 @@ async function runActiveImplReviewWithDependencies({
   runSingleReview,
   persistImplReview,
 }) {
-  const reviewOutput = shouldUseLoopReview(touchedFiles.size)
-    ? await runLoopReview()
-    : await runSingleReview();
+  const useLoopReview = shouldUseLoopReview(touchedFiles.size);
+  const reviewOutput = useLoopReview ? await runLoopReview() : await runSingleReview();
   if (reviewOutput?.verdict === "TOOLING_FAILURE") return reviewOutput;
-  return persistImplReview(reviewOutput);
+  const persistenceStrategy = useLoopReview && reviewOutput instanceof TrustedLoopImplReviewOutput
+    ? TRUSTED_LOOP_IMPL_REVIEW_PERSISTENCE
+    : STRICT_IMPL_REVIEW_PERSISTENCE;
+  return persistenceStrategy.persistWith(persistImplReview, reviewOutput);
 }
 
 async function runReviewWithDependencies(options) {
@@ -3943,7 +4036,13 @@ async function runReview(rawArgs) {
         ),
       );
     },
-    persistImplReview: (reviewOutput) => runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec }),
+    persistImplReview: (reviewOutput, persistenceStrategy) => persistenceStrategy.persist({
+      root,
+      flow,
+      reviewOutput,
+      touchedFiles,
+      taskSpec,
+    }),
   });
   console.error(`  [review] Results saved to ${result.changed[0]}`);
   console.error(`  [review] JSON saved to ${result.changed[1]}`);
