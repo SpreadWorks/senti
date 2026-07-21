@@ -1,0 +1,40 @@
+{
+  "spec": "specs/326-update-overview-contract/spec.json",
+  "date": "2026-07-21T14:50:05.917Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`validateOverviewAdditions()` shall accept a parsed additions value only when it is a non-array object containing exactly `modules`, `data_flow`, and `decisions`; every category shall be an array with at most 50 entries, every entry shall be a string with at most 500 characters, and any missing category, unknown key, non-array category, non-string entry, 51st entry, or 501st character shall return `INVALID_SHAPE` before active-flow lookup or persistence.",
+      "status": "done",
+      "note": "R1: accepts only the required bounded string-array shape"
+    },
+    {
+      "desc": "The update-overview help shall describe the same required three-category string-array JSON shape, and a valid complete payload accepted at the command boundary shall be passed unchanged to `persistOverviewUpdate()` instead of later failing because of additions shape.",
+      "status": "done",
+      "note": "R2: documents the required shape and persists an accepted payload"
+    },
+    {
+      "desc": "For a valid payload, overview merge and persistence shall preserve category order and input order deterministically, shall not mutate the input spec or additions object, shall stamp each stored entry with the current non-empty task id, and shall retain the existing render-planning rollback behavior.",
+      "status": "done",
+      "note": "R3: preserves deterministic pure merge and task stamping"
+    },
+    {
+      "desc": "Missing `--json` shall remain `MISSING_JSON`, malformed JSON shall remain `INVALID_JSON`, parsed shape violations shall be `INVALID_SHAPE`, and this change shall not alter the next-action schema, other commands, flow lifecycle, or add dependencies, allowlists, skipped tests, or reduced assertions.",
+      "status": "done",
+      "note": "R4: preserves parse error boundaries and the next-action schema contract"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "e4a826b7d888b117d829205b31579e446e4fc1df36e2bb4ced4280abc094e7d6"
+}

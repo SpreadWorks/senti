@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`validateOverviewAdditions()` shall accept a parsed additions value only when it is a non-array object containing exactly `modules`, `data_flow`, and `decisions`; every category shall be an array with at most 50 entries, every entry shall be a string with at most 500 characters, and any missing category, unknown key, non-array category, non-string entry, 51st entry, or 501st character shall return `INVALID_SHAPE` before active-flow lookup or persistence.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/update-overview-contract.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The update-overview help shall describe the same required three-category string-array JSON shape, and a valid complete payload accepted at the command boundary shall be passed unchanged to `persistOverviewUpdate()` instead of later failing because of additions shape.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/update-overview-contract.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "For a valid payload, overview merge and persistence shall preserve category order and input order deterministically, shall not mutate the input spec or additions object, shall stamp each stored entry with the current non-empty task id, and shall retain the existing render-planning rollback behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/update-overview-contract.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Missing `--json` shall remain `MISSING_JSON`, malformed JSON shall remain `INVALID_JSON`, parsed shape violations shall be `INVALID_SHAPE`, and this change shall not alter the next-action schema, other commands, flow lifecycle, or add dependencies, allowlists, skipped tests, or reduced assertions.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/update-overview-contract.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/update-overview-contract.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "devType": "bugfix",
+  "goal": "update-overview の help、コマンド境界、merge、永続化を既存 schema の単一 payload 契約へ揃える。",
+  "analysis": {
+    "problem": "入口では category 省略と object entry を受理する一方、後段は 3 category 必須の string 配列を要求するため、入口で妥当とされた payload が PERSIST_FAILED になる。",
+    "proposedApproach": "既存 next-action schema の契約を利用者向け help とコマンド境界にも適用し、受理可否を後段の merge と一致させる。",
+    "validation": "完全 payload の永続化と、category 欠落、object entry、unknown category、非配列、entry 数・文字数上限の境界拒否を focused tests で検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: 現行 schema と merge は modules、data_flow、decisions の 3 category 必須・string 配列を契約としている。",
+      "must: 現行 help と入口 validator は category 省略と object entry を許し、後段契約と矛盾している。"
+    ],
+    "decisionPoints": [
+      "must: 現行 next-action schema を canonical contract とし、完全 payload だけを正常系として受理する。",
+      "must: 契約違反は永続化前のコマンド境界で INVALID_SHAPE として返す。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加せず、既存の deterministic merge、入力非破壊、added_by_task stamp を維持する。",
+      "must: Issue #450 の scope lock 外の source、test、flow lifecycle は変更しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: canonical contract と各 focused test case の要件対応を spec で明文化する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: registry help、run-update-overview の入口 validation、overview-merge の契約を一致させる。",
+      "must: 指定された update-overview focused tests で正常系と拒否 matrix を固定する。"
+    ],
+    "out": [
+      "must: Issue #443、flow completion recovery、task lifecycle、schema の意味変更、他 command、無関係な refactor は対象外とする。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: 完全な 3 category string 配列 payload の永続化、deterministic merge、入力非破壊、added_by_task stamp は維持する。",
+    "must: 従来入口だけが受理していた category 欠落と object entry は INVALID_SHAPE へ変更し、後段 PERSIST_FAILED を発生させない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: 既存 next-action schema の 3 category 必須・string 配列を canonical contract とし、入口で受理した完全 payload だけをそのまま永続化できる状態を Issue #450 の達成条件とするか。",
+      "answer": "must: 現行 schema の modules、data_flow、decisions 必須・string 配列を canonical contract とする。",
+      "evidence": "Issue #450 の Canonical Contract と src/flow/schemas/next-action/update-overview.schema.json が同じ必須 category、entry 型、上限を定義している。",
+      "why": "must: 入口と後段が同じ payload を受理する条件を固定し、入口通過後の PERSIST_FAILED をなくすため。",
+      "considered": "category 省略と object entry を後段でも受ける案は、既存 schema の意味を変更して scope lock を越えるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: category 欠落、object entry、unknown category、非配列、50 entry 超過、500 文字超過を永続化前に INVALID_SHAPE として拒否するか。",
+      "answer": "must: 列挙された契約違反はすべて永続化前のコマンド境界で INVALID_SHAPE として拒否する。",
+      "evidence": "Issue #450 の Acceptance Criteria が各拒否 case と期待 error boundary を明示している。",
+      "why": "must: 不正 shape を後段の汎用 PERSIST_FAILED に変換せず、利用者が入力違反として識別できるようにするため。",
+      "considered": "merge 層だけで拒否する現状維持は入口と永続化の契約不一致を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: deterministic merge、入力非破壊、added_by_task stamp を維持し、Issue #443、flow completion recovery、task lifecycle、schema の意味変更を非スコープとするか。",
+      "answer": "must: 既存の merge 不変条件を維持し、列挙された周辺領域は変更しない。",
+      "evidence": "Issue #450 の Scope Lock が維持する不変条件、許可 path、非スコープを固定している。",
+      "why": "must: payload 契約の二重定義という単一 root cause だけを最小差分で解消するため。",
+      "considered": "task lifecycle や recovery と同時に直す案は別 root cause を混在させるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-21T13:43:09Z",
+    "notes": ""
+  }
+}

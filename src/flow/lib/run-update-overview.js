@@ -19,7 +19,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { applyOverviewAdditions } from "./overview-merge.js";
+import { applyOverviewAdditions, validateAdditions } from "./overview-merge.js";
 import { applySpecViewPlan, buildSpecViewPlan } from "./render-spec-view.js";
 import { FlowCommand } from "./base-command.js";
 import { FlowManager } from "../../lib/flow-manager.js";
@@ -53,8 +53,6 @@ export function persistOverviewUpdate({ specDir, additions, taskId }) {
   return { specJsonPath, specMdPath: path.join(specDir, "spec.md"), rendered: renderResult.changed };
 }
 
-const OVERVIEW_ADDITION_KEYS = ["modules", "data_flow", "decisions"];
-
 /**
  * Parse and validate the raw `--json` argument for `flow run update-overview`.
  *
@@ -77,40 +75,13 @@ export function validateOverviewAdditions(raw) {
     return { ok: false, code: "INVALID_JSON", message: `failed to parse --json: ${err.message}` };
   }
 
-  if (!additions || typeof additions !== "object" || Array.isArray(additions)) {
+  const shapeErrors = validateAdditions(additions);
+  if (shapeErrors.length > 0) {
     return {
       ok: false,
       code: "INVALID_SHAPE",
-      message: `--json must decode to an object with optional keys: ${OVERVIEW_ADDITION_KEYS.join(", ")}`,
+      message: `invalid additions: ${shapeErrors.join("; ")}`,
     };
-  }
-
-  for (const key of Object.keys(additions)) {
-    if (!OVERVIEW_ADDITION_KEYS.includes(key)) {
-      return {
-        ok: false,
-        code: "INVALID_SHAPE",
-        message: `unknown additions key: "${key}" (allowed: ${OVERVIEW_ADDITION_KEYS.join(", ")})`,
-      };
-    }
-    const arr = additions[key];
-    if (!Array.isArray(arr)) {
-      return {
-        ok: false,
-        code: "INVALID_SHAPE",
-        message: `additions.${key} must be an array (got ${typeof arr})`,
-      };
-    }
-    for (let i = 0; i < arr.length; i++) {
-      const entry = arr[i];
-      if (!entry || typeof entry !== "object" || typeof entry.text !== "string" || entry.text.length === 0) {
-        return {
-          ok: false,
-          code: "INVALID_SHAPE",
-          message: `additions.${key}[${i}] must be {text: string} with non-empty text`,
-        };
-      }
-    }
   }
 
   return { ok: true, value: additions };

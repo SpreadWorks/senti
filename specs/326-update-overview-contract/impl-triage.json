@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 2,
+    "hash": "e4a826b7d888b117d829205b31579e446e4fc1df36e2bb4ced4280abc094e7d6",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-21T14:30:18.982Z",
+  "items": [
+    {
+      "findingId": "04ab785e36ec733d52cf0cce872ce283c843384b857952ffc57539958fec4d9e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "The finding assumes the pre-existing validator accepts optional object entries, but src/flow/lib/overview-merge.js:21-60 requires exactly modules, data_flow, and decisions, rejects unknown keys, requires arrays of strings, and enforces the 50-entry and 500-character limits. run-update-overview.js now calls that validator before state lookup, so the registry help and runtime contract already agree with R1 and R2; no product change is warranted.",
+      "evidenceRefs": [
+        "impl-review.json#04ab785e36ec733d52cf0cce872ce283c843384b857952ffc57539958fec4d9e",
+        "src/flow/lib/overview-merge.js:21"
+      ]
+    }
+  ]
+}
