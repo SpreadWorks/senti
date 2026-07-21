@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0bdf3b707356690edf741e13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0000",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/324-standalone-plugin-attribution/draft-coverage-repair.json",
+      "specs/324-standalone-plugin-attribution/draft-coverage-triage.json",
+      "specs/324-standalone-plugin-attribution/draft-gate-source.json"
+    ],
+    "inputHash": "b56b9463de9c835695d9c7495b93956d12172637227fb45d33a89124459b3bb8",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0bdf3b707356690edf741e13"
+  },
+  "targetFiles": [
+    "specs/324-standalone-plugin-attribution/draft-coverage-repair.json",
+    "specs/324-standalone-plugin-attribution/draft-coverage-triage.json",
+    "specs/324-standalone-plugin-attribution/draft-gate-source.json"
+  ],
+  "inputHash": "b56b9463de9c835695d9c7495b93956d12172637227fb45d33a89124459b3bb8",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T12:42:22.186Z",
+  "finishedAt": "2026-07-21T12:42:22.186Z",
+  "rawResponse": "### 1. Remove duplicated finding payloads\n**File:** `specs/324-standalone-plugin-attribution/draft-gate-source.json`  \n**Requirement:** R1  \n**Issue:** The same six guardrail failures are represented twice, once under `evaluations` and again under `observations`, with mostly duplicated fields. This increases file size and creates drift risk if one copy is updated without the other.  \n**Suggestion:** Keep one canonical collection of findings and have the other section reference it by stable IDs, or remove `observations` if `evaluations` already contains the full observation details required by consumers.\n\n### 2. Normalize duplicate metadata fields\n**File:** `specs/324-standalone-plugin-attribution/draft-gate-source.json`  \n**Requirement:** R2  \n**Issue:** Each finding repeats equivalent fields with inconsistent naming styles: `guardrail_id` and `guardrailId`, plus `findingId` and `fingerprint`. This makes downstream parsing more error-prone and obscures which field is authoritative.  \n**Suggestion:** Standardize on one naming convention for generated JSON, preferably camelCase if the surrounding schema uses `runId`, `generatedAt`, and `requirementId`. Remove redundant aliases unless backward compatibility explicitly requires them.\n\n### 3. Deduplicate repeated failure IDs\n**File:** `specs/324-standalone-plugin-attribution/draft-gate-source.json`  \n**Requirement:** R3  \n**Issue:** Multiple distinct findings in `evaluations` share the same `findingId` and `fingerprint` when they refer to different locators and different observed text. That weakens identity semantics and makes deduplication or triage workflows ambiguous.  \n**Suggestion:** Generate `findingId` and `fingerprint` from the specific finding content, including guardrail ID, locator, and observed text, or split shared grouping identity into a separate `groupId`.\n\n### 4. Collapse empty phase reports into a shared minimal schema\n**File:** `specs/324-standalone-plugin-attribution/draft-coverage-repair.json`  \n**Requirement:** R4  \n**Issue:** This file duplicates the same empty-report structure used by `draft-coverage-triage.json`, differing only by phase, source field, and summary.  \n**Suggestion:** Use the same schema shape and field names across both files, such as `sourcePhase` or `sourceArtifact`, so tooling does not need separate handling for `sourceTriage` versus `sourceReview`.\n\n### 5. Use consistent source field naming\n**File:** `specs/324-standalone-plugin-attribution/draft-coverage-triage.json`  \n**Requirement:** R5  \n**Issue:** `sourceReview` is semantically similar to `sourceTriage` in the repair file, but the field names encode the source type instead of using a consistent key.  \n**Suggestion:** Rename this to a generic field such as `sourceArtifact` or `inputArtifact`, matching the repair report, to simplify consumers that traverse generated phase metadata.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated finding payloads",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/draft-gate-source.json`  \n**Requirement:** R1  \n**Issue:** The same six guardrail failures are represented twice, once under `evaluations` and again under `observations`, with mostly duplicated fields. This increases file size and creates drift risk if one copy is updated without the other.  \n**Suggestion:** Keep one canonical collection of findings and have the other section reference it by stable IDs, or remove `observations` if `evaluations` already contains the full observation details required by consumers.",
+        "file": "specs/324-standalone-plugin-attribution/draft-gate-source.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Normalize duplicate metadata fields",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/draft-gate-source.json`  \n**Requirement:** R2  \n**Issue:** Each finding repeats equivalent fields with inconsistent naming styles: `guardrail_id` and `guardrailId`, plus `findingId` and `fingerprint`. This makes downstream parsing more error-prone and obscures which field is authoritative.  \n**Suggestion:** Standardize on one naming convention for generated JSON, preferably camelCase if the surrounding schema uses `runId`, `generatedAt`, and `requirementId`. Remove redundant aliases unless backward compatibility explicitly requires them.",
+        "file": "specs/324-standalone-plugin-attribution/draft-gate-source.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Deduplicate repeated failure IDs",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/draft-gate-source.json`  \n**Requirement:** R3  \n**Issue:** Multiple distinct findings in `evaluations` share the same `findingId` and `fingerprint` when they refer to different locators and different observed text. That weakens identity semantics and makes deduplication or triage workflows ambiguous.  \n**Suggestion:** Generate `findingId` and `fingerprint` from the specific finding content, including guardrail ID, locator, and observed text, or split shared grouping identity into a separate `groupId`.",
+        "file": "specs/324-standalone-plugin-attribution/draft-gate-source.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Collapse empty phase reports into a shared minimal schema",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/draft-coverage-repair.json`  \n**Requirement:** R4  \n**Issue:** This file duplicates the same empty-report structure used by `draft-coverage-triage.json`, differing only by phase, source field, and summary.  \n**Suggestion:** Use the same schema shape and field names across both files, such as `sourcePhase` or `sourceArtifact`, so tooling does not need separate handling for `sourceTriage` versus `sourceReview`.",
+        "file": "specs/324-standalone-plugin-attribution/draft-coverage-repair.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Use consistent source field naming",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/draft-coverage-triage.json`  \n**Requirement:** R5  \n**Issue:** `sourceReview` is semantically similar to `sourceTriage` in the repair file, but the field names encode the source type instead of using a consistent key.  \n**Suggestion:** Rename this to a generic field such as `sourceArtifact` or `inputArtifact`, matching the repair report, to simplify consumers that traverse generated phase metadata.",
+        "file": "specs/324-standalone-plugin-attribution/draft-coverage-triage.json",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

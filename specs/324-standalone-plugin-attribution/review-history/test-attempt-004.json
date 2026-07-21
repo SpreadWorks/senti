@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T09:45:20.722Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/324-standalone-plugin-attribution/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 validation path is untested",
+      "target": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+      "findingId": "5c7c11eec70c6c4c9951f99394893a53534bd01b66e06fff3ff77849b3c44a80",
+      "fingerprint": "5c7c11eec70c6c4c9951f99394893a53534bd01b66e06fff3ff77849b3c44a80",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for the validation aspect of the attribution mode contract.",
+      "issue": "R1 requires a validated attribution mode, but the tests only exercise accepted values and override behavior. No test passes an invalid flowAttribution value and asserts it is rejected or normalized according to the target API.",
+      "requiredChange": "Add a spec-local test that calls the agent/API with an invalid attribution mode and asserts the expected validation behavior.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for the validation aspect of the attribution mode contract.",
+      "origin": "R1",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/324-standalone-plugin-attribution/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e90a52c6eed78908c3beaa381a2d04fb517e7d1516390bb1b405d1ecd2c47911"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "5c7c11eec70c6c4c9951f99394893a53534bd01b66e06fff3ff77849b3c44a80",
+      "findingId": "5c7c11eec70c6c4c9951f99394893a53534bd01b66e06fff3ff77849b3c44a80",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R1 validation path is untested",
+      "body": "R1 requires a validated attribution mode, but the tests only exercise accepted values and override behavior. No test passes an invalid flowAttribution value and asserts it is rejected or normalized according to the target API.",
+      "category": "unknown",
+      "fingerprint": "5c7c11eec70c6c4c9951f99394893a53534bd01b66e06fff3ff77849b3c44a80",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for the validation aspect of the attribution mode contract."
+    }
+  ]
+}

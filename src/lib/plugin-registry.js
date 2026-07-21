@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
+import { createPluginAgentApi } from "./agent.js";
 import { repoRoot } from "./cli.js";
 import { loadConfig, loadRawConfig, sentiConfigPath, sentiDir, sentiLocalConfigPath } from "./config.js";
 import { Envelope } from "./flow-envelope.js";
@@ -1205,10 +1206,19 @@ function artifactHelpers(root, pluginId, flow = {}, options = {}) {
   };
 }
 
-function buildPluginContext({ root, pluginId, pluginRoot, commandPath, flow = {}, result = {}, requireSpecArtifacts = false }) {
+function buildPluginContext({
+  root,
+  pluginId,
+  pluginRoot,
+  commandPath,
+  flow = {},
+  result = {},
+  requireSpecArtifacts = false,
+  flowAttribution = "ambient",
+}) {
   const rootConfig = readProjectConfig(root);
   const pluginConfig = pluginConfigFor(root, pluginId);
-  const agent = globalThis.__sentiPluginAgent || {
+  const coreAgent = globalThis.__sentiPluginAgent || {
     resolve() {
       return false;
     },
@@ -1216,6 +1226,12 @@ function buildPluginContext({ root, pluginId, pluginRoot, commandPath, flow = {}
       throw new Error("plugin agent context is not configured for this invocation");
     },
   };
+  const agent = createPluginAgentApi({
+    pluginId,
+    pluginConfig,
+    agent: coreAgent,
+    flowAttribution,
+  });
   return {
     project: { root },
     plugin: { id: pluginId, root: pluginRoot, commandPath },
@@ -1243,7 +1259,13 @@ export async function dispatchPluginCommand(root, commandName, args) {
     const registered = mod.default(buildPluginApi());
     if (!registered || typeof registered.main !== "function") throw new Error(`plugin command ${commandName} register(api) must return { main }`);
     const pluginRoot = path.dirname(path.dirname(command.absolutePath));
-    const result = await registered.main(args, buildPluginContext({ root, pluginId: command.providerId, pluginRoot, commandPath: command.absolutePath }));
+    const result = await registered.main(args, buildPluginContext({
+      root,
+      pluginId: command.providerId,
+      pluginRoot,
+      commandPath: command.absolutePath,
+      flowAttribution: "none",
+    }));
     if (!isEnvelopeLike(result)) throw new Error(`plugin command ${commandName} must return an Envelope-compatible object`);
     return { ...result, exitCode: result.ok ? 0 : (result.exitCode || 1) };
   } catch (err) {

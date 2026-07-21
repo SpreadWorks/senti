@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T09:43:57.098Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/324-standalone-plugin-attribution/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "No-flow layout is not actually no-flow",
+      "target": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js R7 / makeLayout",
+      "findingId": "a84d61be6b1f54ff32b100bde87f2175e59faa605f9623fd01d9335ca220ad76",
+      "fingerprint": "a84d61be6b1f54ff32b100bde87f2175e59faa605f9623fd01d9335ca220ad76",
+      "disposition": "must-fix",
+      "rationale": "R7 explicitly requires spec-local tests to construct a no-flow repository layout; the current artifact marks R7 covered, but the test does not exercise that layout.",
+      "issue": "The `no-flow` matrix case passes `activeCount: 0`, but `makeLayout` still creates one `specs/foreign-1/flow.json`, one `.senti/agent-cache/...` file, and one context because the loop uses `Math.max(activeCount, 1)`. With `withFlowManager: false`, this covers a repository with no flow manager but still seeded flow artifacts, not a no-flow repository layout.",
+      "requiredChange": "Adjust the fixture or add a separate R7 case that constructs a repository layout with no active flow artifacts/contexts and verifies standalone calls do not create or mutate flow/cache state.",
+      "whyBlocking": "R7 explicitly requires spec-local tests to construct a no-flow repository layout; the current artifact marks R7 covered, but the test does not exercise that layout.",
+      "origin": "R7",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 does not assert core-bound attribution cannot be overridden",
+      "target": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js R4",
+      "findingId": "21d32199d0b139104ade9f0a299fb7c681ee8b513e3a435959b404ace5a19788",
+      "fingerprint": "21d32199d0b139104ade9f0a299fb7c681ee8b513e3a435959b404ace5a19788",
+      "disposition": "must-fix",
+      "rationale": "R4 specifically requires the plugin cannot override the core-bound attribution mode; the current R4 coverage omits that contract and the coverage artifact incorrectly marks it covered.",
+      "issue": "The R4 test records delegated `resolve` and `call` options but only asserts command namespacing plus provider/profile precedence. It never asserts that delegated options include the core-bound no-flow attribution after plugin/user options, so an implementation could pass this test while allowing plugin-supplied `flowAttribution` to override the core binding.",
+      "requiredChange": "Add an assertion in the R4 delegate test that both delegated `resolve` and `call` receive the enforced no-flow attribution even when caller options attempt to supply a different attribution mode.",
+      "whyBlocking": "R4 specifically requires the plugin cannot override the core-bound attribution mode; the current R4 coverage omits that contract and the coverage artifact incorrectly marks it covered.",
+      "origin": "R4",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/324-standalone-plugin-attribution/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3d25e1220cb2a88bed6bfe10da5c0b2ac7d7d99a6c3cc77e0e47495e74bfdf60"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "a84d61be6b1f54ff32b100bde87f2175e59faa605f9623fd01d9335ca220ad76",
+      "findingId": "a84d61be6b1f54ff32b100bde87f2175e59faa605f9623fd01d9335ca220ad76",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "No-flow layout is not actually no-flow",
+      "body": "The `no-flow` matrix case passes `activeCount: 0`, but `makeLayout` still creates one `specs/foreign-1/flow.json`, one `.senti/agent-cache/...` file, and one context because the loop uses `Math.max(activeCount, 1)`. With `withFlowManager: false`, this covers a repository with no flow manager but still seeded flow artifacts, not a no-flow repository layout.",
+      "category": "unknown",
+      "fingerprint": "a84d61be6b1f54ff32b100bde87f2175e59faa605f9623fd01d9335ca220ad76",
+      "disposition": "must-fix",
+      "rationale": "R7 explicitly requires spec-local tests to construct a no-flow repository layout; the current artifact marks R7 covered, but the test does not exercise that layout."
+    },
+    {
+      "id": "21d32199d0b139104ade9f0a299fb7c681ee8b513e3a435959b404ace5a19788",
+      "findingId": "21d32199d0b139104ade9f0a299fb7c681ee8b513e3a435959b404ace5a19788",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R4 does not assert core-bound attribution cannot be overridden",
+      "body": "The R4 test records delegated `resolve` and `call` options but only asserts command namespacing plus provider/profile precedence. It never asserts that delegated options include the core-bound no-flow attribution after plugin/user options, so an implementation could pass this test while allowing plugin-supplied `flowAttribution` to override the core binding.",
+      "category": "unknown",
+      "fingerprint": "21d32199d0b139104ade9f0a299fb7c681ee8b513e3a435959b404ace5a19788",
+      "disposition": "must-fix",
+      "rationale": "R4 specifically requires the plugin cannot override the core-bound attribution mode; the current R4 coverage omits that contract and the coverage artifact incorrectly marks it covered."
+    }
+  ]
+}

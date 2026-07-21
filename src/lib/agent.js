@@ -131,11 +131,13 @@ class Agent {
    * @param {Function} [options.onStderr]
    * @param {number}  [options.retryCount=0]
    * @param {number}  [options.retryDelayMs=3000]
+   * @param {"ambient"|"none"} [options.flowAttribution="ambient"]
    * @param {boolean} [options._dryRun] - Test-only short-circuit
    * @returns {Promise<string>} response text (trimmed)
    */
   async call(prompt, options) {
     const opts = options || {};
+    const flowAttribution = new FlowAttributionPolicy(opts.flowAttribution);
     if (opts._dryRun) return "";
 
     const attempt = AgentResolutionAttempt.from({
@@ -152,7 +154,7 @@ class Agent {
 
     const retry = this._normalizeRetryOptionsForTest(opts);
     const cachePolicy = new PromptCachePolicy(opts.cacheMode);
-    const promptCache = cachePolicy.readsCache
+    const promptCache = flowAttribution.usesFlowState && cachePolicy.readsCache
       ? this._resolvePromptCache(resolved, prompt, opts)
       : null;
     const hit = promptCache?.cache.get(promptCache.key);
@@ -186,6 +188,7 @@ class Agent {
       prompt,
       provider: resolved.providerKey,
       profileKey: resolved.profileKey,
+      flowAttribution,
       invoke: async () => {
         cacheCandidate = await this._callOnceWithRetry(resolved, prompt, opts, retry);
         return cacheCandidate;
@@ -688,6 +691,25 @@ class PromptCachePolicy {
   }
 }
 
+class FlowAttributionPolicy {
+  constructor(mode = "ambient") {
+    const normalized = mode ?? "ambient";
+    if (normalized !== "ambient" && normalized !== "none") {
+      throw new Error(`invalid flow attribution mode: ${normalized}`);
+    }
+    this.mode = normalized;
+    Object.freeze(this);
+  }
+
+  get usesFlowState() {
+    return this.mode === "ambient";
+  }
+
+  get logContext() {
+    return this.usesFlowState ? undefined : null;
+  }
+}
+
 class PromptCacheIdentity {
   constructor(input = {}) {
     this.commandId = input.commandId ?? null;
@@ -1131,10 +1153,23 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function runWithLogging({ logger, flowManager, command, systemPrompt, prompt, provider, profileKey, invoke }) {
+async function runWithLogging({
+  logger,
+  flowManager,
+  command,
+  systemPrompt,
+  prompt,
+  provider,
+  profileKey,
+  flowAttribution,
+  invoke,
+}) {
   const requestId = generateRequestId();
   const startedAt = Date.now();
-  await logger.agent({ phase: "start", requestId });
+  const logAttribution = flowAttribution.usesFlowState
+    ? {}
+    : { flowContext: flowAttribution.logContext };
+  await logger.agent({ phase: "start", requestId, ...logAttribution });
 
   let result = null;
   let err = null;
@@ -1160,11 +1195,11 @@ async function runWithLogging({ logger, flowManager, command, systemPrompt, prom
       usage,
       durationSec: (Date.now() - startedAt) / 1000,
     };
-    await logger.agent({ phase: "end", requestId, ...payload });
+    await logger.agent({ phase: "end", requestId, ...payload, ...logAttribution });
 
     // Metric accumulation is the Agent's responsibility: it runs independently
     // of cfg.logs.enabled so flow.json metrics are always up to date (R3).
-    if (flowManager) {
+    if (flowAttribution.usesFlowState && flowManager) {
       try {
         const ctx = flowManager.resolveCurrentContext();
         if (ctx.sentiPhase) {
@@ -1203,22 +1238,50 @@ function textStats(s) {
   return { chars: str.length, lines: str.length === 0 ? 0 : str.split("\n").length };
 }
 
-export function createPluginAgentApi({ pluginId, pluginConfig = {}, agent }) {
-  if (!pluginId) throw new Error("pluginId is required");
-  if (!agent || typeof agent.call !== "function") throw new Error("agent.call is required");
-  return {
-    call(prompt, options = {}) {
-      const commandId = options.commandId?.includes(".")
-        ? options.commandId
-        : `${pluginId}.${options.commandId || "default"}`;
-      return agent.call(prompt, {
-        ...options,
-        commandId,
-        ...(pluginConfig.provider ? { provider: pluginConfig.provider } : {}),
-        ...(options.profile || pluginConfig.agentProfile ? { profile: options.profile || pluginConfig.agentProfile } : {}),
-      });
-    },
-  };
+class PluginAgentApi {
+  constructor({ pluginId, pluginConfig = {}, agent, flowAttribution = "ambient" }) {
+    if (!pluginId) throw new Error("pluginId is required");
+    if (!agent || typeof agent.call !== "function") throw new Error("agent.call is required");
+    this.pluginId = pluginId;
+    this.pluginConfig = pluginConfig;
+    this.agent = agent;
+    this.flowAttribution = new FlowAttributionPolicy(flowAttribution);
+    Object.freeze(this);
+  }
+
+  resolve(commandId, options = {}) {
+    if (typeof this.agent.resolve !== "function") return null;
+    const resolvedOptions = this.#options(commandId, options);
+    return this.agent.resolve(resolvedOptions.commandId, resolvedOptions);
+  }
+
+  call(prompt, options = {}) {
+    const resolvedOptions = this.#options(options.commandId, options);
+    return this.agent.call(prompt, resolvedOptions);
+  }
+
+  #options(commandId, options) {
+    const namespacedCommandId = commandId?.includes(".")
+      ? commandId
+      : `${this.pluginId}.${commandId || "default"}`;
+    const boundAttribution = this.flowAttribution.usesFlowState
+      && !Object.hasOwn(options, "flowAttribution")
+      ? {}
+      : { flowAttribution: this.flowAttribution.mode };
+    return {
+      ...options,
+      commandId: namespacedCommandId,
+      ...(this.pluginConfig.provider ? { provider: this.pluginConfig.provider } : {}),
+      ...(options.profile || this.pluginConfig.agentProfile
+        ? { profile: options.profile || this.pluginConfig.agentProfile }
+        : {}),
+      ...boundAttribution,
+    };
+  }
+}
+
+export function createPluginAgentApi(options) {
+  return new PluginAgentApi(options);
 }
 
 export { Agent, AgentTimeoutError, ChildProcessSupervisor, filterStreamingEvents };

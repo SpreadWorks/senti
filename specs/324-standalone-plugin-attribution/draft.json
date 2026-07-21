@@ -1,0 +1,74 @@
+{
+  "devType": "bugfix",
+  "goal": "Prevent standalone plugin agent calls from reading or mutating ambient SDD flow attribution while preserving existing agent resolution and explicit flow attribution.",
+  "analysis": {
+    "problem": "Standalone plugin commands receive an agent whose cache, logging, and metric side effects resolve the current ambient flow. Calls made outside that flow can therefore mutate unrelated flow evidence.",
+    "proposedApproach": "Introduce a generic agent attribution boundary for standalone plugin contexts, keep ambient attribution as the default elsewhere, and make the core-selected boundary non-overridable by plugin call options.",
+    "validation": "Use fake-provider boundary tests to compare foreign flow and cache bytes across success, failure, repeated-call, and runtime-context variants, then confirm existing resolution and explicit-flow behavior remains unchanged."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Standalone plugin commands currently receive an agent from the shared plugin bridge and can resolve ambient flow context.",
+      "must: Agent cache, cache-hit metrics, invocation metrics, and log identity are separate observable attribution surfaces.",
+      "must: Issue #445 explicitly excludes workflow-specific branching and FlowManager/FlowStore changes."
+    ],
+    "decisionPoints": [
+      "must: Standalone plugin calls use no flow attribution while existing core flow and explicit hook calls retain ambient attribution.",
+      "must: The attribution selected by core cannot be overridden by plugin-supplied call options.",
+      "should: The boundary remains generic so future standalone plugins receive the same behavior without plugin-name special cases."
+    ],
+    "resolvedByProjectRules": [
+      "must: Use only Node.js built-ins; represent a new constrained attribution value with a class that validates accepted modes at construction, in accordance with src/AGENTS.md.",
+      "must: Validate at the plugin boundary and do not add defensive behavior to trusted FlowManager/FlowStore internals.",
+      "must: Focused agent tests use fake providers; real AI execution is excluded from the test matrix."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Define requirements and automated scenarios for flow.json bytes, agent-cache bytes and entry count, standalone log identity, plugin override rejection, provider/profile/commandId resolution, and explicit flow/core attribution.",
+      "should: Change src/lib/log.js only if the existing logger cannot accept a call-scoped explicit null flow context; otherwise leave it unchanged."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/lib/agent.js generic attribution behavior and plugin-facing delegation.",
+      "must: src/lib/plugin-registry.js standalone plugin context binding.",
+      "must: src/lib/log.js only when required to preserve an explicitly supplied null flow identity.",
+      "must: Fake-provider and plugin boundary tests cover provider success, provider failure, repeated equivalent calls, managed active worktree, main repository with one active flow, main repository with multiple active flows, and no-flow context without invoking live AI."
+    ],
+    "out": [
+      "must: No workflow plugin source or command-specific special case.",
+      "must: No FlowManager or FlowStore changes.",
+      "must: No Issue #443 review-transition or Issue #444 test-runner changes.",
+      "must: No dependency additions, release, or live AI calls."
+    ]
+  },
+  "impactOnExisting": [
+    "must: User-facing standalone plugin commands retain their command output, exit status, and access to context.agent.call; context.agent.resolve is added as delegation to the existing core resolver.",
+    "must: createPluginAgentApi retains commandId namespacing plus plugin.config provider and agentProfile selection; ordinary plugin call options retain their existing provider/profile precedence except that attribution cannot be overridden.",
+    "must: Existing plugin config keys, manifests, hook discovery, command registration, and plugin artifact paths remain owned by their current modules and are not moved or removed.",
+    "must: Existing core flow commands and explicit flow hooks retain ambient flow ownership of prompt-cache entries and one invocation metric per provider call; cache hits retain their existing cache-hit metric behavior.",
+    "must: Standalone plugin agent calls stop owning any ambient flow.json metric or flow-scoped agent-cache entry; this ambient attribution side effect is intentionally removed.",
+    "must: Standalone plugin agent JSONL and prompt logs remain generated when logging is enabled, with spec, sentiPhase, and taskId set to null; no log format or path is removed.",
+    "must: Provider success and failure return or throw through the existing Agent call contract; the attribution boundary does not suppress provider errors or alter returned text.",
+    "must: Behavior-level fake-provider tests exercise each retained command/API/config/log/cache/metric surface through the standalone plugin context, while existing agent and flow attribution regressions cover the retained core path."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Should the implementation use Issue #445 exactly as the delivery boundary: standalone plugin agent attribution only, with the listed foreign-state invariants and explicit exclusions treated as must requirements?",
+      "answer": "Yes. must: Deliver only the standalone plugin agent attribution boundary and its listed observable invariants; retain every explicit exclusion.",
+      "evidence": "The single-responsibility guardrail treats the user-defined Issue as one scope boundary; src/lib/plugin-registry.js buildPluginContext exposes the standalone plugin agent, while src/lib/agent.js owns cache, logging, and metrics.",
+      "why": "Project guardrails require one concern per spec, and the existing code pattern places every affected attribution side effect behind the Agent and plugin-context boundary named by Issue #445.",
+      "considered": "Expanding into FlowManager/FlowStore or workflow-plugin behavior was rejected because those changes are explicitly out of scope and not required by any Issue #445 acceptance criterion.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-20T09:27:12.000Z",
+    "notes": "Auto-approved from the published Issue #445 scope and the explicit autoApprove orchestration directive."
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "runId": "c699ca24-7e51-474e-8f07-3a157a27e9ff",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-21T12:48:25.025Z",
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "[REQ:R1] requires a validated attribution mode with ambient default preservation and no-flow avoiding flow-context resolution for prompt-cache or metrics. The diff adds FlowAttributionPolicy with default \"ambient\" and construction-time rejection of unsupported values, gates prompt-cache resolution on flowAttribution.usesFlowState, and gates metric accumulation on flowAttribution.usesFlowState while leaving ambient as the default path; the spec-local R1 test also asserts invalid mode rejection and zero flow resolution/metrics for no-flow. Sources: [EVIDENCE:R1], [FILE-MAP:R1:1], [FILE-MAP:R1:2].",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "[REQ:R2] requires no-flow calls to skip flow-scoped cache reads/writes, cache-hit metrics, success metrics, and failure metrics while preserving provider execution, return text, thrown errors, and cache-decision callbacks. The implementation gates prompt-cache resolution on `flowAttribution.usesFlowState`, so no-flow calls get `promptCache = null`, preventing reads, writes, and cache-hit metric paths; it also gates `flowManager.accumulateAgentMetrics` on `flowAttribution.usesFlowState`, skipping success/failure metrics while leaving provider invocation inside `invoke` unchanged. The R2 test asserts provider failure still throws, cache-decision callback fires with the expected miss/provider-called decision, foreign flow/cache bytes are unchanged, and no resolution/invocation metrics occur. Sources: [REQ:R2], [FILE-MAP:R2:1], [FILE-MAP:R2:2], Git Diff `src/lib/agent.js`, Git Diff `specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js`.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "[REQ:R4] is satisfied: createPluginAgentApi now returns PluginAgentApi with both resolve and call delegation, preserves commandId namespacing, applies pluginConfig.provider and explicit profile over pluginConfig.agentProfile, and builds delegated options by spreading plugin-supplied options before appending the core-bound flowAttribution, so plugin-supplied attribution is overwritten. The bound mode is represented by FlowAttributionPolicy, which rejects unsupported modes at construction. Evidence: [FILE-MAP:R4:1], [FILE-MAP:R4:2], [EVIDENCE:R4], [CONSTRAINT:2], [CONSTRAINT:4].",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "[REQ:R3] requires no-flow agent start/end logs to keep the existing log files and payload shape while setting spec, sentiPhase, and taskId to null without resolving ambient flow. The implementation passes an explicit null flowContext for no-flow calls in runWithLogging, applies it to both logger.agent start and end entries, and gates metric flow resolution behind flowAttribution.usesFlowState; Logger.#flowContext(entry) normalizes an explicit flowContext:null into {spec:null,sentiPhase:null,taskId:null} before any ambient FlowManager lookup. The spec-local R3 test also asserts start, end, and prompt context null identity plus layout.counters.resolved === 0. Sources: [FILE-MAP:R3:1] specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js, [FILE-MAP:R3:2] src/lib/agent.js, [FILE-MAP:R3:3] src/lib/log.js, [EVIDENCE:R3].",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "[REQ:R5] requires dispatchPluginCommand to supply standalone plugin context through createPluginAgentApi bound to no-flow attribution, while runFlowCommandHooks retains ambient attribution without plugin-name or workflow-command special cases. The diff imports createPluginAgentApi in src/lib/plugin-registry.js, wraps the core agent in buildPluginContext with a flowAttribution parameter defaulting to \"ambient\", and dispatchPluginCommand calls buildPluginContext with flowAttribution: \"none\"; no runFlowCommandHooks special-case change is shown, so it retains the ambient default. createPluginAgentApi in src/lib/agent.js constructs PluginAgentApi with FlowAttributionPolicy and #options applies the core-bound mode after plugin options, preventing standalone override. The R5 spec-local test dispatches a temporary plugin command through dispatchPluginCommand with a fake core agent and asserts foreign flow/cache snapshots and ambient resolution counter remain unchanged. Sources: [FILE-MAP:R5:1], [FILE-MAP:R5:2], [FILE-MAP:R5:3], [TASK:T-2], [CONSTRAINT:2], [CONSTRAINT:4].",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "[REQ:R6] is implemented by spec-local tests under specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js: makeLayout seeds foreign specs/*/flow.json and .senti/agent-cache files, snapshot() captures byte content via base64, and R2/R6/R7 assertions compare snapshots after failure, repeated equivalent calls, and the broader success/failure/repeat matrix. Production changes route standalone plugin calls through no-flow attribution and skip flow cache/metric state, without modifying FlowManager/FlowStore behavior. Execution evidence records the spec-local test file passing for R6 in specs/324-standalone-plugin-attribution/test-execute-result.json and tests/.raw/test-execution.log.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R7",
+      "result": "pass",
+      "reason": "[REQ:R7] requires spec-local tests for managed worktree, main single-flow, main multiple-flow, and no-flow layouts, asserting R6 byte snapshots remain equal for each layout. The mapped test includes those four cases and, for each, snapshots protected files before standalone success/repeated calls plus a failure path, then asserts byte-identical snapshots and zero ambient resolution. [FILE-MAP:R7:1] [EVIDENCE:R7]",
+      "title": "R7",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R8",
+      "result": "pass",
+      "reason": "[REQ:R8] requires existing core flow agent calls and explicit flow-hook agent calls to retain ambient cache attribution, exactly one invocation metric per provider call, and unchanged cache-hit attribution. The diff preserves ambient as the default attribution in Agent.call and createPluginAgentApi, only gates cache/metrics when flowAttribution is explicitly none, leaves runFlowCommandHooks on the default ambient path, and adds an R8 spec-local test that verifies a core call records one invocation metric, a repeated core cache hit records the cache-hit metric without a second provider invocation, and an explicit flow hook adds one more invocation metric while retaining ambient cache behavior. Sources: [EVIDENCE:R8], [FILE-MAP:R8:1], [FILE-MAP:R8:2], [FILE-MAP:R8:3], [FILE-MAP:R8:4].",
+      "title": "R8",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "observations": [],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — [REQ:R1] requires a validated attribution mode with ambient default preservation and no-flow avoiding flow-context resolution for prompt-cache or metrics. The diff adds FlowAttributionPolicy with default \"ambient\" and construction-time rejection of unsupported values, gates prompt-cache resolution on flowAttribution.usesFlowState, and gates metric accumulation on flowAttribution.usesFlowState while leaving ambient as the default path; the spec-local R1 test also asserts invalid mode rejection and zero flow resolution/metrics for no-flow. Sources: [EVIDENCE:R1], [FILE-MAP:R1:1], [FILE-MAP:R1:2].",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — [REQ:R2] requires no-flow calls to skip flow-scoped cache reads/writes, cache-hit metrics, success metrics, and failure metrics while preserving provider execution, return text, thrown errors, and cache-decision callbacks. The implementation gates prompt-cache resolution on `flowAttribution.usesFlowState`, so no-flow calls get `promptCache = null`, preventing reads, writes, and cache-hit metric paths; it also gates `flowManager.accumulateAgentMetrics` on `flowAttribution.usesFlowState`, skipping success/failure metrics while leaving provider invocation inside `invoke` unchanged. The R2 test asserts provider failure still throws, cache-decision callback fires with the expected miss/provider-called decision, foreign flow/cache bytes are unchanged, and no resolution/invocation metrics occur. Sources: [REQ:R2], [FILE-MAP:R2:1], [FILE-MAP:R2:2], Git Diff `src/lib/agent.js`, Git Diff `specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js`.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — [REQ:R4] is satisfied: createPluginAgentApi now returns PluginAgentApi with both resolve and call delegation, preserves commandId namespacing, applies pluginConfig.provider and explicit profile over pluginConfig.agentProfile, and builds delegated options by spreading plugin-supplied options before appending the core-bound flowAttribution, so plugin-supplied attribution is overwritten. The bound mode is represented by FlowAttributionPolicy, which rejects unsupported modes at construction. Evidence: [FILE-MAP:R4:1], [FILE-MAP:R4:2], [EVIDENCE:R4], [CONSTRAINT:2], [CONSTRAINT:4].",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — [REQ:R3] requires no-flow agent start/end logs to keep the existing log files and payload shape while setting spec, sentiPhase, and taskId to null without resolving ambient flow. The implementation passes an explicit null flowContext for no-flow calls in runWithLogging, applies it to both logger.agent start and end entries, and gates metric flow resolution behind flowAttribution.usesFlowState; Logger.#flowContext(entry) normalizes an explicit flowContext:null into {spec:null,sentiPhase:null,taskId:null} before any ambient FlowManager lookup. The spec-local R3 test also asserts start, end, and prompt context null identity plus layout.counters.resolved === 0. Sources: [FILE-MAP:R3:1] specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js, [FILE-MAP:R3:2] src/lib/agent.js, [FILE-MAP:R3:3] src/lib/log.js, [EVIDENCE:R3].",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — [REQ:R5] requires dispatchPluginCommand to supply standalone plugin context through createPluginAgentApi bound to no-flow attribution, while runFlowCommandHooks retains ambient attribution without plugin-name or workflow-command special cases. The diff imports createPluginAgentApi in src/lib/plugin-registry.js, wraps the core agent in buildPluginContext with a flowAttribution parameter defaulting to \"ambient\", and dispatchPluginCommand calls buildPluginContext with flowAttribution: \"none\"; no runFlowCommandHooks special-case change is shown, so it retains the ambient default. createPluginAgentApi in src/lib/agent.js constructs PluginAgentApi with FlowAttributionPolicy and #options applies the core-bound mode after plugin options, preventing standalone override. The R5 spec-local test dispatches a temporary plugin command through dispatchPluginCommand with a fake core agent and asserts foreign flow/cache snapshots and ambient resolution counter remain unchanged. Sources: [FILE-MAP:R5:1], [FILE-MAP:R5:2], [FILE-MAP:R5:3], [TASK:T-2], [CONSTRAINT:2], [CONSTRAINT:4].",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — [REQ:R6] is implemented by spec-local tests under specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js: makeLayout seeds foreign specs/*/flow.json and .senti/agent-cache files, snapshot() captures byte content via base64, and R2/R6/R7 assertions compare snapshots after failure, repeated equivalent calls, and the broader success/failure/repeat matrix. Production changes route standalone plugin calls through no-flow attribution and skip flow cache/metric state, without modifying FlowManager/FlowStore behavior. Execution evidence records the spec-local test file passing for R6 in specs/324-standalone-plugin-attribution/test-execute-result.json and tests/.raw/test-execution.log.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R7 — [REQ:R7] requires spec-local tests for managed worktree, main single-flow, main multiple-flow, and no-flow layouts, asserting R6 byte snapshots remain equal for each layout. The mapped test includes those four cases and, for each, snapshots protected files before standalone success/repeated calls plus a failure path, then asserts byte-identical snapshots and zero ambient resolution. [FILE-MAP:R7:1] [EVIDENCE:R7]",
+      "guardrail_id": "R7",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R8 — [REQ:R8] requires existing core flow agent calls and explicit flow-hook agent calls to retain ambient cache attribution, exactly one invocation metric per provider call, and unchanged cache-hit attribution. The diff preserves ambient as the default attribution in Agent.call and createPluginAgentApi, only gates cache/metrics when flowAttribution is explicitly none, leaves runFlowCommandHooks on the default ambient path, and adds an R8 spec-local test that verifies a core call records one invocation metric, a repeated core cache hit records the cache-hit metric without a second provider invocation, and an explicit flow hook adds one more invocation metric while retaining ambient cache behavior. Sources: [EVIDENCE:R8], [FILE-MAP:R8:1], [FILE-MAP:R8:2], [FILE-MAP:R8:3], [FILE-MAP:R8:4].",
+      "guardrail_id": "R8",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/324-standalone-plugin-attribution/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "c29171ac6c8b0d8781ab4045dc5115298b606857e535092e846b30d4431a8983"
+  },
+  "repairFingerprint": "afbda25a8253a2ef1ac69efd9cabfe4647913b5146c2b1cecd807f0d7868ab38"
+}

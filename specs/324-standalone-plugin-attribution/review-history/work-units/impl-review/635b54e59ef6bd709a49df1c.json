@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/324-standalone-plugin-attribution/draft-review-questions.json",
+      "specs/324-standalone-plugin-attribution/draft.json",
+      "specs/324-standalone-plugin-attribution/file-map.json"
+    ],
+    "inputHash": "1c1d8fae7f92621eac7728dcf72c9ef128ad121c8fb3e58f5be0b316f752eae3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "specs/324-standalone-plugin-attribution/draft-review-questions.json",
+    "specs/324-standalone-plugin-attribution/draft.json",
+    "specs/324-standalone-plugin-attribution/file-map.json"
+  ],
+  "inputHash": "1c1d8fae7f92621eac7728dcf72c9ef128ad121c8fb3e58f5be0b316f752eae3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T12:42:40.996Z",
+  "finishedAt": "2026-07-21T12:42:40.996Z",
+  "rawResponse": "### 1. Deduplicate Repeated File-Map Entries\n**File:** `specs/324-standalone-plugin-attribution/file-map.json`  \n**Requirement:** R8  \n**Issue:** The same long test path, `specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js`, is repeated under every requirement. This makes the map noisy and harder to maintain if the test file is renamed or split.  \n**Suggestion:** If the consuming schema allows it, introduce a shared test coverage grouping or a top-level common test entry, then keep each requirement focused on only the implementation files that differ.\n\n### 2. Tighten “Repeated Call” Bounds In The Draft\n**File:** `specs/324-standalone-plugin-attribution/draft.json`  \n**Requirement:** R4  \n**Issue:** The draft references “repeated-call” and “repeated equivalent calls” scenarios, but does not state an explicit count. Under the `bounded-resource-usage` guardrail, repeated processing should have clear upper bounds.  \n**Suggestion:** Replace vague repeated-call language with a bounded scenario, for example “two equivalent calls” or “three equivalent calls,” so the spec cannot be interpreted as requiring unbounded repetition.\n\n### 3. Clarify The Naming Of “sourceDraft”\n**File:** `specs/324-standalone-plugin-attribution/draft-review-questions.json`  \n**Requirement:** R1  \n**Issue:** `sourceDraft` is slightly ambiguous: it could mean the source file path, a draft identifier, or the draft content source.  \n**Suggestion:** Rename it to `sourceDraftPath` if this field is intended to point to `draft.json`, matching its actual value and making downstream usage clearer.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Deduplicate Repeated File-Map Entries",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/file-map.json`  \n**Requirement:** R8  \n**Issue:** The same long test path, `specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js`, is repeated under every requirement. This makes the map noisy and harder to maintain if the test file is renamed or split.  \n**Suggestion:** If the consuming schema allows it, introduce a shared test coverage grouping or a top-level common test entry, then keep each requirement focused on only the implementation files that differ.",
+        "file": "specs/324-standalone-plugin-attribution/file-map.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Tighten “Repeated Call” Bounds In The Draft",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/draft.json`  \n**Requirement:** R4  \n**Issue:** The draft references “repeated-call” and “repeated equivalent calls” scenarios, but does not state an explicit count. Under the `bounded-resource-usage` guardrail, repeated processing should have clear upper bounds.  \n**Suggestion:** Replace vague repeated-call language with a bounded scenario, for example “two equivalent calls” or “three equivalent calls,” so the spec cannot be interpreted as requiring unbounded repetition.",
+        "file": "specs/324-standalone-plugin-attribution/draft.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Clarify The Naming Of “sourceDraft”",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/draft-review-questions.json`  \n**Requirement:** R1  \n**Issue:** `sourceDraft` is slightly ambiguous: it could mean the source file path, a draft identifier, or the draft content source.  \n**Suggestion:** Rename it to `sourceDraftPath` if this field is intended to point to `draft.json`, matching its actual value and making downstream usage clearer.",
+        "file": "specs/324-standalone-plugin-attribution/draft-review-questions.json",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "spec": "specs/324-standalone-plugin-attribution/spec.json",
+  "date": "2026-07-21T12:48:38.681Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Agent calls support a validated attribution mode whose default preserves ambient behavior and whose no-flow mode performs no flow-context resolution for prompt-cache or metrics.",
+      "status": "done",
+      "note": "R1: no-flow policy bypasses ambient cache and metric authority"
+    },
+    {
+      "desc": "A no-flow call skips flow-scoped cache reads, cache writes, cache-hit metrics, success metrics, and failure metrics while preserving provider execution, return text, thrown errors, and cache-decision callbacks.",
+      "status": "done",
+      "note": "R2: provider failure preserves foreign bytes and error behavior"
+    },
+    {
+      "desc": "Agent start/end logs for a no-flow call retain the existing log files and payload shape but set spec, sentiPhase, and taskId to null without resolving an ambient flow.",
+      "status": "done",
+      "note": "R3: standalone logs keep explicit null flow identity"
+    },
+    {
+      "desc": "createPluginAgentApi delegates resolve and call with existing plugin commandId namespacing and provider/profile configuration precedence, and applies a core-bound attribution mode after plugin-supplied options so the plugin cannot override it.",
+      "status": "done",
+      "note": "R4: plugin API delegates resolve and preserves resolution options"
+    },
+    {
+      "desc": "dispatchPluginCommand supplies the standalone plugin context through createPluginAgentApi bound to no-flow attribution, while runFlowCommandHooks retains ambient attribution without plugin-name or workflow-command special cases.",
+      "status": "done",
+      "note": "R5: standalone registry dispatch binds no-flow attribution"
+    },
+    {
+      "desc": "Spec-local tests snapshot every seeded foreign specs/*/flow.json file and active-flow .senti/agent-cache file before and after standalone provider success, provider failure, and repeated equivalent calls, and assert byte-identical content.",
+      "status": "done",
+      "note": "R6: repeated standalone calls keep every seeded flow and cache byte-identical"
+    },
+    {
+      "desc": "Spec-local tests construct an active managed worktree layout, main repository layouts with one and multiple active flows, and a no-flow repository layout, then assert the R6 byte snapshots remain equal for each layout.",
+      "status": "done",
+      "note": "R7: repository-layout matrix never selects foreign flow authority"
+    },
+    {
+      "desc": "Existing core flow agent calls and explicit flow-hook agent calls retain ambient cache attribution and exactly one invocation metric for each provider call; existing cache-hit attribution remains unchanged.",
+      "status": "done",
+      "note": "R8: explicit flow hook retains one ambient provider-call attribution"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "afbda25a8253a2ef1ac69efd9cabfe4647913b5146c2b1cecd807f0d7868ab38"
+}

@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/324-standalone-plugin-attribution/review-history/test-attempt-003.md",
+      "specs/324-standalone-plugin-attribution/review-history/test-attempt-004.json",
+      "specs/324-standalone-plugin-attribution/review-history/test-attempt-004.md"
+    ],
+    "inputHash": "da556b0c25a8a9b030b72b648806ad1af7d5b9ae5d6078dc05e920dabffee918",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "specs/324-standalone-plugin-attribution/review-history/test-attempt-003.md",
+    "specs/324-standalone-plugin-attribution/review-history/test-attempt-004.json",
+    "specs/324-standalone-plugin-attribution/review-history/test-attempt-004.md"
+  ],
+  "inputHash": "da556b0c25a8a9b030b72b648806ad1af7d5b9ae5d6078dc05e920dabffee918",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T12:44:14.678Z",
+  "finishedAt": "2026-07-21T12:44:14.678Z",
+  "rawResponse": "### 1. Avoid duplicating review findings across Markdown and JSON\n**File:** `specs/324-standalone-plugin-attribution/review-history/test-attempt-004.md`  \n**Requirement:** R1  \n**Issue:** The R1 finding is duplicated almost verbatim in both `test-attempt-004.md` and `test-attempt-004.json`, which creates drift risk if one artifact is corrected later and the other is not.  \n**Suggestion:** Treat the JSON file as the canonical structured artifact and generate the Markdown summary from it, or add a short note indicating the Markdown is a rendered copy of the JSON artifact.\n\n### 2. Normalize historical attempt artifact format\n**File:** `specs/324-standalone-plugin-attribution/review-history/test-attempt-003.md`  \n**Requirement:** R7  \n**Issue:** Attempt 003 exists only as Markdown, while attempt 004 includes both JSON and Markdown. This inconsistency makes downstream tooling harder because some attempts have structured data and others do not.  \n**Suggestion:** Add a matching `test-attempt-003.json` artifact or standardize the review-history convention so every attempt uses the same single format.\n\n### 3. Remove repeated identifiers in finding records\n**File:** `specs/324-standalone-plugin-attribution/review-history/test-attempt-004.json`  \n**Requirement:** R1  \n**Issue:** Each finding repeats the same hash under `id`, `findingId`, and `fingerprint`, while `blockingFindings` also repeats `findingId` and `fingerprint`. This is redundant and makes the artifact noisier than necessary.  \n**Suggestion:** Keep one canonical identifier field, such as `findingId`, and only include aliases if a documented consumer requires them.\n\n### 4. Use consistent target field naming\n**File:** `specs/324-standalone-plugin-attribution/review-history/test-attempt-003.md`  \n**Requirement:** R7  \n**Issue:** The Markdown uses `**Target:**`, while the requested proposal/review contract uses file-oriented fields. The target line also combines path, requirement, and helper name in one free-form string.  \n**Suggestion:** Split the target into structured Markdown fields such as `**File:**`, `**Requirement:**`, and optional `**Symbol:** makeLayout` to match the rest of the review output conventions and improve scanability.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid duplicating review findings across Markdown and JSON",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/review-history/test-attempt-004.md`  \n**Requirement:** R1  \n**Issue:** The R1 finding is duplicated almost verbatim in both `test-attempt-004.md` and `test-attempt-004.json`, which creates drift risk if one artifact is corrected later and the other is not.  \n**Suggestion:** Treat the JSON file as the canonical structured artifact and generate the Markdown summary from it, or add a short note indicating the Markdown is a rendered copy of the JSON artifact.",
+        "file": "specs/324-standalone-plugin-attribution/review-history/test-attempt-004.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Normalize historical attempt artifact format",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/review-history/test-attempt-003.md`  \n**Requirement:** R7  \n**Issue:** Attempt 003 exists only as Markdown, while attempt 004 includes both JSON and Markdown. This inconsistency makes downstream tooling harder because some attempts have structured data and others do not.  \n**Suggestion:** Add a matching `test-attempt-003.json` artifact or standardize the review-history convention so every attempt uses the same single format.",
+        "file": "specs/324-standalone-plugin-attribution/review-history/test-attempt-003.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Remove repeated identifiers in finding records",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/review-history/test-attempt-004.json`  \n**Requirement:** R1  \n**Issue:** Each finding repeats the same hash under `id`, `findingId`, and `fingerprint`, while `blockingFindings` also repeats `findingId` and `fingerprint`. This is redundant and makes the artifact noisier than necessary.  \n**Suggestion:** Keep one canonical identifier field, such as `findingId`, and only include aliases if a documented consumer requires them.",
+        "file": "specs/324-standalone-plugin-attribution/review-history/test-attempt-004.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Use consistent target field naming",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/review-history/test-attempt-003.md`  \n**Requirement:** R7  \n**Issue:** The Markdown uses `**Target:**`, while the requested proposal/review contract uses file-oriented fields. The target line also combines path, requirement, and helper name in one free-form string.  \n**Suggestion:** Split the target into structured Markdown fields such as `**File:**`, `**Requirement:**`, and optional `**Symbol:** makeLayout` to match the rest of the review output conventions and improve scanability.",
+        "file": "specs/324-standalone-plugin-attribution/review-history/test-attempt-003.md",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

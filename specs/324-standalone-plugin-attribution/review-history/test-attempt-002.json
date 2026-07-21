@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T09:43:00.677Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/324-standalone-plugin-attribution/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 logging test does not prove no ambient flow resolution",
+      "target": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js R3 test",
+      "findingId": "41dce0156e2dc960c17c03c4622cc00e43f064b899f83e12cd992059a58e7367",
+      "fingerprint": "41dce0156e2dc960c17c03c4622cc00e43f064b899f83e12cd992059a58e7367",
+      "disposition": "must-fix",
+      "rationale": "R3 explicitly requires null log identity without resolving an ambient flow; the current test can pass without exercising that part of the requirement.",
+      "issue": "The R3 test verifies null flow identity in log and prompt payloads, but it never asserts that the ambient flow manager was not resolved during logging. An implementation could call resolveCurrentContext(), then overwrite spec/sentiPhase/taskId to null, and this test would still pass.",
+      "requiredChange": "Add an assertion in the R3 test that the layout flow manager resolution counter remains 0 after the no-flow logged call and flush.",
+      "whyBlocking": "R3 explicitly requires null log identity without resolving an ambient flow; the current test can pass without exercising that part of the requirement.",
+      "origin": "R3",
+      "failureKind": "missing spec-local coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/324-standalone-plugin-attribution/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c71201dbe32f5fbbc754735964658482dc1b735a37ac59044fbe1741fbc5c1ce"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "41dce0156e2dc960c17c03c4622cc00e43f064b899f83e12cd992059a58e7367",
+      "findingId": "41dce0156e2dc960c17c03c4622cc00e43f064b899f83e12cd992059a58e7367",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R3 logging test does not prove no ambient flow resolution",
+      "body": "The R3 test verifies null flow identity in log and prompt payloads, but it never asserts that the ambient flow manager was not resolved during logging. An implementation could call resolveCurrentContext(), then overwrite spec/sentiPhase/taskId to null, and this test would still pass.",
+      "category": "unknown",
+      "fingerprint": "41dce0156e2dc960c17c03c4622cc00e43f064b899f83e12cd992059a58e7367",
+      "disposition": "must-fix",
+      "rationale": "R3 explicitly requires null log identity without resolving an ambient flow; the current test can pass without exercising that part of the requirement."
+    }
+  ]
+}

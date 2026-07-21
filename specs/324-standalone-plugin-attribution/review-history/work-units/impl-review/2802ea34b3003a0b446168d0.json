@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/324-standalone-plugin-attribution/spec.md",
+      "specs/324-standalone-plugin-attribution/tasks/T-1.md",
+      "specs/324-standalone-plugin-attribution/tasks/T-2.md"
+    ],
+    "inputHash": "972ca6b2cd28bc7f59cf86560b8978b1ec09424452b7eecd62fdae86fb03d859",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "specs/324-standalone-plugin-attribution/spec.md",
+    "specs/324-standalone-plugin-attribution/tasks/T-1.md",
+    "specs/324-standalone-plugin-attribution/tasks/T-2.md"
+  ],
+  "inputHash": "972ca6b2cd28bc7f59cf86560b8978b1ec09424452b7eecd62fdae86fb03d859",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T12:44:57.396Z",
+  "finishedAt": "2026-07-21T12:44:57.396Z",
+  "rawResponse": "### 1. Bound Snapshot Scope\n**File:** `specs/324-standalone-plugin-attribution/spec.md`  \n**Requirement:** R6  \n**Issue:** R6 requires tests to snapshot “every seeded foreign `specs/*/flow.json` file” and active-flow cache files, but it does not define an explicit upper bound on count or size. This conflicts with `bounded-resource-usage` because bulk file loading can become unbounded.  \n**Suggestion:** Add explicit limits, for example: “Seed at most N foreign specs per layout, at most M cache files, and cap each fixture file at K bytes.”\n\n### 2. Bound Multi-Flow Fixture Matrix\n**File:** `specs/324-standalone-plugin-attribution/spec.md`  \n**Requirement:** R7  \n**Issue:** R7 requires “main repository layouts with one and multiple active flows,” but “multiple” is not bounded. The fixture matrix could grow without a clear cap.  \n**Suggestion:** Specify the exact fixture counts, such as “one active flow and two active flows,” or define a maximum number of active flows tested.\n\n### 3. Remove Empty Placeholder Sections\n**File:** `specs/324-standalone-plugin-attribution/spec.md`  \n**Requirement:** R1  \n**Issue:** `## Implementation Targets` contains only `-`, and `## Open Questions` contains only `- [ ]`. These are dead placeholders that add noise and can confuse downstream readers or tooling.  \n**Suggestion:** Remove both empty sections, or populate them with concrete entries before keeping them in the spec.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound Snapshot Scope",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/spec.md`  \n**Requirement:** R6  \n**Issue:** R6 requires tests to snapshot “every seeded foreign `specs/*/flow.json` file” and active-flow cache files, but it does not define an explicit upper bound on count or size. This conflicts with `bounded-resource-usage` because bulk file loading can become unbounded.  \n**Suggestion:** Add explicit limits, for example: “Seed at most N foreign specs per layout, at most M cache files, and cap each fixture file at K bytes.”",
+        "file": "specs/324-standalone-plugin-attribution/spec.md",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Bound Multi-Flow Fixture Matrix",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/spec.md`  \n**Requirement:** R7  \n**Issue:** R7 requires “main repository layouts with one and multiple active flows,” but “multiple” is not bounded. The fixture matrix could grow without a clear cap.  \n**Suggestion:** Specify the exact fixture counts, such as “one active flow and two active flows,” or define a maximum number of active flows tested.",
+        "file": "specs/324-standalone-plugin-attribution/spec.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Remove Empty Placeholder Sections",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/spec.md`  \n**Requirement:** R1  \n**Issue:** `## Implementation Targets` contains only `-`, and `## Open Questions` contains only `- [ ]`. These are dead placeholders that add noise and can confuse downstream readers or tooling.  \n**Suggestion:** Remove both empty sections, or populate them with concrete entries before keeping them in the spec.",
+        "file": "specs/324-standalone-plugin-attribution/spec.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

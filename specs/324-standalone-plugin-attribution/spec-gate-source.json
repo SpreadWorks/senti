@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "c699ca24-7e51-474e-8f07-3a157a27e9ff",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-20T09:36:12.997Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "req-diff-verifiability",
+      "result": "fail",
+      "reason": "Requirement R7 says the no-mutation invariant must hold for active managed worktree, main repository with one active flow, main repository with multiple active flows, and no active flow layouts. This depends on future runtime behavior across repository states rather than being decidable from a standard unified diff and test execution summary alone.",
+      "category": "process",
+      "title": "REQ Diff-Verifiability",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[6].desc"
+          },
+          "observed": "Requirement R7 says the no-mutation invariant must hold for active managed worktree, main repository with one active flow, main repository with multiple active flows, and no active flow layouts. This depends on future runtime behavior across repository states rather than being decidable from a standard unified diff and test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ],
+      "findingId": "ca7e2b97b7914db4e04d84b72662ca3d8772dfe73e7b1466f7b5478e80e0813f",
+      "fingerprint": "ca7e2b97b7914db4e04d84b72662ca3d8772dfe73e7b1466f7b5478e80e0813f",
+      "disposition": "must-fix",
+      "rationale": "Requirement R7 says the no-mutation invariant must hold for active managed worktree, main repository with one active flow, main repository with multiple active flows, and no active flow layouts. This depends on future runtime behavior across repository states rather than being decidable from a standard unified diff and test execution summary alone.",
+      "requirementId": null,
+      "guardrailId": "req-diff-verifiability",
+      "reportedAt": "2026-07-20T09:36:12.997Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "req-diff-verifiability",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[6].desc"
+      },
+      "observed": "Requirement R7 says the no-mutation invariant must hold for active managed worktree, main repository with one active flow, main repository with multiple active flows, and no active flow layouts. This depends on future runtime behavior across repository states rather than being decidable from a standard unified diff and test execution summary alone.",
+      "severity": "blocking",
+      "refs": [
+        "req-diff-verifiability"
+      ],
+      "result": "fail",
+      "guardrail_id": "req-diff-verifiability",
+      "category": "guardrail",
+      "findingId": "28961d33866c3428d0500c9d979dda395d94d5763030d129aeb5d3e260540f40",
+      "fingerprint": "28961d33866c3428d0500c9d979dda395d94d5763030d129aeb5d3e260540f40",
+      "disposition": "must-fix",
+      "rationale": "Requirement R7 says the no-mutation invariant must hold for active managed worktree, main repository with one active flow, main repository with multiple active flows, and no active flow layouts. This depends on future runtime behavior across repository states rather than being decidable from a standard unified diff and test execution summary alone.",
+      "requirementId": null,
+      "guardrailId": "req-diff-verifiability",
+      "reportedAt": "2026-07-20T09:36:12.997Z",
+      "repeatCount": 1
+    }
+  ]
+}

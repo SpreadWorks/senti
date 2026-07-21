@@ -197,7 +197,15 @@ export class Logger {
    */
   #resolvingContext = false;
 
-  #flowContext() {
+  #flowContext(entry) {
+    if (Object.hasOwn(entry || {}, "flowContext")) {
+      const ctx = entry.flowContext;
+      return {
+        spec: ctx?.spec ?? null,
+        sentiPhase: ctx?.sentiPhase ?? null,
+        taskId: ctx?.taskId ?? null,
+      };
+    }
     if (!this.#flowManager || this.#resolvingContext) {
       return { spec: null, sentiPhase: null, taskId: null };
     }
@@ -225,6 +233,7 @@ export class Logger {
    * @param {{text?: string, exitCode?: number, error?: string|null}} [entry.response]
    * @param {number} [entry.durationSec]
    * @param {Object} [entry.usage]
+   * @param {{spec?: string|null, sentiPhase?: string|null, taskId?: string|null}|null} [entry.flowContext]
    */
   agent(entry) {
     return this.#track(this.#agentImpl(entry));
@@ -238,12 +247,14 @@ export class Logger {
     const caller = extractCaller();
 
     if (entry.phase === "start") {
-      const startCtx = this.#flowContext();
+      const startCtx = this.#flowContext(entry);
       await this.#appendJsonl(jsonl, {
         ...this.#commonFields(),
         type: "agent",
         phase: "start",
         requestId: entry.requestId,
+        spec: startCtx.spec,
+        sentiPhase: startCtx.sentiPhase,
         taskId: startCtx.taskId,
         callerFile: caller.callerFile,
         callerLine: caller.callerLine,
@@ -251,7 +262,7 @@ export class Logger {
       return;
     }
 
-    const ctx = this.#flowContext();
+    const ctx = this.#flowContext(entry);
     const promptObj = entry.prompt || {};
     const responseObj = entry.response || {};
     const systemStats = textStats(promptObj.system);

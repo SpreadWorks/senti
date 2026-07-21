@@ -1,0 +1,166 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/324-standalone-plugin-attribution/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "test_name": "R1: no-flow policy bypasses ambient cache and metric authority",
+        "command": "node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 26
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "test_name": "R2: provider failure preserves foreign bytes and error behavior",
+        "command": "node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 26
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "test_name": "R3: standalone logs keep explicit null flow identity",
+        "command": "node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 26
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "test_name": "R4: plugin API delegates resolve and preserves resolution options",
+        "command": "node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 26
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "test_name": "R5: standalone registry dispatch binds no-flow attribution",
+        "command": "node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 26
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "test_name": "R6: repeated standalone calls keep every seeded flow and cache byte-identical",
+        "command": "node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 26
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "test_name": "R7: repository-layout matrix never selects foreign flow authority",
+        "command": "node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 26
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "test_name": "R8: explicit flow hook retains one ambient provider-call attribution",
+        "command": "node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 26
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/lib/agent.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/log.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/plugin-registry.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js",
+        "fingerprint": "d5a34f1db2b463d20d2f692cd02ebe1a698d927b4951d217f0ffb320b361e65f"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/log.js",
+        "fingerprint": "ebb0de46b4d00bb235b4f2ededa99fab32cb81a057638f71c71439315b0c1343"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js",
+        "fingerprint": "a4859ff4934a2f59852027f925b9b3e168f92e140c781eda1c7cbbde65e53544"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js",
+        "fingerprint": "d5a34f1db2b463d20d2f692cd02ebe1a698d927b4951d217f0ffb320b361e65f"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/log.js",
+        "fingerprint": "ebb0de46b4d00bb235b4f2ededa99fab32cb81a057638f71c71439315b0c1343"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js",
+        "fingerprint": "a4859ff4934a2f59852027f925b9b3e168f92e140c781eda1c7cbbde65e53544"
+      }
+    ]
+  },
+  "repairFingerprint": "afbda25a8253a2ef1ac69efd9cabfe4647913b5146c2b1cecd807f0d7868ab38"
+}

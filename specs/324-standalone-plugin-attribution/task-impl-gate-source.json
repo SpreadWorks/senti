@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "c699ca24-7e51-474e-8f07-3a157a27e9ff",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-21T12:39:34.679Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added test execution artifact records project regression as skipped instead of showing that all project tests pass.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/324-standalone-plugin-attribution/test-execute-result.json",
+            "locator": "regression.result"
+          },
+          "observed": "The added test execution artifact records project regression as skipped instead of showing that all project tests pass.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added test execution artifact records project regression as skipped instead of showing that all project tests pass.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-21T12:26:42.593Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/324-standalone-plugin-attribution/test-execute-result.json",
+        "locator": "regression.result"
+      },
+      "observed": "The added test execution artifact records project regression as skipped instead of showing that all project tests pass.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added test execution artifact records project regression as skipped instead of showing that all project tests pass.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-21T12:39:34.679Z",
+      "repeatCount": 1
+    }
+  ]
+}

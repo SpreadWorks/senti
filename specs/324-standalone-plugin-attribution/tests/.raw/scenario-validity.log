@@ -1,0 +1,258 @@
+[senti] scenario-validity tests start
+command: node --test specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js
+[senti] scenario-validity file start command=node specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js
+TAP version 13
+# Subtest: Issue \#445 standalone plugin agent attribution
+    # Subtest: R1: no-flow policy bypasses ambient cache and metric authority
+    not ok 1 - R1: no-flow policy bypasses ambient cache and metric authority
+      ---
+      duration_ms: 55.772449
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:147:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        no-flow calls must not hit a foreign flow cache
+        + actual - expected
+        
+        + 'provider-1'
+        - 'provider-2'
+                    ^
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'provider-2'
+      actual: 'provider-1'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:162:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R2: provider failure preserves foreign bytes and error behavior
+    not ok 2 - R2: provider failure preserves foreign bytes and error behavior
+      ---
+      duration_ms: 37.952357
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:170:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+            '/tmp/spec-324-failure-wpu3IZ/.senti/agent-cache/specs-foreign-1-spec.json.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K',
+        +   '/tmp/spec-324-failure-wpu3IZ/specs/foreign-1/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0sCiAgICB7CiAgICAgICJwaGFzZSI6ICJpbXBsLXJldmlldyIsCiAgICAgICJwcm92aWRlciI6ICJ1c2VyIiwKICAgICAgInByb2ZpbGVLZXkiOiAidGVzdC9leGVjIiwKICAgICAgInVzYWdlIjogbnVsbCwKICAgICAgInJlc3BvbnNlQ2hhcnMiOiAwLAogICAgICAibW9kZWwiOiBudWxsLAogICAgICAiZHVyYXRpb25NcyI6IDMyCiAgICB9CiAgXQp9Cg=='
+        -   '/tmp/spec-324-failure-wpu3IZ/specs/foreign-1/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0KICBdCn0K'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        /tmp/spec-324-failure-wpu3IZ/specs/foreign-1/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0KICBdCn0K'
+        /tmp/spec-324-failure-wpu3IZ/.senti/agent-cache/specs-foreign-1-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K'
+      actual:
+        /tmp/spec-324-failure-wpu3IZ/specs/foreign-1/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0sCiAgICB7CiAgICAgICJwaGFzZSI6ICJpbXBsLXJldmlldyIsCiAgICAgICJwcm92aWRlciI6ICJ1c2VyIiwKICAgICAgInByb2ZpbGVLZXkiOiAidGVzdC9leGVjIiwKICAgICAgInVzYWdlIjogbnVsbCwKICAgICAgInJlc3BvbnNlQ2hhcnMiOiAwLAogICAgICAibW9kZWwiOiBudWxsLAogICAgICAiZHVyYXRpb25NcyI6IDMyCiAgICB9CiAgXQp9Cg=='
+        /tmp/spec-324-failure-wpu3IZ/.senti/agent-cache/specs-foreign-1-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:181:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R3: standalone logs keep explicit null flow identity
+    not ok 3 - R3: standalone logs keep explicit null flow identity
+      ---
+      duration_ms: 40.163207
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:186:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+        +   sentiPhase: 'impl-review',
+        +   spec: 'specs/foreign-1/spec.json',
+        +   taskId: 'task-1'
+        -   sentiPhase: null,
+        -   spec: null,
+        -   taskId: null
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        spec: ~
+        sentiPhase: ~
+        taskId: ~
+      actual:
+        spec: 'specs/foreign-1/spec.json'
+        sentiPhase: 'impl-review'
+        taskId: 'task-1'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:199:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: plugin API delegates resolve and preserves resolution options
+    not ok 4 - R4: plugin API delegates resolve and preserves resolution options
+      ---
+      duration_ms: 0.605283
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:215:3'
+      failureType: 'testCodeFailure'
+      error: 'api.resolve is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:229:26)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: standalone registry dispatch binds no-flow attribution
+    not ok 5 - R5: standalone registry dispatch binds no-flow attribution
+      ---
+      duration_ms: 50.420621
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:238:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+        +   '/tmp/spec-324-dispatch-sfVMxK/.senti/agent-cache/specs-foreign-1-spec.json.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0sCiAgICAiMDM2NmMzNDZjNTJkYTAzYzI1YjQzYWNkNDg5NTBkMDk3ZjE2YTVkNDU2ZTgzMDg5OGEwMzU2ZGQzNTE1MGVmYSI6IHsKICAgICAgInRleHQiOiAicHJvdmlkZXItMSIsCiAgICAgICJzdG9yZWRBdCI6ICIyMDI2LTA3LTIwVDA5OjQxOjAzLjYzOFoiCiAgICB9CiAgfQp9Cg==',
+        +   '/tmp/spec-324-dispatch-sfVMxK/specs/foreign-1/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0sCiAgICB7CiAgICAgICJwaGFzZSI6ICJpbXBsLXJldmlldyIsCiAgICAgICJwcm92aWRlciI6ICJ1c2VyIiwKICAgICAgInByb2ZpbGVLZXkiOiAidGVzdC9leGVjIiwKICAgICAgInVzYWdlIjogbnVsbCwKICAgICAgInJlc3BvbnNlQ2hhcnMiOiAxMCwKICAgICAgIm1vZGVsIjogbnVsbCwKICAgICAgImR1cmF0aW9uTXMiOiAzMgogICAgfQogIF0KfQo='
+        -   '/tmp/spec-324-dispatch-sfVMxK/.senti/agent-cache/specs-foreign-1-spec.json.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K',
+        -   '/tmp/spec-324-dispatch-sfVMxK/specs/foreign-1/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0KICBdCn0K'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        /tmp/spec-324-dispatch-sfVMxK/specs/foreign-1/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0KICBdCn0K'
+        /tmp/spec-324-dispatch-sfVMxK/.senti/agent-cache/specs-foreign-1-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K'
+      actual:
+        /tmp/spec-324-dispatch-sfVMxK/specs/foreign-1/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0sCiAgICB7CiAgICAgICJwaGFzZSI6ICJpbXBsLXJldmlldyIsCiAgICAgICJwcm92aWRlciI6ICJ1c2VyIiwKICAgICAgInByb2ZpbGVLZXkiOiAidGVzdC9leGVjIiwKICAgICAgInVzYWdlIjogbnVsbCwKICAgICAgInJlc3BvbnNlQ2hhcnMiOiAxMCwKICAgICAgIm1vZGVsIjogbnVsbCwKICAgICAgImR1cmF0aW9uTXMiOiAzMgogICAgfQogIF0KfQo='
+        /tmp/spec-324-dispatch-sfVMxK/.senti/agent-cache/specs-foreign-1-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0sCiAgICAiMDM2NmMzNDZjNTJkYTAzYzI1YjQzYWNkNDg5NTBkMDk3ZjE2YTVkNDU2ZTgzMDg5OGEwMzU2ZGQzNTE1MGVmYSI6IHsKICAgICAgInRleHQiOiAicHJvdmlkZXItMSIsCiAgICAgICJzdG9yZWRBdCI6ICIyMDI2LTA3LTIwVDA5OjQxOjAzLjYzOFoiCiAgICB9CiAgfQp9Cg=='
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:268:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R6: repeated standalone calls keep every seeded flow and cache byte-identical
+    not ok 6 - R6: repeated standalone calls keep every seeded flow and cache byte-identical
+      ---
+      duration_ms: 40.44393
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:272:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+        +   '/tmp/spec-324-foreign-files-6hb9Cp/.senti/agent-cache/specs-foreign-1-spec.json.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0sCiAgICAiNzE3ZGI2ODk4ZGNhNGM3MGVjYzgwYzkyZWNmOTM5NjNiN2QzNmU3NjM4YjVlZDM5MzEyNjBiNDFlYzVkZmRiMSI6IHsKICAgICAgInRleHQiOiAicHJvdmlkZXItMSIsCiAgICAgICJzdG9yZWRBdCI6ICIyMDI2LTA3LTIwVDA5OjQxOjAzLjY3OVoiCiAgICB9CiAgfQp9Cg==',
+        -   '/tmp/spec-324-foreign-files-6hb9Cp/.senti/agent-cache/specs-foreign-1-spec.json.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K',
+            '/tmp/spec-324-foreign-files-6hb9Cp/.senti/agent-cache/specs-foreign-2-spec.json.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMiIKICAgIH0KICB9Cn0K',
+        +   '/tmp/spec-324-foreign-files-6hb9Cp/specs/foreign-1/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0sCiAgICB7CiAgICAgICJwaGFzZSI6ICJpbXBsLXJldmlldyIsCiAgICAgICJwcm92aWRlciI6ICJ1c2VyIiwKICAgICAgInByb2ZpbGVLZXkiOiAidGVzdC9leGVjIiwKICAgICAgInVzYWdlIjogbnVsbCwKICAgICAgInJlc3BvbnNlQ2hhcnMiOiAxMCwKICAgICAgIm1vZGVsIjogbnVsbCwKICAgICAgImR1cmF0aW9uTXMiOiAzNAogICAgfSwKICAgIHsKICAgICAgInBoYXNlIjogImltcGwtcmV2aWV3IiwKICAgICAgImtpbmQiOiAiYWdlbnQtY2FjaGUiLAogICAgICAicHJvdmlkZXIiOiAidXNlciIsCiAgICAgICJwcm9maWxlS2V5IjogInRlc3QvZXhlYyIsCiAgICAgICJjYWxsQ291bnQiOiAwLAogICAgICAiY2FjaGVkUmVzcG9uc2UiOiB0cnVlLAogICAgICAicmVzcG9uc2VDaGFycyI6IDEwCiAgICB9CiAgXQp9Cg==',
+        -   '/tmp/spec-324-foreign-files-6hb9Cp/specs/foreign-1/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0KICBdCn0K',
+            '/tmp/spec-324-foreign-files-6hb9Cp/specs/foreign-2/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTIvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMiIKICAgIH0KICBdCn0K'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        /tmp/spec-324-foreign-files-6hb9Cp/specs/foreign-1/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0KICBdCn0K'
+        /tmp/spec-324-foreign-files-6hb9Cp/.senti/agent-cache/specs-foreign-1-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K'
+        /tmp/spec-324-foreign-files-6hb9Cp/specs/foreign-2/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTIvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMiIKICAgIH0KICBdCn0K'
+        /tmp/spec-324-foreign-files-6hb9Cp/.senti/agent-cache/specs-foreign-2-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMiIKICAgIH0KICB9Cn0K'
+      actual:
+        /tmp/spec-324-foreign-files-6hb9Cp/specs/foreign-1/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0sCiAgICB7CiAgICAgICJwaGFzZSI6ICJpbXBsLXJldmlldyIsCiAgICAgICJwcm92aWRlciI6ICJ1c2VyIiwKICAgICAgInByb2ZpbGVLZXkiOiAidGVzdC9leGVjIiwKICAgICAgInVzYWdlIjogbnVsbCwKICAgICAgInJlc3BvbnNlQ2hhcnMiOiAxMCwKICAgICAgIm1vZGVsIjogbnVsbCwKICAgICAgImR1cmF0aW9uTXMiOiAzNAogICAgfSwKICAgIHsKICAgICAgInBoYXNlIjogImltcGwtcmV2aWV3IiwKICAgICAgImtpbmQiOiAiYWdlbnQtY2FjaGUiLAogICAgICAicHJvdmlkZXIiOiAidXNlciIsCiAgICAgICJwcm9maWxlS2V5IjogInRlc3QvZXhlYyIsCiAgICAgICJjYWxsQ291bnQiOiAwLAogICAgICAiY2FjaGVkUmVzcG9uc2UiOiB0cnVlLAogICAgICAicmVzcG9uc2VDaGFycyI6IDEwCiAgICB9CiAgXQp9Cg=='
+        /tmp/spec-324-foreign-files-6hb9Cp/.senti/agent-cache/specs-foreign-1-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0sCiAgICAiNzE3ZGI2ODk4ZGNhNGM3MGVjYzgwYzkyZWNmOTM5NjNiN2QzNmU3NjM4YjVlZDM5MzEyNjBiNDFlYzVkZmRiMSI6IHsKICAgICAgInRleHQiOiAicHJvdmlkZXItMSIsCiAgICAgICJzdG9yZWRBdCI6ICIyMDI2LTA3LTIwVDA5OjQxOjAzLjY3OVoiCiAgICB9CiAgfQp9Cg=='
+        /tmp/spec-324-foreign-files-6hb9Cp/specs/foreign-2/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTIvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMiIKICAgIH0KICBdCn0K'
+        /tmp/spec-324-foreign-files-6hb9Cp/.senti/agent-cache/specs-foreign-2-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMiIKICAgIH0KICB9Cn0K'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:282:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R7: repository-layout matrix never selects foreign flow authority
+    not ok 7 - R7: repository-layout matrix never selects foreign flow authority
+      ---
+      duration_ms: 37.398154
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:285:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        managed-worktree
+        + actual - expected
+        
+          {
+        +   '/tmp/spec-324-managed-worktree-p8rzJU/.senti/agent-cache/specs-foreign-1-spec.json.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0sCiAgICAiY2QzMDNlZDQwMGI1OGZmMGI3YmM3MjRjZDg5ZDdiODIxNWIyMDFmZTFhOWJlZmI4YWI5OGY5ZDM2ZjQ2Y2ZlMyI6IHsKICAgICAgInRleHQiOiAicHJvdmlkZXItMSIsCiAgICAgICJzdG9yZWRBdCI6ICIyMDI2LTA3LTIwVDA5OjQxOjAzLjcxOFoiCiAgICB9CiAgfQp9Cg==',
+        +   '/tmp/spec-324-managed-worktree-p8rzJU/specs/foreign-1/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0sCiAgICB7CiAgICAgICJwaGFzZSI6ICJpbXBsLXJldmlldyIsCiAgICAgICJwcm92aWRlciI6ICJ1c2VyIiwKICAgICAgInByb2ZpbGVLZXkiOiAidGVzdC9leGVjIiwKICAgICAgInVzYWdlIjogbnVsbCwKICAgICAgInJlc3BvbnNlQ2hhcnMiOiAxMCwKICAgICAgIm1vZGVsIjogbnVsbCwKICAgICAgImR1cmF0aW9uTXMiOiAzMgogICAgfQogIF0KfQo='
+        -   '/tmp/spec-324-managed-worktree-p8rzJU/.senti/agent-cache/specs-foreign-1-spec.json.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K',
+        -   '/tmp/spec-324-managed-worktree-p8rzJU/specs/foreign-1/flow.json': 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0KICBdCn0K'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        /tmp/spec-324-managed-worktree-p8rzJU/specs/foreign-1/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0KICBdCn0K'
+        /tmp/spec-324-managed-worktree-p8rzJU/.senti/agent-cache/specs-foreign-1-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0KICB9Cn0K'
+      actual:
+        /tmp/spec-324-managed-worktree-p8rzJU/specs/foreign-1/flow.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAic3BlYyI6ICJzcGVjcy9mb3JlaWduLTEvc3BlYy5qc29uIiwKICAibWV0cmljcyI6IFsKICAgIHsKICAgICAgInNlbnRpbmVsIjogImZsb3ctMSIKICAgIH0sCiAgICB7CiAgICAgICJwaGFzZSI6ICJpbXBsLXJldmlldyIsCiAgICAgICJwcm92aWRlciI6ICJ1c2VyIiwKICAgICAgInByb2ZpbGVLZXkiOiAidGVzdC9leGVjIiwKICAgICAgInVzYWdlIjogbnVsbCwKICAgICAgInJlc3BvbnNlQ2hhcnMiOiAxMCwKICAgICAgIm1vZGVsIjogbnVsbCwKICAgICAgImR1cmF0aW9uTXMiOiAzMgogICAgfQogIF0KfQo='
+        /tmp/spec-324-managed-worktree-p8rzJU/.senti/agent-cache/specs-foreign-1-spec.json.json: 'ewogICJ2ZXJzaW9uIjogMSwKICAiZW50cmllcyI6IHsKICAgICJzZW50aW5lbCI6IHsKICAgICAgInRleHQiOiAiY2FjaGUtMSIKICAgIH0sCiAgICAiY2QzMDNlZDQwMGI1OGZmMGI3YmM3MjRjZDg5ZDdiODIxNWIyMDFmZTFhOWJlZmI4YWI5OGY5ZDM2ZjQ2Y2ZlMyI6IHsKICAgICAgInRleHQiOiAicHJvdmlkZXItMSIsCiAgICAgICJzdG9yZWRBdCI6ICIyMDI2LTA3LTIwVDA5OjQxOjAzLjcxOFoiCiAgICB9CiAgfQp9Cg=='
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:298:14)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R8: explicit flow hook retains one ambient provider-call attribution
+    ok 8 - R8: explicit flow hook retains one ambient provider-call attribution
+      ---
+      duration_ms: 48.666772
+      type: 'test'
+      ...
+    1..8
+not ok 1 - Issue \#445 standalone plugin agent attribution
+  ---
+  duration_ms: 313.342063
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-324-standalone-plugin-attribution/specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js:146:1'
+  failureType: 'subtestsFailed'
+  error: '7 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 8
+# suites 1
+# pass 1
+# fail 7
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 323.202353
+Command failed: node specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/324-standalone-plugin-attribution/tests/attribution-boundary.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: no-flow policy bypasses ambient cache and metric authority
+[senti] requirement R2 observed: R2: provider failure preserves foreign bytes and error behavior
+[senti] requirement R3 observed: R3: standalone logs keep explicit null flow identity
+[senti] requirement R4 observed: R4: plugin API delegates resolve and preserves resolution options
+[senti] requirement R5 observed: R5: standalone registry dispatch binds no-flow attribution
+[senti] requirement R6 observed: R6: repeated standalone calls keep every seeded flow and cache byte-identical
+[senti] requirement R7 observed: R7: repository-layout matrix never selects foreign flow authority
+[senti] requirement R8 observed: R8: explicit flow hook retains one ambient provider-call attribution
+[senti] scenario-validity tests end

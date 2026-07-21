@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Agent calls support a validated attribution mode whose default preserves ambient behavior and whose no-flow mode performs no flow-context resolution for prompt-cache or metrics.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/attribution-boundary.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "A no-flow call skips flow-scoped cache reads, cache writes, cache-hit metrics, success metrics, and failure metrics while preserving provider execution, return text, thrown errors, and cache-decision callbacks.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/attribution-boundary.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Agent start/end logs for a no-flow call retain the existing log files and payload shape but set spec, sentiPhase, and taskId to null without resolving an ambient flow.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/attribution-boundary.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "createPluginAgentApi delegates resolve and call with existing plugin commandId namespacing and provider/profile configuration precedence, and applies a core-bound attribution mode after plugin-supplied options so the plugin cannot override it.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/attribution-boundary.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "dispatchPluginCommand supplies the standalone plugin context through createPluginAgentApi bound to no-flow attribution, while runFlowCommandHooks retains ambient attribution without plugin-name or workflow-command special cases.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/attribution-boundary.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Spec-local tests snapshot every seeded foreign specs/*/flow.json file and active-flow .senti/agent-cache file before and after standalone provider success, provider failure, and repeated equivalent calls, and assert byte-identical content.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/attribution-boundary.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Spec-local tests construct an active managed worktree layout, main repository layouts with one and multiple active flows, and a no-flow repository layout, then assert the R6 byte snapshots remain equal for each layout.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/attribution-boundary.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Existing core flow agent calls and explicit flow-hook agent calls retain ambient cache attribution and exactly one invocation metric for each provider call; existing cache-hit attribution remains unchanged.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/attribution-boundary.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/attribution-boundary.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ]
+    }
+  ]
+}

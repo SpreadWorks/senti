@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/324-standalone-plugin-attribution/flow.json",
+      "specs/324-standalone-plugin-attribution/issue-log.json",
+      "specs/324-standalone-plugin-attribution/issue.md"
+    ],
+    "inputHash": "6c8c232a7bfacfff471139987b015e78c259bd8b15e0d910a9e7b54cd6725f59",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/324-standalone-plugin-attribution/flow.json",
+    "specs/324-standalone-plugin-attribution/issue-log.json",
+    "specs/324-standalone-plugin-attribution/issue.md"
+  ],
+  "inputHash": "6c8c232a7bfacfff471139987b015e78c259bd8b15e0d910a9e7b54cd6725f59",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T12:42:56.386Z",
+  "finishedAt": "2026-07-21T12:42:56.386Z",
+  "rawResponse": "### 1. Bound persisted flow history size\n**File:** `specs/324-standalone-plugin-attribution/flow.json`  \n**Requirement:** R7  \n**Issue:** The new flow artifact persists large `metrics` and `stepAttempts` arrays without any visible cap or truncation metadata. This conflicts with the bounded-resource-usage guardrail because repeated retries or long-running flows can grow this file indefinitely.  \n**Suggestion:** Add an explicit retention policy to the artifact format, such as capped metrics/attempt counts plus a `truncated` or `droppedCount` field, or ensure this generated file records the configured bound used by the writer.\n\n### 2. Bound issue-log growth\n**File:** `specs/324-standalone-plugin-attribution/issue-log.json`  \n**Requirement:** R7  \n**Issue:** `entries` stores every review/gate/tooling event verbatim, including repeated observations and full provider errors. There is no explicit upper bound on entry count, observation count, or string size, so repeated failures can cause unbounded artifact growth.  \n**Suggestion:** Cap retained issue-log entries and per-entry observation/error text length, and persist summary metadata for omitted content.\n\n### 3. Remove duplicated acceptance criteria\n**File:** `specs/324-standalone-plugin-attribution/issue.md`  \n**Requirement:** R6  \n**Issue:** The English and Japanese sections duplicate the same problem statement, fix approach, scope, and acceptance criteria. This creates a maintenance risk where one section can drift from the other.  \n**Suggestion:** Keep one canonical acceptance-criteria list and make the localized section explicitly non-authoritative, or reference the canonical section instead of duplicating every item.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound persisted flow history size",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/flow.json`  \n**Requirement:** R7  \n**Issue:** The new flow artifact persists large `metrics` and `stepAttempts` arrays without any visible cap or truncation metadata. This conflicts with the bounded-resource-usage guardrail because repeated retries or long-running flows can grow this file indefinitely.  \n**Suggestion:** Add an explicit retention policy to the artifact format, such as capped metrics/attempt counts plus a `truncated` or `droppedCount` field, or ensure this generated file records the configured bound used by the writer.",
+        "file": "specs/324-standalone-plugin-attribution/flow.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Bound issue-log growth",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/issue-log.json`  \n**Requirement:** R7  \n**Issue:** `entries` stores every review/gate/tooling event verbatim, including repeated observations and full provider errors. There is no explicit upper bound on entry count, observation count, or string size, so repeated failures can cause unbounded artifact growth.  \n**Suggestion:** Cap retained issue-log entries and per-entry observation/error text length, and persist summary metadata for omitted content.",
+        "file": "specs/324-standalone-plugin-attribution/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Remove duplicated acceptance criteria",
+        "body": "**File:** `specs/324-standalone-plugin-attribution/issue.md`  \n**Requirement:** R6  \n**Issue:** The English and Japanese sections duplicate the same problem statement, fix approach, scope, and acceptance criteria. This creates a maintenance risk where one section can drift from the other.  \n**Suggestion:** Keep one canonical acceptance-criteria list and make the localized section explicitly non-authoritative, or reference the canonical section instead of duplicating every item.",
+        "file": "specs/324-standalone-plugin-attribution/issue.md",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}
