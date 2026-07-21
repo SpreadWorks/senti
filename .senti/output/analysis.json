@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-21T13:02:32.272Z",
+  "analyzedAt": "2026-07-21T15:19:40.102Z",
   "package": {
     "entries": [
       {
@@ -7300,9 +7300,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "600f91a534cf8a1ede6d89e5254a6837",
-        "lines": 968,
-        "mtime": "2026-07-21T10:46:39.018Z",
+        "hash": "7f0f43c792a8234c57e9d6f909c059d1",
+        "lines": 967,
+        "mtime": "2026-07-21T13:16:05.080Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -7354,6 +7354,7 @@
           "../../lib/cli.js",
           "../../lib/process.js",
           "../../lib/constants.js",
+          "../../lib/agent-timeout.js",
           "./base-command.js",
           "../../lib/flow-envelope.js",
           "../definition.js",
@@ -7398,22 +7399,23 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Implements the flow run review command and the supporting review state machine across draft, spec, test, and implementation phases. It turns subprocess output and review artifacts into structured verdicts, retries, and recovery decisions.",
-        "detail": "RunReviewCommand orchestrates phase-specific review execution by mapping each phase to a step id, source artifact, parser, and next-step routing rule. It validates prerequisites, invokes the external review subprocess with bounded retries and timeouts, and converts raw stdout and stderr into structured verdict artifacts. The module distinguishes mechanical findings from semantic findings, enforces required dispositions and fingerprints when persisting findings, and normalizes review artifact contents on disk. It also records attempt history, manages retry counters and recovery baselines, and can defer or stop review flows when retry budgets are exhausted or blocking conditions are detected.",
+        "summary": "Implements the flow review command and the shared review-phase machinery for draft, spec, test, and implementation checks. It validates findings and verdicts, runs the underlying review subprocess, and records retry or recovery state.",
+        "detail": "The module maps review phases to flow step IDs, source artifacts, retry routes, and downstream transitions so each phase can be handled through a common path. It normalizes structured findings, distinguishes mechanical coverage or tooling issues from semantic review comments, and persists finding IDs or dispositions back into artifact JSON files. Several parsers extract verdicts, counts, next-step routing, and implementation review artifacts from subprocess output, while retry helpers cap attempts and support deferred outcomes when exhaustion is recoverable. RunReviewCommand enforces phase scope rules, verifies prerequisite artifacts, invokes the packaged review script with retry-on-tooling-failure behavior, and wraps results in Envelope responses.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.959Z",
+          "processedAt": "2026-07-21T15:20:55.311Z",
           "attempts": 1
         },
         "keywords": [
-          "review orchestration",
-          "flow run review",
+          "flow review",
+          "review pipeline",
           "retry recovery",
           "verdict parsing",
-          "artifact normalization",
-          "finding disposition",
-          "subprocess retry"
+          "artifact validation",
+          "implementation review",
+          "draft review",
+          "tooling failure"
         ]
       },
       {
@@ -7677,9 +7679,9 @@
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
-        "hash": "55d03315630c620543bddfa3a377bdc3",
-        "lines": 168,
-        "mtime": "2026-07-18T23:18:53.717Z",
+        "hash": "5ce021268dd36b578093e4796f23f901",
+        "lines": 139,
+        "mtime": "2026-07-21T15:19:23.588Z",
         "className": "run-update-overview",
         "methods": [
           "persistOverviewUpdate",
@@ -7706,21 +7708,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d001ca9b",
-        "summary": "Applies overview additions to `spec.json` and regenerates rendered spec files. It validates the input JSON shape before touching persistent state.",
-        "detail": "`persistOverviewUpdate()` size-checks `spec.json`, loads it, merges overview additions, saves the updated JSON, and rerenders markdown views. `validateOverviewAdditions()` requires a JSON string and restricts accepted top-level keys to the overview sections expected by the merge logic. The command looks up the active flow and spec directory, then returns success or failure through `Envelope` objects instead of bare exceptions. This keeps overview editing and view regeneration as one transactional command path.",
+        "summary": "Updates a flow overview by merging JSON additions into spec.json and re-rendering the spec view. The command validates input, enforces a file-size limit, and reports the persisted outputs.",
+        "detail": "The persistence helper loads spec.json, rejects oversized files, applies structured additions through overview merge utilities, and saves the modified JSON back to disk. It then builds a spec-view render plan and writes the updated spec.md, returning whether the rendered markdown changed. Input validation requires a --json payload, parses it safely, and runs semantic checks with validateAdditions before any file write occurs. RunUpdateOverviewCommand resolves the active flow and spec directory via FlowManager, then returns success or failure through Envelope objects.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-18T23:21:47.184Z",
+          "processedAt": "2026-07-21T15:20:55.311Z",
           "attempts": 1
         },
         "keywords": [
           "overview update",
-          "spec.json",
+          "spec.json merge",
+          "spec.md rendering",
           "JSON validation",
-          "overview merge",
-          "spec render",
-          "flow command"
+          "flow command",
+          "overview additions"
         ]
       },
       {
@@ -9132,9 +9134,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "a8a6d8b3c80b863f4d298cecfbddd5b6",
-        "lines": 1526,
-        "mtime": "2026-07-21T10:46:39.019Z",
+        "hash": "252acd91390e9e329a734e50cf459183",
+        "lines": 1527,
+        "mtime": "2026-07-21T15:19:23.589Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -9180,22 +9182,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Registers flow CLI commands, shared options, and lifecycle hooks in one place. It also maps command execution to runtime step IDs, review routes, finalize behavior, and plugin hook boundaries.",
-        "detail": "FLOW_COMMANDS is the central registry that binds CLI names to flow command handlers, help text, supported options, and lifecycle behavior. It encodes draft-review responsibility boundaries, target guard option sets, and helper logic for deriving the active phase, review step, and runtime log step ids. The RegistryLifecycleAdapter translates registry actions into concrete flow mutations, gate side effects, outbox updates, finalize artifact commits, merge outcome writes, and plugin hook execution. Many commands wrap execution with lifecycle application helpers so pre and post state updates, artifact validation, and fallback logging stay consistent.",
+        "summary": "Defines the central flow command registry and the lifecycle glue around command execution. It coordinates phase-aware helpers, guard options, plugin hooks, and post-command side effects.",
+        "detail": "The module declares shared CLI option sets for flow execution, target guards, retry help, and draft review responsibility boundaries. Utility functions derive the active phase, switch flow authority, reset downstream steps, resolve runtime step IDs, and append issue-log or step-status updates with defensive error handling. RegistryLifecycleAdapter encapsulates gate, review, and finalize side effects, including outbox handling, merge finalization, and durable artifact commits. The exported FLOW_COMMANDS table binds help text and handlers to subcommands while wrapping them with lifecycle actions and artifact validation.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.959Z",
+          "processedAt": "2026-07-21T15:20:55.311Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "flow commands",
-          "CLI help",
-          "lifecycle hooks",
-          "runtime step mapping",
-          "draft review route",
-          "plugin integration"
+          "flow lifecycle",
+          "CLI dispatch",
+          "plugin hooks",
+          "step status",
+          "issue log",
+          "draft review routes"
         ]
       },
       {
@@ -9533,10 +9535,45 @@
         ]
       },
       {
+        "file": "src/lib/agent-timeout.js",
+        "hash": "784e4d67cc4cbf932a22fcaad31be760",
+        "lines": 27,
+        "mtime": "2026-07-21T13:16:05.075Z",
+        "className": "agent-timeout",
+        "methods": [
+          "AgentTimeout"
+        ],
+        "imports": [],
+        "exports": [
+          "AgentTimeout",
+          "DEFAULT_AGENT_TIMEOUT_SECONDS"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/agent.js"
+        ],
+        "id": "8e43fef0",
+        "summary": "Provides a small timeout value object for agent execution. It defines the default timeout, validates configured seconds, and exposes milliseconds conversion.",
+        "detail": "The module exports a DEFAULT_AGENT_TIMEOUT_SECONDS constant set to 900 seconds. AgentTimeout rejects non-numeric or non-positive values early, preventing invalid runtime configuration from reaching process supervision logic. A static constructor reads the timeout from agent configuration and falls back to the default when absent. The instance also exposes a simple milliseconds accessor used by the agent runner.",
+        "chapter": "configuration",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-21T15:20:55.311Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "agent timeout",
+          "execution limit",
+          "timeout configuration",
+          "milliseconds conversion",
+          "runtime settings"
+        ]
+      },
+      {
         "file": "src/lib/agent.js",
-        "hash": "90c5a7d78c87da9960fc510c092ed5ca",
-        "lines": 1288,
-        "mtime": "2026-07-21T13:02:14.496Z",
+        "hash": "864509ba1c78670cb5d79ddb9036f322",
+        "lines": 1286,
+        "mtime": "2026-07-21T13:16:05.078Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
@@ -9579,7 +9616,8 @@
           "./provider.js",
           "./error-preview.js",
           "./agent-defaults.js",
-          "./agent-metrics.js"
+          "./agent-metrics.js",
+          "./agent-timeout.js"
         ],
         "exports": [
           "createPluginAgentApi",
@@ -9594,22 +9632,23 @@
           "src/lib/plugin-registry.js"
         ],
         "id": "13ddf392",
-        "summary": "Implements the core agent runner that resolves provider and profile settings before executing external model commands. It also adds retries, prompt caching, metrics, and child-process supervision around each call.",
-        "detail": "The module normalizes agent profile selection from built-in defaults, project configuration, and command-specific overrides, then maps provider-family aliases to concrete execution settings. It builds command invocations with prompt token substitution, stdin fallbacks for large prompts, optional working-directory injection, and structured-output schema passing either inline or through temporary files. Execution is wrapped with retry and backoff logic, prompt-cache lookups keyed by a stable hashed identity, and flow-aware metric recording. A dedicated supervisor enforces timeouts, terminates process groups on Unix or Windows, and polls for complete shutdown before returning. Provider-specific parsing and streaming-event filtering are applied to turn raw stdout into normalized agent responses.",
-        "chapter": "configuration",
+        "summary": "Implements the core agent runtime used to resolve profiles, spawn providers, cache prompts, and supervise subprocess execution. It also records metrics, applies retries, and exposes a plugin-facing API.",
+        "detail": "The Agent class resolves provider and profile selection from config and environment, prepares prompt invocation arguments, optionally injects JSON schema support, and runs commands with retry and backoff behavior. Prompt caching uses stable hashed identities tied to flow context, provider metadata, and invocation options, with cache-hit metrics written to sidecar artifacts when applicable. ChildProcessSupervisor enforces timeouts across platforms by escalating from soft termination to process-tree cleanup and polling for process death. The module also includes helpers for streaming-output filtering, spawn diagnostics, work-directory handling, profile aliases, metric normalization, and a PluginAgentApi wrapper for extension consumers.",
+        "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T13:03:46.155Z",
+          "processedAt": "2026-07-21T15:20:55.311Z",
           "attempts": 1
         },
         "keywords": [
-          "agent runner",
-          "provider registry",
-          "profile resolution",
+          "agent runtime",
+          "provider profiles",
           "prompt cache",
-          "child process supervision",
+          "subprocess supervision",
           "retry backoff",
-          "JSON schema output"
+          "plugin API",
+          "process timeout",
+          "metrics logging"
         ]
       },
       {
@@ -13830,10 +13869,10 @@
       }
     ],
     "summary": {
-      "total": 247,
-      "totalMethods": 2662
+      "total": 248,
+      "totalMethods": 2663
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-21T13:03:46.155Z"
+  "enrichedAt": "2026-07-21T15:20:55.311Z"
 }
