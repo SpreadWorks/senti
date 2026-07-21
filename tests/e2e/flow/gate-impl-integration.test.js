@@ -26,6 +26,7 @@ import {
 } from "../../helpers/stub-agent.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { writeIntegrationGateTrustArtifacts } from "../../helpers/integration-gate-artifacts.js";
+import { captureRepairBaseline } from "../../../src/flow/lib/repair-state-identity.js";
 
 const CMD = path.join(process.cwd(), "src/senti.js");
 const SPEC_ID = "001-test";
@@ -120,13 +121,6 @@ function setupFixture(tmp, {
     excluded: { missingFile: 0, outOfScope: 0 },
   });
   if (fileMap) writeJson(tmp, `specs/${SPEC_ID}/file-map.json`, fileMap);
-  if (integrationTrustRequirementIds) {
-    writeIntegrationGateTrustArtifacts(tmp, {
-      specId: SPEC_ID,
-      requirementIds: integrationTrustRequirementIds,
-    });
-  }
-
   // Initial test file
   writeFile(tmp, "tests/dummy.test.js", initialTest);
 
@@ -143,6 +137,11 @@ function setupFixture(tmp, {
     commitAll(tmp, "empty feature commit");
   }
 
+  const repairBaseline = captureRepairBaseline({
+    root: tmp,
+    baseRef: "main",
+    runId: `run-${SPEC_ID}`,
+  });
   // Flow state (cac6/T10: metrics is a flat append-only entry array)
   const metrics = [];
   for (let i = 0; i < (gateRetry || 0); i++) {
@@ -153,6 +152,7 @@ function setupFixture(tmp, {
     runId: `run-${SPEC_ID}`,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
+    repairBaseline: repairBaseline.toJSON(),
     requirements: [],
     tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     currentTaskId: null,
@@ -165,6 +165,13 @@ function setupFixture(tmp, {
   writeJson(tmp, ".senti/.active-flow", [
     { spec: SPEC_ID, mode: "local" },
   ]);
+
+  if (integrationTrustRequirementIds) {
+    writeIntegrationGateTrustArtifacts(tmp, {
+      specId: SPEC_ID,
+      requirementIds: integrationTrustRequirementIds,
+    });
+  }
 
   if (seedIssueLog) {
     writeJson(tmp, `specs/${SPEC_ID}/issue-log.json`, {

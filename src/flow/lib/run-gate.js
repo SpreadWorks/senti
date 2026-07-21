@@ -103,6 +103,7 @@ import {
 import {
   assertRepairFingerprint,
   buildRepairFingerprint,
+  ensureRepairFingerprintContract,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
 
@@ -196,7 +197,7 @@ function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
       `test artifact validation failed: ${result.reason}`,
     ], { phase, level, spec: specPath });
   }
-  const fingerprint = buildRepairFingerprint({ root, specPath });
+  const fingerprint = buildRepairFingerprint({ root, specPath, state });
   for (const file of ["test-execute-result.json", "test-result-review.json"]) {
     const artifactPath = path.join(specDir, file);
     assertRepairFingerprint({
@@ -4468,7 +4469,7 @@ function persistIntegrationGateResult({ root, state, result }) {
     phase: "integration",
     artifactPath: artifactPathRelative,
   }).summary.toJSON();
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
   const written = writeRepairEvidenceArtifact({
     specDir,
     stepId: "impl-gate",
@@ -4663,6 +4664,9 @@ export class RunGateCommand extends FlowCommand {
         `invalid phase: ${phase} (valid: ${VALID_GATE_PHASES.join(", ")}). ` +
           `legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.`,
       );
+    }
+    if (phase === "integration") {
+      ensureRepairFingerprintContract({ root, state: ctx.flowState, flowManager: ctx.flowManager });
     }
 
     const skipGuardrail = ctx.skipGuardrail || false;

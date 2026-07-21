@@ -5,6 +5,8 @@
  * Includes both read-only state queries and GitHub actions (e.g. issue comments).
  */
 
+import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import { runCmd, formatError, assertOk } from "./process.js";
 import { container } from "./container.js";
 
@@ -24,6 +26,39 @@ import { container } from "./container.js";
  */
 export function runGit(args, opts = {}) {
   const result = runCmd("git", args, opts);
+  if (container.has("logger")) {
+    container.get("logger").git({ cmd: ["git", ...args], exitCode: result.status, stderr: result.stderr });
+  }
+  return result;
+}
+
+/**
+ * Run Git with stdout directed to an exclusive caller-owned file. This keeps
+ * large machine-readable listings off the process heap while preserving the
+ * same logging authority as runGit().
+ */
+export function runGitToFile(args, { cwd, outputPath, timeout } = {}) {
+  const descriptor = fs.openSync(outputPath, "wx", 0o600);
+  let result;
+  try {
+    const processResult = spawnSync("git", args, {
+      cwd,
+      timeout,
+      encoding: "utf8",
+      stdio: ["ignore", descriptor, "pipe"],
+      maxBuffer: 1024 * 1024,
+    });
+    result = {
+      ok: processResult.status === 0 && !processResult.signal,
+      status: processResult.status ?? 1,
+      stdout: "",
+      stderr: String(processResult.stderr || processResult.error?.message || ""),
+      signal: processResult.signal ?? null,
+      killed: Boolean(processResult.error && processResult.error.code === "ETIMEDOUT"),
+    };
+  } finally {
+    fs.closeSync(descriptor);
+  }
   if (container.has("logger")) {
     container.get("logger").git({ cmd: ["git", ...args], exitCode: result.status, stderr: result.stderr });
   }

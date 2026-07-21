@@ -16,6 +16,7 @@ import {
 import {
   assertRepairFingerprint,
   buildRepairFingerprint,
+  ensureRepairFingerprintContract,
   prepareImplTriageArtifact,
   readImplRepairLedger,
   readRejectedImplReviewTriage,
@@ -131,6 +132,29 @@ export class MechanicalBlocker {
   }
 }
 
+export class AcceptanceTestEvidenceProjection {
+  constructor(artifacts = {}) {
+    const project = (file, fields) => {
+      const source = artifacts[file];
+      if (!source) return null;
+      return Object.fromEntries(fields.filter((field) => Object.hasOwn(source, field)).map((field) => [field, clone(source[field])]));
+    };
+    this.artifacts = Object.freeze(Object.fromEntries([
+      ["scenario-validity-result.json", project("scenario-validity-result.json", ["version", "command", "process", "result", "summary"])],
+      ["test-execute-result.json", project("test-execute-result.json", ["version", "summary", "regression", "repairFingerprint"])],
+      ["test-result-review.json", project("test-result-review.json", ["verdict", "checked_items", "result_file_path", "raw_output_path", "repairFingerprint"])],
+      ["impl-review.json", project("impl-review.json", ["version", "phase", "verdict", "summary", "blockingFindings", "nonBlockingImprovements", "repairFingerprint"])],
+      ["impl-gate-result.json", project("impl-gate-result.json", ["verdict", "phase", "issues", "evaluations", "observations", "repairFingerprint"])],
+      ["retro.json", project("retro.json", ["mode", "date", "summary", "requirements", "repairFingerprint"])],
+    ].filter(([, value]) => value !== null)));
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return clone(this.artifacts);
+  }
+}
+
 export class DeferredAcceptanceFinding {
   constructor(input = {}) {
     this.findingId = requireString(input.findingId, "findingId");
@@ -210,8 +234,8 @@ export class AcceptanceEvidenceBindings {
     const repair = context.evidence.repairEvidence;
     const repairRefs = new Set([repair.ref]);
     if (repair.kind === "repair-audit") {
-      for (const [index, entry] of (repair.artifact?.entries || []).entries()) {
-        repairRefs.add(`${repair.ref}#entries[${index}]`);
+      for (const [index, entry] of (repair.artifact?.repairs || []).entries()) {
+        repairRefs.add(`${repair.ref}#repairs[${index}]`);
         if (entry?.id) repairRefs.add(`${repair.ref}#${entry.id}`);
       }
     }
@@ -454,6 +478,7 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
   const missing = [];
   const invalidSchemas = [];
   const artifacts = {};
+  let repairEvidenceProjection = null;
   for (const file of REQUIRED_MECHANICAL_ARTIFACTS) {
     try {
       const value = readBoundedSourceArtifact(specDir, file);
@@ -533,7 +558,10 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
     try {
       const ledger = readImplRepairLedger(specDir);
       if (!ledger || ledger.entries.length === 0) throw new Error("impl-repair ledger must contain an entry");
-      artifacts["impl-repair.json"] = ledger.toJSON();
+      repairEvidenceProjection = ledger.toProjection(fingerprint);
+      if (!repairEvidenceProjection.currentFingerprintMatched) {
+        throw new Error("impl-repair ledger does not end at the current fingerprint");
+      }
     } catch (_) {
       invalidSchemas.push("impl-repair.json");
     }
@@ -555,6 +583,7 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
     || Number(artifacts["retro.json"]?.summary?.not_done || 0) > 0;
   return {
     artifacts,
+    repairEvidenceProjection,
     blockers: classifyMechanicalBlockers({
       tests: {
         missing: !artifacts["test-execute-result.json"],
@@ -568,7 +597,7 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
 
 export function buildAcceptanceReviewContext({ root, state, diff }) {
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
   const requirements = requirementList(specDir);
   const mechanical = mechanicalArtifactState({ root, specDir, fingerprint, requirements });
   const deferredFindings = buildDeferredFindingsFromEvidence(specDir, state);
@@ -581,7 +610,7 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
     ? {
         kind: "repair-audit",
         ref: "impl-repair.json",
-        artifact: mechanical.artifacts["impl-repair.json"] || { invalid: true },
+        artifact: mechanical.repairEvidenceProjection || { currentFingerprintMatched: false, repairs: [] },
       }
     : rejectedReviewTriage
       ? { kind: "no-repair", ref: "impl-triage.json", artifact: rejectedReviewTriage }
@@ -596,7 +625,7 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
       requirements,
       diff,
       repairEvidence,
-      testEvidence: mechanical.artifacts,
+      testEvidence: new AcceptanceTestEvidenceProjection(mechanical.artifacts).toJSON(),
       deferredFindings,
     },
     mechanicalBlockers: [
@@ -659,9 +688,10 @@ function acceptanceArtifactPath(state) {
 export function applyAcceptanceReviewResult({ root, flowManager, artifact }) {
   const state = flowManager.load();
   if (!state?.spec) throw new Error("active flow spec is required");
+  ensureRepairFingerprintContract({ root, state, flowManager });
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
   const requirements = requirementList(specDir);
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
   if (requireString(artifact.repairFingerprint, "repairFingerprint") !== fingerprint.hash) {
     throw new Error("acceptance-review repairFingerprint does not match current inputs");
   }
@@ -734,13 +764,14 @@ export function applyAcceptanceDecision({ root, flowManager, choice }) {
   if (!USER_DECISION_CHOICES.has(choice)) throw new Error(`invalid acceptance decision choice: ${choice}`);
   const state = flowManager.load();
   if (!state?.spec) throw new Error("active flow spec is required");
+  ensureRepairFingerprintContract({ root, state, flowManager });
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
   const file = path.join(specDir, ACCEPTANCE_REVIEW_ARTIFACT_FILE);
   const artifact = readJson(file);
   if (artifact.verdict !== "user_decision_required") {
     throw new Error(`acceptance-decision is not available for verdict: ${artifact.verdict}`);
   }
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
   assertRepairFingerprint({ artifact, fingerprint, label: ACCEPTANCE_REVIEW_ARTIFACT_FILE });
   const userDecision = { choice, decidedAt: new Date().toISOString() };
   artifact.userDecision = userDecision;

@@ -618,7 +618,9 @@ export function contractForStepFromSpecDir({ root, specDir, stepId }) {
   const artifact = readJsonStrict(artifactPath);
   if (["impl-review", "impl-gate", "test-result-review", "acceptance-review"].includes(stepId)) {
     const specPath = path.posix.join(repoRelative(root, specDir), "spec.json");
-    const currentFingerprint = buildRepairFingerprint({ root, specPath });
+    const flowStatePath = path.join(specDir, "flow.json");
+    const state = fs.existsSync(flowStatePath) ? readJsonStrict(flowStatePath) : null;
+    const currentFingerprint = buildRepairFingerprint({ root, specPath, state });
     assertRepairFingerprint({ artifact, fingerprint: currentFingerprint, label: artifactFile });
   }
   if (stepId === "test-review") {

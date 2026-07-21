@@ -30,6 +30,12 @@ import {
   WorktreeFlowBindingStore,
   WorktreeFlowIdentity,
 } from "../../lib/worktree-flow-binding.js";
+import {
+  beginRepairBaselinePublication,
+  completeRepairBaselinePublication,
+  recoverRepairBaselinePublications,
+  rollbackRepairBaselinePublication,
+} from "./repair-state-identity.js";
 
 const MAX_PLUGIN_RUNTIME_SYNC_FILES = 2000;
 const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([".senti/config.json"]);
@@ -928,6 +934,8 @@ export class RunPrepareSpecCommand extends FlowCommand {
       mainRoot,
     });
     const operationOwnerToken = operationLock.acquire();
+    let repairBaselinePublication = null;
+    let repairBaselinePublished = false;
     try {
     if (attemptJournal) attemptJournal.recoverStale(flowManager, operationOwnerToken);
 
@@ -951,6 +959,20 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     // Helper: write flow.json state
     const flowRunId = runIdArg || pendingAttempt?.runId || flowManager.generateRunId();
+    recoverRepairBaselinePublications({
+      root,
+      mainRoot,
+      excludeRunId: flowRunId,
+    });
+    repairBaselinePublication = beginRepairBaselinePublication({
+      root,
+      mainRoot,
+      baseRef: resolvedBase,
+      runId: flowRunId,
+      useMergeBase: skipBranch,
+      statePath: path.join(specDir, "flow.json"),
+    });
+    const repairBaseline = repairBaselinePublication.baseline;
     async function writeFlowState(extra) {
       // At prepare time a fresh flow has no tasks. Integration steps
       // initialize as `skipped` (spec 198 REQ-P4-1); tasks added later
@@ -974,6 +996,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         baseBranch: resolvedBase,
         featureBranch: branchName,
         runId: flowRunId,
+        repairBaseline: repairBaseline.toJSON(),
         steps,
         requirements: [],
         tasks: [],
@@ -987,8 +1010,14 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...(preparingState?.notes?.length ? { notes: preparingState.notes } : {}),
         ...extra,
       };
-      state.plugins = { flowCommandHooks: await hookSnapshotFor(specRoot) };
-      flowManager.forRoot(specRoot).create(state, { operationOwnerToken });
+      try {
+        state.plugins = { flowCommandHooks: await hookSnapshotFor(specRoot) };
+        flowManager.forRoot(specRoot).create(state, { operationOwnerToken });
+        repairBaselinePublished = true;
+        completeRepairBaselinePublication({ mainRoot, publication: repairBaselinePublication });
+      } catch (error) {
+        throw error;
+      }
       await runFlowCommandWithPluginLifecycle(specRoot, state.plugins.flowCommandHooks, {
         command: "prepare",
         flow: state,
@@ -1069,6 +1098,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         if (attemptPublished) {
           try {
             attemptJournal.rollback(worktreeAttempt, flowManager, operationOwnerToken);
+            rollbackRepairBaselinePublication({ root, mainRoot, publication: repairBaselinePublication });
           } catch (rollbackError) {
             throw new AggregateError(
               [publicationError, rollbackError],
@@ -1136,6 +1166,19 @@ export class RunPrepareSpecCommand extends FlowCommand {
       next: "draft",
       output: lines.join("\n"),
     };
+    } catch (error) {
+      if (repairBaselinePublication && !repairBaselinePublished) {
+        try {
+          rollbackRepairBaselinePublication({ root, mainRoot, publication: repairBaselinePublication });
+        } catch (cleanupError) {
+          throw new AggregateError(
+            [error, cleanupError],
+            "prepare failed before flow state publication and repair baseline cleanup also failed",
+            { cause: error },
+          );
+        }
+      }
+      throw error;
     } finally {
       operationLock.release();
     }

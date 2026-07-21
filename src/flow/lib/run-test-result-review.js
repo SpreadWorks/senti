@@ -24,6 +24,7 @@ import { contractFromTestResultReviewArtifact } from "./flow-judgment-contract.j
 import {
   assertRepairFingerprint,
   buildRepairFingerprint,
+  ensureRepairFingerprintContract,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
 
@@ -111,10 +112,11 @@ export default class RunTestResultReviewCommand extends FlowCommand {
     const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
     if (!fs.existsSync(resultPath)) throw new Error(`${TEST_EXECUTE_RESULT_FILE} not found at ${resultPath}: test-execute step has not been run`);
     if (!fs.existsSync(rawOutputPath)) throw new Error(`${RAW_OUTPUT_RELATIVE} not found at ${rawOutputPath}: test-execute raw log is missing`);
+    ensureRepairFingerprintContract({ root, state, flowManager: ctx.flowManager });
 
     const spec = readJsonStrict(path.join(specDir, "spec.json"));
     const loadedResult = readJsonStrict(resultPath);
-    const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+    const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
     assertRepairFingerprint({ artifact: loadedResult, fingerprint, label: TEST_EXECUTE_RESULT_FILE });
     const rawOutputText = readRawOutputText(rawOutputPath);
     const rawLines = rawOutputText.split(/\r?\n/);

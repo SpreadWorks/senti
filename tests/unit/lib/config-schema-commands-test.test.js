@@ -56,4 +56,24 @@ describe("config.commands.test schema", () => {
       test: { testExecuteRegression: "always" },
     })), /testExecuteRegression|enum/i);
   });
+
+  it("accepts bounded add-only repair fingerprint configuration", () => {
+    assert.doesNotThrow(() => validateConfig(baseConfig({
+      flow: {
+        repairFingerprint: {
+          maxChangedPaths: 25000,
+          include: ["generated/contracts"],
+        },
+      },
+    })));
+  });
+
+  it("rejects invalid repair fingerprint boundaries and exclusion fields", () => {
+    assert.throws(() => validateConfig(baseConfig({
+      flow: { repairFingerprint: { maxChangedPaths: 0 } },
+    })), /maxChangedPaths|minimum/i);
+    assert.throws(() => validateConfig(baseConfig({
+      flow: { repairFingerprint: { exclude: ["src/node_modules"] } },
+    })), /exclude|additional/i);
+  });
 });

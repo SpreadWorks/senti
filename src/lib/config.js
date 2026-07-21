@@ -222,6 +222,14 @@ const CONFIG_SCHEMA = {
       type: "object",
       properties: {
         merge: { type: "string", enum: ["squash", "ff-only", "merge"] },
+        repairFingerprint: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            maxChangedPaths: { type: "integer", minimum: 1, maximum: 1000000 },
+            include: { type: "array", items: { type: "string", minLength: 1 } },
+          },
+        },
         push: {
           type: "object",
           properties: {

@@ -52,6 +52,8 @@ import {
 import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 import {
   buildRepairFingerprint,
+  ensureRepairFingerprintContract,
+  recoverImplRepairTransaction,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
 
@@ -255,7 +257,17 @@ export default class RunTestExecuteCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
     const config = container.get("config") || {};
-    const state = ctx.flowState;
+    recoverImplRepairTransaction({
+      root,
+      state: ctx.flowState,
+      flowManager: ctx.flowManager,
+    });
+    const { state } = ensureRepairFingerprintContract({
+      root,
+      state: ctx.flowState,
+      flowManager: ctx.flowManager,
+      continueAfterMigration: true,
+    });
     const specDir = resolveSpecDir(path.resolve(root, state.spec));
     const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
     fs.mkdirSync(path.dirname(rawOutputPath), { recursive: true });
@@ -342,7 +354,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
         summary: persistedSummary,
         regression,
       };
-      const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+      const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
       writeRepairEvidenceArtifact({
         specDir,
         stepId: "test-execute",

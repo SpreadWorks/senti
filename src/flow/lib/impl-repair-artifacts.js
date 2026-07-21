@@ -1,16 +1,37 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { flowLeafIdsBetween } from "../definition.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
-import { findStepById } from "./step-tree.js";
+import { findStepById, flattenSteps } from "./step-tree.js";
+import {
+  REPAIR_DELTA_DIR,
+  REPAIR_FINGERPRINT_MANIFEST_FILE,
+  REPAIR_LOCK_DIR,
+  REPAIR_MIGRATION_FILE,
+  REPAIR_STATE_VERSION,
+  REPAIR_TRANSACTION_FILE,
+  ImmutableGitBaseline,
+  RepairDeltaArtifact,
+  RepairFingerprintManifest,
+  RepairFingerprintReference,
+  atomicWriteJson,
+  buildRepairStateManifest,
+  captureRepairBaseline,
+  changedRepairPaths,
+  normalizeRepairPath,
+  readRepairFingerprintManifest,
+  repairDeltaArtifact,
+  writeRepairDelta,
+  writeRepairFingerprintManifest,
+} from "./repair-state-identity.js";
 
-export const REPAIR_FINGERPRINT_PATH_LIMIT = 500;
-export const REPAIR_FINGERPRINT_PATH_LENGTH_LIMIT = 300;
-export const REPAIR_FINGERPRINT_FILE_SIZE_LIMIT = 1024 * 1024;
 export const IMPL_REPAIR_ARTIFACT_FILE = "impl-repair.json";
 export const IMPL_TRIAGE_ARTIFACT_FILE = "impl-triage.json";
 const IMPL_REPAIR_ENTRY_LIMIT = 100;
 const IMPL_REPAIR_LEDGER_SIZE_LIMIT = 1024 * 1024;
+const CHANGED_PATH_PREVIEW_LIMIT = 20;
+const CHANGED_PATH_GROUP_LIMIT = 20;
 
 export const EVIDENCE_FILE_BY_STEP = Object.freeze({
   "test-execute": "test-execute-result.json",
@@ -27,6 +48,8 @@ const ASSOCIATED_EVIDENCE_PATHS = Object.freeze({
   "impl-review.json": ["review.md"],
 });
 const TRIAGE_DECISIONS = new Set(["apply", "reject"]);
+const HASH_PATTERN = /^[a-f0-9]{64}$/i;
+const LEGACY_REPAIR_FINGERPRINT = crypto.createHash("sha256").update("legacy-repair-fingerprint").digest("hex");
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -35,29 +58,21 @@ function requireString(value, field) {
   return value.trim();
 }
 
-function requireStringArray(value, field) {
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new Error(`${field} must be a non-empty array`);
+function requireHash(value, field) {
+  const hash = requireString(value, field);
+  if (!HASH_PATTERN.test(hash)) throw new Error(`${field} must be a 64-character SHA-256 digest`);
+  return hash.toLowerCase();
+}
+
+function requireStringArray(value, field, { allowEmpty = false } = {}) {
+  if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) {
+    throw new Error(`${field} must be ${allowEmpty ? "an" : "a non-empty"} array`);
   }
   return value.map((entry, index) => requireString(entry, `${field}[${index}]`));
 }
 
-function normalizeRelPath(value) {
-  const source = String(value || "").replace(/\\/g, "/").replace(/^\.\//, "");
-  const normalized = path.posix.normalize(source);
-  if (!normalized || normalized === ".") throw new Error("repair fingerprint path must be non-empty");
-  if (path.posix.isAbsolute(normalized) || normalized === ".." || normalized.startsWith("../")) {
-    throw new Error(`repair fingerprint path must stay inside the repository: ${normalized}`);
-  }
-  if (normalized.length > REPAIR_FINGERPRINT_PATH_LENGTH_LIMIT) {
-    throw new Error(`repair fingerprint path exceeds ${REPAIR_FINGERPRINT_PATH_LENGTH_LIMIT} characters: ${normalized}`);
-  }
-  return normalized;
-}
-
 function writeJson(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
+  atomicWriteJson(file, value);
 }
 
 function readJson(file) {
@@ -65,54 +80,24 @@ function readJson(file) {
 }
 
 function fingerprintFrom(value, field) {
-  if (value instanceof RepairFingerprint) return value;
+  if (value instanceof RepairFingerprintManifest) return value;
   try {
-    return new RepairFingerprint(value);
+    return new RepairFingerprintManifest(value);
   } catch (error) {
     throw new Error(`${field}: ${error.message}`);
   }
 }
 
-export class RepairFingerprint {
-  constructor(input = {}) {
-    if (!Array.isArray(input.paths) || input.paths.length === 0) throw new Error("paths must be a non-empty array");
-    this.paths = Object.freeze([...new Set(input.paths.map(normalizeRelPath))].sort());
-    if (this.paths.length > REPAIR_FINGERPRINT_PATH_LIMIT) {
-      throw new Error(`repair fingerprint path count exceeds ${REPAIR_FINGERPRINT_PATH_LIMIT}`);
-    }
-    this.truncated = input.truncated === true;
-    if (this.truncated) throw new Error("truncated repair fingerprint is not valid evidence");
-    if (!input.pathHashes || typeof input.pathHashes !== "object" || Array.isArray(input.pathHashes)) {
-      throw new Error("pathHashes must be an object");
-    }
-    const hashKeys = Object.keys(input.pathHashes).map(normalizeRelPath).sort();
-    if (JSON.stringify(hashKeys) !== JSON.stringify(this.paths)) {
-      throw new Error("pathHashes keys must exactly match paths");
-    }
-    this.pathHashes = Object.freeze(Object.fromEntries(this.paths.map((relPath) => {
-      const digest = requireString(input.pathHashes[relPath], `pathHashes.${relPath}`);
-      if (!/^[a-f0-9]{64}$/i.test(digest)) throw new Error(`pathHashes.${relPath} must be a SHA-256 digest`);
-      return [relPath, digest];
-    })));
-    const canonical = crypto.createHash("sha256");
-    for (const relPath of this.paths) {
-      canonical.update(relPath);
-      canonical.update("\0");
-      canonical.update(this.pathHashes[relPath]);
-      canonical.update("\0");
-    }
-    const canonicalHash = canonical.digest("hex");
-    if (input.hash != null && requireString(input.hash, "hash") !== canonicalHash) {
-      throw new Error("hash does not match paths and pathHashes");
-    }
-    this.hash = canonicalHash;
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return { hash: this.hash, paths: [...this.paths], pathHashes: { ...this.pathHashes }, truncated: false };
+function fingerprintReferenceFrom(value, field) {
+  if (value instanceof RepairFingerprintReference) return value;
+  try {
+    return new RepairFingerprintReference(value);
+  } catch (error) {
+    throw new Error(`${field}: ${error.message}`);
   }
 }
+
+export { RepairFingerprintManifest as RepairFingerprint };
 
 export class ImplTriageItem {
   constructor(input = {}) {
@@ -138,18 +123,41 @@ export class ImplTriageItem {
 
 export class InvalidatedArtifactRecord {
   constructor(input = {}) {
-    this.path = normalizeRelPath(input.path);
+    this.path = normalizeRepairPath(input.path);
     this.reason = requireString(input.reason, "reason");
-    this.previousFingerprint = requireString(input.previousFingerprint, "previousFingerprint");
-    if (!/^[a-f0-9]{64}$/i.test(this.previousFingerprint)) {
-      throw new Error("previousFingerprint must be a 64-character SHA-256 digest");
-    }
+    this.previousFingerprint = requireHash(input.previousFingerprint, "previousFingerprint");
     Object.freeze(this);
   }
 
   toJSON() {
     return { path: this.path, reason: this.reason, previousFingerprint: this.previousFingerprint };
   }
+}
+
+export class ChangedPathGroup {
+  constructor(input = {}) {
+    this.prefix = normalizeRepairPath(input.prefix);
+    if (!Number.isSafeInteger(input.count) || input.count < 1) throw new Error("changed path group count must be positive");
+    this.count = input.count;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { prefix: this.prefix, count: this.count };
+  }
+}
+
+function changedPathGroups(paths) {
+  const counts = new Map();
+  for (const relPath of paths) {
+    const parts = relPath.split("/");
+    const prefix = parts.length > 1 ? `${parts.slice(0, Math.min(2, parts.length - 1)).join("/")}/` : relPath;
+    counts.set(prefix, (counts.get(prefix) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .slice(0, CHANGED_PATH_GROUP_LIMIT)
+    .map(([prefix, count]) => new ChangedPathGroup({ prefix, count }));
 }
 
 export class ImplRepairEntry {
@@ -159,20 +167,35 @@ export class ImplRepairEntry {
     if (new Set(this.sourceFindingIds).size !== this.sourceFindingIds.length) {
       throw new Error("sourceFindingIds must not contain duplicates");
     }
-    this.changedPaths = Object.freeze(requireStringArray(input.changedPaths, "changedPaths").map(normalizeRelPath).sort());
-    if (new Set(this.changedPaths).size !== this.changedPaths.length) {
-      throw new Error("changedPaths must not contain duplicates");
-    }
     this.reason = requireString(input.reason, "reason");
-    this.previousFingerprint = fingerprintFrom(input.previousFingerprint, "previousFingerprint");
-    this.currentFingerprint = fingerprintFrom(input.currentFingerprint, "currentFingerprint");
-    if (this.previousFingerprint.hash === this.currentFingerprint.hash) {
-      throw new Error("previousFingerprint and currentFingerprint must differ");
+    this.previousHash = requireHash(input.previousHash, "previousHash");
+    this.currentHash = requireHash(input.currentHash, "currentHash");
+    if (this.previousHash === this.currentHash) throw new Error("previousHash and currentHash must differ");
+    if (!Number.isSafeInteger(input.changedPathCount) || input.changedPathCount < 1) {
+      throw new Error("changedPathCount must be a positive integer");
     }
-    const expectedChangedPaths = repairChangedPaths(this.previousFingerprint, this.currentFingerprint);
-    if (JSON.stringify(this.changedPaths) !== JSON.stringify(expectedChangedPaths)) {
-      throw new Error("changedPaths must exactly match the fingerprint transition");
+    this.changedPathCount = input.changedPathCount;
+    this.changedPathsRef = normalizeRepairPath(input.changedPathsRef);
+    this.changedPathsDigest = requireHash(input.changedPathsDigest, "changedPathsDigest");
+    this.changedPathsPreview = Object.freeze(requireStringArray(
+      input.changedPathsPreview,
+      "changedPathsPreview",
+    ).map(normalizeRepairPath));
+    if (this.changedPathsPreview.length > CHANGED_PATH_PREVIEW_LIMIT) {
+      throw new Error(`changedPathsPreview exceeds ${CHANGED_PATH_PREVIEW_LIMIT} entries`);
     }
+    if (new Set(this.changedPathsPreview).size !== this.changedPathsPreview.length) {
+      throw new Error("changedPathsPreview must not contain duplicates");
+    }
+    if (!Array.isArray(input.changedPathGroups) || input.changedPathGroups.length === 0) {
+      throw new Error("changedPathGroups must be a non-empty array");
+    }
+    if (input.changedPathGroups.length > CHANGED_PATH_GROUP_LIMIT) {
+      throw new Error(`changedPathGroups exceeds ${CHANGED_PATH_GROUP_LIMIT} entries`);
+    }
+    this.changedPathGroups = Object.freeze(input.changedPathGroups.map((group) => (
+      group instanceof ChangedPathGroup ? group : new ChangedPathGroup(group)
+    )));
     if (!Array.isArray(input.invalidations) || input.invalidations.length === 0) {
       throw new Error("invalidations must be a non-empty array");
     }
@@ -183,40 +206,44 @@ export class ImplRepairEntry {
       throw new Error("invalidations must not contain duplicate paths");
     }
     this.invalidatedArtifacts = Object.freeze(this.invalidations.map((record) => record.path));
-    if (input.invalidatedArtifacts != null) {
-      const recordedPaths = requireStringArray(input.invalidatedArtifacts, "invalidatedArtifacts").map(normalizeRelPath);
-      if (JSON.stringify(recordedPaths) !== JSON.stringify(this.invalidatedArtifacts)) {
-        throw new Error("invalidatedArtifacts must match invalidations");
-      }
-    }
     this.createdAt = requireString(input.createdAt, "createdAt");
     if (Number.isNaN(Date.parse(this.createdAt))) throw new Error("createdAt must be an ISO timestamp");
     Object.freeze(this);
   }
 
-  toJSON() {
+  toProjection() {
     return {
       id: this.id,
       sourceFindingIds: [...this.sourceFindingIds],
-      changedPaths: [...this.changedPaths],
       reason: this.reason,
-      previousFingerprint: this.previousFingerprint.toJSON(),
-      currentFingerprint: this.currentFingerprint.toJSON(),
+      changedPathCount: this.changedPathCount,
+      changedPathsPreview: [...this.changedPathsPreview],
+      changedPathGroups: this.changedPathGroups.map((group) => group.toJSON()),
+      changedPathsRef: this.changedPathsRef,
       invalidatedArtifacts: [...this.invalidatedArtifacts],
-      invalidations: this.invalidations.map((record) => record.toJSON()),
+      previousHash: this.previousHash,
+      currentHash: this.currentHash,
       createdAt: this.createdAt,
+    };
+  }
+
+  toJSON() {
+    return {
+      ...this.toProjection(),
+      changedPathsDigest: this.changedPathsDigest,
+      invalidations: this.invalidations.map((record) => record.toJSON()),
     };
   }
 }
 
 export class ImplRepairLedger {
   constructor(input = {}) {
-    if (input.version !== 1) throw new Error("impl-repair ledger version must be 1");
+    if (input.version !== 2) throw new Error("impl-repair ledger version must be 2");
     if (!Array.isArray(input.entries)) throw new Error("impl-repair ledger entries must be an array");
     if (input.entries.length > IMPL_REPAIR_ENTRY_LIMIT) {
       throw new Error(`impl-repair ledger exceeds ${IMPL_REPAIR_ENTRY_LIMIT} entries`);
     }
-    this.version = 1;
+    this.version = 2;
     this.entries = Object.freeze(input.entries.map((entry) => (
       entry instanceof ImplRepairEntry ? entry : new ImplRepairEntry(entry)
     )));
@@ -224,100 +251,179 @@ export class ImplRepairLedger {
       throw new Error("impl-repair ledger contains duplicate entry ids");
     }
     for (let index = 1; index < this.entries.length; index++) {
-      if (this.entries[index - 1].currentFingerprint.hash !== this.entries[index].previousFingerprint.hash) {
+      if (this.entries[index - 1].currentHash !== this.entries[index].previousHash) {
         throw new Error("impl-repair fingerprint chain is discontinuous");
       }
+    }
+    const serializedBytes = Buffer.byteLength(JSON.stringify({
+      version: this.version,
+      entries: this.entries.map((entry) => entry.toJSON()),
+    }, null, 2) + "\n");
+    if (serializedBytes > IMPL_REPAIR_LEDGER_SIZE_LIMIT) {
+      throw new Error(`${IMPL_REPAIR_ARTIFACT_FILE} exceeds ${IMPL_REPAIR_LEDGER_SIZE_LIMIT} bytes`);
     }
     Object.freeze(this);
   }
 
   append(entry) {
     const next = entry instanceof ImplRepairEntry ? entry : new ImplRepairEntry(entry);
-    return new ImplRepairLedger({ version: 1, entries: [...this.entries, next] });
+    if (this.entries.length > 0 && this.entries.at(-1).currentHash !== next.previousHash) {
+      throw new Error("impl-repair fingerprint chain is discontinuous");
+    }
+    return new ImplRepairLedger({ version: 2, entries: [...this.entries, next] });
+  }
+
+  toProjection(currentFingerprint) {
+    const current = fingerprintFrom(currentFingerprint, "currentFingerprint");
+    const matched = this.entries.length === 0 || this.entries.at(-1).currentHash === current.hash;
+    return {
+      currentFingerprintMatched: matched,
+      repairs: this.entries.map((entry) => entry.toProjection()),
+    };
   }
 
   toJSON() {
     return { version: this.version, entries: this.entries.map((entry) => entry.toJSON()) };
   }
-}
 
-function addFingerprintPath(paths, relPath) {
-  const normalized = normalizeRelPath(relPath);
-  paths.add(normalized);
-  if (paths.size > REPAIR_FINGERPRINT_PATH_LIMIT) {
-    throw new Error(`repair fingerprint path count exceeds ${REPAIR_FINGERPRINT_PATH_LIMIT}`);
-  }
-}
-
-function collectTree(root, relDir, paths, { excludePath = () => false } = {}) {
-  if (excludePath(normalizeRelPath(relDir))) return;
-  const absolute = path.resolve(root, relDir);
-  const stat = fs.lstatSync(absolute, { throwIfNoEntry: false });
-  if (!stat) return;
-  if (stat.isSymbolicLink()) {
-    addFingerprintPath(paths, relDir);
-    return;
-  }
-  if (!stat.isDirectory()) {
-    addFingerprintPath(paths, relDir);
-    return;
-  }
-  for (const entry of fs.readdirSync(absolute, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    const child = path.join(relDir, entry.name);
-    if (entry.isSymbolicLink()) addFingerprintPath(paths, child);
-    else if (entry.isDirectory()) collectTree(root, child, paths, { excludePath });
-    else if (entry.isFile()) addFingerprintPath(paths, child);
-  }
-}
-
-export function collectRepairFingerprintPaths({ root, specPath }) {
-  requireString(root, "root");
-  const normalizedSpec = normalizeRelPath(specPath);
-  const paths = new Set();
-  collectTree(root, "src", paths);
-  collectTree(root, "plugins", paths);
-  addFingerprintPath(paths, ".senti/config.json");
-  addFingerprintPath(paths, normalizedSpec);
-  const specTests = path.posix.join(path.posix.dirname(normalizedSpec), "tests");
-  const rawEvidence = `${specTests}/.raw`;
-  collectTree(root, specTests, paths, {
-    excludePath: (relPath) => relPath === rawEvidence || relPath.startsWith(`${rawEvidence}/`),
-  });
-  return [...paths].sort();
-}
-
-export function buildRepairFingerprint({ root, specPath, truncated = false }) {
-  if (truncated) throw new Error("truncated repair fingerprint is not valid evidence");
-  const paths = collectRepairFingerprintPaths({ root, specPath });
-  const pathHashes = {};
-  for (const relPath of paths) {
-    const absolute = path.resolve(root, relPath);
-    const contentHash = crypto.createHash("sha256");
-    const stat = fs.lstatSync(absolute, { throwIfNoEntry: false });
-    if (!stat) {
-      contentHash.update("missing\0");
-    } else {
-      if (stat.size > REPAIR_FINGERPRINT_FILE_SIZE_LIMIT) {
-        throw new Error(`repair fingerprint input exceeds ${REPAIR_FINGERPRINT_FILE_SIZE_LIMIT} bytes: ${relPath}`);
+  validateDeltaEvidence(specDir) {
+    for (const entry of this.entries) {
+      const expectedRef = `${REPAIR_DELTA_DIR}/${entry.id}.json`;
+      if (entry.changedPathsRef !== expectedRef) {
+        throw new Error(`repair delta reference does not match entry ${entry.id}`);
       }
-      if (stat.isSymbolicLink()) {
-        contentHash.update("symlink\0");
-        contentHash.update(fs.readlinkSync(absolute));
-      } else {
-        if (!stat.isFile()) throw new Error(`repair fingerprint input is not a file: ${relPath}`);
-        contentHash.update("file\0");
-        contentHash.update(fs.readFileSync(absolute));
+      const file = path.join(specDir, entry.changedPathsRef);
+      if (!fs.existsSync(file)) throw new Error(`repair delta is missing: ${entry.changedPathsRef}`);
+      const delta = new RepairDeltaArtifact(readJson(file));
+      if (
+        delta.id !== entry.id
+        || delta.previousHash !== entry.previousHash
+        || delta.currentHash !== entry.currentHash
+        || delta.changedPaths.length !== entry.changedPathCount
+        || delta.digest !== entry.changedPathsDigest
+      ) {
+        throw new Error(`repair delta does not match ledger entry ${entry.id}`);
+      }
+      const expectedPreview = delta.changedPaths.slice(0, CHANGED_PATH_PREVIEW_LIMIT);
+      if (JSON.stringify(entry.changedPathsPreview) !== JSON.stringify(expectedPreview)) {
+        throw new Error(`repair delta preview does not match ledger entry ${entry.id}`);
+      }
+      const expectedGroups = changedPathGroups(delta.changedPaths).map((group) => group.toJSON());
+      if (JSON.stringify(entry.changedPathGroups.map((group) => group.toJSON())) !== JSON.stringify(expectedGroups)) {
+        throw new Error(`repair delta groups do not match ledger entry ${entry.id}`);
       }
     }
-    pathHashes[relPath] = contentHash.digest("hex");
+    return this;
   }
-  return new RepairFingerprint({ paths, pathHashes, truncated: false });
 }
 
-export function stampRepairFingerprint({ root, specPath, artifact, fingerprint = null }) {
-  const current = fingerprint instanceof RepairFingerprint
-    ? fingerprint
-    : (fingerprint ? new RepairFingerprint(fingerprint) : buildRepairFingerprint({ root, specPath }));
+export class ImplRepairTransaction {
+  constructor(input = {}) {
+    if (input.version !== 1) throw new Error("impl-repair transaction version must be 1");
+    this.version = 1;
+    this.id = requireString(input.id, "id");
+    this.sourceStep = requireString(input.sourceStep, "sourceStep");
+    this.resetStepIds = Object.freeze(requireStringArray(input.resetStepIds, "resetStepIds", { allowEmpty: true }));
+    if (new Set(this.resetStepIds).size !== this.resetStepIds.length) {
+      throw new Error("impl-repair transaction resetStepIds must not contain duplicates");
+    }
+    this.entry = input.entry instanceof ImplRepairEntry ? input.entry : new ImplRepairEntry(input.entry);
+    this.ledger = input.ledger instanceof ImplRepairLedger ? input.ledger : new ImplRepairLedger(input.ledger);
+    this.currentManifest = input.currentManifest instanceof RepairFingerprintManifest
+      ? input.currentManifest
+      : new RepairFingerprintManifest(input.currentManifest);
+    this.delta = input.delta instanceof RepairDeltaArtifact ? input.delta : new RepairDeltaArtifact(input.delta);
+    if (this.id !== this.entry.id || this.id !== this.delta.id) {
+      throw new Error("impl-repair transaction id is inconsistent");
+    }
+    if (this.ledger.entries.at(-1)?.id !== this.entry.id) {
+      throw new Error("impl-repair transaction ledger does not end at its entry");
+    }
+    if (
+      this.entry.currentHash !== this.currentManifest.hash
+      || this.entry.previousHash !== this.delta.previousHash
+      || this.entry.currentHash !== this.delta.currentHash
+      || this.entry.changedPathCount !== this.delta.changedPaths.length
+      || this.entry.changedPathsDigest !== this.delta.digest
+    ) {
+      throw new Error("impl-repair transaction evidence is inconsistent");
+    }
+    this.invalidations = Object.freeze((input.invalidations || []).map((record) => (
+      record instanceof InvalidatedArtifactRecord ? record : new InvalidatedArtifactRecord(record)
+    )));
+    if (JSON.stringify(this.invalidations.map((record) => record.toJSON())) !== JSON.stringify(this.entry.invalidations.map((record) => record.toJSON()))) {
+      throw new Error("impl-repair transaction invalidations do not match its entry");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      id: this.id,
+      sourceStep: this.sourceStep,
+      resetStepIds: [...this.resetStepIds],
+      entry: this.entry.toJSON(),
+      ledger: this.ledger.toJSON(),
+      currentManifest: this.currentManifest.toJSON(),
+      delta: this.delta.toJSON(),
+      invalidations: this.invalidations.map((record) => record.toJSON()),
+    };
+  }
+}
+
+export class RepairStateMigration {
+  constructor(input = {}) {
+    if (input.version !== 1) throw new Error("repair state migration version must be 1");
+    this.version = 1;
+    this.runId = requireString(input.runId, "runId");
+    this.specPath = normalizeRepairPath(input.specPath);
+    this.baseline = input.baseline instanceof ImmutableGitBaseline
+      ? input.baseline
+      : new ImmutableGitBaseline(input.baseline);
+    this.invalidations = Object.freeze((input.invalidations || []).map((record) => (
+      record instanceof InvalidatedArtifactRecord ? record : new InvalidatedArtifactRecord(record)
+    )));
+    this.resetStepIds = Object.freeze(requireStringArray(input.resetStepIds, "resetStepIds"));
+    this.createdAt = requireString(input.createdAt, "createdAt");
+    if (Number.isNaN(Date.parse(this.createdAt))) throw new Error("repair state migration createdAt must be an ISO timestamp");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      runId: this.runId,
+      specPath: this.specPath,
+      baseline: this.baseline.toJSON(),
+      invalidations: this.invalidations.map((record) => record.toJSON()),
+      resetStepIds: [...this.resetStepIds],
+      createdAt: this.createdAt,
+    };
+  }
+}
+
+export class RepairStateMigratedError extends Error {
+  constructor() {
+    super("legacy repair fingerprint state was migrated safely; rerun senti flow get next-action and regenerate test evidence");
+    this.name = "RepairStateMigratedError";
+    this.code = "REPAIR_STATE_MIGRATED";
+  }
+}
+
+export function collectRepairFingerprintPaths({ root, specPath, state = null }) {
+  return buildRepairFingerprint({ root, specPath, state }).entries.map((entry) => entry.path);
+}
+
+export function buildRepairFingerprint({ root, specPath, state = null, truncated = false }) {
+  if (truncated) throw new Error("truncated repair fingerprint is not valid evidence");
+  return buildRepairStateManifest({ root, specPath, state });
+}
+
+export function stampRepairFingerprint({ root, specPath, state = null, artifact, fingerprint = null }) {
+  const current = fingerprint == null
+    ? buildRepairFingerprint({ root, specPath, state })
+    : fingerprintFrom(fingerprint, "fingerprint");
   return { ...artifact, repairFingerprint: current.hash };
 }
 
@@ -336,7 +442,7 @@ export function assertRepairFingerprint({ artifact, fingerprint, label = "artifa
 export function assertCurrentRepairEvidenceFiles({ root, state, specDir, files }) {
   const existing = files.filter((file) => fs.existsSync(path.join(specDir, file)));
   if (existing.length === 0) return null;
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
   for (const file of existing) {
     assertRepairFingerprint({ artifact: readJson(path.join(specDir, file)), fingerprint, label: file });
   }
@@ -355,7 +461,7 @@ export function writeRepairEvidenceArtifact({ specDir, stepId, artifact, fingerp
 
 export function validateImplTriageArtifact(artifact, { sourceFindingIds } = {}) {
   if (!artifact || typeof artifact !== "object") throw new Error("impl-triage artifact must be an object");
-  if (artifact.version !== 1) throw new Error("impl-triage version must be 1");
+  if (artifact.version !== 2) throw new Error("impl-triage version must be 2");
   if (artifact.phase !== "impl-triage") throw new Error("impl-triage phase is required");
   const sourceStep = requireString(artifact.sourceStep, "sourceStep");
   requireString(artifact.sourceArtifact, "sourceArtifact");
@@ -374,7 +480,7 @@ export function validateImplTriageArtifact(artifact, { sourceFindingIds } = {}) 
   for (const findingId of expected) {
     if (!actual.has(findingId)) throw new Error(`missing finding id: ${findingId}`);
   }
-  fingerprintFrom(artifact.previousFingerprint, "previousFingerprint");
+  fingerprintReferenceFrom(artifact.previousFingerprint, "previousFingerprint");
   return artifact;
 }
 
@@ -392,12 +498,13 @@ export function prepareImplTriageArtifact({ specDir, sourceStep, sourceArtifact,
       evidenceRefs: [`${sourceArtifact}#${findingId}`],
     }).toJSON();
   });
+  writeRepairFingerprintManifest(specDir, current);
   const artifact = {
-    version: 1,
+    version: 2,
     phase: "impl-triage",
     sourceStep,
     sourceArtifact,
-    previousFingerprint: current.toJSON(),
+    previousFingerprint: current.toReference(),
     generatedAt: new Date().toISOString(),
     items,
   };
@@ -409,10 +516,8 @@ export function prepareImplTriageArtifact({ specDir, sourceStep, sourceArtifact,
 
 function sourceFindingIds(sourceStep, source) {
   if (sourceStep === "impl-review") {
-    const blocking = (source.blockingFindings || [])
-      .map((finding, index) => finding.findingId || `F-${index + 1}`);
-    const nonBlocking = (source.nonBlockingImprovements || [])
-      .map((finding, index) => finding.findingId || `I-${index + 1}`);
+    const blocking = (source.blockingFindings || []).map((finding, index) => finding.findingId || `F-${index + 1}`);
+    const nonBlocking = (source.nonBlockingImprovements || []).map((finding, index) => finding.findingId || `I-${index + 1}`);
     return [...blocking, ...nonBlocking];
   }
   if (sourceStep === "acceptance-review") {
@@ -426,10 +531,12 @@ function sourceFindingIds(sourceStep, source) {
 export function validateStoredImplTriageArtifact({ specDir }) {
   const triage = readJson(path.join(specDir, IMPL_TRIAGE_ARTIFACT_FILE));
   const source = readJson(path.join(specDir, requireString(triage.sourceArtifact, "sourceArtifact")));
-  validateImplTriageArtifact(triage, {
-    sourceFindingIds: sourceFindingIds(triage.sourceStep, source),
-  });
-  const previous = fingerprintFrom(triage.previousFingerprint, "previousFingerprint");
+  validateImplTriageArtifact(triage, { sourceFindingIds: sourceFindingIds(triage.sourceStep, source) });
+  const previous = fingerprintReferenceFrom(triage.previousFingerprint, "previousFingerprint");
+  const manifest = readRepairFingerprintManifest(specDir);
+  if (previous.hash !== manifest.hash || previous.manifestRef !== REPAIR_FINGERPRINT_MANIFEST_FILE) {
+    throw new Error("impl-triage previousFingerprint does not match the local repair manifest");
+  }
   if (source.repairFingerprint !== previous.hash) {
     throw new Error("impl-triage previousFingerprint must match its source artifact");
   }
@@ -467,19 +574,18 @@ export function readRejectedImplReviewTriage(specDir) {
 }
 
 function evidencePreviousFingerprint(artifact, fallback) {
-  return typeof artifact?.repairFingerprint === "string" && /^[a-f0-9]{64}$/i.test(artifact.repairFingerprint)
+  return typeof artifact?.repairFingerprint === "string" && HASH_PATTERN.test(artifact.repairFingerprint)
     ? artifact.repairFingerprint
     : fallback.hash;
 }
 
-export function invalidateRepairEvidence({ specDir, currentFingerprint, previousFingerprint, reason }) {
+function planRepairInvalidation({ specDir, currentFingerprint, previousFingerprint, reason }) {
   const current = fingerprintFrom(currentFingerprint, "currentFingerprint");
   const previous = fingerprintFrom(previousFingerprint, "previousFingerprint");
   const invalidations = [];
-  const invalidatePath = (relPath, recordReason, priorHash) => {
+  const planPath = (relPath, recordReason, priorHash) => {
     const full = path.join(specDir, relPath);
     if (!fs.existsSync(full)) return;
-    fs.rmSync(full, { recursive: true, force: true });
     invalidations.push(new InvalidatedArtifactRecord({
       path: relPath,
       reason: `${requireString(reason, "reason")} (${recordReason})`,
@@ -490,19 +596,28 @@ export function invalidateRepairEvidence({ specDir, currentFingerprint, previous
     const full = path.join(specDir, relPath);
     if (!fs.existsSync(full)) continue;
     let artifact = null;
-    try {
-      artifact = readJson(full);
-    } catch (_) {
-      artifact = null;
-    }
+    try { artifact = readJson(full); } catch (_) { artifact = null; }
     if (artifact?.repairFingerprint === current.hash) continue;
     const priorHash = evidencePreviousFingerprint(artifact, previous);
     const recordReason = artifact?.repairFingerprint ? "repair_fingerprint_mismatch" : "missing_repair_fingerprint";
-    invalidatePath(relPath, recordReason, priorHash);
+    planPath(relPath, recordReason, priorHash);
     for (const associated of ASSOCIATED_EVIDENCE_PATHS[relPath] || []) {
-      invalidatePath(associated, `associated_${recordReason}`, priorHash);
+      planPath(associated, `associated_${recordReason}`, priorHash);
     }
   }
+  return invalidations;
+}
+
+function applyRepairInvalidations(specDir, invalidations) {
+  for (const input of invalidations) {
+    const record = input instanceof InvalidatedArtifactRecord ? input : new InvalidatedArtifactRecord(input);
+    fs.rmSync(path.join(specDir, record.path), { recursive: true, force: true });
+  }
+}
+
+export function invalidateRepairEvidence({ specDir, currentFingerprint, previousFingerprint, reason }) {
+  const invalidations = planRepairInvalidation({ specDir, currentFingerprint, previousFingerprint, reason });
+  applyRepairInvalidations(specDir, invalidations);
   return {
     invalidatedArtifacts: invalidations.map((record) => record.path),
     invalidations: invalidations.map((record) => record.toJSON()),
@@ -512,21 +627,22 @@ export function invalidateRepairEvidence({ specDir, currentFingerprint, previous
 export function appendImplRepairEntry({ specDir, entry }) {
   const normalized = entry instanceof ImplRepairEntry ? entry : new ImplRepairEntry(entry);
   const file = path.join(specDir, IMPL_REPAIR_ARTIFACT_FILE);
-  const ledger = fs.existsSync(file) ? readImplRepairLedger(specDir) : new ImplRepairLedger({ version: 1, entries: [] });
+  const ledger = fs.existsSync(file) ? readImplRepairLedger(specDir) : new ImplRepairLedger({ version: 2, entries: [] });
   const artifact = ledger.append(normalized).toJSON();
   writeJson(file, artifact);
   return { path: file, artifact };
 }
 
 function recordImplRepairEvidence({ root, specPath, sourceStep, entry }) {
+  const repairFile = entry.changedPathsPreview[0];
   for (const findingId of entry.sourceFindingIds) {
     appendIssueLogEntry(root, specPath, {
       step: sourceStep,
       reason: entry.reason,
       trigger: "impl-repair completed for an applied review finding",
-      resolution: `Repair evidence recorded by ${entry.id}.`,
+      resolution: `Repair evidence recorded by ${entry.id}; ${entry.changedPathCount} changed path(s), delta ${entry.changedPathsRef}.`,
       normalizedFindingId: findingId,
-      repairRef: { files: [...entry.changedPaths] },
+      repairRef: { files: [repairFile] },
       taskId: null,
       timestamp: entry.createdAt,
     }, `impl-repair:${entry.id}:${findingId}`);
@@ -539,58 +655,181 @@ export function readImplRepairLedger(specDir) {
   if (fs.statSync(file).size > IMPL_REPAIR_LEDGER_SIZE_LIMIT) {
     throw new Error(`${IMPL_REPAIR_ARTIFACT_FILE} exceeds ${IMPL_REPAIR_LEDGER_SIZE_LIMIT} bytes`);
   }
-  return new ImplRepairLedger(readJson(file));
+  return new ImplRepairLedger(readJson(file)).validateDeltaEvidence(specDir);
 }
 
-function repairChangedPaths(previousFingerprint, currentFingerprint) {
-  const paths = new Set([...previousFingerprint.paths, ...currentFingerprint.paths]);
-  return [...paths].filter((relPath) => (
-    previousFingerprint.pathHashes[relPath] !== currentFingerprint.pathHashes[relPath]
-  )).sort();
-}
-
-export function completeImplRepair({ root, state, flowManager, resetStepIds }) {
-  const specDir = path.dirname(path.resolve(root, state.spec));
-  const triagePath = path.join(specDir, IMPL_TRIAGE_ARTIFACT_FILE);
-  if (!fs.existsSync(triagePath)) throw new Error(`${IMPL_TRIAGE_ARTIFACT_FILE} is required`);
-  const triage = validateStoredImplTriageArtifact({ specDir });
-  const appliedFindingIds = triage.items
-    .filter((item) => item.decision === "apply")
-    .map((item) => item.findingId);
-  if (appliedFindingIds.length === 0) throw new Error("impl-repair requires at least one apply disposition");
-  const previousFingerprint = new RepairFingerprint(triage.previousFingerprint);
-  const currentFingerprint = buildRepairFingerprint({ root, specPath: state.spec });
-  if (currentFingerprint.hash === previousFingerprint.hash) {
-    throw new Error("impl-repair fingerprint did not change");
+class RepairRunLock {
+  constructor(specDir) {
+    this.directory = path.join(specDir, REPAIR_LOCK_DIR);
+    this.acquired = false;
   }
-  const changedPaths = repairChangedPaths(previousFingerprint, currentFingerprint);
-  if (changedPaths.length === 0) throw new Error("impl-repair changedPaths must be non-empty");
-  const reason = `Repair applied for findings ${appliedFindingIds.join(", ")}.`;
-  const invalidation = invalidateRepairEvidence({
-    specDir,
-    currentFingerprint,
-    previousFingerprint,
-    reason,
-  });
-  if (invalidation.invalidations.length === 0) throw new Error("impl-repair must invalidate at least one stale artifact");
-  const existing = readImplRepairLedger(specDir);
-  const entry = new ImplRepairEntry({
-    id: `repair-${String((existing?.entries.length || 0) + 1).padStart(3, "0")}`,
-    sourceFindingIds: appliedFindingIds,
-    changedPaths,
-    reason,
-    previousFingerprint,
-    currentFingerprint,
-    invalidations: invalidation.invalidations,
-    createdAt: new Date().toISOString(),
-  });
-  appendImplRepairEntry({ specDir, entry });
-  recordImplRepairEvidence({
-    root,
-    specPath: state.spec,
-    sourceStep: triage.sourceStep,
-    entry,
-  });
+
+  acquire() {
+    try {
+      fs.mkdirSync(this.directory);
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      const ownerFile = path.join(this.directory, "owner.json");
+      let owner = null;
+      try { owner = readJson(ownerFile); } catch (_) { owner = null; }
+      let live = false;
+      if (Number.isSafeInteger(owner?.pid)) {
+        try { process.kill(owner.pid, 0); live = true; } catch (probe) { live = probe.code === "EPERM"; }
+      }
+      if (live) throw new Error(`impl-repair is already running in process ${owner.pid}`);
+      fs.rmSync(this.directory, { recursive: true, force: true });
+      fs.mkdirSync(this.directory);
+    }
+    atomicWriteJson(path.join(this.directory, "owner.json"), {
+      pid: process.pid,
+      acquiredAt: new Date().toISOString(),
+    });
+    this.acquired = true;
+  }
+
+  release() {
+    if (!this.acquired) return;
+    fs.rmSync(this.directory, { recursive: true, force: true });
+    this.acquired = false;
+  }
+}
+
+function legacyMigrationInvalidations(specDir) {
+  const candidates = new Set([
+    ...Object.values(EVIDENCE_FILE_BY_STEP),
+    ...Object.values(ASSOCIATED_EVIDENCE_PATHS).flat(),
+    IMPL_REPAIR_ARTIFACT_FILE,
+    IMPL_TRIAGE_ARTIFACT_FILE,
+    REPAIR_FINGERPRINT_MANIFEST_FILE,
+    REPAIR_DELTA_DIR,
+    "final-regression-result.json",
+    "upgrade-result.json",
+    "report.json",
+  ]);
+  const rawDir = path.join(specDir, "tests", ".raw");
+  if (fs.existsSync(rawDir)) {
+    for (const name of fs.readdirSync(rawDir)) {
+      if (name.startsWith("final-regression-attempt-")) candidates.add(`tests/.raw/${name}`);
+    }
+  }
+  const invalidations = [];
+  for (const relPath of [...candidates].sort()) {
+    const file = path.join(specDir, relPath);
+    if (!fs.existsSync(file)) continue;
+    let previousFingerprint = LEGACY_REPAIR_FINGERPRINT;
+    if (fs.statSync(file).isFile() && file.endsWith(".json")) {
+      try {
+        const candidate = readJson(file)?.repairFingerprint;
+        if (typeof candidate === "string" && HASH_PATTERN.test(candidate)) previousFingerprint = candidate;
+      } catch (_) { /* malformed legacy evidence is invalidated with the legacy marker */ }
+    }
+    invalidations.push(new InvalidatedArtifactRecord({
+      path: relPath,
+      reason: "legacy repair fingerprint contract migrated to version 2",
+      previousFingerprint,
+    }));
+  }
+  return invalidations;
+}
+
+function applyRepairMigrationState(state, migration) {
+  if (state.runId !== migration.runId || state.spec !== migration.specPath) {
+    throw new Error("repair state migration authority no longer matches the active flow");
+  }
+  if (state.repairBaseline) {
+    const existing = new ImmutableGitBaseline(state.repairBaseline);
+    if (existing.commitOid !== migration.baseline.commitOid || existing.ref !== migration.baseline.ref) {
+      throw new Error("repair state migration baseline conflicts with active flow state");
+    }
+  } else {
+    state.repairBaseline = migration.baseline.toJSON();
+  }
+  for (const step of flattenSteps(state.steps || [])) {
+    if (step.status !== "in_progress" || step.id === "test-execute" || (step.children || []).length > 0) continue;
+    step.status = "done";
+    step.finishedAt = migration.createdAt;
+  }
+  const reset = new Set(migration.resetStepIds);
+  for (const stepId of migration.resetStepIds) {
+    const step = findStepById(state.steps || [], stepId);
+    if (!step) continue;
+    step.status = stepId === "test-execute" ? "in_progress" : "pending";
+    delete step.startedAt;
+    delete step.finishedAt;
+    if (stepId === "test-execute") step.startedAt = migration.createdAt;
+  }
+  if (!reset.has("test-execute")) throw new Error("repair state migration must reset test-execute");
+  return state;
+}
+
+function commitRepairStateMigration({ root, state, flowManager, specDir, migration }) {
+  flowManager.mutate((next) => applyRepairMigrationState(next, migration));
+  applyRepairInvalidations(specDir, migration.invalidations);
+  appendIssueLogEntry(root, migration.specPath, {
+    step: "test-execute",
+    reason: "legacy repair fingerprint evidence cannot be trusted by the version 2 contract",
+    trigger: "automatic fail-closed repair fingerprint migration",
+    resolution: `Pinned ${migration.baseline.commitOid} and invalidated ${migration.invalidations.length} downstream artifact(s).`,
+    normalizedFindingId: "repair-state-migration-v2",
+    repairRef: { files: [migration.specPath] },
+    taskId: null,
+    timestamp: migration.createdAt,
+  }, `repair-state-migration:${migration.runId}`);
+  fs.rmSync(path.join(specDir, REPAIR_MIGRATION_FILE), { force: true });
+  const migratedState = structuredClone(state);
+  return applyRepairMigrationState(migratedState, migration);
+}
+
+export function ensureRepairFingerprintContract({
+  root,
+  state,
+  flowManager,
+  continueAfterMigration = false,
+}) {
+  if (!state?.runId) return { state, migrated: false };
+  const specDir = path.dirname(path.resolve(root, state.spec));
+  const migrationFile = path.join(specDir, REPAIR_MIGRATION_FILE);
+  if (!fs.existsSync(migrationFile) && state.repairBaseline) {
+    new ImmutableGitBaseline(state.repairBaseline);
+    return { state, migrated: false };
+  }
+  if (!flowManager || typeof flowManager.mutate !== "function") {
+    throw new Error("legacy repair fingerprint migration requires the active flow manager");
+  }
+  const lock = new RepairRunLock(specDir);
+  lock.acquire();
+  let migratedState;
+  try {
+    let migration;
+    if (fs.existsSync(migrationFile)) {
+      migration = new RepairStateMigration(readJson(migrationFile));
+    } else {
+      const baseline = captureRepairBaseline({
+        root,
+        baseRef: state.baseBranch,
+        runId: state.runId,
+        useMergeBase: true,
+      });
+      migration = new RepairStateMigration({
+        version: 1,
+        runId: state.runId,
+        specPath: state.spec,
+        baseline,
+        invalidations: legacyMigrationInvalidations(specDir),
+        resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+        createdAt: new Date().toISOString(),
+      });
+      writeJson(migrationFile, migration.toJSON());
+    }
+    migratedState = commitRepairStateMigration({ root, state, flowManager, specDir, migration });
+  } finally {
+    lock.release();
+  }
+  if (!continueAfterMigration) throw new RepairStateMigratedError();
+  return { state: migratedState, migrated: true };
+}
+
+function updateRepairSteps(flowManager, resetStepIds) {
   flowManager.mutate((next) => {
     const repairStep = findStepById(next.steps || [], "impl-repair");
     if (repairStep) {
@@ -606,5 +845,96 @@ export function completeImplRepair({ root, state, flowManager, resetStepIds }) {
       if (stepId === "test-execute") step.startedAt = new Date().toISOString();
     }
   });
-  return { entry: entry.toJSON(), invalidations: invalidation.invalidations };
+}
+
+function commitRepairTransaction({ root, state, specDir, flowManager, transaction, faultInjector = null }) {
+  const journal = transaction instanceof ImplRepairTransaction ? transaction : new ImplRepairTransaction(transaction);
+  const { entry, ledger, currentManifest: manifest } = journal;
+  const observed = buildRepairFingerprint({ root, specPath: state.spec, state });
+  if (observed.hash !== manifest.hash) {
+    throw new Error("impl-repair transaction current state changed before recovery");
+  }
+  const deltaRef = writeRepairDelta(specDir, journal.delta);
+  if (deltaRef !== entry.changedPathsRef) throw new Error("impl-repair delta reference changed during transaction");
+  faultInjector?.({ phase: "after-delta" });
+  writeJson(path.join(specDir, IMPL_REPAIR_ARTIFACT_FILE), ledger.toJSON());
+  faultInjector?.({ phase: "after-ledger" });
+  writeRepairFingerprintManifest(specDir, manifest);
+  faultInjector?.({ phase: "after-manifest" });
+  applyRepairInvalidations(specDir, journal.invalidations);
+  faultInjector?.({ phase: "after-invalidation" });
+  recordImplRepairEvidence({ root, specPath: state.spec, sourceStep: journal.sourceStep, entry });
+  updateRepairSteps(flowManager, journal.resetStepIds);
+  faultInjector?.({ phase: "after-flow-state" });
+  fs.rmSync(path.join(specDir, REPAIR_TRANSACTION_FILE), { force: true });
+  return { entry: entry.toJSON(), invalidations: entry.invalidations.map((record) => record.toJSON()) };
+}
+
+export function completeImplRepair({ root, state, flowManager, resetStepIds, faultInjector = null }) {
+  const specDir = path.dirname(path.resolve(root, state.spec));
+  const lock = new RepairRunLock(specDir);
+  lock.acquire();
+  try {
+    const transactionFile = path.join(specDir, REPAIR_TRANSACTION_FILE);
+    if (fs.existsSync(transactionFile)) {
+      return commitRepairTransaction({ root, state, specDir, flowManager, transaction: readJson(transactionFile), faultInjector });
+    }
+    const triagePath = path.join(specDir, IMPL_TRIAGE_ARTIFACT_FILE);
+    if (!fs.existsSync(triagePath)) throw new Error(`${IMPL_TRIAGE_ARTIFACT_FILE} is required`);
+    const triage = validateStoredImplTriageArtifact({ specDir });
+    const appliedFindingIds = triage.items.filter((item) => item.decision === "apply").map((item) => item.findingId);
+    if (appliedFindingIds.length === 0) throw new Error("impl-repair requires at least one apply disposition");
+    const previousFingerprint = readRepairFingerprintManifest(specDir);
+    const currentFingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+    if (currentFingerprint.hash === previousFingerprint.hash) throw new Error("impl-repair fingerprint did not change");
+    const changedPaths = changedRepairPaths(previousFingerprint, currentFingerprint);
+    if (changedPaths.length === 0) throw new Error("impl-repair changed paths must be non-empty");
+    const reason = `Repair applied for findings ${appliedFindingIds.join(", ")}.`;
+    const invalidations = planRepairInvalidation({
+      specDir,
+      currentFingerprint,
+      previousFingerprint,
+      reason,
+    });
+    if (invalidations.length === 0) throw new Error("impl-repair must invalidate at least one stale artifact");
+    const existing = readImplRepairLedger(specDir) || new ImplRepairLedger({ version: 2, entries: [] });
+    const id = `repair-${String(existing.entries.length + 1).padStart(3, "0")}`;
+    const delta = repairDeltaArtifact({ id, previous: previousFingerprint, current: currentFingerprint, changedPaths });
+    const changedPathsRef = `${REPAIR_DELTA_DIR}/${id}.json`;
+    const entry = new ImplRepairEntry({
+      id,
+      sourceFindingIds: appliedFindingIds,
+      reason,
+      previousHash: previousFingerprint.hash,
+      currentHash: currentFingerprint.hash,
+      changedPathCount: changedPaths.length,
+      changedPathsRef,
+      changedPathsDigest: delta.digest,
+      changedPathsPreview: changedPaths.slice(0, CHANGED_PATH_PREVIEW_LIMIT),
+      changedPathGroups: changedPathGroups(changedPaths),
+      invalidations,
+      createdAt: new Date().toISOString(),
+    });
+    const transaction = new ImplRepairTransaction({
+      version: 1,
+      id,
+      sourceStep: triage.sourceStep,
+      resetStepIds: [...resetStepIds],
+      entry: entry.toJSON(),
+      ledger: existing.append(entry).toJSON(),
+      currentManifest: currentFingerprint.toJSON(),
+      delta: delta.toJSON(),
+      invalidations: invalidations.map((record) => record.toJSON()),
+    });
+    writeJson(transactionFile, transaction.toJSON());
+    return commitRepairTransaction({ root, state, specDir, flowManager, transaction, faultInjector });
+  } finally {
+    lock.release();
+  }
+}
+
+export function recoverImplRepairTransaction({ root, state, flowManager }) {
+  const specDir = path.dirname(path.resolve(root, state.spec));
+  if (!fs.existsSync(path.join(specDir, REPAIR_TRANSACTION_FILE))) return null;
+  return completeImplRepair({ root, state, flowManager, resetStepIds: [] });
 }

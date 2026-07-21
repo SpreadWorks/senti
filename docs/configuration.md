@@ -69,6 +69,25 @@ sdd-forge is configured through a single project-level JSON file (`.sdd-forge/co
 | `experimental.workflow.languages.publish` | No | string | — | Target publish language for the experimental workflow. |
 <!-- {{/text}} -->
 
+### Repair fingerprint safety boundary
+
+`flow.repairFingerprint.maxChangedPaths` controls how many changed paths can be processed as one complete repair fingerprint. The default is `20000`; valid values are integers from `1` through `1000000`. Increase it only when the typed `REPAIR_CHANGED_PATH_LIMIT` error reports that a legitimate change set exceeds the current boundary.
+
+`flow.repairFingerprint.include` is an optional array of repository-relative paths that must be tracked even when Git ignores them. It is add-only: there is no corresponding `exclude` setting, because excluding implementation inputs would allow stale evidence to be accepted.
+
+```json
+{
+  "flow": {
+    "repairFingerprint": {
+      "maxChangedPaths": 50000,
+      "include": ["generated/contracts"]
+    }
+  }
+}
+```
+
+The default input set follows Git policy rather than directory names. An ignored, untracked `src/node_modules` is excluded; a tracked or non-ignored untracked path at the same location is included. These settings do not define a project source root and do not change which tests the flow runs.
+
 ### Customization Points
 
 <!-- {{text({prompt: "Describe items that users can customize. Extract configurable items from the source code and include configuration examples for each.", mode: "deep"})}} -->

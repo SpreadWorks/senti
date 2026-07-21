@@ -49,6 +49,7 @@ import {
 import {
   assertRepairFingerprint,
   buildRepairFingerprint,
+  ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
@@ -808,6 +809,14 @@ export class RunReviewCommand extends FlowCommand {
         { phase });
     }
 
+    if (isImplementationReviewPhase(phase) && ctx.flowState.currentTaskId == null) {
+      ensureRepairFingerprintContract({
+        root,
+        state: ctx.flowState,
+        flowManager: ctx.flowManager,
+      });
+    }
+
     let scopeDecision = null;
     let reviewCtx = reviewContextForTaskId(ctx, null);
     let taskReviewSpec = null;
@@ -849,7 +858,7 @@ export class RunReviewCommand extends FlowCommand {
     if (isImplementationReviewPhase(phase)) {
       if (!taskReviewSpec) {
         const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
-        const fingerprint = buildRepairFingerprint({ root, specPath: ctx.flowState.spec });
+        const fingerprint = buildRepairFingerprint({ root, specPath: ctx.flowState.spec, state: ctx.flowState });
         for (const file of ["test-execute-result.json", "test-result-review.json"]) {
           const artifactPath = path.join(specDir, file);
           if (!fs.existsSync(artifactPath)) throw new Error(`${file} is required before impl-review`);

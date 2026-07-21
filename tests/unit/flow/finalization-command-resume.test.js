@@ -9,6 +9,7 @@ import RunFinalizeMergeCommand from "../../../src/flow/lib/run-finalize-merge.js
 import RunFinalizeSyncCommand from "../../../src/flow/lib/run-finalize-sync.js";
 import RunReportCommand from "../../../src/flow/lib/run-report.js";
 import { outboxCommitMarker } from "../../../src/flow/lib/run-finalize.js";
+import { captureRepairBaseline } from "../../../src/flow/lib/repair-state-identity.js";
 import { runGit } from "../../../src/lib/git-helpers.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
 import { container } from "../../../src/lib/container.js";
@@ -32,7 +33,12 @@ function setupFinalizationRepo(root, flowOverrides = {}) {
   writeFile(root, "README.md", "baseline\n");
   commitAll(root, "test: baseline");
   checkoutNewBranch(root, "feature/001-test");
-  const state = setupFlow(root, flowOverrides);
+  const repairBaseline = captureRepairBaseline({
+    root,
+    baseRef: "main",
+    runId: flowOverrides.runId || "run-test",
+  });
+  const state = setupFlow(root, { repairBaseline: repairBaseline.toJSON(), ...flowOverrides });
   writeFile(root, state.spec, JSON.stringify({ requirements: [] }, null, 2));
   writeFile(root, "src-change.js", "export const changed = true;\n");
   return { state, flowManager: makeFlowManager(root) };

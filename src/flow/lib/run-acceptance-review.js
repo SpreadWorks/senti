@@ -10,9 +10,18 @@ import {
   artifactFromAcceptanceJudgments,
   buildAcceptanceReviewContext,
 } from "./acceptance-review-artifacts.js";
-import { collectUntrackedDiff } from "./run-gate.js";
+import {
+  buildRepairFingerprint,
+  ensureRepairFingerprintContract,
+} from "./impl-repair-artifacts.js";
+import { RepairArtifactRegistry } from "./repair-state-identity.js";
 
-const MAX_ACCEPTANCE_PROMPT_CHARS = 900_000;
+export const MAX_ACCEPTANCE_REQUEST_CHARS = 900_000;
+export const MAX_ACCEPTANCE_RESPONSE_CHARS = 900_000;
+const MAX_ACCEPTANCE_UNTRACKED_FILE_SIZE = 1024 * 1024;
+const MAX_ACCEPTANCE_GIT_BUFFER_BYTES = (MAX_ACCEPTANCE_REQUEST_CHARS * 4) + 65_536;
+const MAX_ACCEPTANCE_SCHEMA_ITEMS = MAX_ACCEPTANCE_RESPONSE_CHARS;
+const MAX_ACCEPTANCE_SCHEMA_STRING_CHARS = MAX_ACCEPTANCE_RESPONSE_CHARS;
 const ACCEPTANCE_RESPONSE_SCHEMA = Object.freeze({
   type: "object",
   required: ["requirementJudgments"],
@@ -34,19 +43,31 @@ const ACCEPTANCE_RESPONSE_SCHEMA = Object.freeze({
         ],
         additionalProperties: false,
         properties: {
-          requirementId: { type: "string", minLength: 1 },
+          requirementId: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS },
           status: { type: "string", enum: ["met", "notMet", "notVerifiable"] },
-          requestRefs: { type: "array", items: { type: "string", minLength: 1 } },
-          requirementRefs: { type: "array", items: { type: "string", minLength: 1 } },
-          diffRefs: { type: "array", items: { type: "string", minLength: 1 } },
-          repairRefs: { type: "array", items: { type: "string", minLength: 1 } },
-          testRefs: { type: "array", items: { type: "string", minLength: 1 } },
-          missingEvidence: { type: "array", items: { type: "string", minLength: 1 } },
+          requestRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
+          requirementRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
+          diffRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
+          repairRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
+          testRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
+          missingEvidence: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
         },
       },
+      maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS,
     },
   },
 });
+
+export class AcceptanceBudgetError extends Error {
+  constructor(kind, components, limit) {
+    const summary = Object.entries(components).map(([name, size]) => `${name}=${size}`).join(", ");
+    super(`acceptance ${kind} exceeds ${limit} characters (${summary})`);
+    this.name = "AcceptanceBudgetError";
+    this.code = kind === "response" ? "ACCEPTANCE_RESPONSE_TOO_LARGE" : "ACCEPTANCE_REQUEST_TOO_LARGE";
+    this.components = Object.freeze({ ...components });
+    this.limit = limit;
+  }
+}
 
 function readFixtureArtifact() {
   const file = process.env.SENTI_ACCEPTANCE_REVIEW_ARTIFACT;
@@ -54,52 +75,83 @@ function readFixtureArtifact() {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
-function isAcceptanceDiffPath(file, state) {
-  const normalized = String(file || "").replace(/\\/g, "/");
-  const specPath = state.spec.replace(/\\/g, "/");
-  const specDir = path.posix.dirname(specPath);
-  const specTests = `${specDir}/tests/`;
-  const rawEvidence = `${specTests}.raw/`;
-  return normalized === ".senti/config.json"
-    || normalized === specPath
-    || normalized.startsWith("src/")
-    || normalized.startsWith("plugins/")
-    || (normalized.startsWith(specTests) && !normalized.startsWith(rawEvidence));
+function appendWithinDiffBudget(current, addition, component) {
+  const next = current + addition;
+  if (next.length > MAX_ACCEPTANCE_REQUEST_CHARS) {
+    throw new AcceptanceBudgetError("diff", {
+      trackedAndPreviousUntracked: current.length,
+      [component]: addition.length,
+      total: next.length,
+    }, MAX_ACCEPTANCE_REQUEST_CHARS);
+  }
+  return next;
 }
 
-async function implementationDiff(root, state) {
-  const specPath = state.spec.replace(/\\/g, "/");
-  const specDir = path.posix.dirname(specPath);
+function untrackedDiff(root, fingerprint, registry) {
+  let result = "";
+  const files = fingerprint.entries.filter((entry) => (
+    entry.statuses.includes("worktree:untracked") && !registry.owns(entry.path)
+  ));
+  for (const entry of files) {
+    const absolute = path.join(root, entry.path);
+    const stat = fs.lstatSync(absolute, { throwIfNoEntry: false });
+    if (!stat || (!stat.isFile() && !stat.isSymbolicLink())) continue;
+    if (stat.size > MAX_ACCEPTANCE_UNTRACKED_FILE_SIZE) {
+      throw new AcceptanceBudgetError("diff", {
+        file: stat.size,
+        accumulated: result.length,
+      }, MAX_ACCEPTANCE_UNTRACKED_FILE_SIZE);
+    }
+    let body;
+    if (stat.isSymbolicLink()) {
+      body = `${fs.readlinkSync(absolute)}\n`;
+    } else {
+      const bytes = fs.readFileSync(absolute);
+      if (bytes.includes(0)) {
+        body = null;
+      } else {
+        const decoded = bytes.toString("utf8");
+        body = Buffer.from(decoded, "utf8").equals(bytes) ? decoded : null;
+      }
+    }
+    const header = `diff --git a/${entry.path} b/${entry.path}\nnew file mode ${entry.mode}\n`;
+    const patch = body == null
+      ? `${header}Binary files /dev/null and b/${entry.path} differ\n`
+      : `${header}--- /dev/null\n+++ b/${entry.path}\n@@ -0,0 +1,${body === "" ? 0 : body.split("\n").length - (body.endsWith("\n") ? 1 : 0)} @@\n${body.split("\n").map((line, index, lines) => (
+          index === lines.length - 1 && line === "" ? "" : `+${line}`
+        )).join("\n")}${body.endsWith("\n") || body === "" ? "" : "\n\\ No newline at end of file"}\n`;
+    result = appendWithinDiffBudget(result, patch, `untracked:${entry.path}`);
+  }
+  return result;
+}
+
+export function implementationDiff(root, state) {
+  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const registry = new RepairArtifactRegistry(state.spec);
   const result = runGit([
     "diff",
     "--no-ext-diff",
-    state.baseBranch || "main",
+    "--no-color",
+    fingerprint.baseline.commitOid,
     "--",
-    "src/",
-    "plugins/",
-    ".senti/config.json",
-    specPath,
-    `${specDir}/tests/`,
-  ], { cwd: root });
+    ".",
+    ...registry.gitPathspecExcludes(),
+  ], { cwd: root, maxBuffer: MAX_ACCEPTANCE_GIT_BUFFER_BYTES });
+  if (result.stdout.length > MAX_ACCEPTANCE_REQUEST_CHARS) {
+    throw new AcceptanceBudgetError("diff", { tracked: result.stdout.length }, MAX_ACCEPTANCE_REQUEST_CHARS);
+  }
   if (!result.ok) throw new Error(`failed to build acceptance diff: ${result.stderr || result.stdout}`);
-  const untracked = await collectUntrackedDiff(root, {
-    maxFiles: 500,
-    maxFileSize: 1024 * 1024,
-    excludeFile: (file) => !isAcceptanceDiffPath(file, state),
-  });
-  const diff = `${result.stdout}${untracked}`;
-  if (diff.length > MAX_ACCEPTANCE_PROMPT_CHARS) {
-    throw new Error(`acceptance diff exceeds ${MAX_ACCEPTANCE_PROMPT_CHARS} characters`);
+  const diff = appendWithinDiffBudget(result.stdout, untrackedDiff(root, fingerprint, registry), "untrackedTotal");
+  const verified = buildRepairFingerprint({ root, specPath: state.spec, state });
+  if (verified.hash !== fingerprint.hash) {
+    throw new Error("repair state changed while building acceptance diff");
   }
   return diff;
 }
 
-function buildAcceptancePrompt(context) {
+export function buildAcceptancePrompt(context) {
   const evidence = JSON.stringify(context.evidence, null, 2);
-  if (evidence.length > MAX_ACCEPTANCE_PROMPT_CHARS) {
-    throw new Error(`acceptance evidence exceeds ${MAX_ACCEPTANCE_PROMPT_CHARS} characters`);
-  }
-  return new PromptBuilder()
+  const prompt = new PromptBuilder()
     .setRole("You are the semantic acceptance reviewer. Judge every requirement against the complete current evidence chain.")
     .setRules([
       "Return JSON only.",
@@ -113,23 +165,39 @@ function buildAcceptancePrompt(context) {
     .setFmtFallback(`Return only JSON matching this schema:\n${JSON.stringify(ACCEPTANCE_RESPONSE_SCHEMA)}`)
     .addUserPrompt("## Acceptance Evidence", evidence)
     .build();
+  const components = {
+    systemPrompt: prompt.systemPrompt?.length || 0,
+    userPrompt: prompt.userPrompt.length,
+    jsonSchema: JSON.stringify(prompt.jsonSchema).length,
+    fmtFallback: prompt.fmtFallback?.length || 0,
+  };
+  const total = Object.values(components).reduce((sum, size) => sum + size, 0);
+  if (total > MAX_ACCEPTANCE_REQUEST_CHARS) {
+    throw new AcceptanceBudgetError("request", { ...components, total }, MAX_ACCEPTANCE_REQUEST_CHARS);
+  }
+  return prompt;
 }
 
-function parseAcceptanceResponse(text) {
+export function parseAcceptanceResponse(text) {
+  const response = String(text);
+  if (response.length > MAX_ACCEPTANCE_RESPONSE_CHARS) {
+    throw new AcceptanceBudgetError("response", { response: response.length }, MAX_ACCEPTANCE_RESPONSE_CHARS);
+  }
   try {
-    return JSON.parse(text);
+    return JSON.parse(response);
   } catch (_) {
-    return JSON.parse(repairJson(text));
+    return JSON.parse(repairJson(response));
   }
 }
 
 export default class RunAcceptanceReviewCommand extends FlowCommand {
   async execute(ctx) {
     const state = ctx.flowManager.load();
+    ensureRepairFingerprintContract({ root: ctx.root, state, flowManager: ctx.flowManager });
     const context = buildAcceptanceReviewContext({
       root: ctx.root,
       state,
-      diff: await implementationDiff(ctx.root, state),
+      diff: implementationDiff(ctx.root, state),
     });
     const fixture = readFixtureArtifact();
     let artifact;

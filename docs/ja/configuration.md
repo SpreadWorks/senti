@@ -62,6 +62,25 @@ sdd-forge は `.sdd-forge/config.json` を唯一の設定ファイルとして�
 | `commands.gh` | — | string | — | GitHub CLI 使用可否。`"enable"` または `"disable"` |
 <!-- {{/text}} -->
 
+### Repair fingerprint の安全上限
+
+`flow.repairFingerprint.maxChangedPaths` は、1件の完全な repair fingerprint として処理できる変更パス数を指定します。既定値は `20000`、指定可能範囲は `1` から `1000000` の整数です。正当な変更集合が現在の上限を超えたことを typed error `REPAIR_CHANGED_PATH_LIMIT` が示した場合にだけ引き上げてください。
+
+`flow.repairFingerprint.include` には、Git が ignore していても追跡が必要な repository-relative path を配列で追加できます。この設定は追加専用です。実装入力を隠して stale evidence を受理できないよう、対応する `exclude` 設定はありません。
+
+```json
+{
+  "flow": {
+    "repairFingerprint": {
+      "maxChangedPaths": 50000,
+      "include": ["generated/contracts"]
+    }
+  }
+}
+```
+
+既定の入力集合はディレクトリ名ではなく Git policy に従います。ignore 済みの untracked `src/node_modules` は対象外ですが、同じ場所でも tracked または non-ignored untracked のパスは対象です。これらの設定はプロジェクトの source root を定義せず、flow が実行するテストの種類や回数も変更しません。
+
 ### カスタマイズポイント
 
 <!-- {{text({prompt: "ユーザーがカスタマイズできる項目を説明してください。ソースコードから設定可能な項目を抽出し、各項目に設定例を含めること。", mode: "deep"})}} -->

@@ -24,6 +24,8 @@ import {
   durableTestArtifactPathspecs,
 } from "./test-artifacts.js";
 
+const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+
 export function finalizeOnError(stepName, trigger) {
   return (ctx, err) => {
     try {
@@ -109,7 +111,7 @@ export function findOutboxCommit({ root, ref, idempotencyKey }) {
   ]);
   if (!result.ok || !result.stdout.includes(marker)) return null;
   const commit = result.stdout.split("\0", 1)[0].trim();
-  return /^[a-f0-9]{40}$/.test(commit) ? commit : null;
+  return GIT_OBJECT_ID.test(commit) ? commit : null;
 }
 
 function getFinalizeMergeAllowedMetadataPaths(specId) {
@@ -233,7 +235,7 @@ export function commitFinalizeMergeMetadataIfSafe({
 
 class GitPathEntry {
   constructor(objectId) {
-    if (objectId !== null && !/^[a-f0-9]{40}$/.test(objectId)) {
+    if (objectId !== null && !GIT_OBJECT_ID.test(objectId)) {
       throw new Error("Git path entry object ID is invalid");
     }
     this.objectId = objectId;
@@ -247,14 +249,14 @@ class GitPathEntry {
   static fromIndex(root, filePath) {
     const result = runGit(["-C", root, "ls-files", "--stage", "--", filePath]);
     assertOk(result, "failed to inspect finalize completion index entry");
-    const match = /^\d{6} ([a-f0-9]{40}) 0\t/.exec(result.stdout);
+    const match = /^\d{6} ([a-f0-9]{40}(?:[a-f0-9]{24})?) 0\t/.exec(result.stdout);
     return new GitPathEntry(match?.[1] || null);
   }
 
   static fromTree(root, ref, filePath) {
     const result = runGit(["-C", root, "ls-tree", ref, "--", filePath]);
     assertOk(result, "failed to inspect finalize completion tree entry");
-    const match = /^\d{6} blob ([a-f0-9]{40})\t/.exec(result.stdout);
+    const match = /^\d{6} blob ([a-f0-9]{40}(?:[a-f0-9]{24})?)\t/.exec(result.stdout);
     return new GitPathEntry(match?.[1] || null);
   }
 }

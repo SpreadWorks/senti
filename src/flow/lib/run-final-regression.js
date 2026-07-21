@@ -38,6 +38,7 @@ import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
 import {
   assertRepairFingerprint,
   buildRepairFingerprint,
+  ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
 
 const FAILURE_KINDS = Object.freeze({
@@ -837,7 +838,7 @@ function projectPolicySkipDecision({ err, changedFiles }) {
 function finalRegressionSkipDecision({ root, state, config, specDir, changedFiles, rootCommand }) {
   const testExecute = readJsonIfExists(testExecuteArtifactPath(specDir));
   if (testExecute) {
-    const fingerprint = buildRepairFingerprint({ root, specPath: state.spec });
+    const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
     assertRepairFingerprint({ artifact: testExecute, fingerprint, label: "test-execute-result.json" });
   }
   const commandIdentity = commandIdentityFor(rootCommand).toJSON();
@@ -1156,6 +1157,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
     const state = ctx.flowState;
+    ensureRepairFingerprintContract({ root, state, flowManager: ctx.flowManager });
     const config = ctx.config || {};
     const specDir = resolveSpecDir(path.resolve(root, state.spec));
     const resultPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);

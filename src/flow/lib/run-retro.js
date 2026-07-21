@@ -17,6 +17,7 @@ import { validateTestExecuteResultV2, validateTestResultReview } from "./test-ar
 import {
   assertRepairFingerprint,
   buildRepairFingerprint,
+  ensureRepairFingerprintContract,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
 
@@ -106,6 +107,7 @@ export class RunRetroCommand extends FlowCommand {
         `${TEST_EXECUTE_RESULT_FILE} not found at ${path.relative(root, resultPath)}: test-execute step has not been run`,
       );
     }
+    ensureRepairFingerprintContract({ root, state, flowManager: ctx.flowManager });
 
     const review = readJson(reviewPath);
     if (review.verdict !== "pass") {
@@ -118,7 +120,7 @@ export class RunRetroCommand extends FlowCommand {
     }
 
     const result = readJson(resultPath);
-    const fingerprint = buildRepairFingerprint({ root, specPath });
+    const fingerprint = buildRepairFingerprint({ root, specPath, state });
     try {
       validateTestResultReview(review);
       validateTestExecuteResultV2(result);

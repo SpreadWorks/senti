@@ -50,6 +50,7 @@
  * @typedef {Object} FlowConfig
  * @property {string} [merge] - Merge strategy: "squash" | "ff-only" | "merge" (default: "squash")
  * @property {FlowPushConfig} [push] - Push configuration
+ * @property {{maxChangedPaths?: number, include?: string[]}} [repairFingerprint] - Repair state safety boundary and validated add-only inputs.
  */
 
 /**

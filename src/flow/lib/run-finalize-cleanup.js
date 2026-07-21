@@ -64,6 +64,7 @@ import {
   WorktreeFlowBindingStore,
   WorktreeFlowIdentity,
 } from "../../lib/worktree-flow-binding.js";
+import { deleteRepairBaselineForFlow } from "./repair-state-identity.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
 const SUBMODULE_DIAGNOSTIC_LIMIT = 50;
@@ -76,7 +77,7 @@ const SUBMODULE_RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "clean-submod
 const SUBMODULE_RECOVERY_OPTIONS_STATUS = ["inspect-status-manually", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-remove-after-review", "retry-after-fixing-git-error"];
 const FINALIZE_TEARDOWN_VERSION = 7;
-const GIT_OBJECT_ID = /^[a-f0-9]{40}$/;
+const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const FINALIZE_BEFORE_IMAGE_MAX_FILES = 512;
 const FINALIZE_BEFORE_IMAGE_MAX_DIRECTORIES = 512;
@@ -2014,8 +2015,8 @@ function parseFinalizeIndexSnapshot(output, { tree = false } = {}) {
   const entries = [];
   for (const line of output.split("\n").filter(Boolean)) {
     const match = tree
-      ? /^(\d{6}) blob ([a-f0-9]{40})\t(.+)$/.exec(line)
-      : /^(\d{6}) ([a-f0-9]{40}) 0\t(.+)$/.exec(line);
+      ? /^(\d{6}) blob ([a-f0-9]{40}(?:[a-f0-9]{24})?)\t(.+)$/.exec(line)
+      : /^(\d{6}) ([a-f0-9]{40}(?:[a-f0-9]{24})?) 0\t(.+)$/.exec(line);
     if (!match) throw new Error(`finalize index authority output is invalid: ${line}`);
     entries.push(new FinalizeIndexEntry({
       mode: match[1],
@@ -4798,6 +4799,7 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
     }
     if (!result && !transaction.phase.atLeast("active-cleared")) {
       try {
+        deleteRepairBaselineForFlow(ctx.mainRoot || ctx.root, ctx.flowState);
         ctx.flowManager.clearFlowState(specId, {
           operationOwnerToken: ctx.repositoryOperationOwnerToken,
         });
@@ -5803,6 +5805,7 @@ async function runTeardownTransactionOwned(
 
   if (!transaction.phase.atLeast("active-cleared")) {
     try {
+      deleteRepairBaselineForFlow(gitAuthorityRoot, state);
       ctx.flowManager.clearFlowState(specId, {
         operationOwnerToken: ctx.repositoryOperationOwnerToken,
       });

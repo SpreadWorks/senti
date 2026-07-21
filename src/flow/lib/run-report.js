@@ -30,7 +30,10 @@ import {
   validateUpgradeResultArtifact,
 } from "./test-artifacts.js";
 import { readRetroResultIfExists } from "./retro-artifacts.js";
-import { assertCurrentRepairEvidenceFiles } from "./impl-repair-artifacts.js";
+import {
+  assertCurrentRepairEvidenceFiles,
+  ensureRepairFingerprintContract,
+} from "./impl-repair-artifacts.js";
 
 export function buildUpgradeReportDataFromArtifacts(specDir) {
   const resultPath = path.join(specDir, UPGRADE_RESULT_FILE);
@@ -52,6 +55,7 @@ export class RunReportCommand extends FlowCommand {
     const { root } = ctx;
     const dryRun = ctx.dryRun || false;
     const state = ctx.flowState;
+    ensureRepairFingerprintContract({ root, state, flowManager: ctx.flowManager });
 
     const baseBranch = state.baseBranch;
     if (!baseBranch) {

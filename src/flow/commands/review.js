@@ -1149,7 +1149,7 @@ async function runImplReviewWithPersistence({
   });
   const artifact = new ImplReviewArtifact({ ...dispositioned, requirementIds });
   const reviewJsonPath = path.join(specDir, "impl-review.json");
-  const fingerprint = buildRepairFingerprint({ root, specPath: flow.spec });
+  const fingerprint = buildRepairFingerprint({ root, specPath: flow.spec, state: flow });
   const artifactJson = stampRepairFingerprint({ artifact: artifact.toJSON(), fingerprint });
   Object.assign(artifactJson, new ReviewFindingCycle(flow).toJSON());
   if (taskSpec) {
