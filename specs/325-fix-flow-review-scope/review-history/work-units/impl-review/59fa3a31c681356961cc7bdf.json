@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/325-fix-flow-review-scope/flow.json",
+      "specs/325-fix-flow-review-scope/issue-log.json",
+      "specs/325-fix-flow-review-scope/issue.md"
+    ],
+    "inputHash": "61c4f110636f847d38476a07cf05e58383b99f2077453435e32424be7c8ed044",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/325-fix-flow-review-scope/flow.json",
+    "specs/325-fix-flow-review-scope/issue-log.json",
+    "specs/325-fix-flow-review-scope/issue.md"
+  ],
+  "inputHash": "61c4f110636f847d38476a07cf05e58383b99f2077453435e32424be7c8ed044",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T04:18:27.307Z",
+  "finishedAt": "2026-07-21T04:18:27.307Z",
+  "rawResponse": "### 1. Add an Explicit Retention Bound for Review Metrics\n**File:** `specs/325-fix-flow-review-scope/flow.json`\n**Requirement:** R2\n**Issue:** The `metrics` array records repeated `impl-review` agent calls and can grow without an explicit cap in the persisted flow state. This violates the bounded-resource-usage guardrail for bulk data accumulation.\n**Suggestion:** Add or enforce a bounded retention policy for persisted metric entries, such as keeping only the latest N entries per phase/run or summarizing older attempts into aggregate counters before writing `flow.json`.\n\n### 2. Remove Duplicated Issue-Log Narration\n**File:** `specs/325-fix-flow-review-scope/issue-log.json`\n**Requirement:** R2\n**Issue:** Several entries repeat the same failure context across `reason`, `trigger`, `resolution`, `guardrailCandidate`, and nested `observations`/`failedEvaluations`, making the artifact large and harder to scan without adding distinct review value.\n**Suggestion:** Keep detailed structured observations in one place and shorten the adjacent narrative fields to references or concise summaries. For example, preserve `observations` as the source of truth and make `reason` a one-line summary.\n\n### 3. Avoid Maintaining Parallel English/Japanese Copies Manually\n**File:** `specs/325-fix-flow-review-scope/issue.md`\n**Requirement:** R1\n**Issue:** The English issue description and the Japanese `<details>` section duplicate the same requirements, scope, and verification content. This creates drift risk when one section is edited without the other.\n**Suggestion:** Keep one authoritative version for acceptance criteria and verification, and make the translated section explicitly secondary or remove duplicated operational details from it. If bilingual text is required, limit the translated section to summary context rather than restating every criterion.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Add an Explicit Retention Bound for Review Metrics",
+        "body": "**File:** `specs/325-fix-flow-review-scope/flow.json`\n**Requirement:** R2\n**Issue:** The `metrics` array records repeated `impl-review` agent calls and can grow without an explicit cap in the persisted flow state. This violates the bounded-resource-usage guardrail for bulk data accumulation.\n**Suggestion:** Add or enforce a bounded retention policy for persisted metric entries, such as keeping only the latest N entries per phase/run or summarizing older attempts into aggregate counters before writing `flow.json`.",
+        "file": "specs/325-fix-flow-review-scope/flow.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Remove Duplicated Issue-Log Narration",
+        "body": "**File:** `specs/325-fix-flow-review-scope/issue-log.json`\n**Requirement:** R2\n**Issue:** Several entries repeat the same failure context across `reason`, `trigger`, `resolution`, `guardrailCandidate`, and nested `observations`/`failedEvaluations`, making the artifact large and harder to scan without adding distinct review value.\n**Suggestion:** Keep detailed structured observations in one place and shorten the adjacent narrative fields to references or concise summaries. For example, preserve `observations` as the source of truth and make `reason` a one-line summary.",
+        "file": "specs/325-fix-flow-review-scope/issue-log.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Avoid Maintaining Parallel English/Japanese Copies Manually",
+        "body": "**File:** `specs/325-fix-flow-review-scope/issue.md`\n**Requirement:** R1\n**Issue:** The English issue description and the Japanese `<details>` section duplicate the same requirements, scope, and verification content. This creates drift risk when one section is edited without the other.\n**Suggestion:** Keep one authoritative version for acceptance criteria and verification, and make the translated section explicitly secondary or remove duplicated operational details from it. If bilingual text is required, limit the translated section to summary context rather than restating every criterion.",
+        "file": "specs/325-fix-flow-review-scope/issue.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

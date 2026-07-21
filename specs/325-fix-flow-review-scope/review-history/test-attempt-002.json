@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-21T03:25:12.331Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/325-fix-flow-review-scope/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 max-attempt scope precheck is untested",
+      "target": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js / test \"R2: RunReviewCommand uses one scope decision for flow and task execution\"",
+      "findingId": "796e40d4d3fdba1ed33bc9c80aa8d3a9e8ca09e59406d43f10fa2f433d8553c9",
+      "fingerprint": "796e40d4d3fdba1ed33bc9c80aa8d3a9e8ca09e59406d43f10fa2f433d8553c9",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for a required pre-subprocess decision use.",
+      "issue": "R2 requires the single impl-review scope decision to be used for the max-attempt precheck, preserving four semantic impl-review attempts per selected scope. The test covers subprocess retry normalization and flow/task command arguments, but does not create prior stepAttempts or assert that max-attempt blocking is evaluated against the resolved flow vs task scope before subprocess launch.",
+      "requiredChange": "Add a spec-local regression case that seeds prior impl-review/task-review attempts and asserts the max-attempt precheck uses the resolved decision's stepId/taskId and blocks before subprocess when the selected scope is exhausted.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for a required pre-subprocess decision use.",
+      "origin": "R2",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 guard coverage artifact overstates actual target-guard tests",
+      "target": "Requirement-to-Test Coverage Artifact R6 and specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js / test \"R6: RunReviewCommand enforces broad-mode audit and target guards before scope effects\"",
+      "findingId": "18bd304a60149deaa9baf64282b563e4ac7033d2088edf0dfe26a6d9b1c88089",
+      "fingerprint": "18bd304a60149deaa9baf64282b563e4ac7033d2088edf0dfe26a6d9b1c88089",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact claims coverage that the actual test file does not provide for required guard cases.",
+      "issue": "R6 requires matching runId/Issue/spec guards to proceed and any mismatched guard to return ACTIVE_FLOW_MISMATCH before scope resolution or durable mutation. The executable test only covers a runId mismatch; it does not cover expectIssue or expectSpec mismatches, while the artifact marks R6 fully covered.",
+      "requiredChange": "Add mismatch assertions for expectIssue and expectSpec, each verifying ACTIVE_FLOW_MISMATCH with no scope resolution, subprocess launch, or durable mutation.",
+      "whyBlocking": "The requirement coverage artifact claims coverage that the actual test file does not provide for required guard cases.",
+      "origin": "R6",
+      "failureKind": "coverage_artifact_contradiction"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/325-fix-flow-review-scope/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "5d29a826a832a47fa5dbfb4d1f1b9d1bb84e6ce1c995e8032d9d54e2249093f9"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "796e40d4d3fdba1ed33bc9c80aa8d3a9e8ca09e59406d43f10fa2f433d8553c9",
+      "findingId": "796e40d4d3fdba1ed33bc9c80aa8d3a9e8ca09e59406d43f10fa2f433d8553c9",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R2 max-attempt scope precheck is untested",
+      "body": "R2 requires the single impl-review scope decision to be used for the max-attempt precheck, preserving four semantic impl-review attempts per selected scope. The test covers subprocess retry normalization and flow/task command arguments, but does not create prior stepAttempts or assert that max-attempt blocking is evaluated against the resolved flow vs task scope before subprocess launch.",
+      "category": "unknown",
+      "fingerprint": "796e40d4d3fdba1ed33bc9c80aa8d3a9e8ca09e59406d43f10fa2f433d8553c9",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for a required pre-subprocess decision use."
+    },
+    {
+      "id": "18bd304a60149deaa9baf64282b563e4ac7033d2088edf0dfe26a6d9b1c88089",
+      "findingId": "18bd304a60149deaa9baf64282b563e4ac7033d2088edf0dfe26a6d9b1c88089",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R6 guard coverage artifact overstates actual target-guard tests",
+      "body": "R6 requires matching runId/Issue/spec guards to proceed and any mismatched guard to return ACTIVE_FLOW_MISMATCH before scope resolution or durable mutation. The executable test only covers a runId mismatch; it does not cover expectIssue or expectSpec mismatches, while the artifact marks R6 fully covered.",
+      "category": "unknown",
+      "fingerprint": "18bd304a60149deaa9baf64282b563e4ac7033d2088edf0dfe26a6d9b1c88089",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact claims coverage that the actual test file does not provide for required guard cases."
+    }
+  ]
+}

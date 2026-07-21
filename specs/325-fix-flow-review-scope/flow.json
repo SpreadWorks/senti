@@ -1,0 +1,3037 @@
+{
+  "spec": "specs/325-fix-flow-review-scope/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/325-fix-flow-review-scope",
+  "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-07-21T02:54:12.215Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-07-21T02:54:12.215Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-07-21T02:54:12.215Z",
+          "finishedAt": "2026-07-21T02:57:26.056Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 10,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-21T02:57:25.999Z",
+            "endedAt": "2026-07-21T02:57:26.078Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-07-21T02:57:26.056Z",
+          "finishedAt": "2026-07-21T02:57:45.923Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 12,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-21T02:57:36.826Z",
+            "endedAt": "2026-07-21T02:57:46.026Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-07-21T02:57:45.923Z",
+          "finishedAt": "2026-07-21T02:57:45.943Z"
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-07-21T02:57:45.943Z",
+          "finishedAt": "2026-07-21T02:57:45.961Z"
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-07-21T02:57:45.961Z",
+          "finishedAt": "2026-07-21T02:58:12.129Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 14,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-21T02:58:12.071Z",
+            "endedAt": "2026-07-21T02:58:12.149Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-07-21T02:58:12.129Z",
+          "finishedAt": "2026-07-21T02:58:30.021Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 16,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-21T02:58:22.857Z",
+            "endedAt": "2026-07-21T02:58:30.127Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-07-21T02:58:30.021Z",
+          "finishedAt": "2026-07-21T02:58:30.040Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-07-21T02:58:30.040Z",
+          "finishedAt": "2026-07-21T02:58:30.057Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "done",
+          "startedAt": "2026-07-21T02:58:30.057Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 21,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-21T03:00:59.763Z",
+            "endedAt": "2026-07-21T03:01:04.666Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-21T03:01:04.650Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-07-21T03:01:04.650Z",
+          "finishedAt": "2026-07-21T03:05:28.503Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 25,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-21T03:05:28.445Z",
+            "endedAt": "2026-07-21T03:05:28.523Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-review",
+          "status": "done",
+          "startedAt": "2026-07-21T03:05:28.503Z",
+          "finishedAt": "2026-07-21T03:06:52.616Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 27,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-21T03:05:41.017Z",
+            "endedAt": "2026-07-21T03:06:52.665Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-triage",
+          "status": "done",
+          "startedAt": "2026-07-21T03:06:52.616Z",
+          "finishedAt": "2026-07-21T03:06:52.635Z"
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-07-21T03:06:52.635Z",
+          "finishedAt": "2026-07-21T03:06:52.653Z"
+        },
+        {
+          "id": "spec-gate",
+          "status": "done",
+          "startedAt": "2026-07-21T03:06:52.653Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 37,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-21T03:10:08.308Z",
+            "endedAt": "2026-07-21T03:10:19.716Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-21T03:10:19.700Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-07-21T03:10:19.700Z",
+          "finishedAt": "2026-07-21T03:10:52.577Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 41,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-21T03:10:52.516Z",
+            "endedAt": "2026-07-21T03:10:52.659Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-07-21T03:10:52.577Z",
+          "finishedAt": "2026-07-21T03:14:40.221Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 44,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-21T03:14:40.146Z",
+            "endedAt": "2026-07-21T03:14:40.242Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-07-21T03:14:40.221Z",
+          "finishedAt": "2026-07-21T03:14:54.169Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 46,
+            "attempt": 1,
+            "command": "flow run scenario-validity",
+            "startedAt": "2026-07-21T03:14:53.888Z",
+            "endedAt": "2026-07-21T03:14:54.181Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-review",
+          "status": "done",
+          "startedAt": "2026-07-21T03:14:54.169Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 79,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-21T03:49:51.116Z",
+            "endedAt": "2026-07-21T03:50:11.353Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-21T03:50:11.339Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-07-21T03:50:11.339Z",
+          "finishedAt": "2026-07-21T04:00:15.158Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 113,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-21T04:00:15.087Z",
+            "endedAt": "2026-07-21T04:00:15.180Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-07-21T04:00:15.158Z",
+          "finishedAt": "2026-07-21T04:58:08.129Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 157,
+            "attempt": 1,
+            "command": "flow run test-execute",
+            "startedAt": "2026-07-21T04:58:07.369Z",
+            "endedAt": "2026-07-21T04:58:08.142Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "startedAt": "2026-07-21T04:00:33.214Z",
+          "finishedAt": "2026-07-21T04:58:22.199Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 159,
+            "attempt": 1,
+            "command": "flow run test-result-review",
+            "startedAt": "2026-07-21T04:58:22.077Z",
+            "endedAt": "2026-07-21T04:58:22.214Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-review",
+          "status": "done",
+          "startedAt": "2026-07-21T04:00:56.950Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 133,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-21T04:22:00.430Z",
+            "endedAt": "2026-07-21T04:22:00.561Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-21T04:22:57.799Z"
+        },
+        {
+          "id": "impl-triage",
+          "status": "done",
+          "startedAt": "2026-07-21T04:22:00.539Z",
+          "finishedAt": "2026-07-21T04:22:57.826Z"
+        },
+        {
+          "id": "impl-repair",
+          "status": "done",
+          "startedAt": "2026-07-21T04:22:57.826Z",
+          "finishedAt": "2026-07-21T04:22:57.853Z"
+        },
+        {
+          "id": "impl-gate",
+          "status": "done",
+          "startedAt": "2026-07-21T04:22:57.853Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 163,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-21T04:59:01.342Z",
+            "endedAt": "2026-07-21T04:59:30.470Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-21T04:59:30.453Z"
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "startedAt": "2026-07-21T04:59:30.453Z",
+          "finishedAt": "2026-07-21T04:59:44.235Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 165,
+            "attempt": 1,
+            "command": "flow run retro",
+            "startedAt": "2026-07-21T04:59:44.133Z",
+            "endedAt": "2026-07-21T04:59:44.249Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "acceptance-review",
+          "status": "done",
+          "startedAt": "2026-07-21T04:59:44.235Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 169,
+            "attempt": 1,
+            "command": "flow run acceptance-review",
+            "startedAt": "2026-07-21T05:03:19.343Z",
+            "endedAt": "2026-07-21T05:03:19.554Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "acceptance-decision",
+          "status": "done"
+        },
+        {
+          "id": "final-regression",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 175,
+            "attempt": 1,
+            "command": "flow run final-regression",
+            "startedAt": "2026-07-21T05:10:24.381Z",
+            "endedAt": "2026-07-21T05:10:24.542Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-21T05:10:24.529Z"
+        },
+        {
+          "id": "report",
+          "status": "done",
+          "startedAt": "2026-07-21T05:10:24.529Z",
+          "finishedAt": "2026-07-21T05:10:46.663Z",
+          "runtimeLog": {
+            "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+            "sequence": 177,
+            "attempt": 1,
+            "command": "flow run report",
+            "startedAt": "2026-07-21T05:10:44.812Z",
+            "endedAt": "2026-07-21T05:10:46.702Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-07-21T05:10:46.663Z",
+              "finishedAt": "2026-07-21T05:11:22.153Z",
+              "runtimeLog": {
+                "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+                "sequence": 181,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-07-21T05:11:21.564Z",
+                "endedAt": "2026-07-21T05:11:22.167Z",
+                "exitCode": 0
+              }
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-07-21T05:11:22.153Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "spec": "specs/325-fix-flow-review-scope/tasks/T-1.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "finishedAt": "2026-07-21T04:19:53.564Z"
+        },
+        {
+          "id": "task-review",
+          "status": "done",
+          "finishedAt": "2026-07-21T04:11:12.165Z"
+        },
+        {
+          "id": "task-gate",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    }
+  ],
+  "currentTaskId": null,
+  "outbox": [
+    {
+      "idempotencyKey": "flow-outbox-v1:d617a413-c044-4187-bc8f-0a7229b09c21:flow:report:report",
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "report",
+      "operation": "report",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-21T05:10:44.829Z",
+      "updatedAt": "2026-07-21T05:10:46.631Z",
+      "result": {
+        "result": "ok",
+        "changed": [
+          "specs/325-fix-flow-review-scope/report.json"
+        ],
+        "artifacts": {
+          "report": {
+            "data": {
+              "implementation": {
+                "diffStat": ".../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  292 ++++++\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/325-fix-flow-review-scope/draft.json         |   83 ++\n specs/325-fix-flow-review-scope/file-map.json      |   29 +\n specs/325-fix-flow-review-scope/flow.json          | 1066 ++++++++++++++++++++\n specs/325-fix-flow-review-scope/issue-log.json     |  328 ++++++\n specs/325-fix-flow-review-scope/issue.md           |  116 +++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/spec-attempt-001.json           |   16 +\n .../review-history/spec-attempt-001.md             |   11 +\n .../review-history/test-attempt-001.json           |  170 ++++\n .../review-history/test-attempt-001.md             |   42 +\n .../review-history/test-attempt-002.json           |   86 ++\n .../review-history/test-attempt-002.md             |   24 +\n .../review-history/test-attempt-003.json           |   86 ++\n .../review-history/test-attempt-003.md             |   24 +\n .../review-history/test-attempt-004.json           |   58 ++\n .../review-history/test-attempt-004.md             |   18 +\n .../review-history/test-attempt-005.json           |  112 ++\n .../review-history/test-attempt-005.md             |   27 +\n .../review-history/test-attempt-006.json           |   55 +\n .../review-history/test-attempt-006.md             |   16 +\n .../scenario-validity-result.json                  |   93 ++\n .../spec-gate-source.json                          |  180 ++++\n specs/325-fix-flow-review-scope/spec-review.json   |   13 +\n specs/325-fix-flow-review-scope/spec-review.md     |   11 +\n specs/325-fix-flow-review-scope/spec.json          |  190 ++++\n specs/325-fix-flow-review-scope/spec.md            |  107 ++\n specs/325-fix-flow-review-scope/tasks/T-1.md       |   22 +\n specs/325-fix-flow-review-scope/test-coverage.json |   86 ++\n .../test-execute-result.json                       |  126 +++\n .../test-result-review.json                        |   34 +\n .../test-result-review.md                          |   12 +\n specs/325-fix-flow-review-scope/test-review.json   |   37 +\n specs/325-fix-flow-review-scope/test-review.md     |   16 +\n .../tests/.raw/scenario-validity.log               |  199 ++++\n .../tests/.raw/test-execution.log                  |   58 ++\n .../tests/review-scope-regression.test.js          |  620 ++++++++++++\n src/flow/lib/run-review.js                         |  171 +++-\n src/flow/lib/task-scope.js                         |   79 +-\n 47 files changed, 4746 insertions(+), 59 deletions(-)",
+                "commits": [
+                  "Keep full regression in finalization stage",
+                  "Align flow review verification with issue scope",
+                  "Preserve non-impl review retry scope",
+                  "Fix review scope regression fixtures",
+                  "Fix implementation review scope resolution"
+                ]
+              },
+              "retro": {
+                "total": 6,
+                "done": 6,
+                "partial": 0,
+                "not_done": 0,
+                "not_applicable_count": 0,
+                "na_count": 0,
+                "not_testable_count": 0,
+                "rate": 1,
+                "notes": "aggregated from test-execute-result.json",
+                "requirements": [
+                  {
+                    "desc": "The impl review scope resolver shall return an existing `TaskScopeDecision` derived from active review leaves. For this requirement, actionable task work means at least one task whose `spec` is a non-empty string and whose status is neither `done` nor `skipped`. Exactly one active flow `impl-review` with no active task review resolves to flow when currentTaskId names an existing task, or when currentTaskId is null and no actionable task work remains; a null cursor with actionable task work retains the existing broad/blocked decision; exactly one active `task-review` resolves to that task only when currentTaskId matches it; both active, multiple task reviews, no active review leaf, an unknown currentTaskId, or a task/currentTaskId mismatch resolve to a blocked or invalid decision with a non-empty reason.",
+                    "status": "done",
+                    "note": "R1: active review leaves resolve the complete flow, task, broad, and invalid matrix"
+                  },
+                  {
+                    "desc": "`RunReviewCommand` shall resolve impl review scope once before clearing review stop state or starting any subprocess, then use that decision for max-attempt precheck, task spec selection, audited broad-mode metadata, parsing, reviewRetry, StepAttempt stepId/taskId, and result artifacts; flow scope shall not pass `--task-spec` and shall expose taskId null, while task scope shall pass the selected task spec and expose its taskId. The existing bounds remain four semantic impl-review attempts and at most two subprocess retries after the first subprocess attempt, with retry delay capped at 30000 ms.",
+                    "status": "done",
+                    "note": "R2: RunReviewCommand uses one scope decision for flow and task execution"
+                  },
+                  {
+                    "desc": "When flow `impl-review` is active and currentTaskId names an existing task whose `task-review` is not active, PASS with zero total findings and ADVISORY with zero blocking findings shall complete flow `impl-review`, `impl-triage`, and `impl-repair` through the existing lifecycle and route to `impl-gate`; no task step shall change.",
+                    "status": "done",
+                    "note": "R3: flow PASS and ADVISORY close flow review leaves without task mutation"
+                  },
+                  {
+                    "desc": "A flow-scoped FAIL shall complete flow `impl-review`, start flow `impl-triage`, and leave `impl-repair` and `impl-gate` incomplete; a task-scoped PASS/ADVISORY/FAIL shall retain the selected taskId, metric/outcome scope, and task-review lifecycle without mutating flow `impl-review`, `impl-triage`, or `impl-repair`.",
+                    "status": "done",
+                    "note": "R4: flow FAIL and every task verdict retain their selected lifecycle scope"
+                  },
+                  {
+                    "desc": "An invalid review scope shall return an `ok:false` envelope with code `REVIEW_SCOPE_INVALID` before subprocess launch and before durable changes to flow.json, review stop state, metrics, stepAttempts, review artifacts, runtime review state, or step status; the envelope shall include currentTaskId and the non-empty scope decision reason.",
+                    "status": "done",
+                    "note": "R5: ambiguous review scope returns REVIEW_SCOPE_INVALID before every side effect"
+                  },
+                  {
+                    "desc": "When at least one task has a non-empty `spec` string and status other than `done` or `skipped` while currentTaskId is null, the existing Issue #325 contract shall remain: impl review fails before subprocess launch without an audited broad-mode record and succeeds as broad only with a matching non-empty reason record; matching runId/Issue/spec guards proceed, while any mismatched guard returns `ACTIVE_FLOW_MISMATCH` before scope resolution or durable mutation.",
+                    "status": "done",
+                    "note": "R6: RunReviewCommand enforces broad-mode audit and target guards before scope effects"
+                  }
+                ]
+              },
+              "upgrade": null,
+              "issueLog": {
+                "count": 28,
+                "fullLogPath": "specs/325-fix-flow-review-scope/issue-log.json",
+                "importantTotal": 16,
+                "importantShown": 10,
+                "importantOmitted": 6,
+                "recentOtherTotal": 12,
+                "recentOtherShown": 5,
+                "recentOtherOmitted": 7,
+                "entries": [
+                  {
+                    "classification": "important",
+                    "step": "test-review",
+                    "reason": "The fourth static test review found the final missing R6 assertion for preventing unaudited broad-mode state creation.",
+                    "resolution": "Added a before-and-after flow-state snapshot and an explicit empty broadModeHistory assertion while retaining the no-subprocess check."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "test-review",
+                    "reason": "Plan-level test-review exhausted its declared five semantic attempts but remained retryable because every attempt was mis-scoped to lingering task T-1.",
+                    "resolution": "Stopped without retry reset, manual step completion, implementation, or npm test; this plan-review scope bug is outside Issue #448 and requires a follow-up BUG before safe continuation."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "test-review",
+                    "reason": "Direct recovery temporarily cleared the lingering T-1 cursor because plan-level test-review retry accounting was deadlocked in task scope.",
+                    "resolution": "Saved T-1 in the flow note, changed only currentTaskId to null for plan test-review, and will restore T-1 immediately after the review leaf completes."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "implement",
+                    "reason": "The temporary plan-review cursor isolation completed successfully and T-1 was restored through the supported start-task recovery command.",
+                    "resolution": "Ran guarded start-task for T-1; implement is now the active flow leaf with the original task cursor and no manual step completion."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-review",
+                    "reason": "Independent fixed-commit audit found R3 and R6 focused tests failed before reaching their intended assertions because required lifecycle and command-context fixtures were missing.",
+                    "resolution": "Added a valid impl-review completion artifact fixture for R3 and registered the standard flow command context dependencies for R6 without changing assertions."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-review",
+                    "reason": "The installed senti executable ran pre-fix review scope code instead of the fixed worktree source, recorded a flow impl-review as task-review T-1, and deferred a factually incorrect R2 finding.",
+                    "resolution": "Preserved the generated artifacts as audit evidence and switched recovery commands to the fixed worktree entrypoint node src/senti.js before rerunning review."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "Named related suite exposed one #448 regression and two pre-existing failures: the changed tree incorrectly emitted non-impl reviewRetry metrics with a task cursor; spec 258 imports a non-exported findStepById; e2e 231 fails on both base...",
+                    "resolution": "Restored the pre-existing non-impl task-cursor no-op in run-review.js without changing tests; run-review-advisory now passes once on the changed tree. Preserve the spec 258 and e2e 231 failures as follow-up BUG candidates and do not expa..."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "test-execute-result.json repairFingerprint mismatch: expected 7007e7c1c58cff994e7d74af366fefaaf6d09779e8f802955df2777a6f91018b, got eb4891f7bc788514c4af1e8a177124cb34b133fa6893fe570227550d776e9bf4",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "gate FAIL (no details)",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "Gate attempt 1 was externally blocked because focused test evidence still referenced the pre-fix repair fingerprint.",
+                    "resolution": "Re-ran the supported test-execute and test-result-review steps once on fixed commit 10f13c37; R1-R6 are 6/6 PASS and both evidence artifacts now carry fingerprint 7007e7c1c58cff994e7d74af366fefaaf6d09779e8f802955df2777a6f91018b."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "test-review",
+                    "reason": "The first static test review found five blocking acceptance-coverage gaps in the spec-local regression design.",
+                    "resolution": "Expanded the same spec-local test without skips or weakened assertions so R1, R2, R4, R5, and R6 exercise the production command and lifecycle paths."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "test-review",
+                    "reason": "The second static test review found two remaining gaps in max-attempt scope and individual target-guard coverage.",
+                    "resolution": "Added exhausted flow/task scope cases before subprocess launch and separate runId, Issue, and spec mismatch cases with durable-state checks."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "test-review",
+                    "reason": "The third static test review found missing impl-gate routing evidence and an incomplete max-precheck ordering assertion.",
+                    "resolution": "Switched R3 to the real FlowManager lifecycle and added exhausted-scope state snapshots proving review-stop and runtime state remain unchanged before subprocess launch."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "impl-gate",
+                    "reason": "Gate attempt 2 stopped before judgment because the codex provider could not initialize its in-process app-server in the sandbox read-only filesystem.",
+                    "resolution": "No #448 product change; retry the guarded gate through the already-approved direct node src/senti.js command so the provider uses its permitted runtime environment."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "impl-gate",
+                    "reason": "[REQ:R6] requires the null-cursor actionable-task contract plus target guards, and [AC:8] requires passing focused and full `npm test` execution summaries. The diff implements and tests the broad-mode/guard behavior in `src/flow/lib/task...",
+                    "resolution": null
+                  }
+                ]
+              },
+              "metrics": {
+                "docsRead": 2,
+                "srcRead": 6,
+                "question": 0,
+                "issueLog": 19
+              },
+              "tokenMetrics": {
+                "input": 1771415,
+                "output": 27932,
+                "cacheRead": 440192,
+                "cacheCreation": 0,
+                "cost": null,
+                "callCount": 46,
+                "durationMs": 864080,
+                "phaseDurations": [
+                  {
+                    "phase": "draft-questions-review",
+                    "durationMs": 8681
+                  },
+                  {
+                    "phase": "draft-coverage-review",
+                    "durationMs": 6759
+                  },
+                  {
+                    "phase": "draft-gate",
+                    "durationMs": 23148
+                  },
+                  {
+                    "phase": "spec-review",
+                    "durationMs": 71124
+                  },
+                  {
+                    "phase": "spec-gate",
+                    "durationMs": 57262
+                  },
+                  {
+                    "phase": "test-review",
+                    "durationMs": 143225
+                  },
+                  {
+                    "phase": "impl-review",
+                    "durationMs": 367802
+                  },
+                  {
+                    "phase": "impl-gate",
+                    "durationMs": 149997
+                  },
+                  {
+                    "phase": "acceptance-review",
+                    "durationMs": 36082
+                  }
+                ]
+              },
+              "tests": {
+                "total": 6,
+                "passed": 6,
+                "failed": 0,
+                "verdict": "pass",
+                "invalidReason": null,
+                "rawOutputPath": "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log",
+                "projectRegression": {
+                  "required": false,
+                  "result": "skipped",
+                  "mode": "none",
+                  "category": "full-regression-deferred",
+                  "reason": "full project regression deferred to final-regression",
+                  "classified_paths": [
+                    {
+                      "path": "src/flow/lib/run-review.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "src/flow/lib/task-scope.js",
+                      "category": "full-regression-deferred"
+                    }
+                  ],
+                  "trigger_relevant_changed_files": [
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-review.js",
+                      "fingerprint": "f088aebe9ac5e1a39b1e18aec56e26a5bbf4ae4ee098168e639ea0a4537caaf2"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/task-scope.js",
+                      "fingerprint": "4edad3d4a0391bdff20e1d2e039ed2dee089b988e6c0dc346ddfe6e4d3810a65"
+                    }
+                  ],
+                  "changed_files": [
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-review.js",
+                      "fingerprint": "f088aebe9ac5e1a39b1e18aec56e26a5bbf4ae4ee098168e639ea0a4537caaf2"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/task-scope.js",
+                      "fingerprint": "4edad3d4a0391bdff20e1d2e039ed2dee089b988e6c0dc346ddfe6e4d3810a65"
+                    }
+                  ]
+                },
+                "finalRegression": {
+                  "status": "done",
+                  "result": "fail",
+                  "failureKind": "unattributed_existing_failure",
+                  "failureCategory": "existing_failure",
+                  "failureNature": "assertion",
+                  "skipKind": null,
+                  "rawOutputPath": "specs/325-fix-flow-review-scope/tests/.raw/final-regression-attempt-001.log",
+                  "command": "node tests/run.js",
+                  "process": {
+                    "started": true,
+                    "exitCode": 1,
+                    "signal": null,
+                    "timedOut": false,
+                    "spawnError": null
+                  },
+                  "exitCode": 1,
+                  "failureSummary": "not ok 280 - flow state path ownership and every source write sink stay in the shared writer\n  ---\n  duration_ms: 1309.135425\n  type: 'test'\n  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/tests/unit/flow/flow-state-source-sinks.test.js:604:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    direct flow.json sinks:",
+                  "currentDiffRelationship": "non-current-diff",
+                  "changedFiles": [
+                    {
+                      "status": "modified",
+                      "path": ".senti/output/analysis.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/acceptance-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/draft-coverage-repair.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/draft-coverage-triage.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/draft-gate-source.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/draft-questions-repair.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/draft-questions-triage.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/draft-review-coverage.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/draft-review-questions.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/draft.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/file-map.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/gate-impl-memory.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/impl-gate-result.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/impl-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/issue.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/plugin-artifacts/workflow/prepare.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/retro.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/draft-coverage-attempt-001.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/draft-questions-attempt-001.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/impl-attempt-001-flow-findings.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/impl-attempt-001.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/impl-attempt-001.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/spec-attempt-001.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/spec-attempt-001.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-001.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-001.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-002.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-002.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-003.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-003.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-004.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-004.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-005.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-005.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-006.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-006.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/55f3c4f37815843d7bcf7bb2.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/a354cf8c3d747e5abe5d471d.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/bd3798396b2128f722503801.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/f46e4421c964dc72d0353d06.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/review.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/scenario-validity-result.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/spec-gate-source.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/spec-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/spec-review.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/spec.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/spec.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/tasks/T-1.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/test-coverage.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/test-execute-result.json"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/325-fix-flow-review-scope/test-execute-result.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/test-result-review.json"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/325-fix-flow-review-scope/test-result-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/test-result-review.md"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/test-review.json"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/test-review.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/related-tests.log"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/run-review-advisory-regression.log"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/scenario-validity.log"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-review.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/task-scope.js"
+                    }
+                  ],
+                  "changedFileFingerprints": [
+                    {
+                      "path": ".senti/output/analysis.json",
+                      "fingerprint": "e34e4ce65419153bd9cfacf336029a4f537c63c9d80cbfbcad2a991ab72db992"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/acceptance-review.json",
+                      "fingerprint": "8fc501a82ed2b687c4a0bbbcff1e3d279e0c587b76c7ecbc92d0491a533d0652"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/draft-coverage-repair.json",
+                      "fingerprint": "945a3eab309409f7579c7acc56ef4b88ba3889bfe2de9fdb514ca06a76e561b5"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/draft-coverage-triage.json",
+                      "fingerprint": "91de61f55b71824ce0d26609a0fcf99a3fb87afab36621455a0313e92bfd2cf5"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/draft-gate-source.json",
+                      "fingerprint": "92f051b87e2e8ed80bcddd7adb7a8357fd7f346e2bd5858649b83ba2c9e927e9"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/draft-questions-repair.json",
+                      "fingerprint": "a5968bf922776739585791d26c28b7c4b689c359b205839b8352baaa7f71524a"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/draft-questions-triage.json",
+                      "fingerprint": "46d803e80d133a6ee11a2d5954d276d41ba5f0d2fa0421ce0b31146b44a06f56"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/draft-review-coverage.json",
+                      "fingerprint": "e26f5b28274d171d854407cf8ae3828b4a244802aeb41620b5f54418cbc3f39e"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/draft-review-questions.json",
+                      "fingerprint": "2b7381bf3b5de297b9be85dcd90b57af2cc5a437adca2ef60d3bcac082740566"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/draft.json",
+                      "fingerprint": "c798a29ec8c1aca3fc3a1324bf7c0ae5c61300a2fc52e1ebb214af6eab70cc32"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/file-map.json",
+                      "fingerprint": "9389c1a65fa633cbc168ced63ef7b98170f4252d2dc3109c83126f118017809c"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/gate-impl-memory.json",
+                      "fingerprint": "7ac51c270a4e4162ff3094fcca8c2a8d06ce4c9966b1eddbd8d16209b2497981"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/impl-gate-result.json",
+                      "fingerprint": "50f15095895b7f71b01ec042db57729f206d3dc6a665956bb5b4e82d01055871"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/impl-review.json",
+                      "fingerprint": "081a47f2c141f7e2601675cefadd8f9742ee1769a9fab46ae0c35aebe7463092"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/issue.md",
+                      "fingerprint": "b568574da4d20ed99c1654c12155eb0fda398cdbdc6ff6ac521c76815ea1da65"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/plugin-artifacts/workflow/prepare.json",
+                      "fingerprint": "ba9bc3eb71a3493b1f2ce2a9d9ba72c6897b58b5bbdf06698a0a5a7995dbade6"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/retro.json",
+                      "fingerprint": "2a2a1e9ee09ed62f614ad0693db81cb2419469adf3375b7142cf0eb04212bed8"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/draft-coverage-attempt-001.json",
+                      "fingerprint": "f60405ba24225cd6a588b461a82f4794d8dcc2b325ba0386a4933bd32a135a7c"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/draft-questions-attempt-001.json",
+                      "fingerprint": "f885a66b6c8355ade0e309a2e74a52fb301b9fa7d7794b24eaf95051deb27db1"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/impl-attempt-001-flow-findings.json",
+                      "fingerprint": "d572f4dfc9d61ddcdb32d80df70ed1f42e06cf33c077b236b7ee599f6313ccc8"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/impl-attempt-001.json",
+                      "fingerprint": "6b83d132836f3eec252cefed898e73654f1f61ff8f8c867f0699a3b46f276a7c"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/impl-attempt-001.md",
+                      "fingerprint": "5d0116ee694db060127b354d61877245f5bacadc8ad6f54e28dfc11cb593de52"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/spec-attempt-001.json",
+                      "fingerprint": "ce4e49afd64dd346ff49b7ca0bcad65ea0c1234161249b21d5bedd4a55bc3a65"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/spec-attempt-001.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-001.json",
+                      "fingerprint": "25f5a7927fe6a0cd4fda08f67c207fdc8e46fa6cbadf3ac5da977011bfec590e"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-001.md",
+                      "fingerprint": "712d4172d6eac16d64092f8c3dfc37dea43170c80c1af910eddbb09cfbbc51a4"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-002.json",
+                      "fingerprint": "92a17a269833ec3f4e234a0182132ef8964746e3e3abba96c6fe2eca1df643fa"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-002.md",
+                      "fingerprint": "48d895c73f9d35b79ba49cb94035f73ac2b25374db3713e789026858c7553750"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-003.json",
+                      "fingerprint": "e94aae425da82e15c42f0014d25d99a37324c67823f463a7324c20e81f4f45c3"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-003.md",
+                      "fingerprint": "65b023c015642353e5c309c4eba0d213d824266cd134dedf4080daf9a137a98d"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-004.json",
+                      "fingerprint": "3f034e6f9c78173869ace0e76da55579613a266846295d82542953652033e373"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-004.md",
+                      "fingerprint": "b629749fac4a1f34f8340c307e91e41ba563a4d8f38196dc1e7ebc39067d8de2"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-005.json",
+                      "fingerprint": "d11b937c57e767818cfba225dd3f5f91e95f2cef2fd81d813f4e1006f61dce26"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-005.md",
+                      "fingerprint": "ee7b6bddf4f99f9e093604ac3cb577c37ae6da1164ee8cfd7896d335f1d1d480"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-006.json",
+                      "fingerprint": "58ea24da3d824a378ef69c8f6c5e62fc10f662c261b76e710700a75a207efcea"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/test-attempt-006.md",
+                      "fingerprint": "80a8113d475e7d1352b216f6f27f485d438d227d79a11966c0e67d3c44512f10"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+                      "fingerprint": "32873460f6b73c53fedd790d1cbb1a12e45ee2c14fc7f0ee33a46a831a07cac6"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+                      "fingerprint": "45d5f8b149eb2ab1279cfbe922fe97fb15aac1e689ee6a19396b08e33f2b7c90"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+                      "fingerprint": "052649ba58cf55a3425d29aed028af3eca3ca2e3844abf6cccb0cc12db97f2f3"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+                      "fingerprint": "fad643dda33fb59ab9180f9408df1f56a91da12ac442faa014422fb9264ba92a"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+                      "fingerprint": "05b6bf3aa7d13504d598654a10c706a88d5257463bfcf506b42c4c093875cd41"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/55f3c4f37815843d7bcf7bb2.json",
+                      "fingerprint": "42f59b7fcc09dc1a8d69ba3dceb2af41a3cb16b6ebae90d291a93e5af119f216"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+                      "fingerprint": "1a0d04eb9cc693a56b7188f428e2070e4cb4347f2b812783a489cf98a81fa244"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+                      "fingerprint": "d277d1dda1e1cb88a57303cdae7daee55a58f4175b8e360eb775ea11e4e6257a"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+                      "fingerprint": "7250dea8de21399b4dd29aa2972620cdee44cede1423b6e945f2728d676895a0"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+                      "fingerprint": "967256ad9a47e037be9a48810dfd7e7a7a5a978e4903947c2f86e0fd9a614fc8"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+                      "fingerprint": "70a075d71a09dea468e6dc1bb43238ec23f2526c5152cff8b6d992120bbbf90a"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+                      "fingerprint": "328122ef7148605e7fa0528520f738c1f33ae1e186d6f3cdc8f809b3249a42e7"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/a354cf8c3d747e5abe5d471d.json",
+                      "fingerprint": "11580408cfd76ac298e071a8df51565ebe1e84be8ba1774adb0969ea62c2f929"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+                      "fingerprint": "533866f858fa476804be7f76f10945c86b2f3f43da1dbb5ef25c2c4dc172f937"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+                      "fingerprint": "0b7a5a117f641c1fdefcc38d667530d3cb7fce2cb0bdef192010d145f95644ad"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+                      "fingerprint": "659c773668fa7b326c609f70a3c0f259562affba91c025609105edd0ac0a75ee"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+                      "fingerprint": "20e1efcf65b29dbbbbf3919e63c79eacf6175aa35a93067bf4753c08b1a3ed5d"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review-history/work-units/impl-review/f46e4421c964dc72d0353d06.json",
+                      "fingerprint": "058ac437a704dc72b7f1a43ac7ec7bcf3f17b23cf239d4af57df4d4fdebc242a"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/review.md",
+                      "fingerprint": "bc0baa15135f34e4ef5c7719e64fd4e03044e9d2d3590eb5abde77851671017f"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/scenario-validity-result.json",
+                      "fingerprint": "353aadd68277593ecda8dfbdc333c9c836b9638e4bf7c803a2cfe0d7f53cbff6"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/spec-gate-source.json",
+                      "fingerprint": "2a0b599a54a2ee154054d7bff490e7a549e653b98007d527972e940b73c6bb44"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/spec-review.json",
+                      "fingerprint": "6c965908912959b6f65317f2fb1c392b24416cb24fb11f4d0716322947535bcd"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/spec-review.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/spec.json",
+                      "fingerprint": "7c9ebbce4565a02cd94a5bb5ca74a4d50dec618ea9b0035fb90d4537ba8b6c35"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/spec.md",
+                      "fingerprint": "3092e2c70000e36093973b1f3ec992a022467d242ebca9941c82b1220457211f"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/tasks/T-1.md",
+                      "fingerprint": "2840a1e362bbbe132649753acb96104fbd19879eef578edaf49c8503cd375545"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/test-coverage.json",
+                      "fingerprint": "52fe50b9b38c7231bfbe4a2b1c7b41812eba264d98c119aff08f9873e19d1250"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/test-execute-result.json",
+                      "fingerprint": "c6b7adc3853edc2aa7cb16f638b62200c366869862a322e9fdfd7e10148cbe4d"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/test-execute-result.json",
+                      "fingerprint": "c6b7adc3853edc2aa7cb16f638b62200c366869862a322e9fdfd7e10148cbe4d"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/test-result-review.json",
+                      "fingerprint": "e2e9b16a314b27df94956f0d5563c1ea43bcaea01cd71c54e6b74d8948002221"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/test-result-review.json",
+                      "fingerprint": "e2e9b16a314b27df94956f0d5563c1ea43bcaea01cd71c54e6b74d8948002221"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/test-result-review.md",
+                      "fingerprint": "28dc698f5029e85ad5819241fd6f458f60346bf97146bab9319d793be958df2c"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/test-review.json",
+                      "fingerprint": "775cc4e6c3c7b7e293af87a1aef48396851d7f2ddfcb24cf20b339054467ef04"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/test-review.md",
+                      "fingerprint": "80a8113d475e7d1352b216f6f27f485d438d227d79a11966c0e67d3c44512f10"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/related-tests.log",
+                      "fingerprint": "23fc4e89860b262413813bc21d67994186d9dc7cf9bf881165857ae21ce92589"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/run-review-advisory-regression.log",
+                      "fingerprint": "bf87686a4011a91d5fa4feed63aab90cd5e36633186ca8b54e84b49d808c8ae9"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/scenario-validity.log",
+                      "fingerprint": "ddeb9a7b96dc6a8ea5953fc2a21fa5e2fdbe14439197f9fa806150032fd2fc6c"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log",
+                      "fingerprint": "5d5d1398d796e1cbd87e79876428f24effff2ba0825ea96013fadac839805f04"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log",
+                      "fingerprint": "5d5d1398d796e1cbd87e79876428f24effff2ba0825ea96013fadac839805f04"
+                    },
+                    {
+                      "path": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+                      "fingerprint": "08300bb4051a6cd8e1112c6804c08b8cc52fe4d241f9f579caf836e40657b972"
+                    },
+                    {
+                      "path": "src/flow/lib/run-review.js",
+                      "fingerprint": "f088aebe9ac5e1a39b1e18aec56e26a5bbf4ae4ee098168e639ea0a4537caaf2"
+                    },
+                    {
+                      "path": "src/flow/lib/task-scope.js",
+                      "fingerprint": "4edad3d4a0391bdff20e1d2e039ed2dee089b988e6c0dc346ddfe6e4d3810a65"
+                    }
+                  ],
+                  "fixAttempts": 0,
+                  "selectedAction": "record-and-proceed",
+                  "remainingRisk": "final-regression remains failed; category=existing_failure",
+                  "retryable": false,
+                  "nextAction": "report",
+                  "nextRecommendedAction": "record-and-proceed",
+                  "recordAndProceed": {
+                    "eligible": true,
+                    "validated": true,
+                    "evidence": "record-and-proceed selected for existing_failure"
+                  },
+                  "humanSummary": "result=fail failureCategory=existing_failure failureKind=unattributed_existing_failure raw_output=specs/325-fix-flow-review-scope/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=existing_failure"
+                }
+              },
+              "sync": {
+                "status": "skipped",
+                "reason": "sync was skipped"
+              },
+              "tasks": [
+                {
+                  "id": "T-1",
+                  "status": "done",
+                  "implementationSummary": "missing",
+                  "testExecute": "available",
+                  "review": "done",
+                  "gateImpl": "pending"
+                }
+              ],
+              "taskTotal": 1,
+              "tasksTruncated": 0,
+              "broadModeHistory": [],
+              "broadModeHistoryTotal": 0,
+              "broadModeHistoryTruncated": 0
+            },
+            "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Keep full regression in finalization stage\n    Align flow review verification with issue scope\n    Preserve non-impl review retry scope\n    Fix review scope regression fixtures\n    Fix implementation review scope resolution\n    47 files changed, 4746 insertions(+), 59 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 6\n    Q&A ......................... 0\n    issue-log ................... 19\n    agent calls ................. 46\n    input tokens ................ 1,771,415\n    output tokens ............... 27,932\n    cache-read tokens ........... 440,192\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 864.1s\n      draft-questions-review .... 8.7s\n      draft-coverage-review ..... 6.8s\n      draft-gate ................ 23.1s\n      spec-review ............... 71.1s\n      spec-gate ................. 57.3s\n      test-review ............... 143.2s\n      impl-review ............... 367.8s\n      impl-gate ................. 150.0s\n      acceptance-review ......... 36.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/325-fix-flow-review-scope/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=unattributed_existing_failure failureCategory=existing_failure raw_output=specs/325-fix-flow-review-scope/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=existing_failure\n\n  Tasks (1/1)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=pending\n\n  Issue Log Summary (28 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/325-fix-flow-review-scope/issue-log.json\n\n    Important (10 of 16)\n    - [test-review] The fourth static test review found the final missing R6 assertion for preventing unaudited broad-mode state creation.\n    - [test-review] Plan-level test-review exhausted its declared five semantic attempts but remained retryable because every attempt was mis-scoped to lingering task T-1.\n    - [test-review] Direct recovery temporarily cleared the lingering T-1 cursor because plan-level test-review retry accounting was deadlocked in task scope.\n    - [implement] The temporary plan-review cursor isolation completed successfully and T-1 was restored through the supported start-task recovery command.\n    - [impl-review] Independent fixed-commit audit found R3 and R6 focused tests failed before reaching their intended assertions because required lifecycle and command-context fixtures were missing.\n    - [impl-review] The installed senti executable ran pre-fix review scope code instead of the fixed worktree source, recorded a flow impl-review as task-review T-1, and deferred a factually incorrect R2 finding.\n    - [impl-gate] Named related suite exposed one #448 regression and two pre-existing failures: the changed tree incorrectly emitted non-impl reviewRetry metrics with a task cursor; spec 258 imports a non-exported findStepById; e2e 231 fails on both base...\n    - [impl-gate] test-execute-result.json repairFingerprint mismatch: expected 7007e7c1c58cff994e7d74af366fefaaf6d09779e8f802955df2777a6f91018b, got eb4891f7bc788514c4af1e8a177124cb34b133fa6893fe570227550d776e9bf4\n    - [impl-gate] gate FAIL (no details)\n    - [impl-gate] Gate attempt 1 was externally blocked because focused test evidence still referenced the pre-fix repair fingerprint.\n    ... 6 important issue-log entries omitted\n\n    Recent Other (5 of 12)\n    - [test-review] The first static test review found five blocking acceptance-coverage gaps in the spec-local regression design.\n    - [test-review] The second static test review found two remaining gaps in max-attempt scope and individual target-guard coverage.\n    - [test-review] The third static test review found missing impl-gate routing evidence and an incomplete max-precheck ordering assertion.\n    - [impl-gate] Gate attempt 2 stopped before judgment because the codex provider could not initialize its in-process app-server in the sandbox read-only filesystem.\n    - [impl-gate] [REQ:R6] requires the null-cursor actionable-task contract plus target guards, and [AC:8] requires passing focused and full `npm test` execution summaries. The diff implements and tests the broad-mode/guard behavior in `src/flow/lib/task...\n    ... 7 other issue-log entries omitted"
+          },
+          "issueComment": {
+            "status": "done",
+            "issue": 448,
+            "resumed": false
+          }
+        }
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:d617a413-c044-4187-bc8f-0a7229b09c21:flow:finalize-commit:finalize-commit",
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "finalize-commit",
+      "operation": "finalize-commit",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-21T05:11:21.587Z",
+      "updatedAt": "2026-07-21T05:11:22.109Z",
+      "result": {
+        "status": "done",
+        "message": "Finalize flow review scope fix"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:d617a413-c044-4187-bc8f-0a7229b09c21:flow:finalize-merge:finalize-merge",
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "finalize-merge",
+      "operation": "finalize-merge",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-21T05:11:45.749Z",
+      "updatedAt": "2026-07-21T05:11:45.749Z"
+    }
+  ],
+  "issue": 448,
+  "request": "Goal: Fix Issue #448 so flow-level impl-review scope follows the active review leaf, not a lingering currentTaskId. Scope: run-review.js, task-scope.js, minimum definition.js lifecycle changes, and focused regressions for flow PASS/ADVISORY/FAIL, task review, ambiguous scope, broad mode, #325 cursor enforcement, and target guards. Out of scope: FindingDispositionPolicy, Issue #446, review/gate policy redesign, retry budget changes, manual flow repair, and other board items.",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 24,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "goalGate": {
+      "checked": true,
+      "passed": true
+    },
+    "reason": "目的・対象ファイル・除外範囲・受入条件・検証方法が明確で、既存不具合修正として自動実装可能。"
+  },
+  "notes": [
+    {
+      "text": "branch: prepare from origin/main stopped before mutation because required .senti/config.json differs on clean local main; retry with local main so the existing user commit remains the baseline and is excluded from the feature diff",
+      "taskId": null,
+      "ts": "2026-07-21T02:54:06.526Z"
+    },
+    {
+      "text": "test-review: User explicitly directed completion of Issue #448 and authorized a minimal direct repair when the normal review path is deadlocked; preserve scope and restore T-1 immediately after plan test-review.",
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:48:04.468Z"
+    }
+  ],
+  "worktree": true,
+  "plugins": {
+    "flowCommandHooks": [
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/finalize-cleanup.js",
+        "className": "WorkflowFinalizeCleanupHook",
+        "command": "finalize-cleanup",
+        "hook": "post",
+        "priority": 0
+      },
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/prepare.js",
+        "className": "WorkflowPrepareHook",
+        "command": "prepare",
+        "hook": "post",
+        "priority": 0
+      }
+    ]
+  },
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T02:54:42.481Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T02:54:48.604Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T02:54:55.295Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T02:55:18.467Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T02:55:40.111Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 8681,
+      "tokens": {
+        "input": 14491,
+        "output": 133,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T02:57:45.889Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-21T02:57:45.979Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 6759,
+      "tokens": {
+        "input": 17155,
+        "output": 64,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T02:58:29.987Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-21T02:58:30.079Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1588,
+      "durationMs": 18530,
+      "tokens": {
+        "input": 17436,
+        "output": 702,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T02:59:12.894Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T02:59:12.926Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T02:59:23.178Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 4618,
+      "tokens": {
+        "input": 17778,
+        "output": 15,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T03:01:04.586Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-21T03:01:04.607Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T03:01:36.936Z"
+    },
+    {
+      "phase": "spec-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1986,
+      "durationMs": 71124,
+      "tokens": {
+        "input": 65850,
+        "output": 2723,
+        "cacheRead": 290176,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T03:06:52.520Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-21T03:06:52.557Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 263,
+      "durationMs": 24297,
+      "tokens": {
+        "input": 19651,
+        "output": 589,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T03:07:30.544Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T03:07:30.580Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T03:07:47.108Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T03:07:52.511Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1069,
+      "durationMs": 21876,
+      "tokens": {
+        "input": 19709,
+        "output": 711,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T03:08:40.197Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T03:08:40.230Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T03:08:59.964Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T03:09:39.570Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 11089,
+      "tokens": {
+        "input": 22156,
+        "output": 368,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T03:10:19.630Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-21T03:10:19.653Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4715,
+      "durationMs": 33967,
+      "tokens": {
+        "input": 20871,
+        "output": 1069,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:15:50.391Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:18:21.992Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:24:32.434Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2093,
+      "durationMs": 21714,
+      "tokens": {
+        "input": 20170,
+        "output": 894,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:25:12.317Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:27:20.650Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1840,
+      "durationMs": 23511,
+      "tokens": {
+        "input": 20808,
+        "output": 930,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:28:01.938Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:29:41.242Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1039,
+      "durationMs": 20034,
+      "tokens": {
+        "input": 21065,
+        "output": 735,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:30:15.680Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:30:53.779Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2154,
+      "durationMs": 24222,
+      "tokens": {
+        "input": 21102,
+        "output": 970,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:31:33.700Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:32:20.644Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T03:49:34.267Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 586,
+      "durationMs": 19777,
+      "tokens": {
+        "input": 21332,
+        "output": 661,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T03:50:11.229Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-21T03:50:11.271Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T03:50:54.463Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:08:00.482Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1573,
+      "durationMs": 13542,
+      "tokens": {
+        "input": 87899,
+        "output": 441,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:11:12.079Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:12:31.987Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2020,
+      "durationMs": 18501,
+      "tokens": {
+        "input": 16884,
+        "output": 521,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:13:03.647Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 8831,
+      "tokens": {
+        "input": 15031,
+        "output": 124,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:13:12.540Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2782,
+      "durationMs": 22416,
+      "tokens": {
+        "input": 17526,
+        "output": 702,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:13:35.016Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2566,
+      "durationMs": 20781,
+      "tokens": {
+        "input": 32609,
+        "output": 664,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:13:55.865Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 9829,
+      "tokens": {
+        "input": 15129,
+        "output": 230,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:14:05.757Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1943,
+      "durationMs": 13672,
+      "tokens": {
+        "input": 8338,
+        "output": 472,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:14:19.490Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2419,
+      "durationMs": 28337,
+      "tokens": {
+        "input": 9712,
+        "output": 622,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:14:47.892Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1588,
+      "durationMs": 13932,
+      "tokens": {
+        "input": 7634,
+        "output": 468,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:15:01.885Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1086,
+      "durationMs": 12899,
+      "tokens": {
+        "input": 17577,
+        "output": 394,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:15:14.842Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1544,
+      "durationMs": 18565,
+      "tokens": {
+        "input": 6603,
+        "output": 409,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:15:33.467Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3083,
+      "durationMs": 19028,
+      "tokens": {
+        "input": 19444,
+        "output": 767,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:15:52.557Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1586,
+      "durationMs": 14724,
+      "tokens": {
+        "input": 19272,
+        "output": 519,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:16:07.344Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 11406,
+      "tokens": {
+        "input": 2320,
+        "output": 86,
+        "cacheRead": 15744,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:16:18.813Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1548,
+      "durationMs": 12022,
+      "tokens": {
+        "input": 8523,
+        "output": 386,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:16:30.896Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4034,
+      "durationMs": 22029,
+      "tokens": {
+        "input": 26929,
+        "output": 933,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:16:52.984Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4098,
+      "durationMs": 22990,
+      "tokens": {
+        "input": 9881,
+        "output": 892,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:17:16.033Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3151,
+      "durationMs": 18706,
+      "tokens": {
+        "input": 35113,
+        "output": 773,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:17:39.755Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4510,
+      "durationMs": 23562,
+      "tokens": {
+        "input": 20232,
+        "output": 975,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:18:03.405Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1862,
+      "durationMs": 18879,
+      "tokens": {
+        "input": 25156,
+        "output": 454,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:18:27.293Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3712,
+      "durationMs": 23151,
+      "tokens": {
+        "input": 19956,
+        "output": 814,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-21T04:18:50.531Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-21T04:22:57.674Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T04:36:31.493Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T04:40:00.152Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 9825,
+      "taskId": null,
+      "ts": "2026-07-21T04:40:30.762Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T04:41:16.456Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 853,
+      "durationMs": 20534,
+      "tokens": {
+        "input": 107990,
+        "output": 732,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:42:12.036Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1216,
+      "durationMs": 19275,
+      "tokens": {
+        "input": 111280,
+        "output": 653,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:42:31.383Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 889,
+      "durationMs": 13476,
+      "tokens": {
+        "input": 111214,
+        "output": 374,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:42:44.929Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 963,
+      "durationMs": 19848,
+      "tokens": {
+        "input": 111605,
+        "output": 629,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:43:04.848Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 965,
+      "durationMs": 12398,
+      "tokens": {
+        "input": 110044,
+        "output": 350,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:43:17.319Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1035,
+      "durationMs": 13282,
+      "tokens": {
+        "input": 112474,
+        "output": 389,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:43:30.670Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T04:43:30.729Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T04:45:40.594Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 654,
+      "durationMs": 13025,
+      "tokens": {
+        "input": 114193,
+        "output": 336,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:46:07.710Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T04:46:07.778Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T04:58:45.598Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1570,
+      "durationMs": 20607,
+      "tokens": {
+        "input": 115917,
+        "output": 511,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:59:22.434Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 7727,
+      "tokens": {
+        "input": 91510,
+        "output": 100,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T04:59:30.276Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-21T04:59:30.338Z"
+    },
+    {
+      "phase": "acceptance-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 6088,
+      "durationMs": 36082,
+      "tokens": {
+        "input": 43846,
+        "output": 1648,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-21T05:01:30.983Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-21T05:10:10.766Z"
+    }
+  ],
+  "stepAttempts": [
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "draft-questions-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-refine",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-21T02:57:46.004Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "draft-coverage-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-21T02:58:30.105Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-draft"
+      },
+      "recordedAt": "2026-07-21T02:59:12.934Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "spec",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-21T03:01:04.614Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "spec-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "spec-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-21T03:06:52.585Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-spec"
+      },
+      "recordedAt": "2026-07-21T03:07:30.589Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-spec"
+      },
+      "recordedAt": "2026-07-21T03:08:40.239Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "approval",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-21T03:10:19.662Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": "T-1",
+      "stepId": "task-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-21T03:15:50.417Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": "T-1",
+      "stepId": "task-review",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-21T03:25:12.347Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": "T-1",
+      "stepId": "task-review",
+      "attempt": 3,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-21T03:28:01.968Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": "T-1",
+      "stepId": "task-review",
+      "attempt": 4,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-21T03:30:15.712Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": "T-1",
+      "stepId": "task-review",
+      "attempt": 5,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-21T03:31:33.730Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "test-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "implement",
+        "decision": "ADVISORY"
+      },
+      "recordedAt": "2026-07-21T03:50:11.303Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": "T-1",
+      "stepId": "task-review",
+      "attempt": 6,
+      "outcome": {
+        "kind": "defer",
+        "terminal": true,
+        "nextAction": "refresh-next-action",
+        "findingCount": 1
+      },
+      "recordedAt": "2026-07-21T04:11:12.175Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "impl-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-21T04:22:57.713Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-integration"
+      },
+      "recordedAt": "2026-07-21T04:43:30.739Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-integration"
+      },
+      "recordedAt": "2026-07-21T04:46:07.788Z"
+    },
+    {
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "retro",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-21T04:59:30.350Z"
+    }
+  ],
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "f2a3938a106d9ae819429076c6b5fcc30f6fc419376458f0163d1c7194600293",
+        "paths": [
+          "specs/325-fix-flow-review-scope/file-map.json",
+          "specs/325-fix-flow-review-scope/test-execute-result.json",
+          "specs/325-fix-flow-review-scope/test-result-review.json",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/task-scope.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-21T04:43:30.842Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "6cb728df918ec7480c8192a1f997e8cec7abf7e543868e3fcd2d316f462024f6",
+        "paths": [
+          "specs/325-fix-flow-review-scope/file-map.json",
+          "specs/325-fix-flow-review-scope/test-execute-result.json",
+          "specs/325-fix-flow-review-scope/test-result-review.json",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/task-scope.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-21T04:46:07.890Z"
+    }
+  ],
+  "gateImplMemory": {
+    "version": 1,
+    "phase": "integration",
+    "artifactPath": "specs/325-fix-flow-review-scope/gate-impl-memory.json",
+    "roundsKept": 3,
+    "lastUpdatedAt": "2026-07-21T04:46:07.936Z",
+    "headSha": null,
+    "worktreeHash": null,
+    "passedGuardrails": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5"
+    ],
+    "entries": [
+      {
+        "signature": "59a199e3f00c72a9e672757679d9eb4664210cfb4102d882bb1ba04f11ea8bf1",
+        "status": "blocking",
+        "observationRef": "specs/325-fix-flow-review-scope/gate-impl-memory.json#round-1"
+      },
+      {
+        "signature": "4fff96a28b571297a9770cdee295b513441fbdc4d32dfbfb3e80041652601287",
+        "status": "blocking",
+        "observationRef": "specs/325-fix-flow-review-scope/gate-impl-memory.json#round-2"
+      }
+    ]
+  },
+  "acceptanceReview": {
+    "verdict": "pass",
+    "artifactPath": "specs/325-fix-flow-review-scope/acceptance-review.json",
+    "requirementJudgments": [
+      {
+        "requirementId": "R1",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R1"
+        ],
+        "diffRefs": [
+          "diff:src/flow/lib/task-scope.js",
+          "diff:specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js"
+        ],
+        "repairRefs": [
+          "acceptance:no-repair"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R1",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R2",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R2"
+        ],
+        "diffRefs": [
+          "diff:src/flow/lib/run-review.js",
+          "diff:src/flow/lib/task-scope.js",
+          "diff:specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js"
+        ],
+        "repairRefs": [
+          "acceptance:no-repair"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R2",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R3",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R3"
+        ],
+        "diffRefs": [
+          "diff:src/flow/lib/run-review.js",
+          "diff:src/flow/lib/task-scope.js",
+          "diff:specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js"
+        ],
+        "repairRefs": [
+          "acceptance:no-repair"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R3",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R4",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R4"
+        ],
+        "diffRefs": [
+          "diff:src/flow/lib/run-review.js",
+          "diff:src/flow/lib/task-scope.js",
+          "diff:specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js"
+        ],
+        "repairRefs": [
+          "acceptance:no-repair"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R4",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R5",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R5"
+        ],
+        "diffRefs": [
+          "diff:src/flow/lib/run-review.js",
+          "diff:src/flow/lib/task-scope.js",
+          "diff:specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js"
+        ],
+        "repairRefs": [
+          "acceptance:no-repair"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R5",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R6",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R6"
+        ],
+        "diffRefs": [
+          "diff:src/flow/lib/run-review.js",
+          "diff:src/flow/lib/task-scope.js",
+          "diff:specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js"
+        ],
+        "repairRefs": [
+          "acceptance:no-repair"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R6",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      }
+    ],
+    "mechanicalBlockers": [],
+    "deferredFindings": [],
+    "updatedAt": "2026-07-21T05:03:19.535Z"
+  },
+  "state": {
+    "finalizedAt": "2026-07-21T05:11:21.768Z"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The impl review scope resolver shall return an existing `TaskScopeDecision` derived from active review leaves. For this requirement, actionable task work means at least one task whose `spec` is a non-empty string and whose status is neither `done` nor `skipped`. Exactly one active flow `impl-review` with no active task review resolves to flow when currentTaskId names an existing task, or when currentTaskId is null and no actionable task work remains; a null cursor with actionable task work retains the existing broad/blocked decision; exactly one active `task-review` resolves to that task only when currentTaskId matches it; both active, multiple task reviews, no active review leaf, an unknown currentTaskId, or a task/currentTaskId mismatch resolve to a blocked or invalid decision with a non-empty reason.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/review-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "`RunReviewCommand` shall resolve impl review scope once before clearing review stop state or starting any subprocess, then use that decision for max-attempt precheck, task spec selection, audited broad-mode metadata, parsing, reviewRetry, StepAttempt stepId/taskId, and result artifacts; flow scope shall not pass `--task-spec` and shall expose taskId null, while task scope shall pass the selected task spec and expose its taskId. The existing bounds remain four semantic impl-review attempts and at most two subprocess retries after the first subprocess attempt, with retry delay capped at 30000 ms.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/review-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When flow `impl-review` is active and currentTaskId names an existing task whose `task-review` is not active, PASS with zero total findings and ADVISORY with zero blocking findings shall complete flow `impl-review`, `impl-triage`, and `impl-repair` through the existing lifecycle and route to `impl-gate`; no task step shall change.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/review-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "A flow-scoped FAIL shall complete flow `impl-review`, start flow `impl-triage`, and leave `impl-repair` and `impl-gate` incomplete; a task-scoped PASS/ADVISORY/FAIL shall retain the selected taskId, metric/outcome scope, and task-review lifecycle without mutating flow `impl-review`, `impl-triage`, or `impl-repair`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/review-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "An invalid review scope shall return an `ok:false` envelope with code `REVIEW_SCOPE_INVALID` before subprocess launch and before durable changes to flow.json, review stop state, metrics, stepAttempts, review artifacts, runtime review state, or step status; the envelope shall include currentTaskId and the non-empty scope decision reason.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/review-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "When at least one task has a non-empty `spec` string and status other than `done` or `skipped` while currentTaskId is null, the existing Issue #325 contract shall remain: impl review fails before subprocess launch without an audited broad-mode record and succeeds as broad only with a matching non-empty reason record; matching runId/Issue/spec guards proceed, while any mismatched guard returns `ACTIVE_FLOW_MISMATCH` before scope resolution or durable mutation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/review-scope-regression.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/review-scope-regression.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

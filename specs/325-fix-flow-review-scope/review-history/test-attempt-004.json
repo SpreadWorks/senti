@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-21T03:30:15.695Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/325-fix-flow-review-scope/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing no-audit assertion for blocked broad review",
+      "target": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js: R6 noBroadRoot case",
+      "findingId": "8aef9225b32db6ee874c170ae9dd8afcfa6296b143f86fcb1e0f3103237e14fe",
+      "fingerprint": "8aef9225b32db6ee874c170ae9dd8afcfa6296b143f86fcb1e0f3103237e14fe",
+      "disposition": "must-fix",
+      "rationale": "This is an explicit acceptance requirement with no executable assertion, and the missing assertion would allow the forbidden audited broad-mode behavior to pass.",
+      "issue": "R6 requires the currentTaskId=null/actionable-work path to fail before subprocess launch without creating an audited broad-mode record. The test only asserts ok:false and zero subprocess calls, so an implementation could incorrectly append broadModeHistory or otherwise create broad-mode audit metadata before returning failure and this test would still pass.",
+      "requiredChange": "In the no-broad R6 case, snapshot the flow state before execute and assert no broad-mode record or other durable audit state was added, at minimum that broadModeHistory remains unchanged/empty after the failed run.",
+      "whyBlocking": "This is an explicit acceptance requirement with no executable assertion, and the missing assertion would allow the forbidden audited broad-mode behavior to pass.",
+      "origin": "R6",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/325-fix-flow-review-scope/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f32c38b27a861978d301789293ffe743e17d16dd51728c5c57f3106a50d8b39b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "8aef9225b32db6ee874c170ae9dd8afcfa6296b143f86fcb1e0f3103237e14fe",
+      "findingId": "8aef9225b32db6ee874c170ae9dd8afcfa6296b143f86fcb1e0f3103237e14fe",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing no-audit assertion for blocked broad review",
+      "body": "R6 requires the currentTaskId=null/actionable-work path to fail before subprocess launch without creating an audited broad-mode record. The test only asserts ok:false and zero subprocess calls, so an implementation could incorrectly append broadModeHistory or otherwise create broad-mode audit metadata before returning failure and this test would still pass.",
+      "category": "unknown",
+      "fingerprint": "8aef9225b32db6ee874c170ae9dd8afcfa6296b143f86fcb1e0f3103237e14fe",
+      "disposition": "must-fix",
+      "rationale": "This is an explicit acceptance requirement with no executable assertion, and the missing assertion would allow the forbidden audited broad-mode behavior to pass."
+    }
+  ]
+}

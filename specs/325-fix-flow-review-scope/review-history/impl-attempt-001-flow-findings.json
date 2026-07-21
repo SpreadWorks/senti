@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "919c1e69c04d8b311cff2b46a38fc98656f61fab2f3125da5a6370df8742780a",
+      "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+      "fingerprint": "919c1e69c04d8b311cff2b46a38fc98656f61fab2f3125da5a6370df8742780a",
+      "disposition": "deferred",
+      "rationale": "R2 explicitly requires retry handling to use the resolved flow/task scope and preserve four semantic impl-review attempts per selected scope. Counting task attempts without task identity is a blocking data-integrity bug in retry accounting.",
+      "retryExhausted": true,
+      "attempts": 6,
+      "round": 6,
+      "completionKind": "deferred",
+      "finalDisposition": "still_open"
+    }
+  ]
+}

@@ -1,0 +1,199 @@
+[senti] scenario-validity tests start
+command: node --test specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js
+[senti] scenario-validity file start command=node specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js
+TAP version 13
+# Subtest: R1: active review leaf overrides a valid lingering task cursor and rejects ambiguous scope
+not ok 1 - R1: active review leaf overrides a valid lingering task cursor and rejects ambiguous scope
+  ---
+  duration_ms: 2.230132
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:120:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    review scope must be resolved by the active impl-review/task-review leaf
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    resolveImplReviewScope (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:59:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:122:24)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: flow result controls retry metric and StepAttempt scope despite currentTaskId
+not ok 2 - R2: flow result controls retry metric and StepAttempt scope despite currentTaskId
+  ---
+  duration_ms: 4.100861
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:142:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + []
+    - [
+    -   {
+    -     opts: {
+    -       taskId: null
+    -     },
+    -     payload: {
+    -       counter: 'reviewRetry',
+    -       delta: 0,
+    -       phase: 'impl',
+    -       reset: true
+    -     }
+    -   }
+    - ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      payload:
+        phase: 'impl'
+        counter: 'reviewRetry'
+        delta: 0
+        reset: true
+      opts:
+        taskId: ~
+  actual:
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:153:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R3: flow PASS and ADVISORY close flow review leaves without task mutation
+not ok 3 - R3: flow PASS and ADVISORY close flow review leaves without task mutation
+  ---
+  duration_ms: 0.452683
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:161:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    review scope must be resolved by the active impl-review/task-review leaf
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    resolveImplReviewScope (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:59:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:167:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: flow FAIL starts flow triage while task review retains task scope
+not ok 4 - R4: flow FAIL starts flow triage while task review retains task scope
+  ---
+  duration_ms: 2.627534
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:183:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'T-1' !== null
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual: 'T-1'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:195:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: ambiguous review scope returns REVIEW_SCOPE_INVALID before mutation
+not ok 5 - R5: ambiguous review scope returns REVIEW_SCOPE_INVALID before mutation
+  ---
+  duration_ms: 1.030765
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:216:1'
+  failureType: 'testCodeFailure'
+  error: 'task spec missing for T-1: specs/demo/tasks/T-1.md'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    resolveCurrentTaskSpec (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/src/flow/lib/task-scope.js:169:11)
+    RunReviewCommand.execute (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/src/flow/lib/run-review.js:781:26)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:222:32)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: null cursor preserves audited broad-mode and target-guard contracts
+not ok 6 - R6: null cursor preserves audited broad-mode and target-guard contracts
+  ---
+  duration_ms: 0.527842
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:239:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    review scope must be resolved by the active impl-review/task-review leaf
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    resolveImplReviewScope (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:59:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js:241:19)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 0
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 25.14805
+Command failed: node specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: active review leaf overrides a valid lingering task cursor and rejects ambiguous scope
+[senti] requirement R2 observed: R2: flow result controls retry metric and StepAttempt scope despite currentTaskId
+[senti] requirement R3 observed: R3: flow PASS and ADVISORY close flow review leaves without task mutation
+[senti] requirement R4 observed: R4: flow FAIL starts flow triage while task review retains task scope
+[senti] requirement R5 observed: R5: ambiguous review scope returns REVIEW_SCOPE_INVALID before mutation
+[senti] requirement R6 observed: R6: null cursor preserves audited broad-mode and target-guard contracts
+[senti] scenario-validity tests end

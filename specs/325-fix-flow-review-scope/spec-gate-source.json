@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-21T03:08:40.210Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement uses the condition \"actionable task work remains\" without defining which task states or fields make task work actionable, so independent reviewers may not agree on when this branch applies.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "The requirement uses the condition \"actionable task work remains\" without defining which task states or fields make task work actionable, so independent reviewers may not agree on when this branch applies.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "fingerprint": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses the condition \"actionable task work remains\" without defining which task states or fields make task work actionable, so independent reviewers may not agree on when this branch applies.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-21T03:08:40.210Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement uses \"actionable task work\" without measurable criteria or an inventory of qualifying states, so reviewers may disagree on whether the null-cursor Issue #325 contract applies.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "The requirement uses \"actionable task work\" without measurable criteria or an inventory of qualifying states, so reviewers may disagree on whether the null-cursor Issue #325 contract applies.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "fingerprint": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses \"actionable task work\" without measurable criteria or an inventory of qualifying states, so reviewers may disagree on whether the null-cursor Issue #325 contract applies.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-21T03:08:40.210Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "req-diff-verifiability",
+      "result": "fail",
+      "reason": "AC8 requires an \"independent audit\" before merge and board Done, which depends on an out-of-diff process step rather than being decidable from a unified diff and test execution summary alone.",
+      "category": "process",
+      "title": "REQ Diff-Verifiability",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[7]"
+          },
+          "observed": "AC8 requires an \"independent audit\" before merge and board Done, which depends on an out-of-diff process step rather than being decidable from a unified diff and test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ],
+      "findingId": "ca7e2b97b7914db4e04d84b72662ca3d8772dfe73e7b1466f7b5478e80e0813f",
+      "fingerprint": "ca7e2b97b7914db4e04d84b72662ca3d8772dfe73e7b1466f7b5478e80e0813f",
+      "disposition": "must-fix",
+      "rationale": "AC8 requires an \"independent audit\" before merge and board Done, which depends on an out-of-diff process step rather than being decidable from a unified diff and test execution summary alone.",
+      "requirementId": null,
+      "guardrailId": "req-diff-verifiability",
+      "reportedAt": "2026-07-21T03:08:40.210Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[0].desc"
+      },
+      "observed": "The requirement uses the condition \"actionable task work remains\" without defining which task states or fields make task work actionable, so independent reviewers may not agree on when this branch applies.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "fingerprint": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses the condition \"actionable task work remains\" without defining which task states or fields make task work actionable, so independent reviewers may not agree on when this branch applies.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-21T03:08:40.210Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[5].desc"
+      },
+      "observed": "The requirement uses \"actionable task work\" without measurable criteria or an inventory of qualifying states, so reviewers may disagree on whether the null-cursor Issue #325 contract applies.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "fingerprint": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses \"actionable task work\" without measurable criteria or an inventory of qualifying states, so reviewers may disagree on whether the null-cursor Issue #325 contract applies.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-21T03:08:40.210Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "req-diff-verifiability",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[7]"
+      },
+      "observed": "AC8 requires an \"independent audit\" before merge and board Done, which depends on an out-of-diff process step rather than being decidable from a unified diff and test execution summary alone.",
+      "severity": "blocking",
+      "refs": [
+        "req-diff-verifiability"
+      ],
+      "result": "fail",
+      "guardrail_id": "req-diff-verifiability",
+      "category": "guardrail",
+      "findingId": "28961d33866c3428d0500c9d979dda395d94d5763030d129aeb5d3e260540f40",
+      "fingerprint": "28961d33866c3428d0500c9d979dda395d94d5763030d129aeb5d3e260540f40",
+      "disposition": "must-fix",
+      "rationale": "AC8 requires an \"independent audit\" before merge and board Done, which depends on an out-of-diff process step rather than being decidable from a unified diff and test execution summary alone.",
+      "requirementId": null,
+      "guardrailId": "req-diff-verifiability",
+      "reportedAt": "2026-07-21T03:08:40.210Z",
+      "repeatCount": 1
+    }
+  ]
+}

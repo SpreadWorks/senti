@@ -1,0 +1,145 @@
+{
+  "runId": "d617a413-c044-4187-bc8f-0a7229b09c21",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-21T04:59:30.291Z",
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "previously passed (skipped on retry)",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "previously passed (skipped on retry)",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "previously passed (skipped on retry)",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "previously passed (skipped on retry)",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "previously passed (skipped on retry)",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "[REQ:R6] requires null-currentTaskId/actionable-task impl review to fail before subprocess without an audited broad-mode record, succeed as broad only with a matching non-empty broadModeHistory reason, and enforce runId/Issue/spec mismatches as ACTIVE_FLOW_MISMATCH before scope resolution or mutation. The diff implements this in [TARGET:3] by resolving null-cursor actionable work to blocked unless latestBroadModeRecord(state, \"impl-review\") exists, preserving broadModeHistory/BROAD_STEPS, and in [TARGET:2] returns taskCursorRequiredReviewFailure before precheck, stop-state clear, or subprocess; it only calls assertAuditedBroadMode for broad decisions, which rejects empty reasons. The R6 spec-local test in [FILE-MAP:R6:1] covers no-broad failure with no subprocess/no broad audit, empty-reason failure with no subprocess/no mutation, broad success exposing unchanged broadMode.reason, matching guards proceeding to scope resolution/subprocess, and runId/Issue/spec mismatches returning ACTIVE_FLOW_MISMATCH with no scope resolution or subprocess. [AC:7] and [AC:8] are also satisfied by the added spec-local header `// spec: R1 R2 R3 R4 R5 R6`, focused R6 pass evidence in `specs/325-fix-flow-review-scope/test-execute-result.json`, production changes limited to [TARGET:2] and [TARGET:3], and no dependency/allowlist additions shown in the diff; related/base failures are recorded as follow-up candidates in `specs/325-fix-flow-review-scope/issue-log.json` without expanding the requirement.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "observations": [],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — previously passed (skipped on retry)",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — previously passed (skipped on retry)",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — previously passed (skipped on retry)",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — previously passed (skipped on retry)",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — previously passed (skipped on retry)",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — [REQ:R6] requires null-currentTaskId/actionable-task impl review to fail before subprocess without an audited broad-mode record, succeed as broad only with a matching non-empty broadModeHistory reason, and enforce runId/Issue/spec mismatches as ACTIVE_FLOW_MISMATCH before scope resolution or mutation. The diff implements this in [TARGET:3] by resolving null-cursor actionable work to blocked unless latestBroadModeRecord(state, \"impl-review\") exists, preserving broadModeHistory/BROAD_STEPS, and in [TARGET:2] returns taskCursorRequiredReviewFailure before precheck, stop-state clear, or subprocess; it only calls assertAuditedBroadMode for broad decisions, which rejects empty reasons. The R6 spec-local test in [FILE-MAP:R6:1] covers no-broad failure with no subprocess/no broad audit, empty-reason failure with no subprocess/no mutation, broad success exposing unchanged broadMode.reason, matching guards proceeding to scope resolution/subprocess, and runId/Issue/spec mismatches returning ACTIVE_FLOW_MISMATCH with no scope resolution or subprocess. [AC:7] and [AC:8] are also satisfied by the added spec-local header `// spec: R1 R2 R3 R4 R5 R6`, focused R6 pass evidence in `specs/325-fix-flow-review-scope/test-execute-result.json`, production changes limited to [TARGET:2] and [TARGET:3], and no dependency/allowlist additions shown in the diff; related/base failures are recorded as follow-up candidates in `specs/325-fix-flow-review-scope/issue-log.json` without expanding the requirement.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/325-fix-flow-review-scope/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "78f5a0e1c49c08392c2b3c809bb5ec2f8d87c6fb0d6c305b4fcd337c628c552a"
+  },
+  "repairFingerprint": "28ececae35d87a974a0340931b192b889ec9d5a32b2b1f0a51a7185500e8d028"
+}

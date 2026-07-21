@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/325-fix-flow-review-scope/test-review.json",
+      "specs/325-fix-flow-review-scope/tests/.raw/scenario-validity.log",
+      "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log"
+    ],
+    "inputHash": "016462e1fde987d06ee30ce5f173f264173872beab70cc94f48ea0d1536bcaab",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "specs/325-fix-flow-review-scope/test-review.json",
+    "specs/325-fix-flow-review-scope/tests/.raw/scenario-validity.log",
+    "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log"
+  ],
+  "inputHash": "016462e1fde987d06ee30ce5f173f264173872beab70cc94f48ea0d1536bcaab",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T04:16:30.904Z",
+  "finishedAt": "2026-07-21T04:16:30.904Z",
+  "rawResponse": "### 1. Remove Stale Failing Scenario Log\n**File:** `specs/325-fix-flow-review-scope/tests/.raw/scenario-validity.log`\n**Requirement:** R1\n**Issue:** This committed raw log records an earlier failing run where all six tests failed, while `test-execution.log` records the final passing run. Keeping both creates contradictory evidence and makes review artifacts harder to interpret.\n**Suggestion:** Remove `scenario-validity.log` from the change set, or regenerate it so it reflects the final passing scenario-validity result.\n\n### 2. Avoid Committing Volatile Test Runtime Logs\n**File:** `specs/325-fix-flow-review-scope/tests/.raw/test-execution.log`\n**Requirement:** R2\n**Issue:** The log contains volatile runtime details such as absolute paths, durations, timestamps implied by execution order, and retry console output. These are generated artifacts with low review value and high churn.\n**Suggestion:** Prefer committing structured summaries such as `test-review.json` / coverage artifacts only. If raw logs must be retained, normalize them to remove absolute paths and timing noise.\n\n### 3. Deduplicate Advisory Rationale Text\n**File:** `specs/325-fix-flow-review-scope/test-review.json`\n**Requirement:** R2\n**Issue:** The same explanatory text appears in both `rationale` and `whyNonBlocking`, creating duplicate content that can drift if one field is edited later.\n**Suggestion:** Keep the detailed explanation in one field and make the other field concise, or have the generator emit distinct meanings for `rationale` and `whyNonBlocking`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Stale Failing Scenario Log",
+        "body": "**File:** `specs/325-fix-flow-review-scope/tests/.raw/scenario-validity.log`\n**Requirement:** R1\n**Issue:** This committed raw log records an earlier failing run where all six tests failed, while `test-execution.log` records the final passing run. Keeping both creates contradictory evidence and makes review artifacts harder to interpret.\n**Suggestion:** Remove `scenario-validity.log` from the change set, or regenerate it so it reflects the final passing scenario-validity result.",
+        "file": "specs/325-fix-flow-review-scope/tests/.raw/scenario-validity.log",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Avoid Committing Volatile Test Runtime Logs",
+        "body": "**File:** `specs/325-fix-flow-review-scope/tests/.raw/test-execution.log`\n**Requirement:** R2\n**Issue:** The log contains volatile runtime details such as absolute paths, durations, timestamps implied by execution order, and retry console output. These are generated artifacts with low review value and high churn.\n**Suggestion:** Prefer committing structured summaries such as `test-review.json` / coverage artifacts only. If raw logs must be retained, normalize them to remove absolute paths and timing noise.",
+        "file": "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Deduplicate Advisory Rationale Text",
+        "body": "**File:** `specs/325-fix-flow-review-scope/test-review.json`\n**Requirement:** R2\n**Issue:** The same explanatory text appears in both `rationale` and `whyNonBlocking`, creating duplicate content that can drift if one field is edited later.\n**Suggestion:** Keep the detailed explanation in one field and make the other field concise, or have the generator emit distinct meanings for `rationale` and `whyNonBlocking`.",
+        "file": "specs/325-fix-flow-review-scope/test-review.json",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

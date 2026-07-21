@@ -1,0 +1,126 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/325-fix-flow-review-scope/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "test_name": "R1: active review leaves resolve the complete flow, task, broad, and invalid matrix",
+        "command": "node --test specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 10
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "test_name": "R2: RunReviewCommand uses one scope decision for flow and task execution",
+        "command": "node --test specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 10
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "test_name": "R3: flow PASS and ADVISORY close flow review leaves without task mutation",
+        "command": "node --test specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 10
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "test_name": "R4: flow FAIL and every task verdict retain their selected lifecycle scope",
+        "command": "node --test specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 10
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "test_name": "R5: ambiguous review scope returns REVIEW_SCOPE_INVALID before every side effect",
+        "command": "node --test specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 10
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "test_name": "R6: RunReviewCommand enforces broad-mode audit and target guards before scope effects",
+        "command": "node --test specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 10
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/lib/run-review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/task-scope.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js",
+        "fingerprint": "f088aebe9ac5e1a39b1e18aec56e26a5bbf4ae4ee098168e639ea0a4537caaf2"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/task-scope.js",
+        "fingerprint": "4edad3d4a0391bdff20e1d2e039ed2dee089b988e6c0dc346ddfe6e4d3810a65"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js",
+        "fingerprint": "f088aebe9ac5e1a39b1e18aec56e26a5bbf4ae4ee098168e639ea0a4537caaf2"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/task-scope.js",
+        "fingerprint": "4edad3d4a0391bdff20e1d2e039ed2dee089b988e6c0dc346ddfe6e4d3810a65"
+      }
+    ]
+  },
+  "repairFingerprint": "28ececae35d87a974a0340931b192b889ec9d5a32b2b1f0a51a7185500e8d028"
+}

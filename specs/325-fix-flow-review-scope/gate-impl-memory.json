@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "phase": "integration",
+      "round": 1,
+      "status": "blocking",
+      "statusReason": "[REQ:R6] requires preserving the null-cursor Issue #325 broad-mode/target-guard contract and AC7/AC8 require the named shared regressions and full npm test evidence to pass. The diff implements and spec-local tests cover no-broad failure, empty-reason failure, broad success, and runId/Issue/spec ACTIVE_FLOW_MISMATCH before scope effects in `specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js` and the command resolves scope before subprocess in `src/flow/lib/run-review.js`; however the provided evidence omits any added assertions in `tests/unit/flow/run-review-advisory.test.js` and `tests/unit/flow/post-hook-flow-scope.test.js`, and `specs/325-fix-flow-review-scope/issue-log.json` records that `specs/258-task-scoped-impl-flow/tests/task-scoped-flow.test.js` and `tests/e2e/231-task-e2e-full-lifecycle.test.js` failed rather than passed. This contradicts AC7/AC8 for R6.",
+      "updatedAt": "2026-07-21T04:43:30.886Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R5",
+        "R3",
+        "R4"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires preserving the null-cursor Issue #325 broad-mode/target-guard contract and AC7/AC8 require the named shared regressions and full npm test evidence to pass. The diff implements and spec-local tests cover no-broad failure, empty-reason failure, broad success, and runId/Issue/spec ACTIVE_FLOW_MISMATCH before scope effects in `specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js` and the command resolves scope before subprocess in `src/flow/lib/run-review.js`; however the provided evidence omits any added assertions in `tests/unit/flow/run-review-advisory.test.js` and `tests/unit/flow/post-hook-flow-scope.test.js`, and `specs/325-fix-flow-review-scope/issue-log.json` records that `specs/258-task-scoped-impl-flow/tests/task-scoped-flow.test.js` and `tests/e2e/231-task-e2e-full-lifecycle.test.js` failed rather than passed. This contradicts AC7/AC8 for R6.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "integration",
+      "round": 2,
+      "status": "blocking",
+      "statusReason": "[REQ:R6] requires the null-cursor actionable-task contract plus target guards, and [AC:8] requires passing focused and full `npm test` execution summaries. The diff implements and tests the broad-mode/guard behavior in `src/flow/lib/task-scope.js`, `src/flow/lib/run-review.js`, and `specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js`, but the provided execution evidence only shows spec-local R6 passing while `specs/325-fix-flow-review-scope/test-execute-result.json` marks project regression as skipped/deferred, so the required full `npm test` summary is omitted.",
+      "updatedAt": "2026-07-21T04:46:07.936Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires the null-cursor actionable-task contract plus target guards, and [AC:8] requires passing focused and full `npm test` execution summaries. The diff implements and tests the broad-mode/guard behavior in `src/flow/lib/task-scope.js`, `src/flow/lib/run-review.js`, and `specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js`, but the provided execution evidence only shows spec-local R6 passing while `specs/325-fix-flow-review-scope/test-execute-result.json` marks project regression as skipped/deferred, so the required full `npm test` summary is omitted.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ]
+    }
+  ]
+}

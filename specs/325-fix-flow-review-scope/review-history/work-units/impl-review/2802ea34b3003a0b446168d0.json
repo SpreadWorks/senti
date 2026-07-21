@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/325-fix-flow-review-scope/spec.md",
+      "specs/325-fix-flow-review-scope/tasks/T-1.md",
+      "specs/325-fix-flow-review-scope/test-coverage.json"
+    ],
+    "inputHash": "092942968af9b2468de7cfb338efef61989af0d069c54012c09aeace3ca2dace",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "specs/325-fix-flow-review-scope/spec.md",
+    "specs/325-fix-flow-review-scope/tasks/T-1.md",
+    "specs/325-fix-flow-review-scope/test-coverage.json"
+  ],
+  "inputHash": "092942968af9b2468de7cfb338efef61989af0d069c54012c09aeace3ca2dace",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T04:16:07.355Z",
+  "finishedAt": "2026-07-21T04:16:07.355Z",
+  "rawResponse": "### 1. Remove Empty Placeholder Sections\n**File:** `specs/325-fix-flow-review-scope/spec.md`  \n**Requirement:** R1  \n**Issue:** `## Clarifications (Q&A)` contains empty `Q` / `A` bullets, and `## Open Questions` contains only an empty checkbox. These are dead placeholders that add noise without carrying reviewable information.  \n**Suggestion:** Remove the empty sections, or populate them with actual unresolved questions before keeping them in the spec.\n\n### 2. Avoid Duplicating Long Requirement Text In Coverage Metadata\n**File:** `specs/325-fix-flow-review-scope/test-coverage.json`  \n**Requirement:** R2  \n**Issue:** Each requirement repeats the full prose from `spec.md`, creating a maintenance risk if the requirement text changes but the coverage JSON is not regenerated or updated consistently.  \n**Suggestion:** Prefer storing only stable requirement IDs, coverage status, and mapped test files in `test-coverage.json`; keep canonical requirement prose in `spec.md`.\n\n### 3. Simplify Redundant Requirement Coverage Claims\n**File:** `specs/325-fix-flow-review-scope/test-coverage.json`  \n**Requirement:** R6  \n**Issue:** Every requirement maps to the same single test file, and the file metadata also repeats the same IDs in both `headerIds` and `testNameIds`. This makes the coverage artifact verbose without adding much signal.  \n**Suggestion:** Collapse the repeated mapping into a file-centric structure, for example one entry for `tests/review-scope-regression.test.js` with covered IDs `R1` through `R6`, unless downstream tooling requires the current normalized shape.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Empty Placeholder Sections",
+        "body": "**File:** `specs/325-fix-flow-review-scope/spec.md`  \n**Requirement:** R1  \n**Issue:** `## Clarifications (Q&A)` contains empty `Q` / `A` bullets, and `## Open Questions` contains only an empty checkbox. These are dead placeholders that add noise without carrying reviewable information.  \n**Suggestion:** Remove the empty sections, or populate them with actual unresolved questions before keeping them in the spec.",
+        "file": "specs/325-fix-flow-review-scope/spec.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Avoid Duplicating Long Requirement Text In Coverage Metadata",
+        "body": "**File:** `specs/325-fix-flow-review-scope/test-coverage.json`  \n**Requirement:** R2  \n**Issue:** Each requirement repeats the full prose from `spec.md`, creating a maintenance risk if the requirement text changes but the coverage JSON is not regenerated or updated consistently.  \n**Suggestion:** Prefer storing only stable requirement IDs, coverage status, and mapped test files in `test-coverage.json`; keep canonical requirement prose in `spec.md`.",
+        "file": "specs/325-fix-flow-review-scope/test-coverage.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Simplify Redundant Requirement Coverage Claims",
+        "body": "**File:** `specs/325-fix-flow-review-scope/test-coverage.json`  \n**Requirement:** R6  \n**Issue:** Every requirement maps to the same single test file, and the file metadata also repeats the same IDs in both `headerIds` and `testNameIds`. This makes the coverage artifact verbose without adding much signal.  \n**Suggestion:** Collapse the repeated mapping into a file-centric structure, for example one entry for `tests/review-scope-regression.test.js` with covered IDs `R1` through `R6`, unless downstream tooling requires the current normalized shape.",
+        "file": "specs/325-fix-flow-review-scope/test-coverage.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

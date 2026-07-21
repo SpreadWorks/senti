@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/325-fix-flow-review-scope/draft-review-questions.json",
+      "specs/325-fix-flow-review-scope/draft.json",
+      "specs/325-fix-flow-review-scope/file-map.json"
+    ],
+    "inputHash": "fd86707715201c3131d1f050ff8337f04b3ff0c74fe943c6b4784a39c96e7de8",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "specs/325-fix-flow-review-scope/draft-review-questions.json",
+    "specs/325-fix-flow-review-scope/draft.json",
+    "specs/325-fix-flow-review-scope/file-map.json"
+  ],
+  "inputHash": "fd86707715201c3131d1f050ff8337f04b3ff0c74fe943c6b4784a39c96e7de8",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T04:13:35.027Z",
+  "finishedAt": "2026-07-21T04:13:35.027Z",
+  "rawResponse": "### 1. Avoid Duplicating Requirement-To-File Ownership\n**File:** `specs/325-fix-flow-review-scope/draft.json`  \n**Requirement:** R6  \n**Issue:** `draft.json` repeats requirement/file ownership details that are also encoded structurally in `file-map.json`, especially around `run-review.js`, `task-scope.js`, `definition.js`, and regression tests. This creates drift risk between the prose spec and the machine-readable mapping.  \n**Suggestion:** Keep detailed requirement-to-file ownership in `file-map.json`, and simplify `draft.json` prose to describe responsibilities at a higher level without restating the same file matrix.\n\n### 2. Reduce Repeated Validation Matrix Text\n**File:** `specs/325-fix-flow-review-scope/draft.json`  \n**Requirement:** R5  \n**Issue:** The same validation dimensions are repeated in multiple places: flow PASS, flow ADVISORY, flow FAIL, task review, ambiguous scope, broad mode, cursor enforcement, and target guard appear in `analysis.proposedApproach`, `decisionMap.deferredToSpec`, and `scopeVerification.in`.  \n**Suggestion:** Consolidate the matrix into one canonical section, then have the other sections refer to it briefly. This would make the spec easier to maintain and reduce the chance of one section being updated while another becomes stale.\n\n### 3. Use Consistent Scope Terminology\n**File:** `specs/325-fix-flow-review-scope/draft.json`  \n**Requirement:** R1  \n**Issue:** The draft alternates between terms like `flow-level impl-review`, `flow-scoped`, `flow scope`, `task-level task-review`, `task scope`, and `selected task`. The meaning is understandable, but the naming is not fully consistent.  \n**Suggestion:** Standardize on a small vocabulary such as `flow scope`, `task scope`, `active review leaf`, and `selected taskId`, then use those terms consistently throughout the draft.\n\n### 4. Remove Empty Placeholder Fields From Answered QA\n**File:** `specs/325-fix-flow-review-scope/draft.json`  \n**Requirement:** R6  \n**Issue:** The QA entry includes `\"droppedReason\": \"\"`, which is dead metadata for an answered question and adds noise without carrying information.  \n**Suggestion:** Omit empty optional fields from QA records, or populate `droppedReason` only when a question is actually dropped.\n\n### 5. Clarify Review Result Artifact Purpose\n**File:** `specs/325-fix-flow-review-scope/draft-review-questions.json`  \n**Requirement:** R6  \n**Issue:** The file records a PASS with no findings, but the generic summary `\"No draft review findings recorded.\"` does not distinguish between “review executed and found nothing” and “no review data was produced.”  \n**Suggestion:** Rename or reword the summary to make the lifecycle state explicit, for example: `\"Draft questions review completed with no blocking or advisory findings.\"`",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid Duplicating Requirement-To-File Ownership",
+        "body": "**File:** `specs/325-fix-flow-review-scope/draft.json`  \n**Requirement:** R6  \n**Issue:** `draft.json` repeats requirement/file ownership details that are also encoded structurally in `file-map.json`, especially around `run-review.js`, `task-scope.js`, `definition.js`, and regression tests. This creates drift risk between the prose spec and the machine-readable mapping.  \n**Suggestion:** Keep detailed requirement-to-file ownership in `file-map.json`, and simplify `draft.json` prose to describe responsibilities at a higher level without restating the same file matrix.",
+        "file": "specs/325-fix-flow-review-scope/draft.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Reduce Repeated Validation Matrix Text",
+        "body": "**File:** `specs/325-fix-flow-review-scope/draft.json`  \n**Requirement:** R5  \n**Issue:** The same validation dimensions are repeated in multiple places: flow PASS, flow ADVISORY, flow FAIL, task review, ambiguous scope, broad mode, cursor enforcement, and target guard appear in `analysis.proposedApproach`, `decisionMap.deferredToSpec`, and `scopeVerification.in`.  \n**Suggestion:** Consolidate the matrix into one canonical section, then have the other sections refer to it briefly. This would make the spec easier to maintain and reduce the chance of one section being updated while another becomes stale.",
+        "file": "specs/325-fix-flow-review-scope/draft.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Use Consistent Scope Terminology",
+        "body": "**File:** `specs/325-fix-flow-review-scope/draft.json`  \n**Requirement:** R1  \n**Issue:** The draft alternates between terms like `flow-level impl-review`, `flow-scoped`, `flow scope`, `task-level task-review`, `task scope`, and `selected task`. The meaning is understandable, but the naming is not fully consistent.  \n**Suggestion:** Standardize on a small vocabulary such as `flow scope`, `task scope`, `active review leaf`, and `selected taskId`, then use those terms consistently throughout the draft.",
+        "file": "specs/325-fix-flow-review-scope/draft.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Remove Empty Placeholder Fields From Answered QA",
+        "body": "**File:** `specs/325-fix-flow-review-scope/draft.json`  \n**Requirement:** R6  \n**Issue:** The QA entry includes `\"droppedReason\": \"\"`, which is dead metadata for an answered question and adds noise without carrying information.  \n**Suggestion:** Omit empty optional fields from QA records, or populate `droppedReason` only when a question is actually dropped.",
+        "file": "specs/325-fix-flow-review-scope/draft.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Clarify Review Result Artifact Purpose",
+        "body": "**File:** `specs/325-fix-flow-review-scope/draft-review-questions.json`  \n**Requirement:** R6  \n**Issue:** The file records a PASS with no findings, but the generic summary `\"No draft review findings recorded.\"` does not distinguish between “review executed and found nothing” and “no review data was produced.”  \n**Suggestion:** Rename or reword the summary to make the lifecycle state explicit, for example: `\"Draft questions review completed with no blocking or advisory findings.\"`",
+        "file": "specs/325-fix-flow-review-scope/draft-review-questions.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

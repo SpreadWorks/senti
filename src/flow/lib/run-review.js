@@ -28,7 +28,7 @@ import { appendIssueLogEntry } from "./set-issue-log.js";
 import { persistCurrentRecoveryBaseline, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import {
   assertAuditedBroadMode,
-  evaluateTaskScope,
+  resolveImplReviewScope,
   resolveCurrentTaskSpec,
   taskScopeViolationMessages,
 } from "./task-scope.js";
@@ -106,6 +106,29 @@ function taskCursorRequiredReviewFailure(decision, state) {
     taskScopeViolationMessages(decision, "impl-review"),
     { currentTaskId: state?.currentTaskId ?? null },
   );
+}
+
+function invalidReviewScopeFailure(decision, state) {
+  return Envelope.fail(
+    "run",
+    "review",
+    "REVIEW_SCOPE_INVALID",
+    [`implementation review scope is invalid: ${decision.reason}`],
+    {
+      currentTaskId: state?.currentTaskId ?? null,
+      reason: decision.reason,
+    },
+  );
+}
+
+function reviewContextForTaskId(ctx, taskId) {
+  return {
+    ...ctx,
+    flowState: {
+      ...(ctx?.flowState || {}),
+      currentTaskId: taskId,
+    },
+  };
 }
 
 function mutateReviewRecoveryState(ctx, phase, trigger, afterPersist) {
@@ -280,7 +303,7 @@ function reviewDeferredResult(phase, attempts, findingCount) {
 }
 
 function reviewStepId(ctx, phase) {
-  if (ctx?.flowState?.currentTaskId != null) return "task-review";
+  if (phase === IMPL_REVIEW_PHASE && ctx?.flowState?.currentTaskId != null) return "task-review";
   return REVIEW_NODE_ID_BY_PHASE[phase] || "impl-review";
 }
 
@@ -295,6 +318,14 @@ function recordReviewOutcome(ctx, result, phase, attempt, outcome) {
     outcome,
     result,
   });
+}
+
+function nextReviewAttemptNumber(ctx, phase) {
+  const flowState = ctx?.flowState || {};
+  if (phase === IMPL_REVIEW_PHASE && flowState.currentTaskId != null) {
+    return nextStepAttemptNumber(flowState, "task-review");
+  }
+  return countReviewRetry(flowState.metrics, phase) + 1;
 }
 
 function recordReviewDeferral(ctx, result, phase, attempts) {
@@ -356,18 +387,23 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
 
 /**
  * Pre-check called from RunReviewCommand.execute. Returns:
- *  - null when count < max (proceed) OR currentTaskId is non-null (R15: task scope skip)
+ *  - null when count < max (proceed)
  *  - Envelope.fail(REVIEW_MAX_ATTEMPTS_EXCEEDED) when count >= max
  *  - Envelope.fail(UNKNOWN_REVIEW_PHASE) when phase is not mapped
  */
 export function checkReviewRetryBelowMax(ctx, phase) {
   const flowState = ctx?.flowState || {};
-  if (flowState.currentTaskId != null) return null; // R15
   const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
-  const count = countReviewRetry(flowState.metrics, persistedPhase);
+  const taskScoped = persistedPhase === IMPL_REVIEW_PHASE && flowState.currentTaskId != null;
+  const stepId = taskScoped ? "task-review" : REVIEW_NODE_ID_BY_PHASE[persistedPhase];
+  const count = taskScoped
+    ? nextStepAttemptNumber(flowState, stepId) - 1
+    : countReviewRetry(flowState.metrics, persistedPhase);
   let resolvedMax;
   try {
-    resolvedMax = resolveReviewRetryMax({ flowState }, persistedPhase);
+    resolvedMax = taskScoped
+      ? resolveMaxAttempts({ scope: "task", stepId, context: flowState }) ?? 1
+      : resolveReviewRetryMax({ flowState }, persistedPhase);
   } catch (err) {
     if (err.code === "UNKNOWN_REVIEW_PHASE") {
       return Envelope.fail("run", "review", "UNKNOWN_REVIEW_PHASE",
@@ -376,14 +412,16 @@ export function checkReviewRetryBelowMax(ctx, phase) {
     }
     throw err;
   }
-  const max = resolveRecoveryMaxAttempts({
-    root: ctx.root,
-    flowState,
-    kind: "review",
-    phase: persistedPhase,
-    attempts: count,
-    resolvedMax,
-  });
+  const max = taskScoped
+    ? resolvedMax
+    : resolveRecoveryMaxAttempts({
+        root: ctx.root,
+        flowState,
+        kind: "review",
+        phase: persistedPhase,
+        attempts: count,
+        resolvedMax,
+      });
   if (count < max) return null;
   const deferred = tryDeferReviewRetryExhaustion(ctx, persistedPhase, count);
   if (deferred) return recordReviewDeferral(ctx, deferred, persistedPhase, count);
@@ -412,33 +450,38 @@ function isImplPass(result) {
 
 /**
  * Post-hook helper: append a reviewRetry metric based on the result verdict.
- * No-op when phase is task-scope (R15) or unmapped phase.
+ * Task-scoped attempts are recorded in stepAttempts; flow-scoped attempts use metrics.
  * Errors propagate to the dispatcher (R22 — do NOT swallow internally).
  */
 export function updateReviewRetryCounter(ctx, result) {
-  const flowState = ctx?.flowState || {};
-  if (flowState.currentTaskId != null) {
-    const stepId = reviewStepId(ctx, "impl");
+  const persistedPhase = result?.artifacts?.retryPhase || reviewPhaseKeyForCtx(ctx, ctx?.phase);
+  if (persistedPhase !== IMPL_REVIEW_PHASE && ctx?.flowState?.currentTaskId != null) return;
+  const resultTaskId = persistedPhase === IMPL_REVIEW_PHASE
+    ? result?.artifacts?.taskId ?? null
+    : null;
+  const reviewCtx = reviewContextForTaskId(ctx, resultTaskId);
+  const flowState = reviewCtx.flowState;
+  if (resultTaskId != null) {
+    const stepId = reviewStepId(reviewCtx, IMPL_REVIEW_PHASE);
     const pass = isImplPass(result);
     const attempt = nextStepAttemptNumber(flowState, stepId);
     const maxAttempts = resolveMaxAttempts({ scope: "task", stepId, context: flowState }) ?? 1;
     if (!pass && attempt >= maxAttempts) {
-      const deferred = tryDeferReviewRetryExhaustion(ctx, "impl", attempt);
+      const deferred = tryDeferReviewRetryExhaustion(reviewCtx, IMPL_REVIEW_PHASE, attempt);
       if (deferred) {
         Object.assign(result, deferred);
-        recordReviewDeferral(ctx, result, "impl", attempt);
+        recordReviewDeferral(reviewCtx, result, IMPL_REVIEW_PHASE, attempt);
         return;
       }
     }
     const outcome = pass
       ? new DecisionOutcome({ decision: "PASS", nextAction: result?.next || "refresh-next-action" })
       : new RetryOutcome({ nextAction: "run-review-task" });
-    recordReviewOutcome(ctx, result, "impl", attempt, outcome);
+    recordReviewOutcome(reviewCtx, result, IMPL_REVIEW_PHASE, attempt, outcome);
     return;
   }
-  const persistedPhase = result?.artifacts?.retryPhase || reviewPhaseKeyForCtx(ctx, ctx?.phase);
   if (!REVIEW_NODE_ID_BY_PHASE[persistedPhase]) return; // unmapped phase: no-op (post-hook should not crash)
-  const mgr = ctx.flowManager;
+  const mgr = reviewCtx.flowManager;
   if (!mgr) return;
   const attemptsBefore = countReviewRetry(flowState.metrics, persistedPhase);
   let isPass;
@@ -451,7 +494,7 @@ export function updateReviewRetryCounter(ctx, result) {
         phase: persistedPhase,
         stderr: result?.artifacts?.toolingFailure || "review tooling failure",
       });
-      recordReviewOutcome(ctx, result, persistedPhase, attemptsBefore + 1, reviewExternalBlock(failure));
+      recordReviewOutcome(reviewCtx, result, persistedPhase, attemptsBefore + 1, reviewExternalBlock(failure));
       return;
     }
     isPass = result?.artifacts?.verdict === "PASS"
@@ -463,18 +506,18 @@ export function updateReviewRetryCounter(ctx, result) {
     : { phase: persistedPhase, counter: "reviewRetry", delta: 1 };
   mgr.appendMetric(payload, { taskId: null }); // R19: explicit flow-scope
   if (!isPass && attemptsBefore + 1 >= maxAttempts) {
-    const deferred = tryDeferReviewRetryExhaustion(ctx, persistedPhase, attemptsBefore + 1);
+    const deferred = tryDeferReviewRetryExhaustion(reviewCtx, persistedPhase, attemptsBefore + 1);
     if (deferred) {
       Object.assign(result, deferred);
-      recordReviewDeferral(ctx, result, persistedPhase, attemptsBefore + 1);
+      recordReviewDeferral(reviewCtx, result, persistedPhase, attemptsBefore + 1);
     } else {
-      mutateReviewRecoveryState(ctx, persistedPhase, REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL);
+      mutateReviewRecoveryState(reviewCtx, persistedPhase, REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL);
       const failure = ReviewFailure.maxAttemptsExceeded({
         phase: persistedPhase,
         attempts: attemptsBefore + 1,
         max: maxAttempts,
       });
-      recordReviewOutcome(ctx, result, persistedPhase, attemptsBefore + 1, reviewExternalBlock(failure));
+      recordReviewOutcome(reviewCtx, result, persistedPhase, attemptsBefore + 1, reviewExternalBlock(failure));
     }
     return;
   }
@@ -487,7 +530,7 @@ export function updateReviewRetryCounter(ctx, result) {
         nextAction: result?.next || "refresh-next-action",
       })
     : new RetryOutcome({ nextAction: reviewRetryAction(persistedPhase) });
-  recordReviewOutcome(ctx, result, persistedPhase, attemptsBefore + 1, outcome);
+  recordReviewOutcome(reviewCtx, result, persistedPhase, attemptsBefore + 1, outcome);
 }
 
 export { REVIEW_PHASE_KEYS };
@@ -685,13 +728,13 @@ const DEFAULT_RETRY_DELAY_MS = 3000;
 const MAX_REVIEW_SUBPROCESS_RETRIES = 2;
 const MAX_REVIEW_SUBPROCESS_RETRY_DELAY_MS = 30_000;
 
-function normalizeReviewSubprocessRetryCount(value) {
+export function normalizeReviewSubprocessRetryCount(value) {
   const parsed = Number(value ?? DEFAULT_RETRY_COUNT);
   if (!Number.isFinite(parsed)) return DEFAULT_RETRY_COUNT;
   return Math.min(MAX_REVIEW_SUBPROCESS_RETRIES, Math.max(0, Math.trunc(parsed)));
 }
 
-function normalizeReviewSubprocessRetryDelayMs(value) {
+export function normalizeReviewSubprocessRetryDelayMs(value) {
   const parsed = Number(value ?? DEFAULT_RETRY_DELAY_MS);
   if (!Number.isFinite(parsed)) return DEFAULT_RETRY_DELAY_MS;
   return Math.min(MAX_REVIEW_SUBPROCESS_RETRY_DELAY_MS, Math.max(0, Math.trunc(parsed)));
@@ -746,6 +789,12 @@ export async function runCmdWithRetry(cmdFn, opts = {}) {
 }
 
 export class RunReviewCommand extends FlowCommand {
+  constructor({ resolveScope = resolveImplReviewScope, runCommand = runCmd } = {}) {
+    super();
+    this.resolveScope = resolveScope;
+    this.runCommand = runCommand;
+  }
+
   async execute(ctx) {
     const { root } = ctx;
     const phase = ctx.phase || null;
@@ -759,30 +808,45 @@ export class RunReviewCommand extends FlowCommand {
         { phase });
     }
 
-    // spec 253: enforce review maxAttempts (R2 R3) before any subprocess work
-    const preCheck = checkReviewRetryBelowMax(ctx, phase);
+    let scopeDecision = null;
+    let reviewCtx = reviewContextForTaskId(ctx, null);
+    let taskReviewSpec = null;
+    let broadMode = null;
+    if (isImplementationReviewPhase(phase)) {
+      scopeDecision = this.resolveScope(ctx.flowState);
+      if (scopeDecision.kind === "invalid-current-task" || scopeDecision.kind === "invalid-review-scope") {
+        return invalidReviewScopeFailure(scopeDecision, ctx.flowState);
+      }
+      if (scopeDecision.kind === "blocked" || scopeDecision.promotable) {
+        return taskCursorRequiredReviewFailure(scopeDecision, ctx.flowState);
+      }
+      reviewCtx = reviewContextForTaskId(
+        ctx,
+        scopeDecision.kind === "task" ? scopeDecision.task.id : null,
+      );
+      if (scopeDecision.kind === "broad") {
+        broadMode = assertAuditedBroadMode(scopeDecision, "impl-review");
+      }
+    }
+
+    // Enforce review maxAttempts after scope resolution and before durable mutation.
+    const preCheck = checkReviewRetryBelowMax(reviewCtx, phase);
     if (preCheck) return preCheck;
-    const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
+    if (scopeDecision?.kind === "task") {
+      taskReviewSpec = resolveCurrentTaskSpec({
+        root,
+        state: ctx.flowState,
+        decision: scopeDecision,
+      });
+    }
+    const persistedPhase = reviewPhaseKeyForCtx(reviewCtx, phase);
     if (ctx.flowManager) {
       ctx.flowManager.mutate((state) => clearReviewStopState(state, persistedPhase));
     }
 
     const dryRun = ctx.dryRun || false;
     const skipConfirm = ctx.skipConfirm || false;
-    let taskReviewSpec = null;
-    let broadMode = null;
-
     if (isImplementationReviewPhase(phase)) {
-      const decision = evaluateTaskScope(ctx.flowState, "impl-review");
-      if (decision.kind === "invalid-current-task" || decision.kind === "blocked" || decision.promotable) {
-        return taskCursorRequiredReviewFailure(decision, ctx.flowState);
-      }
-      if (decision.kind === "task") {
-        const taskSpec = resolveCurrentTaskSpec({ root, state: ctx.flowState });
-        taskReviewSpec = taskSpec;
-      } else if (decision.kind === "broad") {
-        broadMode = assertAuditedBroadMode(decision, "impl-review");
-      }
       if (!taskReviewSpec) {
         const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
         const fingerprint = buildRepairFingerprint({ root, specPath: ctx.flowState.spec });
@@ -808,7 +872,7 @@ export class RunReviewCommand extends FlowCommand {
     const agentTimeout = ctx.config?.agent?.timeout;
     const timeoutMs = agentTimeout != null ? Number(agentTimeout) * 1000 : DEFAULT_AGENT_TIMEOUT_MS;
     const res = await runCmdWithRetry(
-      () => runCmd("node", [scriptPath, ...args], { cwd: root, timeout: timeoutMs }),
+      () => this.runCommand("node", [scriptPath, ...args], { cwd: root, timeout: timeoutMs }),
       { phase: persistedPhase },
     );
 
@@ -823,7 +887,7 @@ export class RunReviewCommand extends FlowCommand {
       }
       if (failure.shouldPersistStopState()) {
         const persisted = mutateReviewRecoveryState(
-          ctx,
+          reviewCtx,
           persistedPhase,
           REVIEW_RECOVERY_TRIGGER_STOP,
           (state) => writeReviewStopState(state, failure),
@@ -833,20 +897,20 @@ export class RunReviewCommand extends FlowCommand {
           [`review stopped: ${failure.reason}`],
           failure.toEnvelopeData());
         const attempt = recordReviewOutcome(
-          ctx,
+          reviewCtx,
           null,
           persistedPhase,
-          countReviewRetry(ctx.flowState.metrics, persistedPhase) + 1,
+          nextReviewAttemptNumber(reviewCtx, persistedPhase),
           reviewExternalBlock(failure),
         );
         if (attempt) envelope.data = { ...envelope.data, stepAttempt: attempt.toJSON() };
         return envelope;
       }
       recordReviewOutcome(
-        ctx,
+        reviewCtx,
         null,
         persistedPhase,
-        countReviewRetry(ctx.flowState.metrics, persistedPhase) + 1,
+        nextReviewAttemptNumber(reviewCtx, persistedPhase),
         reviewExternalBlock(failure),
       );
     }
@@ -874,6 +938,7 @@ export class RunReviewCommand extends FlowCommand {
 
     const parsed = parseImplReviewOutput(res, stdout, stderr, { root });
     parsed.artifacts.dryRun = dryRun;
+    parsed.artifacts.taskId = scopeDecision?.kind === "task" ? scopeDecision.task.id : null;
     if (broadMode) parsed.artifacts.broadMode = broadMode;
     return parsed;
   }

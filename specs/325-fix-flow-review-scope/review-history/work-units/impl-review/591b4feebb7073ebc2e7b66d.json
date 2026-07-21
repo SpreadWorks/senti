@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/325-fix-flow-review-scope/review-history/test-attempt-001.md",
+      "specs/325-fix-flow-review-scope/review-history/test-attempt-002.json",
+      "specs/325-fix-flow-review-scope/review-history/test-attempt-002.md"
+    ],
+    "inputHash": "0abcf0c47a110382a706e1beb226b0337ecdc5f409d3802ac870dd7a3f4fa191",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "specs/325-fix-flow-review-scope/review-history/test-attempt-001.md",
+    "specs/325-fix-flow-review-scope/review-history/test-attempt-002.json",
+    "specs/325-fix-flow-review-scope/review-history/test-attempt-002.md"
+  ],
+  "inputHash": "0abcf0c47a110382a706e1beb226b0337ecdc5f409d3802ac870dd7a3f4fa191",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T04:14:47.902Z",
+  "finishedAt": "2026-07-21T04:14:47.902Z",
+  "rawResponse": "### 1. Avoid Maintaining Duplicate Review Findings In Markdown And JSON\n**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-002.md`  \n**Requirement:** R6  \n**Issue:** The same two findings are stored in both `test-attempt-002.json` and `test-attempt-002.md`. This creates a consistency risk: the JSON says `Issue` with capital `Issue` in one place, while the markdown uses the same wording manually, and future edits can easily diverge.  \n**Suggestion:** Treat the JSON artifact as canonical and generate the markdown from it, or remove the markdown copy if both formats are not required for review history.\n\n### 2. Normalize Naming Of Issue/spec Guards\n**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-002.json`  \n**Requirement:** R6  \n**Issue:** The text uses inconsistent guard naming: `runId/Issue/spec`, `expectIssue`, and `expectSpec`. The capitalized `Issue` reads like a type name or typo, while the option names use lower camel case.  \n**Suggestion:** Use one naming convention throughout the artifact, for example `expectRunId`, `expectIssue`, and `expectSpec`, and describe them collectively as target guards.\n\n### 3. Remove Redundant Finding Fields\n**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-002.json`  \n**Requirement:** R2  \n**Issue:** Each blocking finding repeats equivalent data across `rationale`, `whyBlocking`, and `failureKind`-adjacent text. The same finding is also duplicated again under `findings`, with `id` and `findingId` carrying the same value.  \n**Suggestion:** If this artifact is hand-authored or schema-flexible, keep a single canonical representation per finding and derive summary fields from it. At minimum, avoid storing both `id` and `findingId` when they are identical.\n\n### 4. Add Missing Final Newline\n**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The file ends without a trailing newline, which is inconsistent with typical markdown/text-file formatting and causes unnecessary diff noise.  \n**Suggestion:** Add a final newline at EOF.\n\n### 5. Add Missing Final Newline\n**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-002.md`  \n**Requirement:** R2  \n**Issue:** The file ends without a trailing newline, matching the same formatting issue as the previous markdown artifact.  \n**Suggestion:** Add a final newline at EOF.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid Maintaining Duplicate Review Findings In Markdown And JSON",
+        "body": "**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-002.md`  \n**Requirement:** R6  \n**Issue:** The same two findings are stored in both `test-attempt-002.json` and `test-attempt-002.md`. This creates a consistency risk: the JSON says `Issue` with capital `Issue` in one place, while the markdown uses the same wording manually, and future edits can easily diverge.  \n**Suggestion:** Treat the JSON artifact as canonical and generate the markdown from it, or remove the markdown copy if both formats are not required for review history.",
+        "file": "specs/325-fix-flow-review-scope/review-history/test-attempt-002.md",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Normalize Naming Of Issue/spec Guards",
+        "body": "**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-002.json`  \n**Requirement:** R6  \n**Issue:** The text uses inconsistent guard naming: `runId/Issue/spec`, `expectIssue`, and `expectSpec`. The capitalized `Issue` reads like a type name or typo, while the option names use lower camel case.  \n**Suggestion:** Use one naming convention throughout the artifact, for example `expectRunId`, `expectIssue`, and `expectSpec`, and describe them collectively as target guards.",
+        "file": "specs/325-fix-flow-review-scope/review-history/test-attempt-002.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Remove Redundant Finding Fields",
+        "body": "**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-002.json`  \n**Requirement:** R2  \n**Issue:** Each blocking finding repeats equivalent data across `rationale`, `whyBlocking`, and `failureKind`-adjacent text. The same finding is also duplicated again under `findings`, with `id` and `findingId` carrying the same value.  \n**Suggestion:** If this artifact is hand-authored or schema-flexible, keep a single canonical representation per finding and derive summary fields from it. At minimum, avoid storing both `id` and `findingId` when they are identical.",
+        "file": "specs/325-fix-flow-review-scope/review-history/test-attempt-002.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Add Missing Final Newline",
+        "body": "**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The file ends without a trailing newline, which is inconsistent with typical markdown/text-file formatting and causes unnecessary diff noise.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/325-fix-flow-review-scope/review-history/test-attempt-001.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Add Missing Final Newline",
+        "body": "**File:** `specs/325-fix-flow-review-scope/review-history/test-attempt-002.md`  \n**Requirement:** R2  \n**Issue:** The file ends without a trailing newline, matching the same formatting issue as the previous markdown artifact.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/325-fix-flow-review-scope/review-history/test-attempt-002.md",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

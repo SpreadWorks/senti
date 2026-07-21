@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { findNextPendingTask, isTaskTerminalStatus } from "../../lib/flow-helpers.js";
+import { flattenSteps } from "./step-tree.js";
 
 export const BROAD_STEPS = Object.freeze(["implement", "impl-review", "impl-gate"]);
 
@@ -26,7 +27,9 @@ export class TaskScopeDecision {
   }
 
   get blocked() {
-    return this.kind === "blocked" || this.kind === "invalid-current-task";
+    return this.kind === "blocked"
+      || this.kind === "invalid-current-task"
+      || this.kind === "invalid-review-scope";
   }
 }
 
@@ -146,6 +149,70 @@ export function evaluateTaskScope(state, step) {
   });
 }
 
+function activeFlowImplReviews(state) {
+  return flattenSteps(Array.isArray(state?.steps) ? state.steps : [])
+    .filter((step) => step.id === "impl-review" && step.status === "in_progress");
+}
+
+function activeTaskImplReviews(state) {
+  if (!Array.isArray(state?.tasks)) return [];
+  return state.tasks.filter((task) => (
+    isActionableTask(task)
+    && !isTaskTerminalStatus(task.status)
+    && Array.isArray(task.steps)
+    && task.steps.some((step) => step.id === "task-review" && step.status === "in_progress")
+  ));
+}
+
+function invalidImplReviewScope(reason) {
+  return new TaskScopeDecision({ kind: "invalid-review-scope", reason });
+}
+
+export function resolveImplReviewScope(state) {
+  const tasks = Array.isArray(state?.tasks) ? state.tasks : [];
+  const currentTask = state?.currentTaskId == null
+    ? null
+    : tasks.find((task) => task.id === state.currentTaskId) || null;
+  if (state?.currentTaskId != null && !currentTask) {
+    return new TaskScopeDecision({
+      kind: "invalid-current-task",
+      reason: `currentTaskId '${state.currentTaskId}' does not match any task`,
+    });
+  }
+
+  const flowReviews = activeFlowImplReviews(state);
+  const taskReviews = activeTaskImplReviews(state);
+  if (flowReviews.length === 1 && taskReviews.length === 0) {
+    if (currentTask || !hasTaskWork(state)) {
+      return new TaskScopeDecision({ kind: "flow" });
+    }
+    const record = latestBroadModeRecord(state, "impl-review");
+    if (record) return new TaskScopeDecision({ kind: "broad", record });
+    return new TaskScopeDecision({
+      kind: "blocked",
+      reason: "task work remains but currentTaskId is null and broad impl-review is not audited",
+    });
+  }
+
+  if (flowReviews.length === 0 && taskReviews.length === 1) {
+    const reviewTask = taskReviews[0];
+    if (currentTask?.id === reviewTask.id) {
+      return new TaskScopeDecision({ kind: "task", task: reviewTask });
+    }
+    return invalidImplReviewScope(
+      `active task-review belongs to '${reviewTask.id}' but currentTaskId is '${state?.currentTaskId ?? "null"}'`,
+    );
+  }
+
+  if (flowReviews.length > 0 && taskReviews.length > 0) {
+    return invalidImplReviewScope("flow impl-review and task-review are active at the same time");
+  }
+  if (taskReviews.length > 1) {
+    return invalidImplReviewScope("multiple task-review steps are active at the same time");
+  }
+  return invalidImplReviewScope("no single active impl-review scope could be resolved");
+}
+
 export function taskScopeViolationMessages(decision, step) {
   const reason = decision?.reason || "task cursor is required";
   return [
@@ -155,12 +222,12 @@ export function taskScopeViolationMessages(decision, step) {
   ];
 }
 
-export function resolveCurrentTaskSpec({ root, state }) {
-  const decision = evaluateTaskScope(state, "task-gate");
-  if (decision.kind !== "task") {
-    throw new Error(decision.reason || "currentTaskId is required for task-scoped operation");
+export function resolveCurrentTaskSpec({ root, state, decision = null }) {
+  const resolvedDecision = decision || evaluateTaskScope(state, "task-gate");
+  if (resolvedDecision.kind !== "task") {
+    throw new Error(resolvedDecision.reason || "currentTaskId is required for task-scoped operation");
   }
-  const task = decision.task;
+  const task = resolvedDecision.task;
   if (!task.spec) {
     throw new Error(`task spec missing for ${task.id}`);
   }

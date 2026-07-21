@@ -1,0 +1,50 @@
+{
+  "spec": "specs/325-fix-flow-review-scope/spec.json",
+  "date": "2026-07-21T04:59:44.216Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The impl review scope resolver shall return an existing `TaskScopeDecision` derived from active review leaves. For this requirement, actionable task work means at least one task whose `spec` is a non-empty string and whose status is neither `done` nor `skipped`. Exactly one active flow `impl-review` with no active task review resolves to flow when currentTaskId names an existing task, or when currentTaskId is null and no actionable task work remains; a null cursor with actionable task work retains the existing broad/blocked decision; exactly one active `task-review` resolves to that task only when currentTaskId matches it; both active, multiple task reviews, no active review leaf, an unknown currentTaskId, or a task/currentTaskId mismatch resolve to a blocked or invalid decision with a non-empty reason.",
+      "status": "done",
+      "note": "R1: active review leaves resolve the complete flow, task, broad, and invalid matrix"
+    },
+    {
+      "desc": "`RunReviewCommand` shall resolve impl review scope once before clearing review stop state or starting any subprocess, then use that decision for max-attempt precheck, task spec selection, audited broad-mode metadata, parsing, reviewRetry, StepAttempt stepId/taskId, and result artifacts; flow scope shall not pass `--task-spec` and shall expose taskId null, while task scope shall pass the selected task spec and expose its taskId. The existing bounds remain four semantic impl-review attempts and at most two subprocess retries after the first subprocess attempt, with retry delay capped at 30000 ms.",
+      "status": "done",
+      "note": "R2: RunReviewCommand uses one scope decision for flow and task execution"
+    },
+    {
+      "desc": "When flow `impl-review` is active and currentTaskId names an existing task whose `task-review` is not active, PASS with zero total findings and ADVISORY with zero blocking findings shall complete flow `impl-review`, `impl-triage`, and `impl-repair` through the existing lifecycle and route to `impl-gate`; no task step shall change.",
+      "status": "done",
+      "note": "R3: flow PASS and ADVISORY close flow review leaves without task mutation"
+    },
+    {
+      "desc": "A flow-scoped FAIL shall complete flow `impl-review`, start flow `impl-triage`, and leave `impl-repair` and `impl-gate` incomplete; a task-scoped PASS/ADVISORY/FAIL shall retain the selected taskId, metric/outcome scope, and task-review lifecycle without mutating flow `impl-review`, `impl-triage`, or `impl-repair`.",
+      "status": "done",
+      "note": "R4: flow FAIL and every task verdict retain their selected lifecycle scope"
+    },
+    {
+      "desc": "An invalid review scope shall return an `ok:false` envelope with code `REVIEW_SCOPE_INVALID` before subprocess launch and before durable changes to flow.json, review stop state, metrics, stepAttempts, review artifacts, runtime review state, or step status; the envelope shall include currentTaskId and the non-empty scope decision reason.",
+      "status": "done",
+      "note": "R5: ambiguous review scope returns REVIEW_SCOPE_INVALID before every side effect"
+    },
+    {
+      "desc": "When at least one task has a non-empty `spec` string and status other than `done` or `skipped` while currentTaskId is null, the existing Issue #325 contract shall remain: impl review fails before subprocess launch without an audited broad-mode record and succeeds as broad only with a matching non-empty reason record; matching runId/Issue/spec guards proceed, while any mismatched guard returns `ACTIVE_FLOW_MISMATCH` before scope resolution or durable mutation.",
+      "status": "done",
+      "note": "R6: RunReviewCommand enforces broad-mode audit and target guards before scope effects"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "28ececae35d87a974a0340931b192b889ec9d5a32b2b1f0a51a7185500e8d028"
+}

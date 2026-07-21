@@ -1,0 +1,61 @@
+TAP version 13
+# file:///home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/258-task-scoped-impl-flow/tests/task-scoped-flow.test.js:9
+# import { findStepById } from "../../../src/flow/definition.js";
+#          ^^^^^^^^^^^^
+# SyntaxError: The requested module '../../../src/flow/definition.js' does not provide an export named 'findStepById'
+#     at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
+#     at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
+#     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+#     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+# Node.js v22.22.0
+# Subtest: specs/258-task-scoped-impl-flow/tests/task-scoped-flow.test.js
+not ok 1 - specs/258-task-scoped-impl-flow/tests/task-scoped-flow.test.js
+  ---
+  duration_ms: 133.376614
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/specs/258-task-scoped-impl-flow/tests/task-scoped-flow.test.js:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: tests/e2e/231-task-e2e-full-lifecycle.test.js
+not ok 2 - tests/e2e/231-task-e2e-full-lifecycle.test.js
+  ---
+  duration_ms: 485.985808
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/tests/e2e/231-task-e2e-full-lifecycle.test.js:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: tests/unit/flow/post-hook-flow-scope.test.js
+ok 3 - tests/unit/flow/post-hook-flow-scope.test.js
+  ---
+  duration_ms: 434.076418
+  type: 'test'
+  ...
+# Subtest: tests/unit/flow/run-review-advisory.test.js
+not ok 4 - tests/unit/flow/run-review-advisory.test.js
+  ---
+  duration_ms: 172.191376
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-325-fix-flow-review-scope/tests/unit/flow/run-review-advisory.test.js:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 1
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1239.880369

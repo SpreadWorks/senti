@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-21T03:28:01.951Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/325-fix-flow-review-scope/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 impl-gate routing is not asserted",
+      "target": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js: R3 test",
+      "findingId": "ee8361349eadc65e35a659260f79f04f15759e0e50d6e81e4132148af27a7b49",
+      "fingerprint": "ee8361349eadc65e35a659260f79f04f15759e0e50d6e81e4132148af27a7b49",
+      "disposition": "must-fix",
+      "rationale": "R3 explicitly requires routing to `impl-gate`; without a spec-local assertion, an implementation could complete the earlier leaves but fail to route to the gate and still pass this test.",
+      "issue": "The R3 test verifies that flow impl-review, impl-triage, and impl-repair become done and that task-review is unchanged, but it never asserts that PASS/ADVISORY routes to impl-gate.",
+      "requiredChange": "Add an assertion in the R3 PASS/ADVISORY case that `impl-gate` is placed in the expected routed state, such as `in_progress` if that is the lifecycle convention.",
+      "whyBlocking": "R3 explicitly requires routing to `impl-gate`; without a spec-local assertion, an implementation could complete the earlier leaves but fail to route to the gate and still pass this test.",
+      "origin": "R3",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 max-attempt precheck order is not covered against review-stop clearing",
+      "target": "specs/325-fix-flow-review-scope/tests/review-scope-regression.test.js: R2 exhaustedFlow/exhaustedTask cases",
+      "findingId": "6bd7ebd86fc1082a963943355dfb453a59a436843b84107aa781f6061aae905f",
+      "fingerprint": "6bd7ebd86fc1082a963943355dfb453a59a436843b84107aa781f6061aae905f",
+      "disposition": "must-fix",
+      "rationale": "R2 requires scope resolution once before clearing review stop state and using that decision for max-attempt precheck; the current tests allow a side effect before the precheck failure.",
+      "issue": "The exhausted max-attempt cases assert no subprocess after scope resolution, but they do not include review stop state or a flowManager mutation spy, so they cannot detect an implementation that clears review stop state before the max-attempt precheck returns `REVIEW_MAX_ATTEMPTS_EXCEEDED`.",
+      "requiredChange": "In at least one exhausted max-attempt case, initialize review stop/runtime review state, provide a flowManager that records mutation/metric/status calls, and assert the result occurs after only scope resolution with no durable mutation.",
+      "whyBlocking": "R2 requires scope resolution once before clearing review stop state and using that decision for max-attempt precheck; the current tests allow a side effect before the precheck failure.",
+      "origin": "R2",
+      "failureKind": "missing_requirement_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/325-fix-flow-review-scope/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "14a78f525ae7f955f3d9b1496fc6a580f5525f3af659e63401a1099d1b56abe6"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "ee8361349eadc65e35a659260f79f04f15759e0e50d6e81e4132148af27a7b49",
+      "findingId": "ee8361349eadc65e35a659260f79f04f15759e0e50d6e81e4132148af27a7b49",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R3 impl-gate routing is not asserted",
+      "body": "The R3 test verifies that flow impl-review, impl-triage, and impl-repair become done and that task-review is unchanged, but it never asserts that PASS/ADVISORY routes to impl-gate.",
+      "category": "unknown",
+      "fingerprint": "ee8361349eadc65e35a659260f79f04f15759e0e50d6e81e4132148af27a7b49",
+      "disposition": "must-fix",
+      "rationale": "R3 explicitly requires routing to `impl-gate`; without a spec-local assertion, an implementation could complete the earlier leaves but fail to route to the gate and still pass this test."
+    },
+    {
+      "id": "6bd7ebd86fc1082a963943355dfb453a59a436843b84107aa781f6061aae905f",
+      "findingId": "6bd7ebd86fc1082a963943355dfb453a59a436843b84107aa781f6061aae905f",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R2 max-attempt precheck order is not covered against review-stop clearing",
+      "body": "The exhausted max-attempt cases assert no subprocess after scope resolution, but they do not include review stop state or a flowManager mutation spy, so they cannot detect an implementation that clears review stop state before the max-attempt precheck returns `REVIEW_MAX_ATTEMPTS_EXCEEDED`.",
+      "category": "unknown",
+      "fingerprint": "6bd7ebd86fc1082a963943355dfb453a59a436843b84107aa781f6061aae905f",
+      "disposition": "must-fix",
+      "rationale": "R2 requires scope resolution once before clearing review stop state and using that decision for max-attempt precheck; the current tests allow a side effect before the precheck failure."
+    }
+  ]
+}

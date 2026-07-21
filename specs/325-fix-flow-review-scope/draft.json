@@ -1,0 +1,83 @@
+{
+  "devType": "bugfix",
+  "goal": "flow-level impl-review の scope を active review leaf に一致させ、残留 currentTaskId による task-scoped artifact と lifecycle 停止を防ぐ。",
+  "analysis": {
+    "problem": "flow-level impl-review が in_progress でも currentTaskId が残っていると task review と誤認され、PASS・0 findings の artifact に taskId が付く。その結果、flow-level lifecycle が空の impl-triage / impl-repair を通常完了できず、存在しない triage artifact を要求して停止する。",
+    "proposedApproach": "review scope の権威を残留 cursor ではなく active flow/task review leaf に置く。置換対象の public behavior inventory は `senti flow run review --phase impl`、`review.md` / `impl-review.json` / review-history artifact、reviewRetry と StepAttempt、impl-review / triage / repair status、task-review、explicit broad mode、target guard である。owner mapping は、run-review.js が active leaf に基づく execution・retry・outcome scope、task-scope.js が task cursor enforcement と broad mode audit、definition.js が flow-level PASS / ADVISORY / FAIL lifecycle、既存 review command が artifact serialization を所有する。削除する public behavior はない。scope が一意でない場合は review subprocess や durable mutation より前に typed failure とする。",
+    "validation": "Issue #448 は再現条件、対象ファイル、保持する不変条件、対象外、Acceptance Criteria を明示している。source inspection でも run-review の review step、retry、task spec 選択が currentTaskId を直接参照する一方、definition.findActiveNode は active leaf から flow/task scope を解決でき、既存 lifecycle は taskId が null の impl artifactだけを flow scope と判定することを確認した。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: flow-level impl-review が active でも currentTaskId は過去の task を指したまま残り得る。",
+      "must: 現行 run-review は review step、retry、task spec 選択を currentTaskId の有無から task scope と判定する。",
+      "must: 現行 definition lifecycle は phase=impl かつ artifact taskId=null の結果だけを flow-scoped として扱う。",
+      "must: definition.findActiveNode は active leaf を task scope から先に探索し、task leaf がなければ flow leafを taskId=null で返す。",
+      "must: Issue #448 は flow-level PASS/ADVISORY/FAIL、task-level review、ambiguous scope、broad mode、#325 cursor enforcement、target guard の検証を要求する。"
+    ],
+    "decisionPoints": [
+      "must: flow-level impl-review と task-level task-review の authority を active leaf と target identity から一意に解決する。",
+      "must: flow-level PASS または ADVISORY・0 findings は impl-review、impl-triage、impl-repair を通常経路で完了する。",
+      "must: flow-level FAIL は impl-review を完了して impl-triage を開始し、PASS 経路と混同しない。",
+      "must: task-level task-review は active task leaf の taskId を artifact、retry、step outcome に保持し、flow-level leaves を変更しない。",
+      "must: ambiguous または state と矛盾する review scope は artifact/state mutation 前に typed failure とする。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Node.js 組み込みモジュールだけを使用し、外部 dependency を追加しない。",
+      "must: src/ に Issue number、spec id、runId、worktree path など project 固有値を含めない。",
+      "must: 既存の OOP 型表現を維持し、scope decision の invariant は専用 class または既存 class に所属させる。",
+      "must: test を通すための assertion 削減、skip、allowlist は行わない。",
+      "must: source を正とし、今回の code scope に直接対応しない docs 再生成や flow artifact 修復は行わない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: active leaf 解決、review execution、retry/outcome、post-hook lifecycle の責務境界を requirement と task に対応付ける。",
+      "must: flow PASS、flow ADVISORY、flow FAIL、task review、scope ambiguity、broad mode、cursor enforcement、target guard の positive/negative matrix を定義する。",
+      "must: pre-fix reproduction、spec-local tests、tests/unit/flow/run-review-advisory.test.js、tests/unit/flow/post-hook-flow-scope.test.js、specs/258-task-scoped-impl-flow/tests/task-scoped-flow.test.js、tests/e2e/231-task-e2e-full-lifecycle.test.js、fixed commit、独立監査、独立監査 PASS 後の npm test 1回という検証順序を維持する。",
+      "should: 同じ fixture setup または scope assertion が2箇所以上で繰り返される場合は既存 helper pattern に合わせて共通化する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/flow/lib/run-review.js の flow/task impl-review scope、retry、step outcome の選択を active review leaf と一致させる。",
+      "must: src/flow/lib/task-scope.js の変更は review scope resolution に限定し、BROAD_STEPS、broadModeHistory record schema、safe task promotion predicate、recovery messages の挙動を変更しない。",
+      "must: src/flow/definition.js の変更は resolveImplReviewLifecycle の flow/task discriminator に限定し、flow step ID、step order、PASS / ADVISORY / FAIL の status transition、maxAttempts を変更しない。",
+      "must: flow-level PASS/ADVISORY/FAIL、task-level review、scope mismatch、broad mode、#325 regression、target guard を focused tests で検証する。"
+    ],
+    "out": [
+      "must: FindingDispositionPolicy を変更しない。",
+      "must: Issue #446 の trusted loop proposal serializer/disposition 不整合を変更しない。",
+      "must: review finding 内容、gate policy、retry budget を再設計しない。",
+      "must: Issue #444、#445、#447 の製品差分または既存 flow state/artifact を手修復しない。",
+      "must: matrix 外の JavaScript 構文、別 board item、新しい follow-up Issue を実装・公開しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: flow-level impl-review は currentTaskId が non-null でも artifact taskId=null、flow-level retry/outcome、flow-level lifecycle 更新になる。",
+    "must: PASS または ADVISORY・0 findings は impl-review、impl-triage、impl-repair を done にして impl-gate へ進める。",
+    "must: FAIL は impl-review を done、impl-triage を in_progress にし、impl-repair と impl-gate を先行完了しない。",
+    "must: task-level task-review は既存どおり selected task の taskId、step、retry/outcome を使用し、flow-level impl leaves を変更しない。",
+    "must: explicit broad mode、#325 cursor enforcement、runId/Issue/spec target guards は既存の成功・拒否動作を維持する。",
+    "must: `senti flow run review --phase impl` の CLI syntax、exit envelope、PASS / ADVISORY / FAIL verdict 名、`review.md` / `impl-review.json` / review-history の artifact path と schema は taskId scope correction 以外を変更しない。",
+    "must: reviewRetry と StepAttempt は flow-level active leaf では taskId=null、task-level active leaf では selected taskId を記録し、retry budget の数値と terminal outcome 種別は変更しない。",
+    "must: retained behavior の owner は run-review.js の execution・retry・outcome scope、task-scope.js の cursor/broad-mode contract、definition.js の flow lifecycle、既存 review command の artifact serialization とし、新しい CLI surface または artifact format を追加しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #448 の目的を、active flow/task review leaf を scope authority とし、flow-level zero-finding lifecycle を復旧しながら task review、broad mode、cursor enforcement、target guard を維持する3ファイル・8ケースの bugfix として扱ってよいか。",
+      "answer": "must: はい。Issue #448 の Acceptance Criteria と対象範囲に直接対応する review scope と lifecycle の修正だけを行う。",
+      "evidence": "ユーザーは既存 Ideas BUG 07c9 を先に実施する選択肢 1 を明示し、その内容を同じ Scope / Out of Scope / Acceptance Criteria で Issue #448 として公開した。src/flow/lib/run-review.js、src/flow/lib/task-scope.js、src/flow/definition.js の source inspection も、残留 cursor と active leaf の不一致が停止原因であることを裏付ける。",
+      "why": "Issue #448 の root cause を直接除去しながら、task review と既存 guard の非回帰を同じ Issue concern として検証できるため。",
+      "considered": "currentTaskId を強制的に消去する案と既存 flow artifact を手修復する案は、cursor を必要とする task lifecycle を壊すか再発を防げず、Issue の対象外なので採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-21T02:58:45Z",
+    "notes": "Issue #448 の公開済み Acceptance Criteria と、ユーザーが 07c9 を先行実施する選択肢 1 を明示したことに基づく。"
+  }
+}
