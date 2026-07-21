@@ -47,7 +47,7 @@ sdd-forge is configured through a single project-level JSON file (`.sdd-forge/co
 | `scan.exclude` | No | string[] | `[]` | Glob patterns for files to exclude from the scan. |
 | `agent.default` | No | string | — | Default agent provider key (e.g., `"claude/sonnet"`). |
 | `agent.workDir` | No | string | `".tmp"` | Working directory for agent execution, relative to the project root. |
-| `agent.timeout` | No | number | `300` | Agent execution timeout in seconds. |
+| `agent.timeout` | No | number | `900` | Agent execution timeout in seconds. |
 | `agent.retryCount` | No | number | — | Retry count for `docs enrich` agent calls on failure. |
 | `agent.batchTokenLimit` | No | number | — | Maximum tokens per processing batch; must be ≥ 1000 if set. |
 | `agent.providers` | No | object | `{}` | Map of custom agent provider definitions keyed by a user-chosen identifier. |

@@ -24,8 +24,8 @@ import { ProviderRegistry } from "./provider.js";
 import { formatPreview } from "./error-preview.js";
 import { defaultAgentProfiles } from "./agent-defaults.js";
 import { normalizeAgentMetricDimension } from "./agent-metrics.js";
+import { AgentTimeout } from "./agent-timeout.js";
 
-const DEFAULT_AGENT_TIMEOUT_MS = 900_000;
 const DEFAULT_AGENT_TIMEOUT_GRACE_MS = 100;
 const PROCESS_DEATH_POLL_MS = 10;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
@@ -964,9 +964,7 @@ class AgentResolutionAttempt {
   }
 
   toResolved(resolved) {
-    const timeoutMs = this.agentSection.timeout != null
-      ? Number(this.agentSection.timeout) * 1000
-      : DEFAULT_AGENT_TIMEOUT_MS;
+    const timeoutMs = AgentTimeout.fromConfig(this.agentSection).toMilliseconds();
     return {
       provider: resolved.provider,
       profile: resolved.profile,

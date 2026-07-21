@@ -8,6 +8,7 @@
 import { PKG_DIR } from "../../lib/cli.js";
 import { runCmd } from "../../lib/process.js";
 import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
+import { AgentTimeout } from "../../lib/agent-timeout.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import {
@@ -53,7 +54,6 @@ import {
 } from "./impl-repair-artifacts.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 
-const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
 const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "FAIL", "TOOLING_FAILURE"]);
@@ -886,8 +886,7 @@ export class RunReviewCommand extends FlowCommand {
     if (dryRun) args.push("--dry-run");
     if (skipConfirm) args.push("--skip-confirm");
 
-    const agentTimeout = ctx.config?.agent?.timeout;
-    const timeoutMs = agentTimeout != null ? Number(agentTimeout) * 1000 : DEFAULT_AGENT_TIMEOUT_MS;
+    const timeoutMs = AgentTimeout.fromConfig(ctx.config?.agent).toMilliseconds();
     const res = await runCmdWithRetry(
       () => this.runCommand("node", [scriptPath, ...args], { cwd: root, timeout: timeoutMs }),
       { phase: persistedPhase },

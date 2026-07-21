@@ -48,7 +48,7 @@ sdd-forge は `.sdd-forge/config.json` を唯一の設定ファイルとして�
 | `chapters[].desc` | — | string | — | 章の説明文 |
 | `chapters[].exclude` | — | boolean | — | `true` を指定すると出力対象から除外 |
 | `agent.workDir` | — | string | — | エージェントの作業ディレクトリ |
-| `agent.timeout` | — | number | — | エージェントのタイムアウト値（1以上の整数） |
+| `agent.timeout` | — | number | `900` | エージェントのタイムアウト値（秒、1以上） |
 | `agent.retryCount` | — | number | — | エージェントのリトライ回数（1以上の整数） |
 | `agent.batchTokenLimit` | — | number | — | バッチ処理のトークン上限（1000以上の整数） |
 | `agent.providers` | — | object | — | エージェントプロバイダーの定義マップ |

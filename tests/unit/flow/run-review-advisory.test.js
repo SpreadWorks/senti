@@ -7,6 +7,7 @@ import {
   parseImplReviewOutput,
   parseSpecReviewOutput,
   parseTestReviewOutput,
+  RunReviewCommand,
   runCmdWithRetry,
   updateReviewRetryCounter,
 } from "../../../src/flow/lib/run-review.js";
@@ -74,6 +75,39 @@ describe("draft coverage review advisory routing", () => {
 });
 
 describe("spec review advisory verdict", () => {
+  it("uses the canonical 900-second agent timeout for the review subprocess", async () => {
+    const root = createTmpDir("run-review-timeout-");
+    fs.mkdirSync(path.join(root, "specs", "demo"), { recursive: true });
+    let processOptions = null;
+    const command = new RunReviewCommand({
+      runCommand(_command, _args, options) {
+        processOptions = options;
+        return {
+          ok: true,
+          status: 0,
+          stdout: "Spec review PASS. Review found no required fixes.",
+          stderr: "[spec-review] verdict=PASS proposalCount=0",
+          signal: null,
+          killed: false,
+        };
+      },
+    });
+
+    try {
+      const result = await command.execute({
+        root,
+        phase: "spec",
+        config: { agent: {} },
+        flowState: { spec: "specs/demo/spec.json", metrics: [], steps: [] },
+      });
+
+      assert.equal(processOptions.timeout, 900_000);
+      assert.equal(result.result, "ok");
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
   it("parses ADVISORY as a non-blocking spec review result", () => {
     const result = parseSpecReviewOutput(
       { ok: true },
