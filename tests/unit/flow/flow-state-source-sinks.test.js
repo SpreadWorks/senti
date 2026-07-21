@@ -714,6 +714,8 @@ function assertNoUnsupportedSinkCallees(source, state) {
     }
   }
   for (const match of mask.matchAll(/\(\s*([^();\n]+)\s*\)\s*\(/g)) {
+    const previousCode = mask.slice(0, match.index).match(/\S(?=\s*$)/)?.[0];
+    if (previousCode && /[\w$\])]/.test(previousCode)) continue;
     const start = match.index + match[0].indexOf(match[1]);
     const callee = source.slice(start, start + match[1].length);
     if (expressionIsSinkCapability(callee, state) || unsupportedSinkCallee(callee, state)) {
