@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/review-history/test-attempt-001.json",
+      "specs/323-child-process-failure-results/review-history/test-attempt-001.md",
+      "specs/323-child-process-failure-results/review-history/test-attempt-002.json",
+      "specs/323-child-process-failure-results/review-history/test-attempt-002.md"
+    ],
+    "inputHash": "3f9b517d189449fd86da4c647b4a4bb9dc5e1f1dec5e5ad774436cf1f9a476d1",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/review-history/test-attempt-001.json",
+    "specs/323-child-process-failure-results/review-history/test-attempt-001.md",
+    "specs/323-child-process-failure-results/review-history/test-attempt-002.json",
+    "specs/323-child-process-failure-results/review-history/test-attempt-002.md"
+  ],
+  "inputHash": "3f9b517d189449fd86da4c647b4a4bb9dc5e1f1dec5e5ad774436cf1f9a476d1",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T05:59:26.623Z",
+  "finishedAt": "2026-07-21T05:59:26.623Z",
+  "rawResponse": "### 1. Use distinct finding identifiers per finding\n**File:** `specs/323-child-process-failure-results/review-history/test-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id` even though they describe different issues. This makes downstream tracking ambiguous and can collapse two findings into one when deduplicating by fingerprint.  \n**Suggestion:** Generate or assign a unique `findingId`/`fingerprint`/`id` for each distinct finding, matching the pattern already used in `test-attempt-002.json`.\n\n### 2. Normalize newline termination in markdown artifacts\n**File:** `specs/323-child-process-failure-results/review-history/test-attempt-001.md`  \n**Requirement:** R4  \n**Issue:** The file has no trailing newline. This is minor, but it creates avoidable formatting churn and is inconsistent with common markdown/text-file conventions.  \n**Suggestion:** Add a final newline at EOF.\n\n### 3. Normalize newline termination in markdown artifacts\n**File:** `specs/323-child-process-failure-results/review-history/test-attempt-002.md`  \n**Requirement:** R4  \n**Issue:** The file has no trailing newline, matching the same formatting inconsistency as the previous attempt artifact.  \n**Suggestion:** Add a final newline at EOF.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Use distinct finding identifiers per finding",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/test-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id` even though they describe different issues. This makes downstream tracking ambiguous and can collapse two findings into one when deduplicating by fingerprint.  \n**Suggestion:** Generate or assign a unique `findingId`/`fingerprint`/`id` for each distinct finding, matching the pattern already used in `test-attempt-002.json`.",
+        "file": "specs/323-child-process-failure-results/review-history/test-attempt-001.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Normalize newline termination in markdown artifacts",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/test-attempt-001.md`  \n**Requirement:** R4  \n**Issue:** The file has no trailing newline. This is minor, but it creates avoidable formatting churn and is inconsistent with common markdown/text-file conventions.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/323-child-process-failure-results/review-history/test-attempt-001.md",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Normalize newline termination in markdown artifacts",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/test-attempt-002.md`  \n**Requirement:** R4  \n**Issue:** The file has no trailing newline, matching the same formatting inconsistency as the previous attempt artifact.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/323-child-process-failure-results/review-history/test-attempt-002.md",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

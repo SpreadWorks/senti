@@ -1,0 +1,50 @@
+{
+  "spec": "specs/323-child-process-failure-results/spec.json",
+  "date": "2026-07-21T06:18:02.221Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "ChildProcessExecutionResult shall classify every outcome as exactly one of passed, assertion-failure, spawn-error, signal, timeout, or max-buffer, using precedence timeout > max-buffer > spawn-error > signal > assertion-failure > passed; its constructor shall enforce consistent started, completed, exitCode, signal, errorCode, timedOut, spawnError, command, stdout, and stderr invariants.",
+      "status": "done",
+      "note": "R1: result model enforces kind and lifecycle invariants"
+    },
+    {
+      "desc": "Every result shall expose the launched command argv, numeric exit code or null, signal name or null, spawn-event reached state, completion state, Node.js error code or null, raw stdout/stderr returned by child_process, and ProcessStreamSummary values containing UTF-8 byteLength plus first and last non-empty lines or null.",
+      "status": "done",
+      "note": "R2: stream summary reports UTF-8 bytes and edge non-empty lines"
+    },
+    {
+      "desc": "The default runner shall convert each category spawnSync outcome into ChildProcessExecutionResult, aggregate PASS counts only for completed passed or assertion-failure suites, print '<category>: not completed' instead of a numeric count for abnormal incomplete categories, print one typed diagnostic block per abnormal result, and return the first numeric non-zero exit code or 1 when no numeric failure code exists.",
+      "status": "done",
+      "note": "R3: ENOENT is typed and omitted from numeric PASS aggregation"
+    },
+    {
+      "desc": "runProcessDetailed shall track actual spawn-event arrival and return ChildProcessExecutionResult without labeling max-buffer or signal outcomes as not-started spawn failures; processOutputLines shall place kind, command, started, completed, exitCode, signal, errorCode, timedOut, and both stream summaries before existing raw output and legacy diagnostic lines.",
+      "status": "done",
+      "note": "R4: runProcessDetailed reports ENOENT without starting"
+    },
+    {
+      "desc": "For passed and ordinary assertion-failure outcomes, the runner shall preserve existing stdout/stderr forwarding and parsed category PASS counts; passed shall retain exit code 0, and assertion-failure shall retain completed=true with its numeric non-zero exit code and test output.",
+      "status": "done",
+      "note": "R5: completed assertion failure retains output count and numeric exit code"
+    },
+    {
+      "desc": "Spec-local automated tests shall reproduce ENOENT, SIGKILL, timeout, maxBuffer overflow using ERR_CHILD_PROCESS_STDIO_MAXBUFFER or ENOBUFS, assertion failure, and happy path at least once each, assert single-log typed diagnostics and aggregation behavior, and existing runner/final-regression focused regressions shall pass.",
+      "status": "done",
+      "note": "R6: assertion failure and happy path remain completed outcomes"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "d2aa5c10d66bc7260f8507a4191ef6309c33b1c47844a765a466bf8ba4327c00"
+}

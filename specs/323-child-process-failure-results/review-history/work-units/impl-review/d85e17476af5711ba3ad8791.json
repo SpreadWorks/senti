@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/test-coverage.json",
+      "specs/323-child-process-failure-results/test-execute-result.json",
+      "specs/323-child-process-failure-results/test-result-review.json",
+      "specs/323-child-process-failure-results/test-result-review.md"
+    ],
+    "inputHash": "c32b5c02f49d5c93dafb8b22823101ebb04087821b6fae81c7de6940bb1657a3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/test-coverage.json",
+    "specs/323-child-process-failure-results/test-execute-result.json",
+    "specs/323-child-process-failure-results/test-result-review.json",
+    "specs/323-child-process-failure-results/test-result-review.md"
+  ],
+  "inputHash": "c32b5c02f49d5c93dafb8b22823101ebb04087821b6fae81c7de6940bb1657a3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T06:15:55.222Z",
+  "finishedAt": "2026-07-21T06:15:55.222Z",
+  "rawResponse": "### 1. Deduplicate Repeated Test Command Evidence\n**File:** `specs/323-child-process-failure-results/test-execute-result.json`  \n**Requirement:** R6  \n**Issue:** The same long `command` string is repeated for every requirement summary entry, making the artifact noisy and more error-prone if the command changes.  \n**Suggestion:** Move the shared command to a top-level field such as `execution_command`, then let each evidence entry omit it or reference it by key. Keep per-entry fields focused on requirement-specific evidence like `test_file`, `test_name`, and `raw_output_lines`.\n\n### 2. Deduplicate Repeated Raw Output Ranges\n**File:** `specs/323-child-process-failure-results/test-execute-result.json`  \n**Requirement:** R6  \n**Issue:** Every summary entry repeats the same `raw_output_lines` range `{ \"start_line\": 1, \"end_line\": 137 }`, which adds duplication without adding per-requirement signal.  \n**Suggestion:** Store the shared raw output range once at the execution level, and only include an entry-level range when a requirement has a distinct evidence span.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Deduplicate Repeated Test Command Evidence",
+        "body": "**File:** `specs/323-child-process-failure-results/test-execute-result.json`  \n**Requirement:** R6  \n**Issue:** The same long `command` string is repeated for every requirement summary entry, making the artifact noisy and more error-prone if the command changes.  \n**Suggestion:** Move the shared command to a top-level field such as `execution_command`, then let each evidence entry omit it or reference it by key. Keep per-entry fields focused on requirement-specific evidence like `test_file`, `test_name`, and `raw_output_lines`.",
+        "file": "specs/323-child-process-failure-results/test-execute-result.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Deduplicate Repeated Raw Output Ranges",
+        "body": "**File:** `specs/323-child-process-failure-results/test-execute-result.json`  \n**Requirement:** R6  \n**Issue:** Every summary entry repeats the same `raw_output_lines` range `{ \"start_line\": 1, \"end_line\": 137 }`, which adds duplication without adding per-requirement signal.  \n**Suggestion:** Store the shared raw output range once at the execution level, and only include an entry-level range when a requirement has a distinct evidence span.",
+        "file": "specs/323-child-process-failure-results/test-execute-result.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0dc516b2ddd08aaba2747b55",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0015",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/tests/fixtures/child-process-scenario.js",
+      "specs/323-child-process-failure-results/tests/runner-reporting.test.js",
+      "src/flow/lib/test-regression.js",
+      "tests/run.js"
+    ],
+    "inputHash": "605f9845e0c2db06fe5ef4a19f1b589725ea2c46282e0c9386a350624d735e7a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0dc516b2ddd08aaba2747b55"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/tests/fixtures/child-process-scenario.js",
+    "specs/323-child-process-failure-results/tests/runner-reporting.test.js",
+    "src/flow/lib/test-regression.js",
+    "tests/run.js"
+  ],
+  "inputHash": "605f9845e0c2db06fe5ef4a19f1b589725ea2c46282e0c9386a350624d735e7a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T06:16:39.529Z",
+  "finishedAt": "2026-07-21T06:16:39.529Z",
+  "rawResponse": "### 1. Avoid Full Stream Splitting For Summaries\n**File:** `src/flow/lib/test-regression.js`  \n**Requirement:** R2  \n**Issue:** `ProcessStreamSummary` builds `nonEmptyLines` with `text.split(...).filter(...)`, which duplicates large stdout/stderr content into an array just to find first and last non-empty lines. This is avoidable memory churn, especially around max-buffer cases.  \n**Suggestion:** Compute `byteLength`, first non-empty line, and last non-empty line in a single pass over lines without retaining every non-empty line.\n\n### 2. Extract Repeated Category List\n**File:** `tests/run.js`  \n**Requirement:** R3  \n**Issue:** The category list `[\"unit\", \"integration\", \"acceptance\"]` is duplicated in `formatExecutionSummary`, `counts`, and the execution loop also repeats `\"other\"`. This makes future category changes easy to apply inconsistently.  \n**Suggestion:** Define shared constants such as `SUMMARY_CATEGORIES` and `EXECUTION_CATEGORIES`, then reuse them for count initialization, summary formatting, and iteration.\n\n### 3. Reduce Repeated Spawn Result Literals\n**File:** `specs/323-child-process-failure-results/tests/runner-reporting.test.js`  \n**Requirement:** R6  \n**Issue:** The tests repeat verbose spawn result object shapes with the same fields (`status`, `signal`, `error`, `stdout`, `stderr`) across many cases. This makes the scenarios harder to scan and increases maintenance noise.  \n**Suggestion:** Add a small helper like `spawnResult(overrides)` that supplies defaults, then each test can specify only the fields relevant to the scenario.\n\n### 4. Escape Diagnostic Field Names In Regex Assertions\n**File:** `specs/323-child-process-failure-results/tests/runner-reporting.test.js`  \n**Requirement:** R6  \n**Issue:** The loop asserting fields such as `stdout.bytes` builds `new RegExp(\\`process\\\\.${field}:\\`)`; dots inside `field` are treated as regex wildcards. The assertion is less precise than intended.  \n**Suggestion:** Escape regex metacharacters in `field`, or avoid regex construction by checking `result.stderr.includes(\\`process.${field}:\\`)`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid Full Stream Splitting For Summaries",
+        "body": "**File:** `src/flow/lib/test-regression.js`  \n**Requirement:** R2  \n**Issue:** `ProcessStreamSummary` builds `nonEmptyLines` with `text.split(...).filter(...)`, which duplicates large stdout/stderr content into an array just to find first and last non-empty lines. This is avoidable memory churn, especially around max-buffer cases.  \n**Suggestion:** Compute `byteLength`, first non-empty line, and last non-empty line in a single pass over lines without retaining every non-empty line.",
+        "file": "src/flow/lib/test-regression.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Extract Repeated Category List",
+        "body": "**File:** `tests/run.js`  \n**Requirement:** R3  \n**Issue:** The category list `[\"unit\", \"integration\", \"acceptance\"]` is duplicated in `formatExecutionSummary`, `counts`, and the execution loop also repeats `\"other\"`. This makes future category changes easy to apply inconsistently.  \n**Suggestion:** Define shared constants such as `SUMMARY_CATEGORIES` and `EXECUTION_CATEGORIES`, then reuse them for count initialization, summary formatting, and iteration.",
+        "file": "tests/run.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Reduce Repeated Spawn Result Literals",
+        "body": "**File:** `specs/323-child-process-failure-results/tests/runner-reporting.test.js`  \n**Requirement:** R6  \n**Issue:** The tests repeat verbose spawn result object shapes with the same fields (`status`, `signal`, `error`, `stdout`, `stderr`) across many cases. This makes the scenarios harder to scan and increases maintenance noise.  \n**Suggestion:** Add a small helper like `spawnResult(overrides)` that supplies defaults, then each test can specify only the fields relevant to the scenario.",
+        "file": "specs/323-child-process-failure-results/tests/runner-reporting.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Escape Diagnostic Field Names In Regex Assertions",
+        "body": "**File:** `specs/323-child-process-failure-results/tests/runner-reporting.test.js`  \n**Requirement:** R6  \n**Issue:** The loop asserting fields such as `stdout.bytes` builds `new RegExp(\\`process\\\\.${field}:\\`)`; dots inside `field` are treated as regex wildcards. The assertion is less precise than intended.  \n**Suggestion:** Escape regex metacharacters in `field`, or avoid regex construction by checking `result.stderr.includes(\\`process.${field}:\\`)`.",
+        "file": "specs/323-child-process-failure-results/tests/runner-reporting.test.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

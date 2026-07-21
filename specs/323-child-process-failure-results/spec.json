@@ -1,0 +1,230 @@
+{
+  "goal": "default test runner と final-regression が child process の起動不能・異常終了・通常の assertion failure を区別し、1 回の実行ログで一次原因と process 状態を診断できるようにする。",
+  "scope": {
+    "in": [
+      "tests/run.js の suite process result、異常終了表示、完走 suite だけを対象とする PASS 集計。",
+      "src/flow/lib/test-regression.js の detailed process result、primary cause classification、diagnostic lines。",
+      "spec-local contract tests と各 process behavior を 1 つだけ起動する fixture。",
+      "既存 tests/unit/test-runner-file-filter.test.js と tests/unit/flow/final-regression.test.js の回帰確認。"
+    ],
+    "out": [
+      "test selection、preset 解決、通常時の label summary format の変更。",
+      "Issue #443 の flow transition、review、gate、finalize 実装。",
+      "src/flow/lib/run-final-regression.js、artifact schema、他 board item の変更。",
+      "関連しない assertion fixture と test command discovery の変更。"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールだけを使い、外部依存を追加しない。",
+    "ChildProcessExecutionResult と stream summary は constructor で kind、状態、field invariant を検証する専用 class とする。",
+    "bounded-resource-usage: tests/run.js は既存 64 MiB maxBuffer、runProcessDetailed は opts.maxBuffer または既定 20 MiB を 1 回の child process ごとの上限とし、stdout/stderr の raw text をその上限を超えて復元・再実行・複製しない。",
+    "正常完走時の stdout/stderr 転送、exit code、parse 済み unit/integration/acceptance PASS 件数を変更しない。",
+    "通常 assertion failure は completed=true、non-zero exit code、返却 stdout/stderr、parse 済み PASS 件数を維持する。",
+    "tests/run.js と src/flow/lib/test-regression.js 以外の product file を変更しない。"
+  ],
+  "design_principles": [
+    "process result の producer が primary cause を typed kind と structured fields に確定し、consumer は stdout/stderr から再分類しない。",
+    "起動開始 started、正常または assertion まで完走 completed、test pass passed を別 invariant として扱う。",
+    "timeout と max-buffer は signal より優先し、spawn-error は child が開始していない場合だけ選ぶ。",
+    "既存 consumer 用 started、exitCode、signal、timedOut、spawnError fields を保ち、diagnostic lines に新しい primary cause を追加する。",
+    "通常時の出力契約は維持し、異常終了時だけ typed diagnostic block と not completed 集計を出す。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/test-regression.js は ChildProcessExecutionResult と ProcessStreamSummary を所有し、async execFile callback と sync spawn result を同じ failure kind へ正規化する。"
+      },
+      {
+        "text": "tests/run.js は category ごとの spawnSync result を shared result model へ変換し、completed suite だけから PASS 件数を集計する。"
+      },
+      {
+        "text": "spec-local tests は actual child process と injected spawnSync result の両方を使い、6 kind と runner presentation を固定する。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "child_process result、command argv、spawn event 到達有無を result factory が受け取り、kind、started、completed、exitCode、signal、errorCode、raw streams、stream summaries を構築する。"
+      },
+      {
+        "text": "runner は passed/assertion-failure の completed result だけを parsePassCount へ渡し、他の kind は category を not completed として typed diagnostics を stderr へ 1 回出す。"
+      },
+      {
+        "text": "final-regression は runProcessDetailed result の legacy fields で既存 artifact contract を維持し、processOutputLines の先頭に typed cause と command/stream summary を置いて raw attempt log へ伝播する。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] tests/run.js は現状 spawnSync の stdout、stderr、status だけを集計し、error と signal を failure type として表示しない。",
+        "evidence": "tests/run.js executeFiles は result.stdout/result.stderr を転送し、parsePassCount と (result.status ?? 1) だけで counts/exitCode を決める。",
+        "consideredAlternatives": "stderr 文言だけを追加する案は started/completed と primary cause を structured result に残せないため採用しない。"
+      },
+      {
+        "text": "[VERIFY] runProcessDetailed は maxBuffer error を spawnError として started=false にし、signal/timeout/assertion と共通の explicit kind を持たない。",
+        "evidence": "src/flow/lib/test-regression.js detailedResult は errorCode != ETIMEDOUT を spawnError にし、started: !spawnError、exitCode、signal、timedOut、raw streams を返す。",
+        "consideredAlternatives": "run-final-regression.js 側の text classifier だけを変更する案は Issue scope を越え、test-execute 等の consumer へ原因を伝播できないため採用しない。"
+      },
+      {
+        "text": "Primary cause order は timeout、max-buffer、spawn-error、signal、assertion-failure、passed とする。",
+        "evidence": "timeout と maxBuffer は kill signal を伴い得るため signal より先に判定する必要があり、ENOENT は spawn event 前、assertion failure は completed child の numeric non-zero status で識別できる。",
+        "consideredAlternatives": "signal first は timeout/maxBuffer の一次原因を SIGTERM 等へ潰すため採用しない。"
+      },
+      {
+        "text": "Migration parity inventory: affected command は node tests/run.js と npm test。affected internal APIs は executeFiles、runProcessDetailed、processPassed、processOutputLines。hook/config discovery は変更なし。affected artifacts は test-execute process fields、final-regression process fields、raw attempt log。side effects は stdout/stderr 転送、process exit code、category summary、raw log append。",
+        "evidence": "tests/run.js main/executeFiles、src/flow/lib/run-test-execute.js と run-final-regression.js の imports、test-execute-result schema、FinalRegressionProcess.toJSON、processOutputLines call sites を確認した。",
+        "consideredAlternatives": "登録/help/config だけの検証では runtime output と artifact side effects を証明できないため behavior tests を使う。"
+      },
+      {
+        "text": "Migration parity mapping: normal CLI output/exit/summary は tests/run.js、legacy started/exitCode/signal/timedOut/spawnError は ChildProcessExecutionResult、typed cause と stream summary は同 result、test-execute/final artifact shape は既存 serializers、raw diagnostics は processOutputLines が所有する。削除する public behavior はない。",
+        "evidence": "R1-R5 と AC4-AC8 が各 retained surface の owner と behavior-level verification を定義する。",
+        "consideredAlternatives": "artifact schema と run-final-regression.js の同時変更は明示された product file boundary 外なので採用しない。"
+      },
+      {
+        "text": "ProcessStreamSummary は UTF-8 byteLength、firstNonEmptyLine、lastNonEmptyLine を持ち、空 stream は byteLength=0 と null lines を返す。",
+        "evidence": "Issue #444 は stdout/stderr summary と高出力時の一次原因保持を要求し、draft gate は summary の measurable shape を要求した。",
+        "consideredAlternatives": "全 raw output の複製は既存 maxBuffer に加えてログ量を倍増させるため採用しない。"
+      }
+    ]
+  },
+  "background": "default runner は category ごとに node --test を spawnSync し、status と出力だけで結果を集計するため、ENOENT、signal、timeout、buffer overflow が未実行または 0 PASS に見える。final-regression の shared executor は legacy fields を返すが、maxBuffer を spawn failure と同じ started=false にし、raw log に共通の primary cause contract がない。本 spec は 2 つの producer surface を同じ typed result model に揃え、既存 artifact schema と正常時 summary を維持したまま異常終了を明示する。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "ChildProcessExecutionResult shall classify every outcome as exactly one of passed, assertion-failure, spawn-error, signal, timeout, or max-buffer, using precedence timeout > max-buffer > spawn-error > signal > assertion-failure > passed; its constructor shall enforce consistent started, completed, exitCode, signal, errorCode, timedOut, spawnError, command, stdout, and stderr invariants.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Every result shall expose the launched command argv, numeric exit code or null, signal name or null, spawn-event reached state, completion state, Node.js error code or null, raw stdout/stderr returned by child_process, and ProcessStreamSummary values containing UTF-8 byteLength plus first and last non-empty lines or null.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "The default runner shall convert each category spawnSync outcome into ChildProcessExecutionResult, aggregate PASS counts only for completed passed or assertion-failure suites, print '<category>: not completed' instead of a numeric count for abnormal incomplete categories, print one typed diagnostic block per abnormal result, and return the first numeric non-zero exit code or 1 when no numeric failure code exists.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "runProcessDetailed shall track actual spawn-event arrival and return ChildProcessExecutionResult without labeling max-buffer or signal outcomes as not-started spawn failures; processOutputLines shall place kind, command, started, completed, exitCode, signal, errorCode, timedOut, and both stream summaries before existing raw output and legacy diagnostic lines.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "For passed and ordinary assertion-failure outcomes, the runner shall preserve existing stdout/stderr forwarding and parsed category PASS counts; passed shall retain exit code 0, and assertion-failure shall retain completed=true with its numeric non-zero exit code and test output.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Spec-local automated tests shall reproduce ENOENT, SIGKILL, timeout, maxBuffer overflow using ERR_CHILD_PROCESS_STDIO_MAXBUFFER or ENOBUFS, assertion failure, and happy path at least once each, assert single-log typed diagnostics and aggregation behavior, and existing runner/final-regression focused regressions shall pass.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: ENOENT produces kind=spawn-error, started=false, completed=false, errorCode=ENOENT, exitCode=null, and command/stream summaries in one diagnostic block.",
+    "AC2: A SIGKILL child produces kind=signal, started=true, completed=false, signal=SIGKILL, and cannot be classified as assertion-failure even when stdout contains assertion-like text.",
+    "AC3: A child exceeding timeout produces kind=timeout and a child exceeding maxBuffer by at least 1 byte produces kind=max-buffer with ERR_CHILD_PROCESS_STDIO_MAXBUFFER or ENOBUFS preserved; both remain started=true and completed=false even when a kill signal is present.",
+    "AC4: An ordinary failed assertion produces kind=assertion-failure, started=true, completed=true, its numeric non-zero exit code, raw test output, stream byte counts/edge lines, and the parsed PASS count from completed output.",
+    "AC5: A happy-path suite produces kind=passed, exitCode=0, started/completed=true, forwards stdout/stderr exactly once, and keeps the pre-change unit/integration/acceptance summary bytes.",
+    "AC6: Runner output for an incomplete category contains '<category>: not completed', the six required diagnostic field names, and no numeric zero count for that category; normally completed categories retain numeric counts.",
+    "AC7: processOutputLines for ENOENT, signal, timeout, max-buffer, assertion-failure, and passed results begins with typed process metadata and includes raw stdout/stderr without rerunning the command.",
+    "AC8: specs/323-child-process-failure-results/tests carry // spec: R<N> headers covering R1-R6, and tests/unit/test-runner-file-filter.test.js plus tests/unit/flow/final-regression.test.js pass without changes outside the locked test scope."
+  ],
+  "clarifications": [
+    {
+      "q": "What does started mean?",
+      "a": "For async execFile it means the child emitted spawn. For sync results it is false only for pre-spawn errors such as ENOENT/EACCES/EPERM; timeout, max-buffer, signal, and numeric status outcomes are started=true."
+    },
+    {
+      "q": "What does completed mean?",
+      "a": "It is true only when the child returned a numeric exit status and no timeout, max-buffer, spawn error, or signal cause exists. Both passed and assertion-failure are completed."
+    },
+    {
+      "q": "How are max-buffer error codes normalized?",
+      "a": "ERR_CHILD_PROCESS_STDIO_MAXBUFFER from execFile and ENOBUFS from spawnSync both map to kind=max-buffer while preserving the original errorCode."
+    },
+    {
+      "q": "Does this change final-regression artifact schema?",
+      "a": "No. Legacy process fields remain unchanged for artifact consumers; typed metadata is retained by runProcessDetailed and written to the existing raw attempt log through processOutputLines."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Parse stdout/stderr strings in each consumer.",
+      "reason": "Rejected because sparse, assertion-like, or truncated output can hide the process cause and produces different classifications across runner and final-regression."
+    },
+    {
+      "option": "Treat every non-zero status as an assertion failure.",
+      "reason": "Rejected because signal, timeout, max-buffer, and spawn failures may have null or synthetic status and did not complete a normal test run."
+    },
+    {
+      "option": "Expand final-regression artifact schemas in this issue.",
+      "reason": "Rejected because src/flow/lib/run-final-regression.js and schemas are outside the locked Issue #444 product scope; existing legacy fields plus raw diagnostic log can preserve the primary cause."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "ChildProcessExecutionResult",
+    "ProcessStreamSummary",
+    "spawnSync",
+    "runProcessDetailed",
+    "processOutputLines",
+    "ENOENT",
+    "SIGKILL",
+    "ERR_CHILD_PROCESS_STDIO_MAXBUFFER",
+    "ENOBUFS",
+    "timeout",
+    "test runner",
+    "final regression"
+  ],
+  "implementationTargets": [
+    "tests/run.js",
+    "src/flow/lib/test-regression.js",
+    "specs/323-child-process-failure-results/tests/",
+    "tests/unit/test-runner-file-filter.test.js",
+    "tests/unit/flow/final-regression.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Model child-process outcomes",
+      "goal": "Represent async and sync child-process outcomes with one invariant-enforcing typed result and deterministic diagnostic lines.",
+      "acceptance": [
+        "R1-R2 classify six kinds with exact field and stream-summary invariants.",
+        "R4 records actual spawn arrival and emits typed diagnostics before raw output.",
+        "R6 actual child-process contract tests cover all six kinds."
+      ],
+      "implementation_notes": "Implement the shared classes and result factories in src/flow/lib/test-regression.js. Preserve legacy fields consumed by test-execute and final-regression. Do not edit final-regression artifact schemas or run-final-regression.js.",
+      "test_strategy": "Add spec-local node:test cases for execFile ENOENT, SIGKILL, timeout, maxBuffer, assertion exit, and pass; assert R1/R2/R4 field and line contracts, then run tests/unit/flow/final-regression.test.js.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Report runner process failures",
+      "goal": "Use the typed process result in the default runner so incomplete suites are diagnosed and excluded from numeric PASS aggregation.",
+      "acceptance": [
+        "R3 prints not completed and one typed diagnostic block for abnormal categories.",
+        "R5 preserves completed assertion and happy-path output/count behavior.",
+        "R6 runner contract tests cover abnormal and completed outcomes."
+      ],
+      "implementation_notes": "Update tests/run.js only. Inject spawn/write dependencies through the executeFiles boundary for deterministic tests, retain direct CLI execution behavior, and do not change selection or general label helpers.",
+      "test_strategy": "Add spec-local injected spawnSync result tests for ENOENT, signal, timeout, maxBuffer, assertion, and pass; run tests/unit/test-runner-file-filter.test.js and the default runner happy-path fixture.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-20T08:18:59.829Z",
+    "notes": "autoApprove: gate-passed Issue #444 spec approved within locked scope"
+  }
+}

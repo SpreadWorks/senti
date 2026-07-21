@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0bdf3b707356690edf741e13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0000",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/draft-coverage-repair.json",
+      "specs/323-child-process-failure-results/draft-coverage-triage.json",
+      "specs/323-child-process-failure-results/draft-gate-source.json",
+      "specs/323-child-process-failure-results/draft-questions-repair.json"
+    ],
+    "inputHash": "8effb79ba24d6c8f41f81631cb5eb8309e99431a0754b85759af7ae43a66738d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0bdf3b707356690edf741e13"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/draft-coverage-repair.json",
+    "specs/323-child-process-failure-results/draft-coverage-triage.json",
+    "specs/323-child-process-failure-results/draft-gate-source.json",
+    "specs/323-child-process-failure-results/draft-questions-repair.json"
+  ],
+  "inputHash": "8effb79ba24d6c8f41f81631cb5eb8309e99431a0754b85759af7ae43a66738d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T05:58:07.399Z",
+  "finishedAt": "2026-07-21T05:58:07.399Z",
+  "rawResponse": "### 1. Remove Duplicated Finding Payloads\n**File:** `specs/323-child-process-failure-results/draft-gate-source.json`\n**Requirement:** R6\n**Issue:** The same three guardrail failures are represented twice: once under `evaluations` and again under `observations`, with largely duplicated fields such as `reason`/`observed`, `rationale`, `guardrail_id`, `guardrailId`, `findingId`, and `fingerprint`.\n**Suggestion:** Keep a single canonical collection for findings, or make one section reference the other by ID. If both views are required by consumers, generate one as a derived projection instead of storing duplicated full payloads in the artifact.\n\n### 2. Normalize Duplicate Field Names\n**File:** `specs/323-child-process-failure-results/draft-gate-source.json`\n**Requirement:** R6\n**Issue:** The file mixes snake_case and camelCase aliases for the same concepts, for example `guardrail_id` and `guardrailId`. This increases schema ambiguity and makes downstream consumers more error-prone.\n**Suggestion:** Use one naming convention per field. Prefer the convention already used by the surrounding artifact schema, and remove redundant aliases unless a documented consumer requires both.\n\n### 3. Avoid Stale Generated Timestamps in Empty Artifacts\n**File:** `specs/323-child-process-failure-results/draft-coverage-repair.json`\n**Requirement:** R6\n**Issue:** The artifact contains only static empty-state data plus `generatedAt`. For an empty repair result, the timestamp creates noisy diffs without adding meaningful review value.\n**Suggestion:** Omit `generatedAt` from empty no-op artifacts, or move run metadata into a shared manifest so repeated no-op phases do not create otherwise meaningless changes.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Duplicated Finding Payloads",
+        "body": "**File:** `specs/323-child-process-failure-results/draft-gate-source.json`\n**Requirement:** R6\n**Issue:** The same three guardrail failures are represented twice: once under `evaluations` and again under `observations`, with largely duplicated fields such as `reason`/`observed`, `rationale`, `guardrail_id`, `guardrailId`, `findingId`, and `fingerprint`.\n**Suggestion:** Keep a single canonical collection for findings, or make one section reference the other by ID. If both views are required by consumers, generate one as a derived projection instead of storing duplicated full payloads in the artifact.",
+        "file": "specs/323-child-process-failure-results/draft-gate-source.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Normalize Duplicate Field Names",
+        "body": "**File:** `specs/323-child-process-failure-results/draft-gate-source.json`\n**Requirement:** R6\n**Issue:** The file mixes snake_case and camelCase aliases for the same concepts, for example `guardrail_id` and `guardrailId`. This increases schema ambiguity and makes downstream consumers more error-prone.\n**Suggestion:** Use one naming convention per field. Prefer the convention already used by the surrounding artifact schema, and remove redundant aliases unless a documented consumer requires both.",
+        "file": "specs/323-child-process-failure-results/draft-gate-source.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Avoid Stale Generated Timestamps in Empty Artifacts",
+        "body": "**File:** `specs/323-child-process-failure-results/draft-coverage-repair.json`\n**Requirement:** R6\n**Issue:** The artifact contains only static empty-state data plus `generatedAt`. For an empty repair result, the timestamp creates noisy diffs without adding meaningful review value.\n**Suggestion:** Omit `generatedAt` from empty no-op artifacts, or move run metadata into a shared manifest so repeated no-op phases do not create otherwise meaningless changes.",
+        "file": "specs/323-child-process-failure-results/draft-coverage-repair.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

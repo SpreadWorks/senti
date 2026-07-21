@@ -13,8 +13,12 @@ import {
 } from "./helpers/test-runner-labels.js";
 import { resolveTestFiles } from "./helpers/test-selection.js";
 import { TestRunner } from "./helpers/test-runner.js";
+import {
+  processResultFromSpawnSync,
+} from "../src/flow/lib/test-regression.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const SCRIPT_PATH = fileURLToPath(import.meta.url);
 
 function getRealPresetNames() {
   return [];
@@ -46,27 +50,46 @@ function resolveFiles(selection) {
   });
 }
 
-function executeFiles(files) {
-  const groups = groupTestFilesByCategory(files.map((file) => resolve(ROOT, file)));
+function formatExecutionSummary(counts, incompleteCategories) {
+  if (incompleteCategories.size === 0) return formatLabelSummary(counts);
+  return ["unit", "integration", "acceptance"]
+    .map((category) => incompleteCategories.has(category) ? `${category}: not completed` : `${category}: ${counts[category]}`)
+    .join("\n");
+}
+
+export function executeFiles(files, { spawn = spawnSync, write = writeSync, root = ROOT } = {}) {
+  const groups = groupTestFilesByCategory(files.map((file) => resolve(root, file)));
   const counts = { unit: 0, integration: 0, acceptance: 0 };
-  let exitCode = 0;
+  const incompleteCategories = new Set();
+  let sawFailure = false;
+  let firstNumericFailure = null;
   for (const category of ["unit", "integration", "acceptance", "other"]) {
     if (groups[category].length === 0) continue;
-    const result = spawnSync("node", ["--test", ...groups[category]], {
-      cwd: ROOT,
+    const command = ["node", "--test", ...groups[category]];
+    const result = spawn(command[0], command.slice(1), {
+      cwd: root,
       stdio: ["ignore", "pipe", "pipe"],
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
     });
-    if (result.stdout) writeSync(1, result.stdout);
-    if (result.stderr) writeSync(2, result.stderr);
-    if (category !== "other") {
-      counts[category] = parsePassCount((result.stdout || "") + (result.stderr || ""));
+    const execution = processResultFromSpawnSync(command, result);
+    if (execution.stdout) write(1, execution.stdout);
+    if (execution.stderr) write(2, execution.stderr);
+    if (execution.completed && category !== "other") {
+      counts[category] = parsePassCount(execution.stdout + execution.stderr);
+    } else if (!execution.completed && category !== "other") {
+      incompleteCategories.add(category);
     }
-    if ((result.status ?? 1) !== 0 && exitCode === 0) exitCode = result.status ?? 1;
+    if (execution.kind !== "passed") {
+      sawFailure = true;
+      if (firstNumericFailure === null && Number.isInteger(execution.exitCode) && execution.exitCode !== 0) {
+        firstNumericFailure = execution.exitCode;
+      }
+      write(2, `\n[senti] test suite process result\n${execution.diagnosticLines().join("\n")}\n`);
+    }
   }
-  writeSync(1, `\n${formatLabelSummary(counts)}\n`);
-  return exitCode;
+  write(1, `\n${formatExecutionSummary(counts, incompleteCategories)}\n`);
+  return firstNumericFailure ?? (sawFailure ? 1 : 0);
 }
 
 export function main(args = process.argv.slice(2)) {
@@ -81,4 +104,6 @@ export function main(args = process.argv.slice(2)) {
   return result.exitCode;
 }
 
-process.exitCode = main();
+if (process.argv[1] && resolve(process.argv[1]) === SCRIPT_PATH) {
+  process.exitCode = main();
+}

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/draft-questions-triage.json",
+      "specs/323-child-process-failure-results/draft-review-coverage.json",
+      "specs/323-child-process-failure-results/draft-review-questions.json",
+      "specs/323-child-process-failure-results/draft.json"
+    ],
+    "inputHash": "47ebb02d2bc5704ed1496a740bf209e4d4b40989794b8c9a42a8f8f8d638eb35",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/draft-questions-triage.json",
+    "specs/323-child-process-failure-results/draft-review-coverage.json",
+    "specs/323-child-process-failure-results/draft-review-questions.json",
+    "specs/323-child-process-failure-results/draft.json"
+  ],
+  "inputHash": "47ebb02d2bc5704ed1496a740bf209e4d4b40989794b8c9a42a8f8f8d638eb35",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T05:58:41.315Z",
+  "finishedAt": "2026-07-21T05:58:41.315Z",
+  "rawResponse": "### 1. Consolidate repeated process-result contract wording\n**File:** `specs/323-child-process-failure-results/draft.json`  \n**Requirement:** R6  \n**Issue:** The same result-kind contract is repeated in several places with slightly different wording: `normally completed`, `passed`, `assertion failure`, `assertion-failure`, `spawn failure`, `spawn-error`, etc. That makes the spec easier to drift during implementation.  \n**Suggestion:** Define the canonical result kinds once, for example `passed`, `assertion-failure`, `spawn-error`, `signal`, `timeout`, `max-buffer`, then reference that list consistently throughout `analysis`, `decisionMap`, and `qa`.\n\n### 2. Replace vague bounded-buffer wording with explicit limits\n**File:** `specs/323-child-process-failure-results/draft.json`  \n**Requirement:** R3  \n**Issue:** The draft says stdout/stderr should use the child process API’s bounded buffer, but the limit is only explicit in the matched acknowledgment rationale, not in the draft body itself. This weakens the bounded-resource-usage guardrail traceability.  \n**Suggestion:** Add the concrete limits to the relevant decision point or impact section: `tests/run.js` keeps the existing `64 MiB maxBuffer`, and `runProcessDetailed` uses `opts.maxBuffer` or the default `20 MiB`, without reconstructing or duplicating raw output beyond that bound.\n\n### 3. Remove duplicate empty review artifact shape if generation allows it\n**File:** `specs/323-child-process-failure-results/draft-review-coverage.json`  \n**Requirement:** R5  \n**Issue:** `draft-review-coverage.json` and `draft-review-questions.json` have nearly identical empty PASS structures, differing mainly by phase and timestamp. If these are manually maintained artifacts, the duplication adds noise and creates a drift point.  \n**Suggestion:** If the workflow supports it, keep only the source review artifact plus the triage result, or generate these review PASS files from a shared template so empty review metadata is not duplicated by hand.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate repeated process-result contract wording",
+        "body": "**File:** `specs/323-child-process-failure-results/draft.json`  \n**Requirement:** R6  \n**Issue:** The same result-kind contract is repeated in several places with slightly different wording: `normally completed`, `passed`, `assertion failure`, `assertion-failure`, `spawn failure`, `spawn-error`, etc. That makes the spec easier to drift during implementation.  \n**Suggestion:** Define the canonical result kinds once, for example `passed`, `assertion-failure`, `spawn-error`, `signal`, `timeout`, `max-buffer`, then reference that list consistently throughout `analysis`, `decisionMap`, and `qa`.",
+        "file": "specs/323-child-process-failure-results/draft.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Replace vague bounded-buffer wording with explicit limits",
+        "body": "**File:** `specs/323-child-process-failure-results/draft.json`  \n**Requirement:** R3  \n**Issue:** The draft says stdout/stderr should use the child process API’s bounded buffer, but the limit is only explicit in the matched acknowledgment rationale, not in the draft body itself. This weakens the bounded-resource-usage guardrail traceability.  \n**Suggestion:** Add the concrete limits to the relevant decision point or impact section: `tests/run.js` keeps the existing `64 MiB maxBuffer`, and `runProcessDetailed` uses `opts.maxBuffer` or the default `20 MiB`, without reconstructing or duplicating raw output beyond that bound.",
+        "file": "specs/323-child-process-failure-results/draft.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Remove duplicate empty review artifact shape if generation allows it",
+        "body": "**File:** `specs/323-child-process-failure-results/draft-review-coverage.json`  \n**Requirement:** R5  \n**Issue:** `draft-review-coverage.json` and `draft-review-questions.json` have nearly identical empty PASS structures, differing mainly by phase and timestamp. If these are manually maintained artifacts, the duplication adds noise and creates a drift point.  \n**Suggestion:** If the workflow supports it, keep only the source review artifact plus the triage result, or generate these review PASS files from a shared template so empty review metadata is not duplicated by hand.",
+        "file": "specs/323-child-process-failure-results/draft-review-coverage.json",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

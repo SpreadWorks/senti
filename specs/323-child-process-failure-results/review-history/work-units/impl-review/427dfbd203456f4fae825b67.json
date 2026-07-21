@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json"
+    ],
+    "inputHash": "7e84688e4573c49306192f0606051b4ab14e026c1db7c47084306e4813bce263",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json"
+  ],
+  "inputHash": "7e84688e4573c49306192f0606051b4ab14e026c1db7c47084306e4813bce263",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T06:14:26.036Z",
+  "finishedAt": "2026-07-21T06:14:26.036Z",
+  "rawResponse": "### 1. Remove duplicated identity metadata\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json`  \n**Requirement:** R6  \n**Issue:** `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId` are stored both inside `identity` and at the top level with matching values. This creates avoidable drift risk in a generated review artifact.  \n**Suggestion:** Keep the metadata in one canonical location, preferably `identity`, and have readers derive any top-level summary fields only when rendering or indexing.\n\n### 2. Remove duplicated proposal payload\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json`  \n**Requirement:** R6  \n**Issue:** `rawResponse` contains the same proposals that are also parsed into `success.proposals`. This duplicates substantial text and makes later edits or regeneration inconsistencies harder to detect.  \n**Suggestion:** Store either the raw provider response or the parsed structured proposals as canonical. If both are needed for auditability, consider storing `rawResponse` only in a separate debug artifact or behind an explicit retention mode.\n\n### 3. Normalize repeated work-unit schema duplication\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json`  \n**Requirement:** R6  \n**Issue:** The file repeats identity metadata at two object levels and also repeats proposal text in `rawResponse` and `success.proposals`, matching the same duplication pattern as the other new work-unit artifacts.  \n**Suggestion:** Apply a single normalized artifact shape across impl-review work units: one identity block, one canonical proposal representation, and optional derived views generated at read/render time.\n\n### 4. Avoid redundant top-level identity fields in empty-result artifacts\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json`  \n**Requirement:** R6  \n**Issue:** Even though this artifact has no proposals, it still duplicates `targetFiles`, `inputHash`, provider/schema metadata, and `unitId` between `identity` and the top level.  \n**Suggestion:** Use the same canonical identity-only representation for no-proposal artifacts so empty and non-empty review results follow one schema.\n\n### 5. Simplify storage for `NO_PROPOSALS`\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json`  \n**Requirement:** R6  \n**Issue:** `rawResponse: \"NO_PROPOSALS\"` duplicates the meaning of `success.proposals: []`. The two fields can diverge even though they represent the same outcome.  \n**Suggestion:** Prefer the structured empty proposals array as the canonical state, and derive the display string `NO_PROPOSALS` only when rendering provider-style output.\n\n### 6. Consolidate duplicated generated review content\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json`  \n**Requirement:** R6  \n**Issue:** The same four proposals are stored as markdown in `rawResponse` and again as structured entries under `success.proposals`. This increases artifact size and creates two editable copies of each finding.  \n**Suggestion:** Store structured proposals only, then render markdown from `title`, `body`, `file`, and `requirementId` when needed.",
+  "success": {
+    "proposals": []
+  }
+}

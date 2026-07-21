@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "runId": "0680b093-1077-4f1f-bfc5-dc06fc6bc762",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-20T08:16:23.419Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The migration parity note does not inventory affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the behavior being retained or changed.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[3]"
+          },
+          "observed": "The migration parity note does not inventory affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the behavior being retained or changed.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "findingId": "84f746184b5b1a87fa1a37544e1c4ef6af2ac013c43c7fec8107800fc1ece7bc",
+      "fingerprint": "84f746184b5b1a87fa1a37544e1c4ef6af2ac013c43c7fec8107800fc1ece7bc",
+      "disposition": "must-fix",
+      "rationale": "The migration parity note does not inventory affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the behavior being retained or changed.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-20T08:16:23.419Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The migration parity note does not map each retained public behavior to a new owner or to an explicit removal decision; it only states that legacy process fields and normal label summary remain with the existing owner.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[3]"
+          },
+          "observed": "The migration parity note does not map each retained public behavior to a new owner or to an explicit removal decision; it only states that legacy process fields and normal label summary remain with the existing owner.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "findingId": "84f746184b5b1a87fa1a37544e1c4ef6af2ac013c43c7fec8107800fc1ece7bc",
+      "fingerprint": "84f746184b5b1a87fa1a37544e1c4ef6af2ac013c43c7fec8107800fc1ece7bc",
+      "disposition": "must-fix",
+      "rationale": "The migration parity note does not map each retained public behavior to a new owner or to an explicit removal decision; it only states that legacy process fields and normal label summary remain with the existing owner.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-20T08:16:23.419Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The constraint says stdout/stderr raw text shall not exceed the child_process API's bounded buffer, but it does not state an explicit size bound.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[2]"
+          },
+          "observed": "The constraint says stdout/stderr raw text shall not exceed the child_process API's bounded buffer, but it does not state an explicit size bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "The constraint says stdout/stderr raw text shall not exceed the child_process API's bounded buffer, but it does not state an explicit size bound.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-20T08:16:23.419Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[3]"
+      },
+      "observed": "The migration parity note does not inventory affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the behavior being retained or changed.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ],
+      "result": "fail",
+      "guardrail_id": "migration-parity",
+      "category": "guardrail",
+      "findingId": "d50b0a27615c4942f6a166ef020fea351cac5b83f0ef4a2825b1c5b81cd88e9e",
+      "fingerprint": "d50b0a27615c4942f6a166ef020fea351cac5b83f0ef4a2825b1c5b81cd88e9e",
+      "disposition": "must-fix",
+      "rationale": "The migration parity note does not inventory affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects for the behavior being retained or changed.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-20T08:16:23.419Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[3]"
+      },
+      "observed": "The migration parity note does not map each retained public behavior to a new owner or to an explicit removal decision; it only states that legacy process fields and normal label summary remain with the existing owner.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ],
+      "result": "fail",
+      "guardrail_id": "migration-parity",
+      "category": "guardrail",
+      "findingId": "d50b0a27615c4942f6a166ef020fea351cac5b83f0ef4a2825b1c5b81cd88e9e",
+      "fingerprint": "d50b0a27615c4942f6a166ef020fea351cac5b83f0ef4a2825b1c5b81cd88e9e",
+      "disposition": "must-fix",
+      "rationale": "The migration parity note does not map each retained public behavior to a new owner or to an explicit removal decision; it only states that legacy process fields and normal label summary remain with the existing owner.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-20T08:16:23.419Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "constraints[2]"
+      },
+      "observed": "The constraint says stdout/stderr raw text shall not exceed the child_process API's bounded buffer, but it does not state an explicit size bound.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "The constraint says stdout/stderr raw text shall not exceed the child_process API's bounded buffer, but it does not state an explicit size bound.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-20T08:16:23.419Z",
+      "repeatCount": 1
+    }
+  ]
+}

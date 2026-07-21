@@ -12,6 +12,15 @@ export const DEFAULT_PROCESS_HEARTBEAT_MS = 30_000;
 export const MIN_PROCESS_HEARTBEAT_MS = 1000;
 export const TEST_EXECUTE_REGRESSION_POLICIES = Object.freeze(["targeted", "full", "skip"]);
 export const NO_SUPPORTED_REGRESSION_COMMAND = "NO_SUPPORTED_REGRESSION_COMMAND";
+export const CHILD_PROCESS_RESULT_KINDS = Object.freeze([
+  "passed",
+  "assertion-failure",
+  "spawn-error",
+  "signal",
+  "timeout",
+  "max-buffer",
+]);
+const MAX_BUFFER_ERROR_CODES = new Set(["ERR_CHILD_PROCESS_STDIO_MAXBUFFER", "ENOBUFS"]);
 export const REGRESSION_COMMAND_CHECKED_SOURCES = Object.freeze([
   "test.command",
   "package.json:scripts.test",
@@ -88,6 +97,175 @@ export class RegressionCommandIdentity {
       resolvedConfigDigest: this.resolvedConfigDigest,
     };
   }
+}
+
+export class ProcessStreamSummary {
+  constructor(text) {
+    if (typeof text !== "string") throw new Error("process stream text must be a string");
+    const nonEmptyLines = text.split(/\r?\n/).filter((line) => line.length > 0);
+    this.byteLength = Buffer.byteLength(text, "utf8");
+    this.firstNonEmptyLine = nonEmptyLines[0] ?? null;
+    this.lastNonEmptyLine = nonEmptyLines.at(-1) ?? null;
+    Object.freeze(this);
+  }
+
+  toDiagnosticLines(name) {
+    return [
+      `process.${name}.bytes: ${this.byteLength}`,
+      `process.${name}.first: ${this.firstNonEmptyLine}`,
+      `process.${name}.last: ${this.lastNonEmptyLine}`,
+    ];
+  }
+}
+
+function assertOptionalString(value, name) {
+  if (value !== null && typeof value !== "string") {
+    throw new Error(`${name} must be a string or null`);
+  }
+}
+
+export class ChildProcessExecutionResult {
+  constructor({
+    kind,
+    command,
+    started,
+    completed,
+    exitCode,
+    signal,
+    errorCode,
+    timedOut,
+    spawnError,
+    stdout,
+    stderr,
+  }) {
+    if (!CHILD_PROCESS_RESULT_KINDS.includes(kind)) throw new Error(`invalid child process result kind: ${kind}`);
+    if (!Array.isArray(command) || command.length === 0 || command.some((token) => typeof token !== "string" || token.length === 0)) {
+      throw new Error("child process result command must contain non-empty argv strings");
+    }
+    if (typeof started !== "boolean") throw new Error("child process result started must be boolean");
+    if (typeof completed !== "boolean") throw new Error("child process result completed must be boolean");
+    if (exitCode !== null && !Number.isInteger(exitCode)) throw new Error("child process result exitCode must be an integer or null");
+    assertOptionalString(signal, "child process result signal");
+    assertOptionalString(errorCode, "child process result errorCode");
+    if (typeof timedOut !== "boolean") throw new Error("child process result timedOut must be boolean");
+    assertOptionalString(spawnError, "child process result spawnError");
+    if (typeof stdout !== "string") throw new Error("child process result stdout must be a string");
+    if (typeof stderr !== "string") throw new Error("child process result stderr must be a string");
+
+    if (kind === "passed" && (!started || !completed || exitCode !== 0 || signal || errorCode || timedOut || spawnError)) {
+      throw new Error("passed child process result must be completed with exit code 0 and no failure fields");
+    }
+    if (kind === "assertion-failure" && (!started || !completed || !Number.isInteger(exitCode) || exitCode === 0 || signal || errorCode || timedOut || spawnError)) {
+      throw new Error("assertion-failure child process result must complete with a numeric non-zero exit code only");
+    }
+    if (kind === "spawn-error" && (started || completed || exitCode !== null || signal || !errorCode || timedOut || !spawnError)) {
+      throw new Error("spawn-error child process result must fail before started with errorCode and spawnError");
+    }
+    if (kind === "signal" && (!started || completed || exitCode !== null || !signal || errorCode || timedOut || spawnError)) {
+      throw new Error("signal child process result must start and terminate with a signal");
+    }
+    if (kind === "timeout" && (!started || completed || exitCode !== null || !timedOut || spawnError)) {
+      throw new Error("timeout child process result must start and remain incomplete with timedOut=true");
+    }
+    if (kind === "max-buffer" && (!started || completed || exitCode !== null || !MAX_BUFFER_ERROR_CODES.has(errorCode) || timedOut || !spawnError)) {
+      throw new Error("max-buffer child process result must start and preserve a max-buffer error");
+    }
+
+    this.kind = kind;
+    this.command = Object.freeze([...command]);
+    this.started = started;
+    this.completed = completed;
+    this.exitCode = exitCode;
+    this.signal = signal;
+    this.errorCode = errorCode;
+    this.timedOut = timedOut;
+    this.spawnError = spawnError;
+    this.stdout = stdout;
+    this.stderr = stderr;
+    this.stdoutSummary = new ProcessStreamSummary(stdout);
+    this.stderrSummary = new ProcessStreamSummary(stderr);
+    Object.freeze(this);
+  }
+
+  diagnosticLines() {
+    return [
+      `process.kind: ${this.kind}`,
+      `process.command: ${this.command.join(" ")}`,
+      `process.started: ${this.started}`,
+      `process.completed: ${this.completed}`,
+      `process.exitCode: ${this.exitCode}`,
+      `process.signal: ${this.signal}`,
+      `process.errorCode: ${this.errorCode}`,
+      `process.timedOut: ${this.timedOut}`,
+      ...this.stdoutSummary.toDiagnosticLines("stdout"),
+      ...this.stderrSummary.toDiagnosticLines("stderr"),
+    ];
+  }
+}
+
+function commandArgv(command) {
+  if (Array.isArray(command?.argv)) return command.argv;
+  if (Array.isArray(command)) return command;
+  throw new Error("child process result requires a command with argv or an argv array");
+}
+
+function processErrorMessage(err, command, stderr) {
+  const message = String(stderr || err?.message || commandArgv(command)[0]);
+  return err?.code ? `${err.code}: ${message}` : message;
+}
+
+function childProcessResult({ command, err = null, stdout = "", stderr = "", started, exitCode, signal }) {
+  const stdoutText = String(stdout || "");
+  const stderrText = String(stderr || "");
+  const errorCode = err && typeof err.code === "string" ? err.code : null;
+  const timedOut = Boolean(err?.killed) || errorCode === "ETIMEDOUT";
+  const maxBuffer = MAX_BUFFER_ERROR_CODES.has(errorCode);
+  const kind = timedOut
+    ? "timeout"
+    : maxBuffer
+      ? "max-buffer"
+      : err && !started
+        ? "spawn-error"
+        : signal
+          ? "signal"
+          : exitCode !== 0
+            ? "assertion-failure"
+            : "passed";
+  const spawnError = kind === "spawn-error" || kind === "max-buffer"
+    ? processErrorMessage(err, command, stderrText)
+    : null;
+  return new ChildProcessExecutionResult({
+    kind,
+    command: commandArgv(command),
+    started,
+    completed: kind === "passed" || kind === "assertion-failure",
+    exitCode: kind === "passed" || kind === "assertion-failure" ? exitCode : null,
+    signal: signal ?? null,
+    errorCode,
+    timedOut,
+    spawnError,
+    stdout: stdoutText,
+    stderr: stderrText,
+  });
+}
+
+export function processResultFromSpawnSync(command, result) {
+  const errorCode = typeof result?.error?.code === "string" ? result.error.code : null;
+  const timedOut = Boolean(result?.error?.killed) || errorCode === "ETIMEDOUT";
+  const started = Number.isInteger(result?.status)
+    || typeof result?.signal === "string"
+    || timedOut
+    || MAX_BUFFER_ERROR_CODES.has(errorCode);
+  const exitCode = Number.isInteger(result?.status) ? result.status : result?.error ? null : 0;
+  return childProcessResult({
+    command,
+    err: result?.error || null,
+    stdout: result?.stdout,
+    stderr: result?.stderr,
+    started,
+    exitCode,
+    signal: result?.signal ?? result?.error?.signal ?? null,
+  });
 }
 
 export function commandIdentityFor(command) {
@@ -457,11 +635,12 @@ export function planTestExecuteRegression(classification, config = {}) {
 }
 
 export function processPassed(result) {
+  if (result instanceof ChildProcessExecutionResult) return result.kind === "passed";
   return result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError;
 }
 
 export function processOutputLines(result) {
-  const lines = [];
+  const lines = result instanceof ChildProcessExecutionResult ? result.diagnosticLines() : [];
   if (result.stdout) lines.push(...result.stdout.split(/\r?\n/).filter((line) => line.length > 0));
   if (result.stderr) lines.push(...result.stderr.split(/\r?\n/).filter((line) => line.length > 0));
   if (result.spawnError) lines.push(`spawnError: ${result.spawnError}`);
@@ -475,23 +654,16 @@ export async function runProcessDetailed(command, opts = {}) {
   return new Promise((resolve) => {
     const startedAt = Date.now();
     let heartbeat = null;
-    const detailedResult = (err = null, stdout = "", stderr = "") => {
-      const stdoutText = String(stdout || "");
-      const stderrText = String(stderr || err?.message || "");
-      const errorCode = err && typeof err.code === "string" ? err.code : null;
-      const spawnError = errorCode && errorCode !== "ETIMEDOUT"
-        ? `${errorCode}: ${stderrText || command.argv[0]}`
-        : null;
-      return {
-        started: !spawnError,
-        exitCode: err ? (typeof err.code === "number" ? err.code : 1) : 0,
-        signal: err?.signal ?? null,
-        timedOut: Boolean(err?.killed),
-        spawnError,
-        stdout: stdoutText,
-        stderr: stderrText,
-      };
-    };
+    let started = false;
+    const detailedResult = (err = null, stdout = "", stderr = "") => childProcessResult({
+      command,
+      err,
+      stdout,
+      stderr,
+      started,
+      exitCode: err ? (typeof err.code === "number" ? err.code : null) : 0,
+      signal: err?.signal ?? null,
+    });
     const finish = (result) => {
       if (heartbeat) clearInterval(heartbeat);
       resolve(result);
@@ -517,6 +689,7 @@ export async function runProcessDetailed(command, opts = {}) {
       return;
     }
     child.once("spawn", () => {
+      started = true;
       if (!opts.onHeartbeat) return;
       const intervalMs = Number.isSafeInteger(opts.heartbeatIntervalMs) && opts.heartbeatIntervalMs > 0
         ? Math.max(opts.heartbeatIntervalMs, MIN_PROCESS_HEARTBEAT_MS)

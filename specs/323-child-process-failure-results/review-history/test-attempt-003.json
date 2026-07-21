@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T08:32:05.036Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/323-child-process-failure-results/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Broaden constructor invariant cases",
+      "target": "specs/323-child-process-failure-results/tests/child-process-result.test.js",
+      "findingId": "d54eb9e7dfa5b3619a3febc9e007104df4397070f8a33189e306d5c1ea51d5ea",
+      "fingerprint": "d54eb9e7dfa5b3619a3febc9e007104df4397070f8a33189e306d5c1ea51d5ea",
+      "disposition": "informational",
+      "rationale": "R1 already has spec-local constructor and classification coverage; these are extra boundary cases rather than missing executable coverage for the requirement.",
+      "improvement": "Add a few focused invalid cases for malformed command elements, non-numeric exitCode, non-string errorCode, and invalid spawnError shape so R1's invariant coverage is less dependent on implementation details.",
+      "whyNonBlocking": "R1 already has spec-local constructor and classification coverage; these are extra boundary cases rather than missing executable coverage for the requirement."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/323-child-process-failure-results/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "6529c6a61688b1f4ae5ce700e3588c16cbe415cacac5ca1c9dc41870e0b35acc"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "d54eb9e7dfa5b3619a3febc9e007104df4397070f8a33189e306d5c1ea51d5ea",
+      "findingId": "d54eb9e7dfa5b3619a3febc9e007104df4397070f8a33189e306d5c1ea51d5ea",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "non-blocking",
+      "title": "Broaden constructor invariant cases",
+      "body": "R1 already has spec-local constructor and classification coverage; these are extra boundary cases rather than missing executable coverage for the requirement.",
+      "category": "unknown",
+      "fingerprint": "d54eb9e7dfa5b3619a3febc9e007104df4397070f8a33189e306d5c1ea51d5ea",
+      "disposition": "informational",
+      "rationale": "R1 already has spec-local constructor and classification coverage; these are extra boundary cases rather than missing executable coverage for the requirement."
+    }
+  ]
+}

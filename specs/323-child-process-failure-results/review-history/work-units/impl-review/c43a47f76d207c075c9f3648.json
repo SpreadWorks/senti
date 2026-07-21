@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "c43a47f76d207c075c9f3648",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0010",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json"
+    ],
+    "inputHash": "fa377bb93887568d632a7c350b5dd282da3e31e2fcc8b786a2e2f1cc6ec7044a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c43a47f76d207c075c9f3648"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json"
+  ],
+  "inputHash": "fa377bb93887568d632a7c350b5dd282da3e31e2fcc8b786a2e2f1cc6ec7044a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T06:15:07.021Z",
+  "finishedAt": "2026-07-21T06:15:07.021Z",
+  "rawResponse": "### 1. Deduplicate Work-Unit Identity Metadata\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/bd3798396b2128f722503801.json`  \n**Requirement:** R6  \n**Issue:** The same metadata appears both under `identity` and at the top level: `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId`. The same pattern is repeated across the added work-unit artifacts, making the files noisy and allowing drift between two representations.  \n**Suggestion:** Keep these fields in one canonical location, preferably `identity`, and have readers derive any top-level indexing/display values from that object.\n\n### 2. Avoid Storing Successful Provider Output Twice\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`  \n**Requirement:** R1  \n**Issue:** `rawResponse` stores the full markdown response, while `success.proposals[].body` stores parsed copies of the same proposal text. This duplicates potentially large model output and weakens the bounded-resource posture for persisted artifacts.  \n**Suggestion:** After successful parsing, persist `success.proposals` as the canonical structured form and either omit `rawResponse` or replace it with bounded debug metadata such as a checksum, byte count, and truncation flag.\n\n### 3. Remove Presentation Numbering From Structured Titles\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json`  \n**Requirement:** R4  \n**Issue:** `success.proposals[].title` includes numeric prefixes such as `\"1. Deduplicate repeated test command evidence\"`. That embeds markdown/list presentation into structured data and can produce stale numbering if proposals are filtered, merged, or reordered.  \n**Suggestion:** Store titles without list numbers, and let the markdown renderer add numbering when producing `rawResponse` or display output.\n\n### 4. Normalize Empty Proposal Results\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R6  \n**Issue:** The artifact stores a verbose `rawResponse` containing proposals, but the parsed result is `success.proposals: []`. This creates an inconsistent representation: the raw response says proposals exist, while the structured result says none exist.  \n**Suggestion:** Treat parsed structured output as authoritative. If parsing rejects all proposals because they target files outside the current diff, store an explicit bounded diagnostic field such as `discardedProposalCount` or `parseWarnings`, instead of leaving contradictory raw and structured states.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Deduplicate Work-Unit Identity Metadata",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/bd3798396b2128f722503801.json`  \n**Requirement:** R6  \n**Issue:** The same metadata appears both under `identity` and at the top level: `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId`. The same pattern is repeated across the added work-unit artifacts, making the files noisy and allowing drift between two representations.  \n**Suggestion:** Keep these fields in one canonical location, preferably `identity`, and have readers derive any top-level indexing/display values from that object.",
+        "file": "specs/323-child-process-failure-results/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Avoid Storing Successful Provider Output Twice",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`  \n**Requirement:** R1  \n**Issue:** `rawResponse` stores the full markdown response, while `success.proposals[].body` stores parsed copies of the same proposal text. This duplicates potentially large model output and weakens the bounded-resource posture for persisted artifacts.  \n**Suggestion:** After successful parsing, persist `success.proposals` as the canonical structured form and either omit `rawResponse` or replace it with bounded debug metadata such as a checksum, byte count, and truncation flag.",
+        "file": "specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Remove Presentation Numbering From Structured Titles",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json`  \n**Requirement:** R4  \n**Issue:** `success.proposals[].title` includes numeric prefixes such as `\"1. Deduplicate repeated test command evidence\"`. That embeds markdown/list presentation into structured data and can produce stale numbering if proposals are filtered, merged, or reordered.  \n**Suggestion:** Store titles without list numbers, and let the markdown renderer add numbering when producing `rawResponse` or display output.",
+        "file": "specs/323-child-process-failure-results/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Normalize Empty Proposal Results",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R6  \n**Issue:** The artifact stores a verbose `rawResponse` containing proposals, but the parsed result is `success.proposals: []`. This creates an inconsistent representation: the raw response says proposals exist, while the structured result says none exist.  \n**Suggestion:** Treat parsed structured output as authoritative. If parsing rejects all proposals because they target files outside the current diff, store an explicit bounded diagnostic field such as `discardedProposalCount` or `parseWarnings`, instead of leaving contradictory raw and structured states.",
+        "file": "specs/323-child-process-failure-results/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

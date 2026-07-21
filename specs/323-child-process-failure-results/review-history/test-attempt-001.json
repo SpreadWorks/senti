@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T08:27:21.433Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/323-child-process-failure-results/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Constructor invariant coverage is incomplete",
+      "target": "specs/323-child-process-failure-results/tests/child-process-result.test.js",
+      "findingId": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "fingerprint": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "disposition": "must-fix",
+      "rationale": "A must requirement has only partial coverage for its explicit constructor invariant contract, so an implementation could ignore several required invariants and still pass these tests.",
+      "issue": "R1 requires the ChildProcessExecutionResult constructor to enforce consistency across started, completed, exitCode, signal, errorCode, timedOut, spawnError, command, stdout, and stderr. The current constructor test only rejects passed+incomplete and spawn-error+started, leaving most required invariants without spec-local coverage.",
+      "requiredChange": "Add focused constructor tests that reject inconsistent values for the remaining required fields, especially exitCode/signal/timedOut/errorCode/spawnError combinations and invalid command/stdout/stderr shapes.",
+      "whyBlocking": "A must requirement has only partial coverage for its explicit constructor invariant contract, so an implementation could ignore several required invariants and still pass these tests.",
+      "origin": "R1",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "processOutputLines ordering is not fully tested",
+      "target": "specs/323-child-process-failure-results/tests/child-process-result.test.js",
+      "findingId": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "fingerprint": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "disposition": "must-fix",
+      "rationale": "An implementation could omit or misplace required stream summary lines while still satisfying the current tests.",
+      "issue": "R4 requires processOutputLines to place kind, command, started, completed, exitCode, signal, errorCode, timedOut, and both stream summaries before existing raw output and legacy diagnostic lines. assertDiagnosticFields checks only the first fields and byte counts; it does not assert stdout.first/stdout.last/stderr.first/stderr.last ordering or placement before raw/legacy output.",
+      "requiredChange": "Extend processOutputLines assertions to include stdout.first, stdout.last, stderr.first, and stderr.last in the required order before raw output and legacy diagnostic lines.",
+      "whyBlocking": "An implementation could omit or misplace required stream summary lines while still satisfying the current tests.",
+      "origin": "R4",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/323-child-process-failure-results/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "578de9b43497f1702a65ad4f9c1878859f99530ee658287712903d4c1d014e02"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "findingId": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Constructor invariant coverage is incomplete",
+      "body": "R1 requires the ChildProcessExecutionResult constructor to enforce consistency across started, completed, exitCode, signal, errorCode, timedOut, spawnError, command, stdout, and stderr. The current constructor test only rejects passed+incomplete and spawn-error+started, leaving most required invariants without spec-local coverage.",
+      "category": "unknown",
+      "fingerprint": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "disposition": "must-fix",
+      "rationale": "A must requirement has only partial coverage for its explicit constructor invariant contract, so an implementation could ignore several required invariants and still pass these tests."
+    },
+    {
+      "id": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "findingId": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "processOutputLines ordering is not fully tested",
+      "body": "R4 requires processOutputLines to place kind, command, started, completed, exitCode, signal, errorCode, timedOut, and both stream summaries before existing raw output and legacy diagnostic lines. assertDiagnosticFields checks only the first fields and byte counts; it does not assert stdout.first/stdout.last/stderr.first/stderr.last ordering or placement before raw/legacy output.",
+      "category": "unknown",
+      "fingerprint": "79ef7b55dc674c938acce285291e2528db18869fc033b0a88df852b82f82612e",
+      "disposition": "must-fix",
+      "rationale": "An implementation could omit or misplace required stream summary lines while still satisfying the current tests."
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "devType": "bugfix",
+  "goal": "default test runner と final-regression が child process の異常終了を assertion failure と区別し、単一の実行ログから一次原因を診断できるようにする。",
+  "analysis": {
+    "problem": "現在は spawn failure、signal 終了、timeout、buffer overflow が通常の assertion failure と同じ失敗面へ潰れ、未実行 suite が 0 PASS 相当の集計に見える場合がある。",
+    "proposedApproach": "runner と final-regression の process result 契約に異常終了の種別と診断情報を保持する。実行開始前に失敗した suite は成功集計から除外する。実行完了した assertion failure は non-zero exit code と test output を保持し、happy path は exit code 0、signal/error なし、既存 PASS 件数を返す。",
+    "validation": "ENOENT、SIGKILL、timeout、ERR_CHILD_PROCESS_STDIO_MAXBUFFER、assertion failure、happy path を spec-local contract test で各 1 回以上再現する。fixture は各 process behavior を引数で 1 つだけ起動し、既存 tests/unit/test-runner-file-filter.test.js と tests/unit/flow/final-regression.test.js も実行する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: tests/run.js は spawnSync の stdout、stderr、status を扱う一方、error と signal を成功集計・失敗表示へ反映していない。",
+      "must: src/flow/lib/test-regression.js は spawnError、signal、timedOut を持つが、downstream が一次原因を一貫して識別する契約が不足している。",
+      "must: Issue #444 は ENOENT、SIGKILL、timeout、ERR_CHILD_PROCESS_STDIO_MAXBUFFER、assertion failure、happy path の検証を要求する。"
+    ],
+    "decisionPoints": [
+      "must: process result は normally completed、spawn failure、signal termination、timeout、buffer overflow、assertion failure を判別可能にする。",
+      "must: 各 failure は command、exit code、signal、suite の実行有無、および child_process API が返した stdout/stderr 文字列を保持する。表示では stdout/stderr の UTF-8 byte length と、存在する場合は先頭・末尾の非空行を各 1 行示す。",
+      "must: 未実行 suite を PASS 件数または 0 PASS 表示へ混入させない。実行完了した assertion failure は実行有無を true、process の non-zero exit code、返された stdout/stderr、そこから parse した PASS 件数を保持する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加せず Node.js 組み込みモジュールだけを使用する。",
+      "must: 値の意味と invariant は専用 class に所属させ、構造制約を object literal の type tag だけで表現しない。",
+      "must: scope は Issue #444 に限定し、test selection や preset/label summary 一般を変更しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: runner と final-regression は passed、assertion-failure、spawn-error、signal、timeout、max-buffer のいずれかを報告する。両 surface で command は起動 argv、exit code は numeric status または null、signal は signal name または null、実行有無は child spawn event 到達、error code は Node.js error code または null、stdout/stderr は child_process API の返却文字列を表す。",
+      "must: spec-local tests は存在しない executable による ENOENT、SIGKILL で自己終了する child、設定 timeout を超えて待機する child、設定 maxBuffer を 1 byte 以上超えて出力する child、失敗 assertion、成功 assertion をそれぞれ 1 回以上起動する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: tests/run.js の suite process result、成功集計、failure presentation。",
+      "must: src/flow/lib/test-regression.js の detailed process result と final-regression failure classification への一次原因伝播。",
+      "must: spec-local runner/final-regression contract tests、および各 process behavior を引数で 1 つだけ起動する fixture。"
+    ],
+    "out": [
+      "must: test selection、preset 解決、label summary 一般は変更しない。",
+      "must: Issue #443 の flow transition、review、gate、finalize 機構を変更しない。",
+      "must: 他の board item や関連しない assertion fixture を変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: runner の happy path は exit code 0、signal/error なし、stdout/stderr の転送、parse した既存 label PASS 件数を返す。通常 assertion failure は実行有無 true、non-zero exit code、stdout/stderr の転送、parse した既存 label PASS 件数を返す。",
+    "must: final-regression は exit code 0、signal/error/timeout なしの場合だけ成功とし、それ以外を passed から除外する。",
+    "should: 診断出力は failure kind、error code、signal、command、exit code、実行有無を必ず 1 回表示し、stdout/stderr は child process API が返した bounded buffer だけを表示する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #444 の goal を、未実行 child process を通常の assertion failure から分離し、単一ログで一次原因を診断可能にすることとして扱ってよいですか？",
+      "answer": "must: 未実行 child process と通常の assertion failure を分離し、単一ログで一次原因を診断可能にすることを goal とする。",
+      "evidence": "Issue #444 Summary と Acceptance Criteria は child process failure の typed result と単一ログ診断を明記している。",
+      "why": "表面上の 0 PASS 表示ではなく、失われている process failure の一次原因を回復することが根本問題だから。",
+      "considered": "表示文言だけの修正は一次原因の loss を解消しないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: 変更範囲を tests/run.js、src/flow/lib/test-regression.js、spec-local contract tests、各 process behavior を引数で 1 つだけ起動する fixture に限定してよいですか？",
+      "answer": "must: product file は tests/run.js と src/flow/lib/test-regression.js に限定し、spec-local contract tests と各 process behavior を引数で 1 つだけ起動する fixture だけを追加する。",
+      "evidence": "Issue #444 Scope、Out of Scope、および board item 68b3 の scope lock が同じ file boundary を指定している。",
+      "why": "runner と final-regression の process failure reporting という単一 concern に変更を限定するため。",
+      "considered": "test selection や label summary 一般の変更は別 concern なので除外する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: ENOENT、SIGKILL、timeout、ERR_CHILD_PROCESS_STDIO_MAXBUFFER を個別の non-PASS result とし、command、exit code、signal、実行有無、child_process API が返した stdout/stderr 文字列、各 stream の UTF-8 byte length と先頭・末尾の非空行を必須診断項目にしてよいですか？",
+      "answer": "must: 4 種の異常終了を個別の non-PASS result とし、command、exit code、signal、実行有無、child_process API が返した stdout/stderr 文字列、各 stream の UTF-8 byte length と先頭・末尾の非空行を必須診断項目とする。",
+      "evidence": "Issue #444 Required Changes と Acceptance Criteria が対象種別と診断項目を列挙している。",
+      "why": "同じ command を再実行せず一次原因を特定するには、result 自体に process identity と観測値が必要だから。",
+      "considered": "stderr 文字列だけへの依存は空出力や高出力打切りで原因を失うため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "must: test selection、preset/label summary 一般、Issue #443、他 board item を非目標として維持してよいですか？",
+      "answer": "must: test selection、preset/label summary 一般、Issue #443、他 board item は非目標として維持する。",
+      "evidence": "Issue #444 Out of Scope と scope lock がこれらを明示的に除外している。",
+      "why": "process failure reporting に直接必要な変更だけを残し、並行する flow と競合させないため。",
+      "considered": "関連して見える runner 一般改善も Acceptance Criteria に直接必要でなければ行わない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: 未実行 suite を PASS 集計や 0 PASS 表示から除外し、通常 assertion failure は実行有無 true、non-zero exit code、stdout/stderr と parse 済み PASS 件数を、happy path は exit code 0 と同じ出力・件数を返してよいですか？",
+      "answer": "must: 未実行 suite は PASS 集計と 0 PASS 表示から除外する。通常 assertion failure は実行有無 true、non-zero exit code、stdout/stderr と parse 済み PASS 件数を返し、happy path は exit code 0 と同じ出力・件数を返す。",
+      "evidence": "Issue #444 Acceptance Criteria は未実行 suite の集計除外と real assertion failure の既存意味維持を同時に要求している。",
+      "why": "abnormal process termination と test result を別概念として利用者へ示しつつ既存正常契約を壊さないため。",
+      "considered": "全 non-zero を未実行扱いにすると assertion failure の意味を壊すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "must: runner と final-regression が同じ 6 failure kind と command、numeric exit code/null、signal name/null、spawn event 到達、Node.js error code/null、返却 stdout/stderr を報告し、consumer が文字列から一次原因を再分類しない契約にしてよいですか？",
+      "answer": "must: runner と final-regression は同じ 6 failure kind と command、numeric exit code/null、signal name/null、spawn event 到達、Node.js error code/null、返却 stdout/stderr を報告し、consumer は typed field から一次原因を読む。",
+      "evidence": "Issue #444 は両 surface で typed result を保持し、primary cause を final-regression classification へ渡すことを要求している。",
+      "why": "producer が保持した異常終了情報を consumer が lossless に扱うことが単一ログ診断の前提だから。",
+      "considered": "各 consumer の独自文字列判定は原因の欠落と分類差を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "must: spec-local contract tests に異常終了 4 種、assertion failure、happy path を各 1 ケース以上含め、既存 runner summary と final-regression classification の tests も実行してよいですか？",
+      "answer": "must: 異常終了 4 種、assertion failure、happy path を spec-local contract tests で各 1 ケース以上検証し、既存 runner summary と final-regression classification の tests も実行する。",
+      "evidence": "Issue #444 Verification が再現 fixture、pre-fix/post-fix 契約、happy path と classification の回帰確認を要求している。",
+      "why": "異常終了の原因保持と既存挙動維持を同じ固定契約で検証するため。",
+      "considered": "手動再現だけでは単一実行の再現性と将来回帰を固定できないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-20T08:03:26Z",
+    "notes": "autoApprove: Issue #444 と scope lock により全 decision が解決済み。"
+  }
+}

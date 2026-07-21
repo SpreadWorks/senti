@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/review.md",
+      "specs/323-child-process-failure-results/scenario-validity-result.json",
+      "specs/323-child-process-failure-results/spec-gate-source.json",
+      "specs/323-child-process-failure-results/spec-review.json"
+    ],
+    "inputHash": "589173342fe13d7f5a0e3ed4775dc95bb27ff777d923d81d7519f9fc66d1e7e6",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/review.md",
+    "specs/323-child-process-failure-results/scenario-validity-result.json",
+    "specs/323-child-process-failure-results/spec-gate-source.json",
+    "specs/323-child-process-failure-results/spec-review.json"
+  ],
+  "inputHash": "589173342fe13d7f5a0e3ed4775dc95bb27ff777d923d81d7519f9fc66d1e7e6",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T06:15:22.105Z",
+  "finishedAt": "2026-07-21T06:15:22.105Z",
+  "rawResponse": "### 1. Remove Duplicated Finding Payloads\n**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R1  \n**Issue:** The same guardrail failures are stored under both `evaluations` and top-level `observations`, with duplicated reason/rationale/location/guardrail metadata. This creates two sources of truth and drift risk.  \n**Suggestion:** Keep one canonical findings collection. If both views are needed, make one contain references to the canonical finding IDs or derive it during rendering.\n\n### 2. Use Unique Finding IDs Per Distinct Failure\n**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R1  \n**Issue:** The two `migration-parity` evaluation entries share the same `findingId` and `fingerprint` even though they describe different failures. The same issue appears in top-level `observations`, where two distinct migration findings also share one ID/fingerprint.  \n**Suggestion:** Generate a unique `findingId` and `fingerprint` for each distinct finding, or merge truly identical observations into one finding with multiple locations.\n\n### 3. Normalize Guardrail Field Naming\n**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R6  \n**Issue:** The artifact stores both `guardrail_id` and `guardrailId` for the same concept. This mixes snake_case and camelCase aliases and makes the schema harder to consume consistently.  \n**Suggestion:** Pick the artifact’s canonical naming convention and remove the duplicate alias, or document and generate compatibility aliases in one dedicated compatibility layer.\n\n### 4. Consolidate Repeated Evidence Metadata\n**File:** `specs/323-child-process-failure-results/scenario-validity-result.json`  \n**Requirement:** R6  \n**Issue:** Every `summary[].evidence` repeats the same `command` and identical `raw_output_lines`, while the command is already present at the top level.  \n**Suggestion:** Keep shared execution metadata at the top level, and limit each requirement’s evidence to the differing fields such as `test_file` and `test_name`.\n\n### 5. Avoid Conflicting Review State Artifacts\n**File:** `specs/323-child-process-failure-results/spec-review.json`  \n**Requirement:** R6  \n**Issue:** `spec-review.json` reports `PASS`, while `spec-gate-source.json` for the same `phase: \"spec\"` reports `fail` with blocking guardrail findings. Keeping both artifacts creates ambiguous review state.  \n**Suggestion:** Regenerate `spec-review.json` from the gate result, or store a clear lifecycle distinction so consumers know whether `spec-review.json` is pre-gate input, stale output, or superseded.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Duplicated Finding Payloads",
+        "body": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R1  \n**Issue:** The same guardrail failures are stored under both `evaluations` and top-level `observations`, with duplicated reason/rationale/location/guardrail metadata. This creates two sources of truth and drift risk.  \n**Suggestion:** Keep one canonical findings collection. If both views are needed, make one contain references to the canonical finding IDs or derive it during rendering.",
+        "file": "specs/323-child-process-failure-results/spec-gate-source.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Use Unique Finding IDs Per Distinct Failure",
+        "body": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R1  \n**Issue:** The two `migration-parity` evaluation entries share the same `findingId` and `fingerprint` even though they describe different failures. The same issue appears in top-level `observations`, where two distinct migration findings also share one ID/fingerprint.  \n**Suggestion:** Generate a unique `findingId` and `fingerprint` for each distinct finding, or merge truly identical observations into one finding with multiple locations.",
+        "file": "specs/323-child-process-failure-results/spec-gate-source.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Normalize Guardrail Field Naming",
+        "body": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R6  \n**Issue:** The artifact stores both `guardrail_id` and `guardrailId` for the same concept. This mixes snake_case and camelCase aliases and makes the schema harder to consume consistently.  \n**Suggestion:** Pick the artifact’s canonical naming convention and remove the duplicate alias, or document and generate compatibility aliases in one dedicated compatibility layer.",
+        "file": "specs/323-child-process-failure-results/spec-gate-source.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Consolidate Repeated Evidence Metadata",
+        "body": "**File:** `specs/323-child-process-failure-results/scenario-validity-result.json`  \n**Requirement:** R6  \n**Issue:** Every `summary[].evidence` repeats the same `command` and identical `raw_output_lines`, while the command is already present at the top level.  \n**Suggestion:** Keep shared execution metadata at the top level, and limit each requirement’s evidence to the differing fields such as `test_file` and `test_name`.",
+        "file": "specs/323-child-process-failure-results/scenario-validity-result.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Avoid Conflicting Review State Artifacts",
+        "body": "**File:** `specs/323-child-process-failure-results/spec-review.json`  \n**Requirement:** R6  \n**Issue:** `spec-review.json` reports `PASS`, while `spec-gate-source.json` for the same `phase: \"spec\"` reports `fail` with blocking guardrail findings. Keeping both artifacts creates ambiguous review state.  \n**Suggestion:** Regenerate `spec-review.json` from the gate result, or store a clear lifecycle distinction so consumers know whether `spec-review.json` is pre-gate input, stale output, or superseded.",
+        "file": "specs/323-child-process-failure-results/spec-review.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

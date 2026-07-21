@@ -1,0 +1,137 @@
+[senti] spec-local tests start
+command: node --test specs/323-child-process-failure-results/tests/child-process-result.test.js specs/323-child-process-failure-results/tests/related-regressions.test.js specs/323-child-process-failure-results/tests/runner-reporting.test.js
+process.kind: passed
+process.command: node --test specs/323-child-process-failure-results/tests/child-process-result.test.js specs/323-child-process-failure-results/tests/related-regressions.test.js specs/323-child-process-failure-results/tests/runner-reporting.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 3703
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 741.896197
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R1: result model enforces kind and lifecycle invariants
+ok 1 - R1: result model enforces kind and lifecycle invariants
+  ---
+  duration_ms: 2.238252
+  type: 'test'
+  ...
+# Subtest: R2: stream summary reports UTF-8 bytes and edge non-empty lines
+ok 2 - R2: stream summary reports UTF-8 bytes and edge non-empty lines
+  ---
+  duration_ms: 1.114925
+  type: 'test'
+  ...
+# Subtest: R1: spawnSync ENOENT and ENOBUFS map to distinct primary causes
+ok 3 - R1: spawnSync ENOENT and ENOBUFS map to distinct primary causes
+  ---
+  duration_ms: 0.662923
+  type: 'test'
+  ...
+# Subtest: R1: timeout has precedence over simultaneous max-buffer evidence
+ok 4 - R1: timeout has precedence over simultaneous max-buffer evidence
+  ---
+  duration_ms: 0.280761
+  type: 'test'
+  ...
+# Subtest: R4: runProcessDetailed reports ENOENT without starting
+ok 5 - R4: runProcessDetailed reports ENOENT without starting
+  ---
+  duration_ms: 7.418278
+  type: 'test'
+  ...
+# Subtest: R4: runProcessDetailed gives SIGKILL precedence over assertion-like output
+ok 6 - R4: runProcessDetailed gives SIGKILL precedence over assertion-like output
+  ---
+  duration_ms: 41.682693
+  type: 'test'
+  ...
+# Subtest: R4: runProcessDetailed gives timeout precedence over its kill signal
+ok 7 - R4: runProcessDetailed gives timeout precedence over its kill signal
+  ---
+  duration_ms: 35.844263
+  type: 'test'
+  ...
+# Subtest: R4: runProcessDetailed preserves maxBuffer primary cause
+ok 8 - R4: runProcessDetailed preserves maxBuffer primary cause
+  ---
+  duration_ms: 32.707207
+  type: 'test'
+  ...
+# Subtest: R6: assertion failure and happy path remain completed outcomes
+ok 9 - R6: assertion failure and happy path remain completed outcomes
+  ---
+  duration_ms: 68.40707
+  type: 'test'
+  ...
+# Subtest: R4: processOutputLines starts with typed metadata for every result kind
+ok 10 - R4: processOutputLines starts with typed metadata for every result kind
+  ---
+  duration_ms: 166.478612
+  type: 'test'
+  ...
+# Subtest: R6: existing runner and final-regression focused suites pass
+ok 11 - R6: existing runner and final-regression focused suites pass
+  ---
+  duration_ms: 47.374442
+  type: 'test'
+  ...
+# Usage: node tests/run.js [--preset <name> | --scope <unit|e2e> | --agent | --all | --file <path> | --pattern <glob> | <path>...] [--list --json]
+# Subtest: R3: ENOENT is typed and omitted from numeric PASS aggregation
+ok 12 - R3: ENOENT is typed and omitted from numeric PASS aggregation
+  ---
+  duration_ms: 75.023664
+  type: 'test'
+  ...
+# Subtest: R3: signal timeout and max-buffer each produce one typed incomplete result
+ok 13 - R3: signal timeout and max-buffer each produce one typed incomplete result
+  ---
+  duration_ms: 1.004926
+  type: 'test'
+  ...
+# Subtest: R3: multiple completed failures return the first numeric non-zero code
+ok 14 - R3: multiple completed failures return the first numeric non-zero code
+  ---
+  duration_ms: 0.887404
+  type: 'test'
+  ...
+# Subtest: R5: completed assertion failure retains output count and numeric exit code
+ok 15 - R5: completed assertion failure retains output count and numeric exit code
+  ---
+  duration_ms: 0.448442
+  type: 'test'
+  ...
+# Subtest: R5: happy path preserves existing forwarded output and summary bytes
+ok 16 - R5: happy path preserves existing forwarded output and summary bytes
+  ---
+  duration_ms: 0.524963
+  type: 'test'
+  ...
+# Subtest: R6: every runner failure diagnostic includes all required field names
+ok 17 - R6: every runner failure diagnostic includes all required field names
+  ---
+  duration_ms: 0.753884
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 741.896197
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] spec-local tests end

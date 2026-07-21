@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "8ff62bd023cdfcaf5e4dab92",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-c6dea5cd015d7fc8",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/draft-coverage-repair.json",
+      "specs/323-child-process-failure-results/draft-review-questions.json",
+      "specs/323-child-process-failure-results/flow.json",
+      "specs/323-child-process-failure-results/issue.md",
+      "specs/323-child-process-failure-results/review-history/spec-attempt-001.json",
+      "specs/323-child-process-failure-results/review-history/test-attempt-001.md",
+      "specs/323-child-process-failure-results/review-history/test-attempt-003.json",
+      "specs/323-child-process-failure-results/spec-gate-source.json",
+      "specs/323-child-process-failure-results/spec.md",
+      "specs/323-child-process-failure-results/test-coverage.json",
+      "specs/323-child-process-failure-results/test-result-review.md",
+      "specs/323-child-process-failure-results/tests/.raw/test-execution.log",
+      "specs/323-child-process-failure-results/tests/runner-reporting.test.js"
+    ],
+    "inputHash": "c6dea5cd015d7fc8ca57962ac6f0052699b05f14308c43d83cd01ae4c1394846",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8ff62bd023cdfcaf5e4dab92"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/draft-coverage-repair.json",
+    "specs/323-child-process-failure-results/draft-review-questions.json",
+    "specs/323-child-process-failure-results/flow.json",
+    "specs/323-child-process-failure-results/issue.md",
+    "specs/323-child-process-failure-results/review-history/spec-attempt-001.json",
+    "specs/323-child-process-failure-results/review-history/test-attempt-001.md",
+    "specs/323-child-process-failure-results/review-history/test-attempt-003.json",
+    "specs/323-child-process-failure-results/spec-gate-source.json",
+    "specs/323-child-process-failure-results/spec.md",
+    "specs/323-child-process-failure-results/test-coverage.json",
+    "specs/323-child-process-failure-results/test-result-review.md",
+    "specs/323-child-process-failure-results/tests/.raw/test-execution.log",
+    "specs/323-child-process-failure-results/tests/runner-reporting.test.js"
+  ],
+  "inputHash": "c6dea5cd015d7fc8ca57962ac6f0052699b05f14308c43d83cd01ae4c1394846",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T05:30:28.177Z",
+  "finishedAt": "2026-07-21T05:30:28.177Z",
+  "rawResponse": "### 1. Canonicalize Review Finding Storage\n**File:** `specs/323-child-process-failure-results/spec-gate-source.json`\n**Requirement:** R6\n**Issue:** Multiple artifacts duplicate full finding payloads across parallel collections, including `evaluations`/`observations`, `blockingFindings`/`findings`, and rationale/body variants in review-history files. This is a cross-file schema consistency problem, not just isolated duplication.\n**Suggestion:** Define one canonical finding model and generate summary/presentation views from IDs or lightweight references across gate, review, and history artifacts.\n\n### 2. Normalize Generated Execution Evidence Shape\n**File:** `specs/323-child-process-failure-results/test-execute-result.json`\n**Requirement:** R6\n**Issue:** `test-execute-result.json` and `scenario-validity-result.json` both repeat shared execution metadata like command and raw output inside each requirement entry. The same duplication pattern appears across generated test artifacts.\n**Suggestion:** Move shared execution metadata to a top-level `execution` object in both artifact types, and keep per-requirement entries limited to requirement-specific evidence.\n\n### 3. Fix Artifact Lifecycle State Consistency\n**File:** `specs/323-child-process-failure-results/flow.json`\n**Requirement:** R1\n**Issue:** Flow and review artifacts disagree about lifecycle state: `flow.json` contains impossible pending/in-progress timestamp combinations, while related review artifacts retain stale task-scoped context or contradictory verdicts.\n**Suggestion:** Regenerate the flow/review artifact set from a single authoritative state transition model so timestamps, status, target scope, and next action remain consistent across files.\n\n### 4. Standardize Version Field Type\n**File:** `specs/323-child-process-failure-results/scenario-validity-result.json`\n**Requirement:** R1\n**Issue:** `scenario-validity-result.json` stores `version` as string `\"1\"`, while `review-history/test-attempt-003.json` uses numeric `1`. Consumers should not need to support both forms for the same artifact concept.\n**Suggestion:** Use numeric artifact versions consistently, e.g. `\"version\": 1`, and update the generator/schema to enforce that.\n\n### 5. Normalize Generated Markdown File Endings\n**File:** `specs/323-child-process-failure-results/review-history/spec-attempt-001.md`\n**Requirement:** R6\n**Issue:** Several generated markdown artifacts are missing trailing newlines, including `issue.md`, `review-history/spec-attempt-001.md`, `test-attempt-001.md`, and `test-attempt-002.md`.\n**Suggestion:** Update the markdown artifact generator to always write a final newline, then regenerate affected files.\n\n### 6. Clarify Process Result Kind Naming\n**File:** `specs/323-child-process-failure-results/spec.md`\n**Requirement:** R1\n**Issue:** Naming around process outcomes is inconsistent across prose: terms like “failure kind,” “result kind,” `maxBuffer`, and `max-buffer` are used close together. This is especially confusing because `passed` is one of the six kinds.\n**Suggestion:** Add a shared terminology note in the canonical spec source: use “process result kind” for the six normalized values, `maxBuffer` for the Node.js option/error condition, and `max-buffer` only for the normalized kind.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Canonicalize Review Finding Storage",
+        "body": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`\n**Requirement:** R6\n**Issue:** Multiple artifacts duplicate full finding payloads across parallel collections, including `evaluations`/`observations`, `blockingFindings`/`findings`, and rationale/body variants in review-history files. This is a cross-file schema consistency problem, not just isolated duplication.\n**Suggestion:** Define one canonical finding model and generate summary/presentation views from IDs or lightweight references across gate, review, and history artifacts.",
+        "file": "specs/323-child-process-failure-results/spec-gate-source.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Normalize Generated Execution Evidence Shape",
+        "body": "**File:** `specs/323-child-process-failure-results/test-execute-result.json`\n**Requirement:** R6\n**Issue:** `test-execute-result.json` and `scenario-validity-result.json` both repeat shared execution metadata like command and raw output inside each requirement entry. The same duplication pattern appears across generated test artifacts.\n**Suggestion:** Move shared execution metadata to a top-level `execution` object in both artifact types, and keep per-requirement entries limited to requirement-specific evidence.",
+        "file": "specs/323-child-process-failure-results/test-execute-result.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Fix Artifact Lifecycle State Consistency",
+        "body": "**File:** `specs/323-child-process-failure-results/flow.json`\n**Requirement:** R1\n**Issue:** Flow and review artifacts disagree about lifecycle state: `flow.json` contains impossible pending/in-progress timestamp combinations, while related review artifacts retain stale task-scoped context or contradictory verdicts.\n**Suggestion:** Regenerate the flow/review artifact set from a single authoritative state transition model so timestamps, status, target scope, and next action remain consistent across files.",
+        "file": "specs/323-child-process-failure-results/flow.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Standardize Version Field Type",
+        "body": "**File:** `specs/323-child-process-failure-results/scenario-validity-result.json`\n**Requirement:** R1\n**Issue:** `scenario-validity-result.json` stores `version` as string `\"1\"`, while `review-history/test-attempt-003.json` uses numeric `1`. Consumers should not need to support both forms for the same artifact concept.\n**Suggestion:** Use numeric artifact versions consistently, e.g. `\"version\": 1`, and update the generator/schema to enforce that.",
+        "file": "specs/323-child-process-failure-results/scenario-validity-result.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Normalize Generated Markdown File Endings",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/spec-attempt-001.md`\n**Requirement:** R6\n**Issue:** Several generated markdown artifacts are missing trailing newlines, including `issue.md`, `review-history/spec-attempt-001.md`, `test-attempt-001.md`, and `test-attempt-002.md`.\n**Suggestion:** Update the markdown artifact generator to always write a final newline, then regenerate affected files.",
+        "file": "specs/323-child-process-failure-results/review-history/spec-attempt-001.md",
+        "requirementId": "R6"
+      },
+      {
+        "title": "6. Clarify Process Result Kind Naming",
+        "body": "**File:** `specs/323-child-process-failure-results/spec.md`\n**Requirement:** R1\n**Issue:** Naming around process outcomes is inconsistent across prose: terms like “failure kind,” “result kind,” `maxBuffer`, and `max-buffer` are used close together. This is especially confusing because `passed` is one of the six kinds.\n**Suggestion:** Add a shared terminology note in the canonical spec source: use “process result kind” for the six normalized values, `maxBuffer` for the Node.js option/error condition, and `max-buffer` only for the normalized kind.",
+        "file": "specs/323-child-process-failure-results/spec.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

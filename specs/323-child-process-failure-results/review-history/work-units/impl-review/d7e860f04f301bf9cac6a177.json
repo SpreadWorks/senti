@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/1b82643c78901833305197b8.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json"
+    ],
+    "inputHash": "509fdc8660d9015c622bb22cd81808c6790884f3ad5bee5772a26ff41e18fd3a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/1b82643c78901833305197b8.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json"
+  ],
+  "inputHash": "509fdc8660d9015c622bb22cd81808c6790884f3ad5bee5772a26ff41e18fd3a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T06:14:03.864Z",
+  "finishedAt": "2026-07-21T06:14:03.864Z",
+  "rawResponse": "### 1. Deduplicate Stored Proposal Content\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/1b82643c78901833305197b8.json`\n**Requirement:** R6\n**Issue:** Proposal text is stored twice: once in `rawResponse` and again in `success.proposals[].body`. This inflates the artifact and creates drift risk if one representation is edited or regenerated differently.\n**Suggestion:** Keep `success.proposals` as the canonical structured representation and either omit `rawResponse` or replace it with a bounded debug excerpt/checksum.\n\n### 2. Remove Repeated Identity Metadata\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json`\n**Requirement:** R6\n**Issue:** Fields such as `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId` are duplicated both at the top level and inside `identity`.\n**Suggestion:** Store immutable identity data only under `identity`; keep top-level fields for execution state such as `status`, `attemptCount`, timestamps, and `success`.\n\n### 3. Bound Persisted Raw Provider Output\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json`\n**Requirement:** R6\n**Issue:** `rawResponse` stores full provider output inline with no visible size bound. The bounded-resource acknowledgment covers child process buffers, but not persisted review text growth.\n**Suggestion:** Enforce a maximum serialized `rawResponse` length per work unit, or persist only parsed proposals plus a bounded excerpt for diagnostics.\n\n### 4. Normalize Empty Proposal Output\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json`\n**Requirement:** R6\n**Issue:** `rawResponse` contains four rendered proposals, while `success.proposals` is an empty array. This makes the artifact internally inconsistent and forces consumers to guess whether raw or parsed output is authoritative.\n**Suggestion:** Either parse and store the proposals in `success.proposals`, or set `rawResponse` to `NO_PROPOSALS` when no structured proposals are retained.",
+  "success": {
+    "proposals": []
+  }
+}

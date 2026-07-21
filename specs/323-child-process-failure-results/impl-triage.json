@@ -1,0 +1,1240 @@
+{
+  "version": 1,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "hash": "d2aa5c10d66bc7260f8507a4191ef6309c33b1c47844a765a466bf8ba4327c00",
+    "paths": [
+      ".senti/config.json",
+      "specs/323-child-process-failure-results/spec.json",
+      "specs/323-child-process-failure-results/tests/child-process-result.test.js",
+      "specs/323-child-process-failure-results/tests/fixtures/child-process-scenario.js",
+      "specs/323-child-process-failure-results/tests/related-regressions.test.js",
+      "specs/323-child-process-failure-results/tests/runner-reporting.test.js",
+      "src/AGENTS.md",
+      "src/CLAUDE.md",
+      "src/check.js",
+      "src/check/commands/config.js",
+      "src/check/commands/freshness.js",
+      "src/check/commands/scan.js",
+      "src/data/agents.js",
+      "src/data/docs.js",
+      "src/data/lang.js",
+      "src/data/project.js",
+      "src/data/skills.js",
+      "src/data/text.js",
+      "src/docs.js",
+      "src/docs/commands/agents.js",
+      "src/docs/commands/build.js",
+      "src/docs/commands/changelog.js",
+      "src/docs/commands/data.js",
+      "src/docs/commands/enrich.js",
+      "src/docs/commands/forge.js",
+      "src/docs/commands/init.js",
+      "src/docs/commands/readme.js",
+      "src/docs/commands/review.js",
+      "src/docs/commands/scan.js",
+      "src/docs/commands/text.js",
+      "src/docs/commands/translate.js",
+      "src/docs/lib/analysis-entry.js",
+      "src/docs/lib/analysis-filter.js",
+      "src/docs/lib/chapter-resolver.js",
+      "src/docs/lib/command-context.js",
+      "src/docs/lib/concurrency.js",
+      "src/docs/lib/data-source-loader.js",
+      "src/docs/lib/data-source.js",
+      "src/docs/lib/directive-parser.js",
+      "src/docs/lib/docs-context.js",
+      "src/docs/lib/document-update-plan.js",
+      "src/docs/lib/forge-prompts.js",
+      "src/docs/lib/lang-factory.js",
+      "src/docs/lib/lang/comments.js",
+      "src/docs/lib/lang/js.js",
+      "src/docs/lib/lang/md.js",
+      "src/docs/lib/lang/php.js",
+      "src/docs/lib/lang/py.js",
+      "src/docs/lib/lang/yaml.js",
+      "src/docs/lib/minify.js",
+      "src/docs/lib/php-array-parser.js",
+      "src/docs/lib/renderable.js",
+      "src/docs/lib/resolver-factory.js",
+      "src/docs/lib/review-parser.js",
+      "src/docs/lib/scan-source.js",
+      "src/docs/lib/scanner.js",
+      "src/docs/lib/template-merger.js",
+      "src/docs/lib/test-env-detection.js",
+      "src/docs/lib/text-prompts.js",
+      "src/docs/lib/toml-parser.js",
+      "src/flow.js",
+      "src/flow/commands/merge.js",
+      "src/flow/commands/report.js",
+      "src/flow/commands/review.js",
+      "src/flow/definition.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/acknowledged-rationale.js",
+      "src/flow/lib/artifact-completion.js",
+      "src/flow/lib/auto-check-static.js",
+      "src/flow/lib/base-command.js",
+      "src/flow/lib/check-tasks-monotonic.js",
+      "src/flow/lib/draft-lifecycle.js",
+      "src/flow/lib/draft-review-routes.js",
+      "src/flow/lib/fetch-issue.js",
+      "src/flow/lib/finalize-cleanup-state.js",
+      "src/flow/lib/finding-disposition-policy.js",
+      "src/flow/lib/flow-completion.js",
+      "src/flow/lib/flow-context.js",
+      "src/flow/lib/flow-findings.js",
+      "src/flow/lib/flow-judgment-contract.js",
+      "src/flow/lib/flow-outbox.js",
+      "src/flow/lib/gate-recovery-display.js",
+      "src/flow/lib/gate-step.js",
+      "src/flow/lib/get-check.js",
+      "src/flow/lib/get-context.js",
+      "src/flow/lib/get-guardrail.js",
+      "src/flow/lib/get-issue.js",
+      "src/flow/lib/get-next-action.js",
+      "src/flow/lib/get-prompt.js",
+      "src/flow/lib/get-qa-count.js",
+      "src/flow/lib/get-resolve-context.js",
+      "src/flow/lib/get-runtime-log.js",
+      "src/flow/lib/get-status.js",
+      "src/flow/lib/get-step-instructions.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/issue-body-cache.js",
+      "src/flow/lib/issue-log-store.js",
+      "src/flow/lib/observation.js",
+      "src/flow/lib/overview-merge.js",
+      "src/flow/lib/plan-rewind.js",
+      "src/flow/lib/regression-file-snapshot.js",
+      "src/flow/lib/render-spec-view.js",
+      "src/flow/lib/req-map.js",
+      "src/flow/lib/resolve-auto-check-input.js",
+      "src/flow/lib/resolve-context-envelope.js",
+      "src/flow/lib/resolve-preparing-run-id.js",
+      "src/flow/lib/retro-artifacts.js",
+      "src/flow/lib/retry-accounting.js",
+      "src/flow/lib/retry-recovery.js",
+      "src/flow/lib/review-failure.js",
+      "src/flow/lib/run-acceptance-review.js",
+      "src/flow/lib/run-auto-check.js",
+      "src/flow/lib/run-complete-task.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-finalize-cleanup.js",
+      "src/flow/lib/run-finalize-commit.js",
+      "src/flow/lib/run-finalize-merge.js",
+      "src/flow/lib/run-finalize-sync.js",
+      "src/flow/lib/run-finalize.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-impl-confirm.js",
+      "src/flow/lib/run-lint.js",
+      "src/flow/lib/run-prepare-spec.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "src/flow/lib/run-report-show.js",
+      "src/flow/lib/run-report.js",
+      "src/flow/lib/run-resume.js",
+      "src/flow/lib/run-retro.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/run-scenario-validity.js",
+      "src/flow/lib/run-start-task.js",
+      "src/flow/lib/run-sync.js",
+      "src/flow/lib/run-test-execute.js",
+      "src/flow/lib/run-test-result-review.js",
+      "src/flow/lib/run-update-overview.js",
+      "src/flow/lib/set-acceptance-decision.js",
+      "src/flow/lib/set-approval.js",
+      "src/flow/lib/set-auto.js",
+      "src/flow/lib/set-broad.js",
+      "src/flow/lib/set-files.js",
+      "src/flow/lib/set-init.js",
+      "src/flow/lib/set-issue-log.js",
+      "src/flow/lib/set-issue.js",
+      "src/flow/lib/set-metric.js",
+      "src/flow/lib/set-note.js",
+      "src/flow/lib/set-req.js",
+      "src/flow/lib/set-request.js",
+      "src/flow/lib/set-retry.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/lib/set-summary.js",
+      "src/flow/lib/spec-correction-rewind-audit.js",
+      "src/flow/lib/step-outcome.js",
+      "src/flow/lib/step-tree.js",
+      "src/flow/lib/sync-spec-tasks.js",
+      "src/flow/lib/task-scope.js",
+      "src/flow/lib/test-artifacts.js",
+      "src/flow/lib/test-headers.js",
+      "src/flow/lib/test-regression.js",
+      "src/flow/lib/work-unit.js",
+      "src/flow/prompts/impl/acceptance-decision.md",
+      "src/flow/prompts/impl/acceptance-review.md",
+      "src/flow/prompts/impl/final-regression.md",
+      "src/flow/prompts/impl/finalize-cleanup.md",
+      "src/flow/prompts/impl/finalize-commit.md",
+      "src/flow/prompts/impl/finalize-merge.md",
+      "src/flow/prompts/impl/finalize-sync.md",
+      "src/flow/prompts/impl/impl-gate.md",
+      "src/flow/prompts/impl/impl-repair.md",
+      "src/flow/prompts/impl/impl-review.md",
+      "src/flow/prompts/impl/impl-triage.md",
+      "src/flow/prompts/impl/implement.md",
+      "src/flow/prompts/impl/report.md",
+      "src/flow/prompts/impl/retro.md",
+      "src/flow/prompts/impl/test-execute.md",
+      "src/flow/prompts/impl/test-result-review.md",
+      "src/flow/prompts/partials/draft-qa-rules.md",
+      "src/flow/prompts/plan/approval.md",
+      "src/flow/prompts/plan/draft-coverage-repair.md",
+      "src/flow/prompts/plan/draft-coverage-review.md",
+      "src/flow/prompts/plan/draft-coverage-triage.md",
+      "src/flow/prompts/plan/draft-gate.md",
+      "src/flow/prompts/plan/draft-questions-repair.md",
+      "src/flow/prompts/plan/draft-questions-review.md",
+      "src/flow/prompts/plan/draft-questions-triage.md",
+      "src/flow/prompts/plan/draft-refine.md",
+      "src/flow/prompts/plan/draft.md",
+      "src/flow/prompts/plan/scenario-validity.md",
+      "src/flow/prompts/plan/spec-gate.md",
+      "src/flow/prompts/plan/spec-repair.md",
+      "src/flow/prompts/plan/spec-review.md",
+      "src/flow/prompts/plan/spec-triage.md",
+      "src/flow/prompts/plan/spec.md",
+      "src/flow/prompts/plan/test-review.md",
+      "src/flow/prompts/plan/test.md",
+      "src/flow/prompts/task/task-impl.md",
+      "src/flow/prompts/task/task-review.md",
+      "src/flow/registry.js",
+      "src/flow/schemas/acceptance-review.schema.json",
+      "src/flow/schemas/next-action/acceptance-review.schema.json",
+      "src/flow/schemas/next-action/approval.schema.json",
+      "src/flow/schemas/next-action/draft.schema.json",
+      "src/flow/schemas/next-action/final-regression.schema.json",
+      "src/flow/schemas/next-action/finalize.schema.json",
+      "src/flow/schemas/next-action/gate.schema.json",
+      "src/flow/schemas/next-action/impl.schema.json",
+      "src/flow/schemas/next-action/report.schema.json",
+      "src/flow/schemas/next-action/retro.schema.json",
+      "src/flow/schemas/next-action/review.schema.json",
+      "src/flow/schemas/next-action/scenario-validity.schema.json",
+      "src/flow/schemas/next-action/spec.schema.json",
+      "src/flow/schemas/next-action/test-execute.schema.json",
+      "src/flow/schemas/next-action/test-result-review.schema.json",
+      "src/flow/schemas/next-action/update-overview.schema.json",
+      "src/flow/schemas/retro.schema.json",
+      "src/flow/schemas/spec.schema.json",
+      "src/flow/schemas/test-execute-result.schema.json",
+      "src/flow/schemas/test-result-review.schema.json",
+      "src/help.js",
+      "src/hook.js",
+      "src/hook/commands/list.js",
+      "src/lib/NOTICE",
+      "src/lib/active-flow-registry.js",
+      "src/lib/agent-config-files.js",
+      "src/lib/agent-defaults.js",
+      "src/lib/agent-metrics.js",
+      "src/lib/agent.js",
+      "src/lib/agents-md.js",
+      "src/lib/atomic-file.js",
+      "src/lib/atomic-json-file.js",
+      "src/lib/cli.js",
+      "src/lib/command-registry.js",
+      "src/lib/command.js",
+      "src/lib/config.js",
+      "src/lib/constants.js",
+      "src/lib/container.js",
+      "src/lib/dispatcher.js",
+      "src/lib/error-preview.js",
+      "src/lib/esm-module.js",
+      "src/lib/execution-plan.js",
+      "src/lib/file-tree-walker.js",
+      "src/lib/finalize-cleanup-paths.js",
+      "src/lib/flow-envelope.js",
+      "src/lib/flow-helpers.js",
+      "src/lib/flow-manager.js",
+      "src/lib/flow-options.js",
+      "src/lib/flow-spec-id.js",
+      "src/lib/flow-state-atomic-writer.js",
+      "src/lib/flow-state.js",
+      "src/lib/flow-store.js",
+      "src/lib/flow-target-guard.js",
+      "src/lib/formatter.js",
+      "src/lib/git-helpers.js",
+      "src/lib/gitattributes.js",
+      "src/lib/gitignore.js",
+      "src/lib/glob.js",
+      "src/lib/guardrail.js",
+      "src/lib/hooks.js",
+      "src/lib/i18n.js",
+      "src/lib/include.js",
+      "src/lib/json-parse.js",
+      "src/lib/lint.js",
+      "src/lib/log-masking.js",
+      "src/lib/log.js",
+      "src/lib/makefile.js",
+      "src/lib/multi-select.js",
+      "src/lib/namespace-dispatcher.js",
+      "src/lib/official-plugins.js",
+      "src/lib/offline-migration-transaction.js",
+      "src/lib/path-match.js",
+      "src/lib/plugin-installer.js",
+      "src/lib/plugin-registry.js",
+      "src/lib/preparing-flow-store.js",
+      "src/lib/preset-deploy.js",
+      "src/lib/presets.js",
+      "src/lib/process-identity.js",
+      "src/lib/process-owned-lock.js",
+      "src/lib/process.js",
+      "src/lib/progress.js",
+      "src/lib/prompt-builder.js",
+      "src/lib/provider.js",
+      "src/lib/repository-maintenance-lock.js",
+      "src/lib/runtime-log.js",
+      "src/lib/schema-validate.js",
+      "src/lib/skill-rules.js",
+      "src/lib/skills.js",
+      "src/lib/spec-json.js",
+      "src/lib/step-id-rename.js",
+      "src/lib/test-command-sources.js",
+      "src/lib/types.js",
+      "src/lib/worktree-flow-binding.js",
+      "src/locale/en/messages.json",
+      "src/locale/en/prompts.json",
+      "src/locale/en/ui.json",
+      "src/locale/ja/messages.json",
+      "src/locale/ja/prompts.json",
+      "src/locale/ja/ui.json",
+      "src/metrics.js",
+      "src/metrics/commands/review.js",
+      "src/metrics/commands/token.js",
+      "src/plugin.js",
+      "src/presets-cmd.js",
+      "src/presets/base/data/package.js",
+      "src/presets/base/data/structure.js",
+      "src/presets/base/guardrail-rewrite-rubric.md",
+      "src/presets/base/guardrail.json",
+      "src/presets/base/preset.json",
+      "src/presets/base/templates/en/AGENTS.senti.md",
+      "src/presets/base/templates/en/development.md",
+      "src/presets/base/templates/en/layout.md",
+      "src/presets/base/templates/en/overview.md",
+      "src/presets/base/templates/en/project_structure.md",
+      "src/presets/base/templates/en/stack_and_ops.md",
+      "src/presets/base/templates/ja/AGENTS.senti.md",
+      "src/presets/base/templates/ja/development.md",
+      "src/presets/base/templates/ja/layout.md",
+      "src/presets/base/templates/ja/overview.md",
+      "src/presets/base/templates/ja/project_structure.md",
+      "src/presets/base/templates/ja/stack_and_ops.md",
+      "src/presets/base/tests/acceptance/fixtures/.senti/config.json",
+      "src/presets/base/tests/acceptance/fixtures/package.json",
+      "src/presets/base/tests/acceptance/fixtures/src/config.js",
+      "src/presets/base/tests/acceptance/fixtures/src/http-client.js",
+      "src/presets/base/tests/acceptance/fixtures/src/index.js",
+      "src/presets/base/tests/acceptance/fixtures/src/logger.js",
+      "src/presets/base/tests/acceptance/test.js",
+      "src/scripts/rename-phase-steps.js",
+      "src/senti.js",
+      "src/setup.js",
+      "src/skills/partials/ai-question-style.md",
+      "src/skills/partials/choice-format.md",
+      "src/skills/partials/context-recording.md",
+      "src/skills/partials/core-principle.md",
+      "src/skills/partials/flow-tracking.md",
+      "src/skills/partials/issue-log-recording.md",
+      "src/skills/partials/placeholder-artifact-permission.md",
+      "src/skills/partials/worktree-mode.md",
+      "src/skills/rules.json",
+      "src/skills/senti.flow-auto/SKILL.md",
+      "src/skills/senti.flow-resume/SKILL.md",
+      "src/skills/senti.flow-status/SKILL.md",
+      "src/skills/senti.flow-sync/SKILL.md",
+      "src/skills/senti.flow/SKILL.md",
+      "src/spec.js",
+      "src/spec/commands/render.js",
+      "src/spec/lib/render-contract.js",
+      "src/upgrade.js"
+    ],
+    "pathHashes": {
+      ".senti/config.json": "abc59ffc8e488f7675e393ba82faf82e384af55089929beaabe86f2f87a37603",
+      "specs/323-child-process-failure-results/spec.json": "102276f0d73ab620215ab847cfc0210d8e489ed4cea02d70d3a8b8204aac224f",
+      "specs/323-child-process-failure-results/tests/child-process-result.test.js": "ecec0c88260d27c6657469fedc7bee3d9b9ecda76190a0726cff3f8bae6cb86f",
+      "specs/323-child-process-failure-results/tests/fixtures/child-process-scenario.js": "95e7f06d9d20a6420fb0ad195e266bd57ba4246e21e17f67f071746d6ed131fb",
+      "specs/323-child-process-failure-results/tests/related-regressions.test.js": "dba5fc659bc08a22d567ddf46f6c2cd169a8940c0ae567420b7398c309cc2bf9",
+      "specs/323-child-process-failure-results/tests/runner-reporting.test.js": "13435680baedab131b6c5fdba467c4ef842884e179667c49c42beaeeb43f9630",
+      "src/AGENTS.md": "daccf7c377211f441498beea03b033f8d9ef090d8423e45d2cfd02f1c9b84ecf",
+      "src/CLAUDE.md": "14eaedc42cd9bcc88e9b88dd1d0d43361a42c145ffea9d371ed93c9521ffadaf",
+      "src/check.js": "00500f65f6f518173674c07fc05d1f6d3106ebda362512da9d51bdd916c011bb",
+      "src/check/commands/config.js": "15b9f58e0ecb169c3d2b61ccb68d3428c337f01cc3732e5bb70c986cebe766d7",
+      "src/check/commands/freshness.js": "dae519f39af1a6c7797940803e7354d94e6329666da4f5d668b4b2f9be34f26e",
+      "src/check/commands/scan.js": "4d4edff32077fb120a7eeb5b2ee2361135b06e2e9d3ac12be0da27107284f351",
+      "src/data/agents.js": "c62e89b11a8f9792b74755b51952f3d0cf52bfcfefa4fd2ebb011d843e46f1c0",
+      "src/data/docs.js": "71f78fc3372bdd029fb4fb6e5339adcd4ec6c96f9449f74de67b307b9a5335f6",
+      "src/data/lang.js": "599f069abb2be0344c973187a1880ec75ccbe9a6395373a2893e7c60e1898b3b",
+      "src/data/project.js": "9eb6892d1a94d0535eaf923b4c1e5753baaeaca57991fa592d598bd092a2d284",
+      "src/data/skills.js": "52930527ece51b908dbcc4682805b254440884af78ec3271872d329287048ab4",
+      "src/data/text.js": "1b680f1d34f05eebb3b6dd4544e14b2d9420978c92ba85801681bac37345c267",
+      "src/docs.js": "6ae0fa72f8cfdb7c2f8ce85fd425e390899bd8ec3671f1fe22500bfa400f0d2c",
+      "src/docs/commands/agents.js": "d981716485b07bf0448cc3b867b0bfe70045e54b8e19ac2d15980604e9a8ea3d",
+      "src/docs/commands/build.js": "42df27b5639dd17ae00a8c275297cf31283e7c3b2a94af96b7fbc7d13a9df9b5",
+      "src/docs/commands/changelog.js": "ebd1aa71e4c8260b77fa63b4b7bfd0b5f3fb0df16acca48ca0b8d45a1adbf049",
+      "src/docs/commands/data.js": "d0efd1fed284eb6c5a04c3de3a9f37a03b637ae019b7abba35c99205e404c281",
+      "src/docs/commands/enrich.js": "6ce2982573595a766e7c286dc608a8821bbe502d4b06ea8221ebca4f36226e2d",
+      "src/docs/commands/forge.js": "914720dcf30be58c90979d3cb8f46fb87892578f11072cfbab2c6f0d83a8337b",
+      "src/docs/commands/init.js": "6f3e799f2bf94c84cf7df805e3398fa09d0369ca53789110c37fc57087d376aa",
+      "src/docs/commands/readme.js": "0bf4a97269d81f19976726e552551246944e37030e3fbafd04d2dc4169542102",
+      "src/docs/commands/review.js": "34c6e3d9c893d1fd71993f512685224f58aeb4349915341d2880f30562ce6d8c",
+      "src/docs/commands/scan.js": "fe5669dea69e486eba29e327e27ae03ebf72ad885f2da3c5aa37108b596c2da0",
+      "src/docs/commands/text.js": "c58f17bf1c27c0aed7c78a295e6479b919652c26b20988bfbfd237649e447f51",
+      "src/docs/commands/translate.js": "4cc36b874e213827b1ab436e9878bf26e28e3a0de898b9199dc2c88736b9c239",
+      "src/docs/lib/analysis-entry.js": "894887a5c512bcfda729cb92e96c746de6baaa3aedcd263c1650954168e5b137",
+      "src/docs/lib/analysis-filter.js": "ef9e35c85248aa9ba12793650544242a538e36ea4ba35bd2eb4ad8b2e9746bcb",
+      "src/docs/lib/chapter-resolver.js": "0f7b9373eac2a74de4575fb71d9a15ebbfe1b9da1deb3f2a3efb3b3197774b6e",
+      "src/docs/lib/command-context.js": "89a7a877f33cb21cf5d442956c4e7df743a8ce7c25c059dfcfb9e06646d134c2",
+      "src/docs/lib/concurrency.js": "a1dd1296d15fe056cd219814c7a4aa91d65e3a97690f5cec186c4c2376f730f0",
+      "src/docs/lib/data-source-loader.js": "aefc22ba81c6518b31e49e2d385c121cdaac981693ba6bf37497c9c0a00f1778",
+      "src/docs/lib/data-source.js": "3f1af4fb5d1b09a57c69c2b28d750d8ea52ae21f964988a21ac2434073d54daa",
+      "src/docs/lib/directive-parser.js": "6cbb7878bd4951591cd6f04af69b20a047eafd617da08327b85888ed6db41b06",
+      "src/docs/lib/docs-context.js": "284d707ee9f64d011fa2d1831ea270e9c718c967f123431fe080cdb81faea6f8",
+      "src/docs/lib/document-update-plan.js": "212bc1393f114b43c6f9c7ceaf86ff2ba24c3c3a949cf5f02784db6af77e9912",
+      "src/docs/lib/forge-prompts.js": "9e490ba3ce7cade0612fbe17ce3d81e13858fb06b79527c1eb84a5d88add5b01",
+      "src/docs/lib/lang-factory.js": "8377bd565341796207e7618251766f790c87a021b9e4a75c9802ff1508d878d5",
+      "src/docs/lib/lang/comments.js": "ba2a1650c8c0b05b1c17d4662e13ddb31342b7fbdb2fa65db6ec7fe4440c56f5",
+      "src/docs/lib/lang/js.js": "ebbe4b0273fed6ca06e36483a8ff46f1ee2d1753c212628bc958d63e0ad4bfcf",
+      "src/docs/lib/lang/md.js": "bf761ba2b12ca319c62f1d97e02f166df4c9268becc110a85177160ab60b2a2c",
+      "src/docs/lib/lang/php.js": "39f1e6e76fde45564a3d0f7919202cad38403822272e51a3a1ae375798d84135",
+      "src/docs/lib/lang/py.js": "b74684b1b33124ec4c1e304d1bfe5e42e81aa7088aeb5038e9f927254760d3fb",
+      "src/docs/lib/lang/yaml.js": "a720ec01f4be2d6ddc8f5be86fea20babe5b3ece8889e7b20fa79e39f157f74d",
+      "src/docs/lib/minify.js": "2ed98a0123f2398400ed8f6cbcf9a28e0b06dbfe446b60712d2c3d131197a998",
+      "src/docs/lib/php-array-parser.js": "9bd2e1ea16ce2fcbd21bf13b1786579d2511758767d19c17e1238d8795c281bc",
+      "src/docs/lib/renderable.js": "83b70a96d66f49f89262b9b522d932985e9151b7c8d3d0fc0fc042102b2267d5",
+      "src/docs/lib/resolver-factory.js": "f5dbe1e3e66653e78df7d15dd9dfd8368863556039081114efd888ae9c986e6d",
+      "src/docs/lib/review-parser.js": "64a3b8dd8e12b97ae85cafb7722e479e14283737ff5f0a1b67d2381e1c6eaf43",
+      "src/docs/lib/scan-source.js": "79dc11992fb19cfd53bfdb59fe36d44c284292485597f478f293e19f4e5cc34f",
+      "src/docs/lib/scanner.js": "9a62efc7283942452e75784c451660c231dcac2dacf200d8df62717ca120a7c0",
+      "src/docs/lib/template-merger.js": "03189685d6d2a967845b6a6263841d176086a2b0e7e803efef9176212b1970b9",
+      "src/docs/lib/test-env-detection.js": "447f26a78ebf26148f2d11f468c2646329b4df60fe6a49ff21edb5fb4df0c472",
+      "src/docs/lib/text-prompts.js": "0adc6f2e7009470efb3931bff928a04b3173ca8ddad0e7d76a504a4d9a659065",
+      "src/docs/lib/toml-parser.js": "cd1f4540a88670ae8afe9ca8df227d3b2cd60f1ee0a0b071fc5b63627c2cce7b",
+      "src/flow.js": "bc367a7023dd3434c1cacfe1fe5977593a2becd9a071038d12170996c3371df6",
+      "src/flow/commands/merge.js": "50903ff3415b8d1b9fd5300c97d3c471f6da614cde416f98514922fecb6e1f70",
+      "src/flow/commands/report.js": "1bf9955baaff652507bd79ef53e23982cd8c5454165bb549f1694367ce7839d8",
+      "src/flow/commands/review.js": "b0a6a8e528d3dacdf3c55edb948a002816d04dddf758fda0692723d5625d95d0",
+      "src/flow/definition.js": "6996aa21652280ecd2e4c7e6114e9a72032dbb5950d8cea284d250e7a97f44e4",
+      "src/flow/lib/acceptance-review-artifacts.js": "995f214d5ea7b2a649168a71f1b96efbbc94cc511ad3ce0d3ffbd976d32f0243",
+      "src/flow/lib/acknowledged-rationale.js": "ce065163e7e0b4f902058e4b8cc4b95d2a62ae178b87684e54ce296e95bcd792",
+      "src/flow/lib/artifact-completion.js": "3b7c0769d8ecbe9d40c7868d1789604ecd39d34bb07275672e8ad828e43e2056",
+      "src/flow/lib/auto-check-static.js": "02d8f078531051df282730bf47108f4bcac051e737ea8713ea07b9bdbb573258",
+      "src/flow/lib/base-command.js": "40e17ebc2e4ca2edad803cb7a3327c81435141515eeef30fd1c1a2481ff03cff",
+      "src/flow/lib/check-tasks-monotonic.js": "aadc47ea4dd789c70ef7b34f0fd2a1c7aaa7670fa79aa226e8b6218f354a62ca",
+      "src/flow/lib/draft-lifecycle.js": "df5d23902cd9bafc008cc2682a8690902227b2ae084a9e0c33dae1874593b5bc",
+      "src/flow/lib/draft-review-routes.js": "dd3208264708a5a7384ebaa6fa18455dbff10e9c8f6709ee64bf8b9bc69a3b1f",
+      "src/flow/lib/fetch-issue.js": "70e0cc65aba6d1c6056e082f7ed86dc8b2fdd10fffe96e0522e664e2e3bc5a46",
+      "src/flow/lib/finalize-cleanup-state.js": "83dbc29762c0ea4dd3e1515d9ce0e2ea4324ddf9f47483c19a96bfbc7e566519",
+      "src/flow/lib/finding-disposition-policy.js": "1eb2131ad4eb4217f557d4c149fdb2f4a23196ca1a08f8bacd89d20390b8d4a4",
+      "src/flow/lib/flow-completion.js": "8c2ac1309221000ddf356ff84f5005cd65417219ffc2d40b2e97e4d612db9db4",
+      "src/flow/lib/flow-context.js": "9e1658de64ae23ba445c2acdb9c8627d8122c76d6f734c642e3a230ecf539cc6",
+      "src/flow/lib/flow-findings.js": "ecfddec6350b6a6fc985cd95c8816d19ac1747bf25bed463dd1e87bbf511a66e",
+      "src/flow/lib/flow-judgment-contract.js": "c289b8dc68c7fb1320e5908b3883af3c40785a77e1a900af1d0f78a2afc60c16",
+      "src/flow/lib/flow-outbox.js": "e2ed6b98d8a96384e07c27deceff6d41fc61185d804132d36507dd50bb59cfca",
+      "src/flow/lib/gate-recovery-display.js": "49963e96abbc9ad7dac5d9231bbca673914ff652edb68c9b2eb89efb673a0d7f",
+      "src/flow/lib/gate-step.js": "6b0d3b9f272ea74c69627b206c1cb3de5dc239e44eea72b3a271992341a51883",
+      "src/flow/lib/get-check.js": "e747f296ae29932b7e622dc72ab970ef056c0929a6cc251c9d2eb37dccdb1548",
+      "src/flow/lib/get-context.js": "e1f32c6ee59f67cf61f3bcfc5acd7f967dfdfc565f3ae52f4bfc9121241e6055",
+      "src/flow/lib/get-guardrail.js": "db5f85a46e538e5b94e79fc2805608f7ea2d831b684b1edd8d19d1d54bcbb03e",
+      "src/flow/lib/get-issue.js": "aa1d3a0fbe1d6f94ea11970c8bafe3681baa04c4366642f4007f551faaffb7e7",
+      "src/flow/lib/get-next-action.js": "13f9383706995fd5205f9cce96b5a0bf4a896a975a1d8348beb10bd6858e86a4",
+      "src/flow/lib/get-prompt.js": "051cef472c08d2a04dfc5b31f9901db562054bb5551f18f75c952eeb43fe7540",
+      "src/flow/lib/get-qa-count.js": "ece073c129c26885f24cc6ff9b0a06490916062bf38cd2c542c3cddd79f9784d",
+      "src/flow/lib/get-resolve-context.js": "7176189f97120b08176cfcc94c89480362db9caff2d7251539c8e71a142a2c51",
+      "src/flow/lib/get-runtime-log.js": "aa7868a214b1162a2d74995e843397aacf6f224b5b8e9bab677b6135281cc96b",
+      "src/flow/lib/get-status.js": "91132bd4ecc3f47099efabcc082e71bb83efa108f6eff3523f2553d4e4cfc216",
+      "src/flow/lib/get-step-instructions.js": "8e115ecc0dd8c76f6ca884e5e1166fff93d9eb5bd59c32c892bde9e1ad7342d8",
+      "src/flow/lib/impl-repair-artifacts.js": "7257bd370ce776b9cbea932251e860aaa4e495e285b57345a6bb032e156ec3b5",
+      "src/flow/lib/issue-body-cache.js": "15b2080a5eb619070a5468a49ec4b07e6bfc756eada0b4bb14fbc11696129058",
+      "src/flow/lib/issue-log-store.js": "a2274d4f0112287fb208bee06b09093781d9f8679b39b802b2468eb5bfb47f85",
+      "src/flow/lib/observation.js": "8fa9eadd7a3752ffd4dcce7f1c93738ce888aebcda1f089051ef3b9c333edfc7",
+      "src/flow/lib/overview-merge.js": "a4ca5b115824545fc1c2fe2005aa4db47b7570670e257631ef4f3fd0876b81cc",
+      "src/flow/lib/plan-rewind.js": "5841bf8f0f40598690ea763c4bf9efe8e96d0c46c0ae5697197dc5580da9ac85",
+      "src/flow/lib/regression-file-snapshot.js": "6aa0bf3297bd7bf12e80670d6238eaca23849973d41fae5f5ebbc9af44829afa",
+      "src/flow/lib/render-spec-view.js": "c9ec5af5d6bf34cb47e30c556a7637d5d273bcafe52f371eaf196edeb386a6f4",
+      "src/flow/lib/req-map.js": "85c3c29b95542a0e5f06d72dc9a410d17e3a270250076d2d0de1b9102532506e",
+      "src/flow/lib/resolve-auto-check-input.js": "00b0df63ce5e68bdf510d58f529c6323a523f6f1a897f9690b8e59f1715689ac",
+      "src/flow/lib/resolve-context-envelope.js": "cecafb0cfa824011d47d12437d28fff9a005a8db56b1b140d69172bead2d7a88",
+      "src/flow/lib/resolve-preparing-run-id.js": "59577b4d2c2ed427222e6ab9111e4d7fbdb3331282b4df9889b6da9c461d9e10",
+      "src/flow/lib/retro-artifacts.js": "6ca06fe55e6ac2e7848d352d55a444a4a979a0abbc75d665ad6175990db0894c",
+      "src/flow/lib/retry-accounting.js": "7bfc25dee0e45597e8696b56592589557f00f8bcb9ca189278119cf29d774976",
+      "src/flow/lib/retry-recovery.js": "0c5a39367b3b3a72ccb1c38025b40bc664f84f69852b4c3108fd9342a50921a3",
+      "src/flow/lib/review-failure.js": "b5433d0959f0da0d33fac13945e511ba919d70a7c923e4207027b6418080f9ca",
+      "src/flow/lib/run-acceptance-review.js": "8d958ffbcce17132a3aa9a2964c4da7d63b6e40dd7e1160ba69ad1c16ef37a84",
+      "src/flow/lib/run-auto-check.js": "0b4a1967258172a79f4de81a440d347e183e84d7957e808c79cd125bf443dac4",
+      "src/flow/lib/run-complete-task.js": "f47f31a407ce3a387b4723335f81eb81cdb75eafc13f350c8acb113821d9c9fd",
+      "src/flow/lib/run-final-regression.js": "5391e1ef7180e1c868f911031f65acec34e7a5bb3980507f58f856fae50da0d1",
+      "src/flow/lib/run-finalize-cleanup.js": "51bd90e8cb03e88b1878a0b42fd033e573411f53babd271c22948254869602a1",
+      "src/flow/lib/run-finalize-commit.js": "da487634fe379fa44b3267f0afc234d15d8297a33b3c7ba207e7dd461b218570",
+      "src/flow/lib/run-finalize-merge.js": "7630cc2b9b8b5a5441b64be5c8346b361f6b08959c14d2cd86f799cf0c8ede09",
+      "src/flow/lib/run-finalize-sync.js": "5685983ec22b915757d774d14191872f34d368cd05720bd9f5964a020de3f5b7",
+      "src/flow/lib/run-finalize.js": "2836fdacbec3c33f533f3fab0976645929a0a12a49800151e254d847ab28edc4",
+      "src/flow/lib/run-gate.js": "194dda600ae1cfac83c178a6a4da95c3b14c339d8712b537f49c62f1d71866b7",
+      "src/flow/lib/run-impl-confirm.js": "eb7d46e50695afcaf61698825fe4887bad9316e83270533e36a10d96fd092406",
+      "src/flow/lib/run-lint.js": "899aff22eee47a26e5abc92489e1091293705c9c8a203acf7f70956172296697",
+      "src/flow/lib/run-prepare-spec.js": "908275b17ec3c51cbf367fb486e0415dc8d426e781076310fa50090eaa5c022a",
+      "src/flow/lib/run-reopen-draft.js": "a99bc2402ba4c623953d07e433fc1e58d185ceed5775770198e03a3addc12ea0",
+      "src/flow/lib/run-report-show.js": "339d66e2223b5fed62792d624cfff3548f7692f22417707a3e1024099687dfab",
+      "src/flow/lib/run-report.js": "104c5568300846a8cdf072c93a2d8769ba188cff8550ca28642677be6a5c72b5",
+      "src/flow/lib/run-resume.js": "618befe683819119d1405cc798a8ef68dfd02b16b4e394f076caad33d1bd2826",
+      "src/flow/lib/run-retro.js": "20428463e859ba6a0a5e87b9ef4c072baba4d6d052192c6d43834075a1ecb0cb",
+      "src/flow/lib/run-review.js": "f3fa35b2a46484c053e269bf552a577e1bc87aeb0830958f7707c775dc1ccfaa",
+      "src/flow/lib/run-scenario-validity.js": "a7ade8b8045407c1beceaaa06a1ea4156073480e80f5d874f19e873f6c63df6d",
+      "src/flow/lib/run-start-task.js": "2c27aabdf2ee76a90178a6a8d51f395535e1b8b6dfd64ddd32d7019d7986a5c0",
+      "src/flow/lib/run-sync.js": "bb7261f1785daeab33119dfdc1338e399428ff60f60a8b109d0f29f0790fa888",
+      "src/flow/lib/run-test-execute.js": "5344bf9c46c5a0151d186e69e94d88b3040e608f6def829ee80e3432803b159b",
+      "src/flow/lib/run-test-result-review.js": "9f70fb0d77a0cb004ce4ccd450697d9efc0635f3554bbb8242dbb55331300f17",
+      "src/flow/lib/run-update-overview.js": "abe613b4a0198e1ff4d483d4eead3893e6914ed49ffcc94dc580c7f060d0469f",
+      "src/flow/lib/set-acceptance-decision.js": "b715251ff2210b06ed06081f78c33c8c825f88b1347d43a5d0c64b00caa5d38d",
+      "src/flow/lib/set-approval.js": "38e4d275b83fb86510134c6517b6a6e13cc2e1a63f21ab5bc28763a0b0b3fad4",
+      "src/flow/lib/set-auto.js": "b0b7bfa5c29648df567517f4b9b9d515d831e92395d92e5e21a8cb797ffa0415",
+      "src/flow/lib/set-broad.js": "b878958d2324bed971ae01572af034f45113d33c6dedc894d93929ecca128fc0",
+      "src/flow/lib/set-files.js": "0df4fc7d96e3846b21b6006cb48495004f04af07a2fa59ce26f9e4c95bd7f686",
+      "src/flow/lib/set-init.js": "c74f2cefb5c5ae4ac39b1d5f9df74d0d34b30b18d39aac6c4cc69840e363fadf",
+      "src/flow/lib/set-issue-log.js": "ae981354da8be08c137e0c3aae771e077a4ab22cdc75c906b560b73791879f48",
+      "src/flow/lib/set-issue.js": "35fde702170efdc27c02c7d430cedcc0c2f7e9a9aa41d596d5eba48970c08518",
+      "src/flow/lib/set-metric.js": "7d97991d2fde5f81c14ec2c1f3012e2e590447bdb2f031a213b4b0f36ebf13e6",
+      "src/flow/lib/set-note.js": "37f5631294b932a6a0a2f29170f1146c5d7a9273aa5aa1fe84405348b7091b0a",
+      "src/flow/lib/set-req.js": "8cc11f077e7c6a0e37aa53803016c1bfaa26b34f88941e2f7bfef117324cce8c",
+      "src/flow/lib/set-request.js": "9bfc0cfcc228551bfc0e0f54def464578a8490dcaad529c679740b642d2c7839",
+      "src/flow/lib/set-retry.js": "2b8929752c458734e6306548640c7c1b9055b233e556ce4aff6c8fa14c75481a",
+      "src/flow/lib/set-step.js": "b2bcc5ce81d9fc2bdd4d2d498410cc9d70d7012435adde84d4ce972fc3ae96e7",
+      "src/flow/lib/set-summary.js": "ba0ba771eb1392979aef02eabd478087a578af40174480eb55ee52e5722ba988",
+      "src/flow/lib/spec-correction-rewind-audit.js": "8af60411c9cbbfd1bce87e16f279a02946afc5f6012a9fdf04b3d9e749950894",
+      "src/flow/lib/step-outcome.js": "7e8340aca05faf9c4409ef7b38ef755d540af9c661725a66a45da6bae8ad257b",
+      "src/flow/lib/step-tree.js": "1a1a3d11c2a6298523f3d378cf02f4cc2ce2ee0ab024458ff9dc72a17a96d6f1",
+      "src/flow/lib/sync-spec-tasks.js": "628f902119b172008dafb596b2af7253e4f5d92104914bbb4edda1af4e539b88",
+      "src/flow/lib/task-scope.js": "b76632f5d82a88fa20cc5894576d8446a46e83eadd5d437a2eb875586a879f9f",
+      "src/flow/lib/test-artifacts.js": "e9ce0861a2c55f1f698822db8fd6be297128a958241c13343b6e02710a7f2186",
+      "src/flow/lib/test-headers.js": "9765e29980be8662302fe224b6f14fd658819bdb73304d6fa3058fc018258457",
+      "src/flow/lib/test-regression.js": "7d147ab99283839604218f0b2cef7082ce94cbdff23fccc28afdde385012aafe",
+      "src/flow/lib/work-unit.js": "7fc59175bac94d3769d9f0e428ab5a03524735f1da35ee4f6a05abcdb14663a2",
+      "src/flow/prompts/impl/acceptance-decision.md": "112a0e3351aec5d7b99911f718f90377a85644bc818b8dea32b51ddc949ad546",
+      "src/flow/prompts/impl/acceptance-review.md": "ddf1c62cc597755469b15f7df9cb8b3f6f392633d94289461a70aece08fb64a6",
+      "src/flow/prompts/impl/final-regression.md": "44916e1d79c23a1ce05a1834aad2c3b5c4767606ea170e4b30b777bdc06af2f1",
+      "src/flow/prompts/impl/finalize-cleanup.md": "425a07069142513f86b8c41d7ae00917e232984a151df1a85803be8e5b8f229b",
+      "src/flow/prompts/impl/finalize-commit.md": "fecdf8aa4b2cec078a12864c7baad5503c09d51cc9c9c4c6b86385e0f18d17de",
+      "src/flow/prompts/impl/finalize-merge.md": "ecea4130eb53b304271634e271e944421012018e818de59cece686c91f1cca44",
+      "src/flow/prompts/impl/finalize-sync.md": "504da7f9ec5203fa29b1a419db9b9825de4994928bdeea0dc65acc74afde46a9",
+      "src/flow/prompts/impl/impl-gate.md": "645af420bd5c8933f8ba6b857048976bf7bd4efd84f75b3e400102de1cc6f2e7",
+      "src/flow/prompts/impl/impl-repair.md": "9b18a092e595adee577de7bfd3529a5e1ba9439ab8d5225e571117289b09e97d",
+      "src/flow/prompts/impl/impl-review.md": "b94e88ba84c2721dfd90e62b8ac54ad68ffba3bf677637335393760f13706787",
+      "src/flow/prompts/impl/impl-triage.md": "d8442a88bd980f8694f31536744a0464462132195a26200588cae49594be05ac",
+      "src/flow/prompts/impl/implement.md": "1d6e7401763b5b2662ae7ecccd5a8d0a9a63d9afedeb3e57e886e4b107617214",
+      "src/flow/prompts/impl/report.md": "b6702186e91713ad8344ba56283ae0e223e9fdb1183cd70188e4c0f53e054bd9",
+      "src/flow/prompts/impl/retro.md": "748b35cf801631f7a76e242c5fa44d64346622db5a1493ca8aa44b4066089745",
+      "src/flow/prompts/impl/test-execute.md": "33acf8210bbc3738d3b63da310d937f0e4b8ead523be0f36d0cc714ff626a207",
+      "src/flow/prompts/impl/test-result-review.md": "a6db16a2ce182f907752a45606a6813bc85bb39007773e3ab88e775a5f33476d",
+      "src/flow/prompts/partials/draft-qa-rules.md": "70d843460dde479df8498d92c695a0e103ebfefea95a9d1c54d3b475370a489d",
+      "src/flow/prompts/plan/approval.md": "55b710e90c9800360fa56ab53229cc81c37656ddc8f0af763f4694005c1227e7",
+      "src/flow/prompts/plan/draft-coverage-repair.md": "08216fed46b636fbcca91e62e65466bedfb67452b46007caa7e92987a156063c",
+      "src/flow/prompts/plan/draft-coverage-review.md": "dba6edb8c6c3ad0deb9e2b05ca3092494ab51b10982f74c4f20f336874b65870",
+      "src/flow/prompts/plan/draft-coverage-triage.md": "914d697796b09910de44a4308d68390886639560b996b0132369201670ec5b2a",
+      "src/flow/prompts/plan/draft-gate.md": "8f70281abb4d1a65fbd0b4693b165ea221e5691b2e713339164aad01f7a7e90f",
+      "src/flow/prompts/plan/draft-questions-repair.md": "3de61ef919afc15ffb20419aeba23801600fc349e429242c0d67aa1ac688482e",
+      "src/flow/prompts/plan/draft-questions-review.md": "f46a31868fef8080f0ab31a6636e0dd7b6994b1bfd42d365f8e22c23f9176d24",
+      "src/flow/prompts/plan/draft-questions-triage.md": "0f25134f61e39df056c93a4c7fb57df66128041976c158b401cdf1a991d7e929",
+      "src/flow/prompts/plan/draft-refine.md": "ec6943277763f095605bdb6d229178cde36621940ca5e6072a03b09be84d1065",
+      "src/flow/prompts/plan/draft.md": "9a64bd2e1d5734b714f25d72b42e4d6b300fc78acd4e5303e093602148a1e097",
+      "src/flow/prompts/plan/scenario-validity.md": "4deb536c50a7895afa239f9df58ef2e870290b98ddc67d9b3e46bed6eb5357da",
+      "src/flow/prompts/plan/spec-gate.md": "3766eb7f0dbbd267845af4cc343d0e15d5ea07b91cc775c2eeab70be615bee76",
+      "src/flow/prompts/plan/spec-repair.md": "e89fa448233741dad21a7e917f1b63bbc3916e2e920ea85550ee85ba72b38553",
+      "src/flow/prompts/plan/spec-review.md": "218d1bc2d4c61162b8cb9d7db00d30b8db9288a3a7cf926b3950ec2102ebb12d",
+      "src/flow/prompts/plan/spec-triage.md": "df8f368b39fe5cb38469ab6759e17b82dc012906e4f4a7ff746456b07bd7afe6",
+      "src/flow/prompts/plan/spec.md": "197e7ea6948f38b09dbd765d0841e25b55c2596273306562b27f3ff7a415a903",
+      "src/flow/prompts/plan/test-review.md": "59e8aa8926bfc9a80fbccb97d7c694f8e6027de3bcd929c3f0c01c147d1a6e5c",
+      "src/flow/prompts/plan/test.md": "b9f0633f1846084df2cd16c3763438f46b26b84174e4ae7a90e09007b14027ae",
+      "src/flow/prompts/task/task-impl.md": "ee160785ad0fd89f5d324f05cea49da4c5d3198c6d5885ef734526b8a46d9232",
+      "src/flow/prompts/task/task-review.md": "37ac66f903de6e50c71f71fe2f4421f772caae638c6a125d793668a95272605e",
+      "src/flow/registry.js": "fce094571fe354040693d5ca79e85c2de0fe8b50c0e1a4a49c37a66f826acd2d",
+      "src/flow/schemas/acceptance-review.schema.json": "c734bc2ceed311cf1f47b3065f08894c1812dfba4319526546d5ef910a3ff656",
+      "src/flow/schemas/next-action/acceptance-review.schema.json": "9128cbe682cb684e99e215d6555e1c61a648112b954f4113fa70805778318aad",
+      "src/flow/schemas/next-action/approval.schema.json": "229029c75cb4a4c16c9134d7332f94bab3ad6d0207468636846d8fbd82501c1b",
+      "src/flow/schemas/next-action/draft.schema.json": "d00a9225ec0a0e6c231ee635d6e578534fabf61dc707534905abaf6d23e56573",
+      "src/flow/schemas/next-action/final-regression.schema.json": "1270845be0143ae4c17a4fe4dfb7b42c39248340a133297cb712f1bb506bdc40",
+      "src/flow/schemas/next-action/finalize.schema.json": "3115a06685e78fe97e680e6afe78a00288056e237f980ec9b5fb1eecd727db60",
+      "src/flow/schemas/next-action/gate.schema.json": "67bcb714edad336b31db28c418998bad6baeff5f54fe999ef053937498471a8d",
+      "src/flow/schemas/next-action/impl.schema.json": "e0622e21b056dee0bf522aeec1709c388cecc43b479be8dc6d0963da0a120c1f",
+      "src/flow/schemas/next-action/report.schema.json": "e243dab2799a8d5ad54bec81790edaa681fbda648f54b8e79c841e3cc6075f05",
+      "src/flow/schemas/next-action/retro.schema.json": "033cb2b3987186f830ca24148bb13ae09d962426024778394d0e66a3f3e4dd04",
+      "src/flow/schemas/next-action/review.schema.json": "e2b0e65584cc5a0a42547dd0f4b120e9006d56eb78eb153a7f89770ae70bb59f",
+      "src/flow/schemas/next-action/scenario-validity.schema.json": "165c52797771df9683a70454df84b16fab7c8ec25b5faccb0832260729728773",
+      "src/flow/schemas/next-action/spec.schema.json": "56a43ed20ed4b965acd9c7af77ce64b21ac870c50d59269026dcc270012882bc",
+      "src/flow/schemas/next-action/test-execute.schema.json": "71f83d726cfa6a06196951f4c562c52b9e94b124f69fb7ccd38136c00733b68f",
+      "src/flow/schemas/next-action/test-result-review.schema.json": "5dc6569d0f04c6e7711704c358a45d5dfaf1fe5126fa3425887625de120f0eb0",
+      "src/flow/schemas/next-action/update-overview.schema.json": "1843e0099cc57dcdf4376625fde4c2eec37e7c35030fa55c03259de81e71562f",
+      "src/flow/schemas/retro.schema.json": "a3d6850e77217bdacd001ad09c99b6dcb195123c16894d049269de000753439b",
+      "src/flow/schemas/spec.schema.json": "b97adbc6398b8b449e36018361ff59fa108310d7bd86c40c7ac9d5a949c65666",
+      "src/flow/schemas/test-execute-result.schema.json": "67b905d879ecef3209142a69d52a98dd101b2f89ac853412f2d651e5664f60eb",
+      "src/flow/schemas/test-result-review.schema.json": "404336fa4c9f22313afad4df1349191d5fd4cfdb08b9155ff431763ea5cafcc6",
+      "src/help.js": "c29f6683375e41eb72fa20ae77d375f93e92f9b454c90c5168b4c61129552908",
+      "src/hook.js": "d0a9ab3289ce1caf678a9d1c47ec37d3892b747e5c32cf730c30ee4145575baf",
+      "src/hook/commands/list.js": "7a03b7410ca64b902ed0cf2378c574de4a1193894add7ad79f2ad5b121bae3b3",
+      "src/lib/NOTICE": "b1cc919481f81f93fb7606d364906273d5393d05d6034cadd38299e6baf808a1",
+      "src/lib/active-flow-registry.js": "5d7094a235f836d78939349ce939009d94dd3bc5c90e09931410fcfd05f85c91",
+      "src/lib/agent-config-files.js": "bdb795c8a35c8183083fcd04281f6aa990b1a48816b70d4fc09b5a9159945fdc",
+      "src/lib/agent-defaults.js": "59e6a1db00d80fd8dfb435bb624ef50cb1ba5fdd8ed6f459f23e080f3a157049",
+      "src/lib/agent-metrics.js": "1bc5eb36a7b02ec9dd726f2e4c90e0aeb62449d7d4878aeb879ebafd97f79cf7",
+      "src/lib/agent.js": "6765db8ab00615a43f1a46cffaf380aa10ab8d3cc88d1ff8bda5eb6918a84dbb",
+      "src/lib/agents-md.js": "243d6545ce5f3a9b9cbda19638bcc32226a1bbe037be054ffabe2b48eb993cba",
+      "src/lib/atomic-file.js": "3baa8d38e22bfd317bfb80eb81f929a639cfce6f68d7ba528eb6c98e6515ac66",
+      "src/lib/atomic-json-file.js": "78d674886eef0c9e9a19168aaee569c943d8548432a56956746a3e97ff884de8",
+      "src/lib/cli.js": "79c39febc5140d488e112fc83fcd23f03a26f4185f1ce2b101a9c021e8a021db",
+      "src/lib/command-registry.js": "c6616dcf806e1d3e091f22530a755de1ef9d333852b354657a986cf60164e71c",
+      "src/lib/command.js": "2b9000df79e655394a86d0fbd3c790bf161597bd3e46ccb87472924a80418450",
+      "src/lib/config.js": "5b59d2100dba864aad4269dbc163157b78890e0814390d93a59583327fb637d5",
+      "src/lib/constants.js": "e41200e84b56831a742ff2a7264d5ee2b9cb24aa1f3556bd35ed9a2075e7ca62",
+      "src/lib/container.js": "ed78066795067db5505f7f339071cf172d7e768c549bd2c135b38f151f836979",
+      "src/lib/dispatcher.js": "403c2a6fac60bc951189a81b8497a183fb8cef23f4c153c43b4b94e17efb0b46",
+      "src/lib/error-preview.js": "9625abe9ac3c5b43379f07fd82bb14e7ff05b94cb2df3e6575b7b123bc9d3e40",
+      "src/lib/esm-module.js": "e3d593a0b23d20ba2cab391182789cf87d94732b22380995051b9ba69496d69e",
+      "src/lib/execution-plan.js": "171311da97be688596acf8b37afb3e4d477601ff76c85b3418adc9302ba8df28",
+      "src/lib/file-tree-walker.js": "1a9616a0512cd4deeb77bc3450f5e525f0e51452daef7063614248bf62e759db",
+      "src/lib/finalize-cleanup-paths.js": "c8e0edd6abe5c21bfb54bd16e3b9cd9b9f7cdc4cca79f06f163fb824423ff5cc",
+      "src/lib/flow-envelope.js": "76b4779aa22b954fee2951ae064f470c160b69f26a1a2b6822d302976593e062",
+      "src/lib/flow-helpers.js": "97bdcbac3810c5200a7af57ca1439eaa3dff503579188ad17bbe833906c58753",
+      "src/lib/flow-manager.js": "308f8fc47531ab0d945f285aa49d4711e9d74ba86f40ae8226ad971d4aaba228",
+      "src/lib/flow-options.js": "5bc8c399e54f298cc7add1a1e2b5c59cc60b065507f44eb3b032128b29300963",
+      "src/lib/flow-spec-id.js": "5550d611e99238d8eb1f27665d5a70128c98e6b7ae9565209305f83d78fd8858",
+      "src/lib/flow-state-atomic-writer.js": "a4cdb6ae4d36f7887eac61de2a1fe84b2217c16401351371fbff7fac4ca5a056",
+      "src/lib/flow-state.js": "9b7ca4e3a732a7ec43c0bd0b5e327f899bb586f3e57bdec6c7c3a937ac22ccd4",
+      "src/lib/flow-store.js": "8ed22f67fd0b6d07c9cfefb5a6a40e27058568fd852e1f0b27674604f2705810",
+      "src/lib/flow-target-guard.js": "65fea19f96fd90ff57eb64bd9b075776c838b7a3b08e5ed525fc23e4a3175a06",
+      "src/lib/formatter.js": "df7dde0d0f2ae5981f0353a4ec0421284a3234969b419981f2945f46b1481175",
+      "src/lib/git-helpers.js": "d3726aa7a5cc2efa471970ad33270b724357a508805487c2a8bf4c30e6d3ca4f",
+      "src/lib/gitattributes.js": "ac9004e7034dbba1ac6a6f8561a19d95fedee586e883b0662dc3a2e49a79e2d7",
+      "src/lib/gitignore.js": "c033a71108b4ddd686303f3bbd3c1034c10caeb89d01661183e6ca99c1be33a7",
+      "src/lib/glob.js": "a8c17eae2d5124dea5d0981f507c7398af6fd2acd9f76cd77cc60f934968ec9c",
+      "src/lib/guardrail.js": "83cd51bfa5109a43911352a9819118c811bf467b265090ee123b472a0084e99f",
+      "src/lib/hooks.js": "f72e431c5f76526a46282de0c4cc88d8c6c6bebf12f4d61b77c9d4874d2cb870",
+      "src/lib/i18n.js": "c7d369a52a7bf59fa34e70ae3b6fc58bb336b179af556f028e8d5ceb5f7e6bad",
+      "src/lib/include.js": "379a4cf85259be0ed1b13b2a69de5952ba0b77023e3614b9e6fc5f4f36c94902",
+      "src/lib/json-parse.js": "d1e748024ab63cc57bd0dd774c665f0283dc844f0821f1281ee0b5dd7c9807c3",
+      "src/lib/lint.js": "d524cfb698000072cecaf103ec501997258f5de4bc2b15f2ffa84f197d25b90a",
+      "src/lib/log-masking.js": "1a4bcd21aebdb0ad302db84650443f1a5f70cffd618704337074ebad8905629a",
+      "src/lib/log.js": "19bbefd8048c36bfe640518c1967d266f8dd7b741a837005a6f6c6b2b948fc0d",
+      "src/lib/makefile.js": "8fbea583310b8aca90aef887d71df74cf9351c66a1cce133a302a9f6176ebb57",
+      "src/lib/multi-select.js": "fe401f4e584b8bc5457943af1630b093a1e9f42242377d8cdb7d9712fca37e0f",
+      "src/lib/namespace-dispatcher.js": "6bf883507be17cd023ebb4f7d97b2b48de8503c540f49c5b4202a909924f78bb",
+      "src/lib/official-plugins.js": "02dbb4a6530a728ae7bf17158c412bacbf38ff277cf14e0cf3f71a6379e6c261",
+      "src/lib/offline-migration-transaction.js": "347a66690d0cdca0b3038adcd2decb9ac424246d1e00eb6ddac65f392dde2895",
+      "src/lib/path-match.js": "a5082468aef2433f715811f118f10270405cf59163b68bc533656354375f203f",
+      "src/lib/plugin-installer.js": "72fc6ce36f0d5c781b7fc82f76730eb2e182403b3cc7aca3c705d2f60c545c90",
+      "src/lib/plugin-registry.js": "77b9dd8030558a436d9c503c7f441eccbf946deaa6cea1869bbf05832e8aee91",
+      "src/lib/preparing-flow-store.js": "8c1681e26427d85b67006e0a0e25b8459082aa6743bfb9dc4aa4b15c3f56a37e",
+      "src/lib/preset-deploy.js": "b93e406cf7b10bbe7fa97a868b051cf84c3b09dfdb4a46294f2111f05b9e5b9a",
+      "src/lib/presets.js": "9eff17f6b0964a091ff3b93d9725330b578d5b9bbf2821dc783d4d2b05f8549f",
+      "src/lib/process-identity.js": "a29436a711bdbd7b394d60fc9c6942737b3bff8f4fb094760c02fac14c51275e",
+      "src/lib/process-owned-lock.js": "66e4e1bc1fc53a2230f1c84ff1cd36fe92ef77743c4c243f23a278f6ad384355",
+      "src/lib/process.js": "08d927fde236f8a81b56ac0d54c796133eafdde9379e5c19bb1787d08008ad36",
+      "src/lib/progress.js": "cda3c5c25e119e2c9e538217d44ffc2afc2ba6d1d901b789423fe2ef693fcea8",
+      "src/lib/prompt-builder.js": "8ce20eaeed4454ce17c6438e261b58aba78f72e695eb345a92c465c78716f581",
+      "src/lib/provider.js": "519be8c2df0067cf3767eebd2362e3fbfc6864da51f033af332de8014528146c",
+      "src/lib/repository-maintenance-lock.js": "121d617e2670e8b4d352bc9c3e7fe30814bb77fa4d7ef60fd6665fc19e7d09bc",
+      "src/lib/runtime-log.js": "04c3fa252ca1313901c129186daaac54dcf92882f9c81f3b44e01e8cab76d595",
+      "src/lib/schema-validate.js": "17dec08ab7964d1952c31a5d5131cbe71b545c9a08bc3842a32e7881e0214939",
+      "src/lib/skill-rules.js": "02e0838a6862a0cc9f45eb1ff9c378295707686a86e181024c970cece55b1eed",
+      "src/lib/skills.js": "d4fdc99082497a2b8112db83168a4466d6beed6c5c20a117f92cd60a256cc1e1",
+      "src/lib/spec-json.js": "a3a35c7946448fc29f014f53cdeb20611932c78e44fe8d68d7c4ea37e2430f4f",
+      "src/lib/step-id-rename.js": "debde256556f702f3ac42560501e9db08d923e233c9b6a72b609b8ad43f50598",
+      "src/lib/test-command-sources.js": "81a6467949f68737e70d296f51f76e9a50e0679c16b2d090ae44c9f283bc98c0",
+      "src/lib/types.js": "9ba20ea28c73182d9e70f06b31f5965c36941f1f4016f77a12ee95dc2dff27e2",
+      "src/lib/worktree-flow-binding.js": "e88f67100855e862bfb1b1dbc014ad403174c29329e4989cdca8320d5794f7c2",
+      "src/locale/en/messages.json": "251215ccbd8e94a757e96574dd85ea5a3945820781931f475c5b71f4d6fb0250",
+      "src/locale/en/prompts.json": "5e65e772a750cd4903b4a03880f572398252484b678fff97249f611e0198b2b7",
+      "src/locale/en/ui.json": "152ea6eda9c971e774ae36d91e4f8a236852401179860e9966be4a3f2b8b48cc",
+      "src/locale/ja/messages.json": "e70eff887eb2667f844ed7de989cceaa039db213d3e5b0794af2cfcbb5401a28",
+      "src/locale/ja/prompts.json": "e181b1729c60b97ae0b5d626711584628da0acfafd4aaf172f6890adb0982741",
+      "src/locale/ja/ui.json": "c47339bf6266f547e5991a1c291a53171f536a9dc4ec79ef5e0504e75cbc061c",
+      "src/metrics.js": "98d6690ff112c8f6e85b2e8bf295706d60227d9ae48603dfa8989f6b2895f912",
+      "src/metrics/commands/review.js": "7c90fa43517529bf12087efd14ac3e9439f67f224ad88af99d5001703a8422e8",
+      "src/metrics/commands/token.js": "5888f6b4f8f1d262fa5e81cb43e23d864e6c837a7638a1842fc3e569df468588",
+      "src/plugin.js": "f490019de2568e352bc049215e175108a6916255dfa0ecabde207e52efc71b9e",
+      "src/presets-cmd.js": "62ebc21b682b0558ee6b4bc41c6554feb193d28ed8894bf2bef4815361fe41f3",
+      "src/presets/base/data/package.js": "b07b223da612085a57e0cee25fce9daf658722dd6aa229dcd5f18feaa8943cb2",
+      "src/presets/base/data/structure.js": "b82021edf1d1635e46eb5b950002423143bce0fb37d8fe1d024e39b4456a5427",
+      "src/presets/base/guardrail-rewrite-rubric.md": "5337cbede278db22d61e0c121b5a1cc55b2e68914b292dc492cdb49622de5113",
+      "src/presets/base/guardrail.json": "1fa0d4e2558a70ee87df4aaae5c826e8e4930a61f229b03579db2c433adc926c",
+      "src/presets/base/preset.json": "7eef788440faea2bf437c3194d0c049c91c3930ef95195a5e1302e019780b04a",
+      "src/presets/base/templates/en/AGENTS.senti.md": "d07537f7a6f9f565bce00464ad014cb239693c8b6fb42502907040a554ffcc7f",
+      "src/presets/base/templates/en/development.md": "f3bb52054464d653e4e0079f41b19aee299993318ed225aa95802b758c25f6f4",
+      "src/presets/base/templates/en/layout.md": "ef5041fb55bcac418e14a856b5b53fb7abe34b0062d9a156e04c00dc7023ce5c",
+      "src/presets/base/templates/en/overview.md": "ab1b6b1ad5e03276b2d87e9a089bbbbeb97cc2fa107a17cf5d40e398c9bd8de1",
+      "src/presets/base/templates/en/project_structure.md": "9e6725c4b43db27b7f76ef47b91f2a95ee8aa0017a8114e72749e4fa8b7fbca1",
+      "src/presets/base/templates/en/stack_and_ops.md": "ea2c1dcfb7d0a165f73e69b7a691038fe6f8ac69341f83499aa6884939dc5202",
+      "src/presets/base/templates/ja/AGENTS.senti.md": "ac7872c77c452d4bae96938b2ec922000b81aa76d22b6965bc2832d7d97de266",
+      "src/presets/base/templates/ja/development.md": "e037b3549d4871ae50f2de6948e58ce0688f9b61ddedc0f95ad8bac620c07016",
+      "src/presets/base/templates/ja/layout.md": "ef5041fb55bcac418e14a856b5b53fb7abe34b0062d9a156e04c00dc7023ce5c",
+      "src/presets/base/templates/ja/overview.md": "b049000c8be6b53ab423329fea3ae7fb850b0c3395da2eef8a2d97510e5c609a",
+      "src/presets/base/templates/ja/project_structure.md": "9f4432dd7114cd370dd95f18601d3c14d572bc27a898d64c8a38e507b20ccf39",
+      "src/presets/base/templates/ja/stack_and_ops.md": "822a385d3ed4c8709204607cc11b34f88826d687be6f9f7fb311c886a7894a66",
+      "src/presets/base/tests/acceptance/fixtures/.senti/config.json": "f76abeaaa83ce8d52171d04854868e48ff905e3497e11e7686b17e89561990e6",
+      "src/presets/base/tests/acceptance/fixtures/package.json": "c38c7295115ff05ffd4b24585807ad3c810e3e093c3b3eb02c2af4727c7b53b0",
+      "src/presets/base/tests/acceptance/fixtures/src/config.js": "8f4d72665db82271c2735c30832eead58bd838f4a1a6b98c3dad9a3f9a61afa1",
+      "src/presets/base/tests/acceptance/fixtures/src/http-client.js": "90f9d07b9d4a1187aac10f8aab7af89bfda639f8175b18b42a0af429ed86051e",
+      "src/presets/base/tests/acceptance/fixtures/src/index.js": "fac7862b4088a74e8823567becf5c24e5c361b5979538de9cc2c4f4de8c93fd1",
+      "src/presets/base/tests/acceptance/fixtures/src/logger.js": "762adaf319930df4e0c3d896b11d0d2772ccb4be6f7c90c72c2cefe833016250",
+      "src/presets/base/tests/acceptance/test.js": "15c950e529187b3e3dbd372e75599290a745b4298ae8f9818523b4498601cf2b",
+      "src/scripts/rename-phase-steps.js": "c2dbe08d5dce5a690740394f454544d0cc91e1a3c7dd9a2d1d058702544482b9",
+      "src/senti.js": "a516232d9dfe4d7b52eccfd9680b1579a31a45dca82e88fff611850ce232c9f5",
+      "src/setup.js": "e8955993c4ef2d134d3edd62ebc7a1c96300ad330d5161194709ce36ddd28ce9",
+      "src/skills/partials/ai-question-style.md": "b8f68e66b7b867edda8a0c55d4b2f043644674f943b746c865d1507b585c543d",
+      "src/skills/partials/choice-format.md": "3cf319ea034298af154d066e675107f860bcf63fe5114820618f26750bf0b3b3",
+      "src/skills/partials/context-recording.md": "b72de71ed09cb2f63e972b92fbc683337eef37c57cdaadd10b7c86173ebeed5c",
+      "src/skills/partials/core-principle.md": "19a2116b52a6fd17c9533f5b219f62175e1a6fdff17fde006910b21be68bf823",
+      "src/skills/partials/flow-tracking.md": "88a8c0fa66304603b361de96a5245f343282d1cc40d621826c57a2eed9a69bec",
+      "src/skills/partials/issue-log-recording.md": "8d760323538056745968a8735a0a6ee6607bc8655034bc092fe461aaf97d3500",
+      "src/skills/partials/placeholder-artifact-permission.md": "e58ea5c70170bdce6525d6ef7c3d1317e16247666af0c0e744b5c5b08c978bf4",
+      "src/skills/partials/worktree-mode.md": "e3bdd313dfaefd1f51f7f72d2f882ce7546b1257d1a85224aba1472ca6f9b284",
+      "src/skills/rules.json": "30d2a43819fd599de2e00511e8afe65613b1f1d4aa85f04e58fb8da8b12a96de",
+      "src/skills/senti.flow-auto/SKILL.md": "142e6cd8f1222d4c37e0b79d31aee51ceccdd797af5f4ba8464f384035ba623c",
+      "src/skills/senti.flow-resume/SKILL.md": "ae82ecc529a20fe6651f0e2e262177161fe915bf64e73e95f38f88ce6a18c696",
+      "src/skills/senti.flow-status/SKILL.md": "47fa3e0e58e16237c6e98e5a6f6b6a148c61729af5bd754e9692045d0de305cf",
+      "src/skills/senti.flow-sync/SKILL.md": "f570e14ad38a039189db73929f00850f154c98986c2235788c8014381e631959",
+      "src/skills/senti.flow/SKILL.md": "bda5a919cd175be6284fda76aa8b81ab81df5cf523511b477a7759cfa301c2df",
+      "src/spec.js": "2cff8def990c8645c51876401492cab0b8796d6964167baa157869366e6a0f05",
+      "src/spec/commands/render.js": "1a5f4ef192268600de2d2fff63a545d30b4b30bc7eff1842e02cdc00f2fd60ce",
+      "src/spec/lib/render-contract.js": "e3f070f8467911ad4890a0ab718a8a78e127a30167add892535f0a8b5dfd9ee0",
+      "src/upgrade.js": "6ec621b8bdcaf5bb110439f252ba2d3f2900c36cae8998950642686154b0dc40"
+    },
+    "truncated": false
+  },
+  "generatedAt": "2026-07-21T06:16:57.870Z",
+  "items": [
+    {
+      "findingId": "c1adb7b19e1213125ac6dfb873c60ea08b061a5a7c065a3ddfaaaa7debfbebe3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/draft-coverage-repair.json`\n**Requirement:** R6\n**Issue:** The artifact contains only static empty-state data plus `generatedAt`. For an empty repair result, the timestamp creates noisy diffs without adding meaningful review value.\n**Suggestion:** Omit `generatedAt` from empty no-op artifacts, or move run metadata into a shared manifest so repeated no-op phases do not create otherwise meaningless changes.",
+      "evidenceRefs": [
+        "impl-review.json#c1adb7b19e1213125ac6dfb873c60ea08b061a5a7c065a3ddfaaaa7debfbebe3"
+      ]
+    },
+    {
+      "findingId": "bb62e8853a4ca9d970f45bf5e53c299f5ddb337f394ffbbc8018348dad1036fe",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/draft-gate-source.json`\n**Requirement:** R6\n**Issue:** The same three guardrail failures are represented twice: once under `evaluations` and again under `observations`, with largely duplicated fields such as `reason`/`observed`, `rationale`, `guardrail_id`, `guardrailId`, `findingId`, and `fingerprint`.\n**Suggestion:** Keep a single canonical collection for findings, or make one section reference the other by ID. If both views are required by consumers, generate one as a derived projection instead of storing duplicated full payloads in the artifact.",
+      "evidenceRefs": [
+        "impl-review.json#bb62e8853a4ca9d970f45bf5e53c299f5ddb337f394ffbbc8018348dad1036fe"
+      ]
+    },
+    {
+      "findingId": "2e89017cd9356a73046823bf4c5fc6a13738d7f33075f8807731a7c99c98bc2d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/draft-gate-source.json`\n**Requirement:** R6\n**Issue:** The file mixes snake_case and camelCase aliases for the same concepts, for example `guardrail_id` and `guardrailId`. This increases schema ambiguity and makes downstream consumers more error-prone.\n**Suggestion:** Use one naming convention per field. Prefer the convention already used by the surrounding artifact schema, and remove redundant aliases unless a documented consumer requires both.",
+      "evidenceRefs": [
+        "impl-review.json#2e89017cd9356a73046823bf4c5fc6a13738d7f33075f8807731a7c99c98bc2d"
+      ]
+    },
+    {
+      "findingId": "8937739f7ad2be80f6d1bd5a40e81e6122483e65d7748816d4692c4f29404931",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/draft.json`  \n**Requirement:** R6  \n**Issue:** The same result-kind contract is repeated in several places with slightly different wording: `normally completed`, `passed`, `assertion failure`, `assertion-failure`, `spawn failure`, `spawn-error`, etc. That makes the spec easier to drift during implementation.  \n**Suggestion:** Define the canonical result kinds once, for example `passed`, `assertion-failure`, `spawn-error`, `signal`, `timeout`, `max-buffer`, then reference that list consistently throughout `analysis`, `decisionMap`, and `qa`.",
+      "evidenceRefs": [
+        "impl-review.json#8937739f7ad2be80f6d1bd5a40e81e6122483e65d7748816d4692c4f29404931"
+      ]
+    },
+    {
+      "findingId": "155bf9d57f800af05dac24a6702791b63a8abddd9f51a69df5eab1c7df4d96d5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/draft.json`  \n**Requirement:** R3  \n**Issue:** The draft says stdout/stderr should use the child process API’s bounded buffer, but the limit is only explicit in the matched acknowledgment rationale, not in the draft body itself. This weakens the bounded-resource-usage guardrail traceability.  \n**Suggestion:** Add the concrete limits to the relevant decision point or impact section: `tests/run.js` keeps the existing `64 MiB maxBuffer`, and `runProcessDetailed` uses `opts.maxBuffer` or the default `20 MiB`, without reconstructing or duplicating raw output beyond that bound.",
+      "evidenceRefs": [
+        "impl-review.json#155bf9d57f800af05dac24a6702791b63a8abddd9f51a69df5eab1c7df4d96d5"
+      ]
+    },
+    {
+      "findingId": "f478ab6ba8a6fa85f07a42d9ced2399a20df28757179140b16805787c2aff08f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/draft-review-coverage.json`  \n**Requirement:** R5  \n**Issue:** `draft-review-coverage.json` and `draft-review-questions.json` have nearly identical empty PASS structures, differing mainly by phase and timestamp. If these are manually maintained artifacts, the duplication adds noise and creates a drift point.  \n**Suggestion:** If the workflow supports it, keep only the source review artifact plus the triage result, or generate these review PASS files from a shared template so empty review metadata is not duplicated by hand.",
+      "evidenceRefs": [
+        "impl-review.json#f478ab6ba8a6fa85f07a42d9ced2399a20df28757179140b16805787c2aff08f"
+      ]
+    },
+    {
+      "findingId": "ea2f60796db023a7e01253318120dc7f90c6b3abbf2a7928c4c59592a2d7a848",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/file-map.json`\n**Requirement:** R6\n**Issue:** `R1`, `R2`, and `R4` repeat identical file lists, while `R6` repeats the union of several earlier lists. This creates multiple maintenance points for the same mapping.\n**Suggestion:** If supported by the tooling, introduce named file groups or generate this map from a single source of truth. If not, consider adding generator support rather than hand-maintaining repeated arrays.",
+      "evidenceRefs": [
+        "impl-review.json#ea2f60796db023a7e01253318120dc7f90c6b3abbf2a7928c4c59592a2d7a848"
+      ]
+    },
+    {
+      "findingId": "5d4cab407885e491cb9e30f4658a2b41f4550fb3e69f1a2f4b7a193c67d5b5b4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/flow.json`\n**Requirement:** R6\n**Issue:** The `impl-review` step has `status: \"in_progress\"` while also carrying `finishedAt`, and its `finishedAt` timestamp is earlier than `startedAt`. That creates an internally inconsistent flow state for downstream tooling.\n**Suggestion:** Regenerate or repair this step so an in-progress step has no `finishedAt`, or mark it with a terminal status and monotonic `startedAt`/`finishedAt` values.",
+      "evidenceRefs": [
+        "impl-review.json#5d4cab407885e491cb9e30f4658a2b41f4550fb3e69f1a2f4b7a193c67d5b5b4"
+      ]
+    },
+    {
+      "findingId": "dd17644092e52f5e1a7bc8d701ec49f5f3646e3b49563aa8e8c5c74cdc19c74c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/flow.json`\n**Requirement:** R6\n**Issue:** The file stores extensive runtime-only data such as token counts, command logs, attempt history, timestamps, and agent metrics. This makes the artifact large and noisy, and obscures the durable flow definition.\n**Suggestion:** Split runtime telemetry into a separate generated log artifact, or omit volatile fields from committed flow state if the workflow format permits it.",
+      "evidenceRefs": [
+        "impl-review.json#dd17644092e52f5e1a7bc8d701ec49f5f3646e3b49563aa8e8c5c74cdc19c74c"
+      ]
+    },
+    {
+      "findingId": "db8ec95bb4f4d0f6432e4893efe6aacf6eabab64535cf31d4219e2bba9d04cb3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/impl-review.json`\n**Requirement:** R6\n**Issue:** Each non-blocking improvement stores the same full proposal body in both `issue` and `suggestion`, with identical text repeated verbatim.\n**Suggestion:** Keep one canonical structured proposal body, or split the fields by purpose so `issue` contains only the issue description and `suggestion` contains only the suggested change.",
+      "evidenceRefs": [
+        "impl-review.json#db8ec95bb4f4d0f6432e4893efe6aacf6eabab64535cf31d4219e2bba9d04cb3"
+      ]
+    },
+    {
+      "findingId": "4b8b438a5595c822dc5620b88999f1963527a96f44b32775de63b67018c22484",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/impl-review.json`\n**Requirement:** R1\n**Issue:** The artifact persists 45 full non-blocking improvements inline, including repeated full proposal bodies. The matched bounded-resource rationale covers child-process buffers, but this review artifact itself has no visible count or size bound.\n**Suggestion:** Persist only a bounded number of improvements per run, or enforce a maximum serialized size with truncation metadata for oversized review output.",
+      "evidenceRefs": [
+        "impl-review.json#4b8b438a5595c822dc5620b88999f1963527a96f44b32775de63b67018c22484"
+      ]
+    },
+    {
+      "findingId": "26e44b5d5b811a0b9d9cd5bfde3440cec3250d9a638eb8d73b92647b8d989479",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/issue-log.json`\n**Requirement:** R6\n**Issue:** Several entries duplicate the same failure details across `reason`, `observations[].observed`, and `failedEvaluations[].reason`. This inflates the artifact and creates drift risk between equivalent fields.\n**Suggestion:** Store findings once in a canonical list and have summary fields reference finding IDs, or generate `reason` as a derived summary from `observations`.",
+      "evidenceRefs": [
+        "impl-review.json#26e44b5d5b811a0b9d9cd5bfde3440cec3250d9a638eb8d73b92647b8d989479"
+      ]
+    },
+    {
+      "findingId": "9e0962379e938d8786c87b735711342164d5af674b5bf693a19930997d297c0c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/test-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id` even though they describe different issues. This makes downstream tracking ambiguous and can collapse two findings into one when deduplicating by fingerprint.  \n**Suggestion:** Generate or assign a unique `findingId`/`fingerprint`/`id` for each distinct finding, matching the pattern already used in `test-attempt-002.json`.",
+      "evidenceRefs": [
+        "impl-review.json#9e0962379e938d8786c87b735711342164d5af674b5bf693a19930997d297c0c"
+      ]
+    },
+    {
+      "findingId": "3064789e210dad0f1f9ba6d8ee2959dfc62dbb9d1c47f918fceae88b2351835f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/test-attempt-001.md`  \n**Requirement:** R4  \n**Issue:** The file has no trailing newline. This is minor, but it creates avoidable formatting churn and is inconsistent with common markdown/text-file conventions.  \n**Suggestion:** Add a final newline at EOF.",
+      "evidenceRefs": [
+        "impl-review.json#3064789e210dad0f1f9ba6d8ee2959dfc62dbb9d1c47f918fceae88b2351835f"
+      ]
+    },
+    {
+      "findingId": "c36faa8413f5fec8d5a2bff4f53aa8c57b639805b235d272fef6c24446bbc177",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/test-attempt-002.md`  \n**Requirement:** R4  \n**Issue:** The file has no trailing newline, matching the same formatting inconsistency as the previous attempt artifact.  \n**Suggestion:** Add a final newline at EOF.",
+      "evidenceRefs": [
+        "impl-review.json#c36faa8413f5fec8d5a2bff4f53aa8c57b639805b235d272fef6c24446bbc177"
+      ]
+    },
+    {
+      "findingId": "d38a4cbe1ab1c882ee0a07453f5db8cae696b5fe0c5b53b92a8a7d0eeaa3e6c4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/test-attempt-003.json`  \n**Requirement:** R1  \n**Issue:** The same advisory finding is represented in both `advisoryFindings` and `findings`, with repeated identifiers, title, fingerprint, disposition, and rationale/body text.  \n**Suggestion:** Keep one canonical findings array and derive phase-specific views such as advisory/blocking summaries from severity or kind.",
+      "evidenceRefs": [
+        "impl-review.json#d38a4cbe1ab1c882ee0a07453f5db8cae696b5fe0c5b53b92a8a7d0eeaa3e6c4"
+      ]
+    },
+    {
+      "findingId": "2951dde7dd74fcd6cba3a61cf0b64c3f43df010539b0d5781a9df803880dd3f4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json`  \n**Requirement:** R6  \n**Issue:** Several fields are stored both at the root and inside `identity`, including `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion`. This duplicates the same metadata and creates drift risk.  \n**Suggestion:** Keep canonical execution metadata in one location. If `identity` is meant to be the stable identity payload, root fields should reference it or omit duplicated values.",
+      "evidenceRefs": [
+        "impl-review.json#2951dde7dd74fcd6cba3a61cf0b64c3f43df010539b0d5781a9df803880dd3f4"
+      ]
+    },
+    {
+      "findingId": "84aacc822210b73926178816a0c318458916f9e88a780107d042098b70d8d1a2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json`  \n**Requirement:** R6  \n**Issue:** The file repeats the same metadata at the root and under `identity`, mirroring `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion`.  \n**Suggestion:** Normalize the artifact shape so this metadata is stored once, with any alternate view generated by consumers when needed.",
+      "evidenceRefs": [
+        "impl-review.json#84aacc822210b73926178816a0c318458916f9e88a780107d042098b70d8d1a2"
+      ]
+    },
+    {
+      "findingId": "10a9dba0df8faad115b6c510e0ba35d7dd9cc5e2e77b9bfb05ed0f975e724a2d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json`  \n**Requirement:** R6  \n**Issue:** `rawResponse` contains the full proposal text, while `success.proposals` stores the parsed version of the same content. This duplicates review data and increases artifact size/noise.  \n**Suggestion:** Store the parsed `success.proposals` as canonical data and omit `rawResponse`, or keep `rawResponse` only for failed parses/debug artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#10a9dba0df8faad115b6c510e0ba35d7dd9cc5e2e77b9bfb05ed0f975e724a2d"
+      ]
+    },
+    {
+      "findingId": "2da62280de974f42f28ded5e8d33dbcee44c87d88c03a9adcd5bd4c4219f0b7f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/test-review.md`  \n**Requirement:** R6  \n**Issue:** Several fields are stored both at the root and inside `identity`, including `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion`. This duplicates the same metadata and creates drift risk.  \n**Suggestion:** Keep canonical execution metadata in one location. If `identity` is meant to be the stable identity payload, root fields should reference it or omit duplicated values.",
+      "evidenceRefs": [
+        "impl-review.json#2da62280de974f42f28ded5e8d33dbcee44c87d88c03a9adcd5bd4c4219f0b7f"
+      ]
+    },
+    {
+      "findingId": "e3137fa4a137c860c9e2a9aaf1b383dc70830d876430c0fa9c4d915deb68913e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/test-review.md`  \n**Requirement:** R6  \n**Issue:** The file repeats the same metadata at the root and under `identity`, mirroring `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion`.  \n**Suggestion:** Normalize the artifact shape so this metadata is stored once, with any alternate view generated by consumers when needed.",
+      "evidenceRefs": [
+        "impl-review.json#e3137fa4a137c860c9e2a9aaf1b383dc70830d876430c0fa9c4d915deb68913e"
+      ]
+    },
+    {
+      "findingId": "c19789e013ddede391073c3a4e94e973811e302a288efc7ce7c7b9e27345b36c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/test-review.md`  \n**Requirement:** R6  \n**Issue:** `rawResponse` contains the full proposal text, while `success.proposals` stores the parsed version of the same content. This duplicates review data and increases artifact size/noise.  \n**Suggestion:** Store the parsed `success.proposals` as canonical data and omit `rawResponse`, or keep `rawResponse` only for failed parses/debug artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#c19789e013ddede391073c3a4e94e973811e302a288efc7ce7c7b9e27345b36c"
+      ]
+    },
+    {
+      "findingId": "3de8da1f57006dff5cd412733ab2f744c441c4039fdf2af4a14970e42f6780a6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/test-review.md`  \n**Requirement:** R1  \n**Issue:** The same advisory finding is represented in both `advisoryFindings` and `findings`, with repeated identifiers, title, fingerprint, disposition, and rationale/body text.  \n**Suggestion:** Keep one canonical findings array and derive phase-specific views such as advisory/blocking summaries from severity or kind.",
+      "evidenceRefs": [
+        "impl-review.json#3de8da1f57006dff5cd412733ab2f744c441c4039fdf2af4a14970e42f6780a6"
+      ]
+    },
+    {
+      "findingId": "b57f0d0087e7eafc643545a48e7a4a4fa33c88da1cdc5d5ff7b3c6ecdc4ae1a0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json`\n**Requirement:** R6\n**Issue:** The stored `rawResponse` and `success.proposals` entries reference files that are not part of the provided diff, such as `spec-gate-source.json`, `impl-review.json`, and `spec.md`. This violates the mandatory scope constraint embedded in the review prompt and preserves invalid provider output as a successful artifact.\n**Suggestion:** Mark this work unit as failed/invalid, or regenerate it with validation that rejects proposals whose `file`/`**File:**` target is not one of the touched files in the current diff.",
+      "evidenceRefs": [
+        "impl-review.json#b57f0d0087e7eafc643545a48e7a4a4fa33c88da1cdc5d5ff7b3c6ecdc4ae1a0"
+      ]
+    },
+    {
+      "findingId": "7ca66ec5e33b57e21bba306b448816a9e85e63ab9139c480fd2771cd24164a73",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json`\n**Requirement:** R5\n**Issue:** The file repeats the same metadata in both `identity` and top-level fields: `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId`. This creates drift risk inside a single artifact.\n**Suggestion:** Keep immutable identity fields under `identity`, and store only execution/result fields at the top level. If top-level duplication is required for indexing, generate it from `identity` and validate equality before writing.",
+      "evidenceRefs": [
+        "impl-review.json#7ca66ec5e33b57e21bba306b448816a9e85e63ab9139c480fd2771cd24164a73"
+      ]
+    },
+    {
+      "findingId": "7dddd626d11dd0963bf2860c0a4d2dceb652fdc9b1e4e07355ac435520d75eb9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json`\n**Requirement:** R6\n**Issue:** The successful proposal payload references `draft.json`, `draft-review-coverage.json`, and other files outside the diff. Since the diff only adds this JSON work-unit file, the recorded proposals do not satisfy the review contract.\n**Suggestion:** Regenerate this work unit against the actual touched-file set, or store an invalid status with an error explaining that the provider output failed scope validation.",
+      "evidenceRefs": [
+        "impl-review.json#7dddd626d11dd0963bf2860c0a4d2dceb652fdc9b1e4e07355ac435520d75eb9"
+      ]
+    },
+    {
+      "findingId": "0ed64381ea5290311f735fcf835ba5b7d9a2a83fa6ccf62db71446f8b159c212",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json`\n**Requirement:** R6\n**Issue:** The proposals target test and fixture files that are not present in the diff. The artifact records `status: \"success\"` even though the provider output violates the mandatory scope rule.\n**Suggestion:** Add post-processing validation before writing successful work-unit artifacts: every proposal `file` and markdown `**File:**` line must match a touched file from the actual diff.",
+      "evidenceRefs": [
+        "impl-review.json#0ed64381ea5290311f735fcf835ba5b7d9a2a83fa6ccf62db71446f8b159c212"
+      ]
+    },
+    {
+      "findingId": "9600759849751b392178ce7391d69a36aa1adbff29705962e61865e9e302565c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/8ff62bd023cdfcaf5e4dab92.json`\n**Requirement:** R6\n**Issue:** Like the other generated work units, this file stores successful proposals for files outside the diff, including `flow.json`, `spec.md`, and `scenario-validity-result.json`. This creates misleading review history and makes downstream aggregation unreliable.\n**Suggestion:** Treat scope validation failure as a failed attempt, not a successful proposal set. Either regenerate with the correct touched-file scope or replace the proposal list with no valid proposals.",
+      "evidenceRefs": [
+        "impl-review.json#9600759849751b392178ce7391d69a36aa1adbff29705962e61865e9e302565c"
+      ]
+    },
+    {
+      "findingId": "895a27c6e1d9fa1f1329b647081b0ed299d69dffc4143b85b2d9c7780f8e8391",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/8ff62bd023cdfcaf5e4dab92.json`\n**Requirement:** R5\n**Issue:** This file has the same duplicated `identity` versus top-level metadata shape as the other work units. The duplication is especially risky because these generated artifacts are later used as review evidence.\n**Suggestion:** Normalize the work-unit schema so duplicated fields are represented once, or replace duplicate top-level fields with a compact index object derived from `identity`.",
+      "evidenceRefs": [
+        "impl-review.json#895a27c6e1d9fa1f1329b647081b0ed299d69dffc4143b85b2d9c7780f8e8391"
+      ]
+    },
+    {
+      "findingId": "c6e65f3fe4158a95f48bd806c8141ce4d711d57c295c0b3e7015322137f26201",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/bd3798396b2128f722503801.json`  \n**Requirement:** R6  \n**Issue:** The same metadata appears both under `identity` and at the top level: `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId`. The same pattern is repeated across the added work-unit artifacts, making the files noisy and allowing drift between two representations.  \n**Suggestion:** Keep these fields in one canonical location, preferably `identity`, and have readers derive any top-level indexing/display values from that object.",
+      "evidenceRefs": [
+        "impl-review.json#c6e65f3fe4158a95f48bd806c8141ce4d711d57c295c0b3e7015322137f26201"
+      ]
+    },
+    {
+      "findingId": "f97086db2028484cc2589980215d18e434c3cb9dcc97cfdafeb395f9f1ec59f7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R6  \n**Issue:** The artifact stores a verbose `rawResponse` containing proposals, but the parsed result is `success.proposals: []`. This creates an inconsistent representation: the raw response says proposals exist, while the structured result says none exist.  \n**Suggestion:** Treat parsed structured output as authoritative. If parsing rejects all proposals because they target files outside the current diff, store an explicit bounded diagnostic field such as `discardedProposalCount` or `parseWarnings`, instead of leaving contradictory raw and structured states.",
+      "evidenceRefs": [
+        "impl-review.json#f97086db2028484cc2589980215d18e434c3cb9dcc97cfdafeb395f9f1ec59f7"
+      ]
+    },
+    {
+      "findingId": "e8cc223edc4bcda4a6e9eb236e6260399e967b77b2001b8e3eb83ff33dccfd9f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`  \n**Requirement:** R1  \n**Issue:** `rawResponse` stores the full markdown response, while `success.proposals[].body` stores parsed copies of the same proposal text. This duplicates potentially large model output and weakens the bounded-resource posture for persisted artifacts.  \n**Suggestion:** After successful parsing, persist `success.proposals` as the canonical structured form and either omit `rawResponse` or replace it with bounded debug metadata such as a checksum, byte count, and truncation flag.",
+      "evidenceRefs": [
+        "impl-review.json#e8cc223edc4bcda4a6e9eb236e6260399e967b77b2001b8e3eb83ff33dccfd9f"
+      ]
+    },
+    {
+      "findingId": "3479d0ac0a4c2c7d07db3d0e9ef8035764b84a18d0551e31aa99c2c3b4494fa1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json`  \n**Requirement:** R4  \n**Issue:** `success.proposals[].title` includes numeric prefixes such as `\"1. Deduplicate repeated test command evidence\"`. That embeds markdown/list presentation into structured data and can produce stale numbering if proposals are filtered, merged, or reordered.  \n**Suggestion:** Store titles without list numbers, and let the markdown renderer add numbering when producing `rawResponse` or display output.",
+      "evidenceRefs": [
+        "impl-review.json#3479d0ac0a4c2c7d07db3d0e9ef8035764b84a18d0551e31aa99c2c3b4494fa1"
+      ]
+    },
+    {
+      "findingId": "1b962b6942367e71a7106d6787494726ab4d29b60157d43cf0a3ce384c334cc6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R1  \n**Issue:** The same guardrail failures are stored under both `evaluations` and top-level `observations`, with duplicated reason/rationale/location/guardrail metadata. This creates two sources of truth and drift risk.  \n**Suggestion:** Keep one canonical findings collection. If both views are needed, make one contain references to the canonical finding IDs or derive it during rendering.",
+      "evidenceRefs": [
+        "impl-review.json#1b962b6942367e71a7106d6787494726ab4d29b60157d43cf0a3ce384c334cc6"
+      ]
+    },
+    {
+      "findingId": "69ca3571138db4a5e532c8f5e30edeb493a58774024cf3530d0cab6002d93aaa",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R1  \n**Issue:** The two `migration-parity` evaluation entries share the same `findingId` and `fingerprint` even though they describe different failures. The same issue appears in top-level `observations`, where two distinct migration findings also share one ID/fingerprint.  \n**Suggestion:** Generate a unique `findingId` and `fingerprint` for each distinct finding, or merge truly identical observations into one finding with multiple locations.",
+      "evidenceRefs": [
+        "impl-review.json#69ca3571138db4a5e532c8f5e30edeb493a58774024cf3530d0cab6002d93aaa"
+      ]
+    },
+    {
+      "findingId": "3a7f43b43c29b17a63cad8cdef914165e29c4804bd7a309c0d78bbae46b8eb27",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`  \n**Requirement:** R6  \n**Issue:** The artifact stores both `guardrail_id` and `guardrailId` for the same concept. This mixes snake_case and camelCase aliases and makes the schema harder to consume consistently.  \n**Suggestion:** Pick the artifact’s canonical naming convention and remove the duplicate alias, or document and generate compatibility aliases in one dedicated compatibility layer.",
+      "evidenceRefs": [
+        "impl-review.json#3a7f43b43c29b17a63cad8cdef914165e29c4804bd7a309c0d78bbae46b8eb27"
+      ]
+    },
+    {
+      "findingId": "6caf36f7b37c72a4b1042275ee3afdf535fa730f9f90bdbd4b1245f3c50b717f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/scenario-validity-result.json`  \n**Requirement:** R6  \n**Issue:** Every `summary[].evidence` repeats the same `command` and identical `raw_output_lines`, while the command is already present at the top level.  \n**Suggestion:** Keep shared execution metadata at the top level, and limit each requirement’s evidence to the differing fields such as `test_file` and `test_name`.",
+      "evidenceRefs": [
+        "impl-review.json#6caf36f7b37c72a4b1042275ee3afdf535fa730f9f90bdbd4b1245f3c50b717f"
+      ]
+    },
+    {
+      "findingId": "4164d05386f27ad64089b45b86ca1f127ba32fb64fd6a05db908467c707773e6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec-review.json`  \n**Requirement:** R6  \n**Issue:** `spec-review.json` reports `PASS`, while `spec-gate-source.json` for the same `phase: \"spec\"` reports `fail` with blocking guardrail findings. Keeping both artifacts creates ambiguous review state.  \n**Suggestion:** Regenerate `spec-review.json` from the gate result, or store a clear lifecycle distinction so consumers know whether `spec-review.json` is pre-gate input, stale output, or superseded.",
+      "evidenceRefs": [
+        "impl-review.json#4164d05386f27ad64089b45b86ca1f127ba32fb64fd6a05db908467c707773e6"
+      ]
+    },
+    {
+      "findingId": "f43eb605820b3a32ad2e6cb368dd450ac0b89f7fecbe6f67105f5329e137fcdc",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec.json`  \n**Requirement:** R6  \n**Issue:** All requirements are marked `\"status\": \"done\"`, but both tasks remain `\"status\": \"pending\"`. If tasks represent the implementation work needed to satisfy those requirements, this naming/state mismatch is confusing.  \n**Suggestion:** Either mark the tasks complete when the corresponding requirements are done, or rename/use a clearer task status model that distinguishes “planned task” from “implementation complete.”",
+      "evidenceRefs": [
+        "impl-review.json#f43eb605820b3a32ad2e6cb368dd450ac0b89f7fecbe6f67105f5329e137fcdc"
+      ]
+    },
+    {
+      "findingId": "2f61cc9d75b2280671d53c0949d206462cbb5119363d0837d2161b9e9dd7f12d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec.json`  \n**Requirement:** R4  \n**Issue:** The same product-file boundary appears in multiple places: constraints, scope/out-of-scope, implementation targets, task notes, and alternatives. This is useful once, but repeated phrasing increases maintenance overhead if the allowed file set changes.  \n**Suggestion:** Keep the authoritative boundary in `scope`/`constraints`, and make task implementation notes refer to that boundary instead of restating specific excluded files.",
+      "evidenceRefs": [
+        "impl-review.json#2f61cc9d75b2280671d53c0949d206462cbb5119363d0837d2161b9e9dd7f12d"
+      ]
+    },
+    {
+      "findingId": "1c09330cb59b3b1f9ba6f22aaec45ade3a86c1e0844c40186d339c949eb6a778",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec.md`  \n**Requirement:** R6  \n**Issue:** The spec shows `**Status**: Draft` while the same file later says the user approved the spec, and `spec.json` has `\"approved\": true`. This creates inconsistent lifecycle state in generated documentation.  \n**Suggestion:** Change the rendered status to an approved/finalized state, or adjust the generator/source field so `spec.md` reflects the approval state consistently.",
+      "evidenceRefs": [
+        "impl-review.json#1c09330cb59b3b1f9ba6f22aaec45ade3a86c1e0844c40186d339c949eb6a778"
+      ]
+    },
+    {
+      "findingId": "52c2acde08f4b35eddc78878986d62b74fdf7ebc915bff29043bfdb846808ad2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec.md`  \n**Requirement:** R6  \n**Issue:** `spec.md` duplicates most of `spec.json` content, including requirements, acceptance criteria, constraints, tasks, and approval metadata. Because the task files already state they are generated, this duplication is expected, but it creates review noise and drift risk unless `spec.md` is clearly treated as generated output.  \n**Suggestion:** Add a top-level generated-file notice to `spec.md`, similar to the task files, indicating it is rendered from `spec.json` and should not be edited manually.",
+      "evidenceRefs": [
+        "impl-review.json#52c2acde08f4b35eddc78878986d62b74fdf7ebc915bff29043bfdb846808ad2"
+      ]
+    },
+    {
+      "findingId": "c18c687741b291865c7ad2a3903a2cff6f603e194e0e730b36e5ec3a9e91beba",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/test-execute-result.json`  \n**Requirement:** R6  \n**Issue:** The same long `command` string is repeated for every requirement summary entry, making the artifact noisy and more error-prone if the command changes.  \n**Suggestion:** Move the shared command to a top-level field such as `execution_command`, then let each evidence entry omit it or reference it by key. Keep per-entry fields focused on requirement-specific evidence like `test_file`, `test_name`, and `raw_output_lines`.",
+      "evidenceRefs": [
+        "impl-review.json#c18c687741b291865c7ad2a3903a2cff6f603e194e0e730b36e5ec3a9e91beba"
+      ]
+    },
+    {
+      "findingId": "7de783e4fc61cfe365f0456170dfb66c66b7a0903df4761b55483a3e17d0071d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/test-execute-result.json`  \n**Requirement:** R6  \n**Issue:** Every summary entry repeats the same `raw_output_lines` range `{ \"start_line\": 1, \"end_line\": 137 }`, which adds duplication without adding per-requirement signal.  \n**Suggestion:** Store the shared raw output range once at the execution level, and only include an entry-level range when a requirement has a distinct evidence span.",
+      "evidenceRefs": [
+        "impl-review.json#7de783e4fc61cfe365f0456170dfb66c66b7a0903df4761b55483a3e17d0071d"
+      ]
+    },
+    {
+      "findingId": "96e134bf29b4844830514e71c4b4399a3c039757ce33c9748c3d580166d51107",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/tests/.raw/scenario-validity.log`  \n**Requirement:** R6  \n**Issue:** This new artifact records an earlier scenario-validity run where all spec-local tests failed due to missing exports, while `test-execution.log` records the final passing run. Keeping both as committed evidence is confusing and makes the change set look internally inconsistent.  \n**Suggestion:** Delete this stale raw log, or regenerate it after the implementation is complete so it reflects the same passing behavior as the final test execution artifact.",
+      "evidenceRefs": [
+        "impl-review.json#96e134bf29b4844830514e71c4b4399a3c039757ce33c9748c3d580166d51107"
+      ]
+    },
+    {
+      "findingId": "4412f71cafb44bf36ee9fd932051b094bdec930f508335c88f7be29c5ef980ef",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/tests/child-process-result.test.js`  \n**Requirement:** R1  \n**Issue:** Several tests repeat the same `kind`, `started`, `completed`, `exitCode`, `errorCode`, `signal`, and `timedOut` assertions. This makes the tests longer and increases the chance of inconsistent expectations across result kinds.  \n**Suggestion:** Add a small helper such as `assertResultFields(result, expected)` that loops over expected fields and compares them. Use it for ENOENT, max-buffer, signal, timeout, assertion-failure, and passed cases.",
+      "evidenceRefs": [
+        "impl-review.json#4412f71cafb44bf36ee9fd932051b094bdec930f508335c88f7be29c5ef980ef"
+      ]
+    },
+    {
+      "findingId": "09ecff3fb1fa42e2412dc297aa75613373a40a2c89cbb687e80ad2ed9d239b0b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/tests/child-process-result.test.js`  \n**Requirement:** R6  \n**Issue:** The same child-process scenarios are executed in multiple tests, especially `signal`, `timeout`, `max-buffer`, `assertion-failure`, and `passed`. These tests spawn real processes, so duplication increases runtime and creates more places where timeout-sensitive behavior can flake.  \n**Suggestion:** Consolidate the “classification” and “processOutputLines metadata” checks into a single table-driven test that runs each scenario once and verifies both the result fields and diagnostic output.",
+      "evidenceRefs": [
+        "impl-review.json#09ecff3fb1fa42e2412dc297aa75613373a40a2c89cbb687e80ad2ed9d239b0b"
+      ]
+    },
+    {
+      "findingId": "63d6ca53ced37b3a7a5e66314d482305fac73ec089a32c1ef68c97043b423e79",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/tests/child-process-result.test.js`  \n**Requirement:** R4  \n**Issue:** The value `128` is repeated for max-buffer scenarios and stdout setup. Its role as an intentionally small buffer limit is not immediately clear from each call site.  \n**Suggestion:** Introduce a constant like `const SMALL_MAX_BUFFER = 128;` and use it in the max-buffer tests and fixture result setup.",
+      "evidenceRefs": [
+        "impl-review.json#63d6ca53ced37b3a7a5e66314d482305fac73ec089a32c1ef68c97043b423e79"
+      ]
+    },
+    {
+      "findingId": "1eb07676a65a2d860b63e07c224963ec8cf90f0620d0ad27fd7fa02087a8076a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/tests/child-process-result.test.js`  \n**Requirement:** R1  \n**Issue:** The constructor invariant test contains a long inline array of object literals with repeated `{ ...passed, ... }` setup. It is correct but hard to scan, and future invariant cases will make the test increasingly bulky.  \n**Suggestion:** Extract a helper such as `invalidResultCase(name, overrides)` or split invalid cases into grouped arrays by kind. That keeps the invariant matrix compact while preserving explicit case names.",
+      "evidenceRefs": [
+        "impl-review.json#1eb07676a65a2d860b63e07c224963ec8cf90f0620d0ad27fd7fa02087a8076a"
+      ]
+    },
+    {
+      "findingId": "88c20fc03f23ff74cc36c4198224855d7c4afdb7ea796a3eac5529c66349b043",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-regression.js`  \n**Requirement:** R2  \n**Issue:** `ProcessStreamSummary` builds `nonEmptyLines` with `text.split(...).filter(...)`, which duplicates large stdout/stderr content into an array just to find first and last non-empty lines. This is avoidable memory churn, especially around max-buffer cases.  \n**Suggestion:** Compute `byteLength`, first non-empty line, and last non-empty line in a single pass over lines without retaining every non-empty line.",
+      "evidenceRefs": [
+        "impl-review.json#88c20fc03f23ff74cc36c4198224855d7c4afdb7ea796a3eac5529c66349b043"
+      ]
+    },
+    {
+      "findingId": "f60fe9c53b6ee8ce5ad42f0bb0ecf1aa18aefd61531b7d0361d58297ec391e1b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/run.js`  \n**Requirement:** R3  \n**Issue:** The category list `[\"unit\", \"integration\", \"acceptance\"]` is duplicated in `formatExecutionSummary`, `counts`, and the execution loop also repeats `\"other\"`. This makes future category changes easy to apply inconsistently.  \n**Suggestion:** Define shared constants such as `SUMMARY_CATEGORIES` and `EXECUTION_CATEGORIES`, then reuse them for count initialization, summary formatting, and iteration.",
+      "evidenceRefs": [
+        "impl-review.json#f60fe9c53b6ee8ce5ad42f0bb0ecf1aa18aefd61531b7d0361d58297ec391e1b"
+      ]
+    },
+    {
+      "findingId": "c0bd969077d27377f7a81276b0d568e45698b0109562fabe778bb2c9da16ab8c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/tests/runner-reporting.test.js`  \n**Requirement:** R6  \n**Issue:** The tests repeat verbose spawn result object shapes with the same fields (`status`, `signal`, `error`, `stdout`, `stderr`) across many cases. This makes the scenarios harder to scan and increases maintenance noise.  \n**Suggestion:** Add a small helper like `spawnResult(overrides)` that supplies defaults, then each test can specify only the fields relevant to the scenario.",
+      "evidenceRefs": [
+        "impl-review.json#c0bd969077d27377f7a81276b0d568e45698b0109562fabe778bb2c9da16ab8c"
+      ]
+    },
+    {
+      "findingId": "67e2b2260907a314b612ec1e8615d113eeb9867384dc4632c01f3ee99bdf1c88",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/tests/runner-reporting.test.js`  \n**Requirement:** R6  \n**Issue:** The loop asserting fields such as `stdout.bytes` builds `new RegExp(\\`process\\\\.${field}:\\`)`; dots inside `field` are treated as regex wildcards. The assertion is less precise than intended.  \n**Suggestion:** Escape regex metacharacters in `field`, or avoid regex construction by checking `result.stderr.includes(\\`process.${field}:\\`)`.",
+      "evidenceRefs": [
+        "impl-review.json#67e2b2260907a314b612ec1e8615d113eeb9867384dc4632c01f3ee99bdf1c88"
+      ]
+    },
+    {
+      "findingId": "e3d4fae106c1ecf960a7318cffae1a4c00eb4caa344dd61137f10e20e503a01b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`\n**Requirement:** R6\n**Issue:** Multiple artifacts represent findings with overlapping but inconsistent shapes: `evaluations` plus `observations`, `advisoryFindings` plus `findings`, and mixed fields such as `guardrail_id`/`guardrailId`, `findingId`, `fingerprint`, and `id`.\n**Suggestion:** Define one canonical finding schema and use derived projections for phase-specific views. Standardize IDs and field naming across `spec-gate-source.json`, `draft-gate-source.json`, `issue-log.json`, and review-history attempt files.",
+      "evidenceRefs": [
+        "impl-review.json#e3d4fae106c1ecf960a7318cffae1a4c00eb4caa344dd61137f10e20e503a01b"
+      ]
+    },
+    {
+      "findingId": "59f6d26490063c0004f4f83c813938b91b1351c3a9dc14a85531b7485078204b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json`\n**Requirement:** R6\n**Issue:** Several work-unit artifacts duplicate the same identity metadata both at the root and under `identity`, including `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion`.\n**Suggestion:** Store immutable identity fields only under `identity`, and have readers/indexers derive any top-level display or lookup fields from that object.",
+      "evidenceRefs": [
+        "impl-review.json#59f6d26490063c0004f4f83c813938b91b1351c3a9dc14a85531b7485078204b"
+      ]
+    },
+    {
+      "findingId": "6ccd3ddfd183f8447b227474526fa6917bc5b7d04f8c4cd3befe91eeb2c77c6d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`\n**Requirement:** R1\n**Issue:** Multiple review-history work-unit files persist `rawResponse` alongside parsed `success.proposals`, sometimes duplicating the same proposal text and sometimes creating contradictions when parsed proposals are empty.\n**Suggestion:** Treat parsed proposals as canonical for successful parses. Keep `rawResponse` only for failed/debug cases, or replace it with bounded metadata such as checksum, byte count, and parse warnings.",
+      "evidenceRefs": [
+        "impl-review.json#6ccd3ddfd183f8447b227474526fa6917bc5b7d04f8c4cd3befe91eeb2c77c6d"
+      ]
+    },
+    {
+      "findingId": "80484f4aed9ae4ce15d7cfbec83946f4456259f1575316864d7dbc3ac11649a3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json`\n**Requirement:** R6\n**Issue:** Several successful work-unit artifacts contain proposals targeting files outside their touched-file scope, while other summaries depend on those artifacts as valid review evidence.\n**Suggestion:** Add one shared post-processing validator for all provider outputs. A work unit should be marked failed or partially discarded when any proposal target is outside the actual diff scope.",
+      "evidenceRefs": [
+        "impl-review.json#80484f4aed9ae4ce15d7cfbec83946f4456259f1575316864d7dbc3ac11649a3"
+      ]
+    },
+    {
+      "findingId": "d5f530cfd24beee635fa0e681135048674fb5c4db474c3035d6326c1af08f8d0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/draft-review-coverage.json`\n**Requirement:** R5\n**Issue:** Several generated review artifacts contain nearly identical empty PASS/no-op structures that differ mostly by phase and timestamp, creating noisy diffs and repeated schema maintenance.\n**Suggestion:** Generate empty review artifacts from a shared template or store only a compact canonical no-op result with phase metadata.",
+      "evidenceRefs": [
+        "impl-review.json#d5f530cfd24beee635fa0e681135048674fb5c4db474c3035d6326c1af08f8d0"
+      ]
+    },
+    {
+      "findingId": "6575356e6d35e559beec4be8322b13960728f871308f65f958aa51b1236df06a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/323-child-process-failure-results/spec.md`\n**Requirement:** R6\n**Issue:** Lifecycle state is inconsistent across files: `spec.md` says Draft while also noting approval, `spec.json` has `\"approved\": true`, and review artifacts show conflicting PASS/fail states for related phases.\n**Suggestion:** Make one source authoritative for lifecycle state, then regenerate rendered markdown and review summaries from that source so approved/draft/pass/fail states cannot drift independently.",
+      "evidenceRefs": [
+        "impl-review.json#6575356e6d35e559beec4be8322b13960728f871308f65f958aa51b1236df06a"
+      ]
+    }
+  ]
+}

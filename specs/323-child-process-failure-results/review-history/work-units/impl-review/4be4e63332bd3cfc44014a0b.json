@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "4be4e63332bd3cfc44014a0b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-7a76cb45b0773ed4",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/323-child-process-failure-results/draft-coverage-repair.json",
+      "specs/323-child-process-failure-results/draft-questions-triage.json",
+      "specs/323-child-process-failure-results/file-map.json",
+      "specs/323-child-process-failure-results/review-history/test-attempt-001.json",
+      "specs/323-child-process-failure-results/review-history/test-attempt-003.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json",
+      "specs/323-child-process-failure-results/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+      "specs/323-child-process-failure-results/review.md",
+      "specs/323-child-process-failure-results/spec.json",
+      "specs/323-child-process-failure-results/test-coverage.json",
+      "specs/323-child-process-failure-results/test-review.json",
+      "specs/323-child-process-failure-results/tests/fixtures/child-process-scenario.js"
+    ],
+    "inputHash": "7a76cb45b0773ed423cbdb54bdff99f413864f2b29cde87658d7974211ee0c56",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "4be4e63332bd3cfc44014a0b"
+  },
+  "targetFiles": [
+    "specs/323-child-process-failure-results/draft-coverage-repair.json",
+    "specs/323-child-process-failure-results/draft-questions-triage.json",
+    "specs/323-child-process-failure-results/file-map.json",
+    "specs/323-child-process-failure-results/review-history/test-attempt-001.json",
+    "specs/323-child-process-failure-results/review-history/test-attempt-003.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json",
+    "specs/323-child-process-failure-results/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+    "specs/323-child-process-failure-results/review.md",
+    "specs/323-child-process-failure-results/spec.json",
+    "specs/323-child-process-failure-results/test-coverage.json",
+    "specs/323-child-process-failure-results/test-review.json",
+    "specs/323-child-process-failure-results/tests/fixtures/child-process-scenario.js"
+  ],
+  "inputHash": "7a76cb45b0773ed423cbdb54bdff99f413864f2b29cde87658d7974211ee0c56",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T06:16:57.797Z",
+  "finishedAt": "2026-07-21T06:16:57.797Z",
+  "rawResponse": "### 1. Normalize Finding Schemas Across Review Artifacts\n**File:** `specs/323-child-process-failure-results/spec-gate-source.json`\n**Requirement:** R6\n**Issue:** Multiple artifacts represent findings with overlapping but inconsistent shapes: `evaluations` plus `observations`, `advisoryFindings` plus `findings`, and mixed fields such as `guardrail_id`/`guardrailId`, `findingId`, `fingerprint`, and `id`.\n**Suggestion:** Define one canonical finding schema and use derived projections for phase-specific views. Standardize IDs and field naming across `spec-gate-source.json`, `draft-gate-source.json`, `issue-log.json`, and review-history attempt files.\n\n### 2. Consolidate Work-Unit Metadata Shape\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json`\n**Requirement:** R6\n**Issue:** Several work-unit artifacts duplicate the same identity metadata both at the root and under `identity`, including `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion`.\n**Suggestion:** Store immutable identity fields only under `identity`, and have readers/indexers derive any top-level display or lookup fields from that object.\n\n### 3. Avoid Persisting Raw And Parsed Provider Output Together\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`\n**Requirement:** R1\n**Issue:** Multiple review-history work-unit files persist `rawResponse` alongside parsed `success.proposals`, sometimes duplicating the same proposal text and sometimes creating contradictions when parsed proposals are empty.\n**Suggestion:** Treat parsed proposals as canonical for successful parses. Keep `rawResponse` only for failed/debug cases, or replace it with bounded metadata such as checksum, byte count, and parse warnings.\n\n### 4. Standardize Review Scope Validation\n**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json`\n**Requirement:** R6\n**Issue:** Several successful work-unit artifacts contain proposals targeting files outside their touched-file scope, while other summaries depend on those artifacts as valid review evidence.\n**Suggestion:** Add one shared post-processing validator for all provider outputs. A work unit should be marked failed or partially discarded when any proposal target is outside the actual diff scope.\n\n### 5. Unify Generated Empty Review Artifact Handling\n**File:** `specs/323-child-process-failure-results/draft-review-coverage.json`\n**Requirement:** R5\n**Issue:** Several generated review artifacts contain nearly identical empty PASS/no-op structures that differ mostly by phase and timestamp, creating noisy diffs and repeated schema maintenance.\n**Suggestion:** Generate empty review artifacts from a shared template or store only a compact canonical no-op result with phase metadata.\n\n### 6. Normalize Lifecycle State Across Spec Artifacts\n**File:** `specs/323-child-process-failure-results/spec.md`\n**Requirement:** R6\n**Issue:** Lifecycle state is inconsistent across files: `spec.md` says Draft while also noting approval, `spec.json` has `\"approved\": true`, and review artifacts show conflicting PASS/fail states for related phases.\n**Suggestion:** Make one source authoritative for lifecycle state, then regenerate rendered markdown and review summaries from that source so approved/draft/pass/fail states cannot drift independently.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Finding Schemas Across Review Artifacts",
+        "body": "**File:** `specs/323-child-process-failure-results/spec-gate-source.json`\n**Requirement:** R6\n**Issue:** Multiple artifacts represent findings with overlapping but inconsistent shapes: `evaluations` plus `observations`, `advisoryFindings` plus `findings`, and mixed fields such as `guardrail_id`/`guardrailId`, `findingId`, `fingerprint`, and `id`.\n**Suggestion:** Define one canonical finding schema and use derived projections for phase-specific views. Standardize IDs and field naming across `spec-gate-source.json`, `draft-gate-source.json`, `issue-log.json`, and review-history attempt files.",
+        "file": "specs/323-child-process-failure-results/spec-gate-source.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Consolidate Work-Unit Metadata Shape",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json`\n**Requirement:** R6\n**Issue:** Several work-unit artifacts duplicate the same identity metadata both at the root and under `identity`, including `unitId`, `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, and `schemaVersion`.\n**Suggestion:** Store immutable identity fields only under `identity`, and have readers/indexers derive any top-level display or lookup fields from that object.",
+        "file": "specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Avoid Persisting Raw And Parsed Provider Output Together",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`\n**Requirement:** R1\n**Issue:** Multiple review-history work-unit files persist `rawResponse` alongside parsed `success.proposals`, sometimes duplicating the same proposal text and sometimes creating contradictions when parsed proposals are empty.\n**Suggestion:** Treat parsed proposals as canonical for successful parses. Keep `rawResponse` only for failed/debug cases, or replace it with bounded metadata such as checksum, byte count, and parse warnings.",
+        "file": "specs/323-child-process-failure-results/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Standardize Review Scope Validation",
+        "body": "**File:** `specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json`\n**Requirement:** R6\n**Issue:** Several successful work-unit artifacts contain proposals targeting files outside their touched-file scope, while other summaries depend on those artifacts as valid review evidence.\n**Suggestion:** Add one shared post-processing validator for all provider outputs. A work unit should be marked failed or partially discarded when any proposal target is outside the actual diff scope.",
+        "file": "specs/323-child-process-failure-results/review-history/work-units/impl-review/723ff9e5998f88d518d2fa2e.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Unify Generated Empty Review Artifact Handling",
+        "body": "**File:** `specs/323-child-process-failure-results/draft-review-coverage.json`\n**Requirement:** R5\n**Issue:** Several generated review artifacts contain nearly identical empty PASS/no-op structures that differ mostly by phase and timestamp, creating noisy diffs and repeated schema maintenance.\n**Suggestion:** Generate empty review artifacts from a shared template or store only a compact canonical no-op result with phase metadata.",
+        "file": "specs/323-child-process-failure-results/draft-review-coverage.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "6. Normalize Lifecycle State Across Spec Artifacts",
+        "body": "**File:** `specs/323-child-process-failure-results/spec.md`\n**Requirement:** R6\n**Issue:** Lifecycle state is inconsistent across files: `spec.md` says Draft while also noting approval, `spec.json` has `\"approved\": true`, and review artifacts show conflicting PASS/fail states for related phases.\n**Suggestion:** Make one source authoritative for lifecycle state, then regenerate rendered markdown and review summaries from that source so approved/draft/pass/fail states cannot drift independently.",
+        "file": "specs/323-child-process-failure-results/spec.md",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}
