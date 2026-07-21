@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/flow-state-shared-writer.test.js",
+      "tests/unit/flow/gate-mutation-owner.test.js",
+      "tests/unit/flow/gate-phase-inference.test.js",
+      "tests/unit/flow/get-check.test.js",
+      "tests/unit/flow/get-next-action.test.js",
+      "tests/unit/flow/plan-rewind.test.js",
+      "tests/unit/flow/post-hook-flow-scope.test.js",
+      "tests/unit/flow/reopen-draft-spec-correction.test.js",
+      "tests/unit/flow/resolve-active-flow.test.js"
+    ],
+    "inputHash": "bec503c7cb2d42462ff76e788b68ae440aba2a802ea144b4658a88bb60ec6a07",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "tests/unit/flow/flow-state-shared-writer.test.js",
+    "tests/unit/flow/gate-mutation-owner.test.js",
+    "tests/unit/flow/gate-phase-inference.test.js",
+    "tests/unit/flow/get-check.test.js",
+    "tests/unit/flow/get-next-action.test.js",
+    "tests/unit/flow/plan-rewind.test.js",
+    "tests/unit/flow/post-hook-flow-scope.test.js",
+    "tests/unit/flow/reopen-draft-spec-correction.test.js",
+    "tests/unit/flow/resolve-active-flow.test.js"
+  ],
+  "inputHash": "bec503c7cb2d42462ff76e788b68ae440aba2a802ea144b4658a88bb60ec6a07",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T09:39:48.639Z",
+  "finishedAt": "2026-07-21T09:39:48.639Z",
+  "rawResponse": "### 1. Remove Contradictory Draft Artifacts\n**File:** `specs/322-flow-target-transition-guards/draft-gate-source.json`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.\n### 2. Avoid Hard-Coded Fixture Path Literals in Test Setup\n**File:** `specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Contradictory Draft Artifacts",
+        "body": "**File:** `specs/322-flow-target-transition-guards/draft-gate-source.json`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+        "file": "specs/322-flow-target-transition-guards/draft-gate-source.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Avoid Hard-Coded Fixture Path Literals in Test Setup",
+        "body": "**File:** `specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+        "file": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

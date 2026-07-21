@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "7e4a961d-1a61-4e3e-9aa4-50fef1228b89",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-20T00:50:31.938Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "`maxAttempts` is required to be a positive integer before writes or side effects, but no explicit upper bound is specified for the retry count.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "`maxAttempts` is required to be a positive integer before writes or side effects, but no explicit upper bound is specified for the retry count.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "`maxAttempts` is required to be a positive integer before writes or side effects, but no explicit upper bound is specified for the retry count.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-20T00:50:31.938Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The maxAttempts validation fixture is required to fail before mutation, but the acceptance criterion does not specify an explicit upper bound for retry attempts.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[AC6]"
+          },
+          "observed": "The maxAttempts validation fixture is required to fail before mutation, but the acceptance criterion does not specify an explicit upper bound for retry attempts.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "The maxAttempts validation fixture is required to fail before mutation, but the acceptance criterion does not specify an explicit upper bound for retry attempts.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-20T00:50:31.938Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R6].desc"
+      },
+      "observed": "`maxAttempts` is required to be a positive integer before writes or side effects, but no explicit upper bound is specified for the retry count.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "`maxAttempts` is required to be a positive integer before writes or side effects, but no explicit upper bound is specified for the retry count.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-20T00:50:31.938Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[AC6]"
+      },
+      "observed": "The maxAttempts validation fixture is required to fail before mutation, but the acceptance criterion does not specify an explicit upper bound for retry attempts.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "The maxAttempts validation fixture is required to fail before mutation, but the acceptance criterion does not specify an explicit upper bound for retry attempts.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-20T00:50:31.938Z",
+      "repeatCount": 1
+    }
+  ]
+}

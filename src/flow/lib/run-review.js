@@ -51,6 +51,7 @@ import {
   buildRepairFingerprint,
   ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
+import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const IMPL_REVIEW_PHASE = "impl";
@@ -367,6 +368,14 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
   const repairFingerprints = requireDisposition
     ? new Set(repairFindings.map((finding) => finding.fingerprint))
     : null;
+  const stepId = reviewStepId(ctx, phase);
+  const transition = createLifecycleStepTransition({
+    flowState: ctx.flowState,
+    stepId,
+    status: "done",
+    event: "review:defer",
+  });
+  if (transition) ctx.flowManager.updateStepStatus(transition);
   ({ artifact, findings } = persistReviewSourceFindingIds(specDir, sourceArtifact, artifact, {
     defer: requireDisposition,
     requireDisposition,
@@ -379,7 +388,6 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
     attempts,
     ...(repairFingerprints && { fingerprints: repairFingerprints }),
   });
-  ctx.flowManager.updateStepStatus(reviewStepId(ctx, phase), "done");
   const findingCount = requireDisposition
     ? repairFingerprints.size
     : findings.length;

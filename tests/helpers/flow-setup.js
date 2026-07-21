@@ -4,6 +4,8 @@ import { Container } from "../../src/lib/container.js";
 import { FlowManager } from "../../src/lib/flow-manager.js";
 import { buildInitialSteps } from "../../src/lib/flow-helpers.js";
 import { findStepById, flattenSteps } from "../../src/flow/lib/step-tree.js";
+import { createLifecycleStepTransition } from "../../src/flow/lib/lifecycle-step-transition.js";
+import { NormalStepTransition } from "../../src/flow/lib/step-transition-policy.js";
 
 /**
  * Build a fresh Container instance with `flowManager` registered for a test
@@ -22,6 +24,32 @@ export function makeContainer(root) {
 /** Convenience accessor used by tests: returns the per-test container's flowManager. */
 export function makeFlowManager(root) {
   return makeContainer(root).get("flowManager");
+}
+
+export function makeNormalStepTransition(state, stepId, requestedStatus = "done") {
+  const step = findStepById(state.steps || [], stepId);
+  if (!step) throw new Error(`unknown fixture step: ${stepId}`);
+  return new NormalStepTransition({
+    stepId,
+    currentStepId: stepId,
+    currentStatus: step.status,
+    requestedStatus,
+  });
+}
+
+export function makeLifecycleStepTransition(
+  state,
+  stepId,
+  requestedStatus,
+  event = "definition:keep-in-progress",
+) {
+  return createLifecycleStepTransition({
+    flowState: state,
+    stepId,
+    status: requestedStatus,
+    event,
+    taskId: null,
+  });
 }
 
 const DEFAULT_TASK = {

@@ -1,0 +1,169 @@
+{
+  "devType": "bugfix",
+  "goal": "must: normal target resolution、normal step update、next-action promotion の3経路で selector の一意性と current leaf step の遷移制約を強制し、definition、rule、schema、instruction、target identity の検証完了後に、指定された `runId` / `spec` / `issue` selector の全条件と検証時 revision に一致する一意な run を一度だけ更新する。",
+  "analysis": {
+    "problem": "must: 現行の通常 target 解決は同じ Issue に複数 flow が一致しても先頭候補を選び得る。通常の step 更新は non-current または順序外 step を受け付け得る。next-action は definition、rule、schema、instruction の検証前に promotion を永続化するため、別 run または実行不能な action の変更が残り得る。",
+    "proposedApproach": "must: 指定 selector を AND 条件で評価し、0 件と複数件を typed error で拒否する。通常の step 更新を current leaf と definition が許す transition に限定し、明示的 rewind/recovery path と分離する。next-action は definition、rule、schema、instruction、target identity をすべて検証してから revision-aware CAS で promotion する。",
+    "validation": "must: public CLI と直接 module test の双方で ambiguity、not-found/mismatch、non-current/out-of-order/invalid transition、definition/rule/schema/instruction failure、CAS drift、exact target success と retry を実行し、失敗時の flow state、timestamp、artifact、runtime log、retry counter が byte-identical であること、および成功時に promotion と副作用が一度だけ発生することを確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: `src/lib/flow-manager.js` の通常 target 解決は selector に複数候補が一致する場合でも先頭候補を返し得る。",
+      "must: `src/flow/lib/set-step.js` の通常 step 更新経路には current leaf と definition transition を同時に検証する境界がない。",
+      "must: `src/flow/lib/get-next-action.js` は次 action の rule、schema、instruction を確定する前に step promotion を永続化し得る。",
+      "must: exact `runId` / `spec` selector を1件に解決する既存 path はあり、その target の current leaf を definition が許す transition へ1回更新する public behavior を維持する必要がある。"
+    ],
+    "decisionPoints": [
+      "must: `runId`、`spec`、`issue` のうち caller が指定した全 selector は AND 条件として合成し、0 件は typed not-found/mismatch、2 件以上は typed ambiguity として拒否する。",
+      "must: target の一意性を証明できない場合は flow state、timestamp、artifact、runtime log、retry counter を一切変更せず byte-identical に保つ。",
+      "must: 通常の step 更新は current leaf step と definition が許可する transition に限定し、rewind/recovery は既存の明示的な専用 path だけが所有する。",
+      "must: next-action promotion は definition、rule、schema、instruction、target identity の検証がすべて成功した後に revision-aware CAS で一度だけ行う。",
+      "must: validation 後に authority または revision が変化した場合は stale target を更新せず、caller に target の再解決を要求する。",
+      "must: selector filtering と uniqueness の owner は `FlowTargetExpectation` / `ResolvedFlowTarget` と `FlowManager` とし、`base-command.js` と `flow-context.js` は解決済み authority の routing だけを担当して selector policy を所有しない。",
+      "must: normal step と `definition.js` lifecycle adapter の transition eligibility は専用 OOP transition policy が所有し、`SetStepCommand` と lifecycle adapter は同じ policy を使用し、explicit rewind/recovery はその dedicated transition owner を通る。",
+      "must: next-action の definition/rule/schema/instruction/target identity validation と promotion planning は `GetNextActionCommand`、revision-aware write は `FlowStore` が所有する。",
+      "must: same-Issue first-candidate fallback、multi-selector OR/fallback、normal non-current/out-of-order update、pre-validation promotion を削除し、alpha policy に従い legacy fallback を設けない。CLI caller は一意性を証明する追加 selector を指定し、direct API caller は typed 0件/2件以上 failure を処理し、stale caller は target を再解決する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加せず Node.js 組み込みモジュールだけを使用する。",
+      "must: target identity、transition、revision の invariant を持つ値は専用 class で表現し、同じ guard pattern が二箇所以上に現れる場合は共通の深い module に集約する。",
+      "must: alpha policy に従い legacy format compatibility または旧 mutation behavior の fallback を追加しない。",
+      "must: `src/` に Issue、spec、run または環境固有の値を埋め込まない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: typed not-found、mismatch、ambiguity の error class/code/field と各 public command への対応を既存 envelope pattern に沿って定義する。",
+      "must: `FlowTargetExpectation` / `ResolvedFlowTarget` と `FlowManager` の constructor invariant、typed result/error API、`base-command.js` / `flow-context.js` から解決済み authority を渡す call signature を定義する。",
+      "must: 専用 OOP transition policy を `SetStepCommand` と `definition.js` lifecycle adapter が呼ぶ API、definition-approved multi-step transition と explicit rewind/recovery の dedicated owner boundary、`GetNextActionCommand` planning と `FlowStore` revision CAS の call signature を定義する。",
+      "must: ambiguity、not-found/mismatch、non-current/out-of-order transition、definition/rule/schema/instruction failure、concurrent revision drift、exact target success/retry の各 scenarioについて、pre/post state bytes、timestamp、artifact、runtime log、retry counter の差分を検証する fixture と public CLI/direct module test mapping を定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `src/lib/flow-manager.js` の通常 target resolution で指定 selector を AND 条件として合成し、0 件と複数件を typed error で拒否する。",
+      "must: `src/flow/lib/set-step.js` の通常更新を current leaf と definition が許す transition に限定し、non-current、完了済み、順序外、不許可 transition を副作用なしで拒否する。",
+      "must: `src/flow/lib/get-next-action.js` の promotion を definition、rule、schema、instruction、target identity の検証後へ移し、revision-aware CAS で一度だけ更新する。",
+      "must: authority/revision drift、ambiguity、not-found/mismatch、non-current/out-of-order/invalid transition、definition/rule/schema/instruction failure の各経路で flow state、timestamp、artifact、runtime log、retry counter を byte-identical に保つ。",
+      "must: exact `runId` / `spec` selector が1件に解決し、current leaf から definition が許す transition を行う既存 path とその retry が promotion、artifact、runtime log を重複させないことを public CLI と direct module test で検証する。",
+      "should: `src/lib/flow-manager.js`、`src/flow/lib/set-step.js`、`src/flow/lib/get-next-action.js` のうち2箇所以上で同一 selector/transition/revision invariant が重複する場合に限り、selector invariant は `FlowTargetExpectation` / `ResolvedFlowTarget` と `FlowManager`、normal/lifecycle transition invariant は `SetStepCommand` と `definition.js` lifecycle adapter が使用する専用 OOP transition policy、next-action validation/promotion invariant は `GetNextActionCommand` planning と `FlowStore` revision CAS へ集約する。`base-command.js` と `flow-context.js` は解決済み authority の routing だけを変更でき、それ以外の behavior を変更しない。"
+    ],
+    "out": [
+      "must: #442 が所有する registered step set を変更しない。",
+      "must: Ideas BUG `3c9d` が所有する gate phase inference の failure atomicity を変更しない。",
+      "must: Ideas BUG `c9de` が所有する approval と spec task sync の atomicity を変更しない。",
+      "must: Ideas BUG `0781` が所有する resume candidate scan の completeness を変更しない。",
+      "must: legacy format compatibility、暗黙 rewind、互換 fallback を追加しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: Inventory — public CLI: `senti flow set *` と `senti flow run *` の normal mutation target resolution、`senti flow set step`、promotion を伴う `senti flow get next-action` を対象とする。指定された `runId` / `spec` / `issue` selector の全条件が1候補に一致し、current leaf から definition-approved transition を行う behavior は維持する。",
+    "must: Inventory — direct APIs: `FlowManager.resolveActiveFlow`、`FlowManager.resolveExplicitFlowTarget`、`FlowManager.resolveExplicitFlowTargetForRead`、`FlowStore.updateStepStatus`、`FlowStore.saveAtomic` を対象とする。unique exact input contract は維持し、selector result 0件を typed not-found/mismatch、2件以上を typed ambiguity として返す。",
+    "must: Inventory — hooks: `definition.js` lifecycle adapter の definition-approved multi-step transitions と explicit rewind/recovery を維持する。lifecycle adapter は normal `set step` guard を迂回せず、`SetStepCommand` と共有する dedicated transition policy owner を通る。",
+    "must: Inventory — config/registry/flags: 既存の `runId` / `spec` / `issue` target flags、flow config、registered step set、CLI help の names/options を変更せず、新しい config/flag/registered step を追加しない。registered step set の変更は #442 の所有範囲として除外する。",
+    "must: Inventory — artifacts/side effects: unique exact target と検証時 revision が一致する path は flow state、timestamps、artifacts、runtime logs、retry counters、promotion side effects を一度だけ生成する。not-found/mismatch、ambiguity、invalid transition、validation failure、stale revision は typed envelope/error だけを返し、列挙した durable surfaces を実行前と byte-identical に保つ。",
+    "must: Owner map — selector filtering/uniqueness: `FlowTargetExpectation` / `ResolvedFlowTarget` が selector AND と resolved identity invariant、`FlowManager` が候補列挙と0件/1件/2件以上 classificationを所有する。`base-command.js` と `flow-context.js` は解決済み authority だけを command へ route し、selector policy を所有しない。",
+    "must: Owner map — normal/lifecycle transition eligibility: 専用 OOP transition policy が current leaf と definition-approved transition を所有し、`SetStepCommand` と `definition.js` lifecycle adapter が同じ owner を使用する。explicit rewind/recovery は dedicated transition owner を通り、normal set guard を迂回しない。",
+    "must: Owner map — next-action validation/promotion: `GetNextActionCommand` planning が definition、rule、schema、instruction、target identity validation を所有し、`FlowStore` revision CAS が検証時 revision と一致する一回の durable write を所有する。",
+    "must: Intentional removal/compatibility: same-Issue first-candidate fallback、multi-selector OR/fallback、normal non-current/out-of-order update、pre-validation promotion を削除する。alpha policy に従い legacy fallback を追加せず、CLI caller は追加 selector で一意性を証明し、direct API caller は typed 0件/2件以上 failure を処理し、stale caller は target を再解決する。",
+    "must: Verification — public CLI: exact unique target success、same-Issue ambiguity、multi-selector mismatch を `senti flow set *` / `run *`、`set step`、`get next-action` の behavior-level tests で実行し、成功時一回の transition と失敗時 typed envelope/no durable mutation を確認する。",
+    "must: Verification — direct APIs: `resolveActiveFlow` / `resolveExplicitFlowTarget` / `resolveExplicitFlowTargetForRead` の selector AND、0件、1件、2件以上と、`updateStepStatus` / `saveAtomic` の unique target/revision contract を direct module tests で確認する。",
+    "must: Verification — lifecycle/next-action: current leaf/definition-approved multi-step transition、explicit rewind/recovery、normal set guard非迂回、invalid definition/rule/schema/instruction、concurrent revision drift、exact success/retryを behavior-level tests で確認する。",
+    "must: Verification — config/artifacts: existing target flags、flow config、CLI help、registered step set が不変であることを snapshot/registry tests で確認し、valid exact path の state/timestamps/artifacts/runtime logs/retry/side effects が一回、rejected/ambiguous/stale path が typed error onlyかつ byte-identicalであることを pre/post artifact tests で確認する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #443 の Goal として、normal target resolution、normal step update、next-action promotion の3経路で target selector（対象 run を絞る `runId`、`spec`、`issue`）の一意性と current leaf step（現在実行中の末端 step）の遷移制約を強制する境界を承認しますか。",
+      "answer": "must: はい。Issue #443 の単一 bugfix concern として、mutation target の一意性、current leaf transition、validated next-action promotion の安全境界を全対象経路へ適用する。",
+      "evidence": "Issue #443 Summary、Problem、Required Invariants、Scope、および `src/lib/flow-manager.js:659-717`、`src/flow/lib/set-step.js:258-323`、`src/flow/lib/get-next-action.js:305-355`。",
+      "why": "must: 三つの経路は別 run、非 current step、実行不能 action の永続化という同じ authority/transition safety problem を構成し、Issue が一つの修正境界として定義している。",
+      "considered": "should: target resolution、step transition、next-action promotion を別々の spec に分ける案は、一経路だけ直して共通 invariant の抜けを残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "must: 複数の target selector を AND 条件で評価し、0 件を typed not-found/mismatch、2 件以上を typed ambiguity として区別し、どちらも foreign run を選ばず失敗させますか。",
+      "answer": "must: はい。指定された `runId`、`spec`、`issue` はすべて満たす候補だけを残し、0 件と複数件を区別可能な typed failure として返して foreign run を選ばない。",
+      "evidence": "Issue #443 Required Invariants と Acceptance Criteria の selector AND、0-result typed not-found、2+-result typed ambiguity、および `src/lib/flow-manager.js:659-717` の通常解決経路。",
+      "why": "must: selector を個別 fallback または OR として扱うと、一部だけ一致する別 run が mutation target になり、複数 flow が同じ Issue を持てる運用で authority を証明できない。",
+      "considered": "should: 最初に一致した候補の暗黙選択や selector ごとの fallback は曖昧性と mismatch を隠して foreign mutation を許すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: target の一意性を証明できない場合、flow state、timestamp、artifact、runtime log、retry counter を実行前と byte-identical に保つことを利用者向け failure contract にしますか。",
+      "answer": "must: はい。not-found、mismatch、ambiguity の全 failure で flow state、timestamp、artifact、runtime log、retry counter を変更せず、実行前の durable bytes を維持する。",
+      "evidence": "Issue #443 Required Invariants の no-change list と Acceptance Criteria の ambiguity/mismatch時 byte-identical 要件。",
+      "why": "must: failure 自体が timestamp、log、retry metadata を残すと誤った run の状態が変わり、再試行時の authority と failure atomicity を証明できない。",
+      "considered": "should: state本体だけ戻して runtime log や retry counter を best-effort で残す案は byte-identical contract を破るため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: 通常の step 更新を current leaf と flow definition が許す transition に限定し、non-current、完了済み、順序外、不許可 transition を副作用なしで拒否し、rewind/recovery は既存の明示的 path のみで扱いますか。",
+      "answer": "must: はい。通常更新は current leaf に対する definition-approved transition だけを受け付け、non-current、完了済み、順序外、不許可 transition は無変更で拒否し、rewind/recovery は明示的専用 path に限定する。",
+      "evidence": "Issue #443 Required Invariants と Acceptance Criteria の current leaf、allowed transition、explicit rewind/recovery 要件、および `src/flow/lib/set-step.js:258-323`。",
+      "why": "must: normal set path が任意 step または逆方向 transition を扱うと、flow definition の順序と専用 recovery path の追加 guard を迂回できる。",
+      "considered": "should: 通常の `set step` に implicit rewind や任意 step update を残す案は current authority と recovery audit boundary を曖昧にするため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "must: 一意に確認済みの target が変更確定前に stale（確認後の別更新で古くなった状態）になった場合、step promotion、flow state、timestamp、artifact、runtime log、retry counter を変更せずに操作を拒否し、target の再解決を要求しますか。",
+      "answer": "must: はい。一意に確認した target が変更確定前に stale になった場合は promotion と全関連副作用を発生させず拒否し、最新 authority に対する target 再解決を要求する。",
+      "evidence": "Issue #443 Required Invariants の authority/revision changed after validation 条件、Acceptance Criteria の stale target no-update 条件、および `src/flow/lib/get-next-action.js:305-355`。",
+      "why": "must: 確認後に古くなった target へ変更を適用すると、caller が確認していない revision の進行状態を上書きし、exact target の保証を失う。",
+      "considered": "should: stale target への best-effort promotion、last-write-wins、警告だけ残して続行する案は no-mutation と再解決 contract を破るため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: 指定された exact `runId` / `spec` selector が1候補に一致し、その target の current leaf から definition が許す transition を行う既存 behavior を維持し、同じ操作の retry が promotion、artifact、runtime log を重複生成しないことを acceptance boundary にしますか。",
+      "answer": "must: はい。exact `runId` / `spec` で一意に解決できる既存の正常 transition は一度だけ成功し、同一操作の retry は promotion、artifact、runtime log を重複生成しない。",
+      "evidence": "Issue #443 Acceptance Criteria の exact target success、exactly-once promotion、retry no-duplicate 要件と `src/lib/flow-manager.js:401-407` の explicit target uniqueness path。",
+      "why": "must: failure guard の追加が正常な exact target を拒否したり、retry が副作用を再生成したりすると既存 public behavior と運用上の再開安全性を壊す。",
+      "considered": "should: ambiguity対策として全 transition を拒否する案や retry ごとに promotion/log を再生成する案は正常系 parity と exactly-once boundary を満たさないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "must: registered step set（#442）、gate phase inference（`3c9d`）、approval/spec task sync（`c9de`）、resume candidate scan（`0781`）、legacy compatibility をこの spec から除外しますか。",
+      "answer": "must: はい。registered step set、gate phase inference、approval/spec task sync、resume candidate scan、legacy compatibility は変更せず、Issue #443 の target/transition/promotion safety に限定する。",
+      "evidence": "Issue #443 Scope の Out of scope と Scheduling Notes、および project alpha policy の legacy compatibility非採用規則。",
+      "why": "must: 各除外項目は別Issueが所有する failure modeまたは互換方針であり、同じ shared filesを変更する項目と同時に扱うと acceptance boundary と変更責任が混ざる。",
+      "considered": "should: #442、3c9d、c9de、0781を同時修正する scope expansion は独立した acceptance criteria と競合する shared control-plane 変更を持つため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "must: ambiguity、not-found/mismatch、invalid/out-of-order transition、definition/rule/schema/instruction failure、CAS drift、exact success/retry を public CLI と direct module の両方で検証し、各 scenario の flow state、timestamp、artifact、runtime log、retry counter の pre/post 差分を比較しますか。",
+      "answer": "must: はい。列挙された failure、concurrency drift、正常系と retry を public CLI 経路と direct module test の双方で検証し、state bytes と関連副作用の有無も比較する。",
+      "evidence": "Issue #443 Acceptance Criteria と Verification の public CLI/direct module、focused target ambiguity/selector composition/concurrent revision drift、targeted tests、`npm test` 要件。",
+      "why": "must: module test だけでは dispatcher/CLI の selector binding と副作用順序を証明できず、CLI test だけでは transition/validation/drift の境界条件を決定的に注入できない。",
+      "considered": "should: happy-pathだけ、module-only、CLI-only、最終stateだけの検証は foreign mutation、途中副作用、concurrent drift、duplicate retryを検出できないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-20T00:26:36Z",
+    "notes": "Issue #443 scope and decisions resolved from published issue, source evidence, and delegated auto approval."
+  }
+}

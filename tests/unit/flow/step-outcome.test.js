@@ -35,6 +35,7 @@ import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
+import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 
 function semanticFinding(findingId) {
@@ -70,8 +71,8 @@ function flowManagerFor(flowState, updates) {
     mutate(mutator) {
       mutator(flowState);
     },
-    updateStepStatus(stepId, status) {
-      updates.push({ stepId, status });
+    updateStepStatus(transition) {
+      updates.push({ stepId: transition.stepId, status: transition.requestedStatus });
     },
   };
 }
@@ -144,12 +145,14 @@ describe("typed step outcomes", () => {
         blockingFindings: [dispositionedSemanticFinding("review-semantic")],
       });
 
-      const reviewState = {
+      const reviewState = moveFlowToStep(makeFlowState({
         runId: "run-review-419",
         spec,
         currentTaskId: null,
+        tasks: [],
         metrics: [],
-      };
+        stepAttempts: [],
+      }), "test-review");
       const reviewMax = resolveReviewRetryMax({ flowState: reviewState }, "test");
       reviewState.metrics = retryMetrics("test", "reviewRetry", reviewMax - 1);
       const reviewUpdates = [];
@@ -169,12 +172,14 @@ describe("typed step outcomes", () => {
       assert.deepEqual(reviewUpdates, [{ stepId: "test-review", status: "done" }]);
       assert.ok(StepAttempt.fromStored(reviewState.stepAttempts[0]).outcome instanceof DeferOutcome);
 
-      const gateState = {
+      const gateState = moveFlowToStep(makeFlowState({
         runId: "run-gate-419",
         spec,
         currentTaskId: null,
+        tasks: [],
         metrics: [],
-      };
+        stepAttempts: [],
+      }), "spec-gate");
       const gateMax = resolveRetryMax({ flowState: gateState, scope: "flow" }, "spec");
       gateState.metrics = retryMetrics("spec", "gateRetry", gateMax - 1);
       const gateUpdates = [];
@@ -202,7 +207,7 @@ describe("typed step outcomes", () => {
     }
   });
 
-  it("surfaces only typed stop outcomes as guarded resume instructions", () => {
+  it("surfaces only typed stop outcomes as guarded resume instructions", async () => {
     const root = createTmpDir("typed-next-action-");
     try {
       const steps = buildInitialSteps();
@@ -232,7 +237,7 @@ describe("typed step outcomes", () => {
       };
       writeJson(root, flowState.spec, { requirements: [] });
 
-      const result = new GetNextActionCommand().execute({
+      const result = await new GetNextActionCommand().execute({
         root,
         flowState,
         flowManager: { mutate() { throw new Error("active target must not be promoted"); } },

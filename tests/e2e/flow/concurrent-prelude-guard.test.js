@@ -52,7 +52,11 @@ describe("e2e — concurrent flow prelude isolation", () => {
       "--worktree",
       "--run-id", issue11RunId,
     ]);
-    assert.equal(issue11Prepare.status, 0, issue11Prepare.stderr);
+    assert.equal(
+      issue11Prepare.status,
+      0,
+      `stdout:\n${issue11Prepare.stdout}\nstderr:\n${issue11Prepare.stderr}`,
+    );
     const issue11Data = JSON.parse(issue11Prepare.stdout.trim()).data;
     const issue11Worktree = issue11Data.artifacts.worktree;
     assert.ok(issue11Worktree, "first flow should use worktree mode");
@@ -157,7 +161,8 @@ describe("e2e — concurrent flow prelude isolation", () => {
     assert.notEqual(mismatch.status, 0, mismatch.stdout);
     const mismatchEnvelope = JSON.parse(mismatch.stdout.trim());
     assert.equal(mismatchEnvelope.ok, false);
-    assert.equal(mismatchEnvelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+    assert.equal(mismatchEnvelope.errors[0].code, "FLOW_TARGET_NOT_FOUND");
+    assert.equal(mismatchEnvelope.data.matchCount, 0);
 
     const activeFlows = JSON.parse(fs.readFileSync(path.join(tmp, ".senti", ".active-flow"), "utf8"));
     assert.equal(

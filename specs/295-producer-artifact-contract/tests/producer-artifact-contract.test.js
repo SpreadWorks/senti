@@ -447,6 +447,7 @@ test("R5: retry counters are consumed only by AI semantic FAIL outcomes", async 
   const gateMetrics = [];
   const gateCtx = {
     phase: "spec",
+    flowState: flowState("specs/001-fixture/spec.json"),
     flowManager: {
       appendMetric: (metric) => gateMetrics.push(metric),
     },

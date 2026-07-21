@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-20T02:39:04.300Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-r8-public-surface-parity",
+      "title": "R8 public-surface parity coverage is still missing",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R8",
+      "issue": "R8 requires CLI/direct API flags, config/help/registered-step parity, and first-candidate/OR removal for target resolution. The touched tests cover selected FlowManager paths and dispatcher failures, but they still do not demonstrate the required CLI/direct API parity or config/help/registered-step parity matrix.",
+      "suggestion": "Add targeted coverage for the CLI selector path and direct API selector path, plus config/help/registered-step parity assertions, with `// spec: R8` markers. Keep the existing AND-only uniqueness checks, but extend them to the required public surfaces.",
+      "disposition": "must-fix",
+      "rationale": "R8 is a mandatory acceptance criterion. Without tests over the specified public surfaces, the implementation cannot prove that target-resolution behavior is consistent across the required CLI/direct/config/help/registered-step surfaces.",
+      "findingId": "bc556cb8375fd39ec6e0390da8ee15b734e3715b8b6d47b2c7a966437d663884",
+      "fingerprint": "bc556cb8375fd39ec6e0390da8ee15b734e3715b8b6d47b2c7a966437d663884",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "missing-r9-spec-local-matrix",
+      "title": "R9 spec-local matrix coverage is incomplete",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R9",
+      "issue": "R9 requires spec-local and shared target/dispatcher tests covering exact, ambiguity, mismatch, preparing, bound, and no-log cases. The diff adds shared FlowManager preparing checks and dispatcher no-log checks, but the touched file set does not include the requested spec-local coverage matrix, and `tests/unit/flow/optional-flow-context.test.js` from the task strategy is not extended.",
+      "suggestion": "Add the missing spec-local target/dispatcher matrix coverage, including exact, ambiguity, mismatch, preparing, bound, and no-log cases with `// spec: R9` markers. Extend `tests/unit/flow/optional-flow-context.test.js` or the relevant spec-local test file rather than relying only on shared FlowManager/dispatcher tests.",
+      "disposition": "must-fix",
+      "rationale": "R9 is a mandatory acceptance criterion and the task test strategy explicitly calls for spec-local coverage. Shared tests alone leave the required spec-local behavior unverified.",
+      "findingId": "a57b0d1f28f69ba130346986e17ae7b7022af96e6c5f07681113559df808aa7a",
+      "fingerprint": "a57b0d1f28f69ba130346986e17ae7b7022af96e6c5f07681113559df808aa7a",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "d4645876e19dba21cef90cac352f1a91bf404ecd44dbb6492c0c07bff54fe801",
+  "runId": "7e4a961d-1a61-4e3e-9aa4-50fef1228b89",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/322-flow-target-transition-guards/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/322-flow-target-transition-guards/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "c5ba35cd7dac21e9c12a076d18ba8c2316fc35bc2fa9d2b63667ee32ab07251e"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "bc556cb8375fd39ec6e0390da8ee15b734e3715b8b6d47b2c7a966437d663884",
+      "findingId": "bc556cb8375fd39ec6e0390da8ee15b734e3715b8b6d47b2c7a966437d663884",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R8 public-surface parity coverage is still missing",
+      "body": "R8 requires CLI/direct API flags, config/help/registered-step parity, and first-candidate/OR removal for target resolution. The touched tests cover selected FlowManager paths and dispatcher failures, but they still do not demonstrate the required CLI/direct API parity or config/help/registered-step parity matrix.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "bc556cb8375fd39ec6e0390da8ee15b734e3715b8b6d47b2c7a966437d663884",
+      "disposition": "must-fix",
+      "rationale": "R8 is a mandatory acceptance criterion. Without tests over the specified public surfaces, the implementation cannot prove that target-resolution behavior is consistent across the required CLI/direct/config/help/registered-step surfaces.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    },
+    {
+      "id": "a57b0d1f28f69ba130346986e17ae7b7022af96e6c5f07681113559df808aa7a",
+      "findingId": "a57b0d1f28f69ba130346986e17ae7b7022af96e6c5f07681113559df808aa7a",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R9 spec-local matrix coverage is incomplete",
+      "body": "R9 requires spec-local and shared target/dispatcher tests covering exact, ambiguity, mismatch, preparing, bound, and no-log cases. The diff adds shared FlowManager preparing checks and dispatcher no-log checks, but the touched file set does not include the requested spec-local coverage matrix, and `tests/unit/flow/optional-flow-context.test.js` from the task strategy is not extended.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "a57b0d1f28f69ba130346986e17ae7b7022af96e6c5f07681113559df808aa7a",
+      "disposition": "must-fix",
+      "rationale": "R9 is a mandatory acceptance criterion and the task test strategy explicitly calls for spec-local coverage. Shared tests alone leave the required spec-local behavior unverified.",
+      "requirementId": "R9",
+      "repeatCount": 1
+    }
+  ]
+}

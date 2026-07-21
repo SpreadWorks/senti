@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+      "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+      "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/85e38f5f6cd080aa334f64a6.json",
+      "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/a7f3adc0fb8c7c923243832d.json",
+      "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+      "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+      "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+      "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+      "specs/322-flow-target-transition-guards/scenario-validity-result.json"
+    ],
+    "inputHash": "552d9625c7aefc20a09bf1be56ae5108881f284619e81950de8aa5605d0674e5",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+    "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+    "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/85e38f5f6cd080aa334f64a6.json",
+    "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/a7f3adc0fb8c7c923243832d.json",
+    "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+    "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+    "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+    "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+    "specs/322-flow-target-transition-guards/scenario-validity-result.json"
+  ],
+  "inputHash": "552d9625c7aefc20a09bf1be56ae5108881f284619e81950de8aa5605d0674e5",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-21T09:39:47.676Z",
+  "finishedAt": "2026-07-21T09:39:47.676Z",
+  "rawResponse": "### 1. Remove Contradictory Draft Artifacts\n**File:** `specs/322-flow-target-transition-guards/draft-gate-source.json`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.\n### 2. Avoid Hard-Coded Fixture Path Literals in Test Setup\n**File:** `specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Contradictory Draft Artifacts",
+        "body": "**File:** `specs/322-flow-target-transition-guards/draft-gate-source.json`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+        "file": "specs/322-flow-target-transition-guards/draft-gate-source.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Avoid Hard-Coded Fixture Path Literals in Test Setup",
+        "body": "**File:** `specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+        "file": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

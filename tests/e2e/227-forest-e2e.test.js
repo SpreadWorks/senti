@@ -132,10 +132,8 @@ describe("REQ-C1: E2E forest lifecycle via CLI", () => {
 
     let res = run(tmp, ["flow", "get", "next-action"]);
     assert.equal(res.status, 0, `next-action failed: ${res.stderr}`);
-    for (const step of ["task-impl", "task-review", "task-gate"]) {
-      res = run(tmp, ["flow", "set", "step", step, "done"]);
-      assert.equal(res.status, 0, `set ${step} failed: ${res.stderr}`);
-    }
+    res = run(tmp, ["flow", "set", "step", "task-impl", "done"]);
+    assert.equal(res.status, 0, `set task-impl failed: ${res.stderr}`);
 
     res = run(tmp, ["flow", "run", "complete-task", "--task-id", "T-1"]);
     assert.equal(res.status, 0, `complete-task failed: ${res.stderr}`);

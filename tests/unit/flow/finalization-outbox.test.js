@@ -209,19 +209,19 @@ describe("resumable finalization outbox", () => {
     assert.equal(postHooks, 1);
   });
 
-  it("confirms report outbox before marking report done", () => {
+  it("marks report done before confirming the report outbox", () => {
     const actions = resolveLifecycle({
       event: "report:post",
       command: "report",
       result: { result: "ok" },
     });
-    assert.ok(actions[0] instanceof CompleteOutboxEffect);
-    assert.ok(actions[1] instanceof SetStepStatus);
-    assert.equal(actions[1].step, "report");
-    assert.equal(actions[1].status, "done");
+    assert.ok(actions[0] instanceof SetStepStatus);
+    assert.ok(actions[1] instanceof CompleteOutboxEffect);
+    assert.equal(actions[0].step, "report");
+    assert.equal(actions[0].status, "done");
   });
 
-  it("completes gate side effects before marking the gate done", () => {
+  it("marks the gate done before running gate side effects", () => {
     const actions = resolveLifecycle({
       event: "gate:post",
       currentStepId: "impl-gate",
@@ -233,7 +233,7 @@ describe("resumable finalization outbox", () => {
       action instanceof SetStepStatus && action.step === "impl-gate" && action.status === "done"
     ));
     assert.ok(effectIndex >= 0);
-    assert.ok(doneIndex > effectIndex);
+    assert.ok(effectIndex > doneIndex);
   });
 
   for (const command of ["finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"]) {
@@ -250,7 +250,7 @@ describe("resumable finalization outbox", () => {
       ));
       assert.ok(actions.some((action) => action instanceof BeginOutboxEffect) === false);
       assert.ok(completeIndex >= 0);
-      assert.ok(doneIndex > completeIndex);
+      assert.ok(completeIndex > doneIndex);
     });
   }
 

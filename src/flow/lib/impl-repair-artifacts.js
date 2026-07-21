@@ -4,6 +4,7 @@ import path from "node:path";
 import { flowLeafIdsBetween } from "../definition.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import { findStepById, flattenSteps } from "./step-tree.js";
+import { StepTransitionCommitIntent } from "./step-transition-policy.js";
 import {
   REPAIR_DELTA_DIR,
   REPAIR_FINGERPRINT_MANIFEST_FILE,
@@ -372,6 +373,26 @@ export class ImplRepairTransaction {
   }
 }
 
+export class ImplRepairTransitionIntent extends StepTransitionCommitIntent {
+  constructor(transaction) {
+    super();
+    this.transaction = transaction instanceof ImplRepairTransaction
+      ? transaction
+      : new ImplRepairTransaction(transaction);
+    Object.freeze(this);
+  }
+
+  applyTo(state) {
+    const pending = state.implRepairTransaction == null
+      ? null
+      : new ImplRepairTransaction(state.implRepairTransaction);
+    if (pending && JSON.stringify(pending.toJSON()) !== JSON.stringify(this.transaction.toJSON())) {
+      throw new Error("a different impl-repair transaction is already pending");
+    }
+    state.implRepairTransaction = this.transaction.toJSON();
+  }
+}
+
 export class RepairStateMigration {
   constructor(input = {}) {
     if (input.version !== 1) throw new Error("repair state migration version must be 1");
@@ -543,25 +564,11 @@ export function validateStoredImplTriageArtifact({ specDir }) {
   return triage;
 }
 
-export function completeImplTriage({ specDir, flowManager }) {
+export function completeImplTriage({ specDir }) {
   const triage = validateStoredImplTriageArtifact({ specDir });
   if (triage.items.some((item) => item.decision === "apply")) {
     return { requiresRepair: true, artifact: triage };
   }
-  flowManager.mutate((state) => {
-    const now = new Date().toISOString();
-    for (const stepId of ["impl-triage", "impl-repair"]) {
-      const step = findStepById(state.steps || [], stepId);
-      if (!step) continue;
-      step.status = "done";
-      step.finishedAt = now;
-    }
-    const gate = findStepById(state.steps || [], "impl-gate");
-    if (gate?.status === "pending") {
-      gate.status = "in_progress";
-      gate.startedAt = now;
-    }
-  });
   return { requiresRepair: false, artifact: triage };
 }
 
@@ -847,7 +854,15 @@ function updateRepairSteps(flowManager, resetStepIds) {
   });
 }
 
-function commitRepairTransaction({ root, state, specDir, flowManager, transaction, faultInjector = null }) {
+function commitRepairTransaction({
+  root,
+  state,
+  specDir,
+  flowManager,
+  transaction,
+  faultInjector = null,
+  commitFlowState = true,
+}) {
   const journal = transaction instanceof ImplRepairTransaction ? transaction : new ImplRepairTransaction(transaction);
   const { entry, ledger, currentManifest: manifest } = journal;
   const observed = buildRepairFingerprint({ root, specPath: state.spec, state });
@@ -864,68 +879,142 @@ function commitRepairTransaction({ root, state, specDir, flowManager, transactio
   applyRepairInvalidations(specDir, journal.invalidations);
   faultInjector?.({ phase: "after-invalidation" });
   recordImplRepairEvidence({ root, specPath: state.spec, sourceStep: journal.sourceStep, entry });
-  updateRepairSteps(flowManager, journal.resetStepIds);
+  if (commitFlowState) updateRepairSteps(flowManager, journal.resetStepIds);
   faultInjector?.({ phase: "after-flow-state" });
   fs.rmSync(path.join(specDir, REPAIR_TRANSACTION_FILE), { force: true });
   return { entry: entry.toJSON(), invalidations: entry.invalidations.map((record) => record.toJSON()) };
 }
 
-export function completeImplRepair({ root, state, flowManager, resetStepIds, faultInjector = null }) {
+function prepareImplRepairTransaction({ root, state, specDir, resetStepIds }) {
+  const triagePath = path.join(specDir, IMPL_TRIAGE_ARTIFACT_FILE);
+  if (!fs.existsSync(triagePath)) throw new Error(`${IMPL_TRIAGE_ARTIFACT_FILE} is required`);
+  const triage = validateStoredImplTriageArtifact({ specDir });
+  const appliedFindingIds = triage.items.filter((item) => item.decision === "apply").map((item) => item.findingId);
+  if (appliedFindingIds.length === 0) throw new Error("impl-repair requires at least one apply disposition");
+  const previousFingerprint = readRepairFingerprintManifest(specDir);
+  const currentFingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+  if (currentFingerprint.hash === previousFingerprint.hash) throw new Error("impl-repair fingerprint did not change");
+  const changedPaths = changedRepairPaths(previousFingerprint, currentFingerprint);
+  if (changedPaths.length === 0) throw new Error("impl-repair changed paths must be non-empty");
+  const reason = `Repair applied for findings ${appliedFindingIds.join(", ")}.`;
+  const invalidations = planRepairInvalidation({
+    specDir,
+    currentFingerprint,
+    previousFingerprint,
+    reason,
+  });
+  if (invalidations.length === 0) throw new Error("impl-repair must invalidate at least one stale artifact");
+  const existing = readImplRepairLedger(specDir) || new ImplRepairLedger({ version: 2, entries: [] });
+  const id = `repair-${String(existing.entries.length + 1).padStart(3, "0")}`;
+  const delta = repairDeltaArtifact({ id, previous: previousFingerprint, current: currentFingerprint, changedPaths });
+  const changedPathsRef = `${REPAIR_DELTA_DIR}/${id}.json`;
+  const entry = new ImplRepairEntry({
+    id,
+    sourceFindingIds: appliedFindingIds,
+    reason,
+    previousHash: previousFingerprint.hash,
+    currentHash: currentFingerprint.hash,
+    changedPathCount: changedPaths.length,
+    changedPathsRef,
+    changedPathsDigest: delta.digest,
+    changedPathsPreview: changedPaths.slice(0, CHANGED_PATH_PREVIEW_LIMIT),
+    changedPathGroups: changedPathGroups(changedPaths),
+    invalidations,
+    createdAt: new Date().toISOString(),
+  });
+  return new ImplRepairTransaction({
+    version: 1,
+    id,
+    sourceStep: triage.sourceStep,
+    resetStepIds: [...resetStepIds],
+    entry: entry.toJSON(),
+    ledger: existing.append(entry).toJSON(),
+    currentManifest: currentFingerprint.toJSON(),
+    delta: delta.toJSON(),
+    invalidations: invalidations.map((record) => record.toJSON()),
+  });
+}
+
+function plannedRepairStepChanges(state, resetStepIds) {
+  return resetStepIds.filter((stepId) => stepId !== "impl-repair").flatMap((stepId) => {
+    const step = findStepById(state.steps || [], stepId);
+    return step ? [{
+      stepId,
+      currentStatus: step.status,
+      requestedStatus: stepId === "test-execute" ? "in_progress" : "pending",
+    }] : [];
+  });
+}
+
+function clearImplRepairTransitionIntent({ flowManager, transaction, specId = null }) {
+  if (!flowManager) return false;
+  const load = typeof flowManager.loadReadOnly === "function"
+    ? flowManager.loadReadOnly.bind(flowManager)
+    : typeof flowManager.load === "function"
+      ? flowManager.load.bind(flowManager)
+      : null;
+  const current = load ? load(specId ?? undefined) : null;
+  if (current?.implRepairTransaction == null) return false;
+  const expected = transaction instanceof ImplRepairTransaction
+    ? transaction
+    : new ImplRepairTransaction(transaction);
+  const stored = new ImplRepairTransaction(current.implRepairTransaction);
+  if (JSON.stringify(stored.toJSON()) !== JSON.stringify(expected.toJSON())) {
+    throw new Error("pending impl-repair transition intent does not match completed effects");
+  }
+  flowManager.mutate((next) => {
+    const pending = new ImplRepairTransaction(next.implRepairTransaction);
+    if (JSON.stringify(pending.toJSON()) !== JSON.stringify(expected.toJSON())) {
+      throw new Error("pending impl-repair transition intent changed before completion");
+    }
+    delete next.implRepairTransaction;
+  }, specId == null ? undefined : { specId });
+  return true;
+}
+
+export function commitImplRepairEffects({ root, state, flowManager = null, transaction, specId = null }) {
+  const specDir = path.dirname(path.resolve(root, state.spec));
+  const lock = new RepairRunLock(specDir);
+  lock.acquire();
+  try {
+    const journal = transaction instanceof ImplRepairTransaction
+      ? transaction
+      : new ImplRepairTransaction(transaction);
+    writeJson(path.join(specDir, REPAIR_TRANSACTION_FILE), journal.toJSON());
+    const result = commitRepairTransaction({
+      root,
+      state,
+      specDir,
+      flowManager: null,
+      transaction: journal,
+      commitFlowState: false,
+    });
+    clearImplRepairTransitionIntent({ flowManager, transaction: journal, specId });
+    return result;
+  } finally {
+    lock.release();
+  }
+}
+
+export function completeImplRepair({ root, state, flowManager = null, resetStepIds, faultInjector = null }) {
   const specDir = path.dirname(path.resolve(root, state.spec));
   const lock = new RepairRunLock(specDir);
   lock.acquire();
   try {
     const transactionFile = path.join(specDir, REPAIR_TRANSACTION_FILE);
     if (fs.existsSync(transactionFile)) {
+      if (!flowManager) throw new Error("pending impl-repair transaction requires recovery before a new transition");
       return commitRepairTransaction({ root, state, specDir, flowManager, transaction: readJson(transactionFile), faultInjector });
     }
-    const triagePath = path.join(specDir, IMPL_TRIAGE_ARTIFACT_FILE);
-    if (!fs.existsSync(triagePath)) throw new Error(`${IMPL_TRIAGE_ARTIFACT_FILE} is required`);
-    const triage = validateStoredImplTriageArtifact({ specDir });
-    const appliedFindingIds = triage.items.filter((item) => item.decision === "apply").map((item) => item.findingId);
-    if (appliedFindingIds.length === 0) throw new Error("impl-repair requires at least one apply disposition");
-    const previousFingerprint = readRepairFingerprintManifest(specDir);
-    const currentFingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
-    if (currentFingerprint.hash === previousFingerprint.hash) throw new Error("impl-repair fingerprint did not change");
-    const changedPaths = changedRepairPaths(previousFingerprint, currentFingerprint);
-    if (changedPaths.length === 0) throw new Error("impl-repair changed paths must be non-empty");
-    const reason = `Repair applied for findings ${appliedFindingIds.join(", ")}.`;
-    const invalidations = planRepairInvalidation({
-      specDir,
-      currentFingerprint,
-      previousFingerprint,
-      reason,
-    });
-    if (invalidations.length === 0) throw new Error("impl-repair must invalidate at least one stale artifact");
-    const existing = readImplRepairLedger(specDir) || new ImplRepairLedger({ version: 2, entries: [] });
-    const id = `repair-${String(existing.entries.length + 1).padStart(3, "0")}`;
-    const delta = repairDeltaArtifact({ id, previous: previousFingerprint, current: currentFingerprint, changedPaths });
-    const changedPathsRef = `${REPAIR_DELTA_DIR}/${id}.json`;
-    const entry = new ImplRepairEntry({
-      id,
-      sourceFindingIds: appliedFindingIds,
-      reason,
-      previousHash: previousFingerprint.hash,
-      currentHash: currentFingerprint.hash,
-      changedPathCount: changedPaths.length,
-      changedPathsRef,
-      changedPathsDigest: delta.digest,
-      changedPathsPreview: changedPaths.slice(0, CHANGED_PATH_PREVIEW_LIMIT),
-      changedPathGroups: changedPathGroups(changedPaths),
-      invalidations,
-      createdAt: new Date().toISOString(),
-    });
-    const transaction = new ImplRepairTransaction({
-      version: 1,
-      id,
-      sourceStep: triage.sourceStep,
-      resetStepIds: [...resetStepIds],
-      entry: entry.toJSON(),
-      ledger: existing.append(entry).toJSON(),
-      currentManifest: currentFingerprint.toJSON(),
-      delta: delta.toJSON(),
-      invalidations: invalidations.map((record) => record.toJSON()),
-    });
+    const transaction = prepareImplRepairTransaction({ root, state, specDir, resetStepIds });
+    if (!flowManager) {
+      return {
+        entry: transaction.entry.toJSON(),
+        invalidations: transaction.invalidations.map((record) => record.toJSON()),
+        stepChanges: plannedRepairStepChanges(state, transaction.resetStepIds),
+        transaction: transaction.toJSON(),
+      };
+    }
     writeJson(transactionFile, transaction.toJSON());
     return commitRepairTransaction({ root, state, specDir, flowManager, transaction, faultInjector });
   } finally {
@@ -935,6 +1024,14 @@ export function completeImplRepair({ root, state, flowManager, resetStepIds, fau
 
 export function recoverImplRepairTransaction({ root, state, flowManager }) {
   const specDir = path.dirname(path.resolve(root, state.spec));
+  if (state.implRepairTransaction != null) {
+    return commitImplRepairEffects({
+      root,
+      state,
+      flowManager,
+      transaction: state.implRepairTransaction,
+    });
+  }
   if (!fs.existsSync(path.join(specDir, REPAIR_TRANSACTION_FILE))) return null;
   return completeImplRepair({ root, state, flowManager, resetStepIds: [] });
 }

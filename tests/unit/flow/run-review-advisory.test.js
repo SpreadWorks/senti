@@ -110,12 +110,24 @@ describe("spec review advisory verdict", () => {
   it("post-hook advances FAIL to spec-triage by completing spec-review only", async () => {
     const updates = [];
     const metrics = [];
+    const flowState = {
+      currentTaskId: null,
+      steps: [
+        { id: "spec-review", status: "in_progress" },
+        { id: "spec-triage", status: "pending" },
+        { id: "spec-repair", status: "pending" },
+      ],
+      tasks: [],
+    };
     await FLOW_COMMANDS.run.review.post({
       phase: "spec",
-      flowState: {},
+      flowState,
       flowManager: {
         appendMetric(payload, opts) { metrics.push({ payload, opts }); },
-        updateStepStatus(stepId, status) { updates.push({ stepId, status }); },
+        updateStepStatus(transition) {
+          updates.push({ stepId: transition.stepId, status: transition.requestedStatus });
+          flowState.steps.find((step) => step.id === transition.stepId).status = transition.requestedStatus;
+        },
       },
     }, {
       artifacts: { phase: "spec", verdict: "FAIL", proposalCount: 1 },
@@ -130,12 +142,24 @@ describe("spec review advisory verdict", () => {
 
   it("post-hook skips spec-repair for non-blocking spec review results", async () => {
     const updates = [];
+    const flowState = {
+      currentTaskId: null,
+      steps: [
+        { id: "spec-review", status: "in_progress" },
+        { id: "spec-triage", status: "pending" },
+        { id: "spec-repair", status: "pending" },
+      ],
+      tasks: [],
+    };
     await FLOW_COMMANDS.run.review.post({
       phase: "spec",
-      flowState: {},
+      flowState,
       flowManager: {
         appendMetric() {},
-        updateStepStatus(stepId, status) { updates.push({ stepId, status }); },
+        updateStepStatus(transition) {
+          updates.push({ stepId: transition.stepId, status: transition.requestedStatus });
+          flowState.steps.find((step) => step.id === transition.stepId).status = transition.requestedStatus;
+        },
       },
     }, {
       artifacts: { phase: "spec", verdict: "ADVISORY", proposalCount: 1 },
@@ -189,23 +213,27 @@ describe("test-review one-shot verdict routing", () => {
   it("post-hook completes test-review for ADVISORY and skips task/tooling retry metrics", async () => {
     const updates = [];
     const metrics = [];
+    const flowState = {
+      currentTaskId: "T-1",
+      steps: [{ id: "test-review", status: "in_progress" }],
+      tasks: [{
+        id: "T-1",
+        steps: [
+          { id: "task-impl", status: "pending" },
+          { id: "task-review", status: "pending" },
+          { id: "task-gate", status: "pending" },
+        ],
+      }],
+    };
     await FLOW_COMMANDS.run.review.post({
       phase: "test",
-      flowState: {
-        currentTaskId: "T-1",
-        steps: [{ id: "test-review", status: "in_progress" }],
-        tasks: [{
-          id: "T-1",
-          steps: [
-            { id: "task-impl", status: "pending" },
-            { id: "task-review", status: "pending" },
-            { id: "task-gate", status: "pending" },
-          ],
-        }],
-      },
+      flowState,
       flowManager: {
         appendMetric(payload, opts) { metrics.push({ payload, opts }); },
-        updateStepStatus(stepId, status, opts) { updates.push({ stepId, status, opts }); },
+        updateStepStatus(transition, opts) {
+          updates.push({ stepId: transition.stepId, status: transition.requestedStatus, opts });
+          flowState.steps.find((step) => step.id === transition.stepId).status = transition.requestedStatus;
+        },
       },
     }, {
       artifacts: { phase: "test", verdict: "ADVISORY", blockingCount: 0, advisoryCount: 1 },
@@ -347,12 +375,25 @@ describe("impl review structured verdict routing", () => {
   it("post-hook closes no-repair leaves and routes FAIL to impl-triage", async () => {
     async function updatesFor(verdict, blockingCount, nonBlockingCount) {
       const updates = [];
+      const flowState = {
+        currentTaskId: null,
+        steps: [
+          { id: "impl-review", status: "in_progress" },
+          { id: "impl-triage", status: "pending" },
+          { id: "impl-repair", status: "pending" },
+          { id: "impl-gate", status: "pending" },
+        ],
+        tasks: [],
+      };
       await FLOW_COMMANDS.run.review.post({
         phase: null,
-        flowState: {},
+        flowState,
         flowManager: {
           appendMetric() {},
-          updateStepStatus(stepId, status) { updates.push({ stepId, status }); },
+          updateStepStatus(transition) {
+            updates.push({ stepId: transition.stepId, status: transition.requestedStatus });
+            flowState.steps.find((step) => step.id === transition.stepId).status = transition.requestedStatus;
+          },
         },
       }, {
         artifacts: { phase: "impl", verdict, blockingCount, nonBlockingCount },
@@ -364,6 +405,7 @@ describe("impl review structured verdict routing", () => {
       { stepId: "impl-review", status: "done" },
       { stepId: "impl-triage", status: "done" },
       { stepId: "impl-repair", status: "done" },
+      { stepId: "impl-gate", status: "in_progress" },
     ];
     assert.deepEqual(await updatesFor("PASS", 0, 0), noRepairUpdates);
     assert.deepEqual(await updatesFor("ADVISORY", 0, 1), noRepairUpdates);

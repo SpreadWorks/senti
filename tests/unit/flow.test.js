@@ -1,5 +1,11 @@
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager, makeFlowState, moveFlowToStep } from "../helpers/flow-setup.js";
+import {
+  makeFlowManager,
+  makeFlowState,
+  makeLifecycleStepTransition,
+  makeNormalStepTransition,
+  moveFlowToStep,
+} from "../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "fs";
 import { join } from "path";
@@ -198,7 +204,11 @@ describe("flow-state steps and requirements", () => {
   it("updateStepStatus updates the correct step", () => {
     tmp = createTmpDir();
     const specId = setupFlow(tmp);
-    makeFlowManager(tmp).updateStepStatus("spec-gate", "done");
+    const fm = makeFlowManager(tmp);
+    fm.updateStepStatus(
+      makeLifecycleStepTransition(fm.load(specId), "spec-gate", "done"),
+      { specId },
+    );
     const loaded = makeFlowManager(tmp).load();
     const gate = findStepById(loaded.steps, "spec-gate");
     assert.equal(gate.status, "done");
@@ -208,10 +218,9 @@ describe("flow-state steps and requirements", () => {
 
   it("updateStepStatus auto-promotes first pending when transitioning to done (REQ-1)", () => {
     tmp = createTmpDir();
-    setupFlow(tmp);
+    const specId = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
-    fm.updateStepStatus("branch", "in_progress");
-    fm.updateStepStatus("branch", "done");
+    fm.updateStepStatus(makeNormalStepTransition(fm.load(specId), "branch"), { specId });
     const loaded = fm.load();
     const branch = findStepById(loaded.steps, "branch");
     assert.equal(branch.status, "done");
@@ -221,12 +230,14 @@ describe("flow-state steps and requirements", () => {
 
   it("updateStepStatus skips over already-done/skipped steps when promoting (REQ-1)", () => {
     tmp = createTmpDir();
-    setupFlow(tmp);
+    const specId = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
     // Manually set prepare-spec to skipped so the next promotion target is draft.
-    fm.updateStepStatus("prepare-spec", "skipped");
-    fm.updateStepStatus("branch", "in_progress");
-    fm.updateStepStatus("branch", "done");
+    fm.updateStepStatus(
+      makeLifecycleStepTransition(fm.load(specId), "prepare-spec", "skipped"),
+      { specId },
+    );
+    fm.updateStepStatus(makeNormalStepTransition(fm.load(specId), "branch"), { specId });
     const loaded = fm.load();
     const prepareSpec = findStepById(loaded.steps, "prepare-spec");
     assert.equal(prepareSpec.status, "skipped", "skipped stays skipped");
@@ -236,12 +247,15 @@ describe("flow-state steps and requirements", () => {
 
   it("updateStepStatus does NOT promote when another step is already in_progress (REQ-2)", () => {
     tmp = createTmpDir();
-    setupFlow(tmp, (state) => {
+    const specId = setupFlow(tmp, (state) => {
       moveFlowToStep(state, "spec", { completePrevious: false });
     });
     const fm = makeFlowManager(tmp);
     // Keep `spec` in_progress while marking `branch` done.
-    fm.updateStepStatus("branch", "done");
+    fm.updateStepStatus(
+      makeLifecycleStepTransition(fm.load(specId), "branch", "done"),
+      { specId },
+    );
     const loaded = fm.load();
     const spec = findStepById(loaded.steps, "spec");
     assert.equal(spec.status, "in_progress", "pre-existing in_progress step is not touched");
@@ -253,11 +267,14 @@ describe("flow-state steps and requirements", () => {
 
   it("updateStepStatus does NOT promote on non-done transitions (REQ-2)", () => {
     tmp = createTmpDir();
-    setupFlow(tmp);
+    const specId = setupFlow(tmp, (state) => {
+      for (const step of flattenSteps(state.steps)) step.status = "pending";
+    });
     const fm = makeFlowManager(tmp);
-    fm.updateStepStatus("branch", "in_progress");
-    // Move branch back to pending — no promotion should happen.
-    fm.updateStepStatus("branch", "pending");
+    fm.updateStepStatus(
+      makeLifecycleStepTransition(fm.load(specId), "branch", "in_progress"),
+      { specId },
+    );
     const loaded = fm.load();
     const prepareSpec = findStepById(loaded.steps, "prepare-spec");
     assert.equal(prepareSpec.status, "pending", "pending transition does not trigger promotion");
@@ -265,16 +282,19 @@ describe("flow-state steps and requirements", () => {
 
   it("updateStepStatus does nothing when no pending steps remain (REQ-1 edge)", () => {
     tmp = createTmpDir();
-    setupFlow(tmp);
+    const specId = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
     // Mark every leaf done.
     fm.mutate((state) => {
       for (const step of flattenSteps(state.steps)) step.status = "done";
     });
     const flat = flattenSteps(fm.load().steps);
-    // Transition final leaf step again — no pending left, so nothing to promote.
+    // A terminal retry is rejected and cannot promote a nonexistent pending step.
     const lastStep = flat[flat.length - 1];
-    fm.updateStepStatus(lastStep.id, "done");
+    assert.throws(
+      () => makeNormalStepTransition(fm.load(specId), lastStep.id),
+      /current status in_progress/,
+    );
     const loaded = fm.load();
     for (const s of flattenSteps(loaded.steps)) assert.equal(s.status, "done");
   });

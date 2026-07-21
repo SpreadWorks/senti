@@ -9,6 +9,7 @@ import * as writerModule from "../../../src/lib/flow-state-atomic-writer.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { createNextActionHarness } from "../../helpers/next-action-harness.js";
 
 const SPEC_ID = "441-shared-flow-writer";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
@@ -41,6 +42,15 @@ function statePath(root, specId = SPEC_ID) {
 
 function setup(root) {
   const original = state("old");
+  manager(root).create(original);
+  return original;
+}
+
+function setupNextAction(root) {
+  const original = state("old");
+  const branch = findStepById(original.steps, "branch");
+  branch.status = "pending";
+  delete branch.startedAt;
   manager(root).create(original);
   return original;
 }
@@ -255,6 +265,88 @@ describe("Issue #441 shared flow state writer", () => {
 
     fm.setIssue(999);
     assert.equal(fm.load().issue, 999);
+  });
+
+  it("rejects fractional, below-minimum, and above-maximum next-action attempts before writes", async () => {
+    for (const maxAttempts of [1.5, 0, 10_001]) {
+      tmp = createTmpDir(`flow-next-action-invalid-${String(maxAttempts).replace(".", "-")}-`);
+      setupNextAction(tmp);
+      const fm = manager(tmp, SPEC_ID);
+      const current = fm.load();
+      const before = bytes(statePath(tmp));
+      const harness = createNextActionHarness(fm, { maxAttempts });
+
+      await assert.rejects(
+        harness.execute(current),
+        (error) => error.code === "NEXT_ACTION_PLAN_INVALID" && /maxAttempts/.test(error.message),
+      );
+
+      assert.deepEqual(bytes(statePath(tmp)), before, String(maxAttempts));
+      assert.deepEqual(harness.calls, {
+        planner: 1,
+        save: 0,
+        resolve: 0,
+        runtime: 0,
+        artifact: 0,
+        retry: 0,
+      }, String(maxAttempts));
+      removeTmpDir(tmp);
+      tmp = null;
+    }
+  });
+
+  it("rejects a stale next-action CAS once without re-resolution, effects, or winner changes", async () => {
+    tmp = createTmpDir("flow-next-action-stale-");
+    setupNextAction(tmp);
+    const fm = manager(tmp, SPEC_ID);
+    const stale = fm.load();
+    fm.mutate((current) => { current.marker = "winner"; });
+    const winner = bytes(statePath(tmp));
+    const harness = createNextActionHarness(fm, { expectedRevision: stale });
+
+    await assert.rejects(
+      harness.execute(stale),
+      (error) => error.code === "FLOW_STATE_ATOMIC_STALE" && error.committed === false,
+    );
+
+    assert.deepEqual(bytes(statePath(tmp)), winner);
+    assert.equal(fm.load().marker, "winner");
+    assert.deepEqual(harness.calls, {
+      planner: 1,
+      save: 1,
+      resolve: 0,
+      runtime: 0,
+      artifact: 0,
+      retry: 0,
+    });
+  });
+
+  it("commits promotion and effects once at both valid maxAttempts boundaries", async () => {
+    for (const maxAttempts of [1, 10_000]) {
+      tmp = createTmpDir(`flow-next-action-once-${maxAttempts}-`);
+      setupNextAction(tmp);
+      const fm = manager(tmp, SPEC_ID);
+      const harness = createNextActionHarness(fm, { maxAttempts });
+
+      const first = await harness.execute(fm.load());
+      const afterFirst = bytes(statePath(tmp));
+      const second = await harness.execute(fm.load());
+
+      assert.equal(first.maxAttempts, maxAttempts);
+      assert.equal(second.maxAttempts, maxAttempts);
+      assert.equal(findStepById(fm.load().steps, "spec").status, "in_progress");
+      assert.deepEqual(bytes(statePath(tmp)), afterFirst, String(maxAttempts));
+      assert.deepEqual(harness.calls, {
+        planner: 2,
+        save: 1,
+        resolve: 0,
+        runtime: 1,
+        artifact: 1,
+        retry: 1,
+      }, String(maxAttempts));
+      removeTmpDir(tmp);
+      tmp = null;
+    }
   });
 
   it("serializes saveAtomic and mutate in both orders plus two mutators", async () => {

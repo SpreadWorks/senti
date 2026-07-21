@@ -22,7 +22,11 @@ import assert from "node:assert/strict";
 import path from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager } from "../../helpers/flow-setup.js";
+import {
+  makeFlowManager,
+  makeLifecycleStepTransition,
+  setupFlow,
+} from "../../helpers/flow-setup.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import {
@@ -64,6 +68,20 @@ function beginFinalizeMergeOutbox(fm, state) {
   return new FlowOutboxStore(fm).begin(finalizationOutboxIdentity(state, "finalize-merge"));
 }
 
+function specIdFromState(state) {
+  return path.basename(path.dirname(state.spec));
+}
+
+function skipFinalizeStep(fm, specId, stepId) {
+  const transition = makeLifecycleStepTransition(
+    fm.loadReadOnly(specId),
+    stepId,
+    "skipped",
+    "definition:skip-steps",
+  );
+  fm.updateStepStatus(transition, { specId });
+}
+
 describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -73,6 +91,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
     setupFlow(tmp);
     const fm = makeFlowManager(tmp);
     const activeState = activateFinalizeMerge(fm);
+    const specId = specIdFromState(activeState);
     beginFinalizeMergeOutbox(fm, activeState);
 
     const entry = FLOW_COMMANDS.run["finalize-merge"];
@@ -80,6 +99,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
       flowManager: fm,
       flowState: activeState,
       root: tmp,
+      specId,
     };
     await entry.onError(ctx, new Error("merge failed"));
 
@@ -94,12 +114,12 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
     const state = setupFlow(tmp);
     commitAll(tmp, "test: initial flow state");
     const fm = makeFlowManager(tmp);
-    const specId = path.basename(path.dirname(state.spec));
+    const specId = specIdFromState(state);
     const activeState = activateFinalizeMerge(fm);
 
     // Simulate prior failure leaving sync/cleanup skipped.
-    fm.updateStepStatus("finalize-sync", "skipped");
-    fm.updateStepStatus("finalize-cleanup", "skipped");
+    skipFinalizeStep(fm, specId, "finalize-sync");
+    skipFinalizeStep(fm, specId, "finalize-cleanup");
 
     const entry = FLOW_COMMANDS.run["finalize-merge"];
     const ctx = {
@@ -117,13 +137,14 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
 
   it("post hook on retry success normalizes finalize-merge to done and resets skipped downstream", async () => {
     tmp = createTmpDir("senti-finalize-merge-retry-post-");
-    setupFlow(tmp);
+    const state = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
     const activeState = activateFinalizeMerge(fm);
+    const specId = specIdFromState(state);
 
     // Simulate a stale skipped left over from an earlier failure that the
     // pre hook somehow missed (paranoia path covered by R6).
-    fm.updateStepStatus("finalize-cleanup", "skipped");
+    skipFinalizeStep(fm, specId, "finalize-cleanup");
     beginFinalizeMergeOutbox(fm, activeState);
 
     const entry = FLOW_COMMANDS.run["finalize-merge"];
@@ -131,6 +152,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
       flowManager: fm,
       flowState: activeState,
       root: tmp,
+      specId,
     };
     await entry.post(ctx, { status: "done", strategy: "squash" });
 
@@ -141,8 +163,9 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
 
   it("post hook does nothing on failed status (no normalization)", async () => {
     tmp = createTmpDir("senti-finalize-merge-retry-fail-");
-    setupFlow(tmp);
+    const state = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
+    const specId = specIdFromState(state);
 
     const activeState = activateFinalizeMerge(fm);
     beginFinalizeMergeOutbox(fm, activeState);
@@ -151,6 +174,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
       flowManager: fm,
       flowState: activeState,
       root: tmp,
+      specId,
     };
     await entry.post(ctx, { status: "failed", message: "merge conflict" });
 

@@ -8,6 +8,7 @@ import {
   PlanRewindRequest,
 } from "../../../src/flow/lib/plan-rewind.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { ExplicitRecoveryTransition } from "../../../src/flow/lib/step-transition-policy.js";
 
 test("plan rewind public values enforce supported stages and bounds", () => {
   assert.deepEqual(PLAN_REWIND_SUPPORTED_STAGES, [
@@ -75,14 +76,21 @@ test("FlowManager delegates plan rewind to the FlowStore save boundary", () => {
   };
   const request = { reason: "Clarify approved wording" };
   const evidence = [];
+  const transition = new ExplicitRecoveryTransition({
+    stepId: "draft",
+    currentStatus: "done",
+    requestedStatus: "in_progress",
+    entrypoint: "reopen-draft",
+    request,
+    evidence,
+  });
 
   assert.equal(
-    FlowManager.prototype.rewindPlan.call(manager, request, evidence),
+    FlowManager.prototype.rewindPlan.call(manager, transition),
     expected,
   );
   assert.deepEqual(calls, [[
-    request,
-    evidence,
+    transition,
     { specId: "319-guarded-plan-rewind" },
   ]]);
 });

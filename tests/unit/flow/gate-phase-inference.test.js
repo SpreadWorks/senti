@@ -9,6 +9,8 @@ import {
 } from "../../../src/flow/lib/gate-step.js";
 import { VALID_GATE_PHASES } from "../../../src/lib/constants.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
+import { SetStepStatus } from "../../../src/flow/definition.js";
+import { DefinitionLifecycleTransition } from "../../../src/flow/lib/step-transition-policy.js";
 
 // -----------------------------------------------------------------------------
 // AC6 (R5): resolveGateStepId / STEP_TO_PHASE round-trip consistency
@@ -228,7 +230,7 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
 
   it("passes explicit task scope to the task-gate lifecycle mutation", async () => {
     const updates = [];
-    const flowState = {
+    const storedState = {
       currentTaskId: "T1",
       steps: [{ id: "impl-gate", status: "pending" }],
       tasks: [{
@@ -236,10 +238,12 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
         steps: [
           { id: "task-impl", status: "done" },
           { id: "task-review", status: "done" },
-          { id: "task-gate", status: "in_progress" },
+          { id: "task-gate", status: "pending" },
         ],
       }],
     };
+    const flowState = structuredClone(storedState);
+    flowState.tasks[0].steps[2].status = "in_progress";
 
     assert.equal(
       FLOW_COMMANDS.run.gate.runtimeLog.stepId({ phase: "task-impl", flowState }),
@@ -250,15 +254,46 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
       phase: "task-impl",
       flowState,
       flowManager: {
-        updateStepStatus(stepId, status, opts) { updates.push({ stepId, status, opts }); },
+        load: () => storedState,
+        updateStepStatus(transition, opts) { updates.push({ transition, opts }); },
       },
     });
 
-    assert.deepEqual(updates, [{
-      stepId: "task-gate",
-      status: "in_progress",
-      opts: { taskId: "T1" },
-    }]);
+    assert.equal(updates.length, 1);
+    const [{ transition, opts }] = updates;
+    assert.ok(transition instanceof DefinitionLifecycleTransition);
+    assert.ok(transition.action instanceof SetStepStatus);
+    assert.equal(transition.stepId, "task-gate");
+    assert.equal(transition.action.step, "task-gate");
+    assert.equal(transition.currentStepId, "task-gate");
+    assert.equal(transition.requestedStatus, "in_progress");
+    assert.deepEqual(opts, { taskId: "T1" });
+  });
+
+  it("keeps the flow-level integration gate lifecycle identity at impl-gate", async () => {
+    const updates = [];
+    const flowState = {
+      currentTaskId: null,
+      steps: [{ id: "impl-gate", status: "pending" }],
+      tasks: [],
+    };
+
+    await FLOW_COMMANDS.run.gate.pre({
+      phase: "integration",
+      flowState,
+      flowManager: {
+        load: () => flowState,
+        updateStepStatus(transition, opts) { updates.push({ transition, opts }); },
+      },
+    });
+
+    assert.equal(updates.length, 1);
+    const [{ transition, opts }] = updates;
+    assert.ok(transition instanceof DefinitionLifecycleTransition);
+    assert.equal(transition.stepId, "impl-gate");
+    assert.equal(transition.action.step, "impl-gate");
+    assert.equal(transition.currentStepId, "impl-gate");
+    assert.deepEqual(opts, { taskId: null });
   });
 });
 
@@ -338,10 +373,11 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
     const transitions = [];
     const stubFlowManager = {
       load: () => state,
-      updateStepStatus(stepId, status) {
-        transitions.push({ stepId, status });
-        const step = state.steps.find((s) => s.id === stepId);
-        if (step) step.status = status;
+      updateStepStatus(transition) {
+        assert.ok(transition instanceof DefinitionLifecycleTransition);
+        transitions.push(transition);
+        const step = state.steps.find((candidate) => candidate.id === transition.stepId);
+        if (step) step.status = transition.requestedStatus;
       },
     };
 
@@ -386,7 +422,9 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
       process.stderr.write = originalWrite;
     }
 
-    const doneTransition = transitions.find((t) => t.stepId === "spec-gate" && t.status === "done");
+    const doneTransition = transitions.find((transition) => (
+      transition.stepId === "spec-gate" && transition.requestedStatus === "done"
+    ));
     assert.ok(doneTransition, `expected stale 'gate' step to be transitioned to done. transitions=${JSON.stringify(transitions)}`);
 
     const stderrText = errs.join("");

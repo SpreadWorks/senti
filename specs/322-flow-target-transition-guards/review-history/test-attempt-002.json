@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T01:20:10.759Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/322-flow-target-transition-guards/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Public CLI selector matrix is incomplete",
+      "target": "specs/322-flow-target-transition-guards/tests/target-resolution.test.js",
+      "findingId": "024ebf0bea11d29d1a240e64a7c9df6caaf24b09d0c7d7da73f963dd1a2f6b57",
+      "fingerprint": "024ebf0bea11d29d1a240e64a7c9df6caaf24b09d0c7d7da73f963dd1a2f6b57",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local executable coverage, and the requirement coverage artifact overstates actual coverage.",
+      "issue": "R9 requires spec-local coverage of public CLI and direct-module matrices for AND/0/1/2+ target outcomes. The direct FlowManager tests cover exact, zero, and ambiguity, but the CLI coverage only checks exact success and one mismatch path. There is no public CLI test for 2+ ambiguity, and the coverage artifact marks R9 covered despite that gap.",
+      "requiredChange": "Add the smallest public CLI test that creates multiple matching active/preparing candidates and asserts the typed ambiguity envelope/status; ensure the CLI matrix covers the required 0/1/2+ selector outcomes.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local executable coverage, and the requirement coverage artifact overstates actual coverage.",
+      "origin": "R9",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/322-flow-target-transition-guards/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "90940da4f763ad252c8aa3675540d0bfafe521480f78a9e497ee73d948513858"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "024ebf0bea11d29d1a240e64a7c9df6caaf24b09d0c7d7da73f963dd1a2f6b57",
+      "findingId": "024ebf0bea11d29d1a240e64a7c9df6caaf24b09d0c7d7da73f963dd1a2f6b57",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Public CLI selector matrix is incomplete",
+      "body": "R9 requires spec-local coverage of public CLI and direct-module matrices for AND/0/1/2+ target outcomes. The direct FlowManager tests cover exact, zero, and ambiguity, but the CLI coverage only checks exact success and one mismatch path. There is no public CLI test for 2+ ambiguity, and the coverage artifact marks R9 covered despite that gap.",
+      "category": "unknown",
+      "fingerprint": "024ebf0bea11d29d1a240e64a7c9df6caaf24b09d0c7d7da73f963dd1a2f6b57",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local executable coverage, and the requirement coverage artifact overstates actual coverage."
+    }
+  ]
+}

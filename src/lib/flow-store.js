@@ -21,6 +21,7 @@ import { renameFlowStateStepIds } from "./step-id-rename.js";
 import { FlowSpecId } from "./flow-spec-id.js";
 import {
   AtomicFlowStateWriter,
+  FlowStateAtomicSaveError,
   FlowStateCreator,
   FlowStateRevision,
   flowStatePath,
@@ -37,6 +38,14 @@ import {
 import { findStepById, promoteNextPendingLeaf, flattenSteps } from "../flow/lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "../flow/lib/draft-review-routes.js";
 import { applyPlanRewind, latestPlanRewind } from "../flow/lib/plan-rewind.js";
+import {
+  DefinitionLifecycleTransition,
+  ExplicitRecoveryTransition,
+  NormalStepTransition,
+  StepTransitionCommitIntent,
+  StepTransitionError,
+  isStepTransition,
+} from "../flow/lib/step-transition-policy.js";
 
 const MAX_FLOW_STEPS_FOR_MIGRATION = 200;
 const MAX_FLOW_ARTIFACTS_FOR_MIGRATION = 500;
@@ -567,6 +576,26 @@ export class FlowStore {
     // active-flow registry.
     const specId = this.#resolveSpecId(opts.specId);
     if (!specId) throw new Error("no active flow (flow.json not found)");
+    const expectedRevision = opts.expectedOriginal == null
+      ? null
+      : FLOW_STATE_REVISIONS.get(opts.expectedOriginal);
+    if (opts.expectedOriginal != null && !expectedRevision) {
+      throw new FlowStateAtomicSaveError(
+        "FLOW_STATE_ATOMIC_STALE",
+        "expected flow state revision is unavailable",
+      );
+    }
+    const guardedMutator = (state, context) => {
+      if (expectedRevision && expectedRevision.digest !== context.revisionDigest) {
+        throw new FlowStateAtomicSaveError(
+          "FLOW_STATE_ATOMIC_STALE",
+          "flow state changed after promotion planning",
+        );
+      }
+      mutator(state, context);
+    };
+    const configuredPassThrough = opts.passThroughError
+      ?? ((error) => error instanceof FlowStateSchemaUnsupportedError);
     return new AtomicFlowStateWriter({
       root: this._root,
       mainRoot: this._mainRoot,
@@ -575,14 +604,15 @@ export class FlowStore {
       processIdentitySource: opts.processIdentitySource,
       maintenanceOwnerToken: opts.maintenanceOwnerToken,
       operationOwnerToken: opts.operationOwnerToken,
-    }).mutate(mutator, {
+    }).mutate(guardedMutator, {
       parseState: opts.stepIdMigration === true
         ? parseStepIdMigrationState
         : (content, statePath) => parseCurrentFlowState(content, statePath),
       validateState: assertCurrentFlowStateSchema,
       onFailure: opts.onFailure,
-      passThroughError: opts.passThroughError
-        ?? ((error) => error instanceof FlowStateSchemaUnsupportedError),
+      passThroughError: (error) => (
+        error instanceof FlowStateAtomicSaveError || configuredPassThrough(error)
+      ),
       allowIssueTransition: opts.allowIssueTransition === true,
     });
   }
@@ -655,7 +685,17 @@ export class FlowStore {
 
   // ── targeted setters (scope-aware) ──────────────────────────────────────────
 
-  updateStepStatus(stepId, status, opts) {
+  updateStepStatus(transition, opts, commitIntent = null) {
+    return this.updateStepStatuses([transition], opts, commitIntent);
+  }
+
+  updateStepStatuses(transitions, opts, commitIntent = null) {
+    if (!Array.isArray(transitions) || transitions.length === 0 || transitions.some((transition) => !isStepTransition(transition))) {
+      throw new StepTransitionError("updateStepStatuses requires explicit step transitions");
+    }
+    if (commitIntent != null && !(commitIntent instanceof StepTransitionCommitIntent)) {
+      throw new StepTransitionError("updateStepStatuses commit intent must be a StepTransitionCommitIntent");
+    }
     // opts may carry { specId } so the mutate path loads the file directly
     // (spec 251: main-repo authority before .active-flow is registered).
     this.mutate((state) => {
@@ -664,21 +704,66 @@ export class FlowStore {
         throw new Error("flow-store: scope has no steps array");
       }
       const isNested = scope.steps.some((s) => s.children);
-      const step = isNested
-        ? findStepById(scope.steps, stepId)
-        : scope.steps.find((s) => s.id === stepId);
-      if (!step) throw new Error(`unknown step: ${stepId}`);
-      step.status = status;
-
+      const changes = transitions.flatMap((transition) => (
+        transition instanceof ExplicitRecoveryTransition
+          ? transition.changes
+          : [transition]
+      ));
+      for (const transition of transitions) {
+        if (!(transition instanceof NormalStepTransition)) continue;
+        const current = flattenSteps(scope.steps).filter((candidate) => candidate.status === "in_progress");
+        if (current.length !== 1 || current[0].id !== transition.currentStepId) {
+          throw new StepTransitionError(
+            `normal transition requires exactly current step ${transition.currentStepId} (got ${current.map((step) => step.id).join(", ") || "none"})`,
+          );
+        }
+      }
+      if (transitions.some((transition) => (
+        !(transition instanceof NormalStepTransition)
+        && !(transition instanceof DefinitionLifecycleTransition)
+        && !(transition instanceof ExplicitRecoveryTransition)
+      ))) {
+        throw new StepTransitionError("unsupported step transition type");
+      }
       const now = new Date().toISOString();
-      if (status === "in_progress" && !step.startedAt) {
-        step.startedAt = now;
-      }
-      if (status === "done" || status === "skipped" || status === "failed") {
-        step.finishedAt = now;
+      const resolved = changes.map((change) => {
+        const step = isNested
+          ? findStepById(scope.steps, change.stepId)
+          : scope.steps.find((candidate) => candidate.id === change.stepId);
+        if (!step) throw new StepTransitionError(`unknown transition step: ${change.stepId}`);
+        if (step.status !== change.currentStatus) {
+          throw new StepTransitionError(
+            `stale transition source for ${change.stepId}: expected ${change.currentStatus}, got ${step.status}`,
+          );
+        }
+        return { change, step };
+      });
+      for (const { change, step } of resolved) {
+        const status = change.requestedStatus;
+        step.status = status;
+        if (status === "pending") {
+          delete step.startedAt;
+          delete step.finishedAt;
+        }
+        if (status === "in_progress") {
+          delete step.finishedAt;
+          if (!step.startedAt) step.startedAt = now;
+        }
+        if (status === "done" || status === "skipped") {
+          step.finishedAt = now;
+        }
       }
 
-      if (status === "done" || status === "skipped") {
+      const sole = changes.length === 1 ? changes[0] : null;
+      const explicitPromotionOwned = transitions.some((transition) => (
+        transition instanceof DefinitionLifecycleTransition
+        && transition.hasExplicitInProgressTarget
+      ));
+      if (
+        !explicitPromotionOwned
+        && sole
+        && (sole.requestedStatus === "done" || sole.requestedStatus === "skipped")
+      ) {
         if (isNested) {
           const next = promoteNextPendingLeaf(scope.steps);
           if (next) {
@@ -689,6 +774,7 @@ export class FlowStore {
           promoteFirstPending(scope.steps);
         }
       }
+      commitIntent?.applyTo(state);
     }, opts);
   }
 
@@ -712,15 +798,67 @@ export class FlowStore {
     this.mutate((state) => { state.issue = issue; }, { ...opts, allowIssueTransition: true });
   }
 
-  rewindPlan(request, evidence, opts) {
+  rewindPlan(transition, opts) {
+    if (!(transition instanceof ExplicitRecoveryTransition)) {
+      throw new StepTransitionError("rewindPlan requires an explicit recovery transition");
+    }
     let result;
     this.mutate((state) => {
-      const next = applyPlanRewind(state, request, evidence);
-      for (const key of Object.keys(state)) delete state[key];
-      Object.assign(state, next);
-      result = latestPlanRewind(state);
+      const draft = findStepById(state.steps || [], transition.stepId);
+      if (draft?.status !== transition.currentStatus) {
+        throw new StepTransitionError(
+          `stale recovery source for ${transition.stepId}: expected ${transition.currentStatus}, got ${draft?.status ?? "missing"}`,
+        );
+      }
+      if (transition.request) {
+        const next = applyPlanRewind(state, transition.request, transition.evidence);
+        for (const key of Object.keys(state)) delete state[key];
+        Object.assign(state, next);
+        result = latestPlanRewind(state);
+        return;
+      }
+      const resolved = transition.changes.map((change) => {
+        const step = findStepById(state.steps || [], change.stepId);
+        if (!step) throw new StepTransitionError(`unknown recovery step: ${change.stepId}`);
+        if (step.status !== change.currentStatus) {
+          throw new StepTransitionError(
+            `stale recovery source for ${change.stepId}: expected ${change.currentStatus}, got ${step.status}`,
+          );
+        }
+        return { change, step };
+      });
+      const now = new Date().toISOString();
+      for (const { change, step } of resolved) {
+        step.status = change.requestedStatus;
+        delete step.startedAt;
+        delete step.finishedAt;
+        if (transition.clearRuntimeLog) delete step.runtimeLog;
+        if (change.requestedStatus === "in_progress") step.startedAt = now;
+      }
+      result = { resetSteps: transition.changes.map((change) => change.stepId) };
     }, opts);
     return result;
+  }
+
+  saveRecoveryAtomic(transition, opts = {}) {
+    if (
+      !(transition instanceof ExplicitRecoveryTransition)
+      || transition.entrypoint !== "reopen-spec-correction"
+    ) {
+      throw new StepTransitionError("saveRecoveryAtomic requires a spec-correction recovery transition");
+    }
+    const originalDraft = findStepById(transition.expectedOriginal.steps || [], transition.stepId);
+    const replacementDraft = findStepById(transition.replacementState.steps || [], transition.stepId);
+    if (
+      originalDraft?.status !== transition.currentStatus
+      || replacementDraft?.status !== transition.requestedStatus
+    ) {
+      throw new StepTransitionError("spec-correction recovery candidate does not match its transition");
+    }
+    return this.saveAtomic(transition.replacementState, {
+      ...opts,
+      expectedOriginal: transition.expectedOriginal,
+    });
   }
 
   /**

@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-20T02:27:25.693Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-preparing-target-coverage",
+      "title": "Required preparing-target coverage is still missing",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R9",
+      "issue": "R9 requires spec-local and shared target/dispatcher tests covering exact, ambiguity, mismatch, preparing, bound, and no-log cases. The updated tests add bound mismatch and dispatcher no-log coverage, but the touched test set still does not show preparing-target coverage or the requested spec-local coverage markers for that matrix.",
+      "suggestion": "Add the missing preparing-target selection tests in the relevant shared/spec-local target-resolution coverage, including the required `// spec: R9` marker, and assert the same pre-hook/pre-runtime-log behavior where preparing targets are rejected or selected.",
+      "disposition": "must-fix",
+      "rationale": "R9 is a mandatory acceptance criterion. Preparing-target behavior is part of the required coverage matrix, so leaving it untested means the target-resolution guard is not fully verified.",
+      "findingId": "68f01d53aa08151e46a7738579191251fb3658095e7f5c36b33488306001ebb4",
+      "fingerprint": "68f01d53aa08151e46a7738579191251fb3658095e7f5c36b33488306001ebb4",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "missing-r8-flag-parity-coverage",
+      "title": "R8 parity coverage is not demonstrated",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R8",
+      "issue": "R8 requires CLI/direct API flags, config/help/registered-step parity and first-candidate/OR removal for target resolution. The touched tests exercise selected flow resolution and dispatcher failure, but do not demonstrate the required CLI/direct parity, help/config/registered-step parity, or first-candidate/OR-removal matrix.",
+      "suggestion": "Add targeted tests for the CLI and direct API selector paths, help/config/registered-step parity, and AND-only uniqueness behavior replacing first-candidate/OR matching. Include `// spec: R8` headers as required by the task test strategy.",
+      "disposition": "must-fix",
+      "rationale": "R8 is a mandatory acceptance criterion. Without coverage for the specified public surfaces and OR-removal behavior, the implementation cannot be accepted against the requirement.",
+      "findingId": "c680fc3f39cdb602534e6967881d710edd6e695fde82f9f541d4fd0acd22ff85",
+      "fingerprint": "c680fc3f39cdb602534e6967881d710edd6e695fde82f9f541d4fd0acd22ff85",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "1b72483fccb809d00076623f90aa56f56651c41db8fb9a605ab4a60b25baf517",
+  "runId": "7e4a961d-1a61-4e3e-9aa4-50fef1228b89",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/322-flow-target-transition-guards/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/322-flow-target-transition-guards/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "675443c188d413ba15fb95b7a77a299882436abed2d10ba1b0c7eef6f742a1ec"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "68f01d53aa08151e46a7738579191251fb3658095e7f5c36b33488306001ebb4",
+      "findingId": "68f01d53aa08151e46a7738579191251fb3658095e7f5c36b33488306001ebb4",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Required preparing-target coverage is still missing",
+      "body": "R9 requires spec-local and shared target/dispatcher tests covering exact, ambiguity, mismatch, preparing, bound, and no-log cases. The updated tests add bound mismatch and dispatcher no-log coverage, but the touched test set still does not show preparing-target coverage or the requested spec-local coverage markers for that matrix.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "68f01d53aa08151e46a7738579191251fb3658095e7f5c36b33488306001ebb4",
+      "disposition": "must-fix",
+      "rationale": "R9 is a mandatory acceptance criterion. Preparing-target behavior is part of the required coverage matrix, so leaving it untested means the target-resolution guard is not fully verified.",
+      "requirementId": "R9",
+      "repeatCount": 1
+    },
+    {
+      "id": "c680fc3f39cdb602534e6967881d710edd6e695fde82f9f541d4fd0acd22ff85",
+      "findingId": "c680fc3f39cdb602534e6967881d710edd6e695fde82f9f541d4fd0acd22ff85",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R8 parity coverage is not demonstrated",
+      "body": "R8 requires CLI/direct API flags, config/help/registered-step parity and first-candidate/OR removal for target resolution. The touched tests exercise selected flow resolution and dispatcher failure, but do not demonstrate the required CLI/direct parity, help/config/registered-step parity, or first-candidate/OR-removal matrix.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "c680fc3f39cdb602534e6967881d710edd6e695fde82f9f541d4fd0acd22ff85",
+      "disposition": "must-fix",
+      "rationale": "R8 is a mandatory acceptance criterion. Without coverage for the specified public surfaces and OR-removal behavior, the implementation cannot be accepted against the requirement.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    }
+  ]
+}

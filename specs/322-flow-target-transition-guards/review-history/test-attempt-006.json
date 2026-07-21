@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T01:29:07.766Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/322-flow-target-transition-guards/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Coverage artifact paths differ from provided spec-local paths",
+      "target": "Requirement-to-Test Coverage Artifact files[]",
+      "findingId": "8ab4df0f6036d5ce0fbb68841f77ca4e6d4582e056848478f77a1c0dc101e5e1",
+      "fingerprint": "8ab4df0f6036d5ce0fbb68841f77ca4e6d4582e056848478f77a1c0dc101e5e1",
+      "disposition": "informational",
+      "rationale": "The executable test snippets include valid `// spec: R<N>` headers and matching requirement IDs, so this is a traceability wording/path drift rather than evidence that coverage is missing.",
+      "improvement": "Align artifact file paths with the actual spec-local paths, for example `specs/322-flow-target-transition-guards/tests/target-resolution.test.js`, or clarify that these tests are copied into `tests/` before execution.",
+      "whyNonBlocking": "The executable test snippets include valid `// spec: R<N>` headers and matching requirement IDs, so this is a traceability wording/path drift rather than evidence that coverage is missing."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/322-flow-target-transition-guards/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "d5a7ab22a9305ff8dc664452d49d3ef9b0dce6bced9f15399e57ae303ce7029f"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "8ab4df0f6036d5ce0fbb68841f77ca4e6d4582e056848478f77a1c0dc101e5e1",
+      "findingId": "8ab4df0f6036d5ce0fbb68841f77ca4e6d4582e056848478f77a1c0dc101e5e1",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "non-blocking",
+      "title": "Coverage artifact paths differ from provided spec-local paths",
+      "body": "The executable test snippets include valid `// spec: R<N>` headers and matching requirement IDs, so this is a traceability wording/path drift rather than evidence that coverage is missing.",
+      "category": "unknown",
+      "fingerprint": "8ab4df0f6036d5ce0fbb68841f77ca4e6d4582e056848478f77a1c0dc101e5e1",
+      "disposition": "informational",
+      "rationale": "The executable test snippets include valid `// spec: R<N>` headers and matching requirement IDs, so this is a traceability wording/path drift rather than evidence that coverage is missing."
+    }
+  ]
+}

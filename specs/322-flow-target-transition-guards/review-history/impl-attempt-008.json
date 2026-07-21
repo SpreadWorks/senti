@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-20T04:55:56.470Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-get-next-action-maxattempts-coverage",
+      "title": "Missing required get-next-action maxAttempts coverage",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "tests/unit/flow/get-next-action.test.js",
+      "requirementId": "R9",
+      "issue": "The T-3 test strategy requires extending `tests/unit/flow/get-next-action.test.js` for maxAttempts values `1`, `10_000`, non-integer, below 1, and above `10_000`, plus pre-write validation/CAS/retry behavior. The touched changes in this file only add a partial task promotion repair case and do not cover those required next-action validation and CAS scenarios.",
+      "suggestion": "Add the required `GetNextActionCommand` unit cases in `tests/unit/flow/get-next-action.test.js`, specifically covering maxAttempts `1`, `10_000`, non-integer, below 1, above `10_000`, invalid pre-write validation, stale CAS, exact one-promotion success, and no duplicate retry/effects behavior at this command/API level.",
+      "disposition": "must-fix",
+      "rationale": "R9 explicitly requires shared get-next-action/writer and regression coverage for invalid, drift, exact success, and retry behavior. Because the mapped get-next-action unit file is touched but lacks the required acceptance coverage, this remains a blocking acceptance gap.",
+      "findingId": "e5f659cfbadc94cd35eb9e3ca82c84fa7b5edb90a6b9609f92040027a6fc1661",
+      "fingerprint": "e5f659cfbadc94cd35eb9e3ca82c84fa7b5edb90a6b9609f92040027a6fc1661",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "missing-shared-writer-maxattempts-boundary-matrix",
+      "title": "Shared writer coverage omits required maxAttempts cases",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "tests/unit/flow/flow-state-shared-writer.test.js",
+      "requirementId": "R9",
+      "issue": "The new shared writer tests cover `maxAttempts: 10_000` and above-bound `10_001`, but the T-3 test strategy also requires `1`, non-integer, and below-1 cases in the shared get-next-action/writer tests. Those cases are not present in the touched shared writer file.",
+      "suggestion": "Extend `tests/unit/flow/flow-state-shared-writer.test.js` to include shared-writer next-action cases for `maxAttempts: 1`, a non-integer such as `1.5`, and below-bound values such as `0` or `-1`, asserting the same zero-save, zero-effect path for invalid inputs.",
+      "disposition": "must-fix",
+      "rationale": "R9 mandates shared writer coverage for the full invalid/exact matrix, and R6 defines the required maxAttempts bounds. Missing required boundary cases in the shared writer owner coverage are a blocking acceptance gap.",
+      "findingId": "5eb3bd0f3ad131bbcd30c19cc21f2411af1c405df54a39fbbd36cfc495d35dbb",
+      "fingerprint": "5eb3bd0f3ad131bbcd30c19cc21f2411af1c405df54a39fbbd36cfc495d35dbb",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "e8fdd97f81a359395cbbf16edc7c8de15035f389b536b51df76403045694a1d5",
+  "runId": "7e4a961d-1a61-4e3e-9aa4-50fef1228b89",
+  "planRewindAt": null,
+  "taskId": "T-3",
+  "target": "specs/322-flow-target-transition-guards/tasks/T-3.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/322-flow-target-transition-guards/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "437274b0437d4a3409e3b22af6ee5210a653c5faf6caeec67f187812c7b44a05"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "e5f659cfbadc94cd35eb9e3ca82c84fa7b5edb90a6b9609f92040027a6fc1661",
+      "findingId": "e5f659cfbadc94cd35eb9e3ca82c84fa7b5edb90a6b9609f92040027a6fc1661",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "Missing required get-next-action maxAttempts coverage",
+      "body": "The T-3 test strategy requires extending `tests/unit/flow/get-next-action.test.js` for maxAttempts values `1`, `10_000`, non-integer, below 1, and above `10_000`, plus pre-write validation/CAS/retry behavior. The touched changes in this file only add a partial task promotion repair case and do not cover those required next-action validation and CAS scenarios.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "e5f659cfbadc94cd35eb9e3ca82c84fa7b5edb90a6b9609f92040027a6fc1661",
+      "disposition": "must-fix",
+      "rationale": "R9 explicitly requires shared get-next-action/writer and regression coverage for invalid, drift, exact success, and retry behavior. Because the mapped get-next-action unit file is touched but lacks the required acceptance coverage, this remains a blocking acceptance gap.",
+      "requirementId": "R9",
+      "repeatCount": 1
+    },
+    {
+      "id": "5eb3bd0f3ad131bbcd30c19cc21f2411af1c405df54a39fbbd36cfc495d35dbb",
+      "findingId": "5eb3bd0f3ad131bbcd30c19cc21f2411af1c405df54a39fbbd36cfc495d35dbb",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "Shared writer coverage omits required maxAttempts cases",
+      "body": "The new shared writer tests cover `maxAttempts: 10_000` and above-bound `10_001`, but the T-3 test strategy also requires `1`, non-integer, and below-1 cases in the shared get-next-action/writer tests. Those cases are not present in the touched shared writer file.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "5eb3bd0f3ad131bbcd30c19cc21f2411af1c405df54a39fbbd36cfc495d35dbb",
+      "disposition": "must-fix",
+      "rationale": "R9 mandates shared writer coverage for the full invalid/exact matrix, and R6 defines the required maxAttempts bounds. Missing required boundary cases in the shared writer owner coverage are a blocking acceptance gap.",
+      "requirementId": "R9",
+      "repeatCount": 1
+    }
+  ]
+}

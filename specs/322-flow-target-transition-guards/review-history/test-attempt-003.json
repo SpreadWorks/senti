@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T01:21:47.923Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/322-flow-target-transition-guards/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Normal transition instance is not asserted on the real store path",
+      "target": "specs/322-flow-target-transition-guards/tests/step-transition-policy.test.js",
+      "findingId": "f220a29f78b51bd03e9476882f17f73a8b3045656f085e68f44e1e1bfe2e3bb7",
+      "fingerprint": "f220a29f78b51bd03e9476882f17f73a8b3045656f085e68f44e1e1bfe2e3bb7",
+      "disposition": "must-fix",
+      "rationale": "This is an explicit acceptance requirement with no corresponding executable coverage, and the current test can pass without exercising the required transition-instance API contract.",
+      "issue": "R5 requires FlowStore to accept a validated transition instance, but the real FlowStore/SetStepCommand test only asserts the final persisted behavior and write count. An implementation could keep accepting raw step/status arguments or mutate directly, while still passing this test.",
+      "requiredChange": "Add a spec-local assertion on the real normal set-step path that FlowStore/updateStepStatus receives or requires a NormalStepTransition instance, and rejects a raw/non-transition update without mutation.",
+      "whyBlocking": "This is an explicit acceptance requirement with no corresponding executable coverage, and the current test can pass without exercising the required transition-instance API contract.",
+      "origin": "R5",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/322-flow-target-transition-guards/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "a9ca23cb6ef6dba0bb98fbf0f1f2395db141909065c8d3c659a18f72985211a4"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "f220a29f78b51bd03e9476882f17f73a8b3045656f085e68f44e1e1bfe2e3bb7",
+      "findingId": "f220a29f78b51bd03e9476882f17f73a8b3045656f085e68f44e1e1bfe2e3bb7",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Normal transition instance is not asserted on the real store path",
+      "body": "R5 requires FlowStore to accept a validated transition instance, but the real FlowStore/SetStepCommand test only asserts the final persisted behavior and write count. An implementation could keep accepting raw step/status arguments or mutate directly, while still passing this test.",
+      "category": "unknown",
+      "fingerprint": "f220a29f78b51bd03e9476882f17f73a8b3045656f085e68f44e1e1bfe2e3bb7",
+      "disposition": "must-fix",
+      "rationale": "This is an explicit acceptance requirement with no corresponding executable coverage, and the current test can pass without exercising the required transition-instance API contract."
+    }
+  ]
+}

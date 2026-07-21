@@ -16,6 +16,7 @@ import fs from "node:fs";
 import pathMod from "node:path";
 import { makeFlowManager, replaceFlowState } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { createNextActionHarness } from "../../helpers/next-action-harness.js";
 import {
   FLOW_STEPS,
   TASK_STEPS_PLAN,
@@ -78,6 +79,19 @@ function setTaskStepInProgress(state, taskId, stepId) {
   state.currentTaskId = taskId;
 }
 
+function setupPendingNextAction(tmp) {
+  const state = setupActiveFlow(tmp);
+  const branch = findStepById(state.steps, "branch");
+  branch.status = "pending";
+  delete branch.startedAt;
+  replaceFlowState(tmp, state);
+  return makeFlowManager(tmp).forRoot(tmp, { specId: "001-test" });
+}
+
+function flowStatePath(tmp) {
+  return pathMod.join(tmp, "specs", "001-test", "flow.json");
+}
+
 describe("flow get next-action", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -138,6 +152,32 @@ describe("flow get next-action", () => {
       assert.equal(envelope.data.taskId, "001");
       assert.equal(envelope.data.step, "task-impl");
       assert.equal(envelope.data.action, "run-impl");
+    });
+
+    it("repairs a promoted current task whose first step is still pending", () => {
+      tmp = createTmpDir();
+      const task = {
+        id: "002",
+        spec: "specs/001-test/tasks/002-next.md",
+        origin: "plan",
+        parent: null,
+        status: "in_progress",
+        steps: buildInitialTaskSteps("plan"),
+        requirements: [],
+      };
+      const state = setupActiveFlow(tmp, { tasks: [task], currentTaskId: "002" });
+      setFlowStepInProgress(state, "implement");
+      replaceFlowState(tmp, state);
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.taskId, "002");
+      assert.equal(envelope.data.step, "task-impl");
+      const reloaded = makeFlowManager(tmp).load();
+      assert.equal(reloaded.currentTaskId, "002");
+      assert.equal(reloaded.tasks[0].status, "in_progress");
+      assert.equal(reloaded.tasks[0].steps[0].status, "in_progress");
     });
   });
 
@@ -311,6 +351,86 @@ describe("flow get next-action", () => {
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.step, null);
       assert.equal(envelope.data.action, "completed");
+    });
+  });
+
+  describe("GetNextActionCommand promotion boundaries and CAS", () => {
+    it("accepts maxAttempts 1 and 10000 and emits one promotion/effect set on repeat", async () => {
+      for (const maxAttempts of [1, 10_000]) {
+        tmp = createTmpDir(`get-next-action-valid-${maxAttempts}-`);
+        const fm = setupPendingNextAction(tmp);
+        const harness = createNextActionHarness(fm, { maxAttempts });
+
+        const first = await harness.execute(fm.load());
+        const afterFirst = fs.readFileSync(flowStatePath(tmp));
+        const repeated = await harness.execute(fm.load());
+
+        assert.equal(first.maxAttempts, maxAttempts);
+        assert.equal(repeated.maxAttempts, maxAttempts);
+        assert.equal(findStepById(fm.load().steps, "spec").status, "in_progress");
+        assert.deepEqual(fs.readFileSync(flowStatePath(tmp)), afterFirst, String(maxAttempts));
+        assert.deepEqual(harness.calls, {
+          planner: 2,
+          save: 1,
+          resolve: 0,
+          runtime: 1,
+          artifact: 1,
+          retry: 1,
+        }, String(maxAttempts));
+        removeTmpDir(tmp);
+        tmp = null;
+      }
+    });
+
+    it("rejects fractional, below-minimum, and above-maximum attempts before writes or effects", async () => {
+      for (const maxAttempts of [1.5, 0, 10_001]) {
+        tmp = createTmpDir(`get-next-action-invalid-${String(maxAttempts).replace(".", "-")}-`);
+        const fm = setupPendingNextAction(tmp);
+        const before = fs.readFileSync(flowStatePath(tmp));
+        const harness = createNextActionHarness(fm, { maxAttempts });
+
+        await assert.rejects(
+          harness.execute(fm.load()),
+          (error) => error.code === "NEXT_ACTION_PLAN_INVALID" && /maxAttempts/.test(error.message),
+        );
+
+        assert.deepEqual(fs.readFileSync(flowStatePath(tmp)), before, String(maxAttempts));
+        assert.deepEqual(harness.calls, {
+          planner: 1,
+          save: 0,
+          resolve: 0,
+          runtime: 0,
+          artifact: 0,
+          retry: 0,
+        }, String(maxAttempts));
+        removeTmpDir(tmp);
+        tmp = null;
+      }
+    });
+
+    it("surfaces one stale CAS without retry, re-resolution, effects, or winner mutation", async () => {
+      tmp = createTmpDir("get-next-action-stale-");
+      const fm = setupPendingNextAction(tmp);
+      const stale = fm.load();
+      fm.mutate((current) => { current.request = "winner"; });
+      const winner = fs.readFileSync(flowStatePath(tmp));
+      const harness = createNextActionHarness(fm, { expectedRevision: stale, maxAttempts: 1 });
+
+      await assert.rejects(
+        harness.execute(stale),
+        (error) => error.code === "FLOW_STATE_ATOMIC_STALE" && error.committed === false,
+      );
+
+      assert.deepEqual(fs.readFileSync(flowStatePath(tmp)), winner);
+      assert.equal(fm.load().request, "winner");
+      assert.deepEqual(harness.calls, {
+        planner: 1,
+        save: 1,
+        resolve: 0,
+        runtime: 0,
+        artifact: 0,
+        retry: 0,
+      });
     });
   });
 

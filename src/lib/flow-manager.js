@@ -118,7 +118,7 @@ export class ResolvedFlowTarget {
   matches(expectation) {
     if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) return false;
     if (expectation.runId != null && this.state.runId !== expectation.runId) return false;
-    const activeIssue = Object.hasOwn(this.state, "issue") ? this.state.issue : null;
+    const activeIssue = this.state.issue == null ? null : Number(this.state.issue);
     if (expectation.issue != null && activeIssue !== expectation.issue) return false;
     if (expectation.issueAbsent && activeIssue !== null) return false;
     if (expectation.spec != null && this.specId !== expectation.spec) return false;
@@ -128,26 +128,55 @@ export class ResolvedFlowTarget {
 }
 
 export class FlowTargetNotFoundError extends Error {
-  constructor(expectation, matchCount) {
-    const target = [
-      expectation.runId && `runId ${expectation.runId}`,
-      expectation.issue && `Issue #${expectation.issue}`,
-      expectation.issueAbsent && "no Issue",
-      expectation.spec && `spec ${expectation.spec}`,
-    ].filter(Boolean).join(", ");
-    super(matchCount > 1
-      ? `explicit flow target is ambiguous: ${target}`
-      : `explicit flow target not found: ${target}`);
+  constructor(expectation, matchCount = 0) {
+    super(`explicit flow target not found: ${flowTargetSummary(expectation)}`);
     this.code = "FLOW_TARGET_NOT_FOUND";
-    this.data = {
-      matchCount,
-      ...(expectation.runId != null && { expectedRunId: expectation.runId }),
-      ...((expectation.issue != null || expectation.issueAbsent) && {
-        expectedIssue: expectation.issue,
-      }),
-      ...(expectation.spec != null && { expectedSpec: expectation.spec }),
-    };
+    this.data = flowTargetErrorData(expectation, matchCount);
   }
+}
+
+export class FlowTargetAmbiguousError extends Error {
+  constructor(expectation, matchCount) {
+    super(`explicit flow target is ambiguous: ${flowTargetSummary(expectation)}`);
+    this.code = "FLOW_TARGET_AMBIGUOUS";
+    this.data = flowTargetErrorData(expectation, matchCount);
+  }
+}
+
+function flowTargetSummary(expectation) {
+  return [
+    expectation.runId && `runId ${expectation.runId}`,
+    expectation.issue && `Issue #${expectation.issue}`,
+    expectation.issueAbsent && "no Issue",
+    expectation.spec && `spec ${expectation.spec}`,
+  ].filter(Boolean).join(", ");
+}
+
+function flowTargetErrorData(expectation, matchCount) {
+  return {
+    matchCount,
+    ...(expectation.runId != null && { expectedRunId: expectation.runId }),
+    ...((expectation.issue != null || expectation.issueAbsent) && {
+      expectedIssue: expectation.issue,
+    }),
+    ...(expectation.spec != null && { expectedSpec: expectation.spec }),
+  };
+}
+
+function resolveUniqueFlowTarget(expectation, targets) {
+  if (targets.length === 0) throw new FlowTargetNotFoundError(expectation);
+  if (targets.length > 1) throw new FlowTargetAmbiguousError(expectation, targets.length);
+  return targets[0];
+}
+
+function activeFlowExpectation(opts) {
+  const expectation = new FlowTargetExpectation({
+    ...(opts.selectRunId != null && { expectRunId: opts.selectRunId }),
+    ...(opts.selectSpecId != null && { expectSpec: opts.selectSpecId }),
+    ...(opts.selectIssue != null && { expectIssue: opts.selectIssue }),
+    ...(opts.selectNoIssue === true && { expectNoIssue: true }),
+  });
+  return expectation.empty ? null : expectation;
 }
 
 class ActiveFlowMismatchError extends Error {
@@ -292,8 +321,11 @@ export class FlowManager {
     return this._usesWorktreeFlowBinding;
   }
 
-  updateStepStatus(stepId, status, opts) {
-    return this._store.updateStepStatus(stepId, status, withSpecIdDefault(opts, this._boundSpecId));
+  updateStepStatus(transition, opts, commitIntent = null) {
+    return this._store.updateStepStatus(transition, withSpecIdDefault(opts, this._boundSpecId), commitIntent);
+  }
+  updateStepStatuses(transitions, opts, commitIntent = null) {
+    return this._store.updateStepStatuses(transitions, withSpecIdDefault(opts, this._boundSpecId), commitIntent);
   }
   setStepRuntimeLog(stepId, runtimeLog, opts) {
     return this._store.setStepRuntimeLog(stepId, runtimeLog, withSpecIdDefault(opts, this._boundSpecId));
@@ -308,8 +340,14 @@ export class FlowManager {
     }
     return this.#setBoundWorktreeIssue(issue, withSpecIdDefault(opts, this._boundSpecId));
   }
-  rewindPlan(request, evidence, opts) {
-    return this._store.rewindPlan(request, evidence, withSpecIdDefault(opts, this._boundSpecId));
+  rewindPlan(transition, opts) {
+    return this._store.rewindPlan(transition, withSpecIdDefault(opts, this._boundSpecId));
+  }
+  saveRecoveryAtomic(transition, opts) {
+    return this._store.saveRecoveryAtomic(transition, {
+      ...opts,
+      boundSpecId: this._boundSpecId,
+    });
   }
   addNote(text, opts) { return this._store.addNote(text, withSpecIdDefault(opts, this._boundSpecId)); }
   incrementMetric(phase, counter, opts) {
@@ -403,25 +441,15 @@ export class FlowManager {
       throw new Error("explicit flow target expectation is required");
     }
     const targets = this.#explicitFlowTargets().filter((target) => target.matches(expectation));
-    if (targets.length !== 1) throw new FlowTargetNotFoundError(expectation, targets.length);
-    return targets[0];
+    return resolveUniqueFlowTarget(expectation, targets);
   }
 
   resolveExplicitFlowTargetForRead(expectation) {
     if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) {
       throw new Error("explicit flow target expectation is required");
     }
-    const targets = this.#explicitFlowTargets();
-    const matches = new Set();
-    for (const target of targets) {
-      const activeIssue = Object.hasOwn(target.state, "issue") ? target.state.issue : null;
-      if (expectation.runId != null && target.state.runId === expectation.runId) matches.add(target);
-      if (expectation.issue != null && activeIssue === expectation.issue) matches.add(target);
-      if (expectation.issueAbsent && activeIssue === null) matches.add(target);
-      if (expectation.spec != null && target.specId === expectation.spec) matches.add(target);
-    }
-    if (matches.size !== 1) throw new FlowTargetNotFoundError(expectation, matches.size);
-    return [...matches][0];
+    const targets = this.#explicitFlowTargets().filter((target) => target.matches(expectation));
+    return resolveUniqueFlowTarget(expectation, targets);
   }
 
   #explicitFlowTargets() {
@@ -645,7 +673,11 @@ export class FlowManager {
    * @returns {{ state: object, specId: string, worktreePath: string|null } | null}
    */
   resolveActiveFlow(flowState, opts = {}) {
+    const expectation = activeFlowExpectation(opts);
     if (flowState) {
+      if (expectation?.mismatchAgainst(flowState)) {
+        throw new ActiveFlowMismatchError(expectation, flowState);
+      }
       const specId = specIdFromPath(flowState.spec);
       let worktreePath = null;
       if (flowState.worktree) {
@@ -656,49 +688,21 @@ export class FlowManager {
     }
 
     const activeFlows = this._activeFlows.load();
-    if (opts.selectRunId) {
-      const resolved = this._resolveActiveFlowByState(
-        activeFlows,
-        (state) => state?.runId === opts.selectRunId,
-      );
-      if (resolved) return resolved;
-      throw new Error(`runId '${opts.selectRunId}' is not in active flows`);
-    }
-
-    if (opts.selectSpecId) {
-      const match = activeFlows.find((f) => f.spec === opts.selectSpecId);
-      if (!match) {
-        const known = activeFlows.map((f) => f.spec).join(", ") || "(none)";
-        throw new Error(`spec '${opts.selectSpecId}' is not in active flows. Active: ${known}`);
-      }
-      const resolved = this._loadActiveFlowState(match.spec);
-      if (resolved) return resolved;
-      throw new Error(`spec '${opts.selectSpecId}' is registered as active but flow.json was not found`);
-    }
-
-    if (opts.selectIssue != null) {
-      const issue = Number(opts.selectIssue);
-      if (!Number.isSafeInteger(issue) || issue < 1) {
-        throw new Error(`issue target must be a positive integer: ${opts.selectIssue}`);
-      }
-      const resolved = this._resolveActiveFlowByState(
-        activeFlows,
-        (state) => Number(state?.issue) === issue,
-      );
-      if (resolved) return resolved;
-      throw new Error(`Issue #${issue} is not in active flows`);
-    }
-
-    if (opts.selectNoIssue === true) {
-      const matches = this._resolveActiveFlowsByState(
-        activeFlows,
-        (state) => state?.issue == null,
-      );
-      if (matches.length === 1) return matches[0];
-      throw new FlowTargetNotFoundError(
-        new FlowTargetExpectation({ expectNoIssue: true }),
-        matches.length,
-      );
+    if (expectation) {
+      const targets = this._resolveActiveFlowsByState(activeFlows, () => true).map((resolved) => (
+        new ResolvedFlowTarget({
+          state: resolved.state,
+          specId: resolved.specId,
+          worktreePath: resolved.worktreePath,
+          authorityRoot: resolved.worktreePath || this._mainRoot,
+        })
+      )).filter((target) => target.matches(expectation));
+      const target = resolveUniqueFlowTarget(expectation, targets);
+      return {
+        state: target.state,
+        specId: target.specId,
+        worktreePath: target.worktreePath,
+      };
     }
 
     if (activeFlows.length === 1) {

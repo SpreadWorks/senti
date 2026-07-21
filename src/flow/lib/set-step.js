@@ -18,6 +18,8 @@ import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-in
 import {
   findActiveNode,
   flowLeafIdsBetween,
+  isDefinitionLifecycleOwnedStep,
+  resolveLifecyclePlan,
   resolveSideEffects,
   taskIdForResolvedStep,
 } from "../definition.js";
@@ -41,7 +43,26 @@ import {
 import {
   completeImplTriage,
   completeImplRepair,
+  commitImplRepairEffects,
+  ImplRepairTransitionIntent,
 } from "./impl-repair-artifacts.js";
+import {
+  DefinitionLifecycleTransition,
+  ExplicitRecoveryTransition,
+  NormalStepTransition,
+  StepTransitionError,
+} from "./step-transition-policy.js";
+
+function definitionTransitions(state, plan) {
+  return plan.actions.map((action) => {
+    const target = findStepById(state.steps || [], action.step);
+    return new DefinitionLifecycleTransition({
+      action,
+      plan,
+      currentStatus: target?.status,
+    });
+  });
+}
 
 function collectSideEffects(stepId) {
   return resolveSideEffects({ scope: "flow", stepId }) || [];
@@ -272,21 +293,58 @@ export default class SetStepCommand extends FlowCommand {
       );
     }
 
+    const state = ctx.flowManager.load();
+    const activeNode = state ? findActiveNode(state) : null;
+    const activeScope = activeNode?.scope === "task"
+      ? state.tasks?.find((task) => task.id === activeNode.taskId)
+      : state;
+    const storedStep = activeScope
+      ? findStepById(activeScope.steps || [], id)
+      : null;
+    let transition;
+    try {
+      transition = new NormalStepTransition({
+        stepId: id,
+        currentStepId: activeNode?.stepId,
+        currentStatus: storedStep?.status,
+        requestedStatus: status,
+        lifecycleOwned: isDefinitionLifecycleOwnedStep({
+          scope: activeNode?.scope || "flow",
+          stepId: id,
+        }),
+      });
+    } catch (error) {
+      const transitionError = error instanceof StepTransitionError
+        ? error
+        : new StepTransitionError(error.message);
+      return Envelope.fail("set", "step", transitionError.code, transitionError.message);
+    }
+
     // spec 249: pre-validate test step done before persisting state.
     if (id === "test" && status === "done") {
       const fail = preValidateTestStep(ctx);
       if (fail) return fail;
     }
     if (status === "done") {
-      const state = ctx.flowManager.load();
       if (id === "approval") {
         const fail = preValidateApprovalStep({ root: ctx.root, state });
         if (fail) return fail;
       }
       if (id === "impl-triage") {
         const specDir = resolveSpecDir(path.resolve(ctx.root, state.spec));
-        const completed = completeImplTriage({ specDir, flowManager: ctx.flowManager });
+        const completed = completeImplTriage({ specDir });
         if (!completed.requiresRepair) {
+          const plan = resolveLifecyclePlan({
+            event: "set-step:impl-triage",
+            currentStepId: activeNode.stepId,
+          });
+          ctx.flowManager.updateStepStatuses([
+            transition,
+            ...definitionTransitions(state, plan),
+          ], {
+            ...(ctx.specId ? { specId: ctx.specId } : {}),
+            taskId: null,
+          });
           return { id, status, next: "impl-gate", dispositions: completed.artifact.items };
         }
       }
@@ -294,8 +352,33 @@ export default class SetStepCommand extends FlowCommand {
         const completed = completeImplRepair({
           root: ctx.root,
           state,
-          flowManager: ctx.flowManager,
           resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+        });
+        const transitions = [transition];
+        if (completed.stepChanges.length > 0) {
+          transitions.push(new ExplicitRecoveryTransition({
+            stepId: completed.stepChanges[0].stepId,
+            currentStatus: completed.stepChanges[0].currentStatus,
+            requestedStatus: completed.stepChanges[0].requestedStatus,
+            entrypoint: "impl-repair-invalidation",
+            changes: completed.stepChanges,
+          }));
+        }
+        const mutationOptions = {
+          ...(ctx.specId ? { specId: ctx.specId } : {}),
+          taskId: null,
+        };
+        ctx.flowManager.updateStepStatuses(
+          transitions,
+          mutationOptions,
+          new ImplRepairTransitionIntent(completed.transaction),
+        );
+        commitImplRepairEffects({
+          root: ctx.root,
+          state,
+          flowManager: ctx.flowManager,
+          transaction: completed.transaction,
+          specId: ctx.specId,
         });
         return { id, status, repair: completed.entry, invalidations: completed.invalidations };
       }
@@ -316,8 +399,7 @@ export default class SetStepCommand extends FlowCommand {
     // (spec 251: main-repo authority during finalize-merge / sync / cleanup).
     // The resolved active step owns its parent scope; a non-matching id is a
     // flow-level mutation rather than an implicit current-task lookup.
-    const activeNode = findActiveNode(ctx.flowManager.load());
-    ctx.flowManager.updateStepStatus(id, status, {
+    ctx.flowManager.updateStepStatus(transition, {
       ...(ctx.specId ? { specId: ctx.specId } : {}),
       taskId: taskIdForResolvedStep(activeNode, id),
     });

@@ -12,6 +12,7 @@ import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { generateReport } from "../../../src/flow/commands/report.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
+import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 
 const SPEC_DIR = "specs/001-record-proceed";
 const FIXTURE_PATH = "final-regression-fixture.sh";
@@ -120,14 +121,22 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
     try {
       const specDir = "specs/001";
       const updated = [];
+      const flowState = moveFlowToStep(makeFlowState({
+        spec: `${specDir}/spec.json`,
+        runId: "run-final-regression-recorded",
+        tasks: [],
+        currentTaskId: null,
+      }), "final-regression");
       writeFile(tmp, `${specDir}/spec.json`, JSON.stringify({ requirements: [] }, null, 2));
       writeFile(tmp, `${specDir}/final-regression-result.json`, JSON.stringify(failedRecordedArtifact(), null, 2));
       await FLOW_COMMANDS.run["final-regression"].post({
         root: tmp,
-        flowState: { spec: `${specDir}/spec.json` },
+        specId: "001",
+        flowState,
         flowManager: {
-          updateStepStatus(stepId, status) {
-            updated.push({ stepId, status });
+          load: () => flowState,
+          updateStepStatus(transition) {
+            updated.push({ stepId: transition.stepId, status: transition.requestedStatus });
           },
         },
       }, { result: "fail", failedRecorded: true });

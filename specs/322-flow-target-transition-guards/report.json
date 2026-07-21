@@ -1,0 +1,2330 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../tests/producer-artifact-contract.test.js       |    1 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |   55 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/322-flow-target-transition-guards/draft.json |  169 +\n .../file-map.json                                  |  180 ++\n .../flow-findings.json                             |   95 +\n specs/322-flow-target-transition-guards/flow.json  | 3363 ++++++++++++++++++++\n .../impl-gate-result.json                          |  419 +++\n .../impl-review.json                               |   31 +\n .../issue-log.json                                 |  927 ++++++\n specs/322-flow-target-transition-guards/issue.md   |  158 +\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../review-history/draft-coverage-attempt-002.json |   14 +\n .../draft-questions-attempt-001.json               |   54 +\n .../draft-questions-attempt-002.json               |   14 +\n .../review-history/impl-attempt-001.json           |   97 +\n .../review-history/impl-attempt-001.md             |   34 +\n .../review-history/impl-attempt-002.json           |   96 +\n .../review-history/impl-attempt-002.md             |   33 +\n .../review-history/impl-attempt-003.json           |   96 +\n .../review-history/impl-attempt-003.md             |   33 +\n .../review-history/impl-attempt-004.json           |   36 +\n .../review-history/impl-attempt-004.md             |   16 +\n .../review-history/impl-attempt-005.json           |   68 +\n .../review-history/impl-attempt-005.md             |   25 +\n .../review-history/impl-attempt-006.json           |   36 +\n .../review-history/impl-attempt-006.md             |   16 +\n .../review-history/impl-attempt-007.json           |   67 +\n .../review-history/impl-attempt-007.md             |   24 +\n .../review-history/impl-attempt-008.json           |   98 +\n .../review-history/impl-attempt-008.md             |   35 +\n .../review-history/impl-attempt-009.json           |   36 +\n .../review-history/impl-attempt-009.md             |   16 +\n .../review-history/impl-attempt-010.json           |   34 +\n .../review-history/impl-attempt-010.md             |   16 +\n .../review-history/spec-attempt-001.json           |   16 +\n .../review-history/spec-attempt-001.md             |   11 +\n .../review-history/spec-attempt-002.json           |   16 +\n .../review-history/spec-attempt-002.md             |   11 +\n .../review-history/test-attempt-001.json           |  226 ++\n .../review-history/test-attempt-001.md             |   54 +\n .../review-history/test-attempt-002.json           |   58 +\n .../review-history/test-attempt-002.md             |   18 +\n .../review-history/test-attempt-003.json           |   58 +\n .../review-history/test-attempt-003.md             |   18 +\n .../review-history/test-attempt-004.json           |   86 +\n .../review-history/test-attempt-004.md             |   24 +\n .../review-history/test-attempt-005.json           |   86 +\n .../review-history/test-attempt-005.md             |   24 +\n .../review-history/test-attempt-006.json           |   55 +\n .../review-history/test-attempt-006.md             |   16 +\n .../review-history/test-attempt-007.json           |   86 +\n .../review-history/test-attempt-007.md             |   24 +\n .../review-history/test-attempt-008.json           |   55 +\n .../review-history/test-attempt-008.md             |   16 +\n .../impl-review/018870d7c819e46bcb116c71.json      |   77 +\n .../impl-review/0bdf3b707356690edf741e13.json      |   53 +\n .../impl-review/11401db1d0226f1231be2ae2.json      |   77 +\n .../impl-review/2802ea34b3003a0b446168d0.json      |   65 +\n .../impl-review/427dfbd203456f4fae825b67.json      |   59 +\n .../impl-review/562c706852c82bb0fcee42e9.json      |   59 +\n .../impl-review/591b4feebb7073ebc2e7b66d.json      |   71 +\n .../impl-review/59fa3a31c681356961cc7bdf.json      |   71 +\n .../impl-review/635b54e59ef6bd709a49df1c.json      |   65 +\n .../impl-review/75f4871091a34c2fc78b9a8b.json      |   89 +\n .../impl-review/85e38f5f6cd080aa334f64a6.json      |   93 +\n .../impl-review/a7f3adc0fb8c7c923243832d.json      |   97 +\n .../impl-review/bd3798396b2128f722503801.json      |   83 +\n .../impl-review/c43a47f76d207c075c9f3648.json      |   71 +\n .../impl-review/d7e860f04f301bf9cac6a177.json      |   53 +\n .../impl-review/d85e17476af5711ba3ad8791.json      |   57 +\n specs/322-flow-target-transition-guards/review.md  |   16 +\n .../scenario-validity-result.json                  |  188 ++\n .../spec-gate-source.json                          |  124 +\n .../spec-review.json                               |   13 +\n .../spec-review.md                                 |   11 +\n specs/322-flow-target-transition-guards/spec.json  |  368 +++\n specs/322-flow-target-transition-guards/spec.md    |  167 +\n .../task-impl-gate-source.json                     |   68 +\n .../322-flow-target-transition-guards/tasks/T-1.md |   21 +\n .../322-flow-target-transition-guards/tasks/T-2.md |   21 +\n .../322-flow-target-transition-guards/tasks/T-3.md |   21 +\n .../test-coverage.json                             |  147 +\n .../test-execute-result.json                       |  739 +++++\n .../test-result-review.json                        |   34 +\n .../test-result-review.md                          |   12 +\n .../test-review.json                               |   37 +\n .../test-review.md                                 |   16 +\n .../tests/.raw/scenario-validity.log               |   13 +\n .../tests/.raw/test-execution.log                  |  235 ++\n .../tests/next-action-planning.test.js             |  394 +++\n .../tests/step-transition-policy.test.js           |  634 ++++\n .../tests/target-resolution.test.js                |  533 ++++\n src/flow/definition.js                             |  143 +-\n src/flow/lib/gate-mutation-owner.js                |   66 +\n src/flow/lib/get-next-action.js                    |  454 ++-\n src/flow/lib/impl-repair-artifacts.js              |  227 +-\n src/flow/lib/lifecycle-step-transition.js          |   37 +\n src/flow/lib/run-finalize-cleanup.js               |   33 +-\n src/flow/lib/run-gate.js                           |   62 +-\n src/flow/lib/run-reopen-draft.js                   |   63 +-\n src/flow/lib/run-review.js                         |   10 +-\n src/flow/lib/set-step.js                           |   92 +-\n src/flow/lib/step-outcome.js                       |    8 +-\n src/flow/lib/step-transition-policy.js             |  214 ++\n src/flow/registry.js                               |  182 +-\n src/lib/dispatcher.js                              |   21 +-\n src/lib/flow-manager.js                            |  162 +-\n src/lib/flow-store.js                              |  180 +-\n tests/e2e/227-forest-e2e.test.js                   |    6 +-\n tests/e2e/flow/concurrent-prelude-guard.test.js    |    9 +-\n .../flow/worktree-flow-command-identity.test.js    |    5 +-\n tests/helpers/flow-setup.js                        |   28 +\n tests/helpers/next-action-harness.js               |   56 +\n .../t-a3-no-flat-fallback.test.js                  |    4 +-\n tests/unit/flow.test.js                            |   56 +-\n .../final-regression-record-and-proceed.test.js    |   15 +-\n tests/unit/flow/finalization-outbox.test.js        |   16 +-\n .../flow/finalize-cleanup-transaction-v2.test.js   |   19 +-\n tests/unit/flow/finalize-merge-retry.test.js       |   38 +-\n tests/unit/flow/flow-state-shared-writer.test.js   |   92 +\n tests/unit/flow/gate-mutation-owner.test.js        |  241 ++\n tests/unit/flow/gate-phase-inference.test.js       |   64 +-\n tests/unit/flow/get-check.test.js                  |   21 +-\n tests/unit/flow/get-next-action.test.js            |  120 +\n tests/unit/flow/plan-rewind.test.js                |   14 +-\n tests/unit/flow/post-hook-flow-scope.test.js       |   13 +-\n .../unit/flow/reopen-draft-spec-correction.test.js |   93 +-\n tests/unit/flow/resolve-active-flow.test.js        |  103 +-\n tests/unit/flow/retry-exhaustion-defer.test.js     |   96 +-\n tests/unit/flow/retry-recovery-convergence.test.js |    6 +-\n tests/unit/flow/run-review-advisory.test.js        |   80 +-\n tests/unit/flow/set-step-impl-repair.test.js       |  149 +\n tests/unit/flow/set-step.test.js                   |   55 +-\n tests/unit/flow/step-outcome.test.js               |   21 +-\n tests/unit/flow/task-impl-review-lifecycle.test.js |  185 ++\n tests/unit/lib/dispatcher.test.js                  |  137 +-\n 143 files changed, 15441 insertions(+), 635 deletions(-)",
+      "commits": [
+        "fix: persist repair intent with step transition",
+        "fix: integrate repair transactions with transition commits",
+        "fix: complete flow transition guard remediation",
+        "WIP: checkpoint issue 443 flow guards"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Supplied `runId`、`spec`、`issue` selectors shall be combined as AND conditions across active、preparing、bound worktree targets before command execution; 0 results shall return a distinct typed not-found/mismatch, 1 result shall return that exact target, and 2 or more results shall return typed ambiguity. Bound authority mismatch may use `ACTIVE_FLOW_MISMATCH`, and no foreign candidate may be selected.",
+          "status": "done",
+          "note": "R1: explicit selectors use AND matching and distinguish 2+ ambiguity from zero matches"
+        },
+        {
+          "desc": "Every target-resolution failure shall be decided before lifecycle hooks、command execution、or runtime-log writer open. The active/preparing registry、flow/preparing state、flow.json bytes、timestamps、artifacts、`.tmp` runtime-log bytes、step runtimeLog metadata、retry counters shall remain byte-identical, and only the typed envelope/error may be returned.",
+          "status": "done",
+          "note": "R2: dispatcher mismatch leaves the complete persisted tree byte-identical"
+        },
+        {
+          "desc": "Normal `set step` shall accept only the current leaf whose stored status is `in_progress` and whose requested status is `done` or `skipped`. It shall reject requested `pending`/`in_progress`, already-terminal、non-current、out-of-order、or definition-disallowed targets without state or side-effect changes.",
+          "status": "done",
+          "note": "R3: normal set accepts only current in_progress to done or skipped"
+        },
+        {
+          "desc": "Transition eligibility shall be represented by dedicated OOP classes: `NormalStepTransition` permits only current `in_progress`→`done|skipped`; `DefinitionLifecycleTransition` permits only actions emitted by the current definition node/event, including approved auxiliary `pending`→`in_progress|done|skipped`; `ExplicitRecoveryTransition` permits only existing rewind/recovery entrypoints. Each constructor shall enforce state、source、target、status invariants, lifecycle callers shall accept only definition-produced actions, and recovery callers shall use only dedicated paths.",
+          "status": "done",
+          "note": "R4: dedicated transition classes enforce source-specific constructor invariants"
+        },
+        {
+          "desc": "FlowStore shall accept a validated transition instance and persist requested status、timestamps、and next promotion in one atomic write. Logger and other post-commit side effects shall run exactly once after commit; retrying an already-terminal transition shall be rejected without duplicate promotion、artifact、runtime log、or retry mutation. Approval/spec-task synchronization owned by `c9de` is excluded.",
+          "status": "done",
+          "note": "R5: real FlowStore commits once before logging and rejects a terminal retry"
+        },
+        {
+          "desc": "GetNextActionCommand shall build a read-only promotion plan and validate the flow definition、rule、output schema、instruction、target identity、task scope、and `maxAttempts` as an integer from 1 through 10_000 inclusive before any flow write、timestamp、artifact、runtime log、or retry mutation occurs. Values greater than 10_000 shall fail through the same no-write path as every other invalid value.",
+          "status": "done",
+          "note": "R6: an invalid rule fails before the command mutates promotion state"
+        },
+        {
+          "desc": "Next-action promotion shall commit only through FlowStore revision CAS. `FLOW_STATE_ATOMIC_STALE` shall cause no automatic retry、implicit re-resolution、promotion、or side effect and shall require caller re-resolution; an unchanged revision shall produce one promotion and one set of post-commit effects.",
+          "status": "done",
+          "note": "R7: stale FlowStore revision fails once without retry or byte changes"
+        },
+        {
+          "desc": "Migration parity shall retain exact-unique CLI/API success、definition-approved lifecycle/recovery、target flags/config/help/registered-step contracts、and exactly-once artifacts/side effects under their mapped owners. It shall intentionally remove first-candidate selection、selector OR/fallback、normal non-current/out-of-order update、and pre-validation promotion, add no legacy fallback, and require CLI/direct/stale callers to handle selector、typed failure、or re-resolution contracts.",
+          "status": "done",
+          "note": "R8: invalid plans have no legacy promotion or selector fallback"
+        },
+        {
+          "desc": "Spec-local and focused shared tests shall cover public CLI and direct-module matrices for AND/0/1/2+ targets、bound mismatch、no-mutation runtime-log failure、normal/lifecycle/recovery transitions、invalid action inputs、concurrent revision drift、exact success/retry、and unchanged config/help/registered steps; spec-local tests shall carry `// spec: R<N>` headers and the full `npm test` regression shall pass.",
+          "status": "done",
+          "note": "R9: direct command matrix distinguishes invalid, exact, and stale outcomes"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 62,
+      "fullLogPath": "specs/322-flow-target-transition-guards/issue-log.json",
+      "importantTotal": 30,
+      "importantShown": 10,
+      "importantOmitted": 20,
+      "recentOtherTotal": 32,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 27,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "`maxAttempts` is required to be a positive integer before writes or side effects, but no explicit upper bound is specified for the retry count.; The maxAttempts validation fixture is required to fail before mutation, but the acceptance c...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "unknown step: impl-gate",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "unknown step: impl-gate",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "fix: add dispatcher target-failure no-log coverage",
+          "resolution": "Shared dispatcher tests prove target failures occur before command, hooks, metadata, and runtime-log writes."
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "fix: strengthen R9 public CLI failure evidence after the finding",
+          "resolution": "CLI ambiguity and not-found now prove no-flow diagnostics with byte-identical durable state and no runtime-log file."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "unknown transition step: impl-gate",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-gate",
+          "reason": "fix: scoped every task gate mutation and refreshed OOP/atomic regression fixtures",
+          "resolution": "GateMutationOwner now binds task-gate and taskId across initial, retry, defer, and attempt paths; npm test passes 2810 tests."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff adds shared-test-related changes and coverage metadata, but it does not add any new spec-local coverage file under `specs/322-flow-target-transition-guards/tests/` with a `// spec: R<N>` header. Shared test updates do not substi...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "no-fix: retain verified spec-local test coverage after fourth cached false positive",
+          "resolution": "No AC-linked change is missing. The final bounded gate attempt may defer this tooling-only finding to acceptance-review; do not add duplicate fixtures or weaken assertions merely to change the diff."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff adds shared-test references and coverage metadata, but it does not add any new spec-local test file under specs/322-flow-target-transition-guards/tests/ with a `// spec: R<N>` header. Shared test updates do not substitute for th...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff adds shared-test/coverage metadata changes, but it does not add new spec-local coverage under `specs/322-flow-target-transition-guards/tests/` with `// spec: R<N>` headers. Shared test updates do not satisfy the required spec-lo...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-decision",
+          "reason": "User explicitly selected accept_risk_and_continue for notVerifiable acceptance evidence.",
+          "resolution": "continue to final-regression with accepted risk"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 32
+    },
+    "tokenMetrics": {
+      "input": 5458650,
+      "output": 131798,
+      "cacheRead": 4110464,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 108,
+      "durationMs": 3813086,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 6601
+        },
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 22945
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 14581
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 47038
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 135673
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 44843
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 177682
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 788564
+        },
+        {
+          "phase": "impl-triage",
+          "durationMs": 75484
+        },
+        {
+          "phase": "retro",
+          "durationMs": 121440
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 2334747
+        },
+        {
+          "phase": "acceptance-review",
+          "durationMs": 43488
+        }
+      ]
+    },
+    "tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/322-flow-target-transition-guards/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/gate-mutation-owner.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/get-next-action.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/lifecycle-step-transition.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-reopen-draft.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/step-outcome.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/step-transition-policy.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-store.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/227-forest-e2e.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/concurrent-prelude-guard.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/worktree-flow-command-identity.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/helpers/flow-setup.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/helpers/next-action-harness.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/flow-state-shared-writer.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-mutation-owner.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-phase-inference.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/get-check.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/get-next-action.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/plan-rewind.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/post-hook-flow-scope.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/reopen-draft-spec-correction.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/resolve-active-flow.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/set-step.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/step-outcome.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/task-impl-review-lifecycle.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/dispatcher.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+            "fingerprint": "34e4294df0775128ff9a19b87fb0f00999ce46c07f2a6ae411f0920529e622a4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "00cb761138737a2cff65259a3d8922c1c2a92d74ed05ecfdddd2f89ac627a8fd"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/gate-mutation-owner.js",
+            "fingerprint": "46f19f0840e8215f3042b797e9c2d46cde1a38080010c606031e8b310cec5d13"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js",
+            "fingerprint": "47b66dfb20c4dbd64b12264f74fbb607aa80c24e6e290e18c584086147993865"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "b383591a2baab7cc90da9e0f0e5ce7d519cd8d7a293753826c523c2ab9fb29c9"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/lifecycle-step-transition.js",
+            "fingerprint": "57444d8b647a4fab5f0d9c8b42969b1b40b8ebdf5bcbd6bef1417553eda7ae90"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "fingerprint": "91df4454668b0e068c9e0b428f2fb134bbfb715de784a5618e8ed73b96d5c697"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "243f61afecd4ea59ae4dd50a268135ce1f2db1e19c17e51f38cdb82290cd0fcd"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-reopen-draft.js",
+            "fingerprint": "2f2c724d812d3975ad8a2a36ce51065e040e5b8ce9764543463b074ee6fb0127"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "e0c5f2bf3605a0fd0051ce446612c93a2419293bd53ac4deda3d0d6ebe7ff2ca"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "8a72a5d8ebac7a80c2f46bb61b1856f0a565549237e494642395e5e18d90d1a9"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-outcome.js",
+            "fingerprint": "a62f4919aec0ed16a6e6c44d8f6a6b2fb25d68744ab9e1211d12aab0333e36ee"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "4f1d8d422ef063fed76fd248a563b0a44c56757087593aa9931af2d666c9fbf8"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "21596b0c85e408cd52ad9658caba93e2c4eadc7fb7024a5f94f54f792af1c131"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "2f8891898e2d5fab9002f513883ccdb3aa07c6a0083580620f8852ecab822489"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "711117fb9725cc6d73a24563eaa512f201ac0d49d112b94ea3f1ab04359ddb1e"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js",
+            "fingerprint": "77e27536399d1276fe947aa1ed452f8ee2e42233c1620c21c0f5f0bc99703f00"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/227-forest-e2e.test.js",
+            "fingerprint": "79eab0e10a0eed64be876469be8e92441fbac94d8bb66f61d0539f5c803dc4e0"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/concurrent-prelude-guard.test.js",
+            "fingerprint": "34039e2ac808061e82d88dc002ccb0642081564dcfa16b1be8744303d1ab6be2"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/worktree-flow-command-identity.test.js",
+            "fingerprint": "b66a724e2bbef1bb20d579c2ca75491d279c0ca914d3cb39d8accfee02b2b296"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/flow-setup.js",
+            "fingerprint": "b9c7e89ee7770223b1844171c9540a44c57b22b00b6cd3e47e0f9b0cd352c4ce"
+          },
+          {
+            "status": "added",
+            "path": "tests/helpers/next-action-harness.js",
+            "fingerprint": "f7759b41ec29f98df84be760ef55ba86ae75c1b0e62ef29ef98dcc4ef47cb410"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js",
+            "fingerprint": "4a632d9cde946ebc55bc47c5a68aebc0d00835b586edc8e24eca525541747461"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow.test.js",
+            "fingerprint": "ddda8c5e349dc26a21d5661f981b81aebc34870fc6c0ac9f606e2d9abde3cbfa"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "fingerprint": "c3580a47502d3957582719677402095a44b59124a44fe2b0c633eaa76d5dee1f"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "fingerprint": "8672df1d50bb6bbb88b1d811b56ed2238b612a71e0bc820584045b93a4d92d29"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "b6f7cd5b7df8f7254d00219149341a4d2c9944769bf0fb1e7b34addd3e4c1298"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "fingerprint": "6ad5bde4a8516422e523ca97f647e89b1a288803667f20ac41994ae0436f6213"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/flow-state-shared-writer.test.js",
+            "fingerprint": "01670335538eaf1845a1c8e3c6a2403fe9775af50dc2fa0cc6d8867d2dc2b631"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/gate-mutation-owner.test.js",
+            "fingerprint": "3c9ab53d7b2289c33c90ce60d1c3605fdc80afaa8a41b78431a8e2682d47b9bf"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-phase-inference.test.js",
+            "fingerprint": "fbee6abe4c4dc9c67dc286bc2acdd75f57b3a0c040955f7af7a7b1092faae7fb"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-check.test.js",
+            "fingerprint": "0f26147a4f48af01f16f27e3738889d88ca56983a95395264c690e8127db0e8e"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-next-action.test.js",
+            "fingerprint": "da502ce78c8d2f2911721cbf264b0f22bdb8225fe4be1c10203d98c7279667fb"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/plan-rewind.test.js",
+            "fingerprint": "f5f9cd513e84eb0264754e600bdfdf1d76363d4e92b45086d3e4cf3e43645e92"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/post-hook-flow-scope.test.js",
+            "fingerprint": "85a82b00675ad90a5376f46f019d79f8a955145e63ce073aaa37f2e2f15e32bf"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/reopen-draft-spec-correction.test.js",
+            "fingerprint": "9681d41df77c7dea211d305f37fd9e421afa5b2a379a6ac490a706f033e6de59"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/resolve-active-flow.test.js",
+            "fingerprint": "5bf08c7b450f6e49a20d67beb912519c50cacf1d22b0c44f96c2f04ff07118bc"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "8797825cd5776b6ee1f705ff43832a7e1be1a68dd309ec06965ec43b1b081069"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "a0c149b620b3482fcda7c5ff80a5da9a34493e1347f89d87ab495273bb0dcf15"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "79c0af9565120b84f004671b2a18a18cd64ddd075031f65354b6c47d00e4f3a7"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "ce91cf43cb1302adf55af670acde7afd2ae1dec8dc55e32bcc657646c90f9523"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step.test.js",
+            "fingerprint": "2547c2f8c98804517a61a7c9651febe3ecfc916e25ff25a42cdf8c914a8f3d9a"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/step-outcome.test.js",
+            "fingerprint": "f00df2c28a936a583337e763448ae3b71e28b41f95edf2818172ee4e6bd04671"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/task-impl-review-lifecycle.test.js",
+            "fingerprint": "fd898291de1c7d8db7b0cdf140fc6832ce253e0482682aa4543e082fe528afab"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher.test.js",
+            "fingerprint": "5c121467e1af102a8a75d0ce9b8822fc3d551123934312a191b9105a43c2f9b9"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+            "fingerprint": "34e4294df0775128ff9a19b87fb0f00999ce46c07f2a6ae411f0920529e622a4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "00cb761138737a2cff65259a3d8922c1c2a92d74ed05ecfdddd2f89ac627a8fd"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/gate-mutation-owner.js",
+            "fingerprint": "46f19f0840e8215f3042b797e9c2d46cde1a38080010c606031e8b310cec5d13"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js",
+            "fingerprint": "47b66dfb20c4dbd64b12264f74fbb607aa80c24e6e290e18c584086147993865"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "b383591a2baab7cc90da9e0f0e5ce7d519cd8d7a293753826c523c2ab9fb29c9"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/lifecycle-step-transition.js",
+            "fingerprint": "57444d8b647a4fab5f0d9c8b42969b1b40b8ebdf5bcbd6bef1417553eda7ae90"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "fingerprint": "91df4454668b0e068c9e0b428f2fb134bbfb715de784a5618e8ed73b96d5c697"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "243f61afecd4ea59ae4dd50a268135ce1f2db1e19c17e51f38cdb82290cd0fcd"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-reopen-draft.js",
+            "fingerprint": "2f2c724d812d3975ad8a2a36ce51065e040e5b8ce9764543463b074ee6fb0127"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "e0c5f2bf3605a0fd0051ce446612c93a2419293bd53ac4deda3d0d6ebe7ff2ca"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "8a72a5d8ebac7a80c2f46bb61b1856f0a565549237e494642395e5e18d90d1a9"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-outcome.js",
+            "fingerprint": "a62f4919aec0ed16a6e6c44d8f6a6b2fb25d68744ab9e1211d12aab0333e36ee"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "4f1d8d422ef063fed76fd248a563b0a44c56757087593aa9931af2d666c9fbf8"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "21596b0c85e408cd52ad9658caba93e2c4eadc7fb7024a5f94f54f792af1c131"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "2f8891898e2d5fab9002f513883ccdb3aa07c6a0083580620f8852ecab822489"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "711117fb9725cc6d73a24563eaa512f201ac0d49d112b94ea3f1ab04359ddb1e"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js",
+            "fingerprint": "77e27536399d1276fe947aa1ed452f8ee2e42233c1620c21c0f5f0bc99703f00"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/227-forest-e2e.test.js",
+            "fingerprint": "79eab0e10a0eed64be876469be8e92441fbac94d8bb66f61d0539f5c803dc4e0"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/concurrent-prelude-guard.test.js",
+            "fingerprint": "34039e2ac808061e82d88dc002ccb0642081564dcfa16b1be8744303d1ab6be2"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/worktree-flow-command-identity.test.js",
+            "fingerprint": "b66a724e2bbef1bb20d579c2ca75491d279c0ca914d3cb39d8accfee02b2b296"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/flow-setup.js",
+            "fingerprint": "b9c7e89ee7770223b1844171c9540a44c57b22b00b6cd3e47e0f9b0cd352c4ce"
+          },
+          {
+            "status": "added",
+            "path": "tests/helpers/next-action-harness.js",
+            "fingerprint": "f7759b41ec29f98df84be760ef55ba86ae75c1b0e62ef29ef98dcc4ef47cb410"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js",
+            "fingerprint": "4a632d9cde946ebc55bc47c5a68aebc0d00835b586edc8e24eca525541747461"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow.test.js",
+            "fingerprint": "ddda8c5e349dc26a21d5661f981b81aebc34870fc6c0ac9f606e2d9abde3cbfa"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "fingerprint": "c3580a47502d3957582719677402095a44b59124a44fe2b0c633eaa76d5dee1f"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "fingerprint": "8672df1d50bb6bbb88b1d811b56ed2238b612a71e0bc820584045b93a4d92d29"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "b6f7cd5b7df8f7254d00219149341a4d2c9944769bf0fb1e7b34addd3e4c1298"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "fingerprint": "6ad5bde4a8516422e523ca97f647e89b1a288803667f20ac41994ae0436f6213"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/flow-state-shared-writer.test.js",
+            "fingerprint": "01670335538eaf1845a1c8e3c6a2403fe9775af50dc2fa0cc6d8867d2dc2b631"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/gate-mutation-owner.test.js",
+            "fingerprint": "3c9ab53d7b2289c33c90ce60d1c3605fdc80afaa8a41b78431a8e2682d47b9bf"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-phase-inference.test.js",
+            "fingerprint": "fbee6abe4c4dc9c67dc286bc2acdd75f57b3a0c040955f7af7a7b1092faae7fb"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-check.test.js",
+            "fingerprint": "0f26147a4f48af01f16f27e3738889d88ca56983a95395264c690e8127db0e8e"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-next-action.test.js",
+            "fingerprint": "da502ce78c8d2f2911721cbf264b0f22bdb8225fe4be1c10203d98c7279667fb"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/plan-rewind.test.js",
+            "fingerprint": "f5f9cd513e84eb0264754e600bdfdf1d76363d4e92b45086d3e4cf3e43645e92"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/post-hook-flow-scope.test.js",
+            "fingerprint": "85a82b00675ad90a5376f46f019d79f8a955145e63ce073aaa37f2e2f15e32bf"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/reopen-draft-spec-correction.test.js",
+            "fingerprint": "9681d41df77c7dea211d305f37fd9e421afa5b2a379a6ac490a706f033e6de59"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/resolve-active-flow.test.js",
+            "fingerprint": "5bf08c7b450f6e49a20d67beb912519c50cacf1d22b0c44f96c2f04ff07118bc"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "8797825cd5776b6ee1f705ff43832a7e1be1a68dd309ec06965ec43b1b081069"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "a0c149b620b3482fcda7c5ff80a5da9a34493e1347f89d87ab495273bb0dcf15"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "79c0af9565120b84f004671b2a18a18cd64ddd075031f65354b6c47d00e4f3a7"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "ce91cf43cb1302adf55af670acde7afd2ae1dec8dc55e32bcc657646c90f9523"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step.test.js",
+            "fingerprint": "2547c2f8c98804517a61a7c9651febe3ecfc916e25ff25a42cdf8c914a8f3d9a"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/step-outcome.test.js",
+            "fingerprint": "f00df2c28a936a583337e763448ae3b71e28b41f95edf2818172ee4e6bd04671"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/task-impl-review-lifecycle.test.js",
+            "fingerprint": "fd898291de1c7d8db7b0cdf140fc6832ce253e0482682aa4543e082fe528afab"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher.test.js",
+            "fingerprint": "5c121467e1af102a8a75d0ce9b8822fc3d551123934312a191b9105a43c2f9b9"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "unattributed_existing_failure",
+        "failureCategory": "existing_failure",
+        "failureNature": "assertion",
+        "skipKind": null,
+        "rawOutputPath": "specs/322-flow-target-transition-guards/tests/.raw/final-regression-attempt-001.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 1,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 1,
+        "failureSummary": "process.kind: assertion-failure\nprocess.command: node tests/run.js\nprocess.started: true\nprocess.completed: true\nprocess.exitCode: 1\nprocess.signal: null\nprocess.errorCode: null\nprocess.timedOut: false",
+        "currentDiffRelationship": "non-current-diff",
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/.retry-recovery.transaction.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/acceptance-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/draft-coverage-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/draft-coverage-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/draft-gate-source.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/draft-questions-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/draft-questions-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/draft-review-coverage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/draft-review-questions.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/draft.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/file-map.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/flow-findings.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/impl-gate-result.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/impl-gate-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/impl-review.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/impl-review.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/impl-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/issue.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/plugin-artifacts/workflow/prepare.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/repair-fingerprint.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/retro.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/retry-recovery.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/draft-coverage-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/draft-coverage-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/draft-questions-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/draft-questions-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-003.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-003.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-004.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-004.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-005.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-005.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-006.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-006.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-007.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-007.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-008.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-008.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-009.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-009.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-010.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-010.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-011.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-011.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/spec-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/spec-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/spec-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/spec-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-003.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-003.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-004.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-004.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-005.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-005.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-006.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-006.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-007.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-007.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-008.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-008.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/0e8a1dba58a440a06d3423b7.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/85e38f5f6cd080aa334f64a6.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/a7f3adc0fb8c7c923243832d.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/bd3798396b2128f722503801.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/bd3798396b2128f722503801.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/review.md"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/scenario-validity-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/spec-gate-source.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/spec-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/spec-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/spec.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/spec.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/task-impl-gate-source.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/tasks/T-1.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/tasks/T-2.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/tasks/T-3.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/test-coverage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/test-execute-result.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/test-execute-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/test-result-review.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/test-result-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/test-result-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/test-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/test-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/tests/.raw/scenario-validity.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/tests/.raw/test-execution.log"
+          },
+          {
+            "status": "modified",
+            "path": "specs/322-flow-target-transition-guards/tests/.raw/test-execution.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/tests/next-action-planning.test.js"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/tests/step-transition-policy.test.js"
+          },
+          {
+            "status": "added",
+            "path": "specs/322-flow-target-transition-guards/tests/target-resolution.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/gate-mutation-owner.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/lifecycle-step-transition.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-reopen-draft.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-outcome.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/step-transition-policy.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/227-forest-e2e.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/concurrent-prelude-guard.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/worktree-flow-command-identity.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/flow-setup.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/helpers/next-action-harness.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-outbox.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-merge-retry.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/flow-state-shared-writer.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/gate-mutation-owner.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-phase-inference.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-check.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/plan-rewind.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/post-hook-flow-scope.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/reopen-draft-spec-correction.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/resolve-active-flow.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/step-outcome.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/task-impl-review-lifecycle.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher.test.js"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+            "fingerprint": "34e4294df0775128ff9a19b87fb0f00999ce46c07f2a6ae411f0920529e622a4"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/.retry-recovery.transaction.json",
+            "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/acceptance-review.json",
+            "fingerprint": "ab07c50c3b9cefe1ec15f59c8c455774c7567bef11cb9bae7daf1bf8e348f4f8"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/draft-coverage-repair.json",
+            "fingerprint": "8de86bfcffd1e1ae2bd66fd4f72d8f78b5048182cecb150077dec1d4d972b3cc"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/draft-coverage-triage.json",
+            "fingerprint": "716b61b21b25f22f57a1f46bcf063ed01f881e768ca34da04769c27d15959f59"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/draft-gate-source.json",
+            "fingerprint": "3e06fd09b1e6c0cbfd06cb29d267e5d31c64e9a777f7c908754404cf22f25ff8"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/draft-questions-repair.json",
+            "fingerprint": "63d15cbdfc10793c8cd91f5ed56df81db44d11b2bf19ae743b8c2e17ee6aba9b"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/draft-questions-triage.json",
+            "fingerprint": "68887d441f219186f241781713de235f262dcddbbd41a1a2f600fef264da1c66"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/draft-review-coverage.json",
+            "fingerprint": "b5330cc8bef979ef100ffaaf50ef99a93e4132158371c183e4649d5d819f1bcf"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/draft-review-questions.json",
+            "fingerprint": "6688ddf664228ce601a55f1256a841fbc5ce062f7d2909afe1cd3c8f4f756256"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/draft.json",
+            "fingerprint": "75f295bf29de81ca0832fde5aadeb735cbeb28f547f2eabca69d22b55c2a83fa"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/file-map.json",
+            "fingerprint": "33f9ca1db4dd7c91703478293071f27125f616a5d3fb2dc9bcdbddefda981ba0"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/flow-findings.json",
+            "fingerprint": "22f8cf1bcc1e08cd9936e45e61793147f9f51950ec6a9bd51d15727870c0c7b7"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/impl-gate-result.json",
+            "fingerprint": "fa5fd9c24f8f2f5e9f34be4ddf6ac60f743fd5e71e592d4adb7969f4b0fd4a1f"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/impl-gate-result.json",
+            "fingerprint": "fa5fd9c24f8f2f5e9f34be4ddf6ac60f743fd5e71e592d4adb7969f4b0fd4a1f"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/impl-review.json",
+            "fingerprint": "dcb82954d80914add22d7f6e9bfe14f2357283b72cbe336be85c0e33119008bd"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/impl-review.json",
+            "fingerprint": "dcb82954d80914add22d7f6e9bfe14f2357283b72cbe336be85c0e33119008bd"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/impl-triage.json",
+            "fingerprint": "bd3bb1ae7b10a38eeaa180801316f8d3d8df852e92d7d9e75cabe91efe9c8eac"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/issue.md",
+            "fingerprint": "9bf1afad9a9f38d97c447cee55f9bed8dfcbbd06ea7c71a3f9726f46f082c0c3"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "7eed3273e78164f7bfa2dc3e334e9be3010d081082462af41aadde299acebdde"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/repair-fingerprint.json",
+            "fingerprint": "1b6079a633a282579c1e3dcb5ec31953aa2b1ff178e3f55dc208c29e802c7cbb"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/retro.json",
+            "fingerprint": "4d2e9b8a896959d600fbe360e7d2814f2ff0382b2004cfcc45ebe9a3d5606fd0"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/retry-recovery.json",
+            "fingerprint": "b1b29d1d5281035faf36fe20ef65e69f6bcfa2183788f45887b263e04ffd39c8"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "bca5f0f88c3506afc394d71c2c8f774971173827da7957f0ccf3bb621036b00c"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/draft-coverage-attempt-002.json",
+            "fingerprint": "890e1988e26585c803f8ea0574c6e3d5ef6fa66071e3d2c463e6eee22830df88"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "057befb1d67d074abbfb059a13286222968e58d720887cd18d29efb22f227147"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/draft-questions-attempt-002.json",
+            "fingerprint": "18cb5b12d7f168311515f35923705347c814a3a7d31754f4678e4dcfc74dba39"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-001.json",
+            "fingerprint": "635f24a68e62a8ecaa1e45c52297494017ee55cfe7d589a167420d3b6bec0f95"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-001.md",
+            "fingerprint": "c62de664ba05dcda0a75ba22ec14aba4c8979318416aaad3e99ab4cb09a68261"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-002.json",
+            "fingerprint": "b973c74de78e25a99327f65f55fa38446742c3e276eff19d7b384c1c73a13c5f"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-002.md",
+            "fingerprint": "e4256cd7752d54fbd328bacb95d5617cbb64830a10533906c9b99da2366cd888"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-003.json",
+            "fingerprint": "a636d68fb5e4744593e3e6190406b8c6e08bf1676de7639a803f413544278d30"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-003.md",
+            "fingerprint": "3b00e4db0d2f9913fdcb6d219f0a648b5c41c9c55c1820ec10bf4c7b134d4a87"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-004.json",
+            "fingerprint": "bc4d01bdf1d94d4011d969ef7bbc0951ffb68e19acd8bff1b86fe6df84a71ccf"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-004.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-005.json",
+            "fingerprint": "5c81782af4aa27f6238d775cf8e6b8b121a26b3ab97d8db0cba67f6e305e9d29"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-005.md",
+            "fingerprint": "ec2daa80fbf85586ab76d8c9d943376135b3f9f37623cc731e03bdd16d39269f"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-006.json",
+            "fingerprint": "8711c32767f98a032181ba4ed93a31fb2c02baf8eff10577f2460ac414587a66"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-006.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-007.json",
+            "fingerprint": "d2c1cc2122b0c61f8c4027e31c69f936b82acfaf73d4a44827448ff513fe346d"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-007.md",
+            "fingerprint": "0952d640d35f60dcf65fac3508c3f36cec5ac4ed96eabb1841b8062851405eb7"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-008.json",
+            "fingerprint": "9b7ee0b7539328655d3fd2c7085fa3a2d4aa1b61e96bf2eae4df34d63960d34d"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-008.md",
+            "fingerprint": "e962cf082287956e4d2542b4074e0d2baa09a1a4d8d5459561f7cf16778ec302"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-009.json",
+            "fingerprint": "7c532870cc851f4c250326454a90b68ac7e1c5ea9197ee83980bf1dc9d74f8d9"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-009.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-010.json",
+            "fingerprint": "ad965bd29e65ee376b11c3206982d625b3003dd041744bd714b395e017573227"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-010.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-011.json",
+            "fingerprint": "a86244aeb322baebc0c6a286b21fad80a2e8742674be77325488a46e3172010c"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/impl-attempt-011.md",
+            "fingerprint": "bf5dcf64c5b40d127711500c11c6067a61956c2c71739647d8cb02c9994756d1"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/spec-attempt-001.json",
+            "fingerprint": "eb43829df43ffc041b851406bb1e7619601b4a48339eb93c3537a20388ea358d"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/spec-attempt-002.json",
+            "fingerprint": "678efa45022da059ae09779b6c27151a603be26c148d1fd722d65a709cd75b87"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-001.json",
+            "fingerprint": "ac4d231de5bd23b5dc5be216b0f1fcb6f38cabe5a4a09d1e57e9d9478bc623ea"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-001.md",
+            "fingerprint": "cae4237c35ae7f3f2f0635e8471fa681453e62546d48b3b97c8019b46270cb6c"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-002.json",
+            "fingerprint": "b5d3ccc9c6e06b4ebc89409fb2c2a1cae748b3932aef7255735f3720c710c154"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-002.md",
+            "fingerprint": "cb2a29ba0a93ff3745ec3344ea6aa0b62a7a3df0f3f92cec9da8d60be24d6414"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-003.json",
+            "fingerprint": "91735110f5dae6108e70c1eaf69b7c8e3909fe6feb5df4e4852af1903bf08334"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-003.md",
+            "fingerprint": "b6f09016b982386a58fc44a31be5a9a83fb682390d189ee00364f87099b6d12a"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-004.json",
+            "fingerprint": "bfc8ac8c63dafd04e0d8a7d26e95c1bdd85775aae7732fa98d99c518e6b19426"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-004.md",
+            "fingerprint": "5dcad2470a8419616a394f18e8987ab07817a2c9506cbf5df9cf52efb83a4663"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-005.json",
+            "fingerprint": "9c1dee1446977f1603a1c21da5d3db32875cf6a288405218a6327f68c5f79262"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-005.md",
+            "fingerprint": "96c47260c219a43a148e90bad10077f8f4c8a4c2c574efe82bbf1163079c7cfe"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-006.json",
+            "fingerprint": "a3c8a50ad38954c2f4f04c55455bf33cefabbf4640948ce5fd661295d0b57e19"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-006.md",
+            "fingerprint": "f38c6b5558590f10442ce72d8a7bc1ab75473fa9ec40d6a8689b3061574e6737"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-007.json",
+            "fingerprint": "91cf11d99a22103d1a9460257efc52fd61572904f983caa20f422e55d45c0fa4"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-007.md",
+            "fingerprint": "5a871a3d4a919fb45f542412fe012ce7665ab2898fd8ba7a7f9e5698c928c567"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-008.json",
+            "fingerprint": "bef538e952d11838a1b3d37345997a890b32c2d6a30010c762e962b665a4cefb"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/test-attempt-008.md",
+            "fingerprint": "3e9116fb3d663cb4ac238b68c7920359b646c8c8c3290faf0cc9ed8a02d5d480"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "48b3775e305c2288b295444298bdbf75a48bc3d1f57121242652ea97b0c396be"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "48b3775e305c2288b295444298bdbf75a48bc3d1f57121242652ea97b0c396be"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "f502871cc2839bda2fd40399df245fad0942b2ccd66ad232514efcd89428ce34"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "f502871cc2839bda2fd40399df245fad0942b2ccd66ad232514efcd89428ce34"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/0e8a1dba58a440a06d3423b7.json",
+            "fingerprint": "e15cd725fec38eaceaeefa4d89bcadc6af5892be76ee9025e92093023fc87b00"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "69bc827fb59e8cb83bd35bfa163dba286172f04ccb4ca77da9330690f254f489"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "69bc827fb59e8cb83bd35bfa163dba286172f04ccb4ca77da9330690f254f489"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "a279bd64d4f8d28a32a7c11eb5ceba0773ec1933e0af4f2abc38e33bc1a7eb0c"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "a279bd64d4f8d28a32a7c11eb5ceba0773ec1933e0af4f2abc38e33bc1a7eb0c"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "172b5a905b3d1bf89da7dd3fabca867809259ad55164dc3d12eeb976ad629fb7"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "172b5a905b3d1bf89da7dd3fabca867809259ad55164dc3d12eeb976ad629fb7"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "8cd9fdb687f756e7d799c0e87c46100bc8e53bf970d62f4079cd38e64549f1af"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "8cd9fdb687f756e7d799c0e87c46100bc8e53bf970d62f4079cd38e64549f1af"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "4b20b9f312d78d75bff2fefa2167095d96b9467a0225c43eb58b9ee631ca34bc"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "4b20b9f312d78d75bff2fefa2167095d96b9467a0225c43eb58b9ee631ca34bc"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "819f4688ebb01bbb4cdd4f10b14ed71070619fa2811a2bf7d3cfc5350134f709"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "819f4688ebb01bbb4cdd4f10b14ed71070619fa2811a2bf7d3cfc5350134f709"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "160c787772f59d7986ece09e3efbd801c78ef1c5fcef92ea0bbb91330a07240f"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "160c787772f59d7986ece09e3efbd801c78ef1c5fcef92ea0bbb91330a07240f"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "55afe0aa771c25917c0dac0dae516df852e20a009d9783ce3f09127a5eb76777"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "55afe0aa771c25917c0dac0dae516df852e20a009d9783ce3f09127a5eb76777"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/85e38f5f6cd080aa334f64a6.json",
+            "fingerprint": "3e3c6f5431f9bb9feff0669b4882414a7ffa1440aa61fa71a7f389e1ff82523f"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "cfe68c7a43a3a34cca11d698ae1365c137313b49aa6f459d1e38ed7c17078d4d"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/a7f3adc0fb8c7c923243832d.json",
+            "fingerprint": "771c5954999b9273286c58b8be00a32ad0c78f2f3db8acfb75bb8e413d69af53"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "5b224cf349d7373fea96f6329d23081a2b9e7f72de3f8bd17030bec43976015d"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "5b224cf349d7373fea96f6329d23081a2b9e7f72de3f8bd17030bec43976015d"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "9fdc4ae6e0e41737eaab01b2e76818f7359eab6a002ebcff3cf7c6fdb23dd864"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "9fdc4ae6e0e41737eaab01b2e76818f7359eab6a002ebcff3cf7c6fdb23dd864"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "c1e4e7f773c481892746e8869b6c16764d67261570ac7e6154d83f2713f11f34"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "c1e4e7f773c481892746e8869b6c16764d67261570ac7e6154d83f2713f11f34"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "45d29a6166f2a6625393c4b2c03454a991eba15346a9d62b109ae3dbb4ec08b2"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "45d29a6166f2a6625393c4b2c03454a991eba15346a9d62b109ae3dbb4ec08b2"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review.md",
+            "fingerprint": "bf5dcf64c5b40d127711500c11c6067a61956c2c71739647d8cb02c9994756d1"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/review.md",
+            "fingerprint": "bf5dcf64c5b40d127711500c11c6067a61956c2c71739647d8cb02c9994756d1"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/scenario-validity-result.json",
+            "fingerprint": "b4a3b900dd888805f6c5844125d3a5912e87d045e0528ad41e8f4351cc9ffaa6"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/spec-gate-source.json",
+            "fingerprint": "987abad5c75992255b416af1cacca06df1d5f22f5d2d0e2a732dc162a5ad0630"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/spec-review.json",
+            "fingerprint": "af7ebd006b800eb4e507bd4b4f8459145e6170734950a64c9c6146721b33c978"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/spec.json",
+            "fingerprint": "d02a539defd749c3cc6c496e6c7dc51efeac2ab386eac26e76fe65fb249244c0"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/spec.md",
+            "fingerprint": "51e35f33dcc5f13a3376106de37e88e87c7e8e87fbaef593d4ba78280c0f728c"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/task-impl-gate-source.json",
+            "fingerprint": "eaef2436aecd442a5faf7f91bdf560c16fcf1953d596a47dbf234f10d8622b26"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tasks/T-1.md",
+            "fingerprint": "258a90fd0c5da965158f1f926bae8cac9ac7f479bdaf078ff5e6d5aae7278745"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tasks/T-2.md",
+            "fingerprint": "34d57ffb11152f2f5bfd53fafe218419b88ced12af3398f61db18df8cb70d3b2"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tasks/T-3.md",
+            "fingerprint": "4e07e74d90e82596248ce11bf48f7a359ff5e6c4b8cd0a86d3980733b85cd2c7"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/test-coverage.json",
+            "fingerprint": "27167d1cbf41d995a18f2617ca1bf4f5f58a3461a3d83b5300d8ab370746cf46"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/test-execute-result.json",
+            "fingerprint": "855c26703bfd9863439a12e4463e1981960812086d0b323a73d95bdf9076e6d7"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/test-execute-result.json",
+            "fingerprint": "855c26703bfd9863439a12e4463e1981960812086d0b323a73d95bdf9076e6d7"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/test-result-review.json",
+            "fingerprint": "1bde7404319086e62adf6e91c032e76132713e146a3a4e836c12aaf9fef9a13b"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/test-result-review.json",
+            "fingerprint": "1bde7404319086e62adf6e91c032e76132713e146a3a4e836c12aaf9fef9a13b"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/test-result-review.md",
+            "fingerprint": "bfddeff0d4883a27565133f6d355a399c1ec191fc1ffcc49bb194395f69a07b9"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/test-review.json",
+            "fingerprint": "69c44abd4d70ab032b251c4bbabeba707c5a24e969458dcad9d3a86fb23f2996"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/test-review.md",
+            "fingerprint": "3e9116fb3d663cb4ac238b68c7920359b646c8c8c3290faf0cc9ed8a02d5d480"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tests/.raw/scenario-validity.log",
+            "fingerprint": "a96e35954189095f26ce237b223336c52d99d368cee5a3718a54c0490dbf9291"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tests/.raw/test-execution.log",
+            "fingerprint": "f47aa3ed4075319b7111fceb377869f6907b5465d887abb1d4ad57272f383b66"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tests/.raw/test-execution.log",
+            "fingerprint": "f47aa3ed4075319b7111fceb377869f6907b5465d887abb1d4ad57272f383b66"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tests/next-action-planning.test.js",
+            "fingerprint": "ee026a6b99d1483aedce86ca4340b8f4c4412a9e9e5f5ccc67a573afbf0c5965"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tests/step-transition-policy.test.js",
+            "fingerprint": "2dc0cd18cb218bb11dc3daa63e72d6524e52e6dd33e19bc739a0ee6fd68619e6"
+          },
+          {
+            "path": "specs/322-flow-target-transition-guards/tests/target-resolution.test.js",
+            "fingerprint": "f726d3b77301167a56e503d851045875e6a326bc52faabc9e1381b1e953f24a6"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "fingerprint": "00cb761138737a2cff65259a3d8922c1c2a92d74ed05ecfdddd2f89ac627a8fd"
+          },
+          {
+            "path": "src/flow/lib/gate-mutation-owner.js",
+            "fingerprint": "46f19f0840e8215f3042b797e9c2d46cde1a38080010c606031e8b310cec5d13"
+          },
+          {
+            "path": "src/flow/lib/get-next-action.js",
+            "fingerprint": "47b66dfb20c4dbd64b12264f74fbb607aa80c24e6e290e18c584086147993865"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "b383591a2baab7cc90da9e0f0e5ce7d519cd8d7a293753826c523c2ab9fb29c9"
+          },
+          {
+            "path": "src/flow/lib/lifecycle-step-transition.js",
+            "fingerprint": "57444d8b647a4fab5f0d9c8b42969b1b40b8ebdf5bcbd6bef1417553eda7ae90"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "fingerprint": "91df4454668b0e068c9e0b428f2fb134bbfb715de784a5618e8ed73b96d5c697"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "243f61afecd4ea59ae4dd50a268135ce1f2db1e19c17e51f38cdb82290cd0fcd"
+          },
+          {
+            "path": "src/flow/lib/run-reopen-draft.js",
+            "fingerprint": "2f2c724d812d3975ad8a2a36ce51065e040e5b8ce9764543463b074ee6fb0127"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "e0c5f2bf3605a0fd0051ce446612c93a2419293bd53ac4deda3d0d6ebe7ff2ca"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "8a72a5d8ebac7a80c2f46bb61b1856f0a565549237e494642395e5e18d90d1a9"
+          },
+          {
+            "path": "src/flow/lib/step-outcome.js",
+            "fingerprint": "a62f4919aec0ed16a6e6c44d8f6a6b2fb25d68744ab9e1211d12aab0333e36ee"
+          },
+          {
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "4f1d8d422ef063fed76fd248a563b0a44c56757087593aa9931af2d666c9fbf8"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "fingerprint": "21596b0c85e408cd52ad9658caba93e2c4eadc7fb7024a5f94f54f792af1c131"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "2f8891898e2d5fab9002f513883ccdb3aa07c6a0083580620f8852ecab822489"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "711117fb9725cc6d73a24563eaa512f201ac0d49d112b94ea3f1ab04359ddb1e"
+          },
+          {
+            "path": "src/lib/flow-store.js",
+            "fingerprint": "77e27536399d1276fe947aa1ed452f8ee2e42233c1620c21c0f5f0bc99703f00"
+          },
+          {
+            "path": "tests/e2e/227-forest-e2e.test.js",
+            "fingerprint": "79eab0e10a0eed64be876469be8e92441fbac94d8bb66f61d0539f5c803dc4e0"
+          },
+          {
+            "path": "tests/e2e/flow/concurrent-prelude-guard.test.js",
+            "fingerprint": "34039e2ac808061e82d88dc002ccb0642081564dcfa16b1be8744303d1ab6be2"
+          },
+          {
+            "path": "tests/e2e/flow/worktree-flow-command-identity.test.js",
+            "fingerprint": "b66a724e2bbef1bb20d579c2ca75491d279c0ca914d3cb39d8accfee02b2b296"
+          },
+          {
+            "path": "tests/helpers/flow-setup.js",
+            "fingerprint": "b9c7e89ee7770223b1844171c9540a44c57b22b00b6cd3e47e0f9b0cd352c4ce"
+          },
+          {
+            "path": "tests/helpers/next-action-harness.js",
+            "fingerprint": "f7759b41ec29f98df84be760ef55ba86ae75c1b0e62ef29ef98dcc4ef47cb410"
+          },
+          {
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js",
+            "fingerprint": "4a632d9cde946ebc55bc47c5a68aebc0d00835b586edc8e24eca525541747461"
+          },
+          {
+            "path": "tests/unit/flow.test.js",
+            "fingerprint": "ddda8c5e349dc26a21d5661f981b81aebc34870fc6c0ac9f606e2d9abde3cbfa"
+          },
+          {
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "fingerprint": "c3580a47502d3957582719677402095a44b59124a44fe2b0c633eaa76d5dee1f"
+          },
+          {
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "fingerprint": "8672df1d50bb6bbb88b1d811b56ed2238b612a71e0bc820584045b93a4d92d29"
+          },
+          {
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "b6f7cd5b7df8f7254d00219149341a4d2c9944769bf0fb1e7b34addd3e4c1298"
+          },
+          {
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "fingerprint": "6ad5bde4a8516422e523ca97f647e89b1a288803667f20ac41994ae0436f6213"
+          },
+          {
+            "path": "tests/unit/flow/flow-state-shared-writer.test.js",
+            "fingerprint": "01670335538eaf1845a1c8e3c6a2403fe9775af50dc2fa0cc6d8867d2dc2b631"
+          },
+          {
+            "path": "tests/unit/flow/gate-mutation-owner.test.js",
+            "fingerprint": "3c9ab53d7b2289c33c90ce60d1c3605fdc80afaa8a41b78431a8e2682d47b9bf"
+          },
+          {
+            "path": "tests/unit/flow/gate-phase-inference.test.js",
+            "fingerprint": "fbee6abe4c4dc9c67dc286bc2acdd75f57b3a0c040955f7af7a7b1092faae7fb"
+          },
+          {
+            "path": "tests/unit/flow/get-check.test.js",
+            "fingerprint": "0f26147a4f48af01f16f27e3738889d88ca56983a95395264c690e8127db0e8e"
+          },
+          {
+            "path": "tests/unit/flow/get-next-action.test.js",
+            "fingerprint": "da502ce78c8d2f2911721cbf264b0f22bdb8225fe4be1c10203d98c7279667fb"
+          },
+          {
+            "path": "tests/unit/flow/plan-rewind.test.js",
+            "fingerprint": "f5f9cd513e84eb0264754e600bdfdf1d76363d4e92b45086d3e4cf3e43645e92"
+          },
+          {
+            "path": "tests/unit/flow/post-hook-flow-scope.test.js",
+            "fingerprint": "85a82b00675ad90a5376f46f019d79f8a955145e63ce073aaa37f2e2f15e32bf"
+          },
+          {
+            "path": "tests/unit/flow/reopen-draft-spec-correction.test.js",
+            "fingerprint": "9681d41df77c7dea211d305f37fd9e421afa5b2a379a6ac490a706f033e6de59"
+          },
+          {
+            "path": "tests/unit/flow/resolve-active-flow.test.js",
+            "fingerprint": "5bf08c7b450f6e49a20d67beb912519c50cacf1d22b0c44f96c2f04ff07118bc"
+          },
+          {
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "8797825cd5776b6ee1f705ff43832a7e1be1a68dd309ec06965ec43b1b081069"
+          },
+          {
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "a0c149b620b3482fcda7c5ff80a5da9a34493e1347f89d87ab495273bb0dcf15"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "79c0af9565120b84f004671b2a18a18cd64ddd075031f65354b6c47d00e4f3a7"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "ce91cf43cb1302adf55af670acde7afd2ae1dec8dc55e32bcc657646c90f9523"
+          },
+          {
+            "path": "tests/unit/flow/set-step.test.js",
+            "fingerprint": "2547c2f8c98804517a61a7c9651febe3ecfc916e25ff25a42cdf8c914a8f3d9a"
+          },
+          {
+            "path": "tests/unit/flow/step-outcome.test.js",
+            "fingerprint": "f00df2c28a936a583337e763448ae3b71e28b41f95edf2818172ee4e6bd04671"
+          },
+          {
+            "path": "tests/unit/flow/task-impl-review-lifecycle.test.js",
+            "fingerprint": "fd898291de1c7d8db7b0cdf140fc6832ce253e0482682aa4543e082fe528afab"
+          },
+          {
+            "path": "tests/unit/lib/dispatcher.test.js",
+            "fingerprint": "5c121467e1af102a8a75d0ce9b8822fc3d551123934312a191b9105a43c2f9b9"
+          }
+        ],
+        "fixAttempts": 0,
+        "selectedAction": "record-and-proceed",
+        "remainingRisk": "The full regression remains failed without an attributable assertion; focused and related Issue #443 evidence passed.",
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": "record-and-proceed",
+        "recordAndProceed": {
+          "eligible": true,
+          "validated": true,
+          "evidence": "The retained raw log contains child runner exit 1 with zero stdout/stderr, and issue-log records the full-regression failure reproduced unchanged at the base commit."
+        },
+        "humanSummary": "result=fail failureCategory=existing_failure failureKind=unattributed_existing_failure raw_output=specs/322-flow-target-transition-guards/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=The full regression remains failed without an attributable assertion; focused and related Issue #443 evidence passed."
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-2",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-3",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 3,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: persist repair intent with step transition\n    fix: integrate repair transactions with transition commits\n    fix: complete flow transition guard remediation\n    WIP: checkpoint issue 443 flow guards\n    143 files changed, 15441 insertions(+), 635 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 32\n    agent calls ................. 108\n    input tokens ................ 5,458,650\n    output tokens ............... 131,798\n    cache-read tokens ........... 4,110,464\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 3813.1s\n      draft ..................... 6.6s\n      draft-questions-review .... 22.9s\n      draft-coverage-review ..... 14.6s\n      draft-gate ................ 47.0s\n      spec-review ............... 135.7s\n      spec-gate ................. 44.8s\n      test-review ............... 177.7s\n      impl-review ............... 788.6s\n      impl-triage ............... 75.5s\n      retro ..................... 121.4s\n      impl-gate ................. 2334.7s\n      acceptance-review ......... 43.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 9  passed 9  failed 0 verdict=pass\n    raw_output: specs/322-flow-target-transition-guards/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=unattributed_existing_failure failureCategory=existing_failure raw_output=specs/322-flow-target-transition-guards/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=The full regression remains failed without an attributable assertion; focused and related Issue #443 evidence passed.\n\n  Tasks (3/3)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n    T-3 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (62 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/322-flow-target-transition-guards/issue-log.json\n\n    Important (10 of 30)\n    - [spec-gate] `maxAttempts` is required to be a positive integer before writes or side effects, but no explicit upper bound is specified for the retry count.; The maxAttempts validation fixture is required to fail before mutation, but the acceptance c...\n    - [impl-gate] unknown step: impl-gate\n    - [impl-gate] gate FAIL (no details)\n    - [impl-gate] unknown step: impl-gate\n    - [impl-gate] gate FAIL (no details)\n    - [task-review] fix: add dispatcher target-failure no-log coverage\n    - [task-review] fix: strengthen R9 public CLI failure evidence after the finding\n    - [impl-gate] unknown transition step: impl-gate\n    - [impl-gate] gate FAIL (no details)\n    - [task-gate] fix: scoped every task gate mutation and refreshed OOP/atomic regression fixtures\n    ... 20 important issue-log entries omitted\n\n    Recent Other (5 of 32)\n    - [spec-gate] The diff adds shared-test-related changes and coverage metadata, but it does not add any new spec-local coverage file under `specs/322-flow-target-transition-guards/tests/` with a `// spec: R<N>` header. Shared test updates do not substi...\n    - [impl-gate] no-fix: retain verified spec-local test coverage after fourth cached false positive\n    - [spec-gate] The diff adds shared-test references and coverage metadata, but it does not add any new spec-local test file under specs/322-flow-target-transition-guards/tests/ with a `// spec: R<N>` header. Shared test updates do not substitute for th...\n    - [spec-gate] The diff adds shared-test/coverage metadata changes, but it does not add new spec-local coverage under `specs/322-flow-target-transition-guards/tests/` with `// spec: R<N>` headers. Shared test updates do not satisfy the required spec-lo...\n    - [acceptance-decision] User explicitly selected accept_risk_and_continue for notVerifiable acceptance evidence.\n    ... 27 other issue-log entries omitted"
+}

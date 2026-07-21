@@ -13,6 +13,7 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
+import { NormalStepTransition } from "../../../src/flow/lib/step-transition-policy.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow set step", () => {
@@ -73,7 +74,7 @@ describe("flow set step", () => {
     const updates = [];
     const flowManager = {
       state: {
-        steps: [{ id: "test", status: "in_progress" }],
+        steps: [{ id: "draft", status: "in_progress" }],
         tasks: [{
           id: "T-1",
           steps: [
@@ -85,13 +86,13 @@ describe("flow set step", () => {
         currentTaskId: "T-1",
       },
       load() { return this.state; },
-      updateStepStatus(id, status, opts) { updates.push({ id, status, opts }); },
+      updateStepStatus(transition, opts) { updates.push({ transition, opts }); },
     };
     const command = new SetStepCommand();
 
     await command.execute({
-      id: "test",
-      status: "in_progress",
+      id: "draft",
+      status: "skipped",
       specId: "specs/demo/spec.json",
       flowManager,
     });
@@ -99,22 +100,44 @@ describe("flow set step", () => {
     flowManager.state.tasks[0].steps[0].status = "in_progress";
     await command.execute({
       id: "task-impl",
-      status: "in_progress",
+      status: "skipped",
       specId: "specs/demo/spec.json",
       flowManager,
     });
 
-    assert.deepEqual(updates, [
-      {
-        id: "test",
-        status: "in_progress",
-        opts: { specId: "specs/demo/spec.json", taskId: null },
-      },
-      {
-        id: "task-impl",
-        status: "in_progress",
-        opts: { specId: "specs/demo/spec.json", taskId: "T-1" },
-      },
+    assert.equal(updates.length, 2);
+    assert.ok(updates.every(({ transition }) => transition instanceof NormalStepTransition));
+    assert.deepEqual(updates.map(({ transition, opts }) => ({
+      stepId: transition.stepId,
+      status: transition.requestedStatus,
+      opts,
+    })), [
+      { stepId: "draft", status: "skipped", opts: { specId: "specs/demo/spec.json", taskId: null } },
+      { stepId: "task-impl", status: "skipped", opts: { specId: "specs/demo/spec.json", taskId: "T-1" } },
     ]);
+  });
+
+  it("rejects a current step whose completion is owned by a definition lifecycle", async () => {
+    const updates = [];
+    const state = {
+      spec: "specs/demo/spec.json",
+      currentTaskId: null,
+      steps: [{ id: "scenario-validity", status: "in_progress" }],
+      tasks: [],
+    };
+    const result = await new SetStepCommand().execute({
+      id: "scenario-validity",
+      status: "done",
+      root: tmp,
+      flowManager: {
+        load() { return state; },
+        updateStepStatus(transition) { updates.push(transition); },
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "FLOW_STEP_TRANSITION_INVALID");
+    assert.equal(updates.length, 0);
+    assert.equal(state.steps[0].status, "in_progress");
   });
 });

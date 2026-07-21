@@ -29,6 +29,7 @@ import {
   capturePlanRewindEvidence,
   validatePlanRewindGuards,
 } from "./plan-rewind.js";
+import { ExplicitRecoveryTransition } from "./step-transition-policy.js";
 
 const MAX_REASON_LENGTH = 500;
 const SPEC_CORRECTION_CATEGORY = "spec-correction";
@@ -126,6 +127,26 @@ function resetStepSequence(state, stepIds, destinationStep = "draft", options) {
 
 function resetSpecCorrectionStepSequence(state, stepIds) {
   return resetStepSequence(state, stepIds, "draft", { runtimeLog: true });
+}
+
+function createReopenResetTransition(state, stepIds, { clearRuntimeLog = false } = {}) {
+  const changes = stepIds.flatMap((stepId) => {
+    const step = findStepById(state.steps || [], stepId);
+    return step ? [{
+      stepId,
+      currentStatus: step.status,
+      requestedStatus: stepId === "draft" ? "in_progress" : "pending",
+    }] : [];
+  });
+  const draft = findStepById(state.steps || [], "draft");
+  return new ExplicitRecoveryTransition({
+    stepId: "draft",
+    currentStatus: draft?.status,
+    requestedStatus: "in_progress",
+    entrypoint: "reopen-draft",
+    changes,
+    clearRuntimeLog,
+  });
 }
 
 function resetSpecCorrectionTasks(state) {
@@ -434,9 +455,18 @@ function executeSpecCorrection({ flowManager, root, specId, state, reason }) {
   }
 
   const boundManager = flowManager.forRoot(root, { specId });
+  const draft = findStepById(state.steps || [], "draft");
+  const transition = new ExplicitRecoveryTransition({
+    stepId: "draft",
+    currentStatus: draft?.status,
+    requestedStatus: "in_progress",
+    entrypoint: "reopen-spec-correction",
+    expectedOriginal: state,
+    replacementState: nextState,
+  });
   let replacement;
   try {
-    replacement = boundManager.saveAtomic(nextState, { expectedOriginal: state });
+    replacement = boundManager.saveRecoveryAtomic(transition);
   } catch (err) {
     if (err.committed !== true) return saveFailure(err);
     let committedState = null;
@@ -585,7 +615,16 @@ export class RunReopenDraftCommand extends FlowCommand {
         applyPlanRewind(state, request, []);
         const specDir = path.dirname(path.resolve(root, state.spec));
         const evidence = capturePlanRewindEvidence(specDir);
-        const audit = flowManager.rewindPlan(request, evidence);
+        const draft = findStepById(state.steps || [], "draft");
+        const transition = new ExplicitRecoveryTransition({
+          stepId: "draft",
+          currentStatus: draft?.status,
+          requestedStatus: "in_progress",
+          entrypoint: "reopen-draft",
+          request,
+          evidence,
+        });
+        const audit = flowManager.rewindPlan(transition);
         return Envelope.ok("run", "reopen-draft", {
           reopened: true,
           mode: "flow-level",
@@ -604,10 +643,9 @@ export class RunReopenDraftCommand extends FlowCommand {
       }
     }
     if (state.currentTaskId == null && PLAN_REOPEN_ACTIVE_STEPS.includes(previousActiveStep)) {
-      const resetSteps = [];
-      flowManager.mutate((nextState) => {
-        resetSteps.push(...resetStepSequence(nextState, ["draft", ...PLAN_REOPEN_RESET_STEPS]));
-      });
+      const transition = createReopenResetTransition(state, ["draft", ...PLAN_REOPEN_RESET_STEPS]);
+      flowManager.rewindPlan(transition);
+      const resetSteps = transition.changes.map((change) => change.stepId);
 
       appendIssueLog(root, state, {
         step: "draft",
@@ -636,13 +674,12 @@ export class RunReopenDraftCommand extends FlowCommand {
       );
     }
 
-    const resetSteps = [];
-    flowManager.mutate((nextState) => {
-      resetSteps.push(...resetStepSequence(
-        nextState,
-        ["draft", ...PLAN_REOPEN_RESET_STEPS, "implement"],
-      ));
-    });
+    const transition = createReopenResetTransition(
+      state,
+      ["draft", ...PLAN_REOPEN_RESET_STEPS, "implement"],
+    );
+    flowManager.rewindPlan(transition);
+    const resetSteps = transition.changes.map((change) => change.stepId);
 
     appendIssueLog(root, state, {
       step: "draft",

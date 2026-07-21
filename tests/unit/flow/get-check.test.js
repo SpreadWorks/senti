@@ -11,6 +11,7 @@ import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow get check", () => {
@@ -36,13 +37,19 @@ describe("flow get check", () => {
   it("returns JSON envelope with pass and checks array", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
-    makeFlowManager(tmp).updateStepStatus("draft-questions-review", "skipped");
-    makeFlowManager(tmp).updateStepStatus("draft-refine", "skipped");
-    makeFlowManager(tmp).updateStepStatus("draft-coverage-review", "skipped");
-    makeFlowManager(tmp).updateStepStatus("spec-gate", "done");
-    makeFlowManager(tmp).updateStepStatus("spec-review", "skipped");
-    makeFlowManager(tmp).updateStepStatus("test", "done");
-    makeFlowManager(tmp).updateStepStatus("test-review", "skipped");
+    makeFlowManager(tmp).mutate((state) => {
+      for (const [stepId, status] of [
+        ["draft-questions-review", "skipped"],
+        ["draft-refine", "skipped"],
+        ["draft-coverage-review", "skipped"],
+        ["spec-gate", "done"],
+        ["spec-review", "skipped"],
+        ["test", "done"],
+        ["test-review", "skipped"],
+      ]) {
+        findStepById(state.steps, stepId).status = status;
+      }
+    });
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "check", "impl"],
       { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },

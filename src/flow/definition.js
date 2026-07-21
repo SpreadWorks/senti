@@ -106,7 +106,56 @@ export class SetStepStatus {
   }
 
   apply(adapter) {
-    return adapter.setStepStatus(this.step, this.status);
+    return adapter.setStepStatus(this.step, this.status, this);
+  }
+
+  forStep(step) {
+    const scopedStep = requireString(step, "step");
+    if (scopedStep === this.step) return this;
+    return new SetStepStatus({ step: scopedStep, status: this.status });
+  }
+}
+
+const DEFINITION_LIFECYCLE_PLAN_TOKEN = Symbol("definition-lifecycle-plan");
+
+export class DefinitionLifecyclePlan {
+  constructor(token, { event, currentStepId, actions }) {
+    if (token !== DEFINITION_LIFECYCLE_PLAN_TOKEN) {
+      throw new Error("DefinitionLifecyclePlan is created only by the definition resolver");
+    }
+    if (!Array.isArray(actions)) throw new Error("actions must be an array");
+    const lifecycleActions = [...actions];
+    const hasStepTransition = lifecycleActions.some((action) => action instanceof SetStepStatus);
+    this.event = requireString(event, "event");
+    this.currentStepId = currentStepId == null && !hasStepTransition
+      ? null
+      : requireString(currentStepId, "currentStepId");
+    this.actions = Object.freeze(lifecycleActions);
+    Object.freeze(this);
+  }
+
+  allows(action) {
+    return this.actions.includes(action);
+  }
+
+  forStepAlias({ sourceStep, targetStep }) {
+    const source = requireString(sourceStep, "sourceStep");
+    const target = requireString(targetStep, "targetStep");
+    if (source === target) return this;
+    const actions = this.actions.map((action) => (
+      action instanceof SetStepStatus && action.step === source
+        ? action.forStep(target)
+        : action
+    ));
+    const currentStepId = this.currentStepId === source ? target : this.currentStepId;
+    if (currentStepId === this.currentStepId && actions.every((action, index) => action === this.actions[index])) {
+      return this;
+    }
+    return new DefinitionLifecyclePlan(DEFINITION_LIFECYCLE_PLAN_TOKEN, {
+      event: this.event,
+      currentStepId,
+      actions,
+    });
   }
 }
 
@@ -325,9 +374,7 @@ function resolvePlanReviewLifecycle(input) {
     return resolveDraftReviewLifecycle(input);
   }
   const actions = [];
-  if (verdict !== "TOOLING_FAILURE") {
-    actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
-  }
+  const recordRetry = verdict !== "TOOLING_FAILURE";
   if (phase === "spec") {
     if (verdict === "PASS" || verdict === "ADVISORY") {
       actions.push(
@@ -338,6 +385,7 @@ function resolvePlanReviewLifecycle(input) {
     } else if (verdict === "FAIL") {
       actions.push(new SetStepStatus({ step: "spec-review", status: "done" }));
     }
+    if (recordRetry) actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
     return actions;
   }
   if (phase === "test") {
@@ -346,8 +394,10 @@ function resolvePlanReviewLifecycle(input) {
     } else if (verdict === "TOOLING_FAILURE") {
       actions.push(new AppendIssueLog({ source: "test-review-tooling-failure" }));
     }
+    if (recordRetry) actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
     return actions;
   }
+  if (recordRetry) actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
   return actions;
 }
 
@@ -365,11 +415,11 @@ function resolveImplReviewLifecycle(input) {
   const proposalCount = input.result?.artifacts?.proposalCount ?? 0;
   const actions = [];
   if (input.result?.artifacts?.phase === "impl") {
-    actions.push(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
     if (!flowScoped) {
       if (verdict === "PASS" || verdict === "ADVISORY") {
         actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
       }
+      actions.push(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
       return actions;
     }
     if (verdict === "PASS" || verdict === "ADVISORY") {
@@ -377,13 +427,15 @@ function resolveImplReviewLifecycle(input) {
         new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }),
         new SetStepStatus({ step: "impl-triage", status: "done" }),
         new SetStepStatus({ step: "impl-repair", status: "done" }),
+        new SetStepStatus({ step: "impl-gate", status: "in_progress" }),
       );
-    } else if (verdict === "FAIL") {
+    } else if (flowScoped && verdict === "FAIL") {
       actions.push(
         new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }),
         new SetStepStatus({ step: "impl-triage", status: "in_progress" }),
       );
     }
+    actions.push(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
     return actions;
   }
   if (!input.dryRun && proposalCount > 0) {
@@ -412,12 +464,14 @@ function resolveGateLifecycle(input) {
     return [new SetStepStatus({ step, status: "in_progress" })];
   }
   if (input.result?.artifacts?.deferred === true) return [];
-  const actions = [new IncrementMetric({ phase, counter: "gateRetry" })];
+  const actions = [];
   if (input.result?.result === "pass") {
-    actions.push(new ExecuteSideEffects());
     actions.push(new SetStepStatus({ step, status: "done" }));
+    actions.push(new IncrementMetric({ phase, counter: "gateRetry" }));
+    actions.push(new ExecuteSideEffects());
   } else {
     actions.push(new SetStepStatus({ step, status: "in_progress" }));
+    actions.push(new IncrementMetric({ phase, counter: "gateRetry" }));
     actions.push(new AppendIssueLog({ source: "gate-result" }));
   }
   return actions;
@@ -476,10 +530,8 @@ function resolveFinalizeLifecycle(input) {
   if (command === "finalize-commit") {
     actions.push(new RunLifecycleHook({ module: "finalize", handler: "commitDurableArtifacts" }));
   }
-  actions.push(
-    new CompleteOutboxEffect({ step: command }),
-    new SetStepStatus({ step: command, status: "done" }),
-  );
+  actions.push(new SetStepStatus({ step: command, status: "done" }));
+  actions.push(new CompleteOutboxEffect({ step: command }));
   if (command === "finalize-cleanup") {
     actions.push(new RunLifecycleHook({ module: "finalize", handler: "commitFinalizeCompletion" }));
   }
@@ -491,8 +543,8 @@ function resolveReportLifecycle(input) {
   if (input.event === "report:onError") return [new FailOutboxEffect({ step: "report" })];
   if (input.result?.result !== "ok") return [new FailOutboxEffect({ step: "report" })];
   return [
-    new CompleteOutboxEffect({ step: "report" }),
     new SetStepStatus({ step: "report", status: "done" }),
+    new CompleteOutboxEffect({ step: "report" }),
   ];
 }
 
@@ -509,10 +561,50 @@ function resolveLifecycleForNode(node, input = {}) {
 }
 
 export function resolveLifecycle(input = {}) {
+  if (input.event === "set-step:impl-triage") {
+    return [
+      new SetStepStatus({ step: "impl-repair", status: "done" }),
+      new SetStepStatus({ step: "impl-gate", status: "in_progress" }),
+    ];
+  }
+  if ([
+    "gate:defer",
+    "gate:phase-inference",
+    "review:defer",
+    "finalize-cleanup:complete",
+    "definition:keep-in-progress",
+    "definition:skip-steps",
+    "test-execute:post",
+    "scenario-validity:post",
+    "test-result-review:post",
+    "retro:post",
+    "final-regression:post",
+  ].includes(input.event)) {
+    return [new SetStepStatus({ step: input.targetStepId, status: input.status })];
+  }
   const stepId = input.currentStepId || resolveRuntimeStep(input);
   const node = stepId ? (getFlowNode(stepId) || getTaskNode(stepId)) : null;
   if (!node) return [];
   return node.resolveLifecycle(input);
+}
+
+export function resolveLifecyclePlan(input = {}) {
+  let actions = resolveLifecycle(input);
+  const currentStepId = input.currentStepId || resolveRuntimeStep(input) || input.targetStepId || null;
+  if (input.settleInProgressAsDone === true) {
+    actions = actions.map((action) => (
+      action instanceof SetStepStatus
+        && action.step === currentStepId
+        && action.status === "in_progress"
+        ? new SetStepStatus({ step: action.step, status: "done" })
+        : action
+    ));
+  }
+  return new DefinitionLifecyclePlan(DEFINITION_LIFECYCLE_PLAN_TOKEN, {
+    event: input.event,
+    currentStepId,
+    actions,
+  });
 }
 
 export function writeEmptyDraftReviewRouteArtifacts({ specDir, route, generatedAt = new Date().toISOString() }) {
@@ -572,6 +664,7 @@ class FlowNode {
     sideEffects = null,
     gatePhase = null,
     failurePolicy = null,
+    definitionLifecycleOwned = false,
   }) {
     this.id = id;
     this.label = label;
@@ -586,6 +679,7 @@ class FlowNode {
     this.children = children ? Object.freeze(children.map((c) => Object.freeze(c))) : null;
     this.sideEffects = sideEffects ? Object.freeze([...sideEffects]) : null;
     this.gatePhase = gatePhase ? Object.freeze([...gatePhase]) : null;
+    this.definitionLifecycleOwned = definitionLifecycleOwned === true;
     if (failurePolicy !== null && !FAILURE_POLICIES.has(failurePolicy)) {
       throw new Error(`invalid failurePolicy: ${failurePolicy}`);
     }
@@ -645,6 +739,7 @@ function createPlanReviewNode({ id, label, contextKinds }) {
     outputSchemaRef: "next-action/review.schema.json",
     maxAttempts,
     failurePolicy: "retry",
+    definitionLifecycleOwned: true,
   });
 }
 
@@ -735,6 +830,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 5,
         gatePhase: ["draft"],
         failurePolicy: "block",
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "spec",
@@ -773,6 +869,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 5,
         gatePhase: ["spec", "task-spec"],
         failurePolicy: "block",
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "approval",
@@ -800,6 +897,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/scenario-validity.schema.json",
         maxAttempts: 3,
+        definitionLifecycleOwned: true,
       }),
       createPlanReviewNode({ id: "test-review", label: "Review (test)", contextKinds: ["spec", "guardrail"] }),
     ],
@@ -826,6 +924,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/test-execute.schema.json",
         maxAttempts: 3,
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "test-result-review",
@@ -835,6 +934,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/test-result-review.schema.json",
         maxAttempts: 3,
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "impl-review",
@@ -845,6 +945,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/review.schema.json",
         maxAttempts: 4,
         failurePolicy: "retry",
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "impl-triage",
@@ -875,6 +976,7 @@ const FLOW_DEFINITION = Object.freeze([
         sideEffects: GATE_IMPL_SIDE_EFFECTS,
         gatePhase: ["integration", "task-impl"],
         failurePolicy: "block",
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "retro",
@@ -884,6 +986,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/retro.schema.json",
         maxAttempts: 2,
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "acceptance-review",
@@ -895,6 +998,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 1,
         sideEffects: ["promoteFinalRegression"],
         failurePolicy: "amend-spec",
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "acceptance-decision",
@@ -914,6 +1018,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/final-regression.schema.json",
         maxAttempts: 2,
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "report",
@@ -923,6 +1028,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "diff", "test", "issue-log", "retro"],
         outputSchemaRef: "next-action/report.schema.json",
         maxAttempts: 2,
+        definitionLifecycleOwned: true,
       }),
       new FlowNode({
         id: "finalize",
@@ -936,6 +1042,7 @@ const FLOW_DEFINITION = Object.freeze([
             contextKinds: ["spec", "diff"],
             outputSchemaRef: "next-action/finalize.schema.json",
             requiresApproval: true,
+            definitionLifecycleOwned: true,
           }),
           new FlowNode({
             id: "finalize-merge",
@@ -944,6 +1051,7 @@ const FLOW_DEFINITION = Object.freeze([
             instructionsKey: "impl.finalize-merge",
             contextKinds: ["spec", "diff"],
             outputSchemaRef: "next-action/finalize.schema.json",
+            definitionLifecycleOwned: true,
           }),
           new FlowNode({
             id: "finalize-sync",
@@ -952,6 +1060,7 @@ const FLOW_DEFINITION = Object.freeze([
             instructionsKey: "impl.finalize-sync",
             contextKinds: ["spec"],
             outputSchemaRef: "next-action/finalize.schema.json",
+            definitionLifecycleOwned: true,
           }),
           new FlowNode({
             id: "finalize-cleanup",
@@ -960,6 +1069,7 @@ const FLOW_DEFINITION = Object.freeze([
             instructionsKey: "impl.finalize-cleanup",
             contextKinds: ["spec"],
             outputSchemaRef: "next-action/finalize.schema.json",
+            definitionLifecycleOwned: true,
           }),
         ],
       }),
@@ -987,6 +1097,7 @@ const TASK_DEFINITION = Object.freeze([
     outputSchemaRef: "next-action/review.schema.json",
     maxAttempts: 4,
     failurePolicy: "retry",
+    definitionLifecycleOwned: true,
   }),
   new FlowNode({
     id: "task-gate",
@@ -998,6 +1109,7 @@ const TASK_DEFINITION = Object.freeze([
     maxAttempts: 5,
     sideEffects: ["completeTask", "promoteNextTask", "mergeOverview"],
     failurePolicy: "block",
+    definitionLifecycleOwned: true,
   }),
 ]);
 
@@ -1078,6 +1190,11 @@ export function resolveMaxAttempts({ scope = "flow", stepId, context = {} }) {
 export function resolveSideEffects({ scope = "flow", stepId }) {
   const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
   return node?.sideEffects ? [...node.sideEffects] : null;
+}
+
+export function isDefinitionLifecycleOwnedStep({ scope = "flow", stepId }) {
+  const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
+  return node?.definitionLifecycleOwned === true;
 }
 
 export function deriveFlowPrereqs(targetId) {

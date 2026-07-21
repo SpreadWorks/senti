@@ -6,7 +6,12 @@ import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { makeFlowManager, replaceFlowState, setupFlow } from "../../helpers/flow-setup.js";
+import {
+  makeFlowManager,
+  makeLifecycleStepTransition,
+  replaceFlowState,
+  setupFlow,
+} from "../../helpers/flow-setup.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import {
   WorktreeFlowBindingStore,
@@ -57,11 +62,17 @@ test("flow state writers borrow finalize repository authority and reject foreign
     const manager = makeFlowManager(root);
     const repository = new RepositoryFlowOperationLock({ mainRoot: root });
     const ownerToken = repository.acquire();
+    const transition = makeLifecycleStepTransition(
+      manager.loadReadOnly(specId),
+      "finalize-cleanup",
+      "done",
+      "finalize-cleanup:complete",
+    );
     assert.throws(
-      () => manager.updateStepStatus("finalize-cleanup", "done", { specId }),
+      () => manager.updateStepStatus(transition, { specId }),
       (error) => error.code === "REPOSITORY_FLOW_OPERATION_BUSY",
     );
-    manager.updateStepStatus("finalize-cleanup", "done", { specId, operationOwnerToken: ownerToken });
+    manager.updateStepStatus(transition, { specId, operationOwnerToken: ownerToken });
     repository.release();
     assert.equal(findStepById(manager.loadReadOnly(specId).steps, "finalize-cleanup").status, "done");
   } finally {
@@ -485,7 +496,7 @@ test("finalize lifecycle advances commit, merge, sync, and cleanup through their
 
     const completed = await runFinalize(root, specId, {
       flowManager: fixture.flowManager,
-      flowState: afterCommit,
+      flowState: mainState,
     });
     assert.equal(completed.ok, true, JSON.stringify(completed));
     assert.equal(completed.data.report.text, "Finalize lifecycle report");

@@ -15,6 +15,7 @@ import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { resolveFlowContext } from "../../../src/flow/lib/flow-context.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import { RunReopenDraftCommand } from "../../../src/flow/lib/run-reopen-draft.js";
+import { ExplicitRecoveryTransition } from "../../../src/flow/lib/step-transition-policy.js";
 import { findInProgressLeaf, findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { makeDefaultTask } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
@@ -208,6 +209,22 @@ async function runDirect(root, input = targetInput(), options = {}) {
   return new RunReopenDraftCommand().run(makeContainer(root, options), input);
 }
 
+function interceptRecoverySave(flowManager, handler) {
+  const forRoot = flowManager.forRoot.bind(flowManager);
+  flowManager.forRoot = (root, options) => {
+    const bound = forRoot(root, options);
+    const saveRecoveryAtomic = bound.saveRecoveryAtomic.bind(bound);
+    bound.saveRecoveryAtomic = (transition, recoveryOptions) => handler({
+      root,
+      options,
+      transition,
+      recoveryOptions,
+      saveRecoveryAtomic,
+    });
+    return bound;
+  };
+}
+
 function git(root, args) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
 }
@@ -247,19 +264,21 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     const container = makeContainer(tmp);
     const fm = container.get("flowManager");
     let saves = 0;
-    const forRoot = fm.forRoot.bind(fm);
-    fm.forRoot = (root, options) => {
+    interceptRecoverySave(fm, ({
+      root,
+      options,
+      transition,
+      recoveryOptions,
+      saveRecoveryAtomic,
+    }) => {
       assert.equal(root, tmp);
       assert.deepEqual(options, { specId: SPEC_ID });
-      const bound = forRoot(root, options);
-      const saveAtomic = bound.saveAtomic.bind(bound);
-      bound.saveAtomic = (state, atomicOptions) => {
-        saves += 1;
-        assert.deepEqual(atomicOptions.expectedOriginal, JSON.parse(fs.readFileSync(files.flow, "utf8")));
-        return saveAtomic(state, atomicOptions);
-      };
-      return bound;
-    };
+      assert.ok(transition instanceof ExplicitRecoveryTransition);
+      assert.equal(transition.entrypoint, "reopen-spec-correction");
+      assert.deepEqual(transition.expectedOriginal, JSON.parse(fs.readFileSync(files.flow, "utf8")));
+      saves += 1;
+      return saveRecoveryAtomic(transition, recoveryOptions);
+    });
     fm.save = () => { throw new Error("non-atomic save must not be used"); };
     fm.mutate = () => { throw new Error("mutate must not be used for spec-correction"); };
 
@@ -596,20 +615,16 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     const { files } = setupFlow(tmp);
     const before = snapshot(files);
     const container = makeContainer(tmp);
-    container.get("flowManager").forRoot = () => {
-      return {
-        saveAtomic() {
-          const err = new Error("injected atomic save failure");
-          err.code = "FLOW_STATE_ATOMIC_SAVE_FAILED";
-          err.committed = false;
-          err.path = files.flow;
-          err.lockPath = `${files.flow}.writer.lock`;
-          err.cleanupErrors = [{ phase: "cleanup", target: files.flow, message: "injected cleanup failure" }];
-          err.residuePaths = [`${files.flow}.tmp`];
-          throw err;
-        },
-      };
-    };
+    interceptRecoverySave(container.get("flowManager"), () => {
+      const err = new Error("injected atomic save failure");
+      err.code = "FLOW_STATE_ATOMIC_SAVE_FAILED";
+      err.committed = false;
+      err.path = files.flow;
+      err.lockPath = `${files.flow}.writer.lock`;
+      err.cleanupErrors = [{ phase: "cleanup", target: files.flow, message: "injected cleanup failure" }];
+      err.residuePaths = [`${files.flow}.tmp`];
+      throw err;
+    });
 
     const result = await new RunReopenDraftCommand().run(container, targetInput());
 
@@ -685,22 +700,18 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     const { files } = setupFlow(tmp, { tasks: [startedTask("T-1")], currentTaskId: "T-1" });
     const container = makeContainer(tmp);
     const fm = container.get("flowManager");
-    const forRoot = fm.forRoot.bind(fm);
     let injected = false;
-    fm.forRoot = (root, options) => {
-      const bound = forRoot(root, options);
-      const saveAtomic = bound.saveAtomic.bind(bound);
-      bound.saveAtomic = (state, atomicOptions) => saveAtomic(state, {
-        ...atomicOptions,
+    interceptRecoverySave(fm, ({ transition, recoveryOptions, saveRecoveryAtomic }) => (
+      saveRecoveryAtomic(transition, {
+        ...recoveryOptions,
         faultInjector(event) {
           if (!injected && event.phase === "after-state-rename") {
             injected = true;
             throw new Error("simulated response loss after state replacement");
           }
         },
-      });
-      return bound;
-    };
+      })
+    ));
 
     const first = await new RunReopenDraftCommand().run(container, targetInput());
 
@@ -725,12 +736,9 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     const { files } = setupFlow(tmp, { tasks: [startedTask("T-1")], currentTaskId: "T-1" });
     const container = makeContainer(tmp);
     const fm = container.get("flowManager");
-    const forRoot = fm.forRoot.bind(fm);
-    fm.forRoot = (root, options) => {
-      const bound = forRoot(root, options);
-      const saveAtomic = bound.saveAtomic.bind(bound);
-      bound.saveAtomic = (state, atomicOptions) => saveAtomic(state, {
-        ...atomicOptions,
+    interceptRecoverySave(fm, ({ transition, recoveryOptions, saveRecoveryAtomic }) => (
+      saveRecoveryAtomic(transition, {
+        ...recoveryOptions,
         faultInjector(event) {
           if (event.phase !== "after-state-rename") return;
           const divergent = JSON.parse(fs.readFileSync(files.flow, "utf8"));
@@ -738,9 +746,8 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
           writeJson(files.flow, divergent);
           throw new Error("simulated divergent authority after replacement");
         },
-      });
-      return bound;
-    };
+      })
+    ));
 
     const result = await new RunReopenDraftCommand().run(container, targetInput());
 

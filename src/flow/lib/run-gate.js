@@ -106,6 +106,8 @@ import {
   ensureRepairFingerprintContract,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
+import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
+import { GateMutationOwner } from "./gate-mutation-owner.js";
 
 export { resolveGateStepId };
 
@@ -1849,8 +1851,8 @@ const GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "gate-retry-exhausted";
 const GATE_RECOVERY_TRIGGER_RESULT_FAIL = "gate-result-fail";
 
 export function resolveRetryMax(retryContext = {}, phase) {
-  const stepId = resolveGateStepId(phase);
   const flowState = retryContext.flowState || retryContext;
+  const stepId = new GateMutationOwner({ flowState, phase }).stepId;
   const scope = retryContext.scope
     || (flowState?.currentTaskId != null ? "task" : "flow");
   return resolveMaxAttempts({ scope, stepId, context: flowState }) ?? 5;
@@ -1892,6 +1894,7 @@ function hasGateRecoveryBaseline(state, phase) {
 function persistGateRecoveryBaseline(ctx, phase, trigger, options = {}) {
   if (!GATE_RECOVERY_PHASES.has(phase)) return;
   if (!ctx?.root || typeof ctx?.flowManager?.mutate !== "function") return;
+  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
   ctx.flowManager.mutate((state) => {
     if (!state?.spec) return;
     if (options.seedOnly === true && hasGateRecoveryBaseline(state, phase)) return;
@@ -1902,7 +1905,7 @@ function persistGateRecoveryBaseline(ctx, phase, trigger, options = {}) {
       phase,
       trigger,
     });
-  });
+  }, owner.routeOptions());
 }
 
 // Set of step ids that represent gate evaluations. After the phase-prefix
@@ -2369,11 +2372,13 @@ function gateExhaustionOutcome(artifact, context = {}) {
 }
 
 function recordGateOutcome(ctx, result, phase, attempt, outcome) {
+  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
   return recordStepAttempt(ctx, {
-    stepId: resolveGateStepId(phase),
+    stepId: owner.stepId,
     attempt: Math.max(1, attempt),
     outcome,
     result,
+    routeOptions: owner.routeOptions(),
   });
 }
 
@@ -2447,6 +2452,11 @@ function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
     phase,
   }));
   if (!(outcome instanceof DeferOutcome)) return null;
+  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
+  owner.updateStepStatus(ctx.flowManager, {
+    status: "done",
+    event: "gate:defer",
+  });
   const { findings } = persistGateSourceFindingIds(source.specDir, source.sourceArtifact, source.artifact);
   deferExhaustedSemanticFindings({
     root: ctx.root,
@@ -2455,7 +2465,6 @@ function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
     sourceArtifact: source.sourceArtifact,
     attempts,
   });
-  ctx.flowManager.updateStepStatus(resolveGateStepId(phase), "done");
   return gateDeferredResult(phase, attempts, findings.length);
 }
 
@@ -2769,7 +2778,8 @@ function appendGateEscalationIssueLog(ctx, phase, messages) {
  */
 export function updateGateRetryCounter(ctx, result) {
   const phase = result?.artifacts?.phase || ctx?.phase;
-  const stepId = resolveGateStepId(phase);
+  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
+  const stepId = owner.stepId;
   if (!RETRY_TRACKED_PHASES.includes(phase)) {
     const outcome = result?.result === "pass"
       ? new DecisionOutcome({ decision: "PASS", nextAction: result?.next || "refresh-next-action" })
@@ -2782,13 +2792,13 @@ export function updateGateRetryCounter(ctx, result) {
   if (!mgr) return;
   const attemptsBefore = readGateRetryCount(ctx.flowState, phase);
   if (result?.result === "pass") {
-    mgr.appendMetric({ phase, counter: "gateRetry", delta: 0, reset: true });
+    mgr.appendMetric({ phase, counter: "gateRetry", delta: 0, reset: true }, owner.routeOptions());
     recordGateOutcome(ctx, result, phase, attemptsBefore + 1, new DecisionOutcome({
       decision: "PASS",
       nextAction: result?.next || "refresh-next-action",
     }));
   } else if (result?.artifacts?.failureKind === "ai_semantic_fail") {
-    mgr.appendMetric({ phase, counter: "gateRetry", delta: 1 });
+    mgr.appendMetric({ phase, counter: "gateRetry", delta: 1 }, owner.routeOptions());
     const attempts = attemptsBefore + 1;
     const max = resolveRetryMax(ctx, phase);
     if (attempts >= max) {
@@ -2826,7 +2836,7 @@ export function updateGateRetryCounter(ctx, result) {
       gitState: ctx.gitState,
       passedGuardrails: buildPassedGuardrails(result?.artifacts?.evaluations),
       observations: result?.artifacts?.nextAction?.diagnosis?.observations || [],
-    }));
+    }), owner.routeOptions());
   } else {
     recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlock(
       result?.artifacts?.failureKind || "gate_failure",
@@ -4609,9 +4619,19 @@ async function runGateFlow(args) {
  * Mirrors registry.js's `tryUpdateStepStatus` helper; kept inline here to
  * avoid exporting internal registry plumbing.
  */
-function updateStepStatusDuringInference(stepId, status) {
+function updateStepStatusDuringInference(flowManager, flowState, stepId, status) {
   try {
-    container.get("flowManager").updateStepStatus(stepId, status);
+    const transition = createLifecycleStepTransition({
+      flowState,
+      stepId,
+      status,
+      event: "gate:phase-inference",
+      taskId: null,
+    });
+    if (transition) flowManager.updateStepStatus(transition, {
+      ...(flowState.spec && { specId: getSpecName(flowState) }),
+      taskId: null,
+    });
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
       process.stderr.write(
@@ -4649,14 +4669,29 @@ export class RunGateCommand extends FlowCommand {
       }
     }
     if (inferPhase) {
+      const flowManager = ctx.flowManager || container.get("flowManager");
       for (const staleId of resolution.staleSteps) {
-        updateStepStatusDuringInference(staleId, "done");
+        updateStepStatusDuringInference(flowManager, flowManager.load(), staleId, "done");
         process.stderr.write(
           `[senti] gate: stale in_progress step "${staleId}" ` +
             `transitioned to done (auto-resolved phase=${phase})\n`,
         );
       }
-      updateStepStatusDuringInference(resolveGateStepId(phase), "in_progress");
+      const owner = new GateMutationOwner({ flowState: flowManager.load(), phase });
+      try {
+        owner.updateStepStatus(flowManager, {
+          status: "in_progress",
+          event: "gate:phase-inference",
+        });
+      } catch (err) {
+        if (err?.code === "ERR_MISSING_FILE") {
+          process.stderr.write(
+            `[senti] gate: step-status update skipped (${owner.stepId}=in_progress): ${err.message}\n`,
+          );
+        } else {
+          throw err;
+        }
+      }
     }
 
     if (!VALID_GATE_PHASES.includes(phase)) {
@@ -5239,7 +5274,8 @@ export function appendIssueLogFromGateResult(ctx, result) {
       observations,
     });
     if (ctx.flowManager) {
-      ctx.flowManager.mutate(update);
+      const owner = new GateMutationOwner({ flowState: ctx.flowState, phase: ctx.phase });
+      ctx.flowManager.mutate(update, owner.routeOptions());
     } else {
       update(ctx.flowState);
     }

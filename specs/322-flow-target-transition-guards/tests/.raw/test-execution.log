@@ -1,0 +1,235 @@
+[senti] spec-local tests start
+command: node --test specs/322-flow-target-transition-guards/tests/next-action-planning.test.js specs/322-flow-target-transition-guards/tests/step-transition-policy.test.js specs/322-flow-target-transition-guards/tests/target-resolution.test.js
+process.kind: passed
+process.command: node --test specs/322-flow-target-transition-guards/tests/next-action-planning.test.js specs/322-flow-target-transition-guards/tests/step-transition-policy.test.js specs/322-flow-target-transition-guards/tests/target-resolution.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 7269
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 2603.926552
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R6: an invalid rule fails before the command mutates promotion state
+ok 1 - R6: an invalid rule fails before the command mutates promotion state
+  ---
+  duration_ms: 3.668218
+  type: 'test'
+  ...
+# Subtest: R6: promotion plan rejects every missing executable input and bounds maxAttempts
+ok 2 - R6: promotion plan rejects every missing executable input and bounds maxAttempts
+  ---
+  duration_ms: 1.294487
+  type: 'test'
+  ...
+# Subtest: R6: GetNextActionCommand rejects every invalid executable input before side effects
+ok 3 - R6: GetNextActionCommand rejects every invalid executable input before side effects
+  ---
+  duration_ms: 3.80666
+  type: 'test'
+  ...
+# Subtest: R6: a foreign task target is rejected before every write and effect
+ok 4 - R6: a foreign task target is rejected before every write and effect
+  ---
+  duration_ms: 0.881565
+  type: 'test'
+  ...
+# Subtest: R6: a forged next state cannot switch an existing current task
+ok 5 - R6: a forged next state cannot switch an existing current task
+  ---
+  duration_ms: 1.561848
+  type: 'test'
+  ...
+# Subtest: R6: GetNextActionCommand accepts maxAttempts boundaries 1 and 10000
+ok 6 - R6: GetNextActionCommand accepts maxAttempts boundaries 1 and 10000
+  ---
+  duration_ms: 1.458488
+  type: 'test'
+  ...
+# Subtest: R7: stale FlowStore revision fails once without retry or byte changes
+ok 7 - R7: stale FlowStore revision fails once without retry or byte changes
+  ---
+  duration_ms: 64.485693
+  type: 'test'
+  ...
+# Subtest: R7: unchanged revision promotes one pending leaf exactly once
+ok 8 - R7: unchanged revision promotes one pending leaf exactly once
+  ---
+  duration_ms: 44.57167
+  type: 'test'
+  ...
+# Subtest: R7: command-level stale CAS does not retry, re-resolve, or emit effects
+ok 9 - R7: command-level stale CAS does not retry, re-resolve, or emit effects
+  ---
+  duration_ms: 1.010365
+  type: 'test'
+  ...
+# Subtest: R7: command-level unchanged revision commits and emits effects only once
+ok 10 - R7: command-level unchanged revision commits and emits effects only once
+  ---
+  duration_ms: 0.865044
+  type: 'test'
+  ...
+# Subtest: R8: invalid plans have no legacy promotion or selector fallback
+ok 11 - R8: invalid plans have no legacy promotion or selector fallback
+  ---
+  duration_ms: 0.551083
+  type: 'test'
+  ...
+# Subtest: R9: direct command matrix distinguishes invalid, exact, and stale outcomes
+ok 12 - R9: direct command matrix distinguishes invalid, exact, and stale outcomes
+  ---
+  duration_ms: 0.895124
+  type: 'test'
+  ...
+# Subtest: R3: normal set accepts only current in_progress to done or skipped
+ok 13 - R3: normal set accepts only current in_progress to done or skipped
+  ---
+  duration_ms: 6.383593
+  type: 'test'
+  ...
+# Subtest: R3: normal set rejects every mapped lifecycle-owned current step
+ok 14 - R3: normal set rejects every mapped lifecycle-owned current step
+  ---
+  duration_ms: 1.360487
+  type: 'test'
+  ...
+# Subtest: R4: dedicated transition classes enforce source-specific constructor invariants
+ok 15 - R4: dedicated transition classes enforce source-specific constructor invariants
+  ---
+  duration_ms: 2.545933
+  type: 'test'
+  ...
+# Subtest: R4: registry gate lifecycle passes only a definition-produced transition
+ok 16 - R4: registry gate lifecycle passes only a definition-produced transition
+  ---
+  duration_ms: 1.460008
+  type: 'test'
+  ...
+# Subtest: R8/R9: task gate pre-hook persists a fully scoped definition transition
+ok 17 - R8/R9: task gate pre-hook persists a fully scoped definition transition
+  ---
+  duration_ms: 72.458094
+  type: 'test'
+  ...
+# Subtest: R4: reopen-draft uses the explicit recovery transition and dedicated rewind path
+ok 18 - R4: reopen-draft uses the explicit recovery transition and dedicated rewind path
+  ---
+  duration_ms: 23.107079
+  type: 'test'
+  ...
+# Subtest: R5: real FlowStore commits once before logging and rejects a terminal retry
+ok 19 - R5: real FlowStore commits once before logging and rejects a terminal retry
+  ---
+  duration_ms: 56.20377
+  type: 'test'
+  ...
+# Subtest: R8: normal set-step cannot perform an implicit rewind
+ok 20 - R8: normal set-step cannot perform an implicit rewind
+  ---
+  duration_ms: 0.464922
+  type: 'test'
+  ...
+# Subtest: R8: task-scoped impl PASS and ADVISORY isolate lifecycle updates to the current review
+ok 21 - R8: task-scoped impl PASS and ADVISORY isolate lifecycle updates to the current review
+  ---
+  duration_ms: 1.132206
+  type: 'test'
+  ...
+# Subtest: R9: normal, definition lifecycle, and recovery transitions remain distinct
+ok 22 - R9: normal, definition lifecycle, and recovery transitions remain distinct
+  ---
+  duration_ms: 0.818004
+  type: 'test'
+  ...
+# Subtest: R1: explicit selectors use AND matching and distinguish 2+ ambiguity from zero matches
+ok 23 - R1: explicit selectors use AND matching and distinguish 2+ ambiguity from zero matches
+  ---
+  duration_ms: 93.897765
+  type: 'test'
+  ...
+# Subtest: R1: preparing targets use AND matching for exact, zero, and 2+ outcomes
+ok 24 - R1: preparing targets use AND matching for exact, zero, and 2+ outcomes
+  ---
+  duration_ms: 50.046618
+  type: 'test'
+  ...
+# Subtest: R1: selector matches across active and preparing sources are one typed ambiguity
+ok 25 - R1: selector matches across active and preparing sources are one typed ambiguity
+  ---
+  duration_ms: 62.02488
+  type: 'test'
+  ...
+# Subtest: R1: managed bound worktree accepts exact identity and rejects foreign selectors
+ok 26 - R1: managed bound worktree accepts exact identity and rejects foreign selectors
+  ---
+  duration_ms: 78.459764
+  type: 'test'
+  ...
+# Subtest: R2: dispatcher mismatch leaves the complete persisted tree byte-identical
+ok 27 - R2: dispatcher mismatch leaves the complete persisted tree byte-identical
+  ---
+  duration_ms: 48.846932
+  type: 'test'
+  ...
+# Subtest: R9: preparing selection precedes runtime logs and typed rejection precedes every hook
+ok 28 - R9: preparing selection precedes runtime logs and typed rejection precedes every hook
+  ---
+  duration_ms: 35.816825
+  type: 'test'
+  ...
+# Subtest: R8: guarded command registry retains all three selector options
+ok 29 - R8: guarded command registry retains all three selector options
+  ---
+  duration_ms: 0.658924
+  type: 'test'
+  ...
+# Subtest: R8: public CLI retains exact guarded success and typed mismatch without config mutation
+ok 30 - R8: public CLI retains exact guarded success and typed mismatch without config mutation
+  ---
+  duration_ms: 394.712756
+  type: 'test'
+  ...
+# Subtest: R8: CLI and direct APIs remove first-candidate and selector-OR fallback
+ok 31 - R8: CLI and direct APIs remove first-candidate and selector-OR fallback
+  ---
+  duration_ms: 421.278493
+  type: 'test'
+  ...
+# Subtest: R9: public CLI distinguishes zero targets from 2+ ambiguity
+ok 32 - R9: public CLI distinguishes zero targets from 2+ ambiguity
+  ---
+  duration_ms: 346.484388
+  type: 'test'
+  ...
+# Subtest: R8/R9: config, help, selector flags, and registered steps retain parity
+ok 33 - R8/R9: config, help, selector flags, and registered steps retain parity
+  ---
+  duration_ms: 297.461455
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 33
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2603.926552
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] requirement R9 result pass
+[senti] spec-local tests end

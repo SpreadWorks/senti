@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-20T01:23:58.974Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/322-flow-target-transition-guards/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing timestamp persistence coverage for atomic step commit",
+      "target": "specs/322-flow-target-transition-guards/tests/step-transition-policy.test.js",
+      "findingId": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "fingerprint": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "disposition": "must-fix",
+      "rationale": "An implementation could omit timestamp persistence while still passing the current R5 tests, leaving an acceptance requirement without corresponding spec-local coverage.",
+      "issue": "R5 requires FlowStore to persist the requested status, timestamps, and next promotion in one atomic write. The R5 test asserts status, single write, logger ordering, and next in-progress promotion, but it never asserts the committed timestamp fields for the completed step or promoted step.",
+      "requiredChange": "Add a spec-local R5 assertion that the atomic transition commit persists the expected timestamp updates together with the status and promotion.",
+      "whyBlocking": "An implementation could omit timestamp persistence while still passing the current R5 tests, leaving an acceptance requirement without corresponding spec-local coverage.",
+      "origin": "R5",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing already-terminal normal set-step rejection coverage",
+      "target": "specs/322-flow-target-transition-guards/tests/step-transition-policy.test.js",
+      "findingId": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "fingerprint": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "disposition": "must-fix",
+      "rationale": "An implementation could accept already-terminal normal transitions outside the R5 retry path while the current R3 coverage still passes.",
+      "issue": "R3 requires normal `set step` to reject already-terminal targets without state or side-effect changes. The R3 test covers invalid requested statuses and non-current pending targets, and R5 covers terminal retry after a commit, but there is no direct normal set-step matrix case for an already-terminal stored step as the target policy input.",
+      "requiredChange": "Add a spec-local R3 case where the targeted normal step already has a terminal status and verify rejection with no update/state mutation.",
+      "whyBlocking": "An implementation could accept already-terminal normal transitions outside the R5 retry path while the current R3 coverage still passes.",
+      "origin": "R3",
+      "failureKind": "missing_requirement_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/322-flow-target-transition-guards/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "354ab66aabcca6cbbbe8ef4c1f67f61a03cd00117f59ce67e269cac793c11b36"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "findingId": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing timestamp persistence coverage for atomic step commit",
+      "body": "R5 requires FlowStore to persist the requested status, timestamps, and next promotion in one atomic write. The R5 test asserts status, single write, logger ordering, and next in-progress promotion, but it never asserts the committed timestamp fields for the completed step or promoted step.",
+      "category": "unknown",
+      "fingerprint": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "disposition": "must-fix",
+      "rationale": "An implementation could omit timestamp persistence while still passing the current R5 tests, leaving an acceptance requirement without corresponding spec-local coverage."
+    },
+    {
+      "id": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "findingId": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing already-terminal normal set-step rejection coverage",
+      "body": "R3 requires normal `set step` to reject already-terminal targets without state or side-effect changes. The R3 test covers invalid requested statuses and non-current pending targets, and R5 covers terminal retry after a commit, but there is no direct normal set-step matrix case for an already-terminal stored step as the target policy input.",
+      "category": "unknown",
+      "fingerprint": "b685cd545b2f1d40867fdc4d392023aa95a28775c319c7d6a03594bf150c9a71",
+      "disposition": "must-fix",
+      "rationale": "An implementation could accept already-terminal normal transitions outside the R5 retry path while the current R3 coverage still passes."
+    }
+  ]
+}

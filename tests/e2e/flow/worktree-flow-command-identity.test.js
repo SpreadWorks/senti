@@ -320,7 +320,10 @@ describe("worktree command identity", () => {
         assert.equal(status.issue ?? null, null);
       } else {
         assert.notEqual(result.status, 0);
-        assert.equal(result.envelope?.errors?.[0]?.code, "FLOW_TARGET_NOT_FOUND");
+        assert.equal(
+          result.envelope?.errors?.[0]?.code,
+          expectedMatchCount === 0 ? "FLOW_TARGET_NOT_FOUND" : "FLOW_TARGET_AMBIGUOUS",
+        );
         assert.equal(result.envelope?.data?.matchCount, expectedMatchCount);
         assert.equal(result.envelope?.data?.expectedIssue, null);
       }

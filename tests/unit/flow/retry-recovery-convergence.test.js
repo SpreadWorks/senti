@@ -217,7 +217,7 @@ describe("retry recovery authority convergence", () => {
   ]);
 
   for (const [surface, invoke] of foreignPendingSurfaces) {
-    it(`rejects a foreign pending request before ${surface} authority use`, () => {
+    it(`rejects a foreign pending request before ${surface} authority use`, async () => {
       const root = createTmpDir(`retry-convergence-foreign-${surface.replace(/\s+/g, "-")}-`);
       roots.push(root);
       const fixture = setupInterruptedRecovery(root, `441-foreign-${surface.replace(/\s+/g, "-")}`);
@@ -233,8 +233,8 @@ describe("retry recovery authority convergence", () => {
         fixture.issuePath,
       ]);
 
-      assert.throws(
-        () => invoke({ root, flowState, flowManager }),
+      await assert.rejects(
+        async () => invoke({ root, flowState, flowManager }),
         (error) => error.code === "RETRY_RECOVERY_FOREIGN_AUTHORITY",
       );
 

@@ -22,8 +22,9 @@ import {
 import { resolveGatePhaseFromState, resolveScopedGateStepId } from "./lib/gate-step.js";
 import {
   findActiveNode,
-  resolveLifecycle,
+  resolveLifecyclePlan,
   resolveRuntimeStep,
+  SetStepStatus,
   taskIdForResolvedStep,
   writeEmptyDraftReviewRouteArtifacts,
 } from "./definition.js";
@@ -41,6 +42,10 @@ import {
   FlowOutboxStore,
   finalizationOutboxIdentity,
 } from "./lib/flow-outbox.js";
+import {
+  DefinitionLifecycleTransition,
+  ExplicitRecoveryTransition,
+} from "./lib/step-transition-policy.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -120,15 +125,20 @@ function resetSkippedDownstreamSteps(targetFm, opts, stepIds = []) {
   const state = opts?.specId ? targetFm.load(opts.specId) : targetFm.load();
   if (!state) return false;
   const flat = flattenSteps(state.steps || []);
-  let mutated = false;
-  for (const id of stepIds) {
-    const step = flat.find((s) => s.id === id);
-    if (step?.status === "skipped") {
-      tryUpdateStepStatus(targetFm, id, "pending", opts);
-      mutated = true;
-    }
-  }
-  return mutated;
+  const resetIds = stepIds.filter((id) => flat.find((step) => step.id === id)?.status === "skipped");
+  if (resetIds.length === 0) return false;
+  targetFm.updateStepStatus(new ExplicitRecoveryTransition({
+    stepId: resetIds[0],
+    currentStatus: "skipped",
+    requestedStatus: "pending",
+    entrypoint: "reset-skipped-downstream",
+    changes: resetIds.map((stepId) => ({
+      stepId,
+      currentStatus: "skipped",
+      requestedStatus: "pending",
+    })),
+  }), opts);
+  return true;
 }
 
 /**
@@ -150,23 +160,61 @@ function deriveActivePhase(ctx) {
  * FlowManager directly — the latter form is used by merge-onward finalize
  * hooks which target the main repo flow.json via forRoot().
  */
-function tryUpdateStepStatus(target, stepId, status, opts) {
+function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
   const isHookContext = Boolean(target && typeof target === "object" && target.flowManager);
   const fm = isHookContext
     ? target.flowManager
     : target;
-  const mutationOpts = isHookContext && !hasExplicitOption(opts, "taskId")
-    ? {
-        ...(opts || {}),
-        taskId: taskIdForResolvedStep(findActiveNode(target.flowState), stepId),
-      }
-    : opts;
+  let mutationOpts = opts;
+  if (isHookContext) {
+    mutationOpts = { ...(opts || {}) };
+    if (!hasExplicitOption(mutationOpts, "specId") && target.specId) {
+      mutationOpts.specId = target.specId;
+    }
+    if (!hasExplicitOption(mutationOpts, "taskId")) {
+      const activeNode = target.flowState ? findActiveNode(target.flowState) : null;
+      mutationOpts.taskId = taskIdForResolvedStep(activeNode, stepId);
+    }
+  }
   try {
     const skipTaskImplGateContract = stepId === "impl-gate" && target?.phase === "task-impl";
     if (status === "done" && target?.root && !skipTaskImplGateContract) {
       assertStepCompletionTransitionAllowed(target, stepId);
     }
-    fm.updateStepStatus(stepId, status, mutationOpts);
+    let state;
+    if (typeof fm.loadReadOnly === "function") {
+      state = mutationOpts?.specId ? fm.loadReadOnly(mutationOpts.specId) : fm.loadReadOnly();
+    } else if (typeof fm.load === "function") {
+      state = mutationOpts?.specId ? fm.load(mutationOpts.specId) : fm.load();
+    } else if (isHookContext) {
+      state = target.flowState;
+    }
+    const scope = mutationOpts?.taskId == null
+      ? state
+      : state?.tasks?.find((task) => task.id === mutationOpts.taskId);
+    const targetStep = findStepById(scope?.steps || [], stepId);
+    if (!targetStep) throw new Error(`unknown step: ${stepId}`);
+    if (targetStep.status === status) return;
+    const currentStepId = provenance.currentStepId
+      || findActiveNode(state)?.stepId
+      || stepId;
+    if (!provenance.plan && !provenance.event) {
+      throw new Error(`definition lifecycle event is required for ${stepId}=${status}`);
+    }
+    const plan = provenance.plan || resolveLifecyclePlan({
+      event: provenance.event,
+      currentStepId,
+      targetStepId: stepId,
+      status,
+    });
+    const action = provenance.action
+      || plan.actions.find((candidate) => candidate.step === stepId && candidate.status === status);
+    if (!action) throw new Error(`definition lifecycle did not emit ${stepId}=${status}`);
+    fm.updateStepStatus(new DefinitionLifecycleTransition({
+      action,
+      plan,
+      currentStatus: targetStep.status,
+    }), mutationOpts);
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
       process.stderr.write(`[senti] step-status update skipped (${stepId}=${status}): ${err.message}\n`);
@@ -246,65 +294,96 @@ function finalizeCommand(suffix) {
 }
 
 class RegistryLifecycleAdapter {
-  constructor(ctx, result, err) {
+  constructor(ctx, result, err, { plan, input }) {
     this.ctx = ctx;
     this.result = result;
     this.err = err;
     this.phase = result?.artifacts?.phase || ctx.phase;
+    const activeNode = this.ctx.flowState ? findActiveNode(this.ctx.flowState) : null;
+    this.gateStepId = this.phase === "task-impl"
+      ? resolveScopedGateStepId(this.ctx.flowState, this.phase)
+      : "impl-gate";
+    this.gateTaskId = this.gateStepId === "task-gate"
+      ? activeNode?.taskId || null
+      : null;
+    this.plan = this.phase === "task-impl"
+      ? plan.forStepAlias({ sourceStep: "impl-gate", targetStep: this.gateStepId })
+      : plan;
+    this.actions = this.plan.actions;
+    this.input = input;
   }
 
   mutationOpts(step, extras = {}) {
-    const activeNode = findActiveNode(this.ctx.flowState);
+    const activeNode = this.ctx.flowState ? findActiveNode(this.ctx.flowState) : null;
     return {
       ...extras,
-      taskId: taskIdForResolvedStep(activeNode, step),
+      taskId: step === this.gateStepId
+        ? this.gateTaskId
+        : taskIdForResolvedStep(activeNode, step),
     };
   }
 
-  mutationStep(step) {
-    if (step !== "impl-gate" || this.phase !== "task-impl") return step;
-    return resolveScopedGateStepId(this.ctx.flowState, this.phase);
-  }
-
-  setStepStatus(step, status) {
+  setStepStatus(step, status, action) {
     const attempt = this.result?.stepAttempt
       ? StepAttempt.fromStored(this.result.stepAttempt)
       : null;
     if (status === "in_progress" && attempt?.outcome instanceof DeferOutcome) return;
-    const settledStatus = status === "in_progress"
-      && attempt?.outcome instanceof DecisionOutcome
-      ? "done"
-      : status;
-    const mutationStep = this.mutationStep(step);
-    if (mutationStep.startsWith("finalize-")) {
+    const settledStatus = status;
+    if (step.startsWith("finalize-")) {
       const current = this.ctx.specId
         ? this.ctx.flowManager.loadReadOnly(this.ctx.specId)
         : this.ctx.flowManager.load();
-      const currentStep = findStepById(current?.steps || [], mutationStep);
+      const currentStep = findStepById(current?.steps || [], step);
       if (currentStep?.status === settledStatus) return;
       tryUpdateStepStatus(
         this.ctx.flowManager,
-        mutationStep,
+        step,
         settledStatus,
-        this.mutationOpts(mutationStep, { specId: this.ctx.specId }),
+        this.mutationOpts(step, { specId: this.ctx.specId }),
+        {
+          action,
+          plan: this.plan,
+          currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
+          event: this.input.event,
+        },
       );
       return;
     }
     tryUpdateStepStatus(
       { ...this.ctx, phase: this.phase },
-      mutationStep,
+      step,
       settledStatus,
-      this.mutationOpts(mutationStep),
+      this.mutationOpts(step),
+      {
+        action,
+        plan: this.plan,
+        currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
+        event: this.input.event,
+      },
     );
   }
 
+  refreshFlowState() {
+    let state = null;
+    if (typeof this.ctx.flowManager.loadReadOnly === "function") {
+      state = this.ctx.specId
+        ? this.ctx.flowManager.loadReadOnly(this.ctx.specId)
+        : this.ctx.flowManager.loadReadOnly();
+    } else if (typeof this.ctx.flowManager.load === "function") {
+      state = this.ctx.specId
+        ? this.ctx.flowManager.load(this.ctx.specId)
+        : this.ctx.flowManager.load();
+    }
+    if (state) this.ctx.flowState = state;
+  }
+
   keepInProgress(step) {
-    const mutationStep = this.mutationStep(step);
     tryUpdateStepStatus(
       this.ctx,
-      mutationStep,
+      step,
       "in_progress",
-      this.mutationOpts(mutationStep),
+      this.mutationOpts(step),
+      { event: "definition:keep-in-progress" },
     );
   }
 
@@ -370,7 +449,7 @@ class RegistryLifecycleAdapter {
   skipSteps(steps) {
     for (const id of steps) {
       try {
-        this.ctx.flowManager.updateStepStatus(id, "skipped");
+        tryUpdateStepStatus(this.ctx, id, "skipped", undefined, { event: "definition:skip-steps" });
       } catch (e) {
         process.stderr.write(`[senti] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
       }
@@ -486,15 +565,18 @@ class RegistryLifecycleAdapter {
 }
 
 async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err = null) {
-  const actions = resolveLifecycle({
+  const attempt = result?.stepAttempt ? StepAttempt.fromStored(result.stepAttempt) : null;
+  const plan = resolveLifecyclePlan({
     ...input,
     result,
     error: err,
     flowState: ctx.flowState,
+    settleInProgressAsDone: attempt?.outcome instanceof DecisionOutcome,
   });
-  const adapter = new RegistryLifecycleAdapter(ctx, result, err);
-  for (const action of actions) {
+  const adapter = new RegistryLifecycleAdapter(ctx, result, err, { plan, input });
+  for (const action of adapter.actions) {
     await action.apply(adapter);
+    if (action instanceof SetStepStatus) adapter.refreshFlowState();
   }
   const command = input?.command || input?.runtimeCommand || input?.key || result?.artifacts?.command;
   const snapshot = Array.isArray(ctx.flowState?.plugins?.flowCommandHooks) ? ctx.flowState.plugins.flowCommandHooks : [];
@@ -1281,7 +1363,7 @@ export const FLOW_COMMANDS = {
         const { readJsonStrict, validateTestExecuteResultV2 } = await import("./lib/test-artifacts.js");
         const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
         validateTestExecuteResultV2(readJsonStrict(path.join(specDir, "test-execute-result.json")));
-        tryUpdateStepStatus(ctx, "test-execute", "done");
+        tryUpdateStepStatus(ctx, "test-execute", "done", undefined, { event: "test-execute:post" });
       },
     },
     "scenario-validity": {
@@ -1300,7 +1382,7 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
       post(ctx, result) {
         if (result?.result === "pass") {
-          tryUpdateStepStatus(ctx, "scenario-validity", "done", { taskId: null });
+          tryUpdateStepStatus(ctx, "scenario-validity", "done", { taskId: null }, { event: "scenario-validity:post" });
         }
       },
     },
@@ -1321,7 +1403,7 @@ export const FLOW_COMMANDS = {
         const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
         const review = validateTestResultReview(readJsonStrict(path.join(specDir, "test-result-review.json")));
         if (review.verdict !== "pass") throw new Error("test-result-review verdict is not pass");
-        tryUpdateStepStatus(ctx, "test-result-review", "done");
+        tryUpdateStepStatus(ctx, "test-result-review", "done", undefined, { event: "test-result-review:post" });
       },
     },
     // retro is a mainline impl-phase step that aggregates test-execute results.
@@ -1342,7 +1424,7 @@ export const FLOW_COMMANDS = {
         "  --dry-run   Preview only, do not write retro.json",
       ].join("\n"),
       post(ctx) {
-        tryUpdateStepStatus(ctx, "retro", "done");
+        tryUpdateStepStatus(ctx, "retro", "done", undefined, { event: "retro:post" });
       },
     },
     "final-regression": {
@@ -1374,7 +1456,7 @@ export const FLOW_COMMANDS = {
         if (!completed) {
           throw new Error("final-regression result is not pass, skipped, or failed-recorded");
         }
-        tryUpdateStepStatus(ctx, "final-regression", "done");
+        tryUpdateStepStatus(ctx, "final-regression", "done", undefined, { event: "final-regression:post" });
       },
     },
     "acceptance-review": {

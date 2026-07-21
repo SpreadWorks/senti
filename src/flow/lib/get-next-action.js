@@ -54,6 +54,29 @@ function findCurrentTask(state) {
   return state.tasks.find((t) => t.id === state.currentTaskId) || null;
 }
 
+function normalizeTaskCursor(state) {
+  let changed = false;
+  let task = findCurrentTask(state);
+  if (!task) {
+    if (promoteNextPending(state) == null) return false;
+    task = findCurrentTask(state);
+    changed = true;
+  }
+  if (!task) return changed;
+  if (task.status === "pending") {
+    task.status = "in_progress";
+    changed = true;
+  }
+  if (Array.isArray(task.steps) && !task.steps.some((step) => step.status === "in_progress")) {
+    const pending = task.steps.find((step) => step.status === "pending");
+    if (pending) {
+      pending.status = "in_progress";
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function findUnresolvedInProgressStep(steps, resolveNode) {
   return flattenSteps(steps || []).find((step) => (
     step.status === "in_progress" && !resolveNode(step.id)
@@ -213,16 +236,6 @@ function buildGateRetryRecovery(ctx, state, gateRecoveryDisplay) {
     || existingRecovery();
 }
 
-function promoteNextTaskAndFirstStep(state) {
-  const taskId = promoteNextPending(state);
-  if (!taskId) return false;
-  const task = findCurrentTask(state);
-  if (!task || !Array.isArray(task.steps)) return true;
-  const pending = task.steps.find((s) => s.status === "pending");
-  if (pending) pending.status = "in_progress";
-  return true;
-}
-
 function promoteNextAvailableTarget(state) {
   const task = findCurrentTask(state);
   if (task && Array.isArray(task.steps)) {
@@ -238,7 +251,7 @@ function promoteNextAvailableTarget(state) {
     return true;
   }
   state.currentTaskId = null;
-  return promoteNextTaskAndFirstStep(state);
+  return normalizeTaskCursor(state);
 }
 
 function completedNextAction() {
@@ -253,12 +266,298 @@ function completedNextAction() {
   };
 }
 
+function abortedNextAction() {
+  return {
+    taskId: null,
+    step: null,
+    action: "aborted",
+    instructions: null,
+    context: null,
+    output_schema: null,
+    requires_approval: false,
+  };
+}
+
+export class NextActionPlanError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = "NextActionPlanError";
+    this.code = code;
+  }
+}
+
+function requiredPlanObject(value, field, display = field) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new NextActionPlanError("NEXT_ACTION_PLAN_INVALID", `${field} (${display}) is required`);
+  }
+  return value;
+}
+
+export class NextActionPromotionPlan {
+  constructor({
+    definition,
+    rule,
+    outputSchema,
+    instruction,
+    target,
+    taskScope,
+    expectedRevision,
+    maxAttempts,
+    nextState = null,
+    result = null,
+    commitRequired = null,
+  }) {
+    this.definition = requiredPlanObject(definition, "definition");
+    this.rule = requiredPlanObject(rule, "rule");
+    this.outputSchema = requiredPlanObject(outputSchema, "outputSchema", "output schema");
+    this.instruction = requiredPlanObject(instruction, "instruction");
+    this.target = requiredPlanObject(target, "target");
+    this.taskScope = requiredPlanObject(taskScope, "taskScope", "task scope");
+    this.expectedRevision = requiredPlanObject(expectedRevision, "expectedRevision", "expected revision");
+    if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10_000) {
+      throw new NextActionPlanError(
+        "NEXT_ACTION_PLAN_INVALID",
+        `maxAttempts must be a safe integer from 1 through 10000, got ${maxAttempts}`,
+      );
+    }
+    this.maxAttempts = maxAttempts;
+    this.nextState = nextState;
+    this.result = result;
+    this.commitRequired = commitRequired;
+    Object.freeze(this);
+  }
+}
+
+class NextActionTerminalPlan {
+  constructor(result) {
+    this.result = result;
+    Object.freeze(this);
+  }
+}
+
+function buildNextActionResult(ctx, state, target, derived, outputSchema, instruction) {
+  const context = buildContextDescriptor(derived.contextKinds, target, state);
+  const result = {
+    taskId: target.taskId,
+    step: target.stepId,
+    action: derived.action,
+    instructions: instruction,
+    context,
+    output_schema: outputSchema,
+    requires_approval: derived.requiresApproval === true,
+    maxAttempts: derived.maxAttempts,
+  };
+  if (state.autoUpgrade?.available === true) {
+    result.autoUpgrade = state.autoUpgrade;
+  }
+  if (target.stepId === "acceptance-review" && derived.failurePolicy) {
+    result.failurePolicy = derived.failurePolicy;
+  }
+  attachLatestStepAttempt(result, state, target);
+  const reviewPhase = reviewPhaseForStepId(target.stepId);
+  if (reviewPhase) {
+    const reviewAttempts = countReviewRetry(state.metrics, reviewPhase);
+    const reviewMaxAttempts = resolveRecoveryMaxAttempts({
+      root: ctx.root,
+      flowState: state,
+      kind: "review",
+      phase: reviewPhase,
+      attempts: reviewAttempts,
+      resolvedMax: derived.maxAttempts,
+    });
+    const reviewStop = buildReviewStopView(state, {
+      surface: "next-action",
+      phase: reviewPhase,
+      maxAttempts: reviewMaxAttempts,
+    });
+    const retryRecovery = buildRetryRecoveryForState(ctx, state, {
+      kind: "review",
+      phase: reviewPhase,
+      attempts: reviewAttempts,
+      max: reviewMaxAttempts,
+    });
+    if (reviewStop || retryRecovery) {
+      attachRetryRecovery(result, "reviewStop", reviewStop, retryRecovery);
+    }
+  }
+  const gateRecoveryDisplay = target.stepId.endsWith("-gate")
+    ? resolveGateRecoveryDisplayPhase({
+        root: ctx.root,
+        flowState: state,
+        stepId: target.stepId,
+        maxAttempts: derived.maxAttempts,
+      })
+    : null;
+  if (gateRecoveryDisplay) {
+    const retryRecovery = buildGateRetryRecovery(ctx, state, gateRecoveryDisplay);
+    if (retryRecovery) {
+      attachRetryRecovery(result, "gateStop", null, retryRecovery);
+    }
+  }
+  return result;
+}
+
+export class NextActionPlanner {
+  build(ctx) {
+    const original = ctx.flowState;
+    if (original.acceptanceReview?.status === "aborted") {
+      return new NextActionTerminalPlan(abortedNextAction());
+    }
+    if (new FlowCompletion(original).complete) {
+      return new NextActionTerminalPlan(completedNextAction());
+    }
+
+    const state = structuredClone(original);
+    assertNoUnresolvedInProgressTarget(state);
+    let promoted = false;
+    let target = findActiveNode(state);
+    if (isFlowImplementationStep(target)) {
+      const decision = evaluateTaskScope(state, target.stepId);
+      if (decision.kind === "invalid-current-task" || decision.kind === "blocked") {
+        return new NextActionTerminalPlan(Envelope.fail(
+          "get",
+          "next-action",
+          "TASK_CURSOR_REQUIRED",
+          taskScopeViolationMessages(decision, target.stepId),
+          { step: target.stepId, currentTaskId: state.currentTaskId ?? null },
+        ));
+      }
+      if (decision.promotable || decision.kind === "task") {
+        promoted = normalizeTaskCursor(state);
+        target = findActiveNode(state);
+      }
+    }
+    if (!target) {
+      promoted = promoteNextAvailableTarget(state);
+      if (promoted) {
+        assertNoUnresolvedInProgressTarget(state);
+        target = findActiveNode(state);
+      }
+    }
+    if (!target) return new NextActionTerminalPlan(completedNextAction());
+
+    const derived = deriveNextAction({
+      scope: target.scope,
+      stepId: target.stepId,
+      context: state,
+    });
+    if (!derived) {
+      throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
+    }
+    const outputSchema = derived.outputSchemaRef ? loadSchema(derived.outputSchemaRef) : {};
+    const baseInstructions = getStepInstructions(derived.instructionsKey);
+    const instruction = {
+      key: derived.instructionsKey,
+      content: injectPersistentRules(baseInstructions, target, state),
+    };
+    const result = buildNextActionResult(ctx, state, target, derived, outputSchema, instruction);
+    return new NextActionPromotionPlan({
+      definition: target.scope === "task" ? getTaskNode(target.stepId) : getFlowNode(target.stepId),
+      rule: derived,
+      outputSchema,
+      instruction,
+      target: { ...target, runId: state.runId },
+      taskScope: { taskId: original.currentTaskId ?? null },
+      expectedRevision: original,
+      maxAttempts: derived.maxAttempts,
+      nextState: state,
+      result,
+      commitRequired: promoted,
+    });
+  }
+}
+
+function targetStepForPlan(state, target) {
+  const scope = target.scope === "task"
+    ? state.tasks?.find((task) => task.id === target.taskId)
+    : state;
+  return flattenSteps(scope?.steps || []).find((step) => step.id === target.stepId) || null;
+}
+
+function validatePlanAgainstState(plan, state) {
+  if (plan.nextState && plan.expectedRevision !== state) {
+    throw new NextActionPlanError(
+      "NEXT_ACTION_EXPECTED_REVISION_MISMATCH",
+      "expected revision does not match the loaded flow state",
+    );
+  }
+  if (plan.target.runId !== state.runId) {
+    throw new NextActionPlanError(
+      "NEXT_ACTION_TARGET_MISMATCH",
+      `target runId ${plan.target.runId ?? "missing"} does not match ${state.runId ?? "missing"}`,
+    );
+  }
+  const expectedTaskId = state.currentTaskId ?? null;
+  if ((plan.taskScope.taskId ?? null) !== expectedTaskId) {
+    throw new NextActionPlanError(
+      "NEXT_ACTION_TASK_SCOPE_MISMATCH",
+      `task scope ${plan.taskScope.taskId ?? "none"} does not match ${expectedTaskId ?? "none"}`,
+    );
+  }
+  if (
+    expectedTaskId !== null
+    && plan.nextState
+    && (plan.nextState.currentTaskId ?? null) !== expectedTaskId
+  ) {
+    throw new NextActionPlanError(
+      "NEXT_ACTION_TASK_SCOPE_MISMATCH",
+      `planned task ${plan.nextState.currentTaskId ?? "none"} does not match current task ${expectedTaskId}`,
+    );
+  }
+  const targetTaskId = plan.target.taskId ?? null;
+  const expectedTargetTaskId = plan.nextState
+    ? plan.nextState.currentTaskId
+    : state.currentTaskId;
+  if (
+    (plan.target.scope === "task" && plan.target.taskId !== expectedTargetTaskId)
+    || (plan.target.scope === "flow" && targetTaskId !== null)
+  ) {
+    throw new NextActionPlanError(
+      "NEXT_ACTION_TASK_SCOPE_MISMATCH",
+      `target ${plan.target.scope} task ${targetTaskId ?? "none"} does not match planned task ${expectedTargetTaskId ?? "none"}`,
+    );
+  }
+  const step = targetStepForPlan(state, plan.target);
+  if (!step || !["pending", "in_progress"].includes(step.status)) {
+    throw new NextActionPlanError(
+      "NEXT_ACTION_TARGET_MISMATCH",
+      `target ${plan.target.scope}.${plan.target.stepId} is not pending or in_progress`,
+    );
+  }
+  return step;
+}
+
+function injectedPlanResult(plan) {
+  return {
+    taskId: plan.target.taskId ?? null,
+    step: plan.target.stepId,
+    action: plan.rule.action,
+    instructions: plan.instruction,
+    context: null,
+    output_schema: plan.outputSchema,
+    requires_approval: plan.rule.requiresApproval === true,
+    maxAttempts: plan.maxAttempts,
+  };
+}
+
 export default class GetNextActionCommand extends FlowCommand {
-  constructor() {
+  constructor({ planner = new NextActionPlanner(), effects = null } = {}) {
     super({ requiresFlow: false });
+    if (!planner || typeof planner.build !== "function") {
+      throw new Error("next-action planner.build is required");
+    }
+    if (effects) {
+      for (const method of ["writeRuntimeLog", "writeArtifact", "recordRetry"]) {
+        if (typeof effects[method] !== "function") {
+          throw new Error(`next-action effects.${method} is required`);
+        }
+      }
+    }
+    this.planner = planner;
+    this.effects = effects;
   }
 
-  execute(ctx) {
+  async execute(ctx) {
     if (!ctx.flowState) {
       return {
         taskId: null,
@@ -270,150 +569,39 @@ export default class GetNextActionCommand extends FlowCommand {
         requires_approval: false,
       };
     }
-    let state = ctx.flowState;
 
-    if (state.acceptanceReview?.status === "aborted") {
-      return {
-        taskId: null,
-        step: null,
-        action: "aborted",
-        instructions: null,
-        context: null,
-        output_schema: null,
-        requires_approval: false,
-      };
-    }
-    if (new FlowCompletion(state).complete) return completedNextAction();
+    const candidate = this.planner.build(ctx);
+    if (candidate instanceof NextActionTerminalPlan) return candidate.result;
+    const plan = new NextActionPromotionPlan(candidate);
+    const currentStep = validatePlanAgainstState(plan, ctx.flowState);
+    const result = plan.result || injectedPlanResult(plan);
+    if (currentStep.status === "in_progress") return result;
 
-    assertNoUnresolvedInProgressTarget(state);
-    let target = findActiveNode({
-      steps: state.steps,
-      tasks: state.tasks,
-      currentTaskId: state.currentTaskId,
-    });
-    if (isFlowImplementationStep(target)) {
-      const decision = evaluateTaskScope(state, target.stepId);
-      if (decision.kind === "invalid-current-task" || decision.kind === "blocked") {
-        return Envelope.fail(
-          "get",
-          "next-action",
-          "TASK_CURSOR_REQUIRED",
-          taskScopeViolationMessages(decision, target.stepId),
-          { step: target.stepId, currentTaskId: state.currentTaskId ?? null },
-        );
-      }
-      if (decision.promotable) {
-        ctx.flowManager.mutate((s) => { promoteNextTaskAndFirstStep(s); });
-        state = ctx.flowManager.load();
-        target = findActiveNode({
-          steps: state.steps,
-          tasks: state.tasks,
-          currentTaskId: state.currentTaskId,
-        });
-      }
-    }
-    if (!target) {
-      let promoted = false;
-      ctx.flowManager.mutate((s) => {
-        promoted = promoteNextAvailableTarget(s);
-      });
-      if (promoted) {
-        state = ctx.flowManager.load();
-        assertNoUnresolvedInProgressTarget(state);
-        target = findActiveNode({
-          steps: state.steps,
-          tasks: state.tasks,
-          currentTaskId: state.currentTaskId,
-        });
-      }
-    }
-    if (!target) {
-      return completedNextAction();
-    }
-
-    const derived = deriveNextAction({
-      scope: target.scope,
-      stepId: target.stepId,
-      context: state,
-    });
-    if (!derived) {
-      throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
-    }
-
-    if (!Number.isSafeInteger(derived.maxAttempts) || derived.maxAttempts < 1) {
-      throw new Error(
-        `INVALID_MAX_ATTEMPTS: ${target.scope}.${target.stepId} did not resolve numeric maxAttempts`,
+    const nextState = plan.nextState ? structuredClone(plan.nextState) : structuredClone(ctx.flowState);
+    const nextStep = targetStepForPlan(nextState, plan.target);
+    if (!nextStep) {
+      throw new NextActionPlanError(
+        "NEXT_ACTION_TARGET_MISMATCH",
+        `target ${plan.target.scope}.${plan.target.stepId} is absent from the promotion state`,
       );
     }
+    nextStep.status = "in_progress";
+    if (!nextStep.startedAt) nextStep.startedAt = new Date().toISOString();
+    delete nextStep.finishedAt;
 
-    const output_schema = derived.outputSchemaRef
-      ? loadSchema(derived.outputSchemaRef)
-      : {};
-    const context = buildContextDescriptor(derived.contextKinds, target, state);
-
-    const baseInstructions = getStepInstructions(derived.instructionsKey);
-    const injectedContent = injectPersistentRules(baseInstructions, target, state);
-
-    const result = {
-      taskId: target.taskId,
-      step: target.stepId,
-      action: derived.action,
-      instructions: {
-        key: derived.instructionsKey,
-        content: injectedContent,
-      },
-      context,
-      output_schema,
-      requires_approval: derived.requiresApproval === true,
-      maxAttempts: derived.maxAttempts,
-    };
-    if (state.autoUpgrade?.available === true) {
-      result.autoUpgrade = state.autoUpgrade;
-    }
-    if (target.stepId === "acceptance-review" && derived.failurePolicy) {
-      result.failurePolicy = derived.failurePolicy;
-    }
-    attachLatestStepAttempt(result, state, target);
-    const reviewPhase = reviewPhaseForStepId(target.stepId);
-    if (reviewPhase) {
-      const reviewAttempts = countReviewRetry(state.metrics, reviewPhase);
-      const reviewMaxAttempts = resolveRecoveryMaxAttempts({
-        root: ctx.root,
-        flowState: state,
-        kind: "review",
-        phase: reviewPhase,
-        attempts: reviewAttempts,
-        resolvedMax: derived.maxAttempts,
+    if (plan.commitRequired === true && plan.nextState) {
+      ctx.flowManager.mutate((state) => {
+        for (const key of Object.keys(state)) delete state[key];
+        Object.assign(state, nextState);
+      }, { expectedOriginal: plan.expectedRevision });
+    } else {
+      ctx.flowManager.saveAtomic(nextState, {
+        expectedOriginal: plan.expectedRevision,
       });
-      const reviewStop = buildReviewStopView(state, {
-        surface: "next-action",
-        phase: reviewPhase,
-        maxAttempts: reviewMaxAttempts,
-      });
-      const retryRecovery = buildRetryRecoveryForState(ctx, state, {
-        kind: "review",
-        phase: reviewPhase,
-        attempts: reviewAttempts,
-        max: reviewMaxAttempts,
-      });
-      if (reviewStop || retryRecovery) {
-        attachRetryRecovery(result, "reviewStop", reviewStop, retryRecovery);
-      }
     }
-    const gateRecoveryDisplay = target.stepId.endsWith("-gate")
-      ? resolveGateRecoveryDisplayPhase({
-          root: ctx.root,
-          flowState: state,
-          stepId: target.stepId,
-          maxAttempts: derived.maxAttempts,
-        })
-      : null;
-    if (gateRecoveryDisplay) {
-      const retryRecovery = buildGateRetryRecovery(ctx, state, gateRecoveryDisplay);
-      if (retryRecovery) {
-        attachRetryRecovery(result, "gateStop", null, retryRecovery);
-      }
-    }
+    this.effects?.writeRuntimeLog({ plan, result });
+    this.effects?.writeArtifact({ plan, result });
+    this.effects?.recordRetry({ plan, result });
     return result;
   }
 }

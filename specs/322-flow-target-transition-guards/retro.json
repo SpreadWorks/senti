@@ -1,0 +1,65 @@
+{
+  "spec": "specs/322-flow-target-transition-guards/spec.json",
+  "date": "2026-07-21T10:09:30.187Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Supplied `runId`、`spec`、`issue` selectors shall be combined as AND conditions across active、preparing、bound worktree targets before command execution; 0 results shall return a distinct typed not-found/mismatch, 1 result shall return that exact target, and 2 or more results shall return typed ambiguity. Bound authority mismatch may use `ACTIVE_FLOW_MISMATCH`, and no foreign candidate may be selected.",
+      "status": "done",
+      "note": "R1: explicit selectors use AND matching and distinguish 2+ ambiguity from zero matches"
+    },
+    {
+      "desc": "Every target-resolution failure shall be decided before lifecycle hooks、command execution、or runtime-log writer open. The active/preparing registry、flow/preparing state、flow.json bytes、timestamps、artifacts、`.tmp` runtime-log bytes、step runtimeLog metadata、retry counters shall remain byte-identical, and only the typed envelope/error may be returned.",
+      "status": "done",
+      "note": "R2: dispatcher mismatch leaves the complete persisted tree byte-identical"
+    },
+    {
+      "desc": "Normal `set step` shall accept only the current leaf whose stored status is `in_progress` and whose requested status is `done` or `skipped`. It shall reject requested `pending`/`in_progress`, already-terminal、non-current、out-of-order、or definition-disallowed targets without state or side-effect changes.",
+      "status": "done",
+      "note": "R3: normal set accepts only current in_progress to done or skipped"
+    },
+    {
+      "desc": "Transition eligibility shall be represented by dedicated OOP classes: `NormalStepTransition` permits only current `in_progress`→`done|skipped`; `DefinitionLifecycleTransition` permits only actions emitted by the current definition node/event, including approved auxiliary `pending`→`in_progress|done|skipped`; `ExplicitRecoveryTransition` permits only existing rewind/recovery entrypoints. Each constructor shall enforce state、source、target、status invariants, lifecycle callers shall accept only definition-produced actions, and recovery callers shall use only dedicated paths.",
+      "status": "done",
+      "note": "R4: dedicated transition classes enforce source-specific constructor invariants"
+    },
+    {
+      "desc": "FlowStore shall accept a validated transition instance and persist requested status、timestamps、and next promotion in one atomic write. Logger and other post-commit side effects shall run exactly once after commit; retrying an already-terminal transition shall be rejected without duplicate promotion、artifact、runtime log、or retry mutation. Approval/spec-task synchronization owned by `c9de` is excluded.",
+      "status": "done",
+      "note": "R5: real FlowStore commits once before logging and rejects a terminal retry"
+    },
+    {
+      "desc": "GetNextActionCommand shall build a read-only promotion plan and validate the flow definition、rule、output schema、instruction、target identity、task scope、and `maxAttempts` as an integer from 1 through 10_000 inclusive before any flow write、timestamp、artifact、runtime log、or retry mutation occurs. Values greater than 10_000 shall fail through the same no-write path as every other invalid value.",
+      "status": "done",
+      "note": "R6: an invalid rule fails before the command mutates promotion state"
+    },
+    {
+      "desc": "Next-action promotion shall commit only through FlowStore revision CAS. `FLOW_STATE_ATOMIC_STALE` shall cause no automatic retry、implicit re-resolution、promotion、or side effect and shall require caller re-resolution; an unchanged revision shall produce one promotion and one set of post-commit effects.",
+      "status": "done",
+      "note": "R7: stale FlowStore revision fails once without retry or byte changes"
+    },
+    {
+      "desc": "Migration parity shall retain exact-unique CLI/API success、definition-approved lifecycle/recovery、target flags/config/help/registered-step contracts、and exactly-once artifacts/side effects under their mapped owners. It shall intentionally remove first-candidate selection、selector OR/fallback、normal non-current/out-of-order update、and pre-validation promotion, add no legacy fallback, and require CLI/direct/stale callers to handle selector、typed failure、or re-resolution contracts.",
+      "status": "done",
+      "note": "R8: invalid plans have no legacy promotion or selector fallback"
+    },
+    {
+      "desc": "Spec-local and focused shared tests shall cover public CLI and direct-module matrices for AND/0/1/2+ targets、bound mismatch、no-mutation runtime-log failure、normal/lifecycle/recovery transitions、invalid action inputs、concurrent revision drift、exact success/retry、and unchanged config/help/registered steps; spec-local tests shall carry `// spec: R<N>` headers and the full `npm test` regression shall pass.",
+      "status": "done",
+      "note": "R9: direct command matrix distinguishes invalid, exact, and stale outcomes"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "90737b4fe37899da0ff2691dbaf2ce463037cff6f5827416494b01e2fdc4f1bb"
+}

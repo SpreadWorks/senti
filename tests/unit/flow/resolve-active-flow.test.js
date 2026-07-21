@@ -11,6 +11,7 @@ import fs from "fs";
 import path from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { FlowTargetExpectation } from "../../../src/lib/flow-target-guard.js";
 describe("resolveActiveFlow", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -39,6 +40,103 @@ describe("resolveActiveFlow", () => {
     assert.ok(result);
     assert.equal(result.specId, "001-test");
     assert.deepEqual(result.state.spec, state.spec);
+  });
+
+  it("accepts an exact AND selector set against a preloaded flow", () => {
+    tmp = createTmpDir();
+    const state = setupFlow(tmp, "001-bound", 443);
+
+    const result = makeFlowManager(tmp).resolveActiveFlow(state, {
+      selectRunId: "run-001-bound",
+      selectIssue: 443,
+      selectSpecId: "001-bound",
+    });
+
+    assert.equal(result.state, state);
+    assert.equal(result.specId, "001-bound");
+  });
+
+  it("rejects a conflicting selector against a preloaded flow without returning another flow", () => {
+    tmp = createTmpDir();
+    const state = setupFlow(tmp, "001-bound", 443);
+    setupFlow(tmp, "002-foreign", 444);
+    let returned = null;
+
+    assert.throws(
+      () => {
+        returned = makeFlowManager(tmp).resolveActiveFlow(state, {
+          selectRunId: "run-001-bound",
+          selectIssue: 444,
+          selectSpecId: "001-bound",
+        });
+      },
+      (error) => error.code === "ACTIVE_FLOW_MISMATCH"
+        && error.data?.expectedRunId === "run-001-bound"
+        && error.data?.activeRunId === "run-001-bound"
+        && error.data?.expectedIssue === 444
+        && error.data?.activeIssue === 443,
+    );
+    assert.equal(returned, null);
+  });
+
+  // spec: R8
+  it("requires one AND match instead of first-candidate or selector-OR fallback", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-first", 443);
+    setupFlow(tmp, "002-second", 443);
+    setupFlow(tmp, "003-foreign", 444);
+    const manager = makeFlowManager(tmp);
+
+    const exact = manager.resolveActiveFlow(null, {
+      selectRunId: "run-002-second",
+      selectIssue: 443,
+      selectSpecId: "002-second",
+    });
+    assert.equal(exact.specId, "002-second");
+
+    assert.throws(
+      () => manager.resolveActiveFlow(null, { selectIssue: 443 }),
+      (error) => error.code === "FLOW_TARGET_AMBIGUOUS"
+        && error.data?.matchCount === 2,
+    );
+    assert.throws(
+      () => manager.resolveActiveFlow(null, {
+        selectRunId: "run-001-first",
+        selectIssue: 444,
+      }),
+      (error) => error.code === "FLOW_TARGET_NOT_FOUND"
+        && error.data?.matchCount === 0,
+    );
+  });
+
+  // spec: R9
+  it("classifies preparing targets as exact, ambiguous, or not found without selecting an active flow", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-active", 445);
+    const manager = makeFlowManager(tmp);
+    manager.createPreparingFlow("run-preparing-first", { issue: 446, request: "first" });
+    manager.createPreparingFlow("run-preparing-second", { issue: 446, request: "second" });
+
+    const exact = manager.resolveExplicitFlowTarget(new FlowTargetExpectation({
+      expectRunId: "run-preparing-second",
+      expectIssue: 446,
+    }));
+    assert.equal(exact.preparing, true);
+    assert.equal(exact.state.runId, "run-preparing-second");
+
+    assert.throws(
+      () => manager.resolveExplicitFlowTarget(new FlowTargetExpectation({ expectIssue: 446 })),
+      (error) => error.code === "FLOW_TARGET_AMBIGUOUS"
+        && error.data?.matchCount === 2,
+    );
+    assert.throws(
+      () => manager.resolveExplicitFlowTarget(new FlowTargetExpectation({
+        expectRunId: "run-preparing-second",
+        expectIssue: 445,
+      })),
+      (error) => error.code === "FLOW_TARGET_NOT_FOUND"
+        && error.data?.matchCount === 0,
+    );
   });
 
   it("falls back to loadActiveFlows when flowState is null", () => {
@@ -189,7 +287,7 @@ describe("resolveActiveFlow", () => {
 
     assert.throws(
       () => makeFlowManager(tmp).resolveActiveFlow(null, { selectNoIssue: true }),
-      (error) => error.code === "FLOW_TARGET_NOT_FOUND"
+      (error) => error.code === "FLOW_TARGET_AMBIGUOUS"
         && error.data?.matchCount === 2
         && error.data?.expectedIssue === null
         && /ambiguous.*no Issue/i.test(error.message),
@@ -202,7 +300,8 @@ describe("resolveActiveFlow", () => {
 
     assert.throws(
       () => makeFlowManager(tmp).resolveActiveFlow(null, { selectSpecId: "999-bogus" }),
-      /spec '999-bogus' is not in active flows/,
+      (error) => error.code === "FLOW_TARGET_NOT_FOUND"
+        && error.data?.expectedSpec === "999-bogus",
     );
   });
 });

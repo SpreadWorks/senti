@@ -24,6 +24,11 @@ import {
   writeRepairEvidenceArtifact,
 } from "../../../src/flow/lib/impl-repair-artifacts.js";
 import { readFlowFindingsArtifact } from "../../../src/flow/lib/flow-findings.js";
+import {
+  makeDefaultTask,
+  makeFlowState,
+  moveFlowToStep,
+} from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 
 let tmp;
@@ -54,10 +59,30 @@ function retryMetrics(counter, phase, count = 10) {
 
 function fakeFlowManager(updates) {
   return {
-    updateStepStatus(id, status) {
-      updates.push({ id, status });
+    updateStepStatus(transition) {
+      updates.push({ id: transition.stepId, status: transition.requestedStatus });
     },
   };
+}
+
+function flowStateAt(stepId, overrides = {}) {
+  return moveFlowToStep(makeFlowState(overrides), stepId);
+}
+
+function taskReviewState(overrides = {}) {
+  return makeFlowState({
+    ...overrides,
+    currentTaskId: "T-1",
+    tasks: [makeDefaultTask({
+      id: "T-1",
+      status: "in_progress",
+      steps: [
+        { id: "task-impl", status: "done" },
+        { id: "task-review", status: "in_progress" },
+        { id: "task-gate", status: "pending" },
+      ],
+    })],
+  });
 }
 
 function prepareSpecRoot() {
@@ -181,13 +206,19 @@ test("review retry exhaustion defers semantic findings without prose keyword blo
     blockingFindings: [semanticFinding("test-semantic")],
   });
   const updates = [];
+  const flowFindingsPath = path.join(fixture.specDir, "flow-findings.json");
   const result = checkReviewRetryBelowMax({
     root: fixture.root,
-    flowState: {
+    flowState: flowStateAt("test-review", {
       spec: fixture.specPath,
       metrics: retryMetrics("reviewRetry", "test"),
+    }),
+    flowManager: {
+      updateStepStatus(transition) {
+        assert.equal(fs.existsSync(flowFindingsPath), false, "deferred artifact starts after the step commit");
+        updates.push({ id: transition.stepId, status: transition.requestedStatus });
+      },
     },
-    flowManager: fakeFlowManager(updates),
   }, "test");
 
   assert.equal(result?.result, "deferred");
@@ -210,10 +241,10 @@ for (const missingField of ["disposition", "rationale"]) {
     assert.throws(
       () => checkReviewRetryBelowMax({
         root: fixture.root,
-        flowState: {
+        flowState: flowStateAt("test-review", {
           spec: fixture.specPath,
           metrics: retryMetrics("reviewRetry", "test"),
-        },
+        }),
         flowManager: fakeFlowManager([]),
       }, "test"),
       new RegExp(`${missingField}.*(required|non-empty)`, "i"),
@@ -234,10 +265,10 @@ test("review retry exhaustion groups repeated findings by fingerprint", () => {
   const updates = [];
   const result = checkReviewRetryBelowMax({
     root: fixture.root,
-    flowState: {
+    flowState: flowStateAt("test-review", {
       spec: fixture.specPath,
       metrics: retryMetrics("reviewRetry", "test"),
-    },
+    }),
     flowManager: fakeFlowManager(updates),
   }, "test");
 
@@ -266,10 +297,10 @@ test("review retry exhaustion excludes informational findings from deferred work
   });
   const result = checkReviewRetryBelowMax({
     root: fixture.root,
-    flowState: {
+    flowState: flowStateAt("test-review", {
       spec: fixture.specPath,
       metrics: retryMetrics("reviewRetry", "test"),
-    },
+    }),
     flowManager: fakeFlowManager([]),
   }, "test");
 
@@ -287,11 +318,11 @@ test("deferred findings remain isolated by flow run", () => {
   });
   const deferForRun = (runId) => checkReviewRetryBelowMax({
     root: fixture.root,
-    flowState: {
+    flowState: flowStateAt("test-review", {
       runId,
       spec: fixture.specPath,
       metrics: retryMetrics("reviewRetry", "test"),
-    },
+    }),
     flowManager: fakeFlowManager([]),
   }, "test");
 
@@ -314,12 +345,11 @@ test("deferred findings remain isolated by flow run", () => {
 
 test("task review producer records an explicit scoped defer outcome at its configured bound", async () => {
   const fixture = prepareSpecRoot();
-  const flowState = {
+  const flowState = taskReviewState({
     runId: "task-review-bounded",
     spec: fixture.specPath,
-    currentTaskId: "T-1",
     stepAttempts: [],
-  };
+  });
   const updates = [];
   const context = {
     root: fixture.root,
@@ -327,7 +357,9 @@ test("task review producer records an explicit scoped defer outcome at its confi
     flowState,
     flowManager: {
       mutate(mutator) { mutator(flowState); },
-      updateStepStatus(id, status) { updates.push({ id, status }); },
+      updateStepStatus(transition) {
+        updates.push({ id: transition.stepId, status: transition.requestedStatus });
+      },
     },
   };
   let result;
@@ -365,6 +397,8 @@ test("task review producer records an explicit scoped defer outcome at its confi
 test("gate retry exhaustion defers typed informational findings and blocks structured coverage failures", () => {
   const fixture = prepareSpecRoot();
   writeJson(fixture.specDir, "impl-gate-result.json", {
+    runId: "run-test",
+    planRewindAt: null,
     phase: "integration",
     result: "fail",
     evaluations: [{
@@ -378,13 +412,21 @@ test("gate retry exhaustion defers typed informational findings and blocks struc
     }],
   });
   const updates = [];
+  const flowFindingsPath = path.join(fixture.specDir, "flow-findings.json");
   const result = checkGateRetryBelowMax({
     root: fixture.root,
-    flowState: {
+    flowState: flowStateAt("impl-gate", {
       spec: fixture.specPath,
       metrics: retryMetrics("gateRetry", "integration"),
+    }),
+    flowManager: {
+      updateStepStatus(transition) {
+        assert.equal(fs.existsSync(flowFindingsPath), false, "deferred artifact starts after the step commit");
+        const source = JSON.parse(fs.readFileSync(path.join(fixture.specDir, "impl-gate-result.json"), "utf8"));
+        assert.equal(source.evaluations[0].findingId, "integration-semantic");
+        updates.push({ id: transition.stepId, status: transition.requestedStatus });
+      },
     },
-    flowManager: fakeFlowManager(updates),
   }, "integration");
 
   assert.equal(result?.result, "deferred");
@@ -516,11 +558,11 @@ test("gate rejects stale repair claims and tampered typed dispositions", () => {
 test("gate retry producer uses live scoped issue-log evidence at the bound", () => {
   const fixture = prepareSpecRoot();
   writeFile(fixture.root, "src/example.js", "export const example = true;\n");
-  const flowState = {
+  const flowState = flowStateAt("spec-gate", {
     spec: fixture.specPath,
     currentTaskId: null,
     metrics: [],
-  };
+  });
   const firstResult = {
     result: "fail",
     artifacts: {
@@ -574,7 +616,9 @@ test("gate retry producer uses live scoped issue-log evidence at the bound", () 
     flowManager: {
       appendMetric(metric) { flowState.metrics.push(metric); },
       mutate(mutator) { mutator(flowState); },
-      updateStepStatus(id, status) { updates.push({ id, status }); },
+      updateStepStatus(transition) {
+        updates.push({ id: transition.stepId, status: transition.requestedStatus });
+      },
     },
   }, boundedResult);
 
@@ -598,10 +642,10 @@ test("gate retry exhaustion remains blocked when must-fix repair evidence is mis
   const updates = [];
   const result = checkGateRetryBelowMax({
     root: fixture.root,
-    flowState: {
+    flowState: flowStateAt("impl-gate", {
       spec: fixture.specPath,
       metrics: retryMetrics("gateRetry", "integration"),
-    },
+    }),
     flowManager: fakeFlowManager(updates),
   }, "integration");
 
@@ -619,10 +663,10 @@ test("acceptance-review consumes deferred findings and mirrors final disposition
   });
   checkReviewRetryBelowMax({
     root: fixture.root,
-    flowState: {
+    flowState: flowStateAt("test-review", {
       spec: fixture.specPath,
       metrics: retryMetrics("reviewRetry", "test"),
-    },
+    }),
     flowManager: fakeFlowManager([]),
   }, "test");
   const fingerprint = prepareAcceptanceEvidence(fixture);
@@ -637,6 +681,8 @@ test("acceptance-review consumes deferred findings and mirrors final disposition
   });
   const state = {
     spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
     request: "Verify the deferred demo requirement.",
   };
   const diff = [

@@ -204,7 +204,7 @@ export class StepAttemptLog {
   }
 }
 
-export function persistStepAttempt(ctx, attempt) {
+export function persistStepAttempt(ctx, attempt, routeOptions) {
   if (!(attempt instanceof StepAttempt)) throw new Error("StepAttempt is required");
   if (typeof ctx?.flowManager?.mutate !== "function") {
     throw new Error("flowManager.mutate is required to persist StepAttempt");
@@ -213,11 +213,11 @@ export function persistStepAttempt(ctx, attempt) {
     const log = new StepAttemptLog(state.stepAttempts || []);
     log.record(attempt);
     state.stepAttempts = log.toJSON();
-  });
+  }, routeOptions);
   return attempt;
 }
 
-export function recordStepAttempt(ctx, { stepId, attempt, outcome, result = null }) {
+export function recordStepAttempt(ctx, { stepId, attempt, outcome, result = null, routeOptions = undefined }) {
   if (!ctx?.flowState?.runId || typeof ctx?.flowManager?.mutate !== "function") return null;
   const record = new StepAttempt({
     runId: ctx.flowState.runId,
@@ -226,7 +226,7 @@ export function recordStepAttempt(ctx, { stepId, attempt, outcome, result = null
     attempt,
     outcome,
   });
-  persistStepAttempt(ctx, record);
+  persistStepAttempt(ctx, record, routeOptions);
   if (result && typeof result === "object") {
     result.stepAttempt = record.toJSON();
     result.artifacts = {

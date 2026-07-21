@@ -1,0 +1,140 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 2,
+    "hash": "90737b4fe37899da0ff2691dbaf2ce463037cff6f5827416494b01e2fdc4f1bb",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-21T09:39:49.333Z",
+  "items": [
+    {
+      "findingId": "967445100fad52e97803e2557e7d50c53151f440db85a935fd25103f1a01f30a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+      "evidenceRefs": [
+        "impl-review.json#967445100fad52e97803e2557e7d50c53151f440db85a935fd25103f1a01f30a"
+      ]
+    },
+    {
+      "findingId": "7d7ec268cbef12433c3bd434c41c39488b184ae7661c689af956b4f07f108072",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/draft-gate-source.json`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+      "evidenceRefs": [
+        "impl-review.json#7d7ec268cbef12433c3bd434c41c39488b184ae7661c689af956b4f07f108072"
+      ]
+    },
+    {
+      "findingId": "708cc22fa5d8af021f11ce18ed2e66b8f190b77916d6c442371dad32c84c09ea",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/review-history/impl-attempt-006.md`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+      "evidenceRefs": [
+        "impl-review.json#708cc22fa5d8af021f11ce18ed2e66b8f190b77916d6c442371dad32c84c09ea"
+      ]
+    },
+    {
+      "findingId": "96961f768e5c4bebae055587c10d151e1769aef4b0360e763dc12968411220cd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/review-history/impl-attempt-006.md`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+      "evidenceRefs": [
+        "impl-review.json#96961f768e5c4bebae055587c10d151e1769aef4b0360e763dc12968411220cd"
+      ]
+    },
+    {
+      "findingId": "b9af2903f82e524bfe8f8bbf409e6f030d1deaffeb4703afa41cfe5b15fa3e81",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/review-history/impl-attempt-009.md`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+      "evidenceRefs": [
+        "impl-review.json#b9af2903f82e524bfe8f8bbf409e6f030d1deaffeb4703afa41cfe5b15fa3e81"
+      ]
+    },
+    {
+      "findingId": "7fef3535723afebaf95d05f2c25ef37ea73abec39cbc23178dc9dd50f87c3f2c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/review-history/impl-attempt-009.md`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+      "evidenceRefs": [
+        "impl-review.json#7fef3535723afebaf95d05f2c25ef37ea73abec39cbc23178dc9dd50f87c3f2c"
+      ]
+    },
+    {
+      "findingId": "60c0964451a25c08c3a67d57028c644c8f6daa4d793a2acc7462c366b3dc17b2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/review-history/impl-attempt-010.md`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+      "evidenceRefs": [
+        "impl-review.json#60c0964451a25c08c3a67d57028c644c8f6daa4d793a2acc7462c366b3dc17b2"
+      ]
+    },
+    {
+      "findingId": "904dc723141c2dc31e84ba6ad42c82e30dfcf9f03f3b34deed5a49ed5ff1ba34",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/review-history/impl-attempt-010.md`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+      "evidenceRefs": [
+        "impl-review.json#904dc723141c2dc31e84ba6ad42c82e30dfcf9f03f3b34deed5a49ed5ff1ba34"
+      ]
+    },
+    {
+      "findingId": "a9db04e9786ad5d0c6de25b0473f7cad13bf9ae28885d9ec4c03e38e5254823b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/review-history/spec-attempt-002.md`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+      "evidenceRefs": [
+        "impl-review.json#a9db04e9786ad5d0c6de25b0473f7cad13bf9ae28885d9ec4c03e38e5254823b"
+      ]
+    },
+    {
+      "findingId": "6c047fc65caf08f85074debda8545224ba5df48e85adf0e3694f5df0f20afa9f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/review-history/spec-attempt-002.md`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+      "evidenceRefs": [
+        "impl-review.json#6c047fc65caf08f85074debda8545224ba5df48e85adf0e3694f5df0f20afa9f"
+      ]
+    },
+    {
+      "findingId": "41afb5f6d4b4ddd689cbbd329ca181553d0b448ea0033e7930396873576cac29",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/spec-review.md`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+      "evidenceRefs": [
+        "impl-review.json#41afb5f6d4b4ddd689cbbd329ca181553d0b448ea0033e7930396873576cac29"
+      ]
+    },
+    {
+      "findingId": "ba93a613af1c39f5efd66c36dea97c7f7474abd46349ebd47451cf10d42accb7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/spec-review.md`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+      "evidenceRefs": [
+        "impl-review.json#ba93a613af1c39f5efd66c36dea97c7f7474abd46349ebd47451cf10d42accb7"
+      ]
+    },
+    {
+      "findingId": "29db3650ac5e97487a83221862403eae6267bd7bd6e89ef731286fe59b15a883",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/test-review.md`  \n**Requirement:** R8  \n**Issue:** This file records a blocking `fail` result whose observations explicitly reference missing `draft-questions-triage.json` items `[0]` and `[1]`, but the touched triage file contains an empty `items` array and the paired review files both say `PASS`. That makes the artifact set internally inconsistent and leaves dead/obsolete failure data in the change set.  \n**Suggestion:** Regenerate or replace `draft-gate-source.json` so it matches the current draft-review and triage outputs. If there are truly no findings, the gate artifact should not preserve stale blocking observations from an earlier run.",
+      "evidenceRefs": [
+        "impl-review.json#29db3650ac5e97487a83221862403eae6267bd7bd6e89ef731286fe59b15a883"
+      ]
+    },
+    {
+      "findingId": "9dfbad2eb4d8afd1473ebbf7432bdae872dda11fa455ebd2524a0c0eaccc9d93",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/322-flow-target-transition-guards/test-review.md`  \n**Requirement:** R9  \n**Issue:** The new `flowState(\"specs/001-fixture/spec.json\")` call introduces a raw fixture path string directly inside the test context object. That makes the setup less self-describing and tends to duplicate path literals across tests as coverage grows.  \n**Suggestion:** Extract the fixture path to a named constant such as `SPEC_FIXTURE_PATH` or build the `gateCtx` through a small helper that supplies `flowState`. This keeps naming consistent, reduces repeated literals, and makes future test additions easier to maintain.",
+      "evidenceRefs": [
+        "impl-review.json#9dfbad2eb4d8afd1473ebbf7432bdae872dda11fa455ebd2524a0c0eaccc9d93"
+      ]
+    }
+  ]
+}

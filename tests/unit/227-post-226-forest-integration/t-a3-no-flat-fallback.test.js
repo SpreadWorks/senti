@@ -27,7 +27,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
 
     const schemaDir = path.join(process.cwd(), "src/flow/schemas/next-action");
     const ctx = { flowState: fm.load(), flowManager: fm, schemaDir };
-    const result = cmd.execute(ctx);
+    const result = await cmd.execute(ctx);
     assert.ok(result, "should return a result for valid flow with tasks");
   });
 
@@ -49,7 +49,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
 
     const schemaDir = path.join(process.cwd(), "src/flow/schemas/next-action");
     const ctx = { flowState: fm.load(), flowManager: fm, schemaDir };
-    const result = new GetNextActionCommand().execute(ctx);
+    const result = await new GetNextActionCommand().execute(ctx);
     assert.equal(result.step, "finalize-commit");
   });
 });

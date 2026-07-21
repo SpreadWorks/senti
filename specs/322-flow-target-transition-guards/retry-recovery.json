@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-431ec9e9-076e-4491-8745-c4dd3478457a",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Correct R9 evidence scope by removing a shared R5/R8 regression fixture from the spec-local coverage mapping after independent audit",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "310647d12b73c37100d437b10826af6d8d4405a93f84ccad09fe0cf5f920efe3",
+        "currentHash": "b302aa41551cc317c8735fc0fb735da869bb6ad7ac5ad5056f3472903325872d",
+        "changedPaths": [
+          "specs/322-flow-target-transition-guards/file-map.json",
+          "specs/322-flow-target-transition-guards/test-execute-result.json",
+          "specs/322-flow-target-transition-guards/test-result-review.json",
+          "src/flow/definition.js",
+          "src/flow/lib/gate-mutation-owner.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/lifecycle-step-transition.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/step-outcome.js",
+          "src/flow/lib/step-transition-policy.js",
+          "src/flow/registry.js",
+          "src/lib/dispatcher.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Correct R9 evidence scope by removing a shared R5/R8 regression fixture from the spec-local coverage mapping after independent audit\" --yes",
+      "createdAt": "2026-07-21T09:51:20.245Z"
+    },
+    {
+      "id": "recovery-04252f67-8ee7-477b-a2e2-ed34278a5e7d",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Supply independently verified spec-local path and header evidence outside the compacted diff so the exhausted coverage guard can be evaluated once without product changes",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "b302aa41551cc317c8735fc0fb735da869bb6ad7ac5ad5056f3472903325872d",
+        "currentHash": "310647d12b73c37100d437b10826af6d8d4405a93f84ccad09fe0cf5f920efe3",
+        "changedPaths": [
+          "specs/322-flow-target-transition-guards/file-map.json",
+          "specs/322-flow-target-transition-guards/test-execute-result.json",
+          "specs/322-flow-target-transition-guards/test-result-review.json",
+          "src/flow/definition.js",
+          "src/flow/lib/gate-mutation-owner.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/lifecycle-step-transition.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/step-outcome.js",
+          "src/flow/lib/step-transition-policy.js",
+          "src/flow/registry.js",
+          "src/lib/dispatcher.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Supply independently verified spec-local path and header evidence outside the compacted diff so the exhausted coverage guard can be evaluated once without product changes\" --yes",
+      "createdAt": "2026-07-21T09:53:39.581Z"
+    }
+  ]
+}

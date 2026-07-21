@@ -9,6 +9,11 @@ import { makeFlowManager, replaceFlowState, setupFlow } from "../../helpers/flow
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const SPEC_PATH = "specs/001-test/spec.json";
+const SPEC_ID = "001-test";
+
+function boundFlowManager(root) {
+  return makeFlowManager(root).forRoot(root, { specId: SPEC_ID });
+}
 
 function writeJson(root, relativePath, value) {
   const target = path.join(root, relativePath);
@@ -101,7 +106,7 @@ describe("flow-level artifact post-hook scope", () => {
     await FLOW_COMMANDS.run["test-execute"].post({
       root: tmp,
       flowState,
-      flowManager: makeFlowManager(tmp),
+      flowManager: boundFlowManager(tmp),
     });
 
     assertFlowStepCompletedWithoutTaskMutation(tmp, "test-execute");
@@ -116,7 +121,7 @@ describe("flow-level artifact post-hook scope", () => {
     await FLOW_COMMANDS.run["test-result-review"].post({
       root: tmp,
       flowState,
-      flowManager: makeFlowManager(tmp),
+      flowManager: boundFlowManager(tmp),
     });
 
     assertFlowStepCompletedWithoutTaskMutation(tmp, "test-result-review");
@@ -134,7 +139,7 @@ describe("flow-level artifact post-hook scope", () => {
       FLOW_COMMANDS.run["test-execute"].post({
         root: tmp,
         flowState,
-        flowManager: makeFlowManager(tmp),
+        flowManager: boundFlowManager(tmp),
       }),
       /expected '2'/,
     );
@@ -154,7 +159,7 @@ describe("flow-level artifact post-hook scope", () => {
       FLOW_COMMANDS.run["test-result-review"].post({
         root: tmp,
         flowState,
-        flowManager: makeFlowManager(tmp),
+        flowManager: boundFlowManager(tmp),
       }),
       /verdict is not pass/,
     );

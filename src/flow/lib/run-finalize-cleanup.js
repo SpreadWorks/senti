@@ -65,6 +65,7 @@ import {
   WorktreeFlowIdentity,
 } from "../../lib/worktree-flow-binding.js";
 import { deleteRepairBaselineForFlow } from "./repair-state-identity.js";
+import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
 const SUBMODULE_DIAGNOSTIC_LIMIT = 50;
@@ -4764,6 +4765,16 @@ async function withFinalizeTransactionStore(store, body) {
   return result;
 }
 
+function createFinalizeCleanupCompletionTransition(flowManager, specId) {
+  return createLifecycleStepTransition({
+    flowState: flowManager.loadReadOnly(specId),
+    stepId: "finalize-cleanup",
+    status: "done",
+    event: "finalize-cleanup:complete",
+    taskId: null,
+  });
+}
+
 async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
   const store = new FinalizeTeardownTransactionStore(reportRoot, ctx.flowState, { commitRequired: false });
   return withFinalizeTransactionStore(store, async () => {
@@ -4822,6 +4833,13 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
     if (!result) {
       const completionData = { status: "done", message: "spec-only mode" };
       if (!transaction.phase.atLeast("completed")) {
+        const transition = createFinalizeCleanupCompletionTransition(ctx.flowManager, specId);
+        if (transition) {
+          ctx.flowManager.updateStepStatus(transition, {
+            specId,
+            operationOwnerToken: ctx.repositoryOperationOwnerToken,
+          });
+        }
         const outbox = new FlowOutboxStore(ctx.flowManager, {
           specId,
           operationOwnerToken: ctx.repositoryOperationOwnerToken,
@@ -4829,10 +4847,6 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
         const identity = finalizationOutboxIdentity(ctx.flowState, "finalize-cleanup");
         outbox.begin(identity);
         outbox.complete(identity, completionData);
-        ctx.flowManager.updateStepStatus("finalize-cleanup", "done", {
-          specId,
-          operationOwnerToken: ctx.repositoryOperationOwnerToken,
-        });
         transaction.advance("completed", { commitSha: null });
         store.write(transaction);
       }
@@ -5830,6 +5844,13 @@ async function runTeardownTransactionOwned(
       : null,
   };
   if (!transaction.phase.atLeast("completed")) {
+    const transition = createFinalizeCleanupCompletionTransition(targetFm, specId);
+    if (transition) {
+      targetFm.updateStepStatus(transition, {
+        specId,
+        operationOwnerToken: ctx.repositoryOperationOwnerToken,
+      });
+    }
     const completionOutbox = new FlowOutboxStore(targetFm, {
       specId,
       operationOwnerToken: ctx.repositoryOperationOwnerToken,
@@ -5837,10 +5858,6 @@ async function runTeardownTransactionOwned(
     const completionIdentity = finalizationOutboxIdentity(state, "finalize-cleanup");
     completionOutbox.begin(completionIdentity);
     completionOutbox.complete(completionIdentity, completionData);
-    targetFm.updateStepStatus("finalize-cleanup", "done", {
-      specId,
-      operationOwnerToken: ctx.repositoryOperationOwnerToken,
-    });
     commitFinalizeCompletion({
       root: targetRoot,
       specId,

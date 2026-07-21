@@ -350,23 +350,26 @@ export async function dispatch({
   // lifecycle hooks, execution, or step metadata persistence.
   const hookCtx = buildRuntimeHookCtx(input);
   const emitTargetFailure = (failure) => {
-    openRuntimeLog(hookCtx);
-    attachRuntimeLog(failure, runtimeLog?.metadata);
+    attachRuntimeLog(failure, enableRuntimeLog === true && container.has("paths")
+      ? { runId: runtimeLogRunId(hookCtx) }
+      : null);
     writeOut(JSON.stringify(failure.toJSON(), null, 2) + "\n");
     setExit(1);
-    closeRuntimeLog();
-    if (restoreStreams) restoreStreams();
   };
-  const identityResolutionError = hookCtx.flowResolutionError?.code === "ACTIVE_FLOW_MISMATCH"
+  const targetResolutionError = [
+    "ACTIVE_FLOW_MISMATCH",
+    "FLOW_TARGET_NOT_FOUND",
+    "FLOW_TARGET_AMBIGUOUS",
+  ].includes(hookCtx.flowResolutionError?.code)
     ? hookCtx.flowResolutionError
     : null;
-  if (identityResolutionError) {
+  if (targetResolutionError) {
     emitTargetFailure(Envelope.fail(
       envelopeType || "run",
       envelopeKey || "?",
-      identityResolutionError.code,
-      identityResolutionError.message,
-      identityResolutionError.data,
+      targetResolutionError.code,
+      targetResolutionError.message,
+      targetResolutionError.data,
     ));
     return;
   }

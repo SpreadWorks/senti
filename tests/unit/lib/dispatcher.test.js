@@ -183,37 +183,116 @@ describe("dispatcher (unified runner)", () => {
       }
     });
 
-    it("rejects a preparing target mismatch before command loading or hooks", async () => {
-      let commandLoads = 0;
-      let preCalls = 0;
-      const out = [];
-      await dispatch({
-        container,
-        entry: {
-          requiresFlow: false,
-          args: { options: ["--expect-run-id", "--expect-issue", "--expect-spec"] },
-          command: async () => {
-            commandLoads += 1;
-            throw new Error("mismatched preparing target must not load the command");
-          },
-          pre() { preCalls += 1; },
-        },
-        argv: ["--expect-run-id", "run-431", "--expect-issue", "999"],
-        envelopeType: "run",
-        envelopeKey: "auto-check",
-        stdout: (chunk) => out.push(chunk),
-        setExitCode: () => {},
-        buildHookCtx: () => ({
-          flowState: null,
-          preparingFlowState: { runId: "run-431", issue: 431, spec: null },
-        }),
-      });
+    it("exits on unresolved or ambiguous targets before runtime logs, metadata, commands, or hooks", async () => {
+      for (const [code, matchCount] of [
+        ["FLOW_TARGET_NOT_FOUND", 0],
+        ["FLOW_TARGET_AMBIGUOUS", 2],
+      ]) {
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-resolution-"));
+        try {
+          container.register("paths", {
+            root: tmp,
+            agentWorkDir: path.join(tmp, ".agent-work"),
+          });
+          let commandLoads = 0;
+          let hookCalls = 0;
+          let metadataWrites = 0;
+          let exitCode = null;
+          const out = [];
+          const resolutionError = Object.assign(new Error(`target resolution failed: ${code}`), {
+            code,
+            data: { matchCount, expectedIssue: 443 },
+          });
 
-      const envelope = JSON.parse(out.join(""));
-      assert.equal(envelope.ok, false);
-      assert.equal(envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
-      assert.equal(commandLoads, 0);
-      assert.equal(preCalls, 0);
+          await dispatch({
+            container,
+            entry: {
+              command: async () => {
+                commandLoads += 1;
+                throw new Error("target resolution failure must not load the command");
+              },
+              args: { options: ["--expect-issue"] },
+              runtimeLog: { stepId: "test-review" },
+              pre() { hookCalls += 1; },
+              post() { hookCalls += 1; },
+              onError() { hookCalls += 1; },
+            },
+            argv: ["--expect-issue", "443"],
+            envelopeType: "run",
+            envelopeKey: "guarded-resolution",
+            runtimeLog: true,
+            stdout: (chunk) => out.push(chunk),
+            setExitCode: (value) => { exitCode = value; },
+            buildHookCtx: () => ({
+              flowResolutionError: resolutionError,
+              flowState: null,
+              flowManager: {
+                setStepRuntimeLog() { metadataWrites += 1; },
+              },
+            }),
+          });
+
+          const envelope = JSON.parse(out.join(""));
+          assert.equal(envelope.errors[0].code, code);
+          assert.equal(envelope.data.matchCount, matchCount);
+          assert.equal(exitCode, 1);
+          assert.equal(commandLoads, 0);
+          assert.equal(hookCalls, 0);
+          assert.equal(metadataWrites, 0);
+          assert.deepEqual(fs.readdirSync(tmp), [], "runtime-log open must not create files or directories");
+        } finally {
+          fs.rmSync(tmp, { recursive: true, force: true });
+        }
+      }
+    });
+
+    it("rejects a preparing target before runtime logs, metadata, commands, or hooks", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-preparing-"));
+      try {
+        container.register("paths", {
+          root: tmp,
+          agentWorkDir: path.join(tmp, ".agent-work"),
+        });
+        const calls = { command: 0, pre: 0, post: 0, onError: 0, metadata: 0 };
+        const out = [];
+        await dispatch({
+          container,
+          entry: {
+            requiresFlow: false,
+            runtimeLog: { stepId: "prepare-spec" },
+            args: { options: ["--expect-run-id", "--expect-issue", "--expect-spec"] },
+            command: async () => {
+              calls.command += 1;
+              throw new Error("mismatched preparing target must not load the command");
+            },
+            pre() { calls.pre += 1; },
+            post() { calls.post += 1; },
+            onError() { calls.onError += 1; },
+          },
+          argv: ["--expect-run-id", "run-431", "--expect-issue", "999"],
+          envelopeType: "run",
+          envelopeKey: "auto-check",
+          runtimeLog: true,
+          stdout: (chunk) => out.push(chunk),
+          setExitCode: () => {},
+          buildHookCtx: () => ({
+            flowState: null,
+            preparingFlowState: { runId: "run-431", issue: 431, spec: null },
+            flowManager: {
+              setStepRuntimeLog() { calls.metadata += 1; },
+            },
+          }),
+        });
+
+        const envelope = JSON.parse(out.join(""));
+        assert.equal(envelope.ok, false);
+        assert.equal(envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+        assert.equal(envelope.data.runtimeLog.runId, "no-flow");
+        assert.deepEqual(calls, { command: 0, pre: 0, post: 0, onError: 0, metadata: 0 });
+        assert.deepEqual(fs.readdirSync(tmp), [], "preparing rejection must not open a runtime log");
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
     });
   });
 
