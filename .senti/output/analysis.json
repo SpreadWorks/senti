@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-21T05:12:06.081Z",
+  "analyzedAt": "2026-07-21T06:56:17.518Z",
   "package": {
     "entries": [
       {
@@ -2646,9 +2646,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "96b60f3ed2d7a399b299c830915a031c",
-        "lines": 4050,
-        "mtime": "2026-07-21T02:54:11.962Z",
+        "hash": "323303d15c54ae03a46ab300370eefdc",
+        "lines": 4160,
+        "mtime": "2026-07-21T06:56:02.740Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2693,6 +2693,7 @@
           "loadImplReviewPolicyContext",
           "priorImplReviewFingerprintCounts",
           "applyImplReviewDispositionPolicy",
+          "runImplReviewWithPersistence",
           "runImplReview",
           "buildApplyPrompt",
           "shouldUseLoopReview",
@@ -2899,27 +2900,26 @@
           "LOOP_REVIEW_THRESHOLD",
           "MAX_LOOP_CALLS"
         ],
-        "extends": "Error",
+        "extends": "ImplReviewPersistenceStrategy",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the flow review command that drives AI-assisted review passes for specs, implementation changes, tests, and draft artifacts. It orchestrates diff collection, prompt construction, schema-validated parsing, and review artifact persistence.",
-        "detail": "The module coordinates multiple review modes, including implementation review, loop-based review for large diffs, spec review, test review, and draft QA/coverage review. It builds prompts from repository diffs, requirement mappings, guardrails, previous review memory, and optional task-spec context, then validates model output against structured JSON schemas with repair fallbacks. The code filters findings by touched files and requirement IDs, applies disposition policies, and writes both Markdown and JSON artifacts plus attempt history into spec-local review files. It also includes git merge-base resolution, exclusion path handling, prompt-size safeguards, and error classification so the CLI can fail predictably when agent output or tooling is invalid.",
+        "summary": "Primary implementation of the `flow review` CLI command. It orchestrates AI-assisted review for implementation, specification, draft, and test phases and writes normalized review artifacts.",
+        "detail": "This module drives the end-to-end review pipeline for flow specs, including merge-base resolution, diff collection, touched-file scoping, and exclusion handling. It builds specialized prompts for multiple review modes, combines guardrails, requirement mappings, prior review memory, and task context, and validates model responses against explicit schemas with JSON repair fallback. The file defines artifact models for impl, spec, draft, and test reviews, then persists both Markdown and JSON outputs plus per-attempt history under the spec directory. For larger changesets it can switch to a looped chunk-review strategy with proposal cross-checking, trusted output handling, retry logic, and filtering of findings to valid requirement IDs and changed files.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T05:14:26.594Z",
+          "processedAt": "2026-07-21T06:57:12.174Z",
           "attempts": 1
         },
         "keywords": [
-          "review command",
-          "code review pipeline",
-          "AI-assisted review",
-          "diff analysis",
+          "code review",
+          "flow review",
+          "CLI command",
+          "AI prompt orchestration",
           "schema validation",
-          "prompt builder",
-          "requirement traceability",
+          "diff analysis",
           "review artifacts",
-          "CLI orchestration"
+          "requirement mapping"
         ]
       },
       {
@@ -8598,14 +8598,17 @@
       },
       {
         "file": "src/flow/lib/test-regression.js",
-        "hash": "4592d9d2604f7c72fe109fa9c6bb7f11",
-        "lines": 538,
-        "mtime": "2026-07-12T10:40:07.456Z",
+        "hash": "fbe25d8b9163d9b0fd290ad28ed96832",
+        "lines": 711,
+        "mtime": "2026-07-21T06:51:49.154Z",
         "className": "test-regression",
         "methods": [
           "formatElapsedMs",
           "ParsedCommand",
           "RegressionCommandIdentity",
+          "ProcessStreamSummary",
+          "ChildProcessExecutionResult",
+          "processResultFromSpawnSync",
           "commandIdentityFor",
           "withChangedFileFingerprints",
           "RegressionClassification",
@@ -8620,6 +8623,10 @@
           "processOutputLines",
           "runProcessDetailed",
           "resolveTestTimeoutSeconds",
+          "assertOptionalString",
+          "commandArgv",
+          "processErrorMessage",
+          "childProcessResult",
           "readJsonIfExists",
           "regressionCommandFromSource",
           "normalizePath",
@@ -8646,6 +8653,9 @@
           "formatElapsedMs",
           "ParsedCommand",
           "RegressionCommandIdentity",
+          "ProcessStreamSummary",
+          "ChildProcessExecutionResult",
+          "processResultFromSpawnSync",
           "commandIdentityFor",
           "withChangedFileFingerprints",
           "RegressionClassification",
@@ -8665,6 +8675,7 @@
           "MIN_PROCESS_HEARTBEAT_MS",
           "TEST_EXECUTE_REGRESSION_POLICIES",
           "NO_SUPPORTED_REGRESSION_COMMAND",
+          "CHILD_PROCESS_RESULT_KINDS",
           "REGRESSION_COMMAND_CHECKED_SOURCES"
         ],
         "extends": "Error",
@@ -8675,23 +8686,23 @@
           "src/flow/lib/test-artifacts.js"
         ],
         "id": "2980d983",
-        "summary": "Implements regression command discovery, change classification, and execution planning for test runs.",
-        "detail": "The module discovers a usable regression command from configuration, package scripts, Composer, or Make targets and parses it into argv form while rejecting shell control syntax and unsafe expansion patterns. It classifies changed files against project analysis, active spec paths, and documentation or generated-artifact rules to distinguish trigger-relevant edits from non-trigger changes. Policy logic converts that classification into targeted, full, or skipped regression plans and records command identities plus changed-file fingerprints for later verification. Process helpers execute the chosen command with timeout and heartbeat controls, then normalize exit information and line-oriented output for downstream artifact generation.",
+        "summary": "Provides regression-test planning and execution helpers for flow operations. It discovers safe test commands, classifies changed files, and decides whether targeted, full, or skipped regression runs are appropriate.",
+        "detail": "The module models parsed commands, execution identities, stream summaries, execution plans, and validated child-process outcomes as structured classes instead of loose objects. It discovers a runnable regression command from configuration, package scripts, Composer, Make targets, and other supported sources, while rejecting shell control syntax and unsafe command forms. Changed files are normalized and compared against analysis-derived project paths, spec artifacts, documentation, and config files to determine whether the change should trigger tests. Its execution helpers then run the command with timeout controls and detailed result capture, including exit mode, signals, buffer failures, output summaries, and elapsed time reporting.",
         "chapter": "development",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-12T19:37:50.766Z",
+          "processedAt": "2026-07-21T06:57:12.174Z",
           "attempts": 1
         },
         "keywords": [
           "regression testing",
-          "command discovery",
+          "test command discovery",
           "change classification",
-          "targeted test run",
-          "test policy",
-          "process execution",
+          "child process execution",
           "timeout handling",
-          "file fingerprints"
+          "git diff analysis",
+          "test planning",
+          "safe command parsing"
         ]
       },
       {
@@ -13455,9 +13466,9 @@
     ],
     "summary": {
       "total": 243,
-      "totalMethods": 2546
+      "totalMethods": 2554
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-21T05:14:26.652Z"
+  "enrichedAt": "2026-07-21T06:57:12.174Z"
 }
