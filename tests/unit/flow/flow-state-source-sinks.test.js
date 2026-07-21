@@ -48,25 +48,455 @@ function identifierAppears(expression, identifier) {
   return new RegExp(`(?:^|[^\\w$])${identifier.replace(/[$]/g, "\\$")}(?:$|[^\\w$])`).test(expression);
 }
 
-function propertyAppears(expression, property) {
-  return expression.includes(property);
+function lexicalMask(source, preserveStrings = false) {
+  return source.replace(
+    /\/\*[\s\S]*?\*\/|\/\/[^\n\r]*|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`/g,
+    (fragment) => {
+      if (preserveStrings && !fragment.startsWith("/")) return fragment;
+      return fragment.replace(/[^\n\r]/g, " ");
+    },
+  );
 }
 
-function expressionIsFlowPath(expression, state) {
-  if (/['"`]flow\.json['"`]/.test(expression)) return true;
-  if (/\[\s*['"`]flow['"`]\s*,\s*['"`]json['"`]\s*\]\.join\(\s*['"`]\.['"`]\s*\)/.test(expression)) return true;
-  if (/\bSTATE_FILE\b/.test(expression)) return true;
-  if (/\bflowStatePath\s*\(/.test(expression)) return true;
-  for (const name of state.returningFunctions) {
-    if (new RegExp(`\\b${name}\\s*\\(`).test(expression)) return true;
+class FlowFact {
+  constructor(propagation) {
+    if (!(propagation instanceof FlowPropagation)) throw new Error("flow fact requires propagation");
+    this.propagation = propagation;
+    this.supported = false;
+    this.unsupported = false;
+    this.dependencies = new Set();
+    propagation.facts.add(this);
   }
-  for (const name of state.variables) {
-    if (identifierAppears(expression, name)) return true;
+
+  update(supported, unsupported) {
+    const changed = (supported && !this.supported) || (unsupported && !this.unsupported);
+    this.supported ||= supported;
+    this.unsupported ||= unsupported;
+    return changed;
   }
-  for (const property of state.properties) {
-    if (propertyAppears(expression, property)) return true;
+}
+
+class FlowBinding extends FlowFact {
+  constructor(propagation, scope, name) {
+    super(propagation);
+    if (!(scope instanceof LexicalScope) || !/^[A-Za-z_$][\w$]*$/.test(name)) {
+      throw new Error("invalid flow binding");
+    }
+    this.scope = scope;
+    this.name = name;
+    this.members = new Map();
+    this.returnFact = null;
   }
-  return false;
+
+  member(key) {
+    if (!this.members.has(key)) {
+      this.members.set(key, new FlowMemberFact(this.propagation, this, key));
+    }
+    return this.members.get(key);
+  }
+
+  returned() {
+    this.returnFact ||= new FlowReturnFact(this.propagation, this);
+    return this.returnFact;
+  }
+}
+
+class FlowMemberFact extends FlowFact {
+  constructor(propagation, owner, key) {
+    super(propagation);
+    if (!(owner instanceof FlowBinding) || !/^[A-Za-z_$][\w$]*$/.test(key)) {
+      throw new Error("invalid flow member");
+    }
+    this.owner = owner;
+    this.key = key;
+  }
+}
+
+class FlowReturnFact extends FlowFact {
+  constructor(propagation, callable) {
+    super(propagation);
+    if (!(callable instanceof FlowBinding)) throw new Error("invalid flow return");
+    this.callable = callable;
+  }
+}
+
+class FlowDependency {
+  constructor(source, target, rejectsShape) {
+    if (!(source instanceof FlowFact) || !(target instanceof FlowFact)) {
+      throw new Error("invalid flow dependency");
+    }
+    this.source = source;
+    this.target = target;
+    this.rejectsShape = rejectsShape;
+    Object.freeze(this);
+  }
+
+  transfer() {
+    if (this.rejectsShape) {
+      return this.target.update(false, this.source.supported || this.source.unsupported);
+    }
+    return this.target.update(this.source.supported, this.source.unsupported);
+  }
+}
+
+class FlowPropagation {
+  constructor() {
+    this.facts = new Set();
+    this.dependencies = [];
+  }
+
+  connect(source, target, rejectsShape = false) {
+    if ([...source.dependencies].some((dependency) => (
+      dependency.target === target && dependency.rejectsShape === rejectsShape
+    ))) return;
+    const dependency = new FlowDependency(source, target, rejectsShape);
+    source.dependencies.add(dependency);
+    this.dependencies.push(dependency);
+  }
+
+  run() {
+    const queue = [...this.facts].filter((fact) => fact.supported || fact.unsupported);
+    const queued = new Set(queue);
+    const maximumWork = 2 * (this.facts.size + this.dependencies.length);
+    let work = 0;
+    while (queue.length > 0) {
+      const source = queue.shift();
+      queued.delete(source);
+      work += 1;
+      for (const dependency of source.dependencies) {
+        work += 1;
+        if (dependency.transfer() && !queued.has(dependency.target)) {
+          queue.push(dependency.target);
+          queued.add(dependency.target);
+        }
+      }
+      if (work > maximumWork) throw new Error(`flow propagation exceeded ${maximumWork} steps`);
+    }
+  }
+}
+
+class LexicalScope {
+  constructor(propagation, parent, kind, start, end) {
+    if (!(propagation instanceof FlowPropagation)
+      || (parent !== null && !(parent instanceof LexicalScope))
+      || !new Set(["file", "function", "block", "class"]).has(kind)
+      || !Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start) {
+      throw new Error("invalid lexical scope");
+    }
+    this.propagation = propagation;
+    this.parent = parent;
+    this.kind = kind;
+    this.start = start;
+    this.end = end;
+    this.bindings = new Map();
+    this.callable = null;
+  }
+
+  contains(position) {
+    return position >= this.start && position < this.end;
+  }
+
+  declare(name) {
+    if (!this.bindings.has(name)) {
+      this.bindings.set(name, new FlowBinding(this.propagation, this, name));
+    }
+    return this.bindings.get(name);
+  }
+
+  resolve(name) {
+    return this.bindings.get(name) || this.parent?.resolve(name) || null;
+  }
+
+  declarationOwner(kind) {
+    if (kind !== "var") return this;
+    let owner = this;
+    while (owner.parent && owner.kind !== "function") owner = owner.parent;
+    return owner;
+  }
+
+  nearestFunction() {
+    let scope = this;
+    while (scope && scope.kind !== "function") scope = scope.parent;
+    return scope;
+  }
+}
+
+class ScopeOpening {
+  constructor(kind, name, parameters = "") {
+    if (!new Set(["function", "class"]).has(kind)) throw new Error("invalid scope opening");
+    this.kind = kind;
+    this.name = name;
+    this.parameters = parameters;
+    Object.freeze(this);
+  }
+}
+
+class LexicalOutline {
+  constructor(source, propagation) {
+    this.source = source;
+    this.mask = lexicalMask(source);
+    this.propagation = propagation;
+    this.file = new LexicalScope(propagation, null, "file", 0, source.length);
+    this.scopes = [this.file];
+    this.build();
+  }
+
+  build() {
+    const openings = new Map();
+    for (const match of this.mask.matchAll(
+      /\b(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*\{/g,
+    )) {
+      openings.set(match.index + match[0].lastIndexOf("{"), new ScopeOpening("function", match[1], match[2]));
+    }
+    for (const match of this.mask.matchAll(
+      /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>\s*\{/g,
+    )) {
+      openings.set(match.index + match[0].lastIndexOf("{"), new ScopeOpening("function", match[1], match[2]));
+    }
+    for (const match of this.mask.matchAll(/\bclass\s+([A-Za-z_$][\w$]*)[^{}]*\{/g)) {
+      openings.set(match.index + match[0].lastIndexOf("{"), new ScopeOpening("class", match[1]));
+    }
+    const stack = [];
+    const ranges = [];
+    for (let index = 0; index < this.mask.length; index += 1) {
+      if (this.mask[index] === "{") stack.push(index);
+      else if (this.mask[index] === "}" && stack.length > 0) ranges.push([stack.pop(), index]);
+    }
+    const parents = [this.file];
+    for (const [open, close] of ranges.sort((left, right) => left[0] - right[0])) {
+      while (parents.length > 1 && !parents.at(-1).contains(open)) parents.pop();
+      const opening = openings.get(open);
+      const scope = new LexicalScope(
+        this.propagation,
+        parents.at(-1),
+        opening?.kind || "block",
+        open + 1,
+        close,
+      );
+      if (opening?.name) {
+        const binding = scope.parent.declare(opening.name);
+        if (opening.kind === "function") scope.callable = binding;
+      }
+      if (opening?.kind === "function") {
+        for (const parameter of opening.parameters.split(",").map((value) => value.trim())) {
+          if (/^[A-Za-z_$][\w$]*$/.test(parameter)) scope.declare(parameter);
+        }
+      }
+      this.scopes.push(scope);
+      parents.push(scope);
+    }
+  }
+
+  at(position) {
+    let found = this.file;
+    for (const scope of this.scopes) {
+      if (scope.contains(position) && scope.start >= found.start && scope.end <= found.end) found = scope;
+    }
+    return found;
+  }
+
+  resolve(name, position) {
+    return this.at(position).resolve(name);
+  }
+}
+
+class FlowExpression {
+  constructor(source, position, outline) {
+    if (typeof source !== "string" || !Number.isSafeInteger(position) || position < 0
+      || !(outline instanceof LexicalOutline)) {
+      throw new Error("invalid flow expression");
+    }
+    this.source = source;
+    this.position = position;
+    this.outline = outline;
+    this.mask = lexicalMask(source);
+  }
+
+  containsDirectSource() {
+    const withStrings = lexicalMask(this.source, true);
+    return /['"`]flow\.json['"`]/.test(withStrings)
+      || /\[\s*['"`]flow['"`]\s*,\s*['"`]json['"`]\s*\]\.join\(\s*['"`]\.['"`]\s*\)/.test(withStrings)
+      || /\bSTATE_FILE\b/.test(this.mask)
+      || /\bflowStatePath\s*\(/.test(this.mask);
+  }
+
+  supportedDirectSource() {
+    const expression = this.source.trim();
+    if (/^(['"`])flow\.json\1$/.test(expression)) return true;
+    if (/^\[\s*['"`]flow['"`]\s*,\s*['"`]json['"`]\s*\]\.join\(\s*['"`]\.['"`]\s*\)$/.test(expression)) return true;
+    if (expression === "STATE_FILE") return true;
+    if (/^flowStatePath\s*\([^)]*\)$/.test(expression)) return true;
+    return this.supportedPathJoin() && this.containsDirectSource();
+  }
+
+  supportedPathJoin() {
+    const expression = this.source.trim();
+    if (!/^path\s*\.\s*join\s*\(/.test(expression) || !expression.endsWith(")")) return false;
+    return this.simpleArguments(this.source.indexOf("("));
+  }
+
+  simpleArguments(openParen) {
+    return argumentsAt(this.source, openParen).every((argument) => (
+      /^\s*(?:[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*\s*\.\s*[A-Za-z_$][\w$]*|[\d.]+|['"`][\s\S]*['"`])\s*$/.test(argument)
+    ));
+  }
+
+  references() {
+    const references = new Set();
+    const occupied = [];
+    for (const member of this.mask.matchAll(/\b([A-Za-z_$][\w$]*)\s*\.\s*([A-Za-z_$][\w$]*)/g)) {
+      const owner = this.outline.resolve(member[1], this.position + member.index);
+      if (owner) references.add(owner.member(member[2]));
+      occupied.push([member.index, member.index + member[0].length]);
+    }
+    for (const call of this.mask.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)) {
+      if (occupied.some(([start, end]) => call.index >= start && call.index < end)) continue;
+      const callable = this.outline.resolve(call[1], this.position + call.index);
+      if (callable) references.add(callable.returned());
+      occupied.push([call.index, call.index + call[1].length]);
+    }
+    for (const identifier of this.mask.matchAll(/\b([A-Za-z_$][\w$]*)\b/g)) {
+      if (occupied.some(([start, end]) => identifier.index >= start && identifier.index < end)) continue;
+      const binding = this.outline.resolve(identifier[1], this.position + identifier.index);
+      if (binding) references.add(binding);
+    }
+    return [...references];
+  }
+
+  supportedReferences() {
+    if (this.supportedDirectSource()) return [];
+    const expression = this.source.trim();
+    const identifier = /^([A-Za-z_$][\w$]*)$/.exec(expression);
+    if (identifier) {
+      const binding = this.outline.resolve(identifier[1], this.position + this.source.indexOf(identifier[1]));
+      return binding ? [binding] : [];
+    }
+    const member = /^([A-Za-z_$][\w$]*)\s*\.\s*([A-Za-z_$][\w$]*)$/.exec(expression);
+    if (member) {
+      const owner = this.outline.resolve(member[1], this.position + this.source.indexOf(member[1]));
+      return owner ? [owner.member(member[2])] : [];
+    }
+    if (this.supportedPathJoin()) return this.references();
+    const helper = /^([A-Za-z_$][\w$]*)\s*\([\s\S]*\)$/.exec(expression);
+    if (helper && this.simpleArguments(this.source.indexOf("("))) {
+      const callable = this.outline.resolve(helper[1], this.position + this.source.indexOf(helper[1]));
+      return callable ? [callable.returned()] : [];
+    }
+    return [];
+  }
+
+  unsupportedReferences() {
+    const supported = new Set(this.supportedReferences());
+    return this.references().filter((reference) => !supported.has(reference));
+  }
+}
+
+class FlowPathAnalysis {
+  constructor(source) {
+    this.source = source;
+    this.propagation = new FlowPropagation();
+    this.outline = new LexicalOutline(source, this.propagation);
+    this.mask = this.outline.mask;
+    this.declareBindings();
+    this.connectTransfers();
+    this.propagation.run();
+  }
+
+  declareBindings() {
+    for (const match of this.mask.matchAll(/\b(const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/g)) {
+      this.outline.at(match.index).declarationOwner(match[1]).declare(match[2]);
+    }
+    for (const match of this.mask.matchAll(/\b(const|let|var)\s*\{([^}]+)\}\s*=/g)) {
+      const scope = this.outline.at(match.index).declarationOwner(match[1]);
+      for (const item of match[2].split(",")) {
+        const [property, alias = property] = item.trim().split(/\s*:\s*/);
+        if (/^[A-Za-z_$][\w$]*$/.test(alias)) scope.declare(alias);
+      }
+    }
+    for (const scope of this.outline.scopes.filter((candidate) => candidate.kind === "function")) {
+      for (const name of ["flowPath", "flowJsonPath", "flowStatePath"]) {
+        scope.bindings.get(name)?.update(true, false);
+      }
+    }
+  }
+
+  connectTransfers() {
+    for (const match of this.mask.matchAll(/\b(const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([^;\n]+)/g)) {
+      const target = this.outline.at(match.index).declarationOwner(match[1]).bindings.get(match[2]);
+      const start = match.index + match[0].indexOf("=") + 1;
+      const expression = this.source.slice(start, match.index + match[0].length);
+      if (!expression.trim().startsWith("{")) this.connectExpression(target, expression, start);
+    }
+    for (const match of this.mask.matchAll(
+      /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\{([^;}]+)\}/g,
+    )) {
+      const owner = this.outline.resolve(match[1], match.index);
+      if (!owner) continue;
+      const bodyStart = this.mask.indexOf("{", match.index) + 1;
+      const body = this.mask.slice(bodyStart, match.index + match[0].length - 1);
+      for (const property of body.matchAll(/([A-Za-z_$][\w$]*)\s*:\s*([^,}]+)/g)) {
+        const start = bodyStart + property.index + property[0].indexOf(":") + 1;
+        const expression = this.source.slice(start, bodyStart + property.index + property[0].length);
+        this.connectExpression(owner.member(property[1]), expression, start);
+      }
+    }
+    for (const match of this.mask.matchAll(
+      /\b(const|let|var)\s*\{([^}]+)\}\s*=\s*([A-Za-z_$][\w$]*)/g,
+    )) {
+      const scope = this.outline.at(match.index).declarationOwner(match[1]);
+      const owner = this.outline.resolve(match[3], match.index);
+      if (!owner) continue;
+      for (const item of match[2].split(",")) {
+        const [property, alias = property] = item.trim().split(/\s*:\s*/);
+        if (/^[A-Za-z_$][\w$]*$/.test(property) && /^[A-Za-z_$][\w$]*$/.test(alias)) {
+          this.propagation.connect(owner.member(property), scope.bindings.get(alias));
+        }
+      }
+    }
+    for (const match of this.mask.matchAll(/\breturn\s+([^;\n]+)/g)) {
+      const scope = this.outline.at(match.index).nearestFunction();
+      if (!scope?.callable) continue;
+      const start = match.index + match[0].indexOf(match[1]);
+      this.connectExpression(
+        scope.callable.returned(),
+        this.source.slice(start, match.index + match[0].length),
+        start,
+      );
+    }
+  }
+
+  connectExpression(target, source, position) {
+    if (!(target instanceof FlowFact)) return;
+    const expression = new FlowExpression(source, position, this.outline);
+    if (expression.supportedDirectSource()) target.update(true, false);
+    else if (expression.containsDirectSource()) target.update(false, true);
+    for (const reference of expression.supportedReferences()) {
+      this.propagation.connect(reference, target);
+    }
+    for (const reference of expression.unsupportedReferences()) {
+      this.propagation.connect(reference, target, true);
+    }
+  }
+
+  matches(expressionSource, position) {
+    const expression = new FlowExpression(expressionSource, position, this.outline);
+    if (expression.supportedDirectSource()) return true;
+    if (expression.containsDirectSource()) throw new Error(`unsupported flow expression at ${position}`);
+    for (const reference of expression.unsupportedReferences()) {
+      if (reference.supported || reference.unsupported) {
+        throw new Error(`unsupported flow expression at ${position}`);
+      }
+    }
+    for (const reference of expression.supportedReferences()) {
+      if (reference.unsupported) throw new Error(`unsupported flow expression at ${position}`);
+      if (reference.supported) return true;
+    }
+    return false;
+  }
+}
+
+function expressionIsFlowPath(expression, analysis, position = 0) {
+  return analysis.matches(expression, position);
 }
 
 function normalizedMemberExpression(expression) {
@@ -175,71 +605,22 @@ function collectSinkCapabilities(source) {
 }
 
 function analyzeFlowPaths(source) {
-  const state = {
-    variables: new Set(),
-    properties: new Set(),
-    returningFunctions: new Set(),
-  };
-  const functions = balancedBlocks(
-    source,
-    /\b(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g,
-  );
-  for (const match of source.matchAll(/\b(?:flowPath|flowJsonPath|flowStatePath)\b/g)) {
-    const after = source.slice(match.index + match[0].length).match(/^\s*\(/);
-    if (!after) state.variables.add(match[0]);
-  }
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const block of functions) {
-      const name = /function\s+([A-Za-z_$][\w$]*)/.exec(block.header)?.[1];
-      for (const returned of block.body.matchAll(/\breturn\s+([^;\n]+)/g)) {
-        if (name && expressionIsFlowPath(returned[1], state) && !state.returningFunctions.has(name)) {
-          state.returningFunctions.add(name);
-          changed = true;
-        }
-      }
-    }
-    for (const match of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([^;\n]+)/g)) {
-      if (expressionIsFlowPath(match[2], state) && !state.variables.has(match[1])) {
-        state.variables.add(match[1]);
-        changed = true;
-      }
-    }
-    for (const match of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\{([^;}]+)\}/g)) {
-      for (const property of match[2].matchAll(/([A-Za-z_$][\w$]*)\s*:\s*([^,}]+)/g)) {
-        if (expressionIsFlowPath(property[2], state)) {
-          const key = `${match[1]}.${property[1]}`;
-          if (!state.properties.has(key)) {
-            state.properties.add(key);
-            changed = true;
-          }
-        }
-      }
-    }
-    for (const match of source.matchAll(/\b(?:const|let|var)\s*\{([^}]+)\}\s*=\s*([A-Za-z_$][\w$]*)/g)) {
-      for (const item of match[1].split(",")) {
-        const [property, alias = property] = item.trim().split(/\s*:\s*/);
-        if (
-          state.properties.has(`${match[2]}.${property}`)
-          && !state.variables.has(alias)
-        ) {
-          state.variables.add(alias);
-          changed = true;
-        }
-      }
-    }
-    for (const match of source.matchAll(/\b([A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*)\s*=\s*([^;\n]+)/g)) {
-      if (expressionIsFlowPath(match[2], state) && !state.properties.has(match[1])) {
-        state.properties.add(match[1]);
-        changed = true;
-      }
-    }
-  }
-  return state;
+  return new FlowPathAnalysis(source);
 }
 
-function argumentsAt(source, openParen) {
+class CallArgument {
+  constructor(source, start, end) {
+    if (typeof source !== "string" || !Number.isSafeInteger(start) || !Number.isSafeInteger(end)
+      || start < 0 || end < start || end > source.length) {
+      throw new Error("invalid call argument");
+    }
+    this.source = source.slice(start, end);
+    this.position = start;
+    Object.freeze(this);
+  }
+}
+
+function argumentSegmentsAt(source, openParen) {
   const argumentsFound = [];
   let index = openParen + 1;
   let start = index;
@@ -259,24 +640,86 @@ function argumentsAt(source, openParen) {
     else if (char === "(" || char === "[" || char === "{") depth += 1;
     else if (char === ")" || char === "]" || char === "}") {
       if (depth === 0) {
-        argumentsFound.push(source.slice(start, index));
+        argumentsFound.push(new CallArgument(source, start, index));
         break;
       }
       depth -= 1;
     } else if (char === "," && depth === 0) {
-      argumentsFound.push(source.slice(start, index));
+      argumentsFound.push(new CallArgument(source, start, index));
       start = index + 1;
     }
     index += 1;
   }
-  if (argumentsFound.length === 1 && argumentsFound[0].trim() === "") return [];
+  if (argumentsFound.length === 1 && argumentsFound[0].source.trim() === "") return [];
   return argumentsFound;
+}
+
+function argumentsAt(source, openParen) {
+  return argumentSegmentsAt(source, openParen).map((argument) => argument.source);
 }
 
 function callExpressions(source) {
   return source.matchAll(
     /\b([A-Za-z_$][\w$]*(?:\s*(?:\.\s*[A-Za-z_$][\w$]*|\[\s*["'][A-Za-z_$][\w$]*["']\s*\]))*)\s*\(/g,
   );
+}
+
+function sinkCapabilityIdentities(state) {
+  const identities = new Set([...state.aliases, ...state.properties]);
+  for (const namespace of state.namespaces) {
+    for (const api of sinkApis) identities.add(`${namespace}.${api}`);
+  }
+  return identities;
+}
+
+function unsupportedSinkCallee(expression, state) {
+  if (expressionIsSinkCapability(expression, state)) return false;
+  const normalized = normalizedMemberExpression(expression);
+  for (const identity of sinkCapabilityIdentities(state)) {
+    if (!normalized.startsWith(identity)) continue;
+    const suffix = normalized.slice(identity.length);
+    if (/^(?:\.|\[|\?\.)/.test(suffix)) return true;
+  }
+  const compact = expression.replace(/\s+/g, "");
+  for (const namespace of state.namespaces) {
+    if (!normalized.startsWith(namespace)) continue;
+    const suffix = normalized.slice(namespace.length);
+    if (/^\[(?!['"][A-Za-z_$][\w$]*['"]\])[^\]]+\]/.test(suffix)) return true;
+    const optionalMember = /^\?\.([A-Za-z_$][\w$]*)/.exec(suffix);
+    if (optionalMember && sinkApis.has(optionalMember[1])) return true;
+    if (compact.startsWith(`${namespace}?.[`)) return true;
+  }
+  return false;
+}
+
+function assertNoUnsupportedSinkCallees(source, state) {
+  const mask = lexicalMask(source);
+  for (const pattern of [
+    /\b([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*\?\.\s*(?:[A-Za-z_$][\w$]*|\[[^\]\n]+\])(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*\(/g,
+    /\b([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*\[[^\]\n]+\](?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*\(/g,
+  ]) {
+    for (const match of mask.matchAll(pattern)) {
+      const callee = source.slice(match.index, match.index + match[1].length);
+      if (unsupportedSinkCallee(callee, state)) {
+        throw new Error(`unsupported sink callee: ${callee.trim()}`);
+      }
+    }
+  }
+  for (const match of mask.matchAll(
+    /\b([A-Za-z_$][\w$]*(?:\s*(?:\.\s*[A-Za-z_$][\w$]*|\[\s*["'][A-Za-z_$][\w$]*["']\s*\]))*)\s*\?\.\s*\(/g,
+  )) {
+    const callee = source.slice(match.index, match.index + match[1].length);
+    if (expressionIsSinkCapability(callee, state) || unsupportedSinkCallee(callee, state)) {
+      throw new Error(`unsupported sink callee: ${callee.trim()}?.`);
+    }
+  }
+  for (const match of mask.matchAll(/\(\s*([^();\n]+)\s*\)\s*\(/g)) {
+    const start = match.index + match[0].indexOf(match[1]);
+    const callee = source.slice(start, start + match[1].length);
+    if (expressionIsSinkCapability(callee, state) || unsupportedSinkCallee(callee, state)) {
+      throw new Error(`unsupported sink callee: (${callee.trim()})`);
+    }
+  }
 }
 
 function callbackCapability(expression, capabilities) {
@@ -375,26 +818,33 @@ function directFlowStateSinks(filePath) {
   const source = fs.readFileSync(filePath, "utf8");
   const paths = analyzeFlowPaths(source);
   const capabilities = collectSinkCapabilities(source);
+  assertNoUnsupportedSinkCallees(source, capabilities);
   const findings = [];
   for (const match of callExpressions(source)) {
-    if (!expressionIsSinkCapability(match[1], capabilities)) continue;
+    if (!expressionIsSinkCapability(match[1], capabilities)) {
+      if (unsupportedSinkCallee(match[1], capabilities)) {
+        throw new Error(`unsupported sink callee: ${match[1].trim()}`);
+      }
+      continue;
+    }
     const openParen = match.index + match[0].lastIndexOf("(");
-    const calledArguments = argumentsAt(source, openParen);
+    const calledArguments = argumentSegmentsAt(source, openParen);
     const argumentIndex = /\.call$/.test(normalizedMemberExpression(match[1])) ? 1 : 0;
-    const argument = calledArguments[argumentIndex] || "";
-    if (expressionIsFlowPath(argument, paths)) {
-      findings.push(`${path.relative(repoRoot, filePath)}: ${normalizedMemberExpression(match[1])}(${argument.trim()}`);
+    const argument = calledArguments[argumentIndex];
+    if (argument && expressionIsFlowPath(argument.source, paths, argument.position)) {
+      findings.push(`${path.relative(repoRoot, filePath)}: ${normalizedMemberExpression(match[1])}(${argument.source.trim()}`);
     }
   }
   for (const match of source.matchAll(/\bReflect\s*\.\s*apply\s*\(/g)) {
     const openParen = match.index + match[0].lastIndexOf("(");
-    const [capability = "", , argumentList = ""] = argumentsAt(source, openParen);
-    const trimmedList = argumentList.trim();
-    if (!expressionIsSinkCapability(capability, capabilities)) continue;
+    const [capability, , argumentList] = argumentSegmentsAt(source, openParen);
+    const trimmedList = argumentList?.source.trim() || "";
+    if (!capability || !expressionIsSinkCapability(capability.source, capabilities)) continue;
     if (!trimmedList.startsWith("[") || !trimmedList.endsWith("]")) continue;
-    const [argument = ""] = argumentsAt(`(${trimmedList.slice(1, -1)})`, 0);
-    if (expressionIsFlowPath(argument, paths)) {
-      findings.push(`${path.relative(repoRoot, filePath)}: Reflect.apply(${capability.trim()}, ${argument.trim()}`);
+    const listOpen = argumentList.position + argumentList.source.indexOf("[");
+    const [argument] = argumentSegmentsAt(source, listOpen);
+    if (argument && expressionIsFlowPath(argument.source, paths, argument.position)) {
+      findings.push(`${path.relative(repoRoot, filePath)}: Reflect.apply(${capability.source.trim()}, ${argument.source.trim()}`);
     }
   }
   const bridges = callbackBridges(source);
@@ -402,10 +852,14 @@ function directFlowStateSinks(filePath) {
     const callee = normalizedMemberExpression(match[1]);
     for (const bridge of bridges.filter(({ name }) => name === callee)) {
       const openParen = match.index + match[0].lastIndexOf("(");
-      const callArgumentsFound = argumentsAt(source, openParen);
+      const callArgumentsFound = argumentSegmentsAt(source, openParen);
+      const capability = callArgumentsFound[bridge.callbackIndex];
+      const pathArgument = callArgumentsFound[bridge.pathIndex];
       if (
-        expressionIsSinkCapability(callArgumentsFound[bridge.callbackIndex] || "", capabilities)
-        && expressionIsFlowPath(callArgumentsFound[bridge.pathIndex] || "", paths)
+        capability
+        && pathArgument
+        && expressionIsSinkCapability(capability.source, capabilities)
+        && expressionIsFlowPath(pathArgument.source, paths, pathArgument.position)
       ) {
         findings.push(`${path.relative(repoRoot, filePath)}: ${callee}(sink capability, flow path)`);
       }
@@ -447,6 +901,78 @@ test("scanner detects indirect aliases, properties, destructuring, streams, and 
     for (const sink of ["writeFileSync", "writer", "append", "stream", "persist", "indirectSink"]) {
       assert.ok(findings.some((finding) => finding.includes(sink)), `missing ${sink}: ${findings.join("\n")}`);
     }
+  } finally {
+    removeTmpDir(tmp);
+  }
+});
+
+test("scanner separates same-named path bindings in sibling functions", () => {
+  const tmp = createTmpDir("flow-sink-sibling-bindings-");
+  try {
+    const fixture = path.join(tmp, "sibling-bindings.js");
+    fs.writeFileSync(fixture, `
+      import fs from "node:fs";
+      import { flowStatePath } from "${allowedOwner}";
+      function persistFlow() {
+        const destination = flowStatePath(root, id);
+        fs.writeFileSync(destination, "flow");
+      }
+      function persistReport() {
+        const destination = "/tmp/report.json";
+        fs.appendFileSync(destination, "report");
+      }
+      persistFlow();
+      persistReport();
+    `);
+    const findings = directFlowStateSinks(fixture);
+    assert.equal(findings.length, 1, findings.join("\n"));
+    assert.ok(findings[0].includes("writeFileSync"), findings.join("\n"));
+  } finally {
+    removeTmpDir(tmp);
+  }
+});
+
+test("scanner resolves a shadowed block binding before its parent", () => {
+  const tmp = createTmpDir("flow-sink-block-binding-");
+  try {
+    const fixture = path.join(tmp, "block-binding.js");
+    fs.writeFileSync(fixture, `
+      import fs from "node:fs";
+      import { flowStatePath } from "${allowedOwner}";
+      const destination = flowStatePath(root, id);
+      fs.writeFileSync(destination, "flow");
+      {
+        const destination = "/tmp/report.json";
+        fs.appendFileSync(destination, "report");
+      }
+    `);
+    const findings = directFlowStateSinks(fixture);
+    assert.equal(findings.length, 1, findings.join("\n"));
+    assert.ok(findings[0].includes("writeFileSync"), findings.join("\n"));
+  } finally {
+    removeTmpDir(tmp);
+  }
+});
+
+test("scanner follows a flow-path binding captured by a closure", () => {
+  const tmp = createTmpDir("flow-sink-closure-binding-");
+  try {
+    const fixture = path.join(tmp, "closure-binding.js");
+    fs.writeFileSync(fixture, `
+      import fs from "node:fs";
+      import { flowStatePath } from "${allowedOwner}";
+      function persistFlow() {
+        const destination = flowStatePath(root, id);
+        function persistCaptured() {
+          fs.copyFileSync(destination, "/tmp/captured-flow.json");
+        }
+        persistCaptured();
+      }
+      persistFlow();
+    `);
+    const findings = directFlowStateSinks(fixture);
+    assert.equal(findings.length, 1, findings.join("\n"));
+    assert.ok(findings[0].includes("copyFileSync"), findings.join("\n"));
   } finally {
     removeTmpDir(tmp);
   }
