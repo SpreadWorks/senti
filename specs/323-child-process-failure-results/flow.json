@@ -428,16 +428,37 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-07-21T06:51:27.452Z"
+              "status": "done",
+              "startedAt": "2026-07-21T06:51:27.452Z",
+              "finishedAt": "2026-07-21T06:58:37.267Z",
+              "runtimeLog": {
+                "runId": "0680b093-1077-4f1f-bfc5-dc06fc6bc762",
+                "sequence": 4,
+                "attempt": 1,
+                "command": "flow set step",
+                "startedAt": "2026-07-21T06:58:37.172Z",
+                "endedAt": "2026-07-21T06:58:37.306Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "finishedAt": "2026-07-21T06:57:13.804Z",
+              "runtimeLog": {
+                "runId": "0680b093-1077-4f1f-bfc5-dc06fc6bc762",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-07-21T06:56:15.769Z",
+                "endedAt": "2026-07-21T06:57:13.821Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "in_progress",
+              "startedAt": "2026-07-21T06:58:37.267Z"
             }
           ]
         }
@@ -1551,6 +1572,33 @@
       "attempt": 1,
       "startedAt": "2026-07-21T06:51:46.748Z",
       "updatedAt": "2026-07-21T06:51:46.748Z"
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:0680b093-1077-4f1f-bfc5-dc06fc6bc762:flow:finalize-sync:finalize-sync",
+      "runId": "0680b093-1077-4f1f-bfc5-dc06fc6bc762",
+      "taskId": null,
+      "stepId": "finalize-sync",
+      "operation": "finalize-sync",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-21T06:56:15.801Z",
+      "updatedAt": "2026-07-21T06:57:13.752Z",
+      "result": {
+        "status": "done",
+        "diffStat": ".senti/output/analysis.json | 67 ++++++++++++++++++++++++++-------------------\n 1 file changed, 39 insertions(+), 28 deletions(-)",
+        "diffSummary": ".senti/output/analysis.json"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:0680b093-1077-4f1f-bfc5-dc06fc6bc762:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "0680b093-1077-4f1f-bfc5-dc06fc6bc762",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "pending",
+      "attempt": 2,
+      "startedAt": "2026-07-21T06:59:51.626Z",
+      "updatedAt": "2026-07-21T06:59:52.176Z"
     }
   ],
   "issue": 444,

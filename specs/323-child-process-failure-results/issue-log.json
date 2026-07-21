@@ -1023,6 +1023,24 @@
       "nextRecommendedAction": "fix-and-rerun",
       "timestamp": "2026-07-21T06:28:05.547Z",
       "issueLogId": "issue-log-1d8f6597-7f4d-460a-af49-49d4839508ce"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Squash baseline is not recorded on this flow (mergeStrategy is missing).; Detection cannot run safely. Recovery: archive the feature branch, inspect commits via patch, cherry-pick post-squash fixes onto baseBranch by hand, then re-run with --force.; Resolve any cherry-pick state via `git cherry-pick --skip` or `git cherry-pick --abort` before retrying.",
+      "timestamp": "2026-07-21T06:59:01.014Z",
+      "issueLogId": "issue-log-e2b02364-b483-466e-8f27-369e93d2921a"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "FORCED_ORPHAN_DROP: feature branch deleted via --force despite orphan / divergent state",
+      "trigger": "senti flow run finalize-cleanup --force",
+      "resolution": "baseline missing; branch deleted without rescue",
+      "droppedCommits": [],
+      "droppedCount": 0,
+      "droppedTruncated": false,
+      "taskId": null,
+      "timestamp": "2026-07-21T06:59:51.975Z",
+      "issueLogId": "finalize-cleanup-03c61529ed6897bfe70eeca9db807486644a0ddf4fb10015c56bf2ff15a61dab"
     }
   ]
 }
