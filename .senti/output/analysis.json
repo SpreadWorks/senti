@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-21T10:46:51.015Z",
+  "analyzedAt": "2026-07-21T13:02:32.272Z",
   "package": {
     "entries": [
       {
@@ -9534,9 +9534,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "47144a5fefafb88fcfcfebf49d05e794",
-        "lines": 1225,
-        "mtime": "2026-07-21T02:54:11.974Z",
+        "hash": "90c5a7d78c87da9960fc510c092ed5ca",
+        "lines": 1288,
+        "mtime": "2026-07-21T13:02:14.496Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
@@ -9590,24 +9590,26 @@
         ],
         "extends": "Error",
         "usedBy": [
-          "src/lib/container.js"
+          "src/lib/container.js",
+          "src/lib/plugin-registry.js"
         ],
         "id": "13ddf392",
-        "summary": "Implements the core agent runner used to invoke external model providers and cache prompt results. It resolves profiles, builds subprocess invocations, supervises execution, and records metrics.",
-        "detail": "The `Agent` class merges configuration, environment overrides, and provider aliases to select a profile, construct arguments, optionally emit JSON Schema inputs, and retry failed calls with backoff. Child processes are supervised with hard timeouts, grace periods, process-group termination, and Windows-specific fallback handling to avoid orphaned model commands. The module also maintains a per-spec prompt cache keyed by stable request identity, plus helper logic to persist cache-hit and finalize metrics. Additional utilities normalize profile selection, filter streaming provider output, create plugin-facing agent APIs, and generate detailed spawn diagnostics when commands cannot start.",
+        "summary": "Implements the core agent runner that resolves provider and profile settings before executing external model commands. It also adds retries, prompt caching, metrics, and child-process supervision around each call.",
+        "detail": "The module normalizes agent profile selection from built-in defaults, project configuration, and command-specific overrides, then maps provider-family aliases to concrete execution settings. It builds command invocations with prompt token substitution, stdin fallbacks for large prompts, optional working-directory injection, and structured-output schema passing either inline or through temporary files. Execution is wrapped with retry and backoff logic, prompt-cache lookups keyed by a stable hashed identity, and flow-aware metric recording. A dedicated supervisor enforces timeouts, terminates process groups on Unix or Windows, and polls for complete shutdown before returning. Provider-specific parsing and streaming-event filtering are applied to turn raw stdout into normalized agent responses.",
         "chapter": "configuration",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T05:14:26.652Z",
+          "processedAt": "2026-07-21T13:03:46.155Z",
           "attempts": 1
         },
         "keywords": [
-          "agent runtime",
-          "provider profiles",
+          "agent runner",
+          "provider registry",
+          "profile resolution",
           "prompt cache",
-          "subprocess supervision",
+          "child process supervision",
           "retry backoff",
-          "model invocation"
+          "JSON schema output"
         ]
       },
       {
@@ -11450,9 +11452,9 @@
       },
       {
         "file": "src/lib/log.js",
-        "hash": "2fc2e77ade3694f8e228249e06016311",
-        "lines": 392,
-        "mtime": "2026-06-09T08:02:50.462Z",
+        "hash": "26016dc6774cde24556d559e3a3c094e",
+        "lines": 403,
+        "mtime": "2026-07-21T13:02:14.496Z",
         "className": "log",
         "methods": [
           "generateRequestId",
@@ -11479,22 +11481,22 @@
           "src/lib/container.js"
         ],
         "id": "3d7bb5e6",
-        "summary": "Implements structured runtime logging with masking, prompt capture, and flow-aware metadata. It records agent, git, and generic events into daily JSONL logs.",
-        "detail": "Utility functions generate request IDs, compute text statistics, and infer caller file and line information from stack traces. The logger writes masked JSONL entries and prompt snapshots under date-partitioned directories, creating parent directories on demand and tolerating write failures with stderr warnings. It enriches entries with process metadata and, when possible, current flow context such as spec, phase, and task ID. Public methods wrap agent, git, and event logging behind a tracking layer so asynchronous writes can be awaited or flushed consistently.",
-        "chapter": "internal_design",
-        "role": "Structured logger",
+        "summary": "Provides masked structured logging for agent, git, and custom events. It generates request IDs, writes daily JSONL logs, and can persist sanitized prompt snapshots.",
+        "detail": "The logger enriches records with timestamps, process metadata, text statistics, caller file and line information, and optional flow attribution pulled from runtime state. Before anything is written, payloads are passed through a masking layer so secrets and sensitive paths are redacted relative to trusted roots. Log files are organized by day, with separate JSONL streams and prompt snapshot files stored under a dated prompts directory. Asynchronous writes are tracked internally so pending operations can be flushed in a controlled way. Logging failures are treated as non-fatal and reported to stderr instead of interrupting the main command flow.",
+        "chapter": "development",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
+          "processedAt": "2026-07-21T13:03:46.155Z",
           "attempts": 1
         },
         "keywords": [
           "structured logging",
-          "JSONL log",
-          "prompt capture",
-          "request id",
-          "flow context",
-          "masked logs",
-          "event logging"
+          "JSONL logs",
+          "request ID",
+          "prompt snapshot",
+          "sensitive data masking",
+          "caller tracing",
+          "telemetry"
         ]
       },
       {
@@ -11805,9 +11807,9 @@
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "9e0dd694d620a3c181fa85d3bc79784d",
-        "lines": 1503,
-        "mtime": "2026-07-17T09:51:52.397Z",
+        "hash": "7bc60efd17001852bec143267dc7ea61",
+        "lines": 1525,
+        "mtime": "2026-07-21T13:02:14.497Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -11908,6 +11910,7 @@
           "path",
           "crypto",
           "url",
+          "./agent.js",
           "./cli.js",
           "./config.js",
           "./flow-envelope.js",
@@ -11958,23 +11961,23 @@
           "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
-        "summary": "Central plugin management library for loading, installing, updating, and executing plugin packages. It also bridges plugin-provided presets, commands, hooks, and official preset sources into the runtime catalog.",
-        "detail": "It reads project and local plugin configuration, merges overlays, and enforces limits on package counts, file counts, JSON sizes, and path depth. The module validates manifests and file paths carefully, rejecting symlinks, parent traversal, core-internal imports, and unsafe Git cache layouts. It resolves plugin sources from local paths or Git remotes, pins commits, materializes allowlisted package files, and keeps installed plugins synchronized under .senti/plugins. Runtime helpers build catalogs of preset, data source, and command contributions, then discover flow hooks and dispatch plugin commands with artifact-aware context. The same infrastructure also manages the official preset package and exposes utilities for enabling, listing, and updating installed plugins.",
+        "summary": "Implements the plugin and preset registry, covering source resolution, installation, validation, and runtime dispatch. It is the central integration layer for packaged commands, presets, data sources, and flow hooks.",
+        "detail": "The module merges project and local plugin configuration, validates manifests with strict size and path-confinement checks, and indexes contributed commands, presets, and data sources into a searchable catalog. It resolves plugin sources from local paths or Git URLs, tracks commits, maintains a managed source cache, and materializes reproducible package contents before installation. Safety guards reject path traversal, symlink escapes, oversized metadata, duplicate registrations, and disallowed imports into core internals. At runtime it loads ESM hook modules, constructs plugin execution context with artifact helpers and optional agent access, and runs lifecycle hooks around flow commands and plugin commands. It also manages the official preset package and exposes utilities for listing, enabling, updating, and synchronizing installed plugins.",
         "chapter": "project_structure",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.631Z",
+          "processedAt": "2026-07-21T13:03:46.155Z",
           "attempts": 1
         },
         "keywords": [
           "plugin registry",
-          "plugin installation",
-          "git plugin source",
+          "preset system",
           "manifest validation",
-          "hook discovery",
-          "preset contributions",
-          "config merge",
-          "artifact context"
+          "Git source sync",
+          "flow hooks",
+          "plugin installation",
+          "command dispatch",
+          "artifact helpers"
         ]
       },
       {
@@ -13832,5 +13835,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-21T10:48:46.973Z"
+  "enrichedAt": "2026-07-21T13:03:46.155Z"
 }
