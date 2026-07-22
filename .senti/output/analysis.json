@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-22T01:09:31.514Z",
+  "analyzedAt": "2026-07-22T08:22:37.792Z",
   "package": {
     "entries": [
       {
@@ -2646,9 +2646,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "0d8335ec656fd765cb996ad71014066f",
-        "lines": 4160,
-        "mtime": "2026-07-21T07:05:15.227Z",
+        "hash": "7d294638cb1dc1da6567e600648ef339",
+        "lines": 4189,
+        "mtime": "2026-07-22T08:22:16.364Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2826,6 +2826,7 @@
           "../lib/flow-judgment-contract.js",
           "../lib/finding-disposition-policy.js",
           "../lib/impl-repair-artifacts.js",
+          "../lib/review-convergence.js",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "../../lib/constants.js",
@@ -2903,30 +2904,30 @@
         "extends": "ImplReviewPersistenceStrategy",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command and coordinates AI-assisted review phases for specs, implementation, tests, and draft artifacts. It gathers git-based context, builds prompts, validates model output, and writes review artifacts.",
-        "detail": "The module dispatches review execution by phase and resolves review scope from the current spec, merge-base diff, touched files, and requirement mappings. It supports both single-shot and loop-based implementation review, including diff chunking, per-file grouping, cross-check passes, and persistence strategies for trusted loop output. Multiple schema-backed parsers normalize findings for implementation, test, spec, and draft review flows, with JSON repair and explicit filtering to keep results within the current review scope. The command also maintains Markdown and JSON artifacts, review history snapshots, retry loops, and structured failure handling for tooling, parser, and schema errors.",
+        "summary": "Implements the `flow review` CLI command for AI-assisted review workflows across implementation, test, spec, and draft phases. It coordinates input collection, prompt generation, response validation, and artifact output.",
+        "detail": "The module derives review scope from spec files, git diffs, merge bases, touched files, and configurable exclusion rules, then selects between single-pass and loop-based review flows. It builds specialized prompts for implementation, test, spec, and draft reviews, and normalizes model output through JSON repair, schema validation, and filtering against requirement and file scope. Multiple artifact and finding classes structure persisted results, including Markdown reports, JSON payloads, coverage data, and review-history snapshots. It also centralizes failure classification, retry logic, disposition policy, and command dispatch so malformed agent output or tooling errors can be recorded without breaking the overall review pipeline.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T08:01:09.456Z",
+          "processedAt": "2026-07-22T08:25:26.011Z",
           "attempts": 1
         },
         "keywords": [
           "flow review command",
           "AI code review",
           "spec review",
-          "test coverage review",
-          "git diff analysis",
-          "review artifact generation",
-          "schema validation",
-          "prompt orchestration"
+          "test coverage analysis",
+          "draft QA review",
+          "git diff scope",
+          "JSON schema validation",
+          "review artifacts"
         ]
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "8fa2f5d5731be4bb14dabc5f44f659e4",
-        "lines": 1449,
-        "mtime": "2026-07-21T10:46:39.015Z",
+        "hash": "6c351482f2f3a1addffb246db91837f2",
+        "lines": 1466,
+        "mtime": "2026-07-22T08:22:16.366Z",
         "className": "definition",
         "methods": [
           "SetStepStatus",
@@ -2959,6 +2960,7 @@
           "getFlowNode",
           "getTaskNode",
           "resolveMaxAttempts",
+          "resolveToolingMaxAttempts",
           "resolveSideEffects",
           "isDefinitionLifecycleOwnedStep",
           "deriveFlowPrereqs",
@@ -3037,6 +3039,7 @@
           "getFlowNode",
           "getTaskNode",
           "resolveMaxAttempts",
+          "resolveToolingMaxAttempts",
           "resolveSideEffects",
           "isDefinitionLifecycleOwnedStep",
           "deriveFlowPrereqs",
@@ -3059,12 +3062,12 @@
           "src/flow/registry.js"
         ],
         "id": "2cb27b93",
-        "summary": "Defines the core flow and task state machines, including step metadata, retry policies, and lifecycle action planning. It also exposes traversal helpers used to resolve ordering, prerequisites, and active steps.",
-        "detail": "The module models max-attempt rules as either scalar values or auto/manual modes and validates strings, arrays, statuses, and failure policies before they enter the definition graph. It introduces immutable lifecycle action objects for step-status changes, metrics, hooks, side effects, resets, and outbox operations, then maps review, gate, finalize, and report phases to concrete action sequences. `FlowNode` instances form frozen nested definitions for both the main flow and task subflow, carrying labels, context kinds, retry behavior, side effects, and lifecycle-ownership flags. Utility functions walk these trees with depth guards to collect leaf IDs, derive phase maps and prerequisites, find active or latest in-progress steps, resolve max attempts and side effects, and create or reset review artifact files on disk.",
+        "summary": "Central workflow definition for the flow and task state machines. It declares nodes, retry policies, and lifecycle plans that drive step transitions across the review pipeline.",
+        "detail": "This module defines the canonical nested flow graph, task graph, and the typed lifecycle action classes used to mutate step state in a controlled way. It models retry limits as either a single positive integer or an auto/manual-aware policy, and validates node metadata such as labels, failure policies, and child depth. Lifecycle resolvers map runtime inputs into concrete actions like status updates, resets, outbox effect handling, side-effect execution, and hook dispatch for review, gate, finalize, and report phases. Traversal helpers derive leaf order, phase maps, prerequisites, active nodes, branch membership, and the latest in-progress leaf while guarding against invalid recursion depth and oversized scans. It also contains small filesystem utilities for creating empty draft-review artifacts and clearing implementation evidence after review proposals trigger a reset.",
         "chapter": "internal_design",
         "role": "model",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.915Z",
+          "processedAt": "2026-07-22T08:25:26.026Z",
           "attempts": 1
         },
         "keywords": [
@@ -3072,22 +3075,26 @@
           "state machine",
           "flow graph",
           "lifecycle actions",
-          "step retries",
+          "step transitions",
+          "retry policy",
           "prerequisites",
-          "active step resolution"
+          "review routes"
         ]
       },
       {
         "file": "src/flow/lib/acceptance-review-artifacts.js",
-        "hash": "9983965adf11c0492e67ce33b01f15af",
-        "lines": 798,
-        "mtime": "2026-07-21T07:05:33.692Z",
+        "hash": "e4f29c00d3d0591fd63b38cbd06ee23c",
+        "lines": 1134,
+        "mtime": "2026-07-22T08:22:16.366Z",
         "className": "acceptance-review-artifacts",
         "methods": [
           "RequirementAcceptanceJudgment",
           "MechanicalBlocker",
           "AcceptanceTestEvidenceProjection",
           "DeferredAcceptanceFinding",
+          "DeferredFindingBlocker",
+          "DeferredFindingEvidenceProjection",
+          "CanonicalReviewEvidenceProjection",
           "AcceptanceReviewOutcome",
           "AcceptanceEvidenceBindings",
           "deriveAcceptanceReviewVerdict",
@@ -3105,11 +3112,18 @@
           "writeJson",
           "acceptanceSchema",
           "requireFinalDisposition",
+          "resolveDeferredFindings",
+          "deferredFindingBlockers",
           "normalizeArtifact",
           "validateDeferredFindingCoverage",
           "dispositionEvidence",
+          "latestReviewConvergenceRecords",
+          "reviewHandoffFindingId",
+          "reviewHandoffFindings",
           "buildDeferredFindingsFromEvidence",
-          "deferredSourceBlockers",
+          "latestImplReviewRecord",
+          "readCanonicalImplReviewEvidence",
+          "inspectDeferredSources",
           "requirementList",
           "validateRequirementSummaryMembership",
           "readScenarioRawEvidence",
@@ -3132,6 +3146,7 @@
           "./step-tree.js",
           "./set-issue-log.js",
           "./flow-findings.js",
+          "./review-convergence.js",
           "./impl-repair-artifacts.js",
           "./test-artifacts.js"
         ],
@@ -3140,6 +3155,9 @@
           "MechanicalBlocker",
           "AcceptanceTestEvidenceProjection",
           "DeferredAcceptanceFinding",
+          "DeferredFindingBlocker",
+          "DeferredFindingEvidenceProjection",
+          "CanonicalReviewEvidenceProjection",
           "AcceptanceReviewOutcome",
           "AcceptanceEvidenceBindings",
           "deriveAcceptanceReviewVerdict",
@@ -3159,23 +3177,23 @@
           "src/flow/lib/set-acceptance-decision.js"
         ],
         "id": "aa8dda77",
-        "summary": "Defines the acceptance review artifact model and the rules used to validate, persist, and apply acceptance outcomes. It ties requirement judgments to evidence, mechanical blockers, and flow-state transitions.",
-        "detail": "The module declares typed classes for requirement judgments, deferred findings, blocker records, evidence bindings, and the overall acceptance review outcome, each with strict invariant checks. It validates generated artifacts against a JSON schema and additional repository-specific rules such as requirement membership, evidence references, repair fingerprints, and deferred finding coverage. Helper routines inspect required mechanical artifacts, scenario logs, implementation review evidence, retro summaries, and repair ledgers to classify blockers and assemble acceptance context. It can write normalized acceptance artifacts, update flow step state after a review, and apply explicit user risk decisions when a verdict requires manual acceptance or abort behavior.",
+        "summary": "Implements the acceptance-review artifact layer and its evidence model. It validates judgments, deferred findings, and final outcomes before the flow can advance or stop.",
+        "detail": "The file defines typed objects for requirement judgments, mechanical blockers, deferred findings, canonical review evidence, and the final acceptance review outcome. It normalizes and schema-validates acceptance-review JSON, binds each judgment to the current request, requirement, diff, repair, and test evidence, and derives the final verdict from the combined result set. Path handling is defensive: referenced artifacts must stay inside the spec directory, be regular files, fit within byte limits, and match the current flow state's canonical review records. Context builders reconstruct deferred findings from stored evidence and review handoff records, then classify missing or inconsistent mechanical evidence before acceptance proceeds. Result application functions persist the artifact, update flow step statuses, and optionally append user risk decisions to the issue log.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T08:01:09.456Z",
+          "processedAt": "2026-07-22T08:25:26.026Z",
           "attempts": 1
         },
         "keywords": [
           "acceptance review",
           "artifact validation",
           "evidence binding",
+          "deferred findings",
           "mechanical blockers",
-          "flow state transition",
-          "repair fingerprint",
-          "requirement judgment",
-          "JSON schema"
+          "verdict calculation",
+          "schema validation",
+          "risk decision"
         ]
       },
       {
@@ -3225,9 +3243,9 @@
       },
       {
         "file": "src/flow/lib/artifact-completion.js",
-        "hash": "da7faec999e8222da50b1612980fcd17",
+        "hash": "9a3b11d064021b06430add76779a59e9",
         "lines": 244,
-        "mtime": "2026-06-14T09:21:08.796Z",
+        "mtime": "2026-07-22T08:22:16.369Z",
         "className": "artifact-completion",
         "methods": [
           "ArtifactCompletionSuccess",
@@ -3267,23 +3285,23 @@
           "src/flow/lib/test-artifacts.js"
         ],
         "id": "0edee8a5",
-        "enrich": {
-          "processedAt": "2026-06-15T03:37:22.960Z",
-          "attempts": 4
-        },
-        "summary": "Provides reusable completion adapters that turn artifact edits into normalized success or mechanical-failure results. It standardizes parsing and validation outcomes across multiple producer surfaces.",
-        "detail": "The file defines result classes for successful artifact completion and mechanical completion failure, giving downstream flow logic a consistent shape for handling producer output. It parses raw JSON text when needed, normalizes validator responses into issue lists and issue codes, and converts malformed or missing content into structured failures instead of throwing uncontrolled errors. Surface-specific helpers map artifacts such as drafts, specs, reviews, and execution outputs onto common completion behavior through adapter functions. The module also exposes lookup utilities for available completion surfaces, adapter retrieval, spec directory resolution, and simple file existence checks.",
+        "summary": "Provides a common completion wrapper for producer-generated JSON artifacts. It converts parse and validation failures into structured mechanical results instead of letting them leak as ad hoc errors.",
+        "detail": "The module defines success and failure result types with simple boolean semantics so downstream flow code can branch uniformly on completion outcomes. Its core completion path parses raw JSON, runs caller-provided validation, and normalizes protocol and output-schema failures into issue-code lists attached to a mechanical failure object. Surface-specific adapters reuse this pattern for draft, spec, and multiple review or test artifacts, including dispatch to specialized completion handlers when needed. Small helpers resolve the effective spec directory and check file existence without embedding broader flow-state logic into the completion layer.",
         "chapter": "internal_design",
-        "role": "Artifact completion normalization layer",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-22T08:25:26.026Z",
+          "attempts": 1
+        },
         "keywords": [
           "artifact completion",
-          "adapter pattern",
-          "validation result",
+          "validation wrapper",
           "JSON parsing",
-          "producer surface",
           "mechanical failure",
-          "spec artifact",
-          "completion status"
+          "issue codes",
+          "producer adapter",
+          "draft artifact",
+          "spec artifact"
         ]
       },
       {
@@ -3391,7 +3409,8 @@
           "src/flow/lib/set-retry.js",
           "src/flow/lib/set-step.js",
           "src/flow/lib/set-summary.js",
-          "src/lib/dispatcher.js"
+          "src/lib/dispatcher.js",
+          "src/flow/lib/set-review-evidence.js"
         ],
         "id": "83f60bd3",
         "summary": "Abstract base class for flow-oriented CLI commands. It resolves flow context, checks target-selection mismatches, and delegates the real operation to subclasses.",
@@ -3638,9 +3657,9 @@
       },
       {
         "file": "src/flow/lib/finding-disposition-policy.js",
-        "hash": "aca3c558384b569b9f1b3ffc41adf74b",
+        "hash": "f957032020f6ff051a1abd3cced624fd",
         "lines": 677,
-        "mtime": "2026-07-21T02:54:11.963Z",
+        "mtime": "2026-07-22T08:22:16.371Z",
         "className": "finding-disposition-policy",
         "methods": [
           "ReviewFindingFingerprint",
@@ -3687,21 +3706,23 @@
           "src/flow/lib/run-gate.js"
         ],
         "id": "e3309b28",
-        "summary": "Encapsulates policy for classifying review findings and deciding whether a gate may proceed. It combines finding identity, authority metadata, and repair evidence into a deterministic decision model.",
-        "detail": "The module normalizes findings with stable SHA-256 fingerprints derived from identity fields so the same issue can be tracked across artifacts. It models mandatory requirement authority, blocking guardrails, review cycles, evidence scopes, and repair references as typed classes with aggressive input validation. Repair evidence can point to commits, repository-relative files, or issue-log entries, and helper methods verify that referenced material exists and was created after the finding was reported. Gate artifacts and policy decisions are then built from must-fix, deferred, and informational buckets to explain blocked versus allowed outcomes.",
+        "summary": "Implements the policy engine that turns review findings into gate decisions. It fingerprints findings, validates repair evidence, and classifies dispositions as must-fix, deferred, or informational.",
+        "detail": "This module builds a typed domain model around findings, requirement authority, guardrail authority, review cycles, evidence scopes, and disposition classes with strict input validation throughout. Stable SHA-256 fingerprints are derived from normalized identity fields so the same logical finding can be tracked consistently across artifacts and review runs. Repair evidence may reference commits or repository-relative files, and the code verifies path safety, timestamps, and on-disk materialization before treating that evidence as valid. Gate artifacts aggregate findings into buckets and cross-check that generated verdicts and summaries match the computed blocking set. The final policy composes these signals into explicit gate decisions with structured blocking reasons and supporting evidence references.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T05:14:26.611Z",
+          "processedAt": "2026-07-22T08:25:26.026Z",
           "attempts": 1
         },
         "keywords": [
           "finding disposition",
           "gate policy",
-          "repair evidence",
           "review findings",
-          "fingerprint",
-          "must fix"
+          "SHA-256 fingerprint",
+          "repair evidence",
+          "must-fix",
+          "deferred finding",
+          "guardrails"
         ]
       },
       {
@@ -3796,9 +3817,9 @@
       },
       {
         "file": "src/flow/lib/flow-findings.js",
-        "hash": "3686d47dee8f669816ba24dc0283d3dd",
-        "lines": 451,
-        "mtime": "2026-07-21T02:54:11.963Z",
+        "hash": "3c17315bcf81a4b5afbe45ff4a3e3687",
+        "lines": 475,
+        "mtime": "2026-07-22T08:22:16.371Z",
         "className": "flow-findings",
         "methods": [
           "normalizeSourceArtifactPath",
@@ -3813,6 +3834,7 @@
           "sourceArtifactExists",
           "readBoundedSourceArtifact",
           "buildDeferredFindingsSummary",
+          "findSourceFinding",
           "deferExhaustedSemanticFindings",
           "resolveRetryExhaustionForFlowStep",
           "mirrorFinalDispositions",
@@ -3857,6 +3879,7 @@
           "sourceArtifactExists",
           "readBoundedSourceArtifact",
           "buildDeferredFindingsSummary",
+          "findSourceFinding",
           "deferExhaustedSemanticFindings",
           "resolveRetryExhaustionForFlowStep",
           "mirrorFinalDispositions",
@@ -3876,28 +3899,30 @@
           "src/flow/lib/run-review.js"
         ],
         "id": "1c664aa8",
-        "summary": "Manages the flow-findings.json artifact used to persist deferred or exhausted flow findings. It provides safe read and write, normalization, and summary utilities around acceptance-linked finding state.",
-        "detail": "Entries are strongly validated for version, count limits, fingerprint format, mirrored fields, boolean flags, final dispositions, and spec-relative artifact paths. The module also bounds artifact reads by file size and prevents copied long-form detail fields so the flow record stores compact references instead of duplicating source reports. Helpers derive finding IDs and rounds, append new deferred findings, extract blocking candidates from upstream review and gate artifacts, and compute stable fingerprints and rationales for mirrored source findings. Additional functions summarize deferred findings, resolve retry exhaustion for a step, and mirror final acceptance dispositions back into the flow findings store.",
+        "summary": "Stores and manages deferred flow findings that persist across retries and acceptance review. It validates mirrored source metadata and provides safe helpers to append, read, and summarize the findings ledger.",
+        "detail": "The file defines the versioned `flow-findings.json` artifact, enforces entry-count and field-size limits, and rejects copied long-form detail fields so mirrored records stay compact. Path utilities normalize source artifact references, prevent directory traversal, and only read bounded files that remain inside the spec directory. New deferred findings receive sequential IDs and round numbers, while helper routines derive stable source-finding IDs, fingerprints, and rationales from upstream review or evaluation artifacts. Additional functions summarize outstanding deferred findings, detect retry exhaustion scenarios, and mirror final acceptance dispositions back into the ledger for later flow decisions.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T05:14:26.611Z",
+          "processedAt": "2026-07-22T08:25:26.026Z",
           "attempts": 1
         },
         "keywords": [
-          "deferred findings",
           "flow findings",
-          "artifact store",
-          "source artifact",
-          "fingerprint",
-          "acceptance disposition"
+          "deferred findings",
+          "artifact ledger",
+          "path validation",
+          "retry exhaustion",
+          "acceptance disposition",
+          "fingerprint tracking",
+          "source artifacts"
         ]
       },
       {
         "file": "src/flow/lib/flow-judgment-contract.js",
-        "hash": "c7b8ae9d24832a81986727f0e5c4e5c9",
-        "lines": 769,
-        "mtime": "2026-07-21T07:06:01.879Z",
+        "hash": "a8c26fd1246bbe039d1c6a30fb45cdee",
+        "lines": 772,
+        "mtime": "2026-07-22T08:22:16.372Z",
         "className": "flow-judgment-contract",
         "methods": [
           "repoRelative",
@@ -3985,22 +4010,22 @@
           "src/flow/registry.js"
         ],
         "id": "f336678e",
-        "summary": "Defines the flow step completion contract and validates whether a step is allowed to transition into a completed state. It normalizes multiple review artifacts into a shared judgment model with standard completion outcomes.",
-        "detail": "The module builds immutable-style domain objects for contracts, summaries, policies, dispositions, override evidence, and validation results, with strict constructor checks throughout. It converts artifacts from test review, implementation review, gate, acceptance, and regression steps into a common FlowJudgmentContract shape so verdicts, findings, and next actions can be evaluated consistently. Completion rules are applied per step through StepCompletionPolicy, with stable hashing used to derive a progress signature for override matching. The validator also supports deferred completion based on prior finding evidence, persists manual overrides in completion-overrides.json, and returns failure envelopes used by flow state transitions.",
+        "summary": "Defines the normalized judgment contract used to decide whether a flow step can be completed. It converts multiple review and gate artifacts into one validation model with step-specific completion rules.",
+        "detail": "The module normalizes findings, paths, and next-action fields, then uses stable JSON serialization plus SHA-256 fingerprints to create deterministic signatures. `FlowJudgmentContract`, `JudgmentContractSummary`, and related value objects capture verdicts, failure kinds, findings, and artifact provenance in a consistent shape. `StepCompletionPolicy` and `CompletionValidator` enforce normal completion, explicit override evidence, and deferred-finding exceptions based on per-step policies and recorded flow findings. Helper constructors map different artifact formats into the shared contract, and envelope builders expose structured failures when a requested state transition is not allowed.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T08:01:09.472Z",
+          "processedAt": "2026-07-22T08:25:26.040Z",
           "attempts": 1
         },
         "keywords": [
-          "flow completion",
-          "judgment contract",
-          "step transition validation",
-          "artifact normalization",
+          "flow completion contract",
+          "judgment validation",
+          "step policy",
           "override evidence",
           "deferred findings",
-          "progress signature"
+          "artifact normalization",
+          "state transition"
         ]
       },
       {
@@ -4376,9 +4401,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "022ce77616f2f69ef111f46314043703",
-        "lines": 608,
-        "mtime": "2026-07-21T10:46:39.016Z",
+        "hash": "f00d45b47680986efcaeed42abfabdb3",
+        "lines": 597,
+        "mtime": "2026-07-22T08:22:16.372Z",
         "className": "get-next-action",
         "methods": [
           "NextActionPlanError",
@@ -4422,13 +4447,14 @@
           "../../lib/skill-rules.js",
           "./review-failure.js",
           "./gate-recovery-display.js",
-          "./run-review.js",
           "./run-gate.js",
           "./retry-recovery.js",
           "./task-scope.js",
           "../../lib/flow-envelope.js",
           "./flow-completion.js",
-          "./step-outcome.js"
+          "./step-outcome.js",
+          "./review-convergence.js",
+          "./review-recovery-authority.js"
         ],
         "exports": [
           "NextActionPlanError",
@@ -4439,22 +4465,22 @@
         "extends": "Error",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "Builds the next actionable instruction for the flow engine by combining current state, step definitions, rule content, and output schemas. It also handles promotion, retry recovery, and terminal conditions.",
-        "detail": "The module loads step schemas from disk, caches skill rules, and injects persistent rule blocks based on the active flow or task target. It scans both flow and task trees to detect unresolved in-progress steps, normalize task cursors, and promote the next pending leaf when the current state is stale or already completed. `NextActionPlanner` produces either terminal results or promotion plans, while strict `NextActionPlanError` checks ensure planned targets still match live state before any mutation is applied. `GetNextActionCommand` wraps the planner in a command interface, attaches retry and gate-recovery views, and delegates state-changing effects through injected handlers.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "Plans the next actionable step for a flow run and returns the payload used by the next-action command. It combines state inspection, rule injection, retry recovery, and plan validation into one decision layer.",
+        "detail": "The file loads schemas and cached skill rules, finds the current target step, and detects unresolved in-progress work before promoting anything new. It builds context descriptors and instruction blocks, including persistent rules, review recovery guidance, gate semantic deferral handling, and retry metadata. `NextActionPromotionPlan` and terminal plan classes validate that injected plans still match the current state and known step definitions before execution. `GetNextActionCommand` then orchestrates the planner and effect hooks, returning structured results for completed, aborted, mismatched, or promoted next actions.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.915Z",
+          "processedAt": "2026-07-22T08:25:26.040Z",
           "attempts": 1
         },
         "keywords": [
-          "next action",
-          "workflow planner",
-          "instruction generation",
+          "next action planner",
+          "flow command",
+          "step promotion",
           "retry recovery",
-          "state promotion",
           "rule injection",
-          "output schema"
+          "workflow orchestration",
+          "task cursor"
         ]
       },
       {
@@ -4614,9 +4640,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "6baa166c6b13e9874d48527c3d01864d",
-        "lines": 381,
-        "mtime": "2026-07-18T13:42:07.053Z",
+        "hash": "65929d65cdf6cf2e4f2b248243bc6fb9",
+        "lines": 385,
+        "mtime": "2026-07-22T08:22:16.373Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -4626,6 +4652,7 @@
           "applyEntry",
           "applyProviderEntry",
           "resolveActiveStepMaxAttempts",
+          "activeReviewStep",
           "buildStatusReviewViews",
           "buildStatusRetryRecoveryView",
           "buildFinalRegressionStatus",
@@ -4647,13 +4674,14 @@
           "../../lib/flow-target-guard.js",
           "./review-failure.js",
           "./gate-recovery-display.js",
-          "./run-review.js",
           "./retry-recovery.js",
           "./task-scope.js",
           "./flow-findings.js",
           "./test-artifacts.js",
           "./flow-completion.js",
-          "../../lib/worktree-flow-binding.js"
+          "../../lib/worktree-flow-binding.js",
+          "./review-convergence.js",
+          "./review-recovery-authority.js"
         ],
         "exports": [
           "buildMetricsSummary",
@@ -4667,21 +4695,22 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Builds the `flow get status` response from flow state, metrics, review state, and artifact-derived summaries. It serves as the command-side aggregator for retries, review stops, and final regression reporting.",
-        "detail": "The file defines token and activity counters, then aggregates per-entry metrics into provider and phase summaries suitable for reports. It computes active-step retry limits, constructs review-stop and retry-recovery views, and reads final regression artifacts when they exist. It also merges broader status signals such as deferred findings summaries, bounded broad-mode history, and flow completion or provenance data imported from other subsystems. Input validation covers run IDs and target mismatches, and the command returns structured envelopes for success or argument errors rather than raw exceptions.",
+        "summary": "Builds the status payload for a flow run, including active-step context, recovery hints, metrics, and completion information. It is the backend for the status command and optional run-target validation.",
+        "detail": "The module aggregates token and activity metrics by phase and provider, then derives report totals for compact status summaries. It resolves the active step, review phase, max-attempt budget, gate stop details, retry recovery data, deferred findings, and final regression status from artifacts on disk. The status output also includes bounded history views, provenance details, and normalized recovery actions for review and gate workflows. `GetStatusCommand` wraps this logic with argument validation, run ID lookup, target-mismatch envelopes, and inactive-state handling.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-18T13:44:12.981Z",
+          "processedAt": "2026-07-22T08:25:26.040Z",
           "attempts": 1
         },
         "keywords": [
           "flow status",
           "metrics summary",
-          "retry recovery view",
-          "review stop",
-          "final regression",
-          "command output"
+          "retry recovery",
+          "gate status",
+          "review action",
+          "run validation",
+          "final regression"
         ]
       },
       {
@@ -4839,7 +4868,8 @@
           "src/flow/lib/run-review.js",
           "src/flow/lib/run-test-execute.js",
           "src/flow/lib/run-test-result-review.js",
-          "src/flow/lib/set-step.js"
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/set-review-evidence.js"
         ],
         "id": "69dba1ec",
         "summary": "Manages implementation repair artifacts, fingerprints, and transactional recovery for the review-repair portion of the flow. It records triage decisions, evidence invalidations, and append-only repair ledger entries.",
@@ -5287,9 +5317,9 @@
       },
       {
         "file": "src/flow/lib/repair-state-identity.js",
-        "hash": "aad5dc4be92fa4f4578be0279d9b3772",
-        "lines": 1251,
-        "mtime": "2026-07-21T07:51:19.622Z",
+        "hash": "59932fe9d4c760a276f99d7ab2f1512d",
+        "lines": 1253,
+        "mtime": "2026-07-22T08:22:16.374Z",
         "className": "repair-state-identity",
         "methods": [
           "RepairStateError",
@@ -5395,22 +5425,22 @@
           "src/flow/lib/run-prepare-spec.js"
         ],
         "id": "12c0ba47",
-        "summary": "Provides the canonical repair state identity system that fingerprints repository content for repair workflows. It captures Git baselines, normalizes file identities, and emits manifest and delta artifacts for repeatable change detection.",
-        "detail": "The module defines the core repair-state models, including immutable Git baselines, baseline publications, canonical manifest entries, fingerprint manifests, references, and delta artifacts, all guarded by strict path, hash, and identifier validation. It inspects Git state to capture object format, merge bases, tracked and untracked changes, index metadata, and skip-worktree behavior while also supporting explicit filesystem inputs when needed. File hashing is defensive, using symlink-aware and no-follow reads plus before-and-after stat checks to detect concurrent mutation during fingerprint creation. The implementation also enforces configurable change boundaries, tracks owned artifact paths, supports baseline publication and recovery, and writes manifests atomically to make repair state durable across failures.",
+        "summary": "Implements repair-state fingerprinting for implementation recovery using Git baselines and filesystem manifests. It captures immutable baseline identity, hashes changed content safely, and emits manifest and delta artifacts for repair tracking.",
+        "detail": "The module validates run IDs, artifact IDs, repository-relative paths, object IDs, and entry metadata with strict canonical rules. It models published baselines and repair manifests as immutable records, with helpers to pin, recover, roll back, and delete baseline references under the reserved `refs/senti/flows/.../baseline` namespace. Manifest construction streams Git change data, respects configured path boundaries, hashes files and symlinks with race checks, and writes artifacts atomically for crash safety. Delta helpers compare manifests, detect changed repair paths, and persist deduplicated delta artifacts for later recovery analysis.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T08:01:09.472Z",
+          "processedAt": "2026-07-22T08:25:26.040Z",
           "attempts": 1
         },
         "keywords": [
           "repair fingerprint",
-          "repository manifest",
           "git baseline",
+          "filesystem manifest",
           "delta artifact",
+          "atomic write",
           "content hashing",
-          "path normalization",
-          "baseline publication"
+          "recovery state"
         ]
       },
       {
@@ -5819,7 +5849,8 @@
           "src/flow/lib/get-status.js",
           "src/flow/lib/run-gate.js",
           "src/flow/lib/run-review.js",
-          "src/flow/lib/set-retry.js"
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/review-recovery-authority.js"
         ],
         "id": "3de0db3f",
         "summary": "Provides the retry-recovery subsystem that grants a single controlled reset when review or gate retries are exhausted. It coordinates evidence baselines, changed-file detection, authoritative transactions, and locks so recovery remains consistent across stored authorities.",
@@ -5841,23 +5872,194 @@
         ]
       },
       {
+        "file": "src/flow/lib/review-convergence.js",
+        "hash": "2e482cc3caf0cbd15b601fe04a2fb644",
+        "lines": 980,
+        "mtime": "2026-07-22T08:22:16.374Z",
+        "className": "review-convergence",
+        "methods": [
+          "ReviewFinding",
+          "ReviewDisposition",
+          "ReviewProvenance",
+          "ReviewEvidenceIdentity",
+          "ReviewEvidence",
+          "ReviewToolingOutcome",
+          "ReviewEvidenceReference",
+          "ReviewHandoffFinding",
+          "ReviewBlocker",
+          "ReviewConvergenceState",
+          "ReviewPermittedOperation",
+          "RetryReview",
+          "RegisterAlternativeEvidence",
+          "MoveToAcceptance",
+          "StopAsBlocker",
+          "resolveReviewPermittedOperation",
+          "nextReviewToolingOutcome",
+          "canonicalizeReviewEvidence",
+          "buildReviewHandoffFindings",
+          "applyReviewEvidenceTransition",
+          "ReviewConvergenceStore",
+          "resolveReviewActionForFlowState",
+          "requireObject",
+          "requireString",
+          "requireNullableTaskId",
+          "requireTreeSha",
+          "requireSha256",
+          "requireInteger",
+          "requireBoolean",
+          "stableStringify",
+          "sha256",
+          "freezeArray",
+          "deepFreeze",
+          "normalizeFindings",
+          "assertFindingBudget",
+          "canonicalEvidenceDocument",
+          "normalizeHandoffFindings",
+          "normalizeEvidenceReference",
+          "dispositionValue",
+          "retryBlocker",
+          "alternativeEvidenceBlocker",
+          "targetMatches",
+          "convergenceRecords",
+          "semanticMaxAttempts",
+          "toolingMaxAttempts",
+          "emptyConvergenceState",
+          "storedConvergenceState",
+          "convergenceStateForTargetDigest",
+          "replaceTargetRecord",
+          "sourceStepForTarget",
+          "evidenceDigests",
+          "nextEvidenceHistory"
+        ],
+        "imports": [
+          "node:crypto",
+          "../definition.js"
+        ],
+        "exports": [
+          "ReviewFinding",
+          "ReviewDisposition",
+          "ReviewProvenance",
+          "ReviewEvidenceIdentity",
+          "ReviewEvidence",
+          "ReviewToolingOutcome",
+          "ReviewEvidenceReference",
+          "ReviewHandoffFinding",
+          "ReviewBlocker",
+          "ReviewConvergenceState",
+          "ReviewPermittedOperation",
+          "RetryReview",
+          "RegisterAlternativeEvidence",
+          "MoveToAcceptance",
+          "StopAsBlocker",
+          "resolveReviewPermittedOperation",
+          "nextReviewToolingOutcome",
+          "canonicalizeReviewEvidence",
+          "buildReviewHandoffFindings",
+          "applyReviewEvidenceTransition",
+          "ReviewConvergenceStore",
+          "resolveReviewActionForFlowState",
+          "REVIEW_EVIDENCE_VERSION",
+          "MAX_REVIEW_EVIDENCE_BYTES",
+          "MAX_REVIEW_FINDINGS",
+          "MAX_REVIEW_AUTHORED_STRING_CHARS"
+        ],
+        "extends": "ReviewPermittedOperation",
+        "usedBy": [
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/review-evidence-store.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "id": "31ebf856",
+        "summary": "Models review evidence and convergence rules for repeated semantic and tooling reviews. It canonicalizes evidence, tracks retry budgets, and decides the next permitted review operation for a target.",
+        "detail": "The file defines immutable value objects for findings, dispositions, provenance, evidence identity, tooling outcomes, blockers, and handoff findings, all guarded by strict validation and size limits. Review evidence is serialized with stable ordering and hashed with SHA-256 so the canonical document and identity are deterministic. `ReviewConvergenceState` stores attempt counts, evidence history, blockers, and handoff findings, while permitted-operation classes express whether the flow should retry, register alternative evidence, move to acceptance, or stop. Transition helpers and the store layer persist convergence records in flow state and compute the next review action for a given phase and task.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-22T08:25:26.040Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "review convergence",
+          "review evidence",
+          "retry budget",
+          "tooling review",
+          "acceptance handoff",
+          "blocking findings",
+          "state transition"
+        ]
+      },
+      {
+        "file": "src/flow/lib/review-evidence-store.js",
+        "hash": "c2ea7f89fa730ded592b0e523e01779d",
+        "lines": 284,
+        "mtime": "2026-07-22T08:22:16.374Z",
+        "className": "review-evidence-store",
+        "methods": [
+          "resolveCurrentReviewTreeSha",
+          "ReviewEvidenceInput",
+          "ReviewEvidenceWrite",
+          "ReviewEvidenceStore",
+          "ReviewEvidenceRegistration",
+          "ReviewEvidenceRegistrar",
+          "isInside",
+          "reviewEvidenceError",
+          "requireDocument",
+          "sameRevision"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "../../lib/git-helpers.js",
+          "./review-convergence.js"
+        ],
+        "exports": [
+          "resolveCurrentReviewTreeSha",
+          "ReviewEvidenceInput",
+          "ReviewEvidenceWrite",
+          "ReviewEvidenceStore",
+          "ReviewEvidenceRegistration",
+          "ReviewEvidenceRegistrar"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/set-review-evidence.js"
+        ],
+        "id": "9096e234",
+        "summary": "Implements validated loading and content-addressed storage for review evidence artifacts. It also registers stored evidence against flow state and Git tree targets.",
+        "detail": "The module hardens file handling by resolving and realpath-checking every path, rejecting symlink escapes, missing files, non-regular files, and oversized artifacts. `ReviewEvidenceInput` parses JSON input, enforces required fields and versioning, and exposes guards for matching the expected task ID and tree SHA. `ReviewEvidenceStore` writes canonical evidence blobs under `specDir/review-evidence` using the evidence digest as the filename, creating files with exclusive write semantics and verifying byte-for-byte equality when an artifact already exists. Registration objects serialize artifact paths relative to the repository root, while the registrar also checks flow-state revision convergence before producing the next registration state.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-22T08:25:26.053Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "review evidence",
+          "artifact store",
+          "content-addressed storage",
+          "path validation",
+          "flow state registration",
+          "git tree SHA",
+          "JSON validation"
+        ]
+      },
+      {
         "file": "src/flow/lib/review-failure.js",
-        "hash": "60fc7b6ba93445ccd398a4aa645a1ced",
-        "lines": 405,
-        "mtime": "2026-07-18T11:09:51.670Z",
+        "hash": "1ca6a3d5250033ccf4e4e8ca22ab6a4b",
+        "lines": 336,
+        "mtime": "2026-07-22T08:22:16.377Z",
         "className": "review-failure",
         "methods": [
           "reviewPhaseForStepId",
           "ReviewFailure",
-          "writeReviewStopState",
-          "clearReviewStopState",
-          "buildReviewStopView",
           "requireString",
           "cleanReason",
           "retryResetCommand",
           "retryReviewCommand",
-          "countReviewRetry",
-          "fallbackRecoveryCommand",
           "matchesInputSizeFailure",
           "matchesProviderFailure"
         ],
@@ -5865,52 +6067,93 @@
         "exports": [
           "reviewPhaseForStepId",
           "ReviewFailure",
-          "writeReviewStopState",
-          "clearReviewStopState",
-          "buildReviewStopView",
           "REVIEW_FAILURE_MARKER_PREFIX"
         ],
         "extends": null,
         "usedBy": [
           "src/flow/lib/get-next-action.js",
           "src/flow/lib/get-status.js",
-          "src/flow/lib/run-review.js",
-          "src/flow/lib/set-retry.js"
+          "src/flow/lib/run-review.js"
         ],
         "id": "fcf92359",
-        "summary": "Defines structured review failure handling, including classifications, retry commands, marker serialization, and stop-state helpers. It standardizes how review errors are represented and recovered across phases.",
-        "detail": "This file centralizes review failure semantics in a `ReviewFailure` model with fixed classifications such as schema, provider, input-size, and subprocess failures. It maps flow step IDs to review phases, derives retry and reset recovery commands, and includes heuristics to classify raw error text into actionable failure types. The module also supports emitting and parsing machine-readable failure markers so subprocess-based review runs can pass structured failure information through stdout or stderr. Additional helpers manage persisted stop state and produce user-facing recovery views for next actions and retry guidance.",
+        "summary": "Defines the review failure model and the rules used to classify, serialize, and retry failed review runs. It converts raw step or subprocess errors into structured failure records with retry guidance.",
+        "detail": "The module maintains a fixed set of failure classifications and review phase mappings, then validates every `ReviewFailure` instance against attempt-count invariants. It uses regex-based heuristics to detect provider throttling and prompt-size failures from unstructured text, while falling back to generic subprocess failures when no specialized match is found. Marker helpers convert selected failures to and from a prefixed JSON line so structured failure state can cross log and subprocess boundaries safely. Additional helpers derive reset and rerun commands, expose whether a failure is retryable, and provide normalized labels and workaround flags for downstream handling.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "model",
         "enrich": {
-          "processedAt": "2026-07-18T11:10:43.878Z",
+          "processedAt": "2026-07-22T08:25:26.053Z",
           "attempts": 1
         },
         "keywords": [
           "review failure",
           "error classification",
-          "retry recovery",
-          "failure marker",
-          "stop state",
-          "provider error",
-          "schema failure",
-          "input size limit"
+          "retry policy",
+          "provider failure",
+          "prompt too large",
+          "structured marker",
+          "subprocess error",
+          "review phase"
+        ]
+      },
+      {
+        "file": "src/flow/lib/review-recovery-authority.js",
+        "hash": "3fcb6772182309d16a535bd845b8e1d1",
+        "lines": 14,
+        "mtime": "2026-07-22T08:22:16.377Z",
+        "className": "review-recovery-authority",
+        "methods": [
+          "assertReviewRecoveryAuthority"
+        ],
+        "imports": [
+          "./run-review.js",
+          "./retry-recovery.js"
+        ],
+        "exports": [
+          "assertReviewRecoveryAuthority"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js"
+        ],
+        "id": "829dcee1",
+        "summary": "Wraps review recovery authorization around shared retry-count and max-attempt logic. It ensures recovery decisions use both current flow state and resolved policy limits.",
+        "detail": "The module is intentionally thin and delegates the main policy calculation to `resolveRecoveryMaxAttempts`. Before doing so, it reads the current retry count for the selected review phase via `countReviewRetry`, so authorization is based on recorded attempts instead of caller assumptions. This keeps recovery gating centralized while giving review flows a single entry point for enforcing retry authority consistently.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-22T08:25:26.053Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "review recovery",
+          "retry authority",
+          "max attempts",
+          "flow state",
+          "phase retry count",
+          "recovery policy"
         ]
       },
       {
         "file": "src/flow/lib/run-acceptance-review.js",
-        "hash": "79cae18b253c14afb0cd212390e34296",
-        "lines": 253,
-        "mtime": "2026-07-21T07:50:11.056Z",
+        "hash": "0bcafab5d51c24788b54bc4fb0d45374",
+        "lines": 463,
+        "mtime": "2026-07-22T08:22:16.378Z",
         "className": "run-acceptance-review",
         "methods": [
           "AcceptanceBudgetError",
           "implementationDiff",
           "buildAcceptancePrompt",
+          "DeferredDispositionCoverage",
+          "buildDeferredDispositionRepairPrompt",
           "parseAcceptanceResponse",
+          "AcceptanceResponseBinding",
+          "bindAcceptanceResponse",
           "readFixtureArtifact",
           "appendWithinDiffBudget",
-          "untrackedDiff"
+          "untrackedDiff",
+          "assertAcceptancePromptBudget",
+          "callAcceptanceAgent"
         ],
         "imports": [
           "node:fs",
@@ -5928,30 +6171,36 @@
           "AcceptanceBudgetError",
           "implementationDiff",
           "buildAcceptancePrompt",
+          "DeferredDispositionCoverage",
+          "buildDeferredDispositionRepairPrompt",
           "parseAcceptanceResponse",
+          "AcceptanceResponseBinding",
+          "bindAcceptanceResponse",
           "default",
           "MAX_ACCEPTANCE_REQUEST_CHARS",
-          "MAX_ACCEPTANCE_RESPONSE_CHARS"
+          "MAX_ACCEPTANCE_RESPONSE_CHARS",
+          "MAX_ACCEPTANCE_DEFERRED_REPAIR_CALLS"
         ],
         "extends": "Error",
         "usedBy": null,
         "id": "2d93c301",
-        "summary": "Runs the acceptance review step by building an AI prompt from implementation diffs and recorded evidence while enforcing strict request and response budgets. It also repairs malformed JSON responses so acceptance results can be parsed consistently.",
-        "detail": "The module computes acceptance input from tracked Git diffs plus eligible untracked files, using repair fingerprint data and a repair artifact registry to avoid unrelated artifact noise. It applies explicit byte and character ceilings to diff generation, prompt construction, and model output, raising AcceptanceBudgetError when any stage exceeds policy limits. Prompt assembly uses PromptBuilder with a JSON schema fallback, and response parsing first attempts normal JSON decoding before falling back to JSON repair logic. The command class extends the flow command framework, supports fixture-based test input through an environment variable, and requires a configured AI agent for the acceptance review stage.",
+        "summary": "Orchestrates acceptance review execution, including diff collection, prompt construction, response parsing, and result binding. It also enforces strict request and response budgets around the AI review call.",
+        "detail": "The command builds a repository change snapshot from tracked Git diff output plus bounded untracked-file content, throwing `AcceptanceBudgetError` when any component exceeds configured limits. Prompt generation uses `PromptBuilder` with an explicit JSON schema fallback and can issue a secondary repair prompt for missing deferred finding dispositions. Response handling caps raw output size, parses JSON directly when possible, and falls back to JSON repair before binding the result into validated requirement and deferred-finding structures. Helper classes track coverage for deferred judgments and normalize the final response shape against the review context. The command then resolves an AI agent from the container and runs the acceptance review pipeline end to end, with fixture-based artifact loading available for controlled replay or testing.",
         "chapter": "internal_design",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-21T08:01:09.472Z",
+          "processedAt": "2026-07-22T08:25:26.053Z",
           "attempts": 1
         },
         "keywords": [
           "acceptance review",
-          "AI prompt builder",
-          "diff budget",
+          "AI prompt orchestration",
+          "git diff budget",
           "JSON repair",
-          "untracked files",
-          "flow command",
-          "schema validation"
+          "deferred findings",
+          "response binding",
+          "FlowCommand",
+          "artifact registry"
         ]
       },
       {
@@ -6181,9 +6430,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "51c9dbd3a458ca267efcaa8da975c8c7",
-        "lines": 6007,
-        "mtime": "2026-07-21T10:46:39.017Z",
+        "hash": "351a156d91070473b9597661e99e6e83",
+        "lines": 6009,
+        "mtime": "2026-07-22T08:22:16.379Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "FinalizeTeardownPhase",
@@ -6276,6 +6525,7 @@
           "cherryPickRange",
           "withFinalizeTransactionStore",
           "createFinalizeCleanupCompletionTransition",
+          "completeFinalizeCleanupStep",
           "runSpecOnlyCompletion",
           "runTeardown",
           "runPersistedTeardownIfPresent",
@@ -6339,25 +6589,25 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40e4daa5",
-        "summary": "Implements the flow finalization cleanup pipeline, including teardown, recovery, and forced cleanup paths for Git-backed worktrees. It treats finalize as a durable transaction with strict filesystem and repository authority checks.",
-        "detail": "The module defines a large set of value objects and stores for teardown phases, commit expectations, index locks, temporary index workspaces, before-images, and auto-rescue journals, enforcing schema validation through constructors and serialization helpers. Its core logic orchestrates finalize-cleanup as a transactional state machine that captures repository state, prepares isolated Git index operations, persists recovery metadata, and resumes safely after interruption. The implementation heavily relies on realpath, inode, mode, and ownership verification to prevent authority drift when touching `.git` internals, worktrees, lock files, and recovery artifacts. It also includes rollback and restoration utilities for spec trees, issue logs, branch/worktree cleanup, plugin lifecycle metadata, and detached auto-rescue cherry-pick recovery when standard teardown fails.",
-        "chapter": "internal_design",
-        "role": "lib",
+        "summary": "Implements the flow `finalize-cleanup` command, including normal teardown, forced finalize paths, and spec-only completion. It also persists recovery state so cleanup can resume safely after interruptions.",
+        "detail": "This module is a large orchestration layer for finalizing flow worktrees and cleaning up repository state with strong Git and filesystem authority checks. It models teardown phases, commit expectations, before-images, lock ownership, temporary index workspaces, and recovery journals as validated classes so interrupted operations can be resumed or rolled back deterministically. The implementation captures and restores file trees, reconciles Git indexes through isolated temporary copies, manages repository and index locks, and verifies branch, worktree, and commit reachability before destructive cleanup steps. It also integrates issue-log restoration, plugin lifecycle hooks, forced-finalize auditing, submodule diagnostics, and auto-rescue cherry-pick recovery to keep finalize operations durable and observable.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.931Z",
+          "processedAt": "2026-07-22T08:25:26.066Z",
           "attempts": 1
         },
         "keywords": [
           "finalize cleanup",
-          "transactional teardown",
-          "Git worktree cleanup",
-          "index lock",
-          "before-image restore",
+          "flow command",
+          "Git teardown",
+          "worktree cleanup",
           "recovery journal",
+          "index lock",
+          "transaction recovery",
+          "forced finalize",
           "auto rescue",
-          "flow finalization",
-          "repository authority",
-          "rollback logic"
+          "repository cleanup"
         ]
       },
       {
@@ -6567,9 +6817,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "c86fe4095416da336caba4f59eabe830",
-        "lines": 5306,
-        "mtime": "2026-07-21T10:46:39.018Z",
+        "hash": "2b6e2cc8167e994a02bc4652ad1dfa66",
+        "lines": 5357,
+        "mtime": "2026-07-22T08:22:16.381Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -6861,24 +7111,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate command and its supporting evaluation pipeline for spec, draft, task implementation, and integration phases. It validates artifacts, prepares guardrail inputs, evaluates results, and persists gate outcomes with retry-aware recovery behavior.",
-        "detail": "The module combines command execution with a large set of helpers for phase validation, diff collection, artifact loading, and contract-aware prompt construction. It compacts Git diffs, derives per-file and per-requirement context, and builds strict JSON-oriented prompts for guardrail and implementation requirement checks. Response parsing is heavily schema-driven, with custom error types, repair attempts, observation normalization, and explicit validation of evaluation fields and IDs. The gate flow also tracks retry counts, previous failures, durable deferral rules, issue-log history, implementation memory, and source/result artifacts so repeated failures and recovery paths can be handled deterministically.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Implements the flow gate engine that validates specs, drafts, implementation diffs, and integration artifacts across multiple gate phases. It also provides the `RunGateCommand` entry point and supporting logic for structured guardrail evaluation, retries, and result persistence.",
+        "detail": "This module centralizes gate execution for phases such as `spec`, `draft`, `task-impl`, and `integration`, combining filesystem checks, Git diff inspection, and artifact loading into one orchestration layer. It builds bounded prompt inputs for guardrail and per-requirement evaluation, defines JSON schemas and fallback formats for AI responses, and strictly parses the returned evaluation objects. The code includes extensive validation for spec, draft, review, triage, and repair artifacts, plus utilities for detecting unresolved content, reconciling file maps, and generating compact diff summaries. It also manages retry budgeting, repeated-failure detection, semantic deferral, recovery baselines, issue-log updates, and durable storage of gate results and memory artifacts.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.945Z",
+          "processedAt": "2026-07-22T08:25:26.079Z",
           "attempts": 1
         },
         "keywords": [
-          "gate command",
+          "gate execution",
           "guardrail evaluation",
-          "implementation review",
-          "integration gate",
-          "diff analysis",
-          "retry recovery",
+          "flow command",
+          "retry handling",
           "artifact validation",
+          "Git diff analysis",
           "prompt building",
-          "flow orchestration"
+          "spec review",
+          "integration gate"
         ]
       },
       {
@@ -7300,9 +7550,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "7f0f43c792a8234c57e9d6f909c059d1",
-        "lines": 967,
-        "mtime": "2026-07-21T13:16:05.080Z",
+        "hash": "00e5fd672df8be0be4bed83fd3a91f8a",
+        "lines": 1892,
+        "mtime": "2026-07-22T08:22:16.382Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -7314,6 +7564,11 @@
           "normalizeReviewSubprocessRetryCount",
           "normalizeReviewSubprocessRetryDelayMs",
           "runCmdWithRetry",
+          "persistReviewPostHookToolingFailure",
+          "ReviewExecutionGuard",
+          "NormalizedReviewExecution",
+          "normalizeReviewExecution",
+          "ReviewExecutionPipeline",
           "RunReviewCommand",
           "persistedPhaseKey",
           "isImplementationReviewPhase",
@@ -7343,12 +7598,33 @@
           "resolvePhaseReviewNextStep",
           "resolveDraftReviewRoute",
           "resolveDraftReviewNextStep",
+          "parseToolingOutcome",
           "parsePhaseReviewOutput",
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
           "parseProposalReviewOutput",
           "parseImplReviewOutput",
-          "normalizeImplReviewSubprocessResult"
+          "normalizeImplReviewSubprocessResult",
+          "canonicalProviderVerdict",
+          "canonicalFinding",
+          "reviewArtifactFindingLists",
+          "canonicalArtifactName",
+          "resolveCurrentReviewTreeSha",
+          "resolveCurrentReviewRepairFingerprint",
+          "assertCurrentReviewTarget",
+          "staleReviewTargetFailure",
+          "persistCanonicalToolingOutcome",
+          "canonicalReviewExecutionBlock",
+          "persistCanonicalReviewArtifact",
+          "persistCanonicalToolingFailure",
+          "persistCanonicalReviewResult",
+          "reviewPromotionFailureStage",
+          "reviewExecutionFailureEnvelope",
+          "finalizeReviewCommandResult",
+          "evidenceFromProviderResult",
+          "canonicalEvidenceWasPersisted",
+          "pipelineRejection",
+          "permissionRelatedFailure"
         ],
         "imports": [
           "../../lib/cli.js",
@@ -7361,6 +7637,8 @@
           "./step-tree.js",
           "path",
           "fs",
+          "node:crypto",
+          "../../lib/git-helpers.js",
           "./review-failure.js",
           "./set-issue-log.js",
           "./retry-recovery.js",
@@ -7369,7 +7647,9 @@
           "./flow-findings.js",
           "./step-outcome.js",
           "./impl-repair-artifacts.js",
-          "./lifecycle-step-transition.js"
+          "./lifecycle-step-transition.js",
+          "./review-convergence.js",
+          "./review-evidence-store.js"
         ],
         "exports": [
           "countReviewRetry",
@@ -7381,6 +7661,11 @@
           "normalizeReviewSubprocessRetryCount",
           "normalizeReviewSubprocessRetryDelayMs",
           "runCmdWithRetry",
+          "persistReviewPostHookToolingFailure",
+          "ReviewExecutionGuard",
+          "NormalizedReviewExecution",
+          "normalizeReviewExecution",
+          "ReviewExecutionPipeline",
           "RunReviewCommand",
           "default",
           "REVIEW_PHASE_KEYS",
@@ -7394,28 +7679,26 @@
         ],
         "extends": "FlowCommand",
         "usedBy": [
-          "src/flow/lib/get-next-action.js",
-          "src/flow/lib/get-status.js",
+          "src/flow/lib/review-recovery-authority.js",
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Implements the flow review command and the shared review-phase machinery for draft, spec, test, and implementation checks. It validates findings and verdicts, runs the underlying review subprocess, and records retry or recovery state.",
-        "detail": "The module maps review phases to flow step IDs, source artifacts, retry routes, and downstream transitions so each phase can be handled through a common path. It normalizes structured findings, distinguishes mechanical coverage or tooling issues from semantic review comments, and persists finding IDs or dispositions back into artifact JSON files. Several parsers extract verdicts, counts, next-step routing, and implementation review artifacts from subprocess output, while retry helpers cap attempts and support deferred outcomes when exhaustion is recoverable. RunReviewCommand enforces phase scope rules, verifies prerequisite artifacts, invokes the packaged review script with retry-on-tooling-failure behavior, and wraps results in Envelope responses.",
+        "summary": "Implements the flow review command for draft, spec, test, and implementation phases. It runs reviewer subprocesses, interprets verdicts, and records canonical review evidence and retry state.",
+        "detail": "The module defines phase-specific verdict parsing, tooling-error detection, and finding normalization for both mechanical and semantic review artifacts. It wraps subprocess execution with bounded retries and converts stdout and stderr into structured results, including deferred and externally blocked outcomes. Guard and pipeline classes verify the current tree SHA and repair fingerprint before persisting canonical artifacts, tooling failures, and evidence snapshots. The command class integrates lifecycle transitions, retry counters, downstream evidence resets, and issue-log updates so review results can safely drive the flow state machine.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T15:20:55.311Z",
+          "processedAt": "2026-07-22T08:25:26.093Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review",
           "review pipeline",
-          "retry recovery",
+          "flow review command",
           "verdict parsing",
-          "artifact validation",
-          "implementation review",
-          "draft review",
-          "tooling failure"
+          "retry handling",
+          "evidence persistence",
+          "stale target detection",
+          "implementation review"
         ]
       },
       {
@@ -8193,13 +8476,14 @@
       },
       {
         "file": "src/flow/lib/set-retry.js",
-        "hash": "c7e9491b9c3aded9c11a3fa154f4446d",
-        "lines": 148,
-        "mtime": "2026-07-16T22:49:01.914Z",
+        "hash": "3761f02529826e4535bbc071a76e7887",
+        "lines": 167,
+        "mtime": "2026-07-22T08:22:16.382Z",
         "className": "set-retry",
         "methods": [
           "normalizeReviewResetPhase",
-          "resolveReviewResetPhases"
+          "resolveReviewResetPhases",
+          "unchangedReviewConvergenceTarget"
         ],
         "imports": [
           "./base-command.js",
@@ -8207,7 +8491,7 @@
           "./run-gate.js",
           "./run-review.js",
           "./step-tree.js",
-          "./review-failure.js",
+          "./review-evidence-store.js",
           "./retry-recovery.js"
         ],
         "exports": [
@@ -8216,21 +8500,62 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "ee559b7a",
-        "summary": "Resets retry state for gate and review actions and reports the granted retry context. It centralizes phase normalization and max-attempt accounting.",
-        "detail": "The module maps retry kinds to their counting functions and configured max-resolution helpers so gate and review logic share one command surface. Review-specific helpers normalize phases and can expand a reset into related draft review phases when needed. A small operation object carries the requested action and selected phase, while the command computes current counters, grants, and reset behavior from the active flow state. It also clears persisted review-stop state when appropriate so a manual retry can proceed cleanly.",
+        "summary": "Implements the flow retry-reset command for gate and review phases. It calculates counters, max-attempt limits, and reset scopes before granting another retry.",
+        "detail": "The file maps retry kinds to their counter readers and maximum-attempt resolvers so the command can treat gate and review phases uniformly. It normalizes draft review phases into the paired question and coverage reset set, which keeps related review state in sync. A small reset operation object captures the requested phase input and supports convergence checks, including whether the current review target tree has changed. The command returns structured envelope failures for invalid requests and otherwise emits a reset and grant payload with the computed counter and phase list.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.583Z",
+          "processedAt": "2026-07-22T08:25:26.093Z",
           "attempts": 1
         },
         "keywords": [
           "retry reset",
           "gate retry",
           "review retry",
+          "attempt limit",
           "phase normalization",
-          "attempt limits",
-          "manual retry grant"
+          "convergence target"
+        ]
+      },
+      {
+        "file": "src/flow/lib/set-review-evidence.js",
+        "hash": "04373cdfd60911974b4af87d08f20e57",
+        "lines": 102,
+        "mtime": "2026-07-22T08:22:16.383Z",
+        "className": "set-review-evidence",
+        "methods": [
+          "currentReviewTarget"
+        ],
+        "imports": [
+          "node:path",
+          "./base-command.js",
+          "../../lib/flow-envelope.js",
+          "../definition.js",
+          "../../lib/spec-json.js",
+          "./impl-repair-artifacts.js",
+          "./review-evidence-store.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "ae137bbc",
+        "summary": "Registers review evidence for the currently active review step. It ties saved evidence to the flow's current target state so later review runs can detect drift.",
+        "detail": "The module maps review step IDs to logical phases and derives the active review target from flow state plus the current repository tree SHA. It resolves the spec directory, incorporates implementation repair fingerprints when needed, and validates that evidence is being set in a legitimate review context. The command is built on the shared flow command and envelope abstractions, so invalid state is surfaced as structured failures rather than ad hoc exceptions. On success it returns a command result from the evidence registration object, keeping persistence details encapsulated.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-07-22T08:25:26.093Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "review evidence",
+          "target snapshot",
+          "tree SHA",
+          "repair fingerprint",
+          "active review step",
+          "flow command"
         ]
       },
       {
@@ -9134,9 +9459,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "252acd91390e9e329a734e50cf459183",
-        "lines": 1527,
-        "mtime": "2026-07-21T15:19:23.589Z",
+        "hash": "622dda2313b98bef4f18334ddb3f5b58",
+        "lines": 1564,
+        "mtime": "2026-07-22T08:22:16.390Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -9148,6 +9473,7 @@
           "tryUpdateStepStatus",
           "tryAppendIssueLog",
           "gateRuntimeLogStepId",
+          "terminalGateRevalidation",
           "activeStepId",
           "activeImplReviewStepId",
           "draftReviewRuntimeLogStepId",
@@ -9182,22 +9508,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the central flow command registry and the lifecycle glue around command execution. It coordinates phase-aware helpers, guard options, plugin hooks, and post-command side effects.",
-        "detail": "The module declares shared CLI option sets for flow execution, target guards, retry help, and draft review responsibility boundaries. Utility functions derive the active phase, switch flow authority, reset downstream steps, resolve runtime step IDs, and append issue-log or step-status updates with defensive error handling. RegistryLifecycleAdapter encapsulates gate, review, and finalize side effects, including outbox handling, merge finalization, and durable artifact commits. The exported FLOW_COMMANDS table binds help text and handlers to subcommands while wrapping them with lifecycle actions and artifact validation.",
+        "summary": "Defines the flow command registry and the lifecycle glue around command execution. It centralizes option metadata, runtime step resolution, plugin hooks, and post-command side effects.",
+        "detail": "The module declares shared flags and help text for flow commands, including target-guard options and retry phase guidance. It computes active phases and runtime log step IDs for gate, draft review, implementation review, and finalization paths. A lifecycle adapter abstracts step-status updates, outbox access, issue-log appends, finalize artifact handling, and review and finalize hook execution so registry actions stay consistent. The exported `FLOW_COMMANDS` table wires command handlers through this lifecycle layer and validates important artifacts before allowing later stages to complete.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T15:20:55.311Z",
+          "processedAt": "2026-07-22T08:25:26.093Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "flow lifecycle",
-          "CLI dispatch",
-          "plugin hooks",
-          "step status",
-          "issue log",
-          "draft review routes"
+          "flow CLI",
+          "lifecycle hooks",
+          "runtime log",
+          "target guard options",
+          "finalization",
+          "plugin integration"
         ]
       },
       {
@@ -10528,9 +10854,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "f2e8cbb46e9c3dcb6afe9a65b688ead8",
-        "lines": 1044,
-        "mtime": "2026-07-21T10:46:39.020Z",
+        "hash": "6f1c0ce0b024a3f1163fa7d119738de4",
+        "lines": 1065,
+        "mtime": "2026-07-22T08:22:16.392Z",
         "className": "flow-manager",
         "methods": [
           "FlowScanEntry",
@@ -10577,22 +10903,22 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "Provides the core manager for loading, saving, targeting, and scanning flows. It also coordinates worktree-bound flow identity, recovery selection, and guarded state mutations.",
-        "detail": "FlowManager is the persistence and targeting layer for active, preparing, and worktree-bound flows. It wraps the underlying stores with higher-level operations for loading flow state, updating step status, recording runtime logs and metrics, resolving current tasks, and rewinding or recovering plans. The module also scans main-repo specs, managed worktrees, and branch snapshots to resolve a unique flow target, rank recovery candidates, and enforce explicit target expectations. Additional guardrails keep worktree bindings and flow identities synchronized under lock, using canonical real paths and aggregate errors to avoid silently drifting state.",
+        "summary": "Provides the central manager for loading, scanning, mutating, and resolving flow state. It handles both main-repository flows and managed worktree bindings.",
+        "detail": "The file defines result and error types for flow scans, recovery candidates, ambiguous targets, and resolved flow identities. It scans persisted flow state from local specs, managed worktrees, and branch snapshots, then deduplicates and ranks candidates for recovery and target resolution. The `FlowManager` delegates common state mutations to the underlying stores while automatically applying bound spec defaults and repository-level locking where required. It also reconciles worktree binding identity with visible flow state, enforcing canonical paths and issue and spec consistency during updates.",
         "chapter": "development",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.959Z",
+          "processedAt": "2026-07-22T08:25:26.093Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "target resolution",
+          "state persistence",
           "worktree binding",
+          "target resolution",
           "flow scanning",
           "recovery candidate",
-          "state persistence",
-          "active flow"
+          "repository lock"
         ]
       },
       {
@@ -13869,10 +14195,10 @@
       }
     ],
     "summary": {
-      "total": 248,
-      "totalMethods": 2663
+      "total": 252,
+      "totalMethods": 2770
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-21T15:20:55.311Z"
+  "enrichedAt": "2026-07-22T08:25:26.093Z"
 }
