@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-22T10:30:54.217Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/327-approval-task-sync-atomic/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing assertion for definition-driven next-step promotion",
+      "target": "specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:assertCompleteCombinedState / R1 happy and committed-failure cases",
+      "findingId": "fd7b6b1f3b7a505614182b3b689b7204d3bbd1ddf8d74102b937083bde6b2f17",
+      "fingerprint": "fd7b6b1f3b7a505614182b3b689b7204d3bbd1ddf8d74102b937083bde6b2f17",
+      "disposition": "must-fix",
+      "rationale": "Without this, implementation could atomically persist approval and tasks while omitting or mis-persisting the definition-driven next-step promotion, and the requirement coverage artifact would still claim R1 is covered.",
+      "issue": "R1 requires the approval completion, timestamps, definition-driven next-step promotion, and newly derived tasks to be persisted in the same atomic mutation. The tests assert approval is done, finishedAt exists, tasks are present, and currentTaskId is T-1, but they do not assert the flow step that should be promoted by the step definition after approval completes.",
+      "requiredChange": "Add a spec-local assertion in the R1/R4 success-state checks for the expected promoted next flow step status after approval completes.",
+      "whyBlocking": "Without this, implementation could atomically persist approval and tasks while omitting or mis-persisting the definition-driven next-step promotion, and the requirement coverage artifact would still claim R1 is covered.",
+      "origin": "R1",
+      "failureKind": "missing requirement coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Retry coverage only samples one guarded mismatch type",
+      "target": "specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:R3 repeats pre-commit spec and target failures once and matches clean success after repair",
+      "findingId": "ef248850a35fd956f46274dd4a53b9b7e3f9e57e687d3fc76e9f279234a3886e",
+      "fingerprint": "ef248850a35fd956f46274dd4a53b9b7e3f9e57e687d3fc76e9f279234a3886e",
+      "disposition": "informational",
+      "rationale": "R2 already covers all three guarded mismatch types before mutation, and the R3 test exercises the retry contract for one representative target mismatch condition.",
+      "improvement": "Consider repeating the deterministic retry check for spec and issue guarded mismatches, not only run-id mismatch.",
+      "whyNonBlocking": "R2 already covers all three guarded mismatch types before mutation, and the R3 test exercises the retry contract for one representative target mismatch condition."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/327-approval-task-sync-atomic/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3187efb330446991d33473ea7ea37b0297d25bb6f2f763cfbfe6a34c5409074c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "fd7b6b1f3b7a505614182b3b689b7204d3bbd1ddf8d74102b937083bde6b2f17",
+      "findingId": "fd7b6b1f3b7a505614182b3b689b7204d3bbd1ddf8d74102b937083bde6b2f17",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Missing assertion for definition-driven next-step promotion",
+      "body": "R1 requires the approval completion, timestamps, definition-driven next-step promotion, and newly derived tasks to be persisted in the same atomic mutation. The tests assert approval is done, finishedAt exists, tasks are present, and currentTaskId is T-1, but they do not assert the flow step that should be promoted by the step definition after approval completes.",
+      "category": "unknown",
+      "fingerprint": "fd7b6b1f3b7a505614182b3b689b7204d3bbd1ddf8d74102b937083bde6b2f17",
+      "disposition": "must-fix",
+      "rationale": "Without this, implementation could atomically persist approval and tasks while omitting or mis-persisting the definition-driven next-step promotion, and the requirement coverage artifact would still claim R1 is covered."
+    },
+    {
+      "id": "ef248850a35fd956f46274dd4a53b9b7e3f9e57e687d3fc76e9f279234a3886e",
+      "findingId": "ef248850a35fd956f46274dd4a53b9b7e3f9e57e687d3fc76e9f279234a3886e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "non-blocking",
+      "title": "Retry coverage only samples one guarded mismatch type",
+      "body": "R2 already covers all three guarded mismatch types before mutation, and the R3 test exercises the retry contract for one representative target mismatch condition.",
+      "category": "unknown",
+      "fingerprint": "ef248850a35fd956f46274dd4a53b9b7e3f9e57e687d3fc76e9f279234a3886e",
+      "disposition": "informational",
+      "rationale": "R2 already covers all three guarded mismatch types before mutation, and the R3 test exercises the retry contract for one representative target mismatch condition."
+    }
+  ]
+}

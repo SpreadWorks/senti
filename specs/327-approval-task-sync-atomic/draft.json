@@ -1,0 +1,88 @@
+{
+  "devType": "bugfix",
+  "goal": "approval 完了と spec task 同期を単一の成功・失敗単位として扱い、同期失敗時の部分更新を防ぐ。",
+  "analysis": {
+    "problem": "現行処理は approval を done に保存した後で spec task を同期し、同期失敗を警告へ変換するため、approval だけが完了した不整合を永続化できる。さらに spec 読み込み失敗を同期不要として扱う経路がある。",
+    "proposedApproach": "approval 完了と spec task 同期の事前条件・永続化結果を同じ成否境界へ揃え、同期に必要な spec の読み込みや対象確認に失敗した場合は呼び出し元へ失敗を返して更新前状態を維持する。",
+    "validation": "write failure、parse failure、target mismatch の各失敗経路、同一入力での 1 回の retry、既存 happy path を focused tests で検証し、flow state と task state の双方を更新前後で確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: 現行 set-step は approval の状態更新後に syncSpecTasksToFlow を呼び、同期例外を警告へ変換して成功を返す。",
+      "must: 現行 syncSpecTasksToFlow は spec 読み込み失敗を spec.json not found の skipped result として返す。",
+      "must: Issue #451 は src/flow/lib/set-step.js、src/flow/lib/sync-spec-tasks.js、failure/retry/idempotency tests に範囲を限定している。"
+    ],
+    "decisionPoints": [
+      "must: approval 完了と task 同期は同じ成功・失敗単位とし、どちらかだけを永続化しない。",
+      "must: spec load error は warning または skipped result に変換せず、呼び出し元が識別できる失敗として返す。",
+      "must: 同一入力を 1 回 retry しても部分更新を残さず、成功時の結果を重複させない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: #443 で導入された target identity と compare-and-swap guard を保持する。",
+      "must: 外部依存、allowlist、test skip、assertion 削減を追加しない。",
+      "must: Issue #451 の指定 source path と直接対応する回帰 tests 以外を変更しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 各失敗種別、retry、happy path と Acceptance Criteria の対応を spec の検証 matrix で固定する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: write failure、parse failure、target mismatch で approval と task state の両方を更新前状態に保つ。",
+      "must: 同一入力の 1 回 retry が部分更新や task 重複を残さないことを検証する。",
+      "must: approval 完了と task 更新の既存 happy path contract を維持する。",
+      "must: spec load error を呼び出し元への失敗として返す。"
+    ],
+    "out": [
+      "must: 無関係な task lifecycle、review、gate、finalize、cleanup、tooling、広範な transaction redesign は対象外とする。",
+      "must: fallback、allowlist、依存追加、test skip、assertion 削減、周辺 refactor は対象外とする。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: 正常な approval 完了では既存どおり spec tasks を flow tasks へ追加し、既存 task を重複させない。",
+    "must: 同期失敗時の利用者向け結果は警告付き成功から明示的失敗へ変わり、approval と task state は更新前のままとなる。",
+    "must: #443 の target identity と compare-and-swap guard、および既存 task の parent、round、promotion contract を維持する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: approval 完了と spec task 同期を単一の成功・失敗単位とし、同期失敗時は両 state を更新前のまま保つことを Issue #451 の達成条件とするか。",
+      "answer": "must: approval と task 同期を同じ成否境界で扱い、部分更新を許可しない。",
+      "evidence": "Issue #451 の Problem と Acceptance Criteria が同一更新単位、失敗時の更新前状態維持を明示している。",
+      "why": "must: approval だけが done になる永続的な不整合を解消するため。",
+      "considered": "同期失敗を警告として記録して approval を完了させる現状維持は、Issue の期待不変条件を満たさないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: write failure、parse failure、target mismatch、spec load error を失敗として返し、warning または sync 不要へフォールバックしないか。",
+      "answer": "must: 列挙された失敗は呼び出し元への失敗とし、approval と task state を変更しない。",
+      "evidence": "Issue #451 の Acceptance Criteria が三つの failure path と spec load error の伝播を個別に要求している。",
+      "why": "must: 入力・対象・永続化の失敗を成功と誤認させず、retry 前の一貫した状態を保証するため。",
+      "considered": "欠落 spec だけを skipped result に残す案は、壊れたまたは欠落した spec を握り潰さないという Issue の不変条件に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: 既存 happy path、#443 guard、task parent・round・promotion contract を維持し、周辺 lifecycle と広範な transaction redesign を対象外とするか。",
+      "answer": "must: 既存 contract を維持し、Issue #451 に直接対応する二つの source module と回帰 tests だけを対象とする。",
+      "evidence": "Issue #451 の Scope と既存コードが変更対象、正常系 contract、既存 task 構築・promotion behavior を特定している。",
+      "why": "must: 部分更新という単一 root cause を最小差分で解消し、別の flow/tooling 問題を混在させないため。",
+      "considered": "flow transaction 全体の再設計は Issue の Scope を越え、独立した検証対象を増やすため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-22T00:21:15Z",
+    "notes": ""
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/327-approval-task-sync-atomic/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+        "test_name": "R1: preserves one complete old or combined state across the atomic rename boundary",
+        "command": "node --test specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 133
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+        "test_name": "R2: propagates broken active-spec input and preparation-time revision drift before mutation",
+        "command": "node --test specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 133
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+        "test_name": "R3: keeps the complete committed state duplicate-free when the caller retries once",
+        "command": "node --test specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 133
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+        "test_name": "R4: commits the happy path once and preserves task mapping, promotion, and result fields",
+        "command": "node --test specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 133
+        }
+      }
+    }
+  ]
+}

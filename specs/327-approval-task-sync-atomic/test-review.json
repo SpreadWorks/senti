@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-22T12:47:18.201Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/327-approval-task-sync-atomic/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Revision drift fixture is injected before the target API can prepare the combined update",
+      "target": "tests/approval-task-sync-atomic.test.js R2 test \"propagates broken active-spec input and preparation-time revision drift before mutation\"",
+      "findingId": "6dc0a619a6f3c85f0dc9f24c0cce150bdbcec61c4e422c5088ec720933e94c8d",
+      "fingerprint": "6dc0a619a6f3c85f0dc9f24c0cce150bdbcec61c4e422c5088ec720933e94c8d",
+      "disposition": "deferred",
+      "rationale": "R2 specifically requires coverage for revision drift after task preparation but before commit; this fixture can pass while never exercising that required concurrency window.",
+      "issue": "The drift case mutates the flow in InterceptingFlowManager.beforeUpdate before delegate.updateStepStatus is entered. If task preparation and revision capture happen inside updateStepStatus via the commitIntent, this simulates a stale state at update entry, not revision drift after task preparation but before commit as required by R2.",
+      "requiredChange": "Move the drift injection to a hook/fault point that runs after the approval/task combined state has been prepared and its expected revision captured, but before the atomic commit/rename is attempted.",
+      "whyBlocking": "R2 specifically requires coverage for revision drift after task preparation but before commit; this fixture can pass while never exercising that required concurrency window.",
+      "origin": "R2",
+      "failureKind": "test encodes an incorrect implementation premise"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/327-approval-task-sync-atomic/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "58b1d03d5144f4b7de93022250587ca0333a9d1ffd815a84e232a3e63662f64a"
+  }
+}

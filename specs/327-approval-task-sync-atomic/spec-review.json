@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-07-22T00:52:53.334Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "nonBlocking": 3,
+    "total": 3
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify current spec-load behavior",
+      "target": "overview.decisions",
+      "body": "**Target:** overview.decisions\n**Improvement:** Describe the current helper as skipping active-flow load errors and a missing spec, throwing malformed or invalid spec errors, and having set-step convert those exceptions to warning-success.\n**Why non-blocking:** The requirements and acceptance criteria already require active-spec failures to propagate, so this only makes the source-verification narrative more precise.",
+      "improvement": "Describe the current helper as skipping active-flow load errors and a missing spec, throwing malformed or invalid spec errors, and having set-step convert those exceptions to warning-success.",
+      "whyNonBlocking": "The requirements and acceptance criteria already require active-spec failures to propagate, so this only makes the source-verification narrative more precise."
+    },
+    {
+      "kind": "improvement",
+      "title": "Define logical retry comparison fields",
+      "target": "AC3",
+      "body": "**Target:** AC3\n**Improvement:** State whether the test fixes the clock or compares the logical approval, task, promotion, and result-envelope fields while excluding wall-clock timestamps.\n**Why non-blocking:** Either test technique can verify the same idempotency contract without changing implementation behavior.",
+      "improvement": "State whether the test fixes the clock or compares the logical approval, task, promotion, and result-envelope fields while excluding wall-clock timestamps.",
+      "whyNonBlocking": "Either test technique can verify the same idempotency contract without changing implementation behavior."
+    },
+    {
+      "kind": "improvement",
+      "title": "Name the committed retry result",
+      "target": "R3 and AC3",
+      "body": "**Target:** R3 and AC3\n**Improvement:** Clarify that retry after a committed:true failure is rejected as an already-terminal transition and performs no additional write, effect, or tasksSynced emission.\n**Why non-blocking:** The current transition policy already determines this result and the spec already requires the complete committed state to remain duplicate-free.",
+      "improvement": "Clarify that retry after a committed:true failure is rejected as an already-terminal transition and performs no additional write, effect, or tasksSynced emission.",
+      "whyNonBlocking": "The current transition policy already determines this result and the spec already requires the complete committed state to remain duplicate-free."
+    }
+  ]
+}

@@ -14,12 +14,99 @@
 import fs from "node:fs";
 import path from "node:path";
 import { FlowManager } from "../../lib/flow-manager.js";
-import { tryLoadSpecJson, validateSpecJsonObject } from "../../lib/spec-json.js";
+import { loadSpecJson } from "../../lib/spec-json.js";
 import { buildInitialTaskSteps, promoteNextPending } from "../../lib/flow-helpers.js";
 import {
   TaskCollection,
   TaskOutputPath,
 } from "../../spec/lib/render-contract.js";
+import {
+  StepTransitionCommitIntent,
+  StepTransitionError,
+} from "./step-transition-policy.js";
+
+export class SpecTaskSyncCommitIntent extends StepTransitionCommitIntent {
+  #preparedTasks;
+
+  constructor(preparedTasks) {
+    super();
+    if (!Array.isArray(preparedTasks)) {
+      throw new StepTransitionError("prepared spec tasks must be an array");
+    }
+    const seen = new Set();
+    this.#preparedTasks = preparedTasks.map((task) => {
+      if (!task || typeof task !== "object") {
+        throw new StepTransitionError("prepared spec task must be an object");
+      }
+      if (typeof task.id !== "string" || task.id.trim() === "") {
+        throw new StepTransitionError("prepared spec task id must be a non-empty string");
+      }
+      if (seen.has(task.id)) {
+        throw new StepTransitionError(`duplicate prepared spec task id: ${task.id}`);
+      }
+      seen.add(task.id);
+      return structuredClone(task);
+    });
+    this.added = Object.freeze(this.#preparedTasks.map((task) => task.id));
+    Object.freeze(this);
+  }
+
+  applyTo(state) {
+    if (!Array.isArray(state?.tasks)) {
+      throw new StepTransitionError("flow state tasks must be an array");
+    }
+    const existingIds = new Set(state.tasks.map((task) => task.id));
+    for (const task of this.#preparedTasks) {
+      if (existingIds.has(task.id)) {
+        throw new StepTransitionError(`prepared spec task already exists: ${task.id}`);
+      }
+    }
+    if (this.#preparedTasks.length === 0) return;
+    state.tasks.push(...structuredClone(this.#preparedTasks));
+    promoteNextPending(state);
+  }
+}
+
+/**
+ * Prepare append-only task additions from an already-resolved flow state.
+ * This function performs no flow-state mutation.
+ *
+ * @param {{ root: string, state: object }} opts
+ * @returns {SpecTaskSyncCommitIntent}
+ */
+export function prepareSpecTaskSync({ root, state }) {
+  if (!state || typeof state !== "object") {
+    throw new StepTransitionError("active flow state is required for spec task sync");
+  }
+  if (typeof state.spec !== "string" || state.spec.trim() === "") {
+    throw new StepTransitionError("active flow spec path is required for spec task sync");
+  }
+  if (!Array.isArray(state.tasks)) {
+    throw new StepTransitionError("active flow tasks must be an array");
+  }
+
+  const absSpecPath = path.isAbsolute(state.spec) ? state.spec : path.join(root, state.spec);
+  const spec = loadSpecJson(absSpecPath);
+  const collection = new TaskCollection(spec.tasks ?? []);
+  const existingIds = new Set(state.tasks.map((task) => task.id));
+  const newTasks = [...collection].filter((task) => !existingIds.has(task.id.value));
+
+  const isFirstApproval = state.tasks.length === 0;
+  const maxExisting = state.tasks.reduce(
+    (maximum, task) => Math.max(maximum, task.added_round ?? 0),
+    0,
+  );
+  const assignedRound = isFirstApproval ? 0 : maxExisting + 1;
+  const tasksDir = path.join(path.dirname(absSpecPath), "tasks");
+  const preparedTasks = newTasks.map((specTask) => buildFlowTask(
+    specTask,
+    new TaskOutputPath(tasksDir, specTask.id),
+    root,
+    assignedRound,
+  ));
+
+  return new SpecTaskSyncCommitIntent(preparedTasks);
+}
 
 /**
  * Synchronize spec.json tasks[] into flow.json tasks[] (append-only).
@@ -29,60 +116,12 @@ import {
  */
 export function syncSpecTasksToFlow({ root }) {
   const fm = new FlowManager({ root, mainRoot: root, inWorktree: false });
-  let state;
-  try {
-    state = fm.load();
-  } catch {
-    return { added: [], skipped: true, reason: "no active flow" };
-  }
+  const state = fm.load();
   if (!state) return { added: [], skipped: true, reason: "no active flow" };
-
-  const specPath = state.spec;
-  if (!specPath) return { added: [], skipped: true, reason: "no spec path" };
-
-  const absSpecPath = path.isAbsolute(specPath) ? specPath : path.join(root, specPath);
-  const spec = tryLoadSpecJson(absSpecPath, { validate: false });
-  if (!spec) return { added: [], skipped: true, reason: "spec.json not found" };
-
-  const collection = new TaskCollection(spec.tasks ?? []);
-  validateSpecJsonObject(spec);
-  if (collection.size === 0) return { added: [] };
-
-  const existingIds = new Set((state.tasks || []).map((t) => t.id));
-  const newTasks = [...collection].filter((task) => !existingIds.has(task.id.value));
-  if (newTasks.length === 0) return { added: [] };
-
-  // REQ-6: auto-compute added_round for new tasks at approval time.
-  // For the first approval (flow has no prior tasks), newly added tasks get
-  // added_round = 0. For subsequent approvals, new tasks get
-  // max(existing added_round) + 1 — regardless of what spec.json says.
-  const isFirstApproval = (state.tasks || []).length === 0;
-  const maxExisting = (state.tasks || []).reduce(
-    (m, t) => Math.max(m, t.added_round ?? 0),
-    0,
-  );
-  const assignedRound = isFirstApproval ? 0 : maxExisting + 1;
-
-  // Use low-level mutate to append without touching currentTaskId on each insert.
-  // Spec 226: at the end of the batch, call promoteNextPending to auto-promote
-  // the first pending task (forest leaf priority) into currentTaskId if it was
-  // null. This is call site (1) of the single-caller boundary.
-  const tasksDir = path.join(path.dirname(absSpecPath), "tasks");
-  const preparedTasks = newTasks.map((specTask) => buildFlowTask(
-    specTask,
-    new TaskOutputPath(tasksDir, specTask.id),
-    root,
-    assignedRound,
-  ));
-  const added = preparedTasks.map((task) => task.id);
-  fm._store.mutate((s) => {
-    for (const task of preparedTasks) {
-      s.tasks.push(task);
-    }
-    promoteNextPending(s);
-  });
-
-  return { added };
+  const intent = prepareSpecTaskSync({ root, state });
+  if (intent.added.length === 0) return { added: [] };
+  fm.mutate((nextState) => intent.applyTo(nextState), { expectedOriginal: state });
+  return { added: [...intent.added] };
 }
 
 function buildFlowTask(specTask, outputPath, root, assignedRound) {

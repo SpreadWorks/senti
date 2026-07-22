@@ -12,7 +12,7 @@ import { FlowCommand } from "./base-command.js";
 import { VALID_STEP_STATUSES } from "../../lib/constants.js";
 import { container } from "../../lib/container.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { syncSpecTasksToFlow } from "./sync-spec-tasks.js";
+import { prepareSpecTaskSync } from "./sync-spec-tasks.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
 import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
 import {
@@ -394,6 +394,11 @@ export default class SetStepCommand extends FlowCommand {
       if (fail) return fail;
     }
 
+    const effects = status === "done" ? collectSideEffects(id) : [];
+    const taskSyncIntent = effects.includes("syncSpecTasks")
+      ? prepareSpecTaskSync({ root: ctx.root, state })
+      : null;
+
     // Pass specId so the mutator can locate flow.json by path even when the
     // current flowManager root has no .active-flow entry for this spec
     // (spec 251: main-repo authority during finalize-merge / sync / cleanup).
@@ -402,31 +407,16 @@ export default class SetStepCommand extends FlowCommand {
     ctx.flowManager.updateStepStatus(transition, {
       ...(ctx.specId ? { specId: ctx.specId } : {}),
       taskId: taskIdForResolvedStep(activeNode, id),
-    });
+      ...(taskSyncIntent ? { expectedOriginal: state } : {}),
+    }, taskSyncIntent);
     if (container.has("logger")) {
       container.get("logger").event("flow-step-change", { step: id, status });
     }
 
-    let extras = null;
+    let extras = taskSyncIntent?.added.length > 0
+      ? { tasksSynced: [...taskSyncIntent.added] }
+      : null;
     if (status === "done") {
-      const effects = collectSideEffects(id);
-
-      if (effects.includes("syncSpecTasks")) {
-        try {
-          const syncResult = syncSpecTasksToFlow({ root: ctx.root });
-          if (syncResult.added?.length > 0) {
-            extras = { tasksSynced: syncResult.added };
-          }
-        } catch (err) {
-          process.stderr.write(
-            `[senti] set-step ${id}: task sync failed (${err.message})\n`,
-          );
-          if (container.has("logger")) {
-            container.get("logger").event("approval-sync-error", { error: err.message });
-          }
-        }
-      }
-
       if (effects.includes("autoUpgradeReeval")) {
         try {
           const state = ctx.flowManager.load();

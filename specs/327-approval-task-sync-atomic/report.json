@@ -1,0 +1,829 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/327-approval-task-sync-atomic/draft.json     |   88 ++\n .../flow-findings.json                             |   20 +\n specs/327-approval-task-sync-atomic/flow.json      | 1131 ++++++++++++++++++++\n specs/327-approval-task-sync-atomic/issue-log.json |   81 ++\n specs/327-approval-task-sync-atomic/issue.md       |   74 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n ...fb5c199207c11c4d02a243231193901ebd1502b867.json |    1 +\n ...09c05632acd9dd8dc8bf021056bb02e3990de29273.json |    1 +\n ...d41ea97917b6d92abb4842e6d0a6956368292c4849.json |    1 +\n ...c77afbb87427cdcfdc5c20f73662a2f2bb9d173986.json |    1 +\n ...592fe36386c87df88826085bcdfe02f89d49c5f0c9.json |    1 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/spec-attempt-001.json           |   75 ++\n .../review-history/spec-attempt-001.md             |   24 +\n .../review-history/test-attempt-001.json           |  114 ++\n .../review-history/test-attempt-001.md             |   30 +\n .../review-history/test-attempt-002.json           |   58 +\n .../review-history/test-attempt-002.md             |   18 +\n .../review-history/test-attempt-003.json           |   84 ++\n .../review-history/test-attempt-003.md             |   21 +\n .../review-history/test-attempt-004.json           |   86 ++\n .../review-history/test-attempt-004.md             |   24 +\n .../review-history/test-attempt-005.json           |   86 ++\n .../review-history/test-attempt-005.md             |   24 +\n .../review-history/test-attempt-006.json           |   86 ++\n .../review-history/test-attempt-006.md             |   24 +\n .../review-history/test-attempt-007.json           |   58 +\n .../review-history/test-attempt-007.md             |   18 +\n .../scenario-validity-result.json                  |   67 ++\n .../327-approval-task-sync-atomic/spec-review.json |   38 +\n specs/327-approval-task-sync-atomic/spec-review.md |   24 +\n specs/327-approval-task-sync-atomic/spec.json      |  209 ++++\n specs/327-approval-task-sync-atomic/spec.md        |  113 ++\n specs/327-approval-task-sync-atomic/tasks/T-1.md   |   22 +\n .../test-coverage.json                             |   64 ++\n .../327-approval-task-sync-atomic/test-review.json |   40 +\n specs/327-approval-task-sync-atomic/test-review.md |   18 +\n .../tests/.raw/scenario-validity.log               |  133 +++\n .../tests/.raw/upgrade.log                         |    7 +\n .../tests/approval-task-sync-atomic.test.js        |  484 +++++++++\n .../upgrade-result.json                            |   36 +\n src/flow/lib/set-step.js                           |   32 +-\n src/flow/lib/sync-spec-tasks.js                    |  127 ++-\n 50 files changed, 3670 insertions(+), 65 deletions(-)",
+      "commits": [
+        "chore: record task review tooling failure",
+        "feat: commit approval task sync atomically"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When the current target completes `approval`, the approval status and timestamps, definition-driven next-step promotion, and every newly derived spec task shall be persisted through one target-bound atomic flow-state mutation. A failure with `committed:false` shall retain the complete pre-update bytes and logical state; a post-rename failure with `committed:true` shall retain the complete combined new state. No failure may persist approval without tasks or tasks without approval.",
+          "status": "done",
+          "note": "R1: preserves one complete old or combined state across the atomic rename boundary"
+        },
+        {
+          "desc": "Missing, malformed, or invalid active-flow spec input, any guarded run/spec/issue target mismatch, and any revision drift after task preparation but before commit shall return a caller-visible failure before the combined mutation. These failures shall not be converted to warnings or skipped synchronization, shall not select or replace a foreign/concurrent winner flow, shall perform no implicit re-resolution or retry, and shall leave the losing approval/task state unchanged while preserving #443 target and revision checks.",
+          "status": "done",
+          "note": "R2: propagates broken active-spec input and preparation-time revision drift before mutation"
+        },
+        {
+          "desc": "One caller retry with the same logical input shall be deterministic and idempotent: an unchanged pre-commit, parse, validation, or target-mismatch condition shall repeat the same failure with unchanged state; removing that condition shall produce the same single success state as a clean first attempt; and retry after a `committed:true` failure shall leave the already-complete combined state unchanged with no duplicate task or promotion.",
+          "status": "done",
+          "note": "R3: keeps the complete committed state duplicate-free when the caller retries once"
+        },
+        {
+          "desc": "The retained happy path shall append only previously absent spec task ids and preserve each task's spec path, origin, parent, initial status and steps, empty requirements, null summary, computed `added_round`, pending-task promotion, and command `tasksSynced` result. The standalone no-active-flow result may remain explicit, but active-flow spec load errors shall propagate; no unrelated lifecycle, tooling, dependency, allowlist, skip, or assertion behavior shall change.",
+          "status": "done",
+          "note": "R4: commits the happy path once and preserves task mapping, promotion, and result fields"
+        }
+      ]
+    },
+    "upgrade": {
+      "result": "failed",
+      "summary": {
+        "skills": {
+          "updated": 0,
+          "unchanged": 0,
+          "removed": 0
+        },
+        "presets": {
+          "copied": 0
+        },
+        "agentFiles": {
+          "updated": 0,
+          "unchanged": 0,
+          "missing": 0
+        },
+        "plugins": {
+          "changed": false
+        },
+        "config": {
+          "changed": false
+        },
+        "rename": {
+          "changed": 0
+        },
+        "error": "upgrade failed: failed to clone git@github.com:SpreadWorks/senti-presets.git: Cloning into '/home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/.senti/plugin-sources/official-presets'...\nssh: Could not resolve hostname github.com: Temporary failure in name resolution\r\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n"
+      },
+      "rawLogPath": "tests/.raw/upgrade.log"
+    },
+    "issueLog": {
+      "count": 11,
+      "fullLogPath": "specs/327-approval-task-sync-atomic/issue-log.json",
+      "importantTotal": 8,
+      "importantShown": 8,
+      "importantOmitted": 0,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "Spec review subprocess could not start the configured nested Node or Codex process inside the restricted environment.",
+          "resolution": "Retain the completed independent ADVISORY audit and record it through a temporary worktree-local shell provider, then restore local agent configuration."
+        },
+        {
+          "classification": "important",
+          "step": "test",
+          "reason": "The initial spec-local fixture passed a spec path where the FlowStore API requires a bare spec ID.",
+          "resolution": "Separated SPEC_ID from SPEC_RELATIVE_PATH and kept each value at its documented API boundary."
+        },
+        {
+          "classification": "important",
+          "step": "test",
+          "reason": "The read-only test guardrail command rejected target guard options with ARGS_ERROR",
+          "resolution": "Kept the target-validated worktree context and reran only the read-only guardrail lookup without unsupported options; no tooling code was changed"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Retry recovery callback referenced an out-of-scope loop variable and atomic save rejected the mutation",
+          "resolution": "Bound the callback to the typed retry operation phase and verified the real reset changes stop_as_blocker to retry_review"
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Task review provider failed because prompts above the stdin fallback threshold trigger Codex app-server initialization on a read-only filesystem; use a local argv-threshold workaround and keep this tooling defect outside Issue #451.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.5 | exit=1 | WARNING: proceeding, even though we could not create PATH aliases: Read-only file system (os error 30)\nReading prompt from stdin...\nError: failed to initialize in-process app-server clien...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.5 | exit=1 | WARNING: proceeding, even though we could not create PATH aliases: Read-only file system (os error 30)\nReading prompt from stdin...\nError: failed to initialize in-process app-server clien...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "final-regression failed: unattributed_existing_failure",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "test",
+          "reason": "Resume lookup omitted active Issue 451 because directory discovery stopped at its 200-entry limit",
+          "resolution": "User-authorized direct fix 8156b7da now resolves resume candidates only from .senti/.active-flow; focused tests and the worktree CLI probe pass"
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Test review result recording collapsed distinct findings into a duplicate findingId",
+          "resolution": "Changed test review fingerprint identity to treat target as a finding key and added a same-target regression test"
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Canonical review deferral omitted flow scope after approval had already promoted a current task",
+          "resolution": "Persisted the review completion with explicit taskId null and repaired the single misplaced defer StepAttempt to flow scope"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 9,
+      "question": 0,
+      "issueLog": 8
+    },
+    "tokenMetrics": {
+      "input": 116631,
+      "output": 4131,
+      "cacheRead": 19072,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 24,
+      "durationMs": 273488,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 34565
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7146
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 27402
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 107572
+        },
+        {
+          "phase": "implement",
+          "durationMs": 77033
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 9822
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 9948
+        }
+      ]
+    },
+    "tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/327-approval-task-sync-atomic/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/lib/set-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/sync-spec-tasks.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "e1ca99dbb887f1bab74480b42821a667d7831076b66ba52064a2b3154bdcb54c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/sync-spec-tasks.js",
+            "fingerprint": "c01dd315ef00296ee17d55934da7979e2b7e77c31015253f0d72ae0eb8c5e791"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "e1ca99dbb887f1bab74480b42821a667d7831076b66ba52064a2b3154bdcb54c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/sync-spec-tasks.js",
+            "fingerprint": "c01dd315ef00296ee17d55934da7979e2b7e77c31015253f0d72ae0eb8c5e791"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "unattributed_existing_failure",
+        "failureCategory": "existing_failure",
+        "failureNature": "assertion",
+        "skipKind": null,
+        "rawOutputPath": "specs/327-approval-task-sync-atomic/tests/.raw/final-regression-attempt-001.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 1,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 1,
+        "failureSummary": "process.kind: assertion-failure\nprocess.command: node tests/run.js\nprocess.started: true\nprocess.completed: true\nprocess.exitCode: 1\nprocess.signal: null\nprocess.errorCode: null\nprocess.timedOut: false",
+        "currentDiffRelationship": "non-current-diff",
+        "changedFiles": [
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/acceptance-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/draft-coverage-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/draft-coverage-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/draft-questions-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/draft-questions-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/draft-review-coverage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/draft-review-questions.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/draft.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/file-map.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/flow-findings.json"
+          },
+          {
+            "status": "modified",
+            "path": "specs/327-approval-task-sync-atomic/flow-findings.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/impl-gate-result.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/impl-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/issue.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/plugin-artifacts/workflow/prepare.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/retro.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/20fe5c4e9b3f9363a4003cfb5c199207c11c4d02a243231193901ebd1502b867.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/51af350e067573340d7fa709c05632acd9dd8dc8bf021056bb02e3990de29273.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/541f0c73f6df2b0ca1a3e6d41ea97917b6d92abb4842e6d0a6956368292c4849.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/7b26240a0c88e77134575cc77afbb87427cdcfdc5c20f73662a2f2bb9d173986.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/eafa00a4398b4f3c2babb0592fe36386c87df88826085bcdfe02f89d49c5f0c9.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/draft-coverage-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/draft-questions-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/review-history/impl-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/review-history/impl-attempt-001.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/review-history/impl-attempt-002.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/review-history/impl-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/spec-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/spec-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-003.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-003.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-004.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-004.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-005.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-005.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-006.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-006.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-007.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-007.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/scenario-validity-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/spec-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/spec-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/spec.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/spec.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/task-impl-gate-result.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/tasks/T-1.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/test-coverage.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/test-execute-result.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/test-result-review.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/test-result-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/test-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/test-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/tests/.raw/scenario-validity.log"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/327-approval-task-sync-atomic/tests/.raw/test-execution.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/tests/.raw/upgrade.log"
+          },
+          {
+            "status": "modified",
+            "path": "specs/327-approval-task-sync-atomic/tests/.raw/upgrade.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js"
+          },
+          {
+            "status": "added",
+            "path": "specs/327-approval-task-sync-atomic/upgrade-result.json"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/sync-spec-tasks.js"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": "specs/327-approval-task-sync-atomic/acceptance-review.json",
+            "fingerprint": "202b954d7b102443813e9f02c093294e982ea87c137a029aacb3542489eeba23"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/draft-coverage-repair.json",
+            "fingerprint": "4ab86e140f3f8882a831fa7cd2ddc266eea6ca55425eb3d5cce58ac72a2f846c"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/draft-coverage-triage.json",
+            "fingerprint": "c62d07b35bc1e320940be97ba556b55df3512c1d0fbe2c586a08c082fa3a269b"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/draft-questions-repair.json",
+            "fingerprint": "30f47bf20849465d720f0d757c71914d5992845a3c67abba01bdbe4a97573d4c"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/draft-questions-triage.json",
+            "fingerprint": "4238885100698d063303c50fb82a36a766a76602c817293d9366673eacdea7f7"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/draft-review-coverage.json",
+            "fingerprint": "9f693d68a6b44a8934638a6804d9598035fd090f34425f343c8b69fc02b3c556"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/draft-review-questions.json",
+            "fingerprint": "5ea9545b12dd3c90101d47fa99d14b13edd173547a384538ef21364ca9c5fb1d"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/draft.json",
+            "fingerprint": "e16bd39404f4cadbdde618447b07b0645d9c99f5d023262996aee5f64467d356"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/file-map.json",
+            "fingerprint": "c42d4c7110bf7f6ec8c104f30946426fc7ff473f787980e8c48030aa06ada666"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/flow-findings.json",
+            "fingerprint": "3bbfd6be336b1feb4084c8bc0bfeb59bf12b8720aaad658e0822ebfe79abc431"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/flow-findings.json",
+            "fingerprint": "3bbfd6be336b1feb4084c8bc0bfeb59bf12b8720aaad658e0822ebfe79abc431"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/impl-gate-result.json",
+            "fingerprint": "74031a63f7584188e960b36810ac0b77ec822cb63e37fa3e7ebab85ca609d741"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/impl-review.json",
+            "fingerprint": "b35f69c7ebb6126bf999dc8d51fd671363e1fd5b3de02a9e5aabb8639ffc7006"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/issue.md",
+            "fingerprint": "54edd4490ad56951c05cb36dde068e9b3a559a9ec177c1ce4e76f7480811a380"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "d0ce91d25c0e240fe614cba6fcde30c0a336924e977d387181b532294ae4e66f"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/retro.json",
+            "fingerprint": "04b99274cb907c5ff81482987846142898489da0338371a26830d5ffba911fd2"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/20fe5c4e9b3f9363a4003cfb5c199207c11c4d02a243231193901ebd1502b867.json",
+            "fingerprint": "e6396f4c8906147ef93df6dcf51a6da5504daf86a3ae7bdff0f685c93cd869b1"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/51af350e067573340d7fa709c05632acd9dd8dc8bf021056bb02e3990de29273.json",
+            "fingerprint": "ed09e964bf3a61fcdab8cce6fd494fdf8acd5f17597f437733f16cb7d6e01edb"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/541f0c73f6df2b0ca1a3e6d41ea97917b6d92abb4842e6d0a6956368292c4849.json",
+            "fingerprint": "9683d2a4d08adb717fb8213d10d87b7ffe545100244f9e1bd9a7f2ce0b775912"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/7b26240a0c88e77134575cc77afbb87427cdcfdc5c20f73662a2f2bb9d173986.json",
+            "fingerprint": "8d536a5d1eeedbdbc5a0a308adb67d0775a8046c1de8957050b18148d162a101"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-evidence/eafa00a4398b4f3c2babb0592fe36386c87df88826085bcdfe02f89d49c5f0c9.json",
+            "fingerprint": "57876f23446ffad4467269472d1f5f5d8d3cb3294103fc7be725aace3980cbbf"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "1c8c87ef482cb04bb8acbebb5d3e68f0ada40d5e0a2fe36b08719db9b3ec9092"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "a8ece009714649ae901f3cd02a6991b02db4332376d1d3acfa8ffea4b3e481c0"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/impl-attempt-001.json",
+            "fingerprint": "804eb50d8d5acd9bf26e51e4f36c93e355c077943636947349119a1c39b912a7"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/impl-attempt-001.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/impl-attempt-002.json",
+            "fingerprint": "21d6edd829a9edbadbd2b843fec45bf4500be3995f3962828865211c68061cb4"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/spec-attempt-001.json",
+            "fingerprint": "fca87b381582cef55c1df73f31f71be128208c59f5682e690897ece9d628e671"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/spec-attempt-001.md",
+            "fingerprint": "44612137e88d5dfd0030dce71133cccfbdca4dc904ef3214d0948e6d6a2cb7cf"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-001.json",
+            "fingerprint": "4916d0af0043985d4ce048dfb123c161eb15873a30fc05289c74c766f64a2277"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-001.md",
+            "fingerprint": "e361abb15227ce27a04de2ee049ec915807719817c208bf8563ecb6245621f7d"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-002.json",
+            "fingerprint": "5480b45002650e8b6636160bab0e274b84968c6400a00d116ad29200afacc53c"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-002.md",
+            "fingerprint": "5706533075bcedac685564e81dbefadb0e3f9f5fa0d0c153190d9b891a19647e"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-003.json",
+            "fingerprint": "b8644930cdc4629af3c6adbeae2fea9ea1160a03be940e39885764bb9b87190e"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-003.md",
+            "fingerprint": "055e54d4a483f77a7703afcc674f3afb2fbf0ee49bba26851f8ece9f54a26326"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-004.json",
+            "fingerprint": "a378db6d0e82d2f64f41ab4ebb1d6cdd72e3ab66e3bd941fc8cd292905262a0b"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-004.md",
+            "fingerprint": "e63efffc3f35ca4842223300662bd12ba12c1851272420f79ca3631030031439"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-005.json",
+            "fingerprint": "4b69e61b456f5dd6e06899e7d1709ad7ed85ee4a7af373de13fb257dbc5ec364"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-005.md",
+            "fingerprint": "e63efffc3f35ca4842223300662bd12ba12c1851272420f79ca3631030031439"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-006.json",
+            "fingerprint": "67f89bc5063e4ac158f571667db43198c2e92647f96055075747d612c91d98da"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-006.md",
+            "fingerprint": "e63efffc3f35ca4842223300662bd12ba12c1851272420f79ca3631030031439"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-007.json",
+            "fingerprint": "bbd5ceb0dab78232a43d32ac3159362612756376f63847eaab6e726836158315"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/test-attempt-007.md",
+            "fingerprint": "4b95727c3aaed2b5bc1add1c3d010970491e82154f07ff98d784505815c28f57"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "c19634947827157e63ebd1a4e467a29aa1d5521f2c76bb9dcde152e3d45f165c"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/scenario-validity-result.json",
+            "fingerprint": "64d461dfe94b8f768bbe4fb254858af14952e8776202d5b98b9efe7c7c3ed206"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/spec-review.json",
+            "fingerprint": "7fc0599b6fa35daabeb30e8d47747d8c23243f51f6a11d9ff22334a701bcda84"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/spec-review.md",
+            "fingerprint": "44612137e88d5dfd0030dce71133cccfbdca4dc904ef3214d0948e6d6a2cb7cf"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/spec.json",
+            "fingerprint": "84f88612c40e2e633e7e8ae0d12a24e05ea04303b3919344b81c4aaee52ee14a"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/spec.md",
+            "fingerprint": "64a5f1e34571f692f14f05cc0146396acd3fc232b72a28e638ef42d9b7fe6628"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/task-impl-gate-result.json",
+            "fingerprint": "4e0f214341b32614bf57b3a554b3c8085906ef7becfbc490dcc42640d65a9c41"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/tasks/T-1.md",
+            "fingerprint": "587f783893d1378431ea4f4e5bc30e9dea77157b9138329961f17f7ecaaa5028"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/test-coverage.json",
+            "fingerprint": "a731741904dc496f9dcb44c91d74cbdc96d8dd4cb298bf07cc82ae318919eeb2"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/test-execute-result.json",
+            "fingerprint": "2cef80b6b6e4ce5a8e03d29de4ca85aae17ea21f5978f3775c9bb70bc231f6a1"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/test-result-review.json",
+            "fingerprint": "29041a435d1b9f5d37a9914d7627f7cc7cc6b72decd681af508cf80fae6f774d"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/test-result-review.md",
+            "fingerprint": "b93770d2f0e31ac819a572416acffc8284d4a11d7d9f865e16fa863b9c9aa51b"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/test-review.json",
+            "fingerprint": "3a70f2aea73164721a6a8a3cfdee0f680109baf862d2b50cce412e84136490df"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/test-review.md",
+            "fingerprint": "4b95727c3aaed2b5bc1add1c3d010970491e82154f07ff98d784505815c28f57"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/tests/.raw/scenario-validity.log",
+            "fingerprint": "17d2884170bf402ebbd34a08c93cdeffda33fbeb1cc519dff7c38d92f2414aae"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/tests/.raw/test-execution.log",
+            "fingerprint": "b69e618eb96d16d32f8ebb8366d64bb1ae2dab8568630d1177674a77efa64f4f"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/tests/.raw/upgrade.log",
+            "fingerprint": "dd964044339bc3f0656c0cd46fad0e9e8057dcc10d7e3c44e50f6c106028882c"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/tests/.raw/upgrade.log",
+            "fingerprint": "dd964044339bc3f0656c0cd46fad0e9e8057dcc10d7e3c44e50f6c106028882c"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js",
+            "fingerprint": "08a2104526764ebc8437e44857bd2642a8f3acb6bf0efe23c3bc70bc73385254"
+          },
+          {
+            "path": "specs/327-approval-task-sync-atomic/upgrade-result.json",
+            "fingerprint": "5c2ddb9f1588fd82772bfe0a73a3240ace5c142581d1701e20fbcd213ec15c42"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "e1ca99dbb887f1bab74480b42821a667d7831076b66ba52064a2b3154bdcb54c"
+          },
+          {
+            "path": "src/flow/lib/sync-spec-tasks.js",
+            "fingerprint": "c01dd315ef00296ee17d55934da7979e2b7e77c31015253f0d72ae0eb8c5e791"
+          }
+        ],
+        "fixAttempts": 0,
+        "selectedAction": "record-and-proceed",
+        "remainingRisk": "final-regression remains failed; category=existing_failure",
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": "record-and-proceed",
+        "recordAndProceed": {
+          "eligible": true,
+          "validated": true,
+          "evidence": "record-and-proceed selected for existing_failure"
+        },
+        "humanSummary": "result=fail failureCategory=existing_failure failureKind=unattributed_existing_failure raw_output=specs/327-approval-task-sync-atomic/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=existing_failure"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 1,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    chore: record task review tooling failure\n    feat: commit approval task sync atomically\n    50 files changed, 3670 insertions(+), 65 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 9\n    Q&A ......................... 0\n    issue-log ................... 8\n    agent calls ................. 24\n    input tokens ................ 116,631\n    output tokens ............... 4,131\n    cache-read tokens ........... 19,072\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 273.5s\n      draft-questions-review .... 34.6s\n      draft-coverage-review ..... 7.1s\n      spec-review ............... 27.4s\n      test-review ............... 107.6s\n      implement ................. 77.0s\n      impl-review ............... 9.8s\n      impl-gate ................. 9.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 4  passed 4  failed 0 verdict=pass\n    raw_output: specs/327-approval-task-sync-atomic/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=unattributed_existing_failure failureCategory=existing_failure raw_output=specs/327-approval-task-sync-atomic/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=existing_failure\n\n  Tasks (1/1)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (11 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/327-approval-task-sync-atomic/issue-log.json\n\n    Important (8)\n    - [spec-review] Spec review subprocess could not start the configured nested Node or Codex process inside the restricted environment.\n    - [test] The initial spec-local fixture passed a spec path where the FlowStore API requires a bare spec ID.\n    - [test] The read-only test guardrail command rejected target guard options with ARGS_ERROR\n    - [test-review] Retry recovery callback referenced an out-of-scope loop variable and atomic save rejected the mutation\n    - [task-review] Task review provider failed because prompts above the stdin fallback threshold trigger Codex app-server initialization on a read-only filesystem; use a local argv-threshold workaround and keep this tooling defect outside Issue #451.\n    - [impl-gate] provider=codex | profile=codex/gpt-5.5 | exit=1 | WARNING: proceeding, even though we could not create PATH aliases: Read-only file system (os error 30)\nReading prompt from stdin...\nError: failed to initialize in-process app-server clien...\n    - [impl-gate] provider=codex | profile=codex/gpt-5.5 | exit=1 | WARNING: proceeding, even though we could not create PATH aliases: Read-only file system (os error 30)\nReading prompt from stdin...\nError: failed to initialize in-process app-server clien...\n    - [final-regression] final-regression failed: unattributed_existing_failure\n\n    Recent Other (3)\n    - [test] Resume lookup omitted active Issue 451 because directory discovery stopped at its 200-entry limit\n    - [test-review] Test review result recording collapsed distinct findings into a duplicate findingId\n    - [test-review] Canonical review deferral omitted flow scope after approval had already promoted a current task"
+}

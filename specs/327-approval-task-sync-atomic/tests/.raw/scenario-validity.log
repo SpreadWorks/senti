@@ -1,0 +1,133 @@
+[senti] scenario-validity tests start
+command: node --test specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js
+[senti] scenario-validity file start command=node specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js
+TAP version 13
+# Subtest: Issue \#451 approval/task atomic commit
+    # Subtest: R1: preserves one complete old or combined state across the atomic rename boundary
+    not ok 1 - R1: preserves one complete old or combined state across the atomic rename boundary
+      ---
+      duration_ms: 133.983099
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:145:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + []
+        - [
+        -   'T-1',
+        -   'T-2'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'T-1'
+        1: 'T-2'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        assertCompleteCombinedState (file:///home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:134:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:166:9)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R2: propagates broken active-spec input and preparation-time revision drift before mutation
+    not ok 2 - R2: propagates broken active-spec input and preparation-time revision drift before mutation
+      ---
+      duration_ms: 64.212415
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:175:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected rejection: missing'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      operator: 'rejects'
+      stack: |-
+        async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:186:7)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R3: keeps the complete committed state duplicate-free when the caller retries once
+    not ok 3 - R3: keeps the complete committed state duplicate-free when the caller retries once
+      ---
+      duration_ms: 50.145262
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:219:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + []
+        - [
+        -   'T-1',
+        -   'T-2'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'T-1'
+        1: 'T-2'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        assertCompleteCombinedState (file:///home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:134:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:236:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: commits the happy path once and preserves task mapping, promotion, and result fields
+    not ok 4 - R4: commits the happy path once and preserves task mapping, promotion, and result fields
+      ---
+      duration_ms: 83.197114
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:245:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        2 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 2
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:262:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..4
+not ok 1 - Issue \#451 approval/task atomic commit
+  ---
+  duration_ms: 333.4661
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-327-approval-task-sync-atomic/specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js:138:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 348.837221
+Command failed: node specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/327-approval-task-sync-atomic/tests/approval-task-sync-atomic.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: preserves one complete old or combined state across the atomic rename boundary
+[senti] requirement R2 observed: R2: propagates broken active-spec input and preparation-time revision drift before mutation
+[senti] requirement R3 observed: R3: keeps the complete committed state duplicate-free when the caller retries once
+[senti] requirement R4 observed: R4: commits the happy path once and preserves task mapping, promotion, and result fields
+[senti] scenario-validity tests end
