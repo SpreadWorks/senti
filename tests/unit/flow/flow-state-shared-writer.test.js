@@ -179,6 +179,18 @@ describe("Issue #441 shared flow state writer", () => {
     assert.deepEqual(bytes(statePath(tmp)), created);
   });
 
+  it("binds an unbound manager to its explicitly loaded state before atomic replacement", () => {
+    tmp = createTmpDir("flow-load-bind-");
+    const original = setup(tmp);
+    const fm = manager(tmp);
+
+    const loaded = fm.load(SPEC_ID);
+    fm.saveAtomic({ ...loaded, marker: "loaded-and-bound" }, { expectedOriginal: loaded });
+
+    assert.equal(manager(tmp, SPEC_ID).load().marker, "loaded-and-bound");
+    assert.equal(original.marker, "old");
+  });
+
   it("rejects create through a symlinked specs directory without outside mutation", () => {
     tmp = createTmpDir("flow-create-authority-");
     const outside = createTmpDir("flow-create-outside-");

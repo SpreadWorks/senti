@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/328-bounded-review-convergence/review-history/test-attempt-005.json",
+      "specs/328-bounded-review-convergence/review-history/test-attempt-005.md",
+      "specs/328-bounded-review-convergence/review.md",
+      "specs/328-bounded-review-convergence/scenario-validity-result.json",
+      "specs/328-bounded-review-convergence/spec-review.json",
+      "specs/328-bounded-review-convergence/spec.json"
+    ],
+    "inputHash": "8114674f59a012b2839d168fa539d0164f90d151d7461ef0a8fe712778455835",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "specs/328-bounded-review-convergence/review-history/test-attempt-005.json",
+    "specs/328-bounded-review-convergence/review-history/test-attempt-005.md",
+    "specs/328-bounded-review-convergence/review.md",
+    "specs/328-bounded-review-convergence/scenario-validity-result.json",
+    "specs/328-bounded-review-convergence/spec-review.json",
+    "specs/328-bounded-review-convergence/spec.json"
+  ],
+  "inputHash": "8114674f59a012b2839d168fa539d0164f90d151d7461ef0a8fe712778455835",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-22T03:55:58.345Z",
+  "finishedAt": "2026-07-22T03:55:58.345Z",
+  "rawResponse": "### 1. Use distinct finding identities\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.json`\n**Requirement:** R9\n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and flattened `id` even though they describe different missing coverage areas. Downstream deduplication could collapse one finding and hide one required test gap.\n**Suggestion:** Generate separate stable identifiers for the stale target tree execution guard finding and the completed-review idempotence finding.\n\n### 2. Remove duplicated finding payloads\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.json`\n**Requirement:** R9\n**Issue:** The same findings are stored twice: once in `blockingFindings` and again in `findings`, duplicating title, rationale, issue/body, fingerprint, and disposition data.\n**Suggestion:** Keep one canonical findings collection and derive grouped blocking/advisory views when rendering, or make grouped arrays lightweight references by `findingId`.\n\n### 3. Add trailing newline\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.md`\n**Requirement:** R9\n**Issue:** The Markdown artifact ends without a trailing newline, creating avoidable formatting churn and inconsistent generated text-file output.\n**Suggestion:** Ensure this file, and the generator that writes review-history Markdown, always terminates output with a newline.\n\n### 4. Remove ambiguous duplicate canonical review results\n**File:** `specs/328-bounded-review-convergence/review.md`\n**Requirement:** R9\n**Issue:** The diff shows two new-file versions for the same canonical review artifact: one large `ADVISORY` result and a later `PASS` result. This makes it unclear which review result is authoritative.\n**Suggestion:** Commit only the final canonical `review.md` content. If the earlier review is useful, store it under an attempt-specific review-history path.\n\n### 5. Clarify scenario result naming\n**File:** `specs/328-bounded-review-convergence/scenario-validity-result.json`\n**Requirement:** R9\n**Issue:** `process.exitCode` is `1` and every requirement is classified as `expected_fail`, but the top-level `result` is `\"pass\"`. The field name conflates scenario-validity success with command execution failure.\n**Suggestion:** Split this into clearer fields such as `scenarioResult: \"pass\"` and `commandResult: \"fail\"`, or use a more explicit value like `\"expected_failures_observed\"`.\n\n### 6. Deduplicate repeated command strings\n**File:** `specs/328-bounded-review-convergence/scenario-validity-result.json`\n**Requirement:** R9\n**Issue:** The same long `command` value is repeated at the top level and inside every `summary[*].evidence`, increasing artifact size and drift risk.\n**Suggestion:** Store the command once at the top level and have each evidence entry refer to it implicitly or through a short `commandRef`.\n\n### 7. Merge duplicate module ownership entries\n**File:** `specs/328-bounded-review-convergence/spec.json`\n**Requirement:** R1\n**Issue:** `overview.modules` lists `src/flow/lib/review-convergence.js` twice with overlapping ownership descriptions.\n**Suggestion:** Merge the two entries into one complete description, preserving `added_by_task` only if workflow metadata requires it.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Use distinct finding identities",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.json`\n**Requirement:** R9\n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and flattened `id` even though they describe different missing coverage areas. Downstream deduplication could collapse one finding and hide one required test gap.\n**Suggestion:** Generate separate stable identifiers for the stale target tree execution guard finding and the completed-review idempotence finding.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-005.json",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Remove duplicated finding payloads",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.json`\n**Requirement:** R9\n**Issue:** The same findings are stored twice: once in `blockingFindings` and again in `findings`, duplicating title, rationale, issue/body, fingerprint, and disposition data.\n**Suggestion:** Keep one canonical findings collection and derive grouped blocking/advisory views when rendering, or make grouped arrays lightweight references by `findingId`.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-005.json",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Add trailing newline",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.md`\n**Requirement:** R9\n**Issue:** The Markdown artifact ends without a trailing newline, creating avoidable formatting churn and inconsistent generated text-file output.\n**Suggestion:** Ensure this file, and the generator that writes review-history Markdown, always terminates output with a newline.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-005.md",
+        "requirementId": "R9"
+      },
+      {
+        "title": "4. Remove ambiguous duplicate canonical review results",
+        "body": "**File:** `specs/328-bounded-review-convergence/review.md`\n**Requirement:** R9\n**Issue:** The diff shows two new-file versions for the same canonical review artifact: one large `ADVISORY` result and a later `PASS` result. This makes it unclear which review result is authoritative.\n**Suggestion:** Commit only the final canonical `review.md` content. If the earlier review is useful, store it under an attempt-specific review-history path.",
+        "file": "specs/328-bounded-review-convergence/review.md",
+        "requirementId": "R9"
+      },
+      {
+        "title": "5. Clarify scenario result naming",
+        "body": "**File:** `specs/328-bounded-review-convergence/scenario-validity-result.json`\n**Requirement:** R9\n**Issue:** `process.exitCode` is `1` and every requirement is classified as `expected_fail`, but the top-level `result` is `\"pass\"`. The field name conflates scenario-validity success with command execution failure.\n**Suggestion:** Split this into clearer fields such as `scenarioResult: \"pass\"` and `commandResult: \"fail\"`, or use a more explicit value like `\"expected_failures_observed\"`.",
+        "file": "specs/328-bounded-review-convergence/scenario-validity-result.json",
+        "requirementId": "R9"
+      },
+      {
+        "title": "6. Deduplicate repeated command strings",
+        "body": "**File:** `specs/328-bounded-review-convergence/scenario-validity-result.json`\n**Requirement:** R9\n**Issue:** The same long `command` value is repeated at the top level and inside every `summary[*].evidence`, increasing artifact size and drift risk.\n**Suggestion:** Store the command once at the top level and have each evidence entry refer to it implicitly or through a short `commandRef`.",
+        "file": "specs/328-bounded-review-convergence/scenario-validity-result.json",
+        "requirementId": "R9"
+      },
+      {
+        "title": "7. Merge duplicate module ownership entries",
+        "body": "**File:** `specs/328-bounded-review-convergence/spec.json`\n**Requirement:** R1\n**Issue:** `overview.modules` lists `src/flow/lib/review-convergence.js` twice with overlapping ownership descriptions.\n**Suggestion:** Merge the two entries into one complete description, preserving `added_by_task` only if workflow metadata requires it.",
+        "file": "specs/328-bounded-review-convergence/spec.json",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

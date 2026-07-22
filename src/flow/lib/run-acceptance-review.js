@@ -6,6 +6,7 @@ import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { FlowCommand } from "./base-command.js";
 import {
+  AcceptanceEvidenceBindings,
   applyAcceptanceReviewResult,
   artifactFromAcceptanceJudgments,
   buildAcceptanceReviewContext,
@@ -22,9 +23,28 @@ const MAX_ACCEPTANCE_UNTRACKED_FILE_SIZE = 1024 * 1024;
 const MAX_ACCEPTANCE_GIT_BUFFER_BYTES = (MAX_ACCEPTANCE_REQUEST_CHARS * 4) + 65_536;
 const MAX_ACCEPTANCE_SCHEMA_ITEMS = MAX_ACCEPTANCE_RESPONSE_CHARS;
 const MAX_ACCEPTANCE_SCHEMA_STRING_CHARS = MAX_ACCEPTANCE_RESPONSE_CHARS;
+export const MAX_ACCEPTANCE_DEFERRED_REPAIR_CALLS = 1;
+const DEFERRED_FINDING_DISPOSITION_ITEM_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["findingId", "finalDisposition", "evidenceRefs"],
+  additionalProperties: false,
+  properties: {
+    findingId: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS },
+    finalDisposition: {
+      type: "string",
+      enum: ["fixed", "not_needed", "false_positive", "pre_existing", "still_open", "blocking"],
+    },
+    evidenceRefs: {
+      type: "array",
+      minItems: 1,
+      maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS,
+      items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS },
+    },
+  },
+});
 const ACCEPTANCE_RESPONSE_SCHEMA = Object.freeze({
   type: "object",
-  required: ["requirementJudgments"],
+  required: ["requirementJudgments", "deferredFindingDispositions"],
   additionalProperties: false,
   properties: {
     requirementJudgments: {
@@ -45,7 +65,7 @@ const ACCEPTANCE_RESPONSE_SCHEMA = Object.freeze({
         properties: {
           requirementId: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS },
           status: { type: "string", enum: ["met", "notMet", "notVerifiable"] },
-          requestRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
+          requestRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", enum: ["flow.request"] } },
           requirementRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
           diffRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
           repairRefs: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
@@ -53,6 +73,11 @@ const ACCEPTANCE_RESPONSE_SCHEMA = Object.freeze({
           missingEvidence: { type: "array", maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS, items: { type: "string", minLength: 1, maxLength: MAX_ACCEPTANCE_SCHEMA_STRING_CHARS } },
         },
       },
+      maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS,
+    },
+    deferredFindingDispositions: {
+      type: "array",
+      items: DEFERRED_FINDING_DISPOSITION_ITEM_SCHEMA,
       maxItems: MAX_ACCEPTANCE_SCHEMA_ITEMS,
     },
   },
@@ -160,11 +185,18 @@ export function buildAcceptancePrompt(context) {
       "Use status notMet when the evidence contradicts or fails the requirement.",
       "Use status notVerifiable only when named evidence is unavailable, and list exact missingEvidence reasons.",
       "Every judgment must cite requestRefs, requirementRefs, repairRefs, and the available diffRefs/testRefs.",
+      "Emit exactly one deferredFindingDispositions[] entry for every deferred finding whose finalDisposition is still_open or blocking; omit findings that already have a resolved finalDisposition.",
+      "Classify each deferred finding as fixed, not_needed, false_positive, pre_existing, still_open, or blocking.",
+      "Every deferred disposition must cite its exact sourceRef from deferredFindingEvidence; additional refs must come from the current diff, repair evidence, or test evidence.",
     ].join("\n"))
     .setJsonSchema(ACCEPTANCE_RESPONSE_SCHEMA)
     .setFmtFallback(`Return only JSON matching this schema:\n${JSON.stringify(ACCEPTANCE_RESPONSE_SCHEMA)}`)
     .addUserPrompt("## Acceptance Evidence", evidence)
     .build();
+  return assertAcceptancePromptBudget(prompt);
+}
+
+function assertAcceptancePromptBudget(prompt) {
   const components = {
     systemPrompt: prompt.systemPrompt?.length || 0,
     userPrompt: prompt.userPrompt.length,
@@ -178,6 +210,96 @@ export function buildAcceptancePrompt(context) {
   return prompt;
 }
 
+export class DeferredDispositionCoverage {
+  #expectedById;
+  #judgments;
+
+  constructor(context, judgments = []) {
+    this.#expectedById = new Map(context.deferredFindings
+      .filter((finding) => ["still_open", "blocking"].includes(finding.finalDisposition))
+      .map((finding) => [finding.findingId, finding]));
+    this.#judgments = new Map();
+    this.add(judgments);
+  }
+
+  add(judgments) {
+    if (!Array.isArray(judgments)) throw new Error("deferredFindingDispositions must be an array");
+    for (const judgment of judgments) {
+      if (!this.#expectedById.has(judgment?.findingId)) {
+        throw new Error(`unknown deferred finding disposition: ${judgment?.findingId || "missing-id"}`);
+      }
+      if (this.#judgments.has(judgment.findingId)) {
+        throw new Error(`duplicate deferred finding disposition: ${judgment.findingId}`);
+      }
+      this.#judgments.set(judgment.findingId, judgment);
+    }
+    return this;
+  }
+
+  get missingFindings() {
+    return [...this.#expectedById]
+      .filter(([findingId]) => !this.#judgments.has(findingId))
+      .map(([, finding]) => finding);
+  }
+
+  requireComplete() {
+    const [missing] = this.missingFindings;
+    if (missing) throw new Error(`missing deferred finding disposition: ${missing.findingId}`);
+    return [...this.#expectedById.keys()].map((findingId) => this.#judgments.get(findingId));
+  }
+}
+
+export function buildDeferredDispositionRepairPrompt(context, missingFindings) {
+  if (!Array.isArray(missingFindings) || missingFindings.length === 0) {
+    throw new Error("missing deferred findings are required for disposition repair");
+  }
+  const missingIds = new Set(missingFindings.map((finding) => finding.findingId));
+  const evidence = JSON.stringify({
+    originalRequest: context.evidence.originalRequest,
+    requirements: context.evidence.requirements,
+    diff: context.evidence.diff,
+    repairEvidence: context.evidence.repairEvidence,
+    testEvidence: context.evidence.testEvidence,
+    deferredFindings: missingFindings,
+    deferredFindingEvidence: context.evidence.deferredFindingEvidence.filter((entry) => (
+      missingIds.has(entry.findingId)
+    )),
+  }, null, 2);
+  const schema = {
+    type: "object",
+    required: ["deferredFindingDispositions"],
+    additionalProperties: false,
+    properties: {
+      deferredFindingDispositions: {
+        type: "array",
+        minItems: missingFindings.length,
+        maxItems: missingFindings.length,
+        items: {
+          ...DEFERRED_FINDING_DISPOSITION_ITEM_SCHEMA,
+          properties: {
+            ...DEFERRED_FINDING_DISPOSITION_ITEM_SCHEMA.properties,
+            findingId: { type: "string", enum: [...missingIds] },
+          },
+        },
+      },
+    },
+  };
+  const prompt = new PromptBuilder()
+    .setRole("You are the semantic acceptance reviewer repairing incomplete deferred-finding coverage without changing prior requirement judgments.")
+    .setRules([
+      "Return JSON only.",
+      "Emit exactly one deferredFindingDispositions[] entry for every supplied deferred finding id.",
+      "Classify each finding as fixed, not_needed, false_positive, pre_existing, still_open, or blocking.",
+      "Cite the exact sourceRef from deferredFindingEvidence in every entry.",
+      `This is the only bounded coverage-repair call; the CLI permits ${MAX_ACCEPTANCE_DEFERRED_REPAIR_CALLS}.`,
+    ].join("\n"))
+    .setJsonSchema(schema)
+    .setFmtFallback(`Return only JSON matching this schema:\n${JSON.stringify(schema)}`)
+    .addUserPrompt("## Missing Deferred Finding Evidence", evidence)
+    .build();
+  return assertAcceptancePromptBudget(prompt);
+}
+
 export function parseAcceptanceResponse(text) {
   const response = String(text);
   if (response.length > MAX_ACCEPTANCE_RESPONSE_CHARS) {
@@ -188,6 +310,84 @@ export function parseAcceptanceResponse(text) {
   } catch (_) {
     return JSON.parse(repairJson(response));
   }
+}
+
+export class AcceptanceResponseBinding {
+  constructor(context) {
+    this.context = context;
+    this.evidenceBindings = new AcceptanceEvidenceBindings(context);
+    this.deferredById = new Map(
+      context.deferredFindings.map((finding) => [finding.findingId, finding]),
+    );
+    Object.freeze(this);
+  }
+
+  bind(response) {
+    if (!Array.isArray(response.requirementJudgments)) {
+      throw new Error("requirementJudgments must be an array");
+    }
+    const deferredFindingDispositions = response.deferredFindingDispositions ?? [];
+    if (!Array.isArray(deferredFindingDispositions)) {
+      throw new Error("deferredFindingDispositions must be an array");
+    }
+    const repairRef = this.context.evidence.repairEvidence.ref;
+    return {
+      requirementJudgments: response.requirementJudgments.map((judgment) => {
+        const diffRefs = (judgment.diffRefs || []).filter((ref) => (
+          this.evidenceBindings.diffRefs.includes(ref)
+        ));
+        return {
+          ...judgment,
+          requestRefs: ["flow.request"],
+          requirementRefs: [`spec.json#${judgment.requirementId}`],
+          diffRefs: judgment.status !== "notVerifiable" && diffRefs.length === 0
+            ? [...this.evidenceBindings.diffRefs]
+            : diffRefs,
+          repairRefs: [repairRef],
+          testRefs: judgment.status === "notVerifiable"
+            ? []
+            : [`test-execute-result.json#${judgment.requirementId}`, "test-result-review.json"],
+        };
+      }),
+      deferredFindingDispositions: this.bindDeferredFindingDispositions(deferredFindingDispositions),
+    };
+  }
+
+  bindDeferredFindingDispositions(judgments) {
+    if (!Array.isArray(judgments)) throw new Error("deferredFindingDispositions must be an array");
+    return judgments.map((judgment) => {
+        const finding = this.deferredById.get(judgment.findingId);
+        if (!finding) return judgment;
+        const sourceRef = `${finding.sourceArtifact}#${finding.sourceFindingId}`;
+        const allowedRefs = new Set([
+          sourceRef,
+          ...this.evidenceBindings.diffRefs,
+          ...this.evidenceBindings.repairRefs,
+          ...this.evidenceBindings.testRefs,
+        ]);
+        return {
+          ...judgment,
+          evidenceRefs: [
+            sourceRef,
+            ...(judgment.evidenceRefs || []).filter((ref) => ref !== sourceRef && allowedRefs.has(ref)),
+          ],
+        };
+      });
+  }
+}
+
+export function bindAcceptanceResponse(context, response) {
+  return new AcceptanceResponseBinding(context).bind(response);
+}
+
+async function callAcceptanceAgent(agent, prompt) {
+  const response = await agent.call(prompt.userPrompt, {
+    commandId: "flow.acceptance.review",
+    systemPrompt: prompt.systemPrompt,
+    jsonSchema: prompt.jsonSchema,
+    fmtFallback: prompt.fmtFallback,
+  });
+  return parseAcceptanceResponse(response);
 }
 
 export default class RunAcceptanceReviewCommand extends FlowCommand {
@@ -205,6 +405,7 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
       artifact = artifactFromAcceptanceJudgments({
         context,
         requirementJudgments: fixture.requirementJudgments || [],
+        deferredFindingDispositions: fixture.deferredFindingDispositions || [],
       });
     } else if (context.mechanicalBlockers.length > 0) {
       artifact = artifactFromAcceptanceJudgments({ context, requirementJudgments: [] });
@@ -213,17 +414,26 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
       if (!agent.resolve("flow.acceptance.review")) {
         throw new Error("no AI agent configured for flow.acceptance.review");
       }
-      const prompt = buildAcceptancePrompt(context);
-      const response = await agent.call(prompt.userPrompt, {
-        commandId: "flow.acceptance.review",
-        systemPrompt: prompt.systemPrompt,
-        jsonSchema: prompt.jsonSchema,
-        fmtFallback: prompt.fmtFallback,
-      });
-      const parsed = parseAcceptanceResponse(response);
+      const parsed = await callAcceptanceAgent(agent, buildAcceptancePrompt(context));
+      const bound = bindAcceptanceResponse(context, parsed);
+      const deferredCoverage = new DeferredDispositionCoverage(
+        context,
+        bound.deferredFindingDispositions,
+      );
+      const missingFindings = deferredCoverage.missingFindings;
+      if (missingFindings.length > 0) {
+        const repairParsed = await callAcceptanceAgent(
+          agent,
+          buildDeferredDispositionRepairPrompt(context, missingFindings),
+        );
+        const repairBound = new AcceptanceResponseBinding(context)
+          .bindDeferredFindingDispositions(repairParsed.deferredFindingDispositions ?? []);
+        deferredCoverage.add(repairBound);
+      }
       artifact = artifactFromAcceptanceJudgments({
         context,
-        requirementJudgments: parsed.requirementJudgments,
+        requirementJudgments: bound.requirementJudgments,
+        deferredFindingDispositions: deferredCoverage.requireComplete(),
       });
     }
     const result = applyAcceptanceReviewResult({

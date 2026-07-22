@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/328-bounded-review-convergence/review-history/test-attempt-002.json",
+      "specs/328-bounded-review-convergence/review-history/test-attempt-002.md",
+      "specs/328-bounded-review-convergence/review-history/test-attempt-003.json",
+      "specs/328-bounded-review-convergence/review-history/test-attempt-003.md",
+      "specs/328-bounded-review-convergence/review-history/test-attempt-004.json",
+      "specs/328-bounded-review-convergence/review-history/test-attempt-004.md"
+    ],
+    "inputHash": "5037dbc7120f6bc0f5208c9c003f6a8f60490a434ffd122edb3085485ba72124",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "specs/328-bounded-review-convergence/review-history/test-attempt-002.json",
+    "specs/328-bounded-review-convergence/review-history/test-attempt-002.md",
+    "specs/328-bounded-review-convergence/review-history/test-attempt-003.json",
+    "specs/328-bounded-review-convergence/review-history/test-attempt-003.md",
+    "specs/328-bounded-review-convergence/review-history/test-attempt-004.json",
+    "specs/328-bounded-review-convergence/review-history/test-attempt-004.md"
+  ],
+  "inputHash": "5037dbc7120f6bc0f5208c9c003f6a8f60490a434ffd122edb3085485ba72124",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-22T03:14:27.219Z",
+  "finishedAt": "2026-07-22T03:14:27.219Z",
+  "rawResponse": "### 1. Remove duplicated finding payloads from JSON history artifacts\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-002.json`\n**Requirement:** R1\n**Issue:** Each finding is represented twice: once in `blockingFindings`/`advisoryFindings` and again in the flattened `findings` array, with duplicated titles, fingerprints, rationale, and issue text. This creates drift risk and makes generated history artifacts larger than needed.\n**Suggestion:** Persist one canonical findings list and derive grouped blocking/advisory views when rendering, or store only lightweight grouped references such as finding IDs.\n\n### 2. Remove duplicated finding payloads from later JSON attempts\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.json`\n**Requirement:** R1\n**Issue:** The same duplicated structure appears here: full finding records are repeated in both `blockingFindings` and `findings`.\n**Suggestion:** Use the same single-source representation as `test-attempt-002.json`, keeping either the grouped arrays or the flat array but not both as full copies.\n\n### 3. Remove duplicated finding payloads from single-finding attempt\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-004.json`\n**Requirement:** R1\n**Issue:** Even with one finding, the artifact stores the same finding details twice. This is unnecessary duplication and can become inconsistent if one copy is updated manually or by a follow-up generator change.\n**Suggestion:** Store the finding once and derive the alternate grouping from `severity`/`kind`.\n\n### 4. Normalize duplicated Markdown rendering structure\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.md`\n**Requirement:** R1\n**Issue:** The Markdown files repeat a fixed template that is already represented structurally in the paired JSON artifact. Maintaining both as independent full outputs creates duplication across formats.\n**Suggestion:** Treat Markdown as a generated projection from the JSON artifact, and ensure the generator owns formatting consistently. If both files must be committed, add a generated-file marker or generation metadata so reviewers do not treat the Markdown as hand-maintained source.\n\n### 5. Add trailing newline\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.md`\n**Requirement:** R1\n**Issue:** The file has no trailing newline, which is inconsistent with normal text-file conventions and with `test-attempt-002.md`.\n**Suggestion:** End the file with a newline.\n\n### 6. Add trailing newline\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-004.md`\n**Requirement:** R1\n**Issue:** The file has no trailing newline, creating avoidable formatting churn in generated review history.\n**Suggestion:** End the file with a newline.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated finding payloads from JSON history artifacts",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-002.json`\n**Requirement:** R1\n**Issue:** Each finding is represented twice: once in `blockingFindings`/`advisoryFindings` and again in the flattened `findings` array, with duplicated titles, fingerprints, rationale, and issue text. This creates drift risk and makes generated history artifacts larger than needed.\n**Suggestion:** Persist one canonical findings list and derive grouped blocking/advisory views when rendering, or store only lightweight grouped references such as finding IDs.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-002.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Remove duplicated finding payloads from later JSON attempts",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.json`\n**Requirement:** R1\n**Issue:** The same duplicated structure appears here: full finding records are repeated in both `blockingFindings` and `findings`.\n**Suggestion:** Use the same single-source representation as `test-attempt-002.json`, keeping either the grouped arrays or the flat array but not both as full copies.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-003.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Remove duplicated finding payloads from single-finding attempt",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-004.json`\n**Requirement:** R1\n**Issue:** Even with one finding, the artifact stores the same finding details twice. This is unnecessary duplication and can become inconsistent if one copy is updated manually or by a follow-up generator change.\n**Suggestion:** Store the finding once and derive the alternate grouping from `severity`/`kind`.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-004.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Normalize duplicated Markdown rendering structure",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.md`\n**Requirement:** R1\n**Issue:** The Markdown files repeat a fixed template that is already represented structurally in the paired JSON artifact. Maintaining both as independent full outputs creates duplication across formats.\n**Suggestion:** Treat Markdown as a generated projection from the JSON artifact, and ensure the generator owns formatting consistently. If both files must be committed, add a generated-file marker or generation metadata so reviewers do not treat the Markdown as hand-maintained source.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-003.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Add trailing newline",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.md`\n**Requirement:** R1\n**Issue:** The file has no trailing newline, which is inconsistent with normal text-file conventions and with `test-attempt-002.md`.\n**Suggestion:** End the file with a newline.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-003.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "6. Add trailing newline",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-004.md`\n**Requirement:** R1\n**Issue:** The file has no trailing newline, creating avoidable formatting churn in generated review history.\n**Suggestion:** End the file with a newline.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-004.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

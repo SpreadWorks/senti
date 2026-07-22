@@ -343,6 +343,9 @@ describe("repair state identity", () => {
     assert.equal(registry.owns(".senti/agent-cache/other-flow.json"), true);
     assert.equal(registry.owns(".senti/recovery/finalize-cleanup/other.json"), true);
     assert.equal(registry.owns("specs/demo/upgrade-result.json"), true);
+    assert.equal(registry.owns("specs/demo/review-evidence/evidence-digest.json"), true);
+    assert.equal(registry.owns("specs/demo/.flow.json.writer.lock"), true);
+    assert.equal(registry.owns("specs/demo/.flow.json.writer.owner.tmp"), true);
     assert.ok(registry.gitPathspecExcludes().every((entry) => entry.startsWith(":(exclude,top")));
   });
 
@@ -408,7 +411,7 @@ describe("bounded repair audit and acceptance prompt", () => {
     writeAt("specs/demo/impl-review.json", JSON.stringify({
       version: 1,
       phase: "impl",
-      verdict: "FAIL",
+      verdict: "REJECTED",
       summary: { blocking: 1, nonBlocking: 0, total: 1 },
       blockingFindings: [{ findingId: "F-1", suggestion: "repair" }],
       nonBlockingImprovements: [],
@@ -445,7 +448,7 @@ describe("bounded repair audit and acceptance prompt", () => {
     write("specs/demo/impl-review.json", JSON.stringify({
       version: 1,
       phase: "impl",
-      verdict: "FAIL",
+      verdict: "REJECTED",
       summary: { blocking: 1, nonBlocking: 0, total: 1 },
       blockingFindings: [{ findingId: "F-1", suggestion: "repair" }],
       nonBlockingImprovements: [],

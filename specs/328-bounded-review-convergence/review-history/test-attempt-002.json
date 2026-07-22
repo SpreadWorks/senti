@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-22T01:35:42.607Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 1,
+    "total": 5
+  },
+  "coverageArtifact": "specs/328-bounded-review-convergence/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 rejection coverage is incomplete",
+      "target": "specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js",
+      "findingId": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "fingerprint": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage, and the coverage artifact contradicts the actual test files.",
+      "issue": "The coverage artifact marks R2 covered, but the tests only exercise stale tree SHA, caller-supplied digest, and duplicate identity. R2 also requires rejection of foreign phase/task target, target-guard mismatch, revision mismatch, and malformed evidence with unchanged canonical evidence and flow-state bytes before provider execution or mutation.",
+      "requiredChange": "Add spec-local executable tests for foreign phase/task target, target-guard mismatch, revision mismatch, and malformed evidence rejection, including unchanged evidence files and flow-state bytes where mutation would otherwise occur.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage, and the coverage artifact contradicts the actual test files.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 CLI behavior is not executable-tested",
+      "target": "specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js",
+      "findingId": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "fingerprint": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "disposition": "must-fix",
+      "rationale": "A required acceptance surface has no corresponding executable test coverage; the existing source-regex test can pass without exercising production behavior.",
+      "issue": "R5 requires `senti flow set review-evidence --file <path>` behavior with normal target guards, spec-directory confinement, required fields, bounded input, disposition/finding consistency, CLI-computed digest, idempotent canonical persistence, and CAS convergence without provider launch. The tests cover lower-level store/input classes and a regex check of registry/command source, but do not execute the command boundary or verify the full CLI contract.",
+      "requiredChange": "Add an executable spec-local test that invokes the review-evidence command path with a valid version-1 finalized audit document and asserts guarded acceptance, CLI-computed digest persistence, idempotency, CAS transition, and no provider launch; add negative executable cases for required-field, bounds, consistency, and location guard failures.",
+      "whyBlocking": "A required acceptance surface has no corresponding executable test coverage; the existing source-regex test can pass without exercising production behavior.",
+      "origin": "R5",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 persisted tooling budget is not covered",
+      "target": "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js and specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+      "findingId": "278d77114aa7cb4fc7366c7f8c6c0fc38af4fa71fa9db4b0d0289150a1d8250f",
+      "fingerprint": "278d77114aa7cb4fc7366c7f8c6c0fc38af4fa71fa9db4b0d0289150a1d8250f",
+      "disposition": "must-fix",
+      "rationale": "A critical convergence/idempotency requirement lacks regression coverage at the state mutation boundary.",
+      "issue": "R4 requires tooling failures to persist with stage and attempt data, avoid semantic budget consumption, share one persisted `toolingMaxAttempts=1` budget per phase/task/tree target regardless of provider or process, and reject another unchanged provider execution after retry is consumed. Current tests exercise in-memory normalization/resolution, but not persisted state shared across executions or unchanged execution rejection.",
+      "requiredChange": "Add an executable persistence-level test that records a tooling failure, verifies semantic attempts are unchanged, verifies the same phase/task/tree target has no remaining tooling retry across a different provider/process, and verifies another unchanged provider execution is rejected without state mutation.",
+      "whyBlocking": "A critical convergence/idempotency requirement lacks regression coverage at the state mutation boundary.",
+      "origin": "R4",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 migration preservation relies on source text matching",
+      "target": "specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js",
+      "findingId": "ad601353e0b0a521bc4da6217ddb5fd015fc63c7c0af345e98d4ea7852225270",
+      "fingerprint": "ad601353e0b0a521bc4da6217ddb5fd015fc63c7c0af345e98d4ea7852225270",
+      "disposition": "must-fix",
+      "rationale": "The test has a static anti-pattern that would pass without exercising required production behavior.",
+      "issue": "The R7 migration test checks concatenated source text for artifact names and absence of legacy constants. This can pass while command routing, target guards, exit-visible failures, phase artifact paths, post-hook lifecycle ownership, semantic maxAttempts, task scope, revision/CAS checks, PASS/ADVISORY promotion, final disposition, or acceptance judgment are broken.",
+      "requiredChange": "Replace or supplement the regex-only R7 test with executable tests that exercise migrated review command routing and representative preserved behaviors, including legacy FAIL/TOOLING_FAILURE rejection and absence of reviewStop/retryRecovery aliases in emitted state/API output.",
+      "whyBlocking": "The test has a static anti-pattern that would pass without exercising required production behavior.",
+      "origin": "R7",
+      "failureKind": "static_antipattern"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Failure-stage loop could be easier to diagnose",
+      "target": "specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+      "findingId": "cdf1e2e6d41d62960a11f9be3e1ab629c3c36784cc2d70c67734bc35d9e66c2b",
+      "fingerprint": "cdf1e2e6d41d62960a11f9be3e1ab629c3c36784cc2d70c67734bc35d9e66c2b",
+      "disposition": "informational",
+      "rationale": "The loop still exercises distinct inputs for the listed stages; this is mainly diagnostics and maintainability.",
+      "improvement": "Consider using subtests or named fixtures for each tooling failure stage so a single failing stage is reported directly.",
+      "whyNonBlocking": "The loop still exercises distinct inputs for the listed stages; this is mainly diagnostics and maintainability."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/328-bounded-review-convergence/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "310aabf22806c3e671cb90e50a32d5b4d7efea2cd73469b76cbdc4656c2aed42"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "findingId": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R2 rejection coverage is incomplete",
+      "body": "The coverage artifact marks R2 covered, but the tests only exercise stale tree SHA, caller-supplied digest, and duplicate identity. R2 also requires rejection of foreign phase/task target, target-guard mismatch, revision mismatch, and malformed evidence with unchanged canonical evidence and flow-state bytes before provider execution or mutation.",
+      "category": "unknown",
+      "fingerprint": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage, and the coverage artifact contradicts the actual test files."
+    },
+    {
+      "id": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "findingId": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R5 CLI behavior is not executable-tested",
+      "body": "R5 requires `senti flow set review-evidence --file <path>` behavior with normal target guards, spec-directory confinement, required fields, bounded input, disposition/finding consistency, CLI-computed digest, idempotent canonical persistence, and CAS convergence without provider launch. The tests cover lower-level store/input classes and a regex check of registry/command source, but do not execute the command boundary or verify the full CLI contract.",
+      "category": "unknown",
+      "fingerprint": "019e6e442440786e54610d0627fb77184a311101416a0bdf87d7c46a99ab4bfb",
+      "disposition": "must-fix",
+      "rationale": "A required acceptance surface has no corresponding executable test coverage; the existing source-regex test can pass without exercising production behavior."
+    },
+    {
+      "id": "278d77114aa7cb4fc7366c7f8c6c0fc38af4fa71fa9db4b0d0289150a1d8250f",
+      "findingId": "278d77114aa7cb4fc7366c7f8c6c0fc38af4fa71fa9db4b0d0289150a1d8250f",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R4 persisted tooling budget is not covered",
+      "body": "R4 requires tooling failures to persist with stage and attempt data, avoid semantic budget consumption, share one persisted `toolingMaxAttempts=1` budget per phase/task/tree target regardless of provider or process, and reject another unchanged provider execution after retry is consumed. Current tests exercise in-memory normalization/resolution, but not persisted state shared across executions or unchanged execution rejection.",
+      "category": "unknown",
+      "fingerprint": "278d77114aa7cb4fc7366c7f8c6c0fc38af4fa71fa9db4b0d0289150a1d8250f",
+      "disposition": "must-fix",
+      "rationale": "A critical convergence/idempotency requirement lacks regression coverage at the state mutation boundary."
+    },
+    {
+      "id": "ad601353e0b0a521bc4da6217ddb5fd015fc63c7c0af345e98d4ea7852225270",
+      "findingId": "ad601353e0b0a521bc4da6217ddb5fd015fc63c7c0af345e98d4ea7852225270",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R7 migration preservation relies on source text matching",
+      "body": "The R7 migration test checks concatenated source text for artifact names and absence of legacy constants. This can pass while command routing, target guards, exit-visible failures, phase artifact paths, post-hook lifecycle ownership, semantic maxAttempts, task scope, revision/CAS checks, PASS/ADVISORY promotion, final disposition, or acceptance judgment are broken.",
+      "category": "unknown",
+      "fingerprint": "ad601353e0b0a521bc4da6217ddb5fd015fc63c7c0af345e98d4ea7852225270",
+      "disposition": "must-fix",
+      "rationale": "The test has a static anti-pattern that would pass without exercising required production behavior."
+    },
+    {
+      "id": "cdf1e2e6d41d62960a11f9be3e1ab629c3c36784cc2d70c67734bc35d9e66c2b",
+      "findingId": "cdf1e2e6d41d62960a11f9be3e1ab629c3c36784cc2d70c67734bc35d9e66c2b",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Failure-stage loop could be easier to diagnose",
+      "body": "The loop still exercises distinct inputs for the listed stages; this is mainly diagnostics and maintainability.",
+      "category": "unknown",
+      "fingerprint": "cdf1e2e6d41d62960a11f9be3e1ab629c3c36784cc2d70c67734bc35d9e66c2b",
+      "disposition": "informational",
+      "rationale": "The loop still exercises distinct inputs for the listed stages; this is mainly diagnostics and maintainability."
+    }
+  ]
+}

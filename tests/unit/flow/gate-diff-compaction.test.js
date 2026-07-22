@@ -32,6 +32,20 @@ function modifiedDiff(file) {
   ].join("\n");
 }
 
+function specTestDiff(file, header, testNames) {
+  return [
+    `diff --git a/${file} b/${file}`,
+    "new file mode 100644",
+    "index 0000000..2222222",
+    "--- /dev/null",
+    `+++ b/${file}`,
+    `@@ -0,0 +1,${testNames.length + 1} @@`,
+    `+${header}`,
+    ...testNames.map((name) => `+test(\"${name}\", () => {});`),
+    "",
+  ].join("\n");
+}
+
 describe("guardrail diff prompt compaction", () => {
   it("keeps added-line diffs and summarizes deletion-only file bodies", () => {
     const removedBody = Array.from({ length: 200 }, (_, i) => `removed line ${i}`).join("\n");
@@ -59,5 +73,28 @@ describe("guardrail diff prompt compaction", () => {
     assert.match(targetText, /## Spec/);
     assert.match(targetText, /## Git Diff/);
     assert.match(targetText, /\+const addedGuardrailRelevantLine = true;/);
+  });
+
+  it("reserves bounded spec-local header and test declaration evidence", () => {
+    const largeDiff = deletionOnlyDiff(
+      "src/removed-plugin/large-template.md",
+      Array.from({ length: 400 }, (_, i) => `removed line ${i}`).join("\n"),
+    );
+    const diff = largeDiff + specTestDiff(
+      "specs/999-example/tests/review-regression.test.js",
+      "// spec: R2 R9",
+      [
+        "R2: rejects stale target evidence",
+        "R9: keeps advisory evidence after projection failure",
+      ],
+    );
+
+    const targetText = buildGuardrailTargetTextForPrompt("## Spec\n- R2\n- R9", diff, 2_000);
+
+    assert.ok(targetText.length <= 2_000);
+    assert.match(targetText, /## Spec Test Header And Declaration Evidence/);
+    assert.match(targetText, /review-regression\.test\.js: \/\/ spec: R2 R9/);
+    assert.match(targetText, /R2: rejects stale target evidence/);
+    assert.match(targetText, /R9: keeps advisory evidence after projection failure/);
   });
 });

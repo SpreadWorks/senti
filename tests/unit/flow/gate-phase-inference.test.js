@@ -295,6 +295,37 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
     assert.equal(transition.currentStepId, "impl-gate");
     assert.deepEqual(opts, { taskId: null });
   });
+
+  it("allows explicit terminal gate revalidation without reopening lifecycle state", async () => {
+    const updates = [];
+    const flowState = {
+      currentTaskId: null,
+      steps: [
+        { id: "impl-gate", status: "done" },
+        { id: "retro", status: "done" },
+        { id: "acceptance-review", status: "in_progress" },
+      ],
+      tasks: [],
+    };
+    const ctx = {
+      phase: "integration",
+      flowState,
+      flowManager: {
+        load: () => flowState,
+        updateStepStatus(transition, opts) { updates.push({ transition, opts }); },
+      },
+    };
+
+    await FLOW_COMMANDS.run.gate.pre(ctx);
+    await FLOW_COMMANDS.run.gate.post(ctx, {
+      result: "pass",
+      artifacts: { phase: "integration", evaluations: [] },
+    });
+
+    assert.equal(ctx.terminalGateRevalidation, true);
+    assert.deepEqual(updates, []);
+    assert.equal(flowState.steps[2].status, "in_progress");
+  });
 });
 
 // -----------------------------------------------------------------------------

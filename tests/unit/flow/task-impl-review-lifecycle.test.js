@@ -144,11 +144,11 @@ describe("task-scoped implementation review lifecycle", () => {
     });
   }
 
-  it("FAIL retains task review retry behavior without advancing flow lifecycle steps", async () => {
+  it("REJECTED retains task review retry behavior without advancing flow lifecycle steps", async () => {
     const { specId, state, flowManager } = setupReviewState();
     const result = {
       result: "ok",
-      artifacts: { phase: "impl", verdict: "FAIL", taskId: "T-1" },
+      artifacts: { phase: "impl", verdict: "REJECTED", taskId: "T-1" },
       next: null,
     };
 

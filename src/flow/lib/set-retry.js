@@ -12,7 +12,7 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { countGateRetry, resolveRetryMax } from "./run-gate.js";
 import { countReviewRetry, resolveReviewRetryMax } from "./run-review.js";
 import { flattenSteps } from "./step-tree.js";
-import { clearReviewStopState } from "./review-failure.js";
+import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
 import {
   RetryRecoveryInput,
   RetryRecoveryGrantError,
@@ -62,6 +62,18 @@ class RetryResetOperation {
   }
 }
 
+function unchangedReviewConvergenceTarget(ctx, phase) {
+  const records = Array.isArray(ctx.flowState?.reviewConvergence?.records)
+    ? ctx.flowState.reviewConvergence.records
+    : [];
+  const matching = records.filter((record) => (
+    record.phase === phase && (record.taskId ?? null) === null
+  ));
+  if (matching.length === 0) return false;
+  const current = matching[matching.length - 1];
+  return current.treeSha === resolveCurrentReviewTreeSha(ctx.root);
+}
+
 export default class SetRetryCommand extends FlowCommand {
   execute(ctx) {
     let input;
@@ -76,6 +88,15 @@ export default class SetRetryCommand extends FlowCommand {
       );
     }
     const { kind, phase } = input;
+
+    if (kind === "review" && unchangedReviewConvergenceTarget(ctx, normalizeReviewResetPhase(phase))) {
+      return Envelope.fail(
+        "set",
+        "retry",
+        "REVIEW_IDENTITY_UNCHANGED",
+        "review retry reset requires a changed tree SHA or canonical evidence identity",
+      );
+    }
 
     const counter = COUNTER_BY_KIND[kind];
     const countFn = COUNT_FN_BY_KIND[kind];
@@ -125,9 +146,7 @@ export default class SetRetryCommand extends FlowCommand {
           resolveConfiguredMaxAttempts(state, targetPhase) {
             return resolveConfiguredMaxAttempts({ flowState: state }, targetPhase);
           },
-          afterReset: kind === "review"
-            ? (state) => clearReviewStopState(state, op.phase)
-            : null,
+          afterReset: null,
         });
         if (reset.grant) grants.push(reset.grant.toJSON());
       } catch (error) {

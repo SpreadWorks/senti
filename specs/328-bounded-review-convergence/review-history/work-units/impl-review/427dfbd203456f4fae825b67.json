@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js",
+      "specs/328-bounded-review-convergence/tests/review-convergence-model.test.js",
+      "specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js",
+      "specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+      "src/flow/commands/review.js",
+      "src/flow/definition.js"
+    ],
+    "inputHash": "faeba9f5ae6f5ddf1473e09fabef6d326c34db95a81b7a6c0eb81be379900fe1",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js",
+    "specs/328-bounded-review-convergence/tests/review-convergence-model.test.js",
+    "specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js",
+    "specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+    "src/flow/commands/review.js",
+    "src/flow/definition.js"
+  ],
+  "inputHash": "faeba9f5ae6f5ddf1473e09fabef6d326c34db95a81b7a6c0eb81be379900fe1",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-22T03:56:22.157Z",
+  "finishedAt": "2026-07-22T03:56:22.157Z",
+  "rawResponse": "### 1. Extract Review Tooling Outcome Construction\n**File:** `src/flow/commands/review.js`  \n**Requirement:** R4  \n**Issue:** Tooling outcome construction repeats stage mapping and permission detection in `toolingFailureResult()` and `buildToolingFailureReview()`, with similar logging stage derivation later in `runTestReview()`.  \n**Suggestion:** Add small helpers such as `isPermissionRelated(message)`, `stageFromImplFailureKind(kind)`, and `stageFromTestReviewKind(kind)`, then use them everywhere a `ReviewToolingOutcome` or tooling log line is built.\n\n### 2. Centralize Review Verdict Literals\n**File:** `src/flow/definition.js`  \n**Requirement:** R7  \n**Issue:** `\"PASS\"`, `\"ADVISORY\"`, and `\"REJECTED\"` are repeated across lifecycle branches, including an inline array in `resolveDraftReviewLifecycle()`. This makes future migration cleanup easy to miss.  \n**Suggestion:** Introduce local constants like `PASS_VERDICT`, `ADVISORY_VERDICT`, `REJECTED_VERDICT`, and `REVIEW_DISPOSITION_VERDICTS`, then use them throughout this file.\n\n### 3. Avoid Unbounded Recursive Snapshot Reads\n**File:** `specs/328-bounded-review-convergence/tests/review-execution-regression.test.js`  \n**Requirement:** R9  \n**Issue:** `directorySnapshot()` uses `fs.readdirSync(dir, { recursive: true })` and reads every file under the directory without an explicit entry or byte bound. This violates the bounded-resource-usage guardrail even in tests.  \n**Suggestion:** Add explicit caps, for example `maxEntries` and `maxBytesPerFile`, and fail the test if the snapshot exceeds those limits.\n\n### 4. Extract Repeated Pipeline Fixture Setup\n**File:** `specs/328-bounded-review-convergence/tests/review-execution-regression.test.js`  \n**Requirement:** R9  \n**Issue:** Several tests repeat the same temp directory, flow manager, `moveFlowToStep(makeFlowState(...), \"impl-review\")`, and pipeline construction pattern.  \n**Suggestion:** Add a helper like `createPipelineFixture(t, { runId, boundaries })` returning `{ tmp, manager, pipeline }`, and reuse it in the tooling failure, stale tree, completed-once, and telemetry tests.\n\n### 5. Extract CLI Fixture State Completion Helper\n**File:** `specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js`  \n**Requirement:** R9  \n**Issue:** `createCliFixture()` manually marks every task and step as done with nested loops. That setup detail is noisy and distracts from the fixture’s purpose.  \n**Suggestion:** Extract `markAllTasksDone(state)` or `createCompletedReviewState(...)` inside this file and call it from `createCliFixture()`.\n\n### 6. Reuse Attempt State Fixture Setup\n**File:** `specs/328-bounded-review-convergence/tests/review-action-resolution.test.js`  \n**Requirement:** R9  \n**Issue:** Multiple tests repeat temp directory cleanup, flow manager creation, and `impl-review` flow setup.  \n**Suggestion:** Add a local `createReviewFlowFixture(t, { runId })` helper returning `{ tmp, manager }`, then use it in the persistence and public projection tests.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Review Tooling Outcome Construction",
+        "body": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R4  \n**Issue:** Tooling outcome construction repeats stage mapping and permission detection in `toolingFailureResult()` and `buildToolingFailureReview()`, with similar logging stage derivation later in `runTestReview()`.  \n**Suggestion:** Add small helpers such as `isPermissionRelated(message)`, `stageFromImplFailureKind(kind)`, and `stageFromTestReviewKind(kind)`, then use them everywhere a `ReviewToolingOutcome` or tooling log line is built.",
+        "file": "src/flow/commands/review.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Centralize Review Verdict Literals",
+        "body": "**File:** `src/flow/definition.js`  \n**Requirement:** R7  \n**Issue:** `\"PASS\"`, `\"ADVISORY\"`, and `\"REJECTED\"` are repeated across lifecycle branches, including an inline array in `resolveDraftReviewLifecycle()`. This makes future migration cleanup easy to miss.  \n**Suggestion:** Introduce local constants like `PASS_VERDICT`, `ADVISORY_VERDICT`, `REJECTED_VERDICT`, and `REVIEW_DISPOSITION_VERDICTS`, then use them throughout this file.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Avoid Unbounded Recursive Snapshot Reads",
+        "body": "**File:** `specs/328-bounded-review-convergence/tests/review-execution-regression.test.js`  \n**Requirement:** R9  \n**Issue:** `directorySnapshot()` uses `fs.readdirSync(dir, { recursive: true })` and reads every file under the directory without an explicit entry or byte bound. This violates the bounded-resource-usage guardrail even in tests.  \n**Suggestion:** Add explicit caps, for example `maxEntries` and `maxBytesPerFile`, and fail the test if the snapshot exceeds those limits.",
+        "file": "specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "4. Extract Repeated Pipeline Fixture Setup",
+        "body": "**File:** `specs/328-bounded-review-convergence/tests/review-execution-regression.test.js`  \n**Requirement:** R9  \n**Issue:** Several tests repeat the same temp directory, flow manager, `moveFlowToStep(makeFlowState(...), \"impl-review\")`, and pipeline construction pattern.  \n**Suggestion:** Add a helper like `createPipelineFixture(t, { runId, boundaries })` returning `{ tmp, manager, pipeline }`, and reuse it in the tooling failure, stale tree, completed-once, and telemetry tests.",
+        "file": "specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "5. Extract CLI Fixture State Completion Helper",
+        "body": "**File:** `specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js`  \n**Requirement:** R9  \n**Issue:** `createCliFixture()` manually marks every task and step as done with nested loops. That setup detail is noisy and distracts from the fixture’s purpose.  \n**Suggestion:** Extract `markAllTasksDone(state)` or `createCompletedReviewState(...)` inside this file and call it from `createCliFixture()`.",
+        "file": "specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "6. Reuse Attempt State Fixture Setup",
+        "body": "**File:** `specs/328-bounded-review-convergence/tests/review-action-resolution.test.js`  \n**Requirement:** R9  \n**Issue:** Multiple tests repeat temp directory cleanup, flow manager creation, and `impl-review` flow setup.  \n**Suggestion:** Add a local `createReviewFlowFixture(t, { runId })` helper returning `{ tmp, manager }`, then use it in the persistence and public projection tests.",
+        "file": "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

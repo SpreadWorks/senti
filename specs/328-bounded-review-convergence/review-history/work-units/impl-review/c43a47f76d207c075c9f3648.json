@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "c43a47f76d207c075c9f3648",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0010",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/get-status.js",
+      "src/flow/lib/repair-state-identity.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/review-failure.js",
+      "src/flow/lib/run-gate.js"
+    ],
+    "inputHash": "0088755a9d54dbbed632d91476b10a20b824c8b48574cad34616a6c025e5d9e3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c43a47f76d207c075c9f3648"
+  },
+  "targetFiles": [
+    "src/flow/lib/get-status.js",
+    "src/flow/lib/repair-state-identity.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/review-failure.js",
+    "src/flow/lib/run-gate.js"
+  ],
+  "inputHash": "0088755a9d54dbbed632d91476b10a20b824c8b48574cad34616a6c025e5d9e3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-22T03:56:42.897Z",
+  "finishedAt": "2026-07-22T03:56:42.897Z",
+  "rawResponse": "### 1. Remove dead max-attempt resolver\n**File:** `src/flow/lib/get-status.js`  \n**Requirement:** R6  \n**Issue:** `resolveActiveStepMaxAttempts()` is no longer used after review recovery switched from `reviewStop`/`retryRecovery` to `reviewAction`. Keeping it also preserves an import dependency on `resolveMaxAttempts` that appears unnecessary in this file.  \n**Suggestion:** Delete `resolveActiveStepMaxAttempts()` and remove the unused `resolveMaxAttempts` import if no other local usage remains.\n\n### 2. Extract review target step resolution\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `semanticMaxAttempts()` and `toolingMaxAttempts()` duplicate the same scope/stepId resolution logic for phase/task review targets. This makes future phase routing changes easy to apply inconsistently.  \n**Suggestion:** Extract a helper such as `reviewStepTargetFor(phase, taskId)` returning `{ scope, stepId }`, then reuse it from both functions.\n\n### 3. Bound recursive canonicalization depth\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R2  \n**Issue:** `stableStringify()` and `deepFreeze()` recurse through caller-provided evidence structures without an explicit depth bound. The byte and finding-count limits help total size, but a deeply nested JSON object under 1 MB can still cause excessive recursion or stack overflow. This violates the `bounded-resource-usage` guardrail.  \n**Suggestion:** Add an explicit maximum depth parameter to recursive helpers, for example `MAX_REVIEW_EVIDENCE_DEPTH`, and throw a validation error when exceeded.\n\n### 4. Bound convergence record scans\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** `resolveReviewActionForFlowState()` filters all convergence records and then selects the last match. `convergenceRecords()` accepts the persisted array without an explicit maximum, so status/next-action projection can do unbounded bulk processing.  \n**Suggestion:** Introduce a maximum convergence-record count or store records in a bounded per-target form. If the array is retained, validate/truncate/reject above a named limit before scanning.\n\n### 5. Replace sameRevision wrapper\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R5  \n**Issue:** `sameRevision(left, right)` only returns `left === right`, adding a named abstraction without encoding domain behavior. It makes the CAS check look more meaningful than it currently is.  \n**Suggestion:** Inline the identity comparison or replace it with a domain-specific check that actually compares a revision/digest value if one exists in the flow-state model.\n\n### 6. Centralize review verdict literals\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R7  \n**Issue:** `\"PASS\"`, `\"ADVISORY\"`, and `\"REJECTED\"` are repeated directly in validation logic and messages. The new review domain already defines canonical dispositions, so this file now has duplicated verdict knowledge.  \n**Suggestion:** Add a local constant such as `const REVIEW_VERDICTS = [\"PASS\", \"ADVISORY\", \"REJECTED\"];` and reuse it for validation and error text, or import a canonical exported list if available from the touched review module.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove dead max-attempt resolver",
+        "body": "**File:** `src/flow/lib/get-status.js`  \n**Requirement:** R6  \n**Issue:** `resolveActiveStepMaxAttempts()` is no longer used after review recovery switched from `reviewStop`/`retryRecovery` to `reviewAction`. Keeping it also preserves an import dependency on `resolveMaxAttempts` that appears unnecessary in this file.  \n**Suggestion:** Delete `resolveActiveStepMaxAttempts()` and remove the unused `resolveMaxAttempts` import if no other local usage remains.",
+        "file": "src/flow/lib/get-status.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Extract review target step resolution",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `semanticMaxAttempts()` and `toolingMaxAttempts()` duplicate the same scope/stepId resolution logic for phase/task review targets. This makes future phase routing changes easy to apply inconsistently.  \n**Suggestion:** Extract a helper such as `reviewStepTargetFor(phase, taskId)` returning `{ scope, stepId }`, then reuse it from both functions.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Bound recursive canonicalization depth",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R2  \n**Issue:** `stableStringify()` and `deepFreeze()` recurse through caller-provided evidence structures without an explicit depth bound. The byte and finding-count limits help total size, but a deeply nested JSON object under 1 MB can still cause excessive recursion or stack overflow. This violates the `bounded-resource-usage` guardrail.  \n**Suggestion:** Add an explicit maximum depth parameter to recursive helpers, for example `MAX_REVIEW_EVIDENCE_DEPTH`, and throw a validation error when exceeded.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Bound convergence record scans",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** `resolveReviewActionForFlowState()` filters all convergence records and then selects the last match. `convergenceRecords()` accepts the persisted array without an explicit maximum, so status/next-action projection can do unbounded bulk processing.  \n**Suggestion:** Introduce a maximum convergence-record count or store records in a bounded per-target form. If the array is retained, validate/truncate/reject above a named limit before scanning.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Replace sameRevision wrapper",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R5  \n**Issue:** `sameRevision(left, right)` only returns `left === right`, adding a named abstraction without encoding domain behavior. It makes the CAS check look more meaningful than it currently is.  \n**Suggestion:** Inline the identity comparison or replace it with a domain-specific check that actually compares a revision/digest value if one exists in the flow-state model.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "6. Centralize review verdict literals",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R7  \n**Issue:** `\"PASS\"`, `\"ADVISORY\"`, and `\"REJECTED\"` are repeated directly in validation logic and messages. The new review domain already defines canonical dispositions, so this file now has duplicated verdict knowledge.  \n**Suggestion:** Add a local constant such as `const REVIEW_VERDICTS = [\"PASS\", \"ADVISORY\", \"REJECTED\"];` and reuse it for validation and error text, or import a canonical exported list if available from the touched review module.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

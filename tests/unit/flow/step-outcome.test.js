@@ -141,7 +141,7 @@ describe("typed step outcomes", () => {
       const specDir = path.join(root, path.dirname(spec));
       writeJson(root, spec, { requirements: [] });
       writeJson(specDir, "test-review.json", {
-        verdict: "FAIL",
+        verdict: "REJECTED",
         blockingFindings: [dispositionedSemanticFinding("review-semantic")],
       });
 
@@ -158,7 +158,7 @@ describe("typed step outcomes", () => {
       const reviewUpdates = [];
       const reviewResult = {
         result: "ok",
-        artifacts: { phase: "test", retryPhase: "test", verdict: "FAIL" },
+        artifacts: { phase: "test", retryPhase: "test", verdict: "REJECTED" },
         next: null,
       };
       updateReviewRetryCounter({

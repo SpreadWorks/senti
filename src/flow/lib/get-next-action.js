@@ -21,11 +21,10 @@ import {
 import { flattenSteps, promoteNextPendingLeaf } from "./step-tree.js";
 import { promoteNextPending } from "../../lib/flow-helpers.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
-import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
+import { reviewPhaseForStepId } from "./review-failure.js";
 import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
-import { countReviewRetry } from "./run-review.js";
 import { inspectDurableGateSemanticDeferral } from "./run-gate.js";
-import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
+import { buildStateRetryRecoveryView } from "./retry-recovery.js";
 import {
   evaluateTaskScope,
   taskScopeViolationMessages,
@@ -37,6 +36,8 @@ import {
   ExternalBlockedOutcome,
   StepAttemptLog,
 } from "./step-outcome.js";
+import { resolveReviewActionForFlowState } from "./review-convergence.js";
+import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -356,29 +357,17 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
   attachLatestStepAttempt(result, state, target);
   const reviewPhase = reviewPhaseForStepId(target.stepId);
   if (reviewPhase) {
-    const reviewAttempts = countReviewRetry(state.metrics, reviewPhase);
-    const reviewMaxAttempts = resolveRecoveryMaxAttempts({
+    assertReviewRecoveryAuthority({
       root: ctx.root,
       flowState: state,
-      kind: "review",
       phase: reviewPhase,
-      attempts: reviewAttempts,
       resolvedMax: derived.maxAttempts,
     });
-    const reviewStop = buildReviewStopView(state, {
-      surface: "next-action",
+    const reviewAction = resolveReviewActionForFlowState(state, {
       phase: reviewPhase,
-      maxAttempts: reviewMaxAttempts,
+      taskId: target.taskId,
     });
-    const retryRecovery = buildRetryRecoveryForState(ctx, state, {
-      kind: "review",
-      phase: reviewPhase,
-      attempts: reviewAttempts,
-      max: reviewMaxAttempts,
-    });
-    if (reviewStop || retryRecovery) {
-      attachRetryRecovery(result, "reviewStop", reviewStop, retryRecovery);
-    }
+    if (reviewAction) result.reviewAction = reviewAction;
   }
   const gateRecoveryDisplay = target.stepId.endsWith("-gate")
     ? resolveGateRecoveryDisplayPhase({

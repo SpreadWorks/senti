@@ -134,17 +134,18 @@ export async function executeGateSideEffects(ctx, phase) {
   const { deriveNextAction } = await import("../definition.js");
   const fm = ctx.flowManager;
   const state = fm.load();
-  const stepId = resolveScopedGateStepId(state, phase);
-  const scope = state?.currentTaskId != null ? "task" : "flow";
-  const derived = deriveNextAction({ scope, stepId, context: state });
+  const invocationState = ctx.flowState || state;
+  const stepId = resolveScopedGateStepId(invocationState, phase);
+  const scope = stepId === "task-gate" ? "task" : "flow";
+  const derived = deriveNextAction({ scope, stepId, context: invocationState });
   const sideEffects = derived?.sideEffects;
   if (!sideEffects || sideEffects.length === 0) return;
 
   for (const effect of sideEffects) {
     try {
       if (effect === "completeTask") {
-        if (state?.currentTaskId != null) {
-          fm.completeTask(state.currentTaskId);
+        if (invocationState?.currentTaskId != null) {
+          fm.completeTask(invocationState.currentTaskId);
         }
       } else if (effect === "promoteNextTask") {
         const { promoteNextPending } = await import("../../lib/flow-helpers.js");
@@ -660,11 +661,11 @@ function validateSpecRepairAudit(root, specInput) {
   } catch (err) {
     return [`spec-repair: spec-review.json is invalid JSON: ${err.message}`];
   }
-  if (!review || review.verdict !== "FAIL") return [];
+  if (!review || review.verdict !== "REJECTED") return [];
 
   const blocking = Array.isArray(review.blockingFindings) ? review.blockingFindings : [];
   if (!fs.existsSync(triagePath)) {
-    return ["spec-triage: spec-review.json verdict is FAIL but spec-triage.json is missing"];
+    return ["spec-triage: spec-review.json verdict is REJECTED but spec-triage.json is missing"];
   }
 
   let triage;
@@ -718,7 +719,7 @@ function validateSpecRepairAudit(root, specInput) {
   }
 
   if (!fs.existsSync(repairPath)) {
-    issues.push("spec-repair: spec-review.json verdict is FAIL but spec-repair.json is missing");
+    issues.push("spec-repair: spec-review.json verdict is REJECTED but spec-repair.json is missing");
     return issues;
   }
 
@@ -906,7 +907,7 @@ function validateDraftReviewArtifact(issues, artifactSet, review) {
   if (review.sourceDraft !== "draft.json") issues.push(`${artifactSet.reviewArtifact}: sourceDraft must be draft.json`);
   validateRequiredString(issues, `${artifactSet.reviewArtifact}: generatedAt`, review.generatedAt);
   validateRequiredString(issues, `${artifactSet.reviewArtifact}: summary`, review.summary);
-  if (!["PASS", "ADVISORY", "FAIL"].includes(review.verdict)) issues.push(`${artifactSet.reviewArtifact}: verdict must be PASS, ADVISORY, or FAIL`);
+  if (!["PASS", "ADVISORY", "REJECTED"].includes(review.verdict)) issues.push(`${artifactSet.reviewArtifact}: verdict must be PASS, ADVISORY, or REJECTED`);
   for (const [arrayField, classification] of Object.entries(DRAFT_REVIEW_CLASSIFICATION_BY_ARRAY)) {
     const items = review[arrayField];
     if (!Array.isArray(items)) {
@@ -938,8 +939,8 @@ function validateDraftReviewArtifact(issues, artifactSet, review) {
   if (review.verdict === "ADVISORY" && advisoryCount + repairTargetCount === 0) {
     issues.push(`${artifactSet.reviewArtifact}: ADVISORY requires advisory findings or repair targets`);
   }
-  if (review.verdict === "FAIL" && blockingCount === 0) {
-    issues.push(`${artifactSet.reviewArtifact}: FAIL requires at least one blocking finding`);
+  if (review.verdict === "REJECTED" && blockingCount === 0) {
+    issues.push(`${artifactSet.reviewArtifact}: REJECTED requires at least one blocking finding`);
   }
 }
 
@@ -4054,12 +4055,62 @@ function summarizeDiffForPrompt(diff, maxChars) {
   return lines.join("\n");
 }
 
+const MAX_SPEC_TEST_HEADER_EVIDENCE = 100;
+const MAX_SPEC_TEST_HEADER_CHARS = 500;
+const MAX_SPEC_TEST_DECLARATION_EVIDENCE = 200;
+const MAX_SPEC_TEST_DECLARATION_CHARS = 500;
+const MAX_SPEC_TEST_EVIDENCE_CHARS = 24_000;
+
+class SpecTestPromptEvidence {
+  constructor(diff) {
+    this.entries = [];
+    let declarationCount = 0;
+    for (const [file, fileDiff] of splitDiffByFile(diff)) {
+      if (!/^specs\/[^/]+\/tests\/[^/]+\.(test|spec)\.(js|mjs|ts)$/.test(file)) continue;
+      const header = fileDiff.match(/^\+\s*(\/\/\s*spec:\s*R\d+(?:\s+R\d+)*)\s*$/m)?.[1];
+      if (!header) continue;
+      const declarations = [];
+      const pattern = /^\+\s*(?:(?:test|it)(?:\.(?:only|skip|todo))?)\s*\(\s*(["'`])(.+?)\1/gm;
+      for (const match of fileDiff.matchAll(pattern)) {
+        if (declarationCount >= MAX_SPEC_TEST_DECLARATION_EVIDENCE) break;
+        declarations.push(match[2].slice(0, MAX_SPEC_TEST_DECLARATION_CHARS));
+        declarationCount += 1;
+      }
+      this.entries.push({
+        file,
+        header: header.slice(0, MAX_SPEC_TEST_HEADER_CHARS),
+        declarations,
+      });
+      if (this.entries.length >= MAX_SPEC_TEST_HEADER_EVIDENCE) break;
+    }
+    Object.freeze(this.entries);
+    Object.freeze(this);
+  }
+
+  toMarkdown(maxChars = MAX_SPEC_TEST_EVIDENCE_CHARS) {
+    if (this.entries.length === 0 || maxChars <= 0) return "";
+    const lines = [
+      "## Spec Test Header And Declaration Evidence",
+      "The following bounded evidence is extracted from added spec-local test lines.",
+    ];
+    for (const entry of this.entries) {
+      if (!appendPromptLine(lines, `- ${entry.file}: ${entry.header}`, maxChars)) break;
+      for (const declaration of entry.declarations) {
+        if (!appendPromptLine(lines, `  - test: ${declaration}`, maxChars)) break;
+      }
+    }
+    return `${lines.join("\n")}\n\n`;
+  }
+}
+
 function buildGuardrailTargetTextForPrompt(specText, diff, maxChars = MAX_GUARDRAIL_TARGET_CHARS) {
   if (typeof specText !== "string") throw new Error("specText must be a string");
   if (typeof diff !== "string") throw new Error("diff must be a string");
   if (!Number.isInteger(maxChars) || maxChars <= 0) throw new Error("maxChars must be a positive integer");
 
-  const prefix = `${specText}\n\n## Git Diff\n`;
+  const evidenceBudget = Math.min(MAX_SPEC_TEST_EVIDENCE_CHARS, Math.floor(maxChars / 4));
+  const specTestEvidence = new SpecTestPromptEvidence(diff).toMarkdown(evidenceBudget);
+  const prefix = `${specText}\n\n${specTestEvidence}## Git Diff\n`;
   if (prefix.length + diff.length <= maxChars) return `${prefix}${diff}`;
   const diffBudget = Math.max(1, maxChars - prefix.length);
   const targetText = `${prefix}${compactDiffForGuardrailPrompt(diff, diffBudget)}`;

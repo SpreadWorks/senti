@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "6fe4af8c-9b05-4856-a308-2b7585bbb64c",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-22T02:08:06.641Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-sensitive-data-in-logs",
+      "result": "fail",
+      "reason": "The added raw test log contains absolute local filesystem paths under `/home/nakano/...`, exposing a user-specific identifier in a log artifact instead of masking or excluding it.",
+      "category": "security",
+      "title": "No Sensitive Data in Logs",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-sensitive-data-in-logs",
+          "where": {
+            "file": "specs/328-bounded-review-convergence/tests/.raw/scenario-validity.log",
+            "locator": "added TAP stack/location paths"
+          },
+          "observed": "The added raw test log contains absolute local filesystem paths under `/home/nakano/...`, exposing a user-specific identifier in a log artifact instead of masking or excluding it.",
+          "severity": "blocking",
+          "refs": [
+            "no-sensitive-data-in-logs"
+          ]
+        }
+      ],
+      "findingId": "76ca8a9dffca72536e43c2fcf96491571e91de9068aad6ae3f419c5fbb133e4c",
+      "fingerprint": "76ca8a9dffca72536e43c2fcf96491571e91de9068aad6ae3f419c5fbb133e4c",
+      "disposition": "must-fix",
+      "rationale": "The added raw test log contains absolute local filesystem paths under `/home/nakano/...`, exposing a user-specific identifier in a log artifact instead of masking or excluding it.",
+      "requirementId": null,
+      "guardrailId": "no-sensitive-data-in-logs",
+      "reportedAt": "2026-07-22T02:08:06.641Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-sensitive-data-in-logs",
+      "where": {
+        "file": "specs/328-bounded-review-convergence/tests/.raw/scenario-validity.log",
+        "locator": "added TAP stack/location paths"
+      },
+      "observed": "The added raw test log contains absolute local filesystem paths under `/home/nakano/...`, exposing a user-specific identifier in a log artifact instead of masking or excluding it.",
+      "severity": "blocking",
+      "refs": [
+        "no-sensitive-data-in-logs"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-sensitive-data-in-logs",
+      "category": "guardrail",
+      "findingId": "fa0b8434cc0f710b114970e5b7eefb2edf1226448f322dbe7a7180a9694f3f38",
+      "fingerprint": "fa0b8434cc0f710b114970e5b7eefb2edf1226448f322dbe7a7180a9694f3f38",
+      "disposition": "must-fix",
+      "rationale": "The added raw test log contains absolute local filesystem paths under `/home/nakano/...`, exposing a user-specific identifier in a log artifact instead of masking or excluding it.",
+      "requirementId": null,
+      "guardrailId": "no-sensitive-data-in-logs",
+      "reportedAt": "2026-07-22T02:08:06.641Z",
+      "repeatCount": 1
+    }
+  ]
+}

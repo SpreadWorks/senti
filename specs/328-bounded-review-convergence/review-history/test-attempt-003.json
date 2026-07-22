@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-22T01:41:09.419Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/328-bounded-review-convergence/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 next-action/status surfaces are not covered",
+      "target": "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js",
+      "findingId": "abc3dbba96e010cda9b7f50ae24353e9909daceb108fdeeb00dda2005df65ea2",
+      "fingerprint": "abc3dbba96e010cda9b7f50ae24353e9909daceb108fdeeb00dda2005df65ea2",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage, and the coverage artifact marks R6 covered by a file that does not test the required public projections.",
+      "issue": "R6 requires next-action and status to expose exactly one reviewAction and to avoid simultaneous authoritative reviewStop and retryRecovery choices, but the tests only exercise the lower-level resolveReviewPermittedOperation model. They do not execute or inspect the next-action/status projection surfaces named by the requirement.",
+      "requiredChange": "Add spec-local executable coverage for both next-action and status projections verifying exactly one reviewAction, remainingToolingAttempts, exactly one of handoffFindings or blocker, and absence of simultaneous reviewStop/retryRecovery authority.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage, and the coverage artifact marks R6 covered by a file that does not test the required public projections.",
+      "origin": "R6",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R9 canonical write failure after result retrieval is missing",
+      "target": "specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+      "findingId": "cdf4f2dbf1e8141a886908387174f590cb9c2e6c1ceef90c1620f540b97e50f6",
+      "fingerprint": "cdf4f2dbf1e8141a886908387174f590cb9c2e6c1ceef90c1620f540b97e50f6",
+      "disposition": "must-fix",
+      "rationale": "A required regression case named by R9 has no corresponding spec-local test coverage.",
+      "issue": "R9 explicitly requires coverage for canonical write/projection failure after result retrieval. The Issue #451 regression covers projection failure with a provider result, but canonical_write is only covered as a generic toolingFailure without providerResult/evidence retrieval.",
+      "requiredChange": "Add a regression fixture where a valid provider result is retrieved and canonical_write then fails, asserting finalized evidence/finding semantics and TOOLING_ERROR handling match the requirement.",
+      "whyBlocking": "A required regression case named by R9 has no corresponding spec-local test coverage.",
+      "origin": "R9",
+      "failureKind": "missing_requirement_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/328-bounded-review-convergence/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "7e87db1a978d7868f9a1ab643ff78ac18a7ed30e93ed2bf414b03eea67a84d02"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "abc3dbba96e010cda9b7f50ae24353e9909daceb108fdeeb00dda2005df65ea2",
+      "findingId": "abc3dbba96e010cda9b7f50ae24353e9909daceb108fdeeb00dda2005df65ea2",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R6 next-action/status surfaces are not covered",
+      "body": "R6 requires next-action and status to expose exactly one reviewAction and to avoid simultaneous authoritative reviewStop and retryRecovery choices, but the tests only exercise the lower-level resolveReviewPermittedOperation model. They do not execute or inspect the next-action/status projection surfaces named by the requirement.",
+      "category": "unknown",
+      "fingerprint": "abc3dbba96e010cda9b7f50ae24353e9909daceb108fdeeb00dda2005df65ea2",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage, and the coverage artifact marks R6 covered by a file that does not test the required public projections."
+    },
+    {
+      "id": "cdf4f2dbf1e8141a886908387174f590cb9c2e6c1ceef90c1620f540b97e50f6",
+      "findingId": "cdf4f2dbf1e8141a886908387174f590cb9c2e6c1ceef90c1620f540b97e50f6",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R9 canonical write failure after result retrieval is missing",
+      "body": "R9 explicitly requires coverage for canonical write/projection failure after result retrieval. The Issue #451 regression covers projection failure with a provider result, but canonical_write is only covered as a generic toolingFailure without providerResult/evidence retrieval.",
+      "category": "unknown",
+      "fingerprint": "cdf4f2dbf1e8141a886908387174f590cb9c2e6c1ceef90c1620f540b97e50f6",
+      "disposition": "must-fix",
+      "rationale": "A required regression case named by R9 has no corresponding spec-local test coverage."
+    }
+  ]
+}

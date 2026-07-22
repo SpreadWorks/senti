@@ -1,0 +1,761 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 2,
+    "hash": "95e76129dbf947a9301f1caec39ec19c581730e158302d6192aad2063d6a3e98",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-22T03:57:32.080Z",
+  "items": [
+    {
+      "findingId": "dd520cb1f9515aafda3dcd05ba6d03e55254f60d5c164d4615b46dcae5361e48",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `.agents/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** The updated bullets repeat the same PASS / ADVISORY / REJECTED routing concepts across draft review, `spec-review`, and `test-review`, while mixing common routing rules with phase-specific exceptions. That makes future status vocabulary changes more error-prone.  \n**Suggestion:** Introduce a short shared rule sentence for review outcomes, then list only the phase-specific deviations: draft reviews route `REJECTED` to triage, `spec-review` advances to `spec-triage`, and `test-review` remains open on `REJECTED` or `TOOLING_ERROR`.",
+      "evidenceRefs": [
+        "impl-review.json#dd520cb1f9515aafda3dcd05ba6d03e55254f60d5c164d4615b46dcae5361e48"
+      ]
+    },
+    {
+      "findingId": "e533f25516c00b8a538c75637c55ac5bb16e1793ff1912edfb8641bfab9986dd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `.claude/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** The updated bullets repeat the same PASS / ADVISORY / REJECTED routing concepts across draft review, `spec-review`, and `test-review`, while mixing common routing rules with phase-specific exceptions. That makes future status vocabulary changes more error-prone.  \n**Suggestion:** Introduce a short shared rule sentence for review outcomes, then list only the phase-specific deviations: draft reviews route `REJECTED` to triage, `spec-review` advances to `spec-triage`, and `test-review` remains open on `REJECTED` or `TOOLING_ERROR`.",
+      "evidenceRefs": [
+        "impl-review.json#e533f25516c00b8a538c75637c55ac5bb16e1793ff1912edfb8641bfab9986dd"
+      ]
+    },
+    {
+      "findingId": "f1f6791db398966c34bcca0a913ad7174722cc0f8b25e6f5f3c8b3d425831c67",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/draft-gate-source.json`  \n**Requirement:** R7  \n**Issue:** The same guardrail findings are represented twice, once in `evaluations[*].observations` and again in the top-level `observations` array, with mostly duplicated reason/rationale/disposition metadata. This makes the artifact harder to inspect and increases the chance that future tooling reads inconsistent copies.  \n**Suggestion:** Keep one canonical representation of each finding and derive the other view only when needed. If the schema requires both arrays, reduce one side to references such as `findingId`/`fingerprint` instead of repeating the full observation payload.",
+      "evidenceRefs": [
+        "impl-review.json#f1f6791db398966c34bcca0a913ad7174722cc0f8b25e6f5f3c8b3d425831c67"
+      ]
+    },
+    {
+      "findingId": "a64b71582945a2af81a9b89a74a2cb6849af1d743cddb97e916e3c32a7789806",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/draft-questions-triage.json`  \n**Requirement:** R7  \n**Issue:** This artifact is structurally identical to the other empty draft triage artifact except for phase/source/timestamp values. Persisting many near-identical empty JSON files adds noise and makes review diffs harder to scan.  \n**Suggestion:** Prefer a shared generation path for empty triage artifacts that emits the same schema from phase metadata, or omit committing empty no-op artifacts if the workflow can regenerate them deterministically.",
+      "evidenceRefs": [
+        "impl-review.json#a64b71582945a2af81a9b89a74a2cb6849af1d743cddb97e916e3c32a7789806"
+      ]
+    },
+    {
+      "findingId": "3a33f3db74f9976b93c6df116c1d319d15e73a8d582b57a1a26cc9320a8eb5b9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/draft-questions-repair.json`  \n**Requirement:** R7  \n**Issue:** This artifact repeats the same empty repair shape used by the coverage repair artifact, differing only by phase/source/timestamp. The duplication is mechanical and does not add useful review information.  \n**Suggestion:** Generate no-op repair artifacts from a common template or metadata-driven helper, and commit only artifacts that contain actual repair items or nontrivial audit content.",
+      "evidenceRefs": [
+        "impl-review.json#3a33f3db74f9976b93c6df116c1d319d15e73a8d582b57a1a26cc9320a8eb5b9"
+      ]
+    },
+    {
+      "findingId": "7f7368007014305675f226375498f6be2bcddcf73be78d3eab9d054ac52ab688",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/flow.json`\n**Requirement:** R9\n**Issue:** `impl-review` is `pending` but still carries a `runtimeLog` from an already completed `flow run review` command. That mixes current state with stale execution evidence and makes the artifact harder to reason about.\n**Suggestion:** Drop `runtimeLog` from pending steps, or only persist runtime logs on steps whose status reflects that execution result.",
+      "evidenceRefs": [
+        "impl-review.json#7f7368007014305675f226375498f6be2bcddcf73be78d3eab9d054ac52ab688"
+      ]
+    },
+    {
+      "findingId": "5f47d2d52260a9c40b37b6513c1756d6cd8c12007b4b0b8fe635e00184445c7b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/flow.json`\n**Requirement:** R9\n**Issue:** Tasks `T-2` through `T-6` repeat the same pending `task-impl`, `task-review`, and `task-gate` step payloads verbatim.\n**Suggestion:** If this artifact is intended to stay compact and reviewable, store a shared task-step template or generate pending task steps from the flow definition instead of materializing identical JSON blocks.",
+      "evidenceRefs": [
+        "impl-review.json#5f47d2d52260a9c40b37b6513c1756d6cd8c12007b4b0b8fe635e00184445c7b"
+      ]
+    },
+    {
+      "findingId": "d054d4db30d61d5d4ef364d6cb7c0159a4e81ba168a395d4d1cc3e84e1d6626f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/flow.json`\n**Requirement:** R9\n**Issue:** The `metrics` array persists every read, issue-log, retry, and agent event inline. The diff already shows repeated `issueLog`, `srcRead`, and retry entries, and there is no visible cap on count or size.\n**Suggestion:** Apply an explicit retention bound for persisted metrics, such as latest N entries per phase/task plus aggregate counters, to satisfy bounded-resource-usage and keep flow state from growing without limit.",
+      "evidenceRefs": [
+        "impl-review.json#d054d4db30d61d5d4ef364d6cb7c0159a4e81ba168a395d4d1cc3e84e1d6626f"
+      ]
+    },
+    {
+      "findingId": "d5633acb6ba90b132e8276eec9c0c9076f9e9670041f67a70fb74ae3a93ff15e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/file-map.json`\n**Requirement:** R7\n**Issue:** `R7` repeats paths already listed under other requirements, and within the shown diff `src/flow/lib/get-next-action.js` and `src/flow/lib/get-status.js` appear in multiple requirement arrays. This makes ownership noisy and easier to drift.\n**Suggestion:** Keep requirement-specific mappings only where a file materially implements that requirement, or introduce a generated/shared ownership grouping if the same broad file set is expected across many requirements.",
+      "evidenceRefs": [
+        "impl-review.json#d5633acb6ba90b132e8276eec9c0c9076f9e9670041f67a70fb74ae3a93ff15e"
+      ]
+    },
+    {
+      "findingId": "c4ac8a6ca45392d5a7bd42982f4bfb3c006790165477da37d4b2e5b14024ed62",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/impl-review.json`  \n**Requirement:** R9  \n**Issue:** The diff shows two different new-file versions for the same canonical artifact: one `ADVISORY` result with 82 improvements and one earlier `PASS` result. That makes the authoritative review outcome ambiguous.  \n**Suggestion:** Commit only the final canonical `impl-review.json`. If earlier attempts are useful, store them under an attempt-specific `review-history/` path instead of the canonical artifact path.",
+      "evidenceRefs": [
+        "impl-review.json#c4ac8a6ca45392d5a7bd42982f4bfb3c006790165477da37d4b2e5b14024ed62"
+      ]
+    },
+    {
+      "findingId": "096b82fa40d49c034dee272610534e52aa418a5c047a1803724876f0f0ad5554",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The first entry repeats the same guardrail failures in `reason`, `observations`, and `failedEvaluations`, creating drift risk between multiple representations of the same findings.  \n**Suggestion:** Store detailed failure payloads once, preferably in `observations`; keep `reason` as a concise summary and make `failedEvaluations` reference observations by guardrail/id.",
+      "evidenceRefs": [
+        "impl-review.json#096b82fa40d49c034dee272610534e52aa418a5c047a1803724876f0f0ad5554"
+      ]
+    },
+    {
+      "findingId": "b2222356430988e5057fd8d06af87d11fdf1117b4b0328876e0874158ad953a3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/issue-log.json`  \n**Requirement:** R3  \n**Issue:** `entries` is an append-only history with full reasons, resolutions, observations, and repair notes but no explicit retention or size bound. This conflicts with the `bounded-resource-usage` guardrail for bulk persisted history.  \n**Suggestion:** Add a retention policy such as latest N entries plus aggregate counters, or split older detailed entries into bounded attempt artifacts referenced from the current log.",
+      "evidenceRefs": [
+        "impl-review.json#b2222356430988e5057fd8d06af87d11fdf1117b4b0328876e0874158ad953a3"
+      ]
+    },
+    {
+      "findingId": "06e8fce6297f21c412e6e1be565c0f534c50dd39d85d296c5c0fca9b47a4879a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/issue.md`  \n**Requirement:** R9  \n**Issue:** The Markdown file ends without a trailing newline, which creates avoidable formatting churn and inconsistent text-file output.  \n**Suggestion:** Ensure the Markdown generator or copy path always terminates generated `.md` files with a newline.",
+      "evidenceRefs": [
+        "impl-review.json#06e8fce6297f21c412e6e1be565c0f534c50dd39d85d296c5c0fca9b47a4879a"
+      ]
+    },
+    {
+      "findingId": "779f71c8e2e3dc08871b16be6c625581a834ab70d2132947cfa54f2cdee3f490",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/plugin-artifacts/workflow/prepare.json`  \n**Requirement:** R9  \n**Issue:** The file records transient workflow mutation state such as `changed` and `previousStatus`, which looks like command output rather than durable source or review evidence.  \n**Suggestion:** Keep this under ignored runtime artifacts, or add deterministic evidence metadata explaining why this workflow mutation result must be versioned.",
+      "evidenceRefs": [
+        "impl-review.json#779f71c8e2e3dc08871b16be6c625581a834ab70d2132947cfa54f2cdee3f490"
+      ]
+    },
+    {
+      "findingId": "20212c1010f92b396005e452f0623ffc258575a9158e587655b4daba99c8b0ef",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/draft-coverage-attempt-001.json`  \n**Requirement:** R9  \n**Issue:** This no-finding PASS artifact has the same structure as `draft-questions-attempt-001.json`, differing only by phase, source artifact, and timestamp.  \n**Suggestion:** Generate empty PASS review-history artifacts from a shared template, or omit no-op attempt files when the source review artifact already records the empty result.",
+      "evidenceRefs": [
+        "impl-review.json#20212c1010f92b396005e452f0623ffc258575a9158e587655b4daba99c8b0ef"
+      ]
+    },
+    {
+      "findingId": "6b6e6210024a4e86f5a7f8819fa34b2a300be1e2868142c40858aa002c0796d2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R9  \n**Issue:** This file repeats the same empty PASS schema used by the draft coverage attempt, including identical empty finding arrays and summary text.  \n**Suggestion:** Persist only phase-specific metadata plus a reference when no findings exist, or use the same shared empty-review template as the coverage attempt.",
+      "evidenceRefs": [
+        "impl-review.json#6b6e6210024a4e86f5a7f8819fa34b2a300be1e2868142c40858aa002c0796d2"
+      ]
+    },
+    {
+      "findingId": "b26e2b54008ab6970c0aa7d02cfb3e355462b0d8e7ff946d2232258acade46c9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/impl-attempt-001.json`  \n**Requirement:** R9  \n**Issue:** This file uses `summary`, while `spec-attempt-001.json` and `test-attempt-001.json` use `counts` for the same concept. The inconsistency makes consumers branch by phase unnecessarily.  \n**Suggestion:** Standardize on one field name, preferably `counts`, across review-history JSON artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#b26e2b54008ab6970c0aa7d02cfb3e355462b0d8e7ff946d2232258acade46c9"
+      ]
+    },
+    {
+      "findingId": "0e3f24200bc441e8c467cd6a1e00254a553e1ae0fae478a9ae78e8eee4fad79b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-001.json`  \n**Requirement:** R9  \n**Issue:** The same finding data is represented twice: once in `blockingFindings` / `advisoryFindings`, and again in the flattened `findings` array. Several records also repeat the same `findingId` / `fingerprint`, increasing drift risk between projections.  \n**Suggestion:** Keep one canonical findings collection and derive grouped blocking/advisory views when rendering or consuming the artifact, or store only lightweight references in grouped sections.",
+      "evidenceRefs": [
+        "impl-review.json#0e3f24200bc441e8c467cd6a1e00254a553e1ae0fae478a9ae78e8eee4fad79b"
+      ]
+    },
+    {
+      "findingId": "18498a2957797f44e4da15e016746950607d6d764977d5b0320957c55d69ccc2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/spec-attempt-001.md`  \n**Requirement:** R9  \n**Issue:** The file is missing a trailing newline, which is inconsistent with the other generated Markdown artifacts and can create noisy diffs.  \n**Suggestion:** Ensure the renderer always terminates generated Markdown files with a newline.",
+      "evidenceRefs": [
+        "impl-review.json#18498a2957797f44e4da15e016746950607d6d764977d5b0320957c55d69ccc2"
+      ]
+    },
+    {
+      "findingId": "e8ddfc6a078b56b128bcb63140ad1579b2deced462e609b445f535ebd8ebd76f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/spec-review.md`  \n**Requirement:** R9  \n**Issue:** The file is missing a trailing newline, which is inconsistent with the other generated Markdown artifacts and can create noisy diffs.  \n**Suggestion:** Ensure the renderer always terminates generated Markdown files with a newline.",
+      "evidenceRefs": [
+        "impl-review.json#e8ddfc6a078b56b128bcb63140ad1579b2deced462e609b445f535ebd8ebd76f"
+      ]
+    },
+    {
+      "findingId": "9ce8a1729e703a37710dc0a345e9e2ebcdfeef20c1130e3cca8e367135c841eb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-002.json`\n**Requirement:** R1\n**Issue:** Each finding is represented twice: once in `blockingFindings`/`advisoryFindings` and again in the flattened `findings` array, with duplicated titles, fingerprints, rationale, and issue text. This creates drift risk and makes generated history artifacts larger than needed.\n**Suggestion:** Persist one canonical findings list and derive grouped blocking/advisory views when rendering, or store only lightweight grouped references such as finding IDs.",
+      "evidenceRefs": [
+        "impl-review.json#9ce8a1729e703a37710dc0a345e9e2ebcdfeef20c1130e3cca8e367135c841eb"
+      ]
+    },
+    {
+      "findingId": "9a6afc6846307c98cb6e78df58c199230fe2c1bbeac56ba2c83c3ec935b3f216",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.json`\n**Requirement:** R1\n**Issue:** The same duplicated structure appears here: full finding records are repeated in both `blockingFindings` and `findings`.\n**Suggestion:** Use the same single-source representation as `test-attempt-002.json`, keeping either the grouped arrays or the flat array but not both as full copies.",
+      "evidenceRefs": [
+        "impl-review.json#9a6afc6846307c98cb6e78df58c199230fe2c1bbeac56ba2c83c3ec935b3f216"
+      ]
+    },
+    {
+      "findingId": "8f4d209a1c23e639c1e67ffd13f29883b800faf6e0681d525ee67caabde1baa7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-004.json`\n**Requirement:** R1\n**Issue:** Even with one finding, the artifact stores the same finding details twice. This is unnecessary duplication and can become inconsistent if one copy is updated manually or by a follow-up generator change.\n**Suggestion:** Store the finding once and derive the alternate grouping from `severity`/`kind`.",
+      "evidenceRefs": [
+        "impl-review.json#8f4d209a1c23e639c1e67ffd13f29883b800faf6e0681d525ee67caabde1baa7"
+      ]
+    },
+    {
+      "findingId": "dea92902105c2a3d18ca2c328281a4c37abb31c7cfc1df851a04afb877ea4268",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.md`\n**Requirement:** R1\n**Issue:** The Markdown files repeat a fixed template that is already represented structurally in the paired JSON artifact. Maintaining both as independent full outputs creates duplication across formats.\n**Suggestion:** Treat Markdown as a generated projection from the JSON artifact, and ensure the generator owns formatting consistently. If both files must be committed, add a generated-file marker or generation metadata so reviewers do not treat the Markdown as hand-maintained source.",
+      "evidenceRefs": [
+        "impl-review.json#dea92902105c2a3d18ca2c328281a4c37abb31c7cfc1df851a04afb877ea4268"
+      ]
+    },
+    {
+      "findingId": "0b3f40b2c4adbd7c81945c01b4c5547fd1cdd8cad5291421538eadd333b0e7a6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-003.md`\n**Requirement:** R1\n**Issue:** The file has no trailing newline, which is inconsistent with normal text-file conventions and with `test-attempt-002.md`.\n**Suggestion:** End the file with a newline.",
+      "evidenceRefs": [
+        "impl-review.json#0b3f40b2c4adbd7c81945c01b4c5547fd1cdd8cad5291421538eadd333b0e7a6"
+      ]
+    },
+    {
+      "findingId": "c5104bc10f1c3d9c0c5aa7b0c4813d11f9283aeb71bdaadf6bcdbfe20f4a998a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-004.md`\n**Requirement:** R1\n**Issue:** The file has no trailing newline, creating avoidable formatting churn in generated review history.\n**Suggestion:** End the file with a newline.",
+      "evidenceRefs": [
+        "impl-review.json#c5104bc10f1c3d9c0c5aa7b0c4813d11f9283aeb71bdaadf6bcdbfe20f4a998a"
+      ]
+    },
+    {
+      "findingId": "ec7a3f82d831dc4bde3f9926cf6df8b515412d0541acd1e1acadcbcb7c1a9a0f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.json`\n**Requirement:** R9\n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and flattened `id` even though they describe different missing coverage areas. Downstream deduplication could collapse one finding and hide one required test gap.\n**Suggestion:** Generate separate stable identifiers for the stale target tree execution guard finding and the completed-review idempotence finding.",
+      "evidenceRefs": [
+        "impl-review.json#ec7a3f82d831dc4bde3f9926cf6df8b515412d0541acd1e1acadcbcb7c1a9a0f"
+      ]
+    },
+    {
+      "findingId": "5e84563f379f422fa1b52dfcc378ed4f9e921960879497ec3c0bf943d92642b1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.json`\n**Requirement:** R9\n**Issue:** The same findings are stored twice: once in `blockingFindings` and again in `findings`, duplicating title, rationale, issue/body, fingerprint, and disposition data.\n**Suggestion:** Keep one canonical findings collection and derive grouped blocking/advisory views when rendering, or make grouped arrays lightweight references by `findingId`.",
+      "evidenceRefs": [
+        "impl-review.json#5e84563f379f422fa1b52dfcc378ed4f9e921960879497ec3c0bf943d92642b1"
+      ]
+    },
+    {
+      "findingId": "33bd1a03f0920a29d53e2b2a7dcdc9d5c7e54f5e83b899c7f204162cd0c98f31",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-005.md`\n**Requirement:** R9\n**Issue:** The Markdown artifact ends without a trailing newline, creating avoidable formatting churn and inconsistent generated text-file output.\n**Suggestion:** Ensure this file, and the generator that writes review-history Markdown, always terminates output with a newline.",
+      "evidenceRefs": [
+        "impl-review.json#33bd1a03f0920a29d53e2b2a7dcdc9d5c7e54f5e83b899c7f204162cd0c98f31"
+      ]
+    },
+    {
+      "findingId": "fb0a4f5e32b173d6dcf0e297362b297ede15722dd7254e6c6542c05f8ffd4277",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review.md`\n**Requirement:** R9\n**Issue:** The diff shows two new-file versions for the same canonical review artifact: one large `ADVISORY` result and a later `PASS` result. This makes it unclear which review result is authoritative.\n**Suggestion:** Commit only the final canonical `review.md` content. If the earlier review is useful, store it under an attempt-specific review-history path.",
+      "evidenceRefs": [
+        "impl-review.json#fb0a4f5e32b173d6dcf0e297362b297ede15722dd7254e6c6542c05f8ffd4277"
+      ]
+    },
+    {
+      "findingId": "3455e1e914bf7df18c35ca682e68eb5cee2d5dbdc9f47c15a310a3b12e62b8d6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/scenario-validity-result.json`\n**Requirement:** R9\n**Issue:** `process.exitCode` is `1` and every requirement is classified as `expected_fail`, but the top-level `result` is `\"pass\"`. The field name conflates scenario-validity success with command execution failure.\n**Suggestion:** Split this into clearer fields such as `scenarioResult: \"pass\"` and `commandResult: \"fail\"`, or use a more explicit value like `\"expected_failures_observed\"`.",
+      "evidenceRefs": [
+        "impl-review.json#3455e1e914bf7df18c35ca682e68eb5cee2d5dbdc9f47c15a310a3b12e62b8d6"
+      ]
+    },
+    {
+      "findingId": "ee3112fbe6345739671d34c6d9fd69a9ead227b4a7bfe3ba57062aa8545a99b6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/scenario-validity-result.json`\n**Requirement:** R9\n**Issue:** The same long `command` value is repeated at the top level and inside every `summary[*].evidence`, increasing artifact size and drift risk.\n**Suggestion:** Store the command once at the top level and have each evidence entry refer to it implicitly or through a short `commandRef`.",
+      "evidenceRefs": [
+        "impl-review.json#ee3112fbe6345739671d34c6d9fd69a9ead227b4a7bfe3ba57062aa8545a99b6"
+      ]
+    },
+    {
+      "findingId": "01eb583f74864132520fe70d8f6d58b0187941f21183ee96aeb3028bcdf9d5e1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/spec.json`\n**Requirement:** R1\n**Issue:** `overview.modules` lists `src/flow/lib/review-convergence.js` twice with overlapping ownership descriptions.\n**Suggestion:** Merge the two entries into one complete description, preserving `added_by_task` only if workflow metadata requires it.",
+      "evidenceRefs": [
+        "impl-review.json#01eb583f74864132520fe70d8f6d58b0187941f21183ee96aeb3028bcdf9d5e1"
+      ]
+    },
+    {
+      "findingId": "e0d1b17486dc63fe0290ae58b9124356bb3c67985bb4a800a9fdec16d5b834cd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/spec.md`  \n**Requirement:** R1  \n**Issue:** `src/flow/lib/review-convergence.js` is listed twice under `### Modules` with overlapping ownership descriptions.  \n**Suggestion:** Merge the two bullets into one complete description covering dispositions, tooling outcomes, evidence identity, findings, convergence state, attempts, and permitted operations.",
+      "evidenceRefs": [
+        "impl-review.json#e0d1b17486dc63fe0290ae58b9124356bb3c67985bb4a800a9fdec16d5b834cd"
+      ]
+    },
+    {
+      "findingId": "fe3f658695e446529931b7f3bf907aec2072d6a24b6a8178c4e2f4bd9e168031",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/spec.md`  \n**Requirement:** R9  \n**Issue:** `## Implementation Targets` contains only `-`, and `## Open Questions` contains only `- [ ]`. These are dead placeholders that add noise and can be mistaken for unfinished required content.  \n**Suggestion:** Either remove these sections or replace them with explicit content such as `None` if the renderer/project convention requires the headings.",
+      "evidenceRefs": [
+        "impl-review.json#fe3f658695e446529931b7f3bf907aec2072d6a24b6a8178c4e2f4bd9e168031"
+      ]
+    },
+    {
+      "findingId": "9165593ebc2cefedd2995696490ffddb9b38e0f9b3e95d355733a01816ba1f45",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/task-impl-gate-source.json`  \n**Requirement:** R9  \n**Issue:** The same guardrail failure text and metadata are duplicated across `evaluations[].observations[]` and top-level `observations[]`, with separate fingerprints for essentially the same finding. This increases drift risk in generated review artifacts.  \n**Suggestion:** Prefer a single canonical observation record referenced from evaluations, or keep the detailed payload in one place and use a lightweight reference in the other.",
+      "evidenceRefs": [
+        "impl-review.json#9165593ebc2cefedd2995696490ffddb9b38e0f9b3e95d355733a01816ba1f45"
+      ]
+    },
+    {
+      "findingId": "8e08d9cb1c8f09692acc659d8343448c867d21adf8fa9e82cb00306c4c674d62",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/tasks/T-5.md`\n**Requirement:** R3\n**Issue:** The task file is marked auto-generated and contains only rendered spec metadata. Keeping generated task projections in a behavior review change set adds maintenance surface without implementation value.\n**Suggestion:** Prefer committing the source `spec.json` task definition and regenerate `tasks/T-5.md` during the flow, unless this repository intentionally versions rendered task projections.",
+      "evidenceRefs": [
+        "impl-review.json#8e08d9cb1c8f09692acc659d8343448c867d21adf8fa9e82cb00306c4c674d62"
+      ]
+    },
+    {
+      "findingId": "b9d02de464f8166750c728026ce0f6ae71f517be489f59da12c3fd59044d824f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/tasks/T-6.md`\n**Requirement:** R9\n**Issue:** Like `T-5.md`, this is an auto-generated projection. It duplicates task data that should be owned by the spec source and can drift if edited or regenerated independently.\n**Suggestion:** Keep the canonical task content in the spec source and exclude the rendered task markdown from this change, or document that rendered task files are committed artifacts and must not be manually reviewed as source.",
+      "evidenceRefs": [
+        "impl-review.json#b9d02de464f8166750c728026ce0f6ae71f517be489f59da12c3fd59044d824f"
+      ]
+    },
+    {
+      "findingId": "2fc7669100c41860c2d7a034549f04e714511445292a80a933d7b15f715dfe31",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/test-coverage.json`\n**Requirement:** R9\n**Issue:** Every requirement is marked `\"status\": \"covered\"` while `test-review.json` rejects the test review for missing R2/R3 executable coverage. The name reads like final coverage truth, but the surrounding artifacts contradict it.\n**Suggestion:** Rename or split the field so it distinguishes “header/test name observed” from “acceptance coverage satisfied”, for example `observedStatus: \"observed\"` plus a separate review verdict artifact.",
+      "evidenceRefs": [
+        "impl-review.json#2fc7669100c41860c2d7a034549f04e714511445292a80a933d7b15f715dfe31"
+      ]
+    },
+    {
+      "findingId": "c66298ddaf428f1d7982b94893a64dfc0e5aa889951b1eec2865457f96a50282",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/test-review.json`\n**Requirement:** R2\n**Issue:** `generatedAt` is a fixed wall-clock timestamp in a committed generated artifact. If this file is used as fixture evidence, the timestamp adds churn without helping validate review identity or behavior.\n**Suggestion:** Either omit `generatedAt` from the committed fixture or use a deterministic fixture timestamp such as a documented constant.",
+      "evidenceRefs": [
+        "impl-review.json#c66298ddaf428f1d7982b94893a64dfc0e5aa889951b1eec2865457f96a50282"
+      ]
+    },
+    {
+      "findingId": "b23aedd1a2d8c59d0c4455a9cb3184105835c541b381b43acbd1950d47cdee8c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/test-review.md`\n**Requirement:** R2\n**Issue:** The markdown file repeats the same finding titles, issues, required changes, and rationale already stored in `test-review.json`. This risks drift between the machine-readable and human-readable review artifacts.\n**Suggestion:** Treat `test-review.json` as the canonical source and generate `test-review.md` from it, or remove the markdown artifact if the flow can render human-readable output on demand.",
+      "evidenceRefs": [
+        "impl-review.json#b23aedd1a2d8c59d0c4455a9cb3184105835c541b381b43acbd1950d47cdee8c"
+      ]
+    },
+    {
+      "findingId": "c7e69e9287bec95a45c6be99421516e61c915e98a02c0c2c7009aaf63f5de901",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/tests/.raw/scenario-validity.log`\n**Requirement:** R9\n**Issue:** The committed raw log is 3,510 lines of transient TAP output, duplicated stack traces, and large pasted source excerpts. This is generated evidence rather than maintainable source, and it creates noisy diffs with little review value.\n**Suggestion:** Replace this with the structured result artifact already present in the spec, or commit only a bounded summarized fixture containing command, exit code, failing test names, and requirement IDs.",
+      "evidenceRefs": [
+        "impl-review.json#c7e69e9287bec95a45c6be99421516e61c915e98a02c0c2c7009aaf63f5de901"
+      ]
+    },
+    {
+      "findingId": "fa14c938a94bcc9c42680ccaebdd26d4b2b00ae0043a432d1967850242db9434",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/tests/review-action-resolution.test.js`  \n**Requirement:** R9  \n**Issue:** Multiple tests repeat temp directory cleanup, flow manager creation, and `impl-review` flow setup.  \n**Suggestion:** Add a local `createReviewFlowFixture(t, { runId })` helper returning `{ tmp, manager }`, then use it in the persistence and public projection tests.",
+      "evidenceRefs": [
+        "impl-review.json#fa14c938a94bcc9c42680ccaebdd26d4b2b00ae0043a432d1967850242db9434"
+      ]
+    },
+    {
+      "findingId": "7ba2b137a8469d009df04397b40edf5651875cde850a8724112726298be6a2eb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R4  \n**Issue:** Tooling outcome construction repeats stage mapping and permission detection in `toolingFailureResult()` and `buildToolingFailureReview()`, with similar logging stage derivation later in `runTestReview()`.  \n**Suggestion:** Add small helpers such as `isPermissionRelated(message)`, `stageFromImplFailureKind(kind)`, and `stageFromTestReviewKind(kind)`, then use them everywhere a `ReviewToolingOutcome` or tooling log line is built.",
+      "evidenceRefs": [
+        "impl-review.json#7ba2b137a8469d009df04397b40edf5651875cde850a8724112726298be6a2eb"
+      ]
+    },
+    {
+      "findingId": "5260a40d775b607aa2af35db81a873645ac7f2298b0bf3f46e312dbc0b608e6c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/definition.js`  \n**Requirement:** R7  \n**Issue:** `\"PASS\"`, `\"ADVISORY\"`, and `\"REJECTED\"` are repeated across lifecycle branches, including an inline array in `resolveDraftReviewLifecycle()`. This makes future migration cleanup easy to miss.  \n**Suggestion:** Introduce local constants like `PASS_VERDICT`, `ADVISORY_VERDICT`, `REJECTED_VERDICT`, and `REVIEW_DISPOSITION_VERDICTS`, then use them throughout this file.",
+      "evidenceRefs": [
+        "impl-review.json#5260a40d775b607aa2af35db81a873645ac7f2298b0bf3f46e312dbc0b608e6c"
+      ]
+    },
+    {
+      "findingId": "96f1bd0b279aa000dcf672ac22d39fb617ef211fdd4c8e635ccf200573c5e0e0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/tests/review-execution-regression.test.js`  \n**Requirement:** R9  \n**Issue:** `directorySnapshot()` uses `fs.readdirSync(dir, { recursive: true })` and reads every file under the directory without an explicit entry or byte bound. This violates the bounded-resource-usage guardrail even in tests.  \n**Suggestion:** Add explicit caps, for example `maxEntries` and `maxBytesPerFile`, and fail the test if the snapshot exceeds those limits.",
+      "evidenceRefs": [
+        "impl-review.json#96f1bd0b279aa000dcf672ac22d39fb617ef211fdd4c8e635ccf200573c5e0e0"
+      ]
+    },
+    {
+      "findingId": "5834428ea6fe32b88cd998fd860221bed197bb7488934095615e10b192d1a831",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/tests/review-execution-regression.test.js`  \n**Requirement:** R9  \n**Issue:** Several tests repeat the same temp directory, flow manager, `moveFlowToStep(makeFlowState(...), \"impl-review\")`, and pipeline construction pattern.  \n**Suggestion:** Add a helper like `createPipelineFixture(t, { runId, boundaries })` returning `{ tmp, manager, pipeline }`, and reuse it in the tooling failure, stale tree, completed-once, and telemetry tests.",
+      "evidenceRefs": [
+        "impl-review.json#5834428ea6fe32b88cd998fd860221bed197bb7488934095615e10b192d1a831"
+      ]
+    },
+    {
+      "findingId": "e4e1531f382f2494fbff9757add42030afd9e49e6cce0cddda11c0e8b99934ac",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js`  \n**Requirement:** R9  \n**Issue:** `createCliFixture()` manually marks every task and step as done with nested loops. That setup detail is noisy and distracts from the fixture’s purpose.  \n**Suggestion:** Extract `markAllTasksDone(state)` or `createCompletedReviewState(...)` inside this file and call it from `createCliFixture()`.",
+      "evidenceRefs": [
+        "impl-review.json#e4e1531f382f2494fbff9757add42030afd9e49e6cce0cddda11c0e8b99934ac"
+      ]
+    },
+    {
+      "findingId": "a5b4c43381530341be6cf0c9e57c6d853e8b875ac467f785252fd1f5598dd323",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R3  \n**Issue:** `latestReviewConvergenceRecords()` and `reviewHandoffFindings()` process every `flowState.reviewConvergence.records` entry and every `handoffFindings` entry without an explicit count bound. This violates the `bounded-resource-usage` guardrail for bulk data loading/processing.  \n**Suggestion:** Add explicit caps for records and handoff findings, preferably named constants near the helper, and throw a mechanical blocker or validation error when exceeded.",
+      "evidenceRefs": [
+        "impl-review.json#a5b4c43381530341be6cf0c9e57c6d853e8b875ac467f785252fd1f5598dd323"
+      ]
+    },
+    {
+      "findingId": "0e68b981aa6af8bcdc4bc4d5cdfcd7d3de30444fcc0c0f01d8e6a4204cc4215e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R3  \n**Issue:** `canonicalReviewSourceMatches()` reads the whole canonical evidence file with `fs.readFileSync(sourcePath)` and then parses/stringifies derived content. There is no maximum file size, so malformed or unexpectedly large artifacts can cause unbounded memory use.  \n**Suggestion:** Check `sourceStat.size` against a named maximum before reading. Reuse the project’s existing bounded artifact-reading pattern if available in this file, or add a local constant such as `MAX_CANONICAL_REVIEW_EVIDENCE_BYTES`.",
+      "evidenceRefs": [
+        "impl-review.json#0e68b981aa6af8bcdc4bc4d5cdfcd7d3de30444fcc0c0f01d8e6a4204cc4215e"
+      ]
+    },
+    {
+      "findingId": "d0ec578ae78327a028ba22465ca19b404840b93cf026bb0e9ad0ace1bc072e7e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/flow-findings.js`  \n**Requirement:** R3  \n**Issue:** `buildDeferredFindingsSummary()` duplicates the “latest review convergence record by phase/task” logic added in `acceptance-review-artifacts.js`. The key construction `${record.phase}:${record.taskId ?? \"\"}` is now repeated, making future behavior drift likely.  \n**Suggestion:** Extract a small shared helper within a touched module boundary, or mirror a single local helper name and implementation consistently across both touched files. At minimum, introduce a named helper in this file so the keying rule is isolated.",
+      "evidenceRefs": [
+        "impl-review.json#d0ec578ae78327a028ba22465ca19b404840b93cf026bb0e9ad0ace1bc072e7e"
+      ]
+    },
+    {
+      "findingId": "f55d430fef663492c5f3b6d848fb829e64a29436d811be38f377221b19778eb6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/flow-findings.js`  \n**Requirement:** R3  \n**Issue:** This file defaults handoff source steps to `\"review\"`, while `acceptance-review-artifacts.js` derives them as `finding.sourceStep || (record.taskId == null ? `${record.phase}-review` : \"task-review\")`. That inconsistency can make summary counts disagree with acceptance artifacts for the same handoff findings.  \n**Suggestion:** Use the same source-step derivation rule in both files, preferably via a helper such as `reviewHandoffSourceStep(record, finding)`.",
+      "evidenceRefs": [
+        "impl-review.json#f55d430fef663492c5f3b6d848fb829e64a29436d811be38f377221b19778eb6"
+      ]
+    },
+    {
+      "findingId": "eaf796e33546ae86e6dfc9a71d61e94c48db08855a5ee1a43d014221f57361f2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/flow-judgment-contract.js`  \n**Requirement:** R7  \n**Issue:** The migration from `\"FAIL\"` to `\"REJECTED\"` leaves the verdict literal repeated across touched files. This is small now, but verdict names are part of the flow contract and repeated strings make future migrations error-prone.  \n**Suggestion:** Introduce a local constant such as `const REVIEW_REJECTED_VERDICT = \"REJECTED\";` in touched files with multiple references, or use an existing verdict constant if one exists within the touched file set.",
+      "evidenceRefs": [
+        "impl-review.json#eaf796e33546ae86e6dfc9a71d61e94c48db08855a5ee1a43d014221f57361f2"
+      ]
+    },
+    {
+      "findingId": "e7b4086f37e7e4f9d15a20d041e3f774ba37e1d92c48b1f5cd57bc59e90eda5d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-status.js`  \n**Requirement:** R6  \n**Issue:** `resolveActiveStepMaxAttempts()` is no longer used after review recovery switched from `reviewStop`/`retryRecovery` to `reviewAction`. Keeping it also preserves an import dependency on `resolveMaxAttempts` that appears unnecessary in this file.  \n**Suggestion:** Delete `resolveActiveStepMaxAttempts()` and remove the unused `resolveMaxAttempts` import if no other local usage remains.",
+      "evidenceRefs": [
+        "impl-review.json#e7b4086f37e7e4f9d15a20d041e3f774ba37e1d92c48b1f5cd57bc59e90eda5d"
+      ]
+    },
+    {
+      "findingId": "f03f674f3267cf432e10a5ab05b5f9ee1f9e4afda93395f577eb885a2220ed89",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `semanticMaxAttempts()` and `toolingMaxAttempts()` duplicate the same scope/stepId resolution logic for phase/task review targets. This makes future phase routing changes easy to apply inconsistently.  \n**Suggestion:** Extract a helper such as `reviewStepTargetFor(phase, taskId)` returning `{ scope, stepId }`, then reuse it from both functions.",
+      "evidenceRefs": [
+        "impl-review.json#f03f674f3267cf432e10a5ab05b5f9ee1f9e4afda93395f577eb885a2220ed89"
+      ]
+    },
+    {
+      "findingId": "1e45733e12944eafbbf169bfc76af2494dda882d266a281a0a02b488612d35a1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R2  \n**Issue:** `stableStringify()` and `deepFreeze()` recurse through caller-provided evidence structures without an explicit depth bound. The byte and finding-count limits help total size, but a deeply nested JSON object under 1 MB can still cause excessive recursion or stack overflow. This violates the `bounded-resource-usage` guardrail.  \n**Suggestion:** Add an explicit maximum depth parameter to recursive helpers, for example `MAX_REVIEW_EVIDENCE_DEPTH`, and throw a validation error when exceeded.",
+      "evidenceRefs": [
+        "impl-review.json#1e45733e12944eafbbf169bfc76af2494dda882d266a281a0a02b488612d35a1"
+      ]
+    },
+    {
+      "findingId": "2d2299a151ec45475b7279ebfb2d5f721ce21d4361e5de50d1eaff866bb90755",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** `resolveReviewActionForFlowState()` filters all convergence records and then selects the last match. `convergenceRecords()` accepts the persisted array without an explicit maximum, so status/next-action projection can do unbounded bulk processing.  \n**Suggestion:** Introduce a maximum convergence-record count or store records in a bounded per-target form. If the array is retained, validate/truncate/reject above a named limit before scanning.",
+      "evidenceRefs": [
+        "impl-review.json#2d2299a151ec45475b7279ebfb2d5f721ce21d4361e5de50d1eaff866bb90755"
+      ]
+    },
+    {
+      "findingId": "a62cf532d5bd2190cbcbd7d6d19fbe089f68e008279f0d68a829ef069a63d521",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R5  \n**Issue:** `sameRevision(left, right)` only returns `left === right`, adding a named abstraction without encoding domain behavior. It makes the CAS check look more meaningful than it currently is.  \n**Suggestion:** Inline the identity comparison or replace it with a domain-specific check that actually compares a revision/digest value if one exists in the flow-state model.",
+      "evidenceRefs": [
+        "impl-review.json#a62cf532d5bd2190cbcbd7d6d19fbe089f68e008279f0d68a829ef069a63d521"
+      ]
+    },
+    {
+      "findingId": "a782f7f255bba4d359a061deec2cdf284ab6d06fcdff11a21726bbb082c99861",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R7  \n**Issue:** `\"PASS\"`, `\"ADVISORY\"`, and `\"REJECTED\"` are repeated directly in validation logic and messages. The new review domain already defines canonical dispositions, so this file now has duplicated verdict knowledge.  \n**Suggestion:** Add a local constant such as `const REVIEW_VERDICTS = [\"PASS\", \"ADVISORY\", \"REJECTED\"];` and reuse it for validation and error text, or import a canonical exported list if available from the touched review module.",
+      "evidenceRefs": [
+        "impl-review.json#a782f7f255bba4d359a061deec2cdf284ab6d06fcdff11a21726bbb082c99861"
+      ]
+    },
+    {
+      "findingId": "0337cbe448fa26d3f9d4d1d2406347af4430297be3f9b3c6947413d41f153ba0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** The draft/test/spec branches repeat the same pattern: parse output, persist canonical review result, then return. This adds duplication and makes future routing changes easier to miss.  \n**Suggestion:** Add a small helper such as `parseAndPersistReviewResult(parser, res, stdout, stderr, reviewCtx, phase, revision)` or a parser map for non-impl phases, then route through that shared path.",
+      "evidenceRefs": [
+        "impl-review.json#0337cbe448fa26d3f9d4d1d2406347af4430297be3f9b3c6947413d41f153ba0"
+      ]
+    },
+    {
+      "findingId": "a05f4affd85685279d52d38b31b9a9c76e9ba015c97f7ab1057b404348fb61bb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R4  \n**Issue:** The schema failure and immediate block branches both build an `Envelope.fail`, then conditionally merge `reviewAction` into `envelope.data`. The same pattern appears twice with only message text differing.  \n**Suggestion:** Extract a helper like `withCanonicalReviewAction(envelope, canonicalTooling)` or `toolingFailureEnvelope(...)` so TOOLING_ERROR response shaping stays consistent.",
+      "evidenceRefs": [
+        "impl-review.json#a05f4affd85685279d52d38b31b9a9c76e9ba015c97f7ab1057b404348fb61bb"
+      ]
+    },
+    {
+      "findingId": "049551b01dceb7142dfa5c0dd1aa0f86f2e806e191bbdf930719bd398b5268f9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R8  \n**Issue:** Permission-related detection is implemented more than once using `/permission|EACCES|EPERM|sandbox/i`, including in `parseToolingOutcome`, `persistCanonicalToolingOutcome`, and `permissionRelatedFailure`.  \n**Suggestion:** Reuse `permissionRelatedFailure(...)` everywhere, or rename it to `isPermissionRelatedFailureText(...)` and make all ReviewToolingOutcome construction call that helper.",
+      "evidenceRefs": [
+        "impl-review.json#049551b01dceb7142dfa5c0dd1aa0f86f2e806e191bbdf930719bd398b5268f9"
+      ]
+    },
+    {
+      "findingId": "d78156046446a25a0299a7a71e0b4c5d1ee0140792ae51309c616f25ce5829aa",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** `persistCanonicalToolingFailure` and `#persistToolingFailure` still use “Failure” terminology while the migration introduces `TOOLING_ERROR` / `ReviewToolingOutcome`. This keeps legacy wording in the new design surface.  \n**Suggestion:** Rename them to `persistCanonicalToolingOutcomeResult` and `#persistToolingOutcome`, or similar, so names align with the new model and avoid reintroducing TOOLING_FAILURE concepts.",
+      "evidenceRefs": [
+        "impl-review.json#d78156046446a25a0299a7a71e0b4c5d1ee0140792ae51309c616f25ce5829aa"
+      ]
+    },
+    {
+      "findingId": "ab1054d742d951795eeb98547a29d784a97bb2797afefb7bca86b9e721156260",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R6  \n**Issue:** `unchangedReviewConvergenceTarget` builds a full `matching` array just to use the last matching record. That does unnecessary bulk allocation over `reviewConvergence.records`.  \n**Suggestion:** Iterate backward with `findLast` or a reverse loop and stop at the first matching record. This is simpler and avoids loading all matches.",
+      "evidenceRefs": [
+        "impl-review.json#ab1054d742d951795eeb98547a29d784a97bb2797afefb7bca86b9e721156260"
+      ]
+    },
+    {
+      "findingId": "0dfef8b32dbf7fa09e0720e7bef91842e0e1fd57c124d70092cd259f0666d579",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R6  \n**Issue:** `unchangedReviewConvergenceTarget` only considers records where `taskId` is `null`. For task-scoped impl review convergence, the reset identity guard may ignore the active task record.  \n**Suggestion:** Resolve the active node/task in the command and pass `taskId` into `unchangedReviewConvergenceTarget(ctx, phase, taskId)`, matching both phase and task identity.",
+      "evidenceRefs": [
+        "impl-review.json#0dfef8b32dbf7fa09e0720e7bef91842e0e1fd57c124d70092cd259f0666d579"
+      ]
+    },
+    {
+      "findingId": "30b274184d1cd9adcdbc84117f7db35e196b4ee86c3bd8fc166e3ead2b9035c4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R5  \n**Issue:** `currentTreeSha` duplicates the same `runGit([\"rev-parse\", \"HEAD\"])` pattern added in other touched files. This makes error wording and normalization drift likely.  \n**Suggestion:** Extract or reuse a shared local helper from the touched review command path if feasible within this changeset, or at least align the helper naming and error behavior with `resolveCurrentReviewTreeSha`.",
+      "evidenceRefs": [
+        "impl-review.json#30b274184d1cd9adcdbc84117f7db35e196b4ee86c3bd8fc166e3ead2b9035c4"
+      ]
+    },
+    {
+      "findingId": "ae1e505f855f7a2379a20106dfe3853e9bbd7cc76cc6b568957de5bf0ca9e353",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R5  \n**Issue:** `input.toEvidence(target)` is called inside the `flowManager.mutate` callback even though it depends only on already validated input and target. That mixes pure conversion with state mutation.  \n**Suggestion:** Compute `const evidence = input.toEvidence(target)` before `mutate`, pass that value to `registrar.register`, and return it in `toCommandResult`. This makes the CAS mutation block smaller and easier to reason about.",
+      "evidenceRefs": [
+        "impl-review.json#ae1e505f855f7a2379a20106dfe3853e9bbd7cc76cc6b568957de5bf0ca9e353"
+      ]
+    },
+    {
+      "findingId": "b3a665fec969e9c6f71cb17601525010ac66ddafa6cbd364462f51a5ecd6aca3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/prompts/plan/test-review.md`  \n**Requirement:** R7  \n**Issue:** The new `TOOLING_ERROR evidence recovery` section says “Completion overrides do not substitute for canonical review evidence,” but the later bullet still says `TOOLING_ERROR` “must be recovered or explicitly overridden.” That preserves legacy override wording and conflicts with the new `reviewAction` model.  \n**Suggestion:** Replace the later sentence with wording aligned to the new flow, for example: ``TOOLING_ERROR` is non-semantic. It must be resolved through the returned `reviewAction` and does not complete through semantic deferral.`",
+      "evidenceRefs": [
+        "impl-review.json#b3a665fec969e9c6f71cb17601525010ac66ddafa6cbd364462f51a5ecd6aca3"
+      ]
+    },
+    {
+      "findingId": "0c1ca18fb43409f1a52bdfa714398b388da4ffa27d5f955759237b1c2c87a649",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** The updated `test-review` sentence says “Follow the single `reviewAction`,” but does not name the allowed actions while the detailed phase prompt does. This makes the skill guidance less concrete and easier to drift from the canonical prompt.  \n**Suggestion:** Mirror the concise action names from `src/flow/prompts/plan/test-review.md`: `retry_review`, `register_alternative_evidence`, `move_to_acceptance`, and `stop_as_blocker`.",
+      "evidenceRefs": [
+        "impl-review.json#0c1ca18fb43409f1a52bdfa714398b388da4ffa27d5f955759237b1c2c87a649"
+      ]
+    },
+    {
+      "findingId": "27ca03c2cc74b828552b6550136acc6a6d2b6fbe570874316e5df99d18d7c737",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`  \n**Requirement:** R5  \n**Issue:** The new `review-evidence` registry entry repeats the same help assembly pattern used by other guarded `flow set` commands: usage line, blank line, command description, validation notes, and `...FLOW_TARGET_GUARD_HELP_LINES`. As guarded commands grow, this pattern becomes easy to update inconsistently.  \n**Suggestion:** Extract a small helper for guarded help text in this file, such as `targetGuardedHelp(usage, lines)`, and use it for `review-evidence` and nearby guarded `set` commands where the same pattern already exists.",
+      "evidenceRefs": [
+        "impl-review.json#27ca03c2cc74b828552b6550136acc6a6d2b6fbe570874316e5df99d18d7c737"
+      ]
+    },
+    {
+      "findingId": "dd684bdfc69fa4ed13cae52a2f6b619010b2ea6e1c250c59c7df3b3cc14b4b02",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R9  \n**Issue:** The local variable `failedReview` still reflects the old `FAIL` naming while asserting `REJECTED`.  \n**Suggestion:** Rename it to `rejectedReview` so the test name, variable name, and expected verdict use consistent terminology.",
+      "evidenceRefs": [
+        "impl-review.json#dd684bdfc69fa4ed13cae52a2f6b619010b2ea6e1c250c59c7df3b3cc14b4b02"
+      ]
+    },
+    {
+      "findingId": "a1c268767fd94f79f79d82b0d524c39bdd0e6b607b5382c81addb5e8a9f8f150",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R9  \n**Issue:** Multiple tests repeat the same review artifact shape with `verdict: \"REJECTED\"` and a single semantic blocking finding. This makes the test file noisy and raises the chance of inconsistent fixture updates.  \n**Suggestion:** Add a small helper such as `writeRejectedTestReview(fixture, findings = [semanticFinding(\"test-semantic\")])` and use it for the repeated `writeJson(..., \"test-review.json\", { verdict: \"REJECTED\", blockingFindings: ... })` setup.",
+      "evidenceRefs": [
+        "impl-review.json#a1c268767fd94f79f79d82b0d524c39bdd0e6b607b5382c81addb5e8a9f8f150"
+      ]
+    },
+    {
+      "findingId": "6fc1681ea85dfcf2d63c25cfb3064a27c25b8f44fe81209cfcc22255468f377b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/gate-spec-sanity.test.js`  \n**Requirement:** R9  \n**Issue:** The fixture is still named `failReview` even though the verdict terminology changed from `FAIL` to `REJECTED`. The stale name weakens readability and can obscure whether the test is checking legacy or current behavior.  \n**Suggestion:** Rename `failReview` to `rejectedReview` and update its uses in this file.",
+      "evidenceRefs": [
+        "impl-review.json#6fc1681ea85dfcf2d63c25cfb3064a27c25b8f44fe81209cfcc22255468f377b"
+      ]
+    },
+    {
+      "findingId": "d047889c34f5c9b8b9f612449d52b348bb8e32e7fc14d5aeee099a24c53e40a6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R9  \n**Issue:** The same structured `toolingOutcome` object is repeated in multiple assertions/setup blocks. Because it includes several fields, future contract changes will require duplicated edits.  \n**Suggestion:** Extract a local helper or constant, for example `const parserToolingErrorOutcome = Object.freeze({ ... })`, and reuse it in the parse assertion and post-hook artifact setup.",
+      "evidenceRefs": [
+        "impl-review.json#d047889c34f5c9b8b9f612449d52b348bb8e32e7fc14d5aeee099a24c53e40a6"
+      ]
+    },
+    {
+      "findingId": "184dee0a55afeb8728c4a284b67b27b565a879f8658135f9cc6a488ab3f2bf26",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-001.json`\n**Requirement:** R9\n**Issue:** Multiple JSON artifacts duplicate the same finding payloads across grouped arrays such as `blockingFindings` / `advisoryFindings` and flattened `findings`, while gate source artifacts duplicate observations under both evaluation-local and top-level arrays. This creates a cross-file schema drift risk for the same review data model.\n**Suggestion:** Define one canonical finding/observation collection for review artifacts, and make alternate grouped or evaluation views contain only lightweight references such as `findingId`, `fingerprint`, or `observationId`.",
+      "evidenceRefs": [
+        "impl-review.json#184dee0a55afeb8728c4a284b67b27b565a879f8658135f9cc6a488ab3f2bf26"
+      ]
+    },
+    {
+      "findingId": "06dc0b62c2a077f76c4d263f58989dc238d9c6a1a82361c70fbe812a5aae1843",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review-history/impl-attempt-001.json`\n**Requirement:** R9\n**Issue:** `impl-attempt-001.json` uses `summary` for review counts, while `spec-attempt-001.json` and `test-attempt-001.json` use `counts` for the same concept. Consumers must branch by phase even though the artifact family is shared.\n**Suggestion:** Standardize all review-history JSON artifacts on one field name, preferably `counts`, and update generators/readers together.",
+      "evidenceRefs": [
+        "impl-review.json#06dc0b62c2a077f76c4d263f58989dc238d9c6a1a82361c70fbe812a5aae1843"
+      ]
+    },
+    {
+      "findingId": "8b378f241030f4e369fac7f5197bd426f8ad567dd2125a5f4c757fd1cb16082a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/definition.js`\n**Requirement:** R7\n**Issue:** The verdict literals `PASS`, `ADVISORY`, and `REJECTED` are repeated across `src/flow/definition.js`, `src/flow/lib/run-gate.js`, `src/flow/lib/flow-judgment-contract.js`, tests, and prompt/skill text. This makes terminology migrations error-prone, as shown by remaining stale `failReview` / `failedReview` names.\n**Suggestion:** Export or locally centralize canonical review verdict constants where appropriate, and rename stale test fixtures/variables to `rejectedReview` so code, tests, and prompts use the same vocabulary.",
+      "evidenceRefs": [
+        "impl-review.json#8b378f241030f4e369fac7f5197bd426f8ad567dd2125a5f4c757fd1cb16082a"
+      ]
+    },
+    {
+      "findingId": "b4412da0a054c5d3fa4744b7e4635f78c76faf562d419cb1169fd86acb548c40",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/flow-findings.js`\n**Requirement:** R3\n**Issue:** `flow-findings.js` defaults handoff source steps to `\"review\"`, while `acceptance-review-artifacts.js` derives source steps from phase/task context. The same handoff findings can therefore be counted or rendered differently depending on the consumer.\n**Suggestion:** Extract a shared helper such as `reviewHandoffSourceStep(record, finding)` and use it in both files.",
+      "evidenceRefs": [
+        "impl-review.json#b4412da0a054c5d3fa4744b7e4635f78c76faf562d419cb1169fd86acb548c40"
+      ]
+    },
+    {
+      "findingId": "a3c0a4f8df4664594fbcabbe0c4c85b549990297317ee46b2415545ab4140b25",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R7\n**Issue:** Review target identity logic is duplicated across `semanticMaxAttempts()`, `toolingMaxAttempts()`, and retry/reset handling, with one reported path ignoring task-scoped records. This risks inconsistent convergence behavior between status, retry, and review execution.\n**Suggestion:** Introduce a shared `reviewStepTargetFor(phase, taskId)` or equivalent target identity helper and use it anywhere review convergence records are matched or max attempts are resolved.",
+      "evidenceRefs": [
+        "impl-review.json#a3c0a4f8df4664594fbcabbe0c4c85b549990297317ee46b2415545ab4140b25"
+      ]
+    },
+    {
+      "findingId": "216f3cd8935ba49447dc8a8d9ddc68f201ed50f68abb03fd81c29ce25bb8fc77",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`\n**Requirement:** R8\n**Issue:** Tooling outcome construction and permission-related detection are repeated across `run-review.js` and `src/flow/commands/review.js`, while some helper names still use legacy “Failure” terminology despite the new `TOOLING_ERROR` / `ReviewToolingOutcome` model.\n**Suggestion:** Use one helper for permission detection, one helper for tooling outcome construction/envelope decoration, and rename persistence helpers from “Failure” to “Outcome” terminology.",
+      "evidenceRefs": [
+        "impl-review.json#216f3cd8935ba49447dc8a8d9ddc68f201ed50f68abb03fd81c29ce25bb8fc77"
+      ]
+    },
+    {
+      "findingId": "0d84767d2d8815b659a827159e691a482225e0556e7095bdb50814a1a97b344a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R3\n**Issue:** Several files process persisted review data without explicit bounds: convergence records and handoff findings in `acceptance-review-artifacts.js`, convergence record scans in `review-convergence.js`, recursive evidence canonicalization in `review-convergence.js`, issue-log growth, metrics history, and recursive test snapshots.\n**Suggestion:** Define named limits for review records, handoff findings, evidence depth/bytes, metric history, issue-log entries, and snapshot size, then enforce them at read/validation boundaries.",
+      "evidenceRefs": [
+        "impl-review.json#0d84767d2d8815b659a827159e691a482225e0556e7095bdb50814a1a97b344a"
+      ]
+    },
+    {
+      "findingId": "404c913c6dcbf86d47605c8ea4c7ea66cc7687098992b78105e87d0970bc65f3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/review.md`\n**Requirement:** R9\n**Issue:** Several artifact pairs duplicate the same information across JSON and Markdown, and some canonical paths show multiple competing versions such as `review.md` / `impl-review.json` PASS versus ADVISORY outputs. This makes it unclear which file is authoritative.\n**Suggestion:** Treat JSON as the canonical source for machine-readable review results, generate Markdown from it with clear generated metadata, and keep prior attempts only under attempt-specific `review-history/` paths.",
+      "evidenceRefs": [
+        "impl-review.json#404c913c6dcbf86d47605c8ea4c7ea66cc7687098992b78105e87d0970bc65f3"
+      ]
+    },
+    {
+      "findingId": "691b0f92a855627e8d63fcb67bb7b85418f6458869d3c7720a6a4aa6e004e21e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/328-bounded-review-convergence/draft-questions-triage.json`\n**Requirement:** R7\n**Issue:** Empty triage, repair, and PASS review-history artifacts repeat the same structure across multiple files with only phase/source/timestamp differences. This adds review noise and increases generator maintenance.\n**Suggestion:** Generate empty/no-op artifacts from a shared metadata-driven template, or omit committed no-op artifacts when they can be regenerated deterministically.",
+      "evidenceRefs": [
+        "impl-review.json#691b0f92a855627e8d63fcb67bb7b85418f6458869d3c7720a6a4aa6e004e21e"
+      ]
+    }
+  ]
+}

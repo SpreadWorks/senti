@@ -268,16 +268,37 @@ export class FlowManager {
   // ── flow.json (FlowStore) ───────────────────────────────────────────────────
 
   load(specId) {
-    if (this._worktreeBinding) return this.#loadBoundWorktreeState(specId, false);
-    return this._store.load(withSpecIdArgDefault(specId, this._boundSpecId));
+    const state = this._worktreeBinding
+      ? this.#loadBoundWorktreeState(specId, false)
+      : this._store.load(withSpecIdArgDefault(specId, this._boundSpecId));
+    return this.#bindLoadedState(state);
   }
   loadReadOnly(specId) {
-    if (this._worktreeBinding) return this.#loadBoundWorktreeState(specId, true);
-    return this._store.loadReadOnly(withSpecIdArgDefault(specId, this._boundSpecId));
+    const state = this._worktreeBinding
+      ? this.#loadBoundWorktreeState(specId, true)
+      : this._store.loadReadOnly(withSpecIdArgDefault(specId, this._boundSpecId));
+    return this.#bindLoadedState(state);
   }
-  create(state, options) { return this._store.create(state, options); }
+  create(state, options) {
+    const created = this._store.create(state, options);
+    // A non-worktree manager that creates a flow owns that exact target for
+    // the rest of its creation session. This keeps subsequent CAS operations
+    // target-bound without publishing the flow in the shared active registry.
+    // Managed worktrees continue to derive authority from their binding file.
+    if (!this._worktreeBinding && this._boundSpecId == null) {
+      this._boundSpecId = specIdFromPath(state.spec);
+    }
+    return created;
+  }
   saveAtomic(state, options = {}) {
     return this._store.saveAtomic(state, { ...options, boundSpecId: this._boundSpecId });
+  }
+
+  #bindLoadedState(state) {
+    if (state != null && this._boundSpecId == null) {
+      this._boundSpecId = specIdFromPath(state.spec);
+    }
+    return state;
   }
   mutate(mutator, opts) { return this._store.mutate(mutator, withSpecIdDefault(opts, this._boundSpecId)); }
   pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }

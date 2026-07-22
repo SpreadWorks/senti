@@ -20,10 +20,21 @@ import {
   writeAcceptanceReviewArtifact,
 } from "../../../src/flow/lib/acceptance-review-artifacts.js";
 import {
+  AcceptanceResponseBinding,
+  bindAcceptanceResponse,
+  buildDeferredDispositionRepairPrompt,
+  DeferredDispositionCoverage,
+} from "../../../src/flow/lib/run-acceptance-review.js";
+import {
   buildRepairFingerprint,
   writeRepairEvidenceArtifact,
 } from "../../../src/flow/lib/impl-repair-artifacts.js";
 import { readFlowFindingsArtifact } from "../../../src/flow/lib/flow-findings.js";
+import {
+  applyReviewEvidenceTransition,
+  ReviewDisposition,
+  ReviewEvidence,
+} from "../../../src/flow/lib/review-convergence.js";
 import {
   makeDefaultTask,
   makeFlowState,
@@ -202,7 +213,7 @@ function prepareAcceptanceEvidence({ root, specDir, specPath }) {
 test("review retry exhaustion defers semantic findings without prose keyword blocking", () => {
   const fixture = prepareSpecRoot();
   writeJson(fixture.specDir, "test-review.json", {
-    verdict: "FAIL",
+    verdict: "REJECTED",
     blockingFindings: [semanticFinding("test-semantic")],
   });
   const updates = [];
@@ -234,7 +245,7 @@ for (const missingField of ["disposition", "rationale"]) {
     const invalidFinding = semanticFinding("invalid-semantic");
     delete invalidFinding[missingField];
     writeJson(fixture.specDir, "test-review.json", {
-      verdict: "FAIL",
+      verdict: "REJECTED",
       blockingFindings: [invalidFinding],
     });
 
@@ -256,7 +267,7 @@ for (const missingField of ["disposition", "rationale"]) {
 test("review retry exhaustion groups repeated findings by fingerprint", () => {
   const fixture = prepareSpecRoot();
   writeJson(fixture.specDir, "test-review.json", {
-    verdict: "FAIL",
+    verdict: "REJECTED",
     blockingFindings: [
       semanticFinding("repeat-first"),
       semanticFinding("repeat-second"),
@@ -284,7 +295,7 @@ test("review retry exhaustion groups repeated findings by fingerprint", () => {
 test("review retry exhaustion excludes informational findings from deferred work", () => {
   const fixture = prepareSpecRoot();
   writeJson(fixture.specDir, "test-review.json", {
-    verdict: "FAIL",
+    verdict: "REJECTED",
     findings: [
       semanticFinding("must-fix"),
       {
@@ -313,7 +324,7 @@ test("review retry exhaustion excludes informational findings from deferred work
 test("deferred findings remain isolated by flow run", () => {
   const fixture = prepareSpecRoot();
   writeJson(fixture.specDir, "test-review.json", {
-    verdict: "FAIL",
+    verdict: "REJECTED",
     blockingFindings: [semanticFinding("same-finding")],
   });
   const deferForRun = (runId) => checkReviewRetryBelowMax({
@@ -658,7 +669,7 @@ test("gate retry exhaustion remains blocked when must-fix repair evidence is mis
 test("acceptance-review consumes deferred findings and mirrors final disposition", () => {
   const fixture = prepareSpecRoot();
   writeJson(fixture.specDir, "test-review.json", {
-    verdict: "FAIL",
+    verdict: "REJECTED",
     blockingFindings: [semanticFinding("test-semantic")],
   });
   checkReviewRetryBelowMax({
@@ -726,4 +737,183 @@ test("acceptance-review consumes deferred findings and mirrors final disposition
   const missingContext = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
   const missingSource = artifactFromAcceptanceJudgments({ context: missingContext, requirementJudgments: [] });
   assert.equal(missingSource.verdict, "blocked");
+});
+
+test("acceptance-review resolves still-open findings after mechanical source verification", () => {
+  const fixture = prepareSpecRoot();
+  writeJson(fixture.specDir, "test-review.json", {
+    verdict: "REJECTED",
+    blockingFindings: [semanticFinding("test-semantic")],
+  });
+  checkReviewRetryBelowMax({
+    root: fixture.root,
+    flowState: flowStateAt("test-review", {
+      spec: fixture.specPath,
+      metrics: retryMetrics("reviewRetry", "test"),
+    }),
+    flowManager: fakeFlowManager([]),
+  }, "test");
+  prepareAcceptanceEvidence(fixture);
+  const state = {
+    spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
+    request: "Verify the deferred demo requirement.",
+  };
+  const diff = [
+    "diff --git a/src/demo.js b/src/demo.js",
+    "--- a/src/demo.js",
+    "+++ b/src/demo.js",
+    "@@ -1 +1 @@",
+    "-export const demo = false;",
+    "+export const demo = true;",
+    "",
+  ].join("\n");
+  const context = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
+  assert.equal(
+    context.mechanicalBlockers.some((blocker) => blocker.kind === "unresolved_deferred_finding"),
+    false,
+  );
+  assert.equal(context.evidence.deferredFindingEvidence.length, 1);
+  const finding = context.deferredFindings[0];
+  const bound = bindAcceptanceResponse(context, {
+    requirementJudgments: [{
+      requirementId: "R1",
+      status: "met",
+      requestRefs: ["the original request"],
+      requirementRefs: ["R1"],
+      diffRefs: ["src/demo.js"],
+      repairRefs: ["no repair"],
+      testRefs: ["specs/demo/tests/retry-exhaustion.test.js"],
+      missingEvidence: [],
+    }],
+    deferredFindingDispositions: [{
+      findingId: finding.findingId,
+      finalDisposition: "fixed",
+      evidenceRefs: ["source finding"],
+    }],
+  });
+  assert.deepEqual(bound.requirementJudgments[0].requestRefs, ["flow.request"]);
+  assert.deepEqual(bound.requirementJudgments[0].requirementRefs, ["spec.json#R1"]);
+  assert.deepEqual(bound.requirementJudgments[0].repairRefs, ["acceptance:no-repair"]);
+  assert.deepEqual(bound.requirementJudgments[0].diffRefs, [
+    "diff:src/demo.js",
+  ]);
+  assert.deepEqual(bound.requirementJudgments[0].testRefs, [
+    "test-execute-result.json#R1",
+    "test-result-review.json",
+  ]);
+  assert.equal(
+    bound.deferredFindingDispositions[0].evidenceRefs[0],
+    `${finding.sourceArtifact}#${finding.sourceFindingId}`,
+  );
+  const artifact = artifactFromAcceptanceJudgments({
+    context,
+    requirementJudgments: bound.requirementJudgments,
+    deferredFindingDispositions: bound.deferredFindingDispositions,
+  });
+  assert.equal(artifact.verdict, "pass");
+  assert.equal(artifact.deferredFindings[0].finalDisposition, "fixed");
+  assert.deepEqual(artifact.hardBlockers, []);
+});
+
+test("acceptance-review repairs only omitted deferred disposition coverage", () => {
+  const fixture = prepareSpecRoot();
+  writeJson(fixture.specDir, "test-review.json", {
+    verdict: "REJECTED",
+    blockingFindings: [semanticFinding("test-semantic")],
+  });
+  checkReviewRetryBelowMax({
+    root: fixture.root,
+    flowState: flowStateAt("test-review", {
+      spec: fixture.specPath,
+      metrics: retryMetrics("reviewRetry", "test"),
+    }),
+    flowManager: fakeFlowManager([]),
+  }, "test");
+  prepareAcceptanceEvidence(fixture);
+  const context = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state: {
+      spec: fixture.specPath,
+      runId: "run-test",
+      planRewindAt: null,
+      request: "Verify the deferred demo requirement.",
+    },
+    diff: "diff --git a/src/demo.js b/src/demo.js\n+export const demo = true;\n",
+  });
+  const coverage = new DeferredDispositionCoverage(context, []);
+  const [missing] = coverage.missingFindings;
+  const prompt = buildDeferredDispositionRepairPrompt(context, [missing]);
+  assert.match(prompt.userPrompt, new RegExp(missing.findingId));
+  assert.equal(prompt.jsonSchema.properties.deferredFindingDispositions.minItems, 1);
+  assert.equal(prompt.jsonSchema.properties.deferredFindingDispositions.maxItems, 1);
+
+  const sourceRef = `${missing.sourceArtifact}#${missing.sourceFindingId}`;
+  const bound = new AcceptanceResponseBinding(context).bindDeferredFindingDispositions([{
+    findingId: missing.findingId,
+    finalDisposition: "fixed",
+    evidenceRefs: ["invented-label"],
+  }]);
+  coverage.add(bound);
+  assert.deepEqual(coverage.requireComplete(), [{
+    findingId: missing.findingId,
+    finalDisposition: "fixed",
+    evidenceRefs: [sourceRef],
+  }]);
+});
+
+test("canonical typed impl review evidence supersedes only the phase artifact fingerprint", () => {
+  const fixture = prepareSpecRoot();
+  const oldFingerprint = prepareAcceptanceEvidence(fixture);
+  writeFile(fixture.root, "src/demo.js", "export const demo = 'repaired';\n");
+  const currentFingerprint = prepareAcceptanceEvidence(fixture);
+  assert.notEqual(currentFingerprint.hash, oldFingerprint.hash);
+
+  const phaseArtifactPath = path.join(fixture.specDir, "impl-review.json");
+  const phaseArtifact = JSON.parse(fs.readFileSync(phaseArtifactPath, "utf8"));
+  phaseArtifact.repairFingerprint = oldFingerprint.hash;
+  fs.writeFileSync(phaseArtifactPath, JSON.stringify(phaseArtifact, null, 2) + "\n");
+
+  const evidence = new ReviewEvidence({
+    phase: "impl",
+    taskId: null,
+    treeSha: "1".repeat(40),
+    provenance: {
+      provider: "fixture-provider",
+      invocationId: "acceptance-typed-evidence",
+      capturedAt: "2026-07-22T00:00:00.000Z",
+    },
+    disposition: new ReviewDisposition({ value: "PASS" }),
+  });
+  writeFile(
+    fixture.specDir,
+    `review-evidence/${evidence.identity.evidenceDigest}.json`,
+    evidence.canonicalText,
+  );
+  const state = {
+    spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
+    request: "Verify typed review evidence.",
+  };
+  applyReviewEvidenceTransition(state, evidence, { configuredSemanticMaxAttempts: 4 });
+  const diff = [
+    "diff --git a/src/demo.js b/src/demo.js",
+    "--- a/src/demo.js",
+    "+++ b/src/demo.js",
+    "@@ -1 +1 @@",
+    "-export const demo = false;",
+    "+export const demo = 'repaired';",
+    "",
+  ].join("\n");
+  const context = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
+  assert.equal(context.fingerprint.hash, currentFingerprint.hash);
+  assert.equal(context.evidence.reviewEvidence.disposition, "PASS");
+  assert.equal(
+    context.mechanicalBlockers.some((blocker) => (
+      blocker.kind === "invalid_schema" && blocker.summary.includes("impl-review.json")
+    )),
+    false,
+  );
 });

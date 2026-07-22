@@ -1,0 +1,2263 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft states that phase-specific existing review artifacts and acceptance evidence migration mapping will be defined later in the spec, so this draft does not define the required migration parity inventory before implementation.; The draft lists affected areas such as review phases, retry accounting, artifacts, evidence binding, target guard, revision/CAS, and acceptance decisions, but does not inventory the existing public behavior being moved or replaced across user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.; The draft defers the migration correspondence table to the spec and does not map each retained behavior to its new owner or an explicit removal decision.; The validation plan lists fixtures and state checks, but does not define acceptance criteria proving each retained public behavior still works through the new path.; The validation plan does not include at least one behavior-level verification for each retained public surface affected by the migration.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T01:16:43.725Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "decisionMap.deferredToSpec[2]"
+          },
+          "observed": "The draft states that phase-specific existing review artifacts and acceptance evidence migration mapping will be defined later in the spec, so this draft does not define the required migration parity inventory before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft lists affected areas such as review phases, retry accounting, artifacts, evidence binding, target guard, revision/CAS, and acceptance decisions, but does not inventory the existing public behavior being moved or replaced across user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "decisionMap.deferredToSpec[2]"
+          },
+          "observed": "The draft defers the migration correspondence table to the spec and does not map each retained behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The validation plan lists fixtures and state checks, but does not define acceptance criteria proving each retained public behavior still works through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The validation plan does not include at least one behavior-level verification for each retained public surface affected by the migration.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that phase-specific existing review artifacts and acceptance evidence migration mapping will be defined later in the spec, so this draft does not define the required migration parity inventory before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft lists affected areas such as review phases, retry accounting, artifacts, evidence binding, target guard, revision/CAS, and acceptance decisions, but does not inventory the existing public behavior being moved or replaced across user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defers the migration correspondence table to the spec and does not map each retained behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The validation plan lists fixtures and state checks, but does not define acceptance criteria proving each retained public behavior still works through the new path."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The validation plan does not include at least one behavior-level verification for each retained public surface affected by the migration."
+        }
+      ],
+      "issueLogId": "issue-log-1a0d74cc-0671-46c9-9f3b-ae0736d8d2a4"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft が既存 review 公開 surface の migration parity inventory と behavior-level 検証を spec へ先送りしていた",
+      "trigger": "draft gate の migration-parity guardrail が 5 件の blocking observation を返した",
+      "resolution": "commands・APIs・hooks・config・artifacts・state・acceptance side effects の retention、owner、削除判断、検証を draft に追加した",
+      "guardrailCandidate": "既存挙動を置換する draft は公開 surface ごとの owner mapping と behavior-level parity を spec 前に固定する",
+      "taskId": null,
+      "timestamp": "2026-07-22T01:18:32.159Z",
+      "issueLogId": "issue-log-02252a66-45df-4e39-b6ef-2010550ac6e3"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "spec-local tests が未実装 module を直接 import して ERR_MODULE_NOT_FOUND となり expected_fail ではなく invalid_test に分類された",
+      "trigger": "scenario-validity が R1 から R8 を invalid_test として block した",
+      "resolution": "未実装 module の存在と export を node:assert で先に検証し、実装前 failure を AssertionError として分類可能にした",
+      "guardrailCandidate": "plan-phase tests は未実装 target の直接 import error を assertion failure に変換して scenario-validity の expected_fail 契約を守る",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T01:32:50.813Z",
+      "issueLogId": "issue-log-23af8d2a-4015-46a4-b7dd-b2b3e2aa6bb7"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review が duplicate identity の不変 byte 保証、REJECTED 上限前、result-recording failure、PASS fixture の coverage 欠落を検出した",
+      "trigger": "static test-review が 5 blocking findings と 1 advisory finding を返した",
+      "resolution": "duplicate 登録前後の state・artifact byte、semantic retry 残数、result_recording stage、PASS 完了を spec-local tests に追加した",
+      "guardrailCandidate": "review convergence tests は disposition と tooling stage の全 matrix に加えて rejection path の byte 不変性を検証する",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T01:35:02.254Z",
+      "issueLogId": "issue-log-36a7c61e-b7d5-4db7-b82e-83e650ec3b69"
+    },
+    {
+      "step": "test-review",
+      "reason": "2 回目の test review が R2 rejection matrix、R5 CLI execution、R4 persisted budget、R7 behavior-level migration coverage の不足を検出した",
+      "trigger": "static test-review が 4 blocking findings と 1 advisory finding を返した",
+      "resolution": "actual FlowManager persistence、spawned flow CLI、negative boundary matrix、duplicate byte invariance、review CLI help と registry metadata の executable tests を追加した",
+      "guardrailCandidate": "public CLI と persisted convergence state の spec tests は source regex ではなく production dispatch と FlowManager mutation を実行する",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T01:40:14.955Z",
+      "issueLogId": "issue-log-db354d66-7bdc-49b2-9b79-5249b1aa9f6b"
+    },
+    {
+      "step": "test-review",
+      "reason": "3 回目のテストレビューで、R6 の next-action/status 公開投影と R9 の canonical_write 失敗回帰が不足していた",
+      "resolution": "実コマンドクラスによる両公開面の単一 reviewAction・排他的 payload・旧権威フィールド不在を検証し、取得済み ADVISORY の canonical_write 失敗時に evidence 保持・TOOLING_ERROR・代替証拠登録へ遷移する回帰を追加した",
+      "guardrailCandidate": "公開契約を要求する spec ではモデル単体だけでなく各公開面を実行し、書き込みパイプラインの各失敗段階を取得前後に分けて検証する",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T01:44:32.335Z",
+      "issueLogId": "issue-log-a94bb1d1-4201-4239-a9e1-bef67f2fe154"
+    },
+    {
+      "step": "test-review",
+      "reason": "4 回目のテストレビューで、toolingFailure を正規化関数へ直接渡すだけでは実際の review execution boundary を検証していないと判明した",
+      "resolution": "ReviewExecutionPipeline の injected production boundaries を起動・通信・parse・post-hook・canonical write・projection・result recording の各段階で実行して失敗させ、TOOLING_ERROR 永続化、semantic budget 非消費、再実行拒否、状態 byte 不変を検証する統合 fixture を追加した",
+      "guardrailCandidate": "実行機構の failure classification は正規化 unit test に加えて、production orchestrator の injection seam を各段階で発火させる executable test を必須にする",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T01:46:44.189Z",
+      "issueLogId": "issue-log-bf123849-4510-458c-8776-dac39c2552d0"
+    },
+    {
+      "step": "test-review",
+      "reason": "5 回目のテストレビューで provider path の stale tree preflight と completed review exactly-once fixture が不足し、同時に 5 回の semantic FAIL が reviewRetry として計上されず next-action が再レビューを指示し続けた",
+      "resolution": "production ReviewExecutionPipeline で current tree mismatch を provider 起動前に拒否して state/evidence bytes を保持する fixture と、ADVISORY 完了後の同一 target 再実行を provider 起動前に拒否して state bytes を保持する fixture を追加した",
+      "guardrailCandidate": "review execution の target preflight と完了 idempotence は provider start count と durable bytes の両方で検証し、review invocation count と semantic retry counter の不一致を dispatcher が検出する",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T01:49:20.672Z",
+      "issueLogId": "issue-log-388fc60d-844d-4803-9742-d68f07ffbeed"
+    },
+    {
+      "step": "test-review",
+      "reason": "manual defer 前の test-review artifact で異なる 2 finding が同一 findingId/fingerprint を持ち、flow-findings 変換時に 1 件へ重複排除される状態だった",
+      "resolution": "各 finding の意味に基づく別々の SHA-256 identity に修正し、acceptance handoff で 2 件を独立して追跡できるようにした",
+      "guardrailCandidate": "複数 blocking finding の review artifact は findingId と fingerprint の一意性を artifact 書き込み時に検証する",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T01:56:09.809Z",
+      "issueLogId": "issue-log-0507ef3d-bcd3-44c5-a987-7644260b9606"
+    },
+    {
+      "step": "test-review",
+      "reason": "manual defer の標準 retry-exhaustion path が active task cursor を flow-scope test-review transition に誤適用し、unknown transition step で atomic save を拒否した",
+      "resolution": "flow-scope を明示した lifecycle transition と StepAttempt を用い、既存 deferExhaustedSemanticFindings で 2 件を acceptance artifact に保存する手順へ切り替えた",
+      "guardrailCandidate": "flow-scope review retry・defer は currentTaskId の有無に依存せず taskId=null を mutation route と transition factory の両方へ明示する",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T01:58:51.059Z",
+      "issueLogId": "issue-log-b5988783-8e1c-41b8-b76d-dbe9979b6c03"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "review finding readiness: task-scoped implementation review artifact is missing for T-1",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T02:05:51.429Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "review finding readiness: task-scoped implementation review artifact is missing for T-1",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-e8f1718e-8d0f-4dad-9878-c78ca4dffe2e"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: task review の no-diff branch が task-spec context を runImplReview に渡さず、PASS artifact から taskId/target が欠落して task-gate readiness が機械的に失敗した",
+      "resolution": "実行済み task review の PASS artifact と history に guarded current task の taskId=T-1 と target path を補い、task-scoped review evidence として一意に照合できるようにする",
+      "guardrailCandidate": "task review の no-diff branch も通常 persistence path と同じ taskId・target・contract targetStep を保存する",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T02:07:06.902Z",
+      "issueLogId": "issue-log-d5db7ed4-7f4e-4564-8de6-06c6e981c9cc"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added raw test log contains absolute local filesystem paths under `/home/nakano/...`, exposing a user-specific identifier in a log artifact instead of masking or excluding it.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T02:08:06.791Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-sensitive-data-in-logs",
+          "where": {
+            "file": "specs/328-bounded-review-convergence/tests/.raw/scenario-validity.log",
+            "locator": "added TAP stack/location paths"
+          },
+          "observed": "The added raw test log contains absolute local filesystem paths under `/home/nakano/...`, exposing a user-specific identifier in a log artifact instead of masking or excluding it.",
+          "severity": "blocking",
+          "refs": [
+            "no-sensitive-data-in-logs"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-sensitive-data-in-logs",
+          "reason": "The added raw test log contains absolute local filesystem paths under `/home/nakano/...`, exposing a user-specific identifier in a log artifact instead of masking or excluding it."
+        }
+      ],
+      "issueLogId": "issue-log-0ee53288-4afd-4031-a2b7-d512acabd5a9"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: no-sensitive-data-in-logs finding 76ca8a9dffca72536e43c2fcf96491571e91de9068aad6ae3f419c5fbb133e4c が scenario-validity raw log の user-specific absolute path を指摘した",
+      "resolution": "raw log 内の worktree absolute prefix を非識別 placeholder <worktree>/ に一括置換し、/home/nakano と /tmp の残存がないことを確認した",
+      "normalizedFindingId": "76ca8a9dffca72536e43c2fcf96491571e91de9068aad6ae3f419c5fbb133e4c",
+      "repairRef": {
+        "files": [
+          "specs/328-bounded-review-convergence/tests/.raw/scenario-validity.log"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T02:09:18.878Z",
+      "issueLogId": "issue-log-eada2a08-8346-4673-b6d7-f5fae3239bd4"
+    },
+    {
+      "step": "implement",
+      "reason": "After the T-1 task gate passed, flow.json retained currentTaskId T-1 with task status in_progress although every T-1 step was done and T-2 through T-6 remained pending, while guarded next-action routed to flow-level implement instead of promoting T-2.",
+      "trigger": "Post-T-1 implementation state audit",
+      "resolution": "Follow the guarded flow-level implement action and implement the remaining approved task scope together; preserve the task state for the flow gate to audit.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T02:27:12.445Z",
+      "issueLogId": "issue-log-5e1f6aab-ce03-412f-a172-dacce71c0ad3"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Global senti upgrade left the active generated senti.flow skill on the pre-migration review contract.",
+      "trigger": "The impl-review next-action still rendered FAIL after the source skill changed.",
+      "resolution": "Ran node src/senti.js upgrade from the worktree and verified the generated skill uses REJECTED and reviewAction.",
+      "guardrailCandidate": "When developing skill sources, refresh generated skills with the current worktree CLI and verify the generated contract.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:10:23.677Z",
+      "issueLogId": "issue-log-052bd09e-226c-4219-9003-06ed7179a048"
+    },
+    {
+      "step": "impl-review",
+      "reason": "A read-only ripgrep command used unescaped backticks and triggered shell command substitution.",
+      "trigger": "Searching for the legacy impl-review verdict sentence in generated files.",
+      "resolution": "Repeated the search with a single-quoted regular expression so backticks remained literal.",
+      "guardrailCandidate": "Use single-quoted shell arguments whenever search patterns contain Markdown backticks.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:11:16.782Z",
+      "issueLogId": "issue-log-31e39838-4e94-4250-b123-f3851e5109f7"
+    },
+    {
+      "step": "impl-review",
+      "reason": "The senti executable resolved to the main repository source and returned the pre-change review dispatcher contract.",
+      "trigger": "The guarded impl-review next-action still used FAIL although the worktree prompt used REJECTED.",
+      "resolution": "Resolved the executable symlink and switched active-flow commands to node src/senti.js inside the bound worktree.",
+      "guardrailCandidate": "When validating CLI source changes in a worktree, resolve the executable and invoke that worktree's entry point.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:11:35.113Z",
+      "issueLogId": "issue-log-978081df-8cf8-46ff-83d3-85fa4f50cc9a"
+    },
+    {
+      "step": "impl-review",
+      "reason": "The impl-review prerequisite rejected stale test evidence after generated skill files changed during upgrade.",
+      "trigger": "The worktree review command recalculated repairFingerprint after test-execute had run with the pre-upgrade tree.",
+      "resolution": "Reran test-execute and test-result-review with the worktree CLI to regenerate evidence for the current tree.",
+      "guardrailCandidate": "Complete required generated-skill upgrades before capturing test-execute repair evidence.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:13:03.687Z",
+      "issueLogId": "issue-log-be3ed62b-bbd0-4e34-b998-e14f495c6b78"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Impl-review integration exposed stale promotion revision, unbound creation-session state, and tooling finding projection defects.",
+      "trigger": "Canonical review persistence failed after provider telemetry, then the spec-local regression suite exercised the same convergence paths.",
+      "resolution": "Moved CAS capture after provider telemetry, rebound non-worktree managers to their created target, preserved review error codes, removed findings from TOOLING_ERROR execution surfaces, and fixed the intermediate syntax error.",
+      "guardrailCandidate": "Review promotion tests must include provider-time flow mutations and execute every spec-local test before review evidence is accepted.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:28:23.023Z",
+      "issueLogId": "issue-log-8353bf86-6e46-4a64-8640-d0c28b513411"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "The earlier test-result-review artifact reported pass even though its raw spec-local test process exited with assertion failures.",
+      "trigger": "Reading tests/.raw/test-execution.log during impl-review repair showed exitCode 1 while test-result-review.json recorded pass.",
+      "resolution": "Fixed the convergence defects and reran the same 39 spec-local tests to a real zero exit; the false-positive validator behavior remains outside this spec.",
+      "guardrailCandidate": "Test-result-review must derive its verdict from the recorded process exit and reject any pass summary paired with a nonzero exit.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:28:38.119Z",
+      "issueLogId": "issue-log-c4a1196d-0a8c-40bd-bd32-5c9c8ea1604a"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Canonical review evidence changed the repair fingerprint and completed evidence was keyed too weakly for mutable worktree content.",
+      "trigger": "The ADVISORY evidence persisted, but the review post-hook rejected impl-review.json with a new repairFingerprint.",
+      "resolution": "Excluded review-evidence artifacts, retained the public treeSha contract, and added provider pre/post repair-fingerprint revalidation plus stale projection replay checks; related tests now pass.",
+      "guardrailCandidate": "Canonical review artifacts must be fingerprint-owned outputs, while provider promotion must compare a separate worktree-state digest before and after execution.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:40:09.010Z",
+      "issueLogId": "issue-log-5f278895-d64f-4802-acdf-68ffb20b8b61"
+    },
+    {
+      "step": "impl-review",
+      "reason": "A next-action inspection wrapper attempted to parse warning-prefixed and truncated output as pure JSON.",
+      "trigger": "The persisted ADVISORY reviewAction contained 77 handoff findings and exceeded the selected output budget.",
+      "resolution": "Reran the guarded next-action command without JSON parsing and consumed the step and action from its raw envelope.",
+      "guardrailCandidate": "Do not parse CLI output after tool-side truncation; request a sufficient budget or inspect bounded leading fields as text.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:40:28.584Z",
+      "issueLogId": "issue-log-344ddaf3-fd7c-4bde-9359-191fcee11c9d"
+    },
+    {
+      "step": "impl-review",
+      "reason": "The promotion-time repair fingerprint included the atomic flow writer's own transient lock and temporary files.",
+      "trigger": "Provider output and steady-state manifests matched, but the CAS mutator reported review target changed before evidence promotion.",
+      "resolution": "Added the spec-local .flow.json writer namespace to repair artifact ownership and verified all 62 related tests pass.",
+      "guardrailCandidate": "State fingerprints evaluated inside atomic writers must exclude every writer-owned lock, intent, and temporary path.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:45:54.945Z",
+      "issueLogId": "issue-log-6051e9a5-f9f7-4cad-a1d2-ca6e16701122"
+    },
+    {
+      "step": "impl-review",
+      "reason": "The convergence transition rejected refreshed evidence because completed records were keyed only by phase task and HEAD identity.",
+      "trigger": "A stale projection correctly allowed provider execution, but atomic registration returned review already completed for this target.",
+      "resolution": "Persisted a bounded targetStateDigest, reset budgets only for a changed repair state, preserved same-state one-shot behavior, and added a regression test.",
+      "guardrailCandidate": "Mutable review targets require both public source identity and an internal worktree-state digest at every read and write boundary.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:51:29.398Z",
+      "issueLogId": "issue-log-de327655-4b05-4ff0-bbd5-6b61d12551f6"
+    },
+    {
+      "step": "test-execute",
+      "reason": "test-execute prerequisite failed before normal v2 artifact creation: R2: test name not found in specs/328-bounded-review-convergence/tests/review-action-resolution.test.js: R2: requirement verification",
+      "failureKind": "prerequisite",
+      "message": "R2: test name not found in specs/328-bounded-review-convergence/tests/review-action-resolution.test.js: R2: requirement verification",
+      "commandSource": null,
+      "commandCandidates": [],
+      "changedFileCount": 104,
+      "trigger": "senti flow run test-execute",
+      "resolution": "fix the prerequisite failure and rerun test-execute",
+      "taskId": null,
+      "timestamp": "2026-07-22T03:51:49.374Z",
+      "issueLogId": "issue-log-f466c979-8405-49a0-956c-02ae2fd12a67"
+    },
+    {
+      "step": "test-execute",
+      "reason": "A new regression test declared an extra R2 spec header that was not present in the approved test-coverage map.",
+      "trigger": "test-execute prerequisite validation reported the synthetic R2 requirement verification name was missing.",
+      "resolution": "Kept the regression under its approved R4 persisted-budget coverage and removed the accidental R2 label.",
+      "guardrailCandidate": "New regression labels added during repair must remain within the approved requirement-to-test coverage map.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T03:52:27.016Z",
+      "issueLogId": "issue-log-aa87cd8c-a0f6-4c39-8559-dfadf2f20d5b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires review execution and independent evidence registration to reject stale tree SHA, foreign phase/task target, target-guard or revision mismatch, malformed evidence, and duplicate phase/task/tree/digest before provider execution or state mutation, with unchanged canonical evidence and flow-state bytes. The mapped implementation evidence adds identity/canonicalization and store classes, but the R2-mapped diff omits provider execution preflight integration and a target-guarded CLI mutation path; `ReviewEvidenceInput.fromFile` only parses/bounds the file and `validateTarget` only compares a supplied target, while no evidence shows current HEAD tree SHA, normal target guard, or flow revision being enforced before provider execution/state mutation. [FILE-MAP:R2:2] [FILE-MAP:R2:3] [EVIDENCE:R2]; [REQ:R3] requires ADVISORY findings to be projected with the target tree SHA. The implementation evidence computes `treeSha` via `git rev-parse HEAD` in `resolveCurrentReviewTreeSha`, which yields the commit object, not the Git tree object, and the persisted example stores `treeSha` as the commit OID while `repairBaseline.treeOid` is different. This omits the exact required target tree SHA binding for ADVISORY handoff. Sources: [FILE-MAP:R3:3] src/flow/lib/review-convergence.js, [FILE-MAP:R3:4] src/flow/lib/run-review.js, [EVIDENCE:R3] Git Diff/specs flow.json.; [REQ:R4] requires TOOLING_ERROR failures to share one persisted toolingMaxAttempts=1 budget and reject only after the permitted retry is consumed. The implementation records the first tooling failure as attempt 1/maxAttempts 1 in ReviewConvergenceStore.recordToolingOutcome and resolveReviewPermittedOperation then has remainingToolingAttempts 0, so the next unchanged execution is stopped immediately rather than allowing the one retry described by the same-spec contract; this contradicts the required bounded retry semantics. [CONSTRAINT:7] [EVIDENCE:R4] [FILE-MAP:R4:3] src/flow/lib/review-convergence.js; [REQ:R5] requires the independent audit document to bind and validate the current target treeSha before mutation, but the mapped implementation computes `treeSha` with `runGit([\"rev-parse\", \"HEAD\"])`, which returns the current commit SHA rather than the HEAD tree SHA; this contradicts the exact required `treeSha` behavior. Source: [FILE-MAP:R5:3] `src/flow/lib/set-review-evidence.js` `currentTreeSha()`.; [REQ:R6] requires each active review recovery projection to expose one reviewAction with remainingToolingAttempts and exactly one of handoffFindings or blocker, and requires move_to_acceptance to persist the handoff and complete the review leaf. The implementation projects reviewAction from get-next-action/status and removes reviewStop/retryRecovery, but ReviewPermittedOperation.toJSON emits both handoffFindings and blocker keys as null for retry_review/register_alternative_evidence, so those actions include neither required payload. Also the mapped evidence only records convergence state/handoff data in applyReviewEvidenceTransition and projects the action; it does not show move_to_acceptance completing the review leaf or advancing via normal definition ordering. Sources: src/flow/lib/review-convergence.js, src/flow/lib/get-next-action.js, src/flow/lib/get-status.js, src/flow/lib/set-retry.js.; [REQ:R7] requires preservation of review command routing and source-verified options, but the mapped implementation evidence omits the existing review runner file from the requirement file map while changing `src/flow/lib/run-review.js` substantially (+757/-52) and changing `src/flow/commands/review.js` (+93/-64). The provided evidence does not show that existing registry command routing, source-verified options, target guards, post-hook lifecycle ownership, phase artifact paths, `review.md`, phase-specific finding content, task scope, revision/CAS checks, PASS/ADVISORY promotion, flow-findings final disposition, and acceptance judgment were preserved; for a preservation requirement, missing mapped evidence is a failure. [FILE-MAP:R7:1] [FILE-MAP:R7:2] [FILE-MAP:R7:3] [FILE-MAP:R7:4] [FILE-MAP:R7:5] [FILE-MAP:R7:6] [FILE-MAP:R7:7] [FILE-MAP:R7:8] [FILE-MAP:R7:9] [FILE-MAP:R7:10] [FILE-MAP:R7:11] [FILE-MAP:R7:12] [EVIDENCE:R7]; [REQ:R9] requires spec-local tests to cover R1 through R9, while [AC:11] also requires spec-local files under specs/328-bounded-review-convergence/tests/ to carry // spec: R<N> headers covering R1 through R9. The mapped diff adds four spec-local test files, but the provided evidence does not show that those files include headers covering R9 itself, and the requirement explicitly includes R9 coverage in [AC:11]. Because implementation evidence omits an exact required coverage/header element, this fails under the evaluation contract. Sources: [FILE-MAP:R9:1], [FILE-MAP:R9:2], [FILE-MAP:R9:3], [FILE-MAP:R9:4], [TASK:T-6].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T04:01:17.619Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires review execution and independent evidence registration to reject stale tree SHA, foreign phase/task target, target-guard or revision mismatch, malformed evidence, and duplicate phase/task/tree/digest before provider execution or state mutation, with unchanged canonical evidence and flow-state bytes. The mapped implementation evidence adds identity/canonicalization and store classes, but the R2-mapped diff omits provider execution preflight integration and a target-guarded CLI mutation path; `ReviewEvidenceInput.fromFile` only parses/bounds the file and `validateTarget` only compares a supplied target, while no evidence shows current HEAD tree SHA, normal target guard, or flow revision being enforced before provider execution/state mutation. [FILE-MAP:R2:2] [FILE-MAP:R2:3] [EVIDENCE:R2]",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "[REQ:R3] requires ADVISORY findings to be projected with the target tree SHA. The implementation evidence computes `treeSha` via `git rev-parse HEAD` in `resolveCurrentReviewTreeSha`, which yields the commit object, not the Git tree object, and the persisted example stores `treeSha` as the commit OID while `repairBaseline.treeOid` is different. This omits the exact required target tree SHA binding for ADVISORY handoff. Sources: [FILE-MAP:R3:3] src/flow/lib/review-convergence.js, [FILE-MAP:R3:4] src/flow/lib/run-review.js, [EVIDENCE:R3] Git Diff/specs flow.json.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires TOOLING_ERROR failures to share one persisted toolingMaxAttempts=1 budget and reject only after the permitted retry is consumed. The implementation records the first tooling failure as attempt 1/maxAttempts 1 in ReviewConvergenceStore.recordToolingOutcome and resolveReviewPermittedOperation then has remainingToolingAttempts 0, so the next unchanged execution is stopped immediately rather than allowing the one retry described by the same-spec contract; this contradicts the required bounded retry semantics. [CONSTRAINT:7] [EVIDENCE:R4] [FILE-MAP:R4:3] src/flow/lib/review-convergence.js",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "[REQ:R5] requires the independent audit document to bind and validate the current target treeSha before mutation, but the mapped implementation computes `treeSha` with `runGit([\"rev-parse\", \"HEAD\"])`, which returns the current commit SHA rather than the HEAD tree SHA; this contradicts the exact required `treeSha` behavior. Source: [FILE-MAP:R5:3] `src/flow/lib/set-review-evidence.js` `currentTreeSha()`.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires each active review recovery projection to expose one reviewAction with remainingToolingAttempts and exactly one of handoffFindings or blocker, and requires move_to_acceptance to persist the handoff and complete the review leaf. The implementation projects reviewAction from get-next-action/status and removes reviewStop/retryRecovery, but ReviewPermittedOperation.toJSON emits both handoffFindings and blocker keys as null for retry_review/register_alternative_evidence, so those actions include neither required payload. Also the mapped evidence only records convergence state/handoff data in applyReviewEvidenceTransition and projects the action; it does not show move_to_acceptance completing the review leaf or advancing via normal definition ordering. Sources: src/flow/lib/review-convergence.js, src/flow/lib/get-next-action.js, src/flow/lib/get-status.js, src/flow/lib/set-retry.js.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "[REQ:R7] requires preservation of review command routing and source-verified options, but the mapped implementation evidence omits the existing review runner file from the requirement file map while changing `src/flow/lib/run-review.js` substantially (+757/-52) and changing `src/flow/commands/review.js` (+93/-64). The provided evidence does not show that existing registry command routing, source-verified options, target guards, post-hook lifecycle ownership, phase artifact paths, `review.md`, phase-specific finding content, task scope, revision/CAS checks, PASS/ADVISORY promotion, flow-findings final disposition, and acceptance judgment were preserved; for a preservation requirement, missing mapped evidence is a failure. [FILE-MAP:R7:1] [FILE-MAP:R7:2] [FILE-MAP:R7:3] [FILE-MAP:R7:4] [FILE-MAP:R7:5] [FILE-MAP:R7:6] [FILE-MAP:R7:7] [FILE-MAP:R7:8] [FILE-MAP:R7:9] [FILE-MAP:R7:10] [FILE-MAP:R7:11] [FILE-MAP:R7:12] [EVIDENCE:R7]",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R9",
+          "where": null,
+          "observed": "[REQ:R9] requires spec-local tests to cover R1 through R9, while [AC:11] also requires spec-local files under specs/328-bounded-review-convergence/tests/ to carry // spec: R<N> headers covering R1 through R9. The mapped diff adds four spec-local test files, but the provided evidence does not show that those files include headers covering R9 itself, and the requirement explicitly includes R9 coverage in [AC:11]. Because implementation evidence omits an exact required coverage/header element, this fails under the evaluation contract. Sources: [FILE-MAP:R9:1], [FILE-MAP:R9:2], [FILE-MAP:R9:3], [FILE-MAP:R9:4], [TASK:T-6].",
+          "severity": "blocking",
+          "refs": [
+            "R9"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires review execution and independent evidence registration to reject stale tree SHA, foreign phase/task target, target-guard or revision mismatch, malformed evidence, and duplicate phase/task/tree/digest before provider execution or state mutation, with unchanged canonical evidence and flow-state bytes. The mapped implementation evidence adds identity/canonicalization and store classes, but the R2-mapped diff omits provider execution preflight integration and a target-guarded CLI mutation path; `ReviewEvidenceInput.fromFile` only parses/bounds the file and `validateTarget` only compares a supplied target, while no evidence shows current HEAD tree SHA, normal target guard, or flow revision being enforced before provider execution/state mutation. [FILE-MAP:R2:2] [FILE-MAP:R2:3] [EVIDENCE:R2]"
+        },
+        {
+          "guardrail_id": "R3",
+          "reason": "[REQ:R3] requires ADVISORY findings to be projected with the target tree SHA. The implementation evidence computes `treeSha` via `git rev-parse HEAD` in `resolveCurrentReviewTreeSha`, which yields the commit object, not the Git tree object, and the persisted example stores `treeSha` as the commit OID while `repairBaseline.treeOid` is different. This omits the exact required target tree SHA binding for ADVISORY handoff. Sources: [FILE-MAP:R3:3] src/flow/lib/review-convergence.js, [FILE-MAP:R3:4] src/flow/lib/run-review.js, [EVIDENCE:R3] Git Diff/specs flow.json."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires TOOLING_ERROR failures to share one persisted toolingMaxAttempts=1 budget and reject only after the permitted retry is consumed. The implementation records the first tooling failure as attempt 1/maxAttempts 1 in ReviewConvergenceStore.recordToolingOutcome and resolveReviewPermittedOperation then has remainingToolingAttempts 0, so the next unchanged execution is stopped immediately rather than allowing the one retry described by the same-spec contract; this contradicts the required bounded retry semantics. [CONSTRAINT:7] [EVIDENCE:R4] [FILE-MAP:R4:3] src/flow/lib/review-convergence.js"
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "[REQ:R5] requires the independent audit document to bind and validate the current target treeSha before mutation, but the mapped implementation computes `treeSha` with `runGit([\"rev-parse\", \"HEAD\"])`, which returns the current commit SHA rather than the HEAD tree SHA; this contradicts the exact required `treeSha` behavior. Source: [FILE-MAP:R5:3] `src/flow/lib/set-review-evidence.js` `currentTreeSha()`."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires each active review recovery projection to expose one reviewAction with remainingToolingAttempts and exactly one of handoffFindings or blocker, and requires move_to_acceptance to persist the handoff and complete the review leaf. The implementation projects reviewAction from get-next-action/status and removes reviewStop/retryRecovery, but ReviewPermittedOperation.toJSON emits both handoffFindings and blocker keys as null for retry_review/register_alternative_evidence, so those actions include neither required payload. Also the mapped evidence only records convergence state/handoff data in applyReviewEvidenceTransition and projects the action; it does not show move_to_acceptance completing the review leaf or advancing via normal definition ordering. Sources: src/flow/lib/review-convergence.js, src/flow/lib/get-next-action.js, src/flow/lib/get-status.js, src/flow/lib/set-retry.js."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "[REQ:R7] requires preservation of review command routing and source-verified options, but the mapped implementation evidence omits the existing review runner file from the requirement file map while changing `src/flow/lib/run-review.js` substantially (+757/-52) and changing `src/flow/commands/review.js` (+93/-64). The provided evidence does not show that existing registry command routing, source-verified options, target guards, post-hook lifecycle ownership, phase artifact paths, `review.md`, phase-specific finding content, task scope, revision/CAS checks, PASS/ADVISORY promotion, flow-findings final disposition, and acceptance judgment were preserved; for a preservation requirement, missing mapped evidence is a failure. [FILE-MAP:R7:1] [FILE-MAP:R7:2] [FILE-MAP:R7:3] [FILE-MAP:R7:4] [FILE-MAP:R7:5] [FILE-MAP:R7:6] [FILE-MAP:R7:7] [FILE-MAP:R7:8] [FILE-MAP:R7:9] [FILE-MAP:R7:10] [FILE-MAP:R7:11] [FILE-MAP:R7:12] [EVIDENCE:R7]"
+        },
+        {
+          "guardrail_id": "R9",
+          "reason": "[REQ:R9] requires spec-local tests to cover R1 through R9, while [AC:11] also requires spec-local files under specs/328-bounded-review-convergence/tests/ to carry // spec: R<N> headers covering R1 through R9. The mapped diff adds four spec-local test files, but the provided evidence does not show that those files include headers covering R9 itself, and the requirement explicitly includes R9 coverage in [AC:11]. Because implementation evidence omits an exact required coverage/header element, this fails under the evaluation contract. Sources: [FILE-MAP:R9:1], [FILE-MAP:R9:2], [FILE-MAP:R9:3], [FILE-MAP:R9:4], [TASK:T-6]."
+        }
+      ],
+      "issueLogId": "issue-log-47a3ecbc-98e2-4a7e-9a3b-a16f621d57a6"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration gate found commit OID binding, an off-by-one tooling retry budget, and non-exclusive reviewAction payloads",
+      "trigger": "The first integration gate evaluated R2 through R9 against the implemented convergence model",
+      "resolution": "Bound review identity to HEAD tree objects, preserved one retry after the initial tooling failure, emitted exactly one blocker or handoff payload, and added regression coverage",
+      "guardrailCandidate": "Model retry budgets as retries after the initial attempt and validate external projection exclusivity at the serialization boundary",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:09:21.123Z",
+      "issueLogId": "issue-log-f2e04b49-20fc-4d9b-8e11-0d3055569d19"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Upgrade evidence was invalidated again before the integration gate retry",
+      "trigger": "Gate prerequisite validation reported upgrade-result.json missing after refreshed test evidence",
+      "resolution": "Re-ran the worktree-local upgrade after all source and test changes and preserved its active-flow artifact for the gate",
+      "guardrailCandidate": "Generate upgrade evidence after the last downstream artifact refresh whenever review-source changes require active-flow upgrade validation",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:15:58.600Z",
+      "issueLogId": "issue-log-ea13160e-7d86-4ab4-99dd-5b7adc73e715"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "impl-gate escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R9 (jaccard=0.56): [REQ:R9] requires spec-local tests to cover R1 through R8 plus the listed fixtures, while [AC:11] additionally requires spec-local files under specs/328-bounded-review-convergence/tests/ to carry // spec: R<N> headers covering R1 through R9. The mapped evidence adds four spec-local test files and several shared test updates, but it does not show any spec-local coverage/header for R9 itself, and the listed spec-local files are only described as covering the R1-R8 behavior set. Because the exact R1-through-R9 header coverage required by [AC:11] is omitted from the implementation evidence, R9 is not fully satisfied. Sources: [FILE-MAP:R9:1], [FILE-MAP:R9:2], [FILE-MAP:R9:3], [FILE-MAP:R9:4], [TASK:T-6]. ↔ [REQ:R9] requires spec-local tests to cover R1 through R9, while [AC:11] also requires spec-local files under specs/328-bounded-review-convergence/tests/ to carry // spec: R<N> headers covering R1 through R9. The mapped diff adds four spec-local test files, but the provided evidence does not show that those files include headers covering R9 itself, and the requirement explicitly includes R9 coverage in [AC:11]. Because implementation evidence omits an exact required coverage/header element, this fails under the evaluation contract. Sources: [FILE-MAP:R9:1], [FILE-MAP:R9:2], [FILE-MAP:R9:3], [FILE-MAP:R9:4], [TASK:T-6].\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-22T04:17:37.442Z",
+      "issueLogId": "issue-log-6eba2cc4-d729-4ba0-84dc-07c6095c5a32"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T04:17:37.533Z",
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-8599a848-9681-4062-b518-158da3b8ea1c"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration gate could not see explicit R9 header coverage in the bounded requirement evidence",
+      "trigger": "Repeated-failure escalation cited only the first four R9 file-map entries even though another mapped test carried R9",
+      "resolution": "Added an R9 meta-test to an early mapped spec-local file that verifies the collective R1 through R9 headers and updated test-coverage.json",
+      "guardrailCandidate": "Meta-level test coverage requirements should include an executable self-check in the earliest bounded evidence entries",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:19:40.675Z",
+      "issueLogId": "issue-log-d3ff21c4-cecc-4e18-b57c-8cbc2c48e265"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires rejection of a repeated phase/task/tree/digest identity before any new provider execution or state mutation, leaving canonical evidence files and flow-state bytes unchanged. The mapped implementation evidence includes duplicate identity coverage only for independent registration, while the review execution regression file is summarized as covering provider execution paths and does not show provider-side duplicate identity rejection before execution; the diff summary/evidence omits implementation evidence that a repeated review execution identity is rejected before launching a provider. Sources: [REQ:R2], [FILE-MAP:R2:1], [FILE-MAP:R2:2], [EVIDENCE:R2].; [REQ:R3] requires a valid PASS or ADVISORY result to complete the current review step exactly once without another review invocation, but the mapped implementation evidence is internally incomplete: the new convergence code shown in [FILE-MAP:R3:5] is only partially evidenced and the summarized diff does not show the run-review integration in [FILE-MAP:R3:7] that prevents a second invocation for the same phase/task/tree/evidence after PASS or ADVISORY. Because the authoritative contract requires changed behavior and exact integration, omission of that integration evidence is a FAIL under the evaluation contract. [CONSTRAINT:8] also requires evidence reference, attempt, operation, and step transition to be recorded together via CAS mutation; the provided evidence mentions new files but does not show the required atomic state mutation. [CONSTRAINT:9] requires normal PASS/ADVISORY preservation, but the mapped evidence does not demonstrate the exact-once step completion path.; [REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes with stage and attempt data, and to share one persisted toolingMaxAttempts=1 budget per phase/task/tree target regardless of provider/process. The mapped implementation evidence is truncated and summarized, and does not supply verifiable implementation evidence for every required failure source or for the shared persisted budget/rejection behavior after retry exhaustion; omission of required changed behavior is FAIL under the evaluation contract. Sources: [EVIDENCE:R4], [CONSTRAINT:7], [CONSTRAINT:8].; [REQ:R5] requires the version-1 independent audit document to require the exact taskId-or-null field along with provenance, phase, treeSha, disposition, blockingFindings, and advisoryFindings, but `ReviewEvidenceInput` sets `this.taskId = document.taskId ?? null`, so an omitted `taskId` is accepted as null rather than being required. The diff does implement the command/registry path, spec-directory regular-file bounded JSON loading, CLI-computed digest rejection of caller-supplied identity/digest, idempotent canonical write, and no provider launch, but this exact required input field is omitted from validation. Sources: [FILE-MAP:R5:2] `src/flow/lib/review-evidence-store.js`, [FILE-MAP:R5:3] `src/flow/lib/set-review-evidence.js`, [FILE-MAP:R5:4] `src/flow/registry.js`, [EVIDENCE:R5].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T04:21:47.262Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires rejection of a repeated phase/task/tree/digest identity before any new provider execution or state mutation, leaving canonical evidence files and flow-state bytes unchanged. The mapped implementation evidence includes duplicate identity coverage only for independent registration, while the review execution regression file is summarized as covering provider execution paths and does not show provider-side duplicate identity rejection before execution; the diff summary/evidence omits implementation evidence that a repeated review execution identity is rejected before launching a provider. Sources: [REQ:R2], [FILE-MAP:R2:1], [FILE-MAP:R2:2], [EVIDENCE:R2].",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "[REQ:R3] requires a valid PASS or ADVISORY result to complete the current review step exactly once without another review invocation, but the mapped implementation evidence is internally incomplete: the new convergence code shown in [FILE-MAP:R3:5] is only partially evidenced and the summarized diff does not show the run-review integration in [FILE-MAP:R3:7] that prevents a second invocation for the same phase/task/tree/evidence after PASS or ADVISORY. Because the authoritative contract requires changed behavior and exact integration, omission of that integration evidence is a FAIL under the evaluation contract. [CONSTRAINT:8] also requires evidence reference, attempt, operation, and step transition to be recorded together via CAS mutation; the provided evidence mentions new files but does not show the required atomic state mutation. [CONSTRAINT:9] requires normal PASS/ADVISORY preservation, but the mapped evidence does not demonstrate the exact-once step completion path.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes with stage and attempt data, and to share one persisted toolingMaxAttempts=1 budget per phase/task/tree target regardless of provider/process. The mapped implementation evidence is truncated and summarized, and does not supply verifiable implementation evidence for every required failure source or for the shared persisted budget/rejection behavior after retry exhaustion; omission of required changed behavior is FAIL under the evaluation contract. Sources: [EVIDENCE:R4], [CONSTRAINT:7], [CONSTRAINT:8].",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "[REQ:R5] requires the version-1 independent audit document to require the exact taskId-or-null field along with provenance, phase, treeSha, disposition, blockingFindings, and advisoryFindings, but `ReviewEvidenceInput` sets `this.taskId = document.taskId ?? null`, so an omitted `taskId` is accepted as null rather than being required. The diff does implement the command/registry path, spec-directory regular-file bounded JSON loading, CLI-computed digest rejection of caller-supplied identity/digest, idempotent canonical write, and no provider launch, but this exact required input field is omitted from validation. Sources: [FILE-MAP:R5:2] `src/flow/lib/review-evidence-store.js`, [FILE-MAP:R5:3] `src/flow/lib/set-review-evidence.js`, [FILE-MAP:R5:4] `src/flow/registry.js`, [EVIDENCE:R5].",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R8",
+        "R6",
+        "R7",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires rejection of a repeated phase/task/tree/digest identity before any new provider execution or state mutation, leaving canonical evidence files and flow-state bytes unchanged. The mapped implementation evidence includes duplicate identity coverage only for independent registration, while the review execution regression file is summarized as covering provider execution paths and does not show provider-side duplicate identity rejection before execution; the diff summary/evidence omits implementation evidence that a repeated review execution identity is rejected before launching a provider. Sources: [REQ:R2], [FILE-MAP:R2:1], [FILE-MAP:R2:2], [EVIDENCE:R2]."
+        },
+        {
+          "guardrail_id": "R3",
+          "reason": "[REQ:R3] requires a valid PASS or ADVISORY result to complete the current review step exactly once without another review invocation, but the mapped implementation evidence is internally incomplete: the new convergence code shown in [FILE-MAP:R3:5] is only partially evidenced and the summarized diff does not show the run-review integration in [FILE-MAP:R3:7] that prevents a second invocation for the same phase/task/tree/evidence after PASS or ADVISORY. Because the authoritative contract requires changed behavior and exact integration, omission of that integration evidence is a FAIL under the evaluation contract. [CONSTRAINT:8] also requires evidence reference, attempt, operation, and step transition to be recorded together via CAS mutation; the provided evidence mentions new files but does not show the required atomic state mutation. [CONSTRAINT:9] requires normal PASS/ADVISORY preservation, but the mapped evidence does not demonstrate the exact-once step completion path."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes with stage and attempt data, and to share one persisted toolingMaxAttempts=1 budget per phase/task/tree target regardless of provider/process. The mapped implementation evidence is truncated and summarized, and does not supply verifiable implementation evidence for every required failure source or for the shared persisted budget/rejection behavior after retry exhaustion; omission of required changed behavior is FAIL under the evaluation contract. Sources: [EVIDENCE:R4], [CONSTRAINT:7], [CONSTRAINT:8]."
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "[REQ:R5] requires the version-1 independent audit document to require the exact taskId-or-null field along with provenance, phase, treeSha, disposition, blockingFindings, and advisoryFindings, but `ReviewEvidenceInput` sets `this.taskId = document.taskId ?? null`, so an omitted `taskId` is accepted as null rather than being required. The diff does implement the command/registry path, spec-directory regular-file bounded JSON loading, CLI-computed digest rejection of caller-supplied identity/digest, idempotent canonical write, and no provider launch, but this exact required input field is omitted from validation. Sources: [FILE-MAP:R5:2] `src/flow/lib/review-evidence-store.js`, [FILE-MAP:R5:3] `src/flow/lib/set-review-evidence.js`, [FILE-MAP:R5:4] `src/flow/registry.js`, [EVIDENCE:R5]."
+        }
+      ],
+      "issueLogId": "issue-log-15bf6f95-a491-435a-ba33-1445f713a9d8"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration gate exposed omitted independent-audit taskId validation and insufficiently explicit provider duplicate evidence",
+      "trigger": "R2 through R5 reevaluation after the R9 evidence repair",
+      "resolution": "Required every version-1 audit field, added missing-field tests, labeled and mapped the provider duplicate exact-once regression, and mapped lifecycle and tooling exhaustion evidence",
+      "guardrailCandidate": "Required wire-format fields must be checked for property presence before applying nullable defaults",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:26:02.357Z",
+      "issueLogId": "issue-log-8c6fc61a-8e0d-4a1a-a71a-e143b4a7dfd8"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires every review execution or independent evidence registration to bind phase, taskId-or-null, current target tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject stale/foreign/malformed/duplicate identities before provider execution or state mutation with canonical evidence files and flow-state bytes unchanged. The mapped implementation evidence shows new review convergence, evidence store, run-review, set-review-evidence, registry integration, and regression tests, but the provided diff context is truncated and does not supply enough implementation evidence for the exact pre-execution/state-mutation ordering or unchanged-bytes guarantee across all rejection cases. Because the evaluation contract says to return FAIL when required behavior is omitted from mapped evidence, R2 fails on incomplete evidence for the required rejection atomicity and full identity binding. Sources: [FILE-MAP:R2:3], [FILE-MAP:R2:4], [FILE-MAP:R2:5], [FILE-MAP:R2:6], [FILE-MAP:R2:7], [FILE-MAP:R2:8], [FILE-MAP:R2:9].; [REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes with stage and attempt data, share one persisted toolingMaxAttempts=1 budget per phase/task/tree target, avoid findings and semantic budget consumption, and reject another unchanged provider execution after the permitted retry is consumed. The mapped evidence is insufficient for the full implementation: it shows broad changes in src/flow/lib/review-convergence.js and src/flow/lib/run-review.js plus tests, but the provided diff excerpt only evidences verdict renaming in src/flow/definition.js and does not demonstrate every required failure class, exact persisted stage/attempt fields, shared provider/process-independent tooling budget identity, semantic budget isolation, or unchanged-provider rejection. Because the authoritative contract says to return FAIL when required behavior is omitted from mapped implementation evidence, this is a fail. [FILE-MAP:R4:3] [FILE-MAP:R4:4] [FILE-MAP:R4:5] [FILE-MAP:R4:6] [FILE-MAP:R4:7] [FILE-MAP:R4:1] [FILE-MAP:R4:2]",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T04:27:31.794Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires every review execution or independent evidence registration to bind phase, taskId-or-null, current target tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject stale/foreign/malformed/duplicate identities before provider execution or state mutation with canonical evidence files and flow-state bytes unchanged. The mapped implementation evidence shows new review convergence, evidence store, run-review, set-review-evidence, registry integration, and regression tests, but the provided diff context is truncated and does not supply enough implementation evidence for the exact pre-execution/state-mutation ordering or unchanged-bytes guarantee across all rejection cases. Because the evaluation contract says to return FAIL when required behavior is omitted from mapped evidence, R2 fails on incomplete evidence for the required rejection atomicity and full identity binding. Sources: [FILE-MAP:R2:3], [FILE-MAP:R2:4], [FILE-MAP:R2:5], [FILE-MAP:R2:6], [FILE-MAP:R2:7], [FILE-MAP:R2:8], [FILE-MAP:R2:9].",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes with stage and attempt data, share one persisted toolingMaxAttempts=1 budget per phase/task/tree target, avoid findings and semantic budget consumption, and reject another unchanged provider execution after the permitted retry is consumed. The mapped evidence is insufficient for the full implementation: it shows broad changes in src/flow/lib/review-convergence.js and src/flow/lib/run-review.js plus tests, but the provided diff excerpt only evidences verdict renaming in src/flow/definition.js and does not demonstrate every required failure class, exact persisted stage/attempt fields, shared provider/process-independent tooling budget identity, semantic budget isolation, or unchanged-provider rejection. Because the authoritative contract says to return FAIL when required behavior is omitted from mapped implementation evidence, this is a fail. [FILE-MAP:R4:3] [FILE-MAP:R4:4] [FILE-MAP:R4:5] [FILE-MAP:R4:6] [FILE-MAP:R4:7] [FILE-MAP:R4:1] [FILE-MAP:R4:2]",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R3",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires every review execution or independent evidence registration to bind phase, taskId-or-null, current target tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject stale/foreign/malformed/duplicate identities before provider execution or state mutation with canonical evidence files and flow-state bytes unchanged. The mapped implementation evidence shows new review convergence, evidence store, run-review, set-review-evidence, registry integration, and regression tests, but the provided diff context is truncated and does not supply enough implementation evidence for the exact pre-execution/state-mutation ordering or unchanged-bytes guarantee across all rejection cases. Because the evaluation contract says to return FAIL when required behavior is omitted from mapped evidence, R2 fails on incomplete evidence for the required rejection atomicity and full identity binding. Sources: [FILE-MAP:R2:3], [FILE-MAP:R2:4], [FILE-MAP:R2:5], [FILE-MAP:R2:6], [FILE-MAP:R2:7], [FILE-MAP:R2:8], [FILE-MAP:R2:9]."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes with stage and attempt data, share one persisted toolingMaxAttempts=1 budget per phase/task/tree target, avoid findings and semantic budget consumption, and reject another unchanged provider execution after the permitted retry is consumed. The mapped evidence is insufficient for the full implementation: it shows broad changes in src/flow/lib/review-convergence.js and src/flow/lib/run-review.js plus tests, but the provided diff excerpt only evidences verdict renaming in src/flow/definition.js and does not demonstrate every required failure class, exact persisted stage/attempt fields, shared provider/process-independent tooling budget identity, semantic budget isolation, or unchanged-provider rejection. Because the authoritative contract says to return FAIL when required behavior is omitted from mapped implementation evidence, this is a fail. [FILE-MAP:R4:3] [FILE-MAP:R4:4] [FILE-MAP:R4:5] [FILE-MAP:R4:6] [FILE-MAP:R4:7] [FILE-MAP:R4:1] [FILE-MAP:R4:2]"
+        }
+      ],
+      "issueLogId": "issue-log-4e5ccb36-214c-4892-91cc-e3aec27268e5"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Unmapped spec artifacts exhausted per-requirement gate diff context and hid R2 and R4 implementation evidence",
+      "trigger": "Gate reported only evidence truncation while all concrete R2 and R4 regressions passed",
+      "resolution": "Mapped the bounded spec artifact directory to its R9 evidence owner so other requirements receive only their mapped source and test diffs",
+      "guardrailCandidate": "Integration gate file maps should assign generated spec artifact directories to one evidence owner before per-requirement diff construction",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:28:48.946Z",
+      "issueLogId": "issue-log-6ad3237c-e362-46fc-8105-ef914ed55062"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires every review execution to bind provenance and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity. The mapped execution pipeline persists evidence through ReviewConvergenceStore.recordEvidence, but it passes only evidence/provider/expectedOriginal and omits targetStateDigest, while recordEvidence/applyReviewEvidenceTransition only stores targetStateDigest when supplied. This contradicts the same requirement’s target-guard/revision-bound identity and mutation contract for provider executions. Sources: [FILE-MAP:R2:4] src/flow/lib/review-convergence.js applyReviewEvidenceTransition/recordEvidence; [FILE-MAP:R2:6] src/flow/lib/run-review.js ReviewExecutionPipeline.execute.; [REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes without creating review findings or consuming the semantic remediation budget. The implementation adds TOOLING_ERROR handling and shared target state, but it contradicts the no-semantic-budget rule for projection/result-recording failures: [EVIDENCE:R4] src/flow/lib/review-convergence.js recordToolingOutcome increments semanticAttempts when canonicalEvidencePersisted is true and evidence.disposition.value is REJECTED, and [EVIDENCE:R4] src/flow/lib/run-review.js canonicalEvidenceWasPersisted returns true for projection/result_recording stages, so a REJECTED result followed by projection or result-recording TOOLING_ERROR can consume semantic remediation budget.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T04:29:57.035Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires every review execution to bind provenance and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity. The mapped execution pipeline persists evidence through ReviewConvergenceStore.recordEvidence, but it passes only evidence/provider/expectedOriginal and omits targetStateDigest, while recordEvidence/applyReviewEvidenceTransition only stores targetStateDigest when supplied. This contradicts the same requirement’s target-guard/revision-bound identity and mutation contract for provider executions. Sources: [FILE-MAP:R2:4] src/flow/lib/review-convergence.js applyReviewEvidenceTransition/recordEvidence; [FILE-MAP:R2:6] src/flow/lib/run-review.js ReviewExecutionPipeline.execute.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes without creating review findings or consuming the semantic remediation budget. The implementation adds TOOLING_ERROR handling and shared target state, but it contradicts the no-semantic-budget rule for projection/result-recording failures: [EVIDENCE:R4] src/flow/lib/review-convergence.js recordToolingOutcome increments semanticAttempts when canonicalEvidencePersisted is true and evidence.disposition.value is REJECTED, and [EVIDENCE:R4] src/flow/lib/run-review.js canonicalEvidenceWasPersisted returns true for projection/result_recording stages, so a REJECTED result followed by projection or result-recording TOOLING_ERROR can consume semantic remediation budget.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires every review execution to bind provenance and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity. The mapped execution pipeline persists evidence through ReviewConvergenceStore.recordEvidence, but it passes only evidence/provider/expectedOriginal and omits targetStateDigest, while recordEvidence/applyReviewEvidenceTransition only stores targetStateDigest when supplied. This contradicts the same requirement’s target-guard/revision-bound identity and mutation contract for provider executions. Sources: [FILE-MAP:R2:4] src/flow/lib/review-convergence.js applyReviewEvidenceTransition/recordEvidence; [FILE-MAP:R2:6] src/flow/lib/run-review.js ReviewExecutionPipeline.execute."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to persist as TOOLING_ERROR outcomes without creating review findings or consuming the semantic remediation budget. The implementation adds TOOLING_ERROR handling and shared target state, but it contradicts the no-semantic-budget rule for projection/result-recording failures: [EVIDENCE:R4] src/flow/lib/review-convergence.js recordToolingOutcome increments semanticAttempts when canonicalEvidencePersisted is true and evidence.disposition.value is REJECTED, and [EVIDENCE:R4] src/flow/lib/run-review.js canonicalEvidenceWasPersisted returns true for projection/result_recording stages, so a REJECTED result followed by projection or result-recording TOOLING_ERROR can consume semantic remediation budget."
+        }
+      ],
+      "issueLogId": "issue-log-660e0945-6725-4375-bba6-41e6281d8dd4"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Review execution pipeline omitted target-state identity and consumed semantic budget on projection tooling failures",
+      "trigger": "Implementation gate R2 and R4 validation of the exported review execution pipeline",
+      "resolution": "Propagated and freshness-checked targetStateDigest, aligned normalized tooling state with persisted retry semantics, and kept semantic attempts unchanged for TOOLING_ERROR",
+      "guardrailCandidate": "Execution models and persistence models must share identity fields and retry accounting invariants",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:35:52.093Z",
+      "issueLogId": "issue-log-b83b6b0c-f219-4dec-ac58-a7c84e64acf3"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires every review execution to bind phase, taskId-or-null, current target tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject before provider execution or state mutation when required target/revision checks fail. The implementation adds ReviewEvidenceIdentity and independent evidence validation with phase/task/tree/provenance/digest in src/flow/lib/review-convergence.js and src/flow/lib/review-evidence-store.js, and adds duplicate/state-preservation tests in specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js. However, the mapped provider execution path in src/flow/lib/run-review.js only canonicalizes persisted artifacts after the provider subprocess has already run, and ReviewExecutionPipeline is not wired into the CLI registry path in src/flow/registry.js. The diff does not show provider execution rejecting malformed provider evidence, foreign phase/task target, or duplicate phase/task/tree/digest identity before a new provider execution; those checks happen only during post-execution promotion or independent evidence registration. This omits a required pre-execution rejection behavior for review execution under [REQ:R2].; [REQ:R4] requires one persisted toolingMaxAttempts=1 budget per phase/task/tree target regardless of provider or process, and rejection after the permitted retry is consumed. The implementation persists toolingMaxAttempts=1 and blocks after exhaustion, but it also keys reads/records by targetStateDigest/repairFingerprint, allowing a new bounded tooling retry state for the same phase/task/tree when that digest changes; the added spec-local test explicitly expects “changed repair state starts a new bounded target under the same HEAD identity.” This contradicts the exact phase/task/tree sharing contract. Sources: src/flow/lib/review-convergence.js; src/flow/lib/run-review.js; specs/328-bounded-review-convergence/tests/review-action-resolution.test.js.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T04:38:09.510Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires every review execution to bind phase, taskId-or-null, current target tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject before provider execution or state mutation when required target/revision checks fail. The implementation adds ReviewEvidenceIdentity and independent evidence validation with phase/task/tree/provenance/digest in src/flow/lib/review-convergence.js and src/flow/lib/review-evidence-store.js, and adds duplicate/state-preservation tests in specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js. However, the mapped provider execution path in src/flow/lib/run-review.js only canonicalizes persisted artifacts after the provider subprocess has already run, and ReviewExecutionPipeline is not wired into the CLI registry path in src/flow/registry.js. The diff does not show provider execution rejecting malformed provider evidence, foreign phase/task target, or duplicate phase/task/tree/digest identity before a new provider execution; those checks happen only during post-execution promotion or independent evidence registration. This omits a required pre-execution rejection behavior for review execution under [REQ:R2].",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires one persisted toolingMaxAttempts=1 budget per phase/task/tree target regardless of provider or process, and rejection after the permitted retry is consumed. The implementation persists toolingMaxAttempts=1 and blocks after exhaustion, but it also keys reads/records by targetStateDigest/repairFingerprint, allowing a new bounded tooling retry state for the same phase/task/tree when that digest changes; the added spec-local test explicitly expects “changed repair state starts a new bounded target under the same HEAD identity.” This contradicts the exact phase/task/tree sharing contract. Sources: src/flow/lib/review-convergence.js; src/flow/lib/run-review.js; specs/328-bounded-review-convergence/tests/review-action-resolution.test.js.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires every review execution to bind phase, taskId-or-null, current target tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject before provider execution or state mutation when required target/revision checks fail. The implementation adds ReviewEvidenceIdentity and independent evidence validation with phase/task/tree/provenance/digest in src/flow/lib/review-convergence.js and src/flow/lib/review-evidence-store.js, and adds duplicate/state-preservation tests in specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js. However, the mapped provider execution path in src/flow/lib/run-review.js only canonicalizes persisted artifacts after the provider subprocess has already run, and ReviewExecutionPipeline is not wired into the CLI registry path in src/flow/registry.js. The diff does not show provider execution rejecting malformed provider evidence, foreign phase/task target, or duplicate phase/task/tree/digest identity before a new provider execution; those checks happen only during post-execution promotion or independent evidence registration. This omits a required pre-execution rejection behavior for review execution under [REQ:R2]."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires one persisted toolingMaxAttempts=1 budget per phase/task/tree target regardless of provider or process, and rejection after the permitted retry is consumed. The implementation persists toolingMaxAttempts=1 and blocks after exhaustion, but it also keys reads/records by targetStateDigest/repairFingerprint, allowing a new bounded tooling retry state for the same phase/task/tree when that digest changes; the added spec-local test explicitly expects “changed repair state starts a new bounded target under the same HEAD identity.” This contradicts the exact phase/task/tree sharing contract. Sources: src/flow/lib/review-convergence.js; src/flow/lib/run-review.js; specs/328-bounded-review-convergence/tests/review-action-resolution.test.js."
+        }
+      ],
+      "issueLogId": "issue-log-0fbf9e5b-880d-4d33-afe5-6464c6390e2a"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Gate found the production review command bypassed the shared preflight model and target-state changes reset the tree-scoped tooling budget",
+      "trigger": "Integration gate R2 and R4 validation followed by targeted production command regression tests",
+      "resolution": "Added a shared ReviewExecutionGuard used by RunReviewCommand and ReviewExecutionPipeline, carried tooling state across repair fingerprints and providers, and updated obsolete FAIL contract fixtures to REJECTED",
+      "guardrailCandidate": "Production command paths must use the tested domain guard and retry budgets must be keyed exactly as specified",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:44:32.887Z",
+      "issueLogId": "issue-log-f3a20a3d-09b4-404b-b5f4-79a72091a451"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires stale tree/target mismatches to be rejected before state mutation and to leave canonical evidence files unchanged. In [FILE-MAP:R2:6] `ReviewExecutionPipeline.execute` calls `writeCanonicalEvidence`, `writeProjection`, and `recordResult` before rechecking `resolveCurrentTreeSha()` / `resolveCurrentTargetStateDigest()`, so a target drift during provider execution can still mutate canonical evidence/projection outputs before returning `STALE_REVIEW_TARGET`. The included drift test in [FILE-MAP:R2:2] verifies flow-state preservation only, not canonical evidence file preservation, so mapped evidence omits a required unchanged-canonical-files guarantee.; [REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to be persisted as TOOLING_ERROR outcomes with stage and attempt data. The mapped production integration in src/flow/lib/run-review.js only persists canonical tooling outcomes after the review subprocess returns a non-ok result or after parsing a child-emitted toolingOutcome; the generic ReviewExecutionPipeline covers the required stages but is not wired into RunReviewCommand execution, so provider startup exceptions from runCommand and canonical promotion exceptions from persistCanonicalReviewResult are not shown to be caught and converted into persisted TOOLING_ERROR state. [FILE-MAP:R4:5] [FILE-MAP:R4:6]",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T04:46:46.679Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires stale tree/target mismatches to be rejected before state mutation and to leave canonical evidence files unchanged. In [FILE-MAP:R2:6] `ReviewExecutionPipeline.execute` calls `writeCanonicalEvidence`, `writeProjection`, and `recordResult` before rechecking `resolveCurrentTreeSha()` / `resolveCurrentTargetStateDigest()`, so a target drift during provider execution can still mutate canonical evidence/projection outputs before returning `STALE_REVIEW_TARGET`. The included drift test in [FILE-MAP:R2:2] verifies flow-state preservation only, not canonical evidence file preservation, so mapped evidence omits a required unchanged-canonical-files guarantee.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to be persisted as TOOLING_ERROR outcomes with stage and attempt data. The mapped production integration in src/flow/lib/run-review.js only persists canonical tooling outcomes after the review subprocess returns a non-ok result or after parsing a child-emitted toolingOutcome; the generic ReviewExecutionPipeline covers the required stages but is not wired into RunReviewCommand execution, so provider startup exceptions from runCommand and canonical promotion exceptions from persistCanonicalReviewResult are not shown to be caught and converted into persisted TOOLING_ERROR state. [FILE-MAP:R4:5] [FILE-MAP:R4:6]",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires stale tree/target mismatches to be rejected before state mutation and to leave canonical evidence files unchanged. In [FILE-MAP:R2:6] `ReviewExecutionPipeline.execute` calls `writeCanonicalEvidence`, `writeProjection`, and `recordResult` before rechecking `resolveCurrentTreeSha()` / `resolveCurrentTargetStateDigest()`, so a target drift during provider execution can still mutate canonical evidence/projection outputs before returning `STALE_REVIEW_TARGET`. The included drift test in [FILE-MAP:R2:2] verifies flow-state preservation only, not canonical evidence file preservation, so mapped evidence omits a required unchanged-canonical-files guarantee."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures to be persisted as TOOLING_ERROR outcomes with stage and attempt data. The mapped production integration in src/flow/lib/run-review.js only persists canonical tooling outcomes after the review subprocess returns a non-ok result or after parsing a child-emitted toolingOutcome; the generic ReviewExecutionPipeline covers the required stages but is not wired into RunReviewCommand execution, so provider startup exceptions from runCommand and canonical promotion exceptions from persistCanonicalReviewResult are not shown to be caught and converted into persisted TOOLING_ERROR state. [FILE-MAP:R4:5] [FILE-MAP:R4:6]"
+        }
+      ],
+      "issueLogId": "issue-log-a455aa90-ca92-49b3-bd6f-454af8e90e1f"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Gate found stale target revalidation occurred after canonical side effects and production startup or promotion exceptions escaped TOOLING_ERROR persistence",
+      "trigger": "Integration gate R2 and R4 side-effect ordering and production boundary validation",
+      "resolution": "Moved target revalidation before canonical and projection effects, centralized production parse and promotion exception persistence, and persisted registry post-hook failures while preserving finalized evidence",
+      "guardrailCandidate": "Revalidate identities before the first side effect and route every production execution boundary through typed failure persistence",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:55:44.655Z",
+      "issueLogId": "issue-log-40e06399-7746-493c-ad19-c83eee6c10b1"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires every review execution to bind phase, taskId-or-null, current tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject malformed evidence before state mutation. The mapped implementation adds ReviewEvidenceIdentity and canonical digest creation in ReviewEvidence, and independent registration validates target fields, but provider review promotion can silently skip identity binding: persistCanonicalReviewArtifact returns null when result.changed is empty, when the expected artifact file is absent, or when flowManager/spec is missing, after which finalizeReviewCommandResult returns the parsed successful review result without rejection or canonical evidence/state mutation. This contradicts the “every review execution shall bind” and malformed-evidence rejection requirements. Sources: [FILE-MAP:R2:4] src/flow/lib/review-convergence.js, [FILE-MAP:R2:5] src/flow/lib/review-evidence-store.js, [FILE-MAP:R2:6] src/flow/lib/run-review.js.; [REQ:R4] requires every listed tooling failure to persist as TOOLING_ERROR outcomes with stage and attempt data, not create review findings, not consume semantic remediation budget, and share one persisted toolingMaxAttempts=1 budget per phase/task/tree target. The diff supplies substantial support for stage/attempt persistence and shared target budget in ReviewToolingOutcome, ReviewConvergenceStore, and ReviewExecutionGuard [FILE-MAP:R4:5] [FILE-MAP:R4:6], but it contradicts the no-review-findings rule for finalized-result tooling failures: NormalizedReviewExecution sets findings = evidence?.findings and handoffFindings from evidence even when toolingOutcome is present, and the added regression test explicitly expects canonical_write TOOLING_ERROR to expose the advisory finding [FILE-MAP:R4:6] [FILE-MAP:R4:2]. This is contrary to the R4 requirement that tooling failures shall not create review findings.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T04:57:39.570Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires every review execution to bind phase, taskId-or-null, current tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject malformed evidence before state mutation. The mapped implementation adds ReviewEvidenceIdentity and canonical digest creation in ReviewEvidence, and independent registration validates target fields, but provider review promotion can silently skip identity binding: persistCanonicalReviewArtifact returns null when result.changed is empty, when the expected artifact file is absent, or when flowManager/spec is missing, after which finalizeReviewCommandResult returns the parsed successful review result without rejection or canonical evidence/state mutation. This contradicts the “every review execution shall bind” and malformed-evidence rejection requirements. Sources: [FILE-MAP:R2:4] src/flow/lib/review-convergence.js, [FILE-MAP:R2:5] src/flow/lib/review-evidence-store.js, [FILE-MAP:R2:6] src/flow/lib/run-review.js.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires every listed tooling failure to persist as TOOLING_ERROR outcomes with stage and attempt data, not create review findings, not consume semantic remediation budget, and share one persisted toolingMaxAttempts=1 budget per phase/task/tree target. The diff supplies substantial support for stage/attempt persistence and shared target budget in ReviewToolingOutcome, ReviewConvergenceStore, and ReviewExecutionGuard [FILE-MAP:R4:5] [FILE-MAP:R4:6], but it contradicts the no-review-findings rule for finalized-result tooling failures: NormalizedReviewExecution sets findings = evidence?.findings and handoffFindings from evidence even when toolingOutcome is present, and the added regression test explicitly expects canonical_write TOOLING_ERROR to expose the advisory finding [FILE-MAP:R4:6] [FILE-MAP:R4:2]. This is contrary to the R4 requirement that tooling failures shall not create review findings.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires every review execution to bind phase, taskId-or-null, current tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity, and to reject malformed evidence before state mutation. The mapped implementation adds ReviewEvidenceIdentity and canonical digest creation in ReviewEvidence, and independent registration validates target fields, but provider review promotion can silently skip identity binding: persistCanonicalReviewArtifact returns null when result.changed is empty, when the expected artifact file is absent, or when flowManager/spec is missing, after which finalizeReviewCommandResult returns the parsed successful review result without rejection or canonical evidence/state mutation. This contradicts the “every review execution shall bind” and malformed-evidence rejection requirements. Sources: [FILE-MAP:R2:4] src/flow/lib/review-convergence.js, [FILE-MAP:R2:5] src/flow/lib/review-evidence-store.js, [FILE-MAP:R2:6] src/flow/lib/run-review.js."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires every listed tooling failure to persist as TOOLING_ERROR outcomes with stage and attempt data, not create review findings, not consume semantic remediation budget, and share one persisted toolingMaxAttempts=1 budget per phase/task/tree target. The diff supplies substantial support for stage/attempt persistence and shared target budget in ReviewToolingOutcome, ReviewConvergenceStore, and ReviewExecutionGuard [FILE-MAP:R4:5] [FILE-MAP:R4:6], but it contradicts the no-review-findings rule for finalized-result tooling failures: NormalizedReviewExecution sets findings = evidence?.findings and handoffFindings from evidence even when toolingOutcome is present, and the added regression test explicitly expects canonical_write TOOLING_ERROR to expose the advisory finding [FILE-MAP:R4:6] [FILE-MAP:R4:2]. This is contrary to the R4 requirement that tooling failures shall not create review findings."
+        }
+      ],
+      "issueLogId": "issue-log-56c93ce0-b7d7-4422-9d62-0fc2c84789c4"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Gate found successful provider reviews could skip canonical identity persistence and tooling outcomes still exposed reviewer findings as execution findings",
+      "trigger": "Integration gate R2 identity completeness and R4 no-findings validation",
+      "resolution": "Made convergence context and canonical source artifacts mandatory for successful review promotion, rejected missing artifacts without mutation, and separated retained evidence content from empty TOOLING_ERROR findings and handoff surfaces",
+      "guardrailCandidate": "Successful boundary results must never silently skip mandatory persistence and tooling failures must expose no semantic findings",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T04:59:51.183Z",
+      "issueLogId": "issue-log-3fb10ba3-4238-4286-a46c-f3bc5dc794c1"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff does not show any added or modified spec-local test file under specs/328-bounded-review-convergence/tests/ with a `// spec: R<N> ...` header, so the required task-impl header coverage for the new spec behavior is not evidenced in the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T05:02:26.127Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "specs/328-bounded-review-convergence/tests/"
+          },
+          "observed": "The diff does not show any added or modified spec-local test file under specs/328-bounded-review-convergence/tests/ with a `// spec: R<N> ...` header, so the required task-impl header coverage for the new spec behavior is not evidenced in the diff.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R2",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The diff does not show any added or modified spec-local test file under specs/328-bounded-review-convergence/tests/ with a `// spec: R<N> ...` header, so the required task-impl header coverage for the new spec behavior is not evidenced in the diff."
+        }
+      ],
+      "issueLogId": "issue-log-daf02090-fe7c-4115-a267-307b65d7c7c1"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Gate diff compaction summarized away spec-local test headers and produced a false missing-coverage failure on a large generated-artifact diff",
+      "trigger": "Integration spec-test-coverage guardrail after all requirement checks passed",
+      "resolution": "Added bounded spec-test path and header evidence ahead of compacted guardrail diffs with a large-diff regression fixture",
+      "guardrailCandidate": "Diff compaction must preserve small decisive evidence required by structural guardrails",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T05:04:38.928Z",
+      "issueLogId": "issue-log-95789bab-88a7-4c6c-a4c1-d703865b49a8"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Acceptance treated unresolved deferred findings as pre-semantic mechanical blockers and rejected canonical typed impl evidence solely because the phase projection carried an older repair fingerprint",
+      "trigger": "Blocked acceptance review after a passing integration gate",
+      "resolution": "Moved deferred disposition assignment into the semantic acceptance response, preserved source-only mechanical preflight, and made flow-state-bound canonical review evidence authoritative while validating phase projection parity",
+      "guardrailCandidate": "Acceptance must not classify semantic input state as a mechanical failure, and typed canonical evidence identity must supersede projection-only freshness checks",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T05:19:05.846Z",
+      "issueLogId": "issue-log-2e7574e7-5598-4e96-96bd-16de4de50f10"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Late evidence refresh removed rebuildable gate and retro artifacts, but explicit integration gate revalidation failed because the terminal gate pre-hook attempted an invalid lifecycle transition",
+      "trigger": "Refreshing fingerprint-bound acceptance evidence after repairing acceptance-review",
+      "resolution": "Treat an explicit gate phase targeting a terminal upstream gate while a downstream leaf is active as evidence-only revalidation and skip lifecycle mutations",
+      "guardrailCandidate": "Rebuildable evidence refresh must have a bounded revalidation path that does not reopen or corrupt terminal lifecycle state",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T05:27:32.203Z",
+      "issueLogId": "issue-log-bca24a02-d0c5-4b24-8eac-c9605fc4f7ad"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Semantic acceptance output used descriptive citation labels instead of the command-owned exact request, requirement, repair, and deferred source references",
+      "trigger": "First semantic acceptance invocation passed preflight but failed artifact binding after provider completion",
+      "resolution": "Added a typed response-binding boundary that preserves semantic statuses and dispositions while injecting deterministic command-owned refs and filtering deferred refs to the current evidence set",
+      "guardrailCandidate": "AI should decide semantic values, while deterministic identity and citation fields must be bound by the CLI before artifact validation",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T05:46:33.274Z",
+      "issueLogId": "issue-log-a12b974e-880f-4b0b-8101-b26a0fab827f"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "The semantic provider also emitted a test source path instead of the acceptance artifact reference required by testRefs",
+      "trigger": "Second semantic acceptance invocation after fixed identity binding",
+      "resolution": "Extended the response-binding boundary to inject exact per-requirement test artifact refs and to filter or deterministically fall back to current diff refs",
+      "guardrailCandidate": "All deterministic acceptance citations, including test and diff identities, must be CLI-bound rather than model-authored",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T05:54:11.986Z",
+      "issueLogId": "issue-log-f76688f6-1d63-4591-9611-f6d4e7f4e491"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Acceptance correctly blocked because the refreshed integration gate failed after compaction exposed only spec-test headers and omitted the behavioral declarations needed to assess R9.",
+      "trigger": "The third acceptance review read impl-gate-result.json with spec-test-coverage fail even though current test-execute and test-result-review evidence passed.",
+      "resolution": "Added bounded spec-local test declaration evidence to integration guardrail targets and regression coverage for declaration preservation under large diff compaction.",
+      "guardrailCandidate": "Integration guardrail prompt compaction must retain bounded spec-local test declarations in addition to requirement headers.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T06:02:35.163Z",
+      "issueLogId": "issue-log-4b743d65-ba5a-48a7-b1ff-c4228c579249"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "The CLI lifecycle exposed three authority and scope regressions after typed review evidence began using atomic flow replacement: loaded managers were not target-bound, task-gate side effects re-resolved scope after lifecycle promotion, and finalize-cleanup completion inherited the stale task cursor.",
+      "trigger": "The expanded lifecycle test first failed at review atomic persistence, then completed with an in-progress task, and cleanup initially addressed finalize-cleanup through task scope.",
+      "resolution": "Bound FlowManager to validated loaded state, derived gate side effects from the invocation snapshot, and completed finalize-cleanup with explicit taskId null through a shared helper; the full CLI lifecycle now passes.",
+      "guardrailCandidate": "Atomic state mutations and lifecycle side effects must preserve the command invocation target and explicit flow-versus-task scope across step promotion.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T06:12:48.399Z",
+      "issueLogId": "issue-log-e09bf92f-14bb-4557-9ea0-e592ee32ec44"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "A semantically valid large acceptance response omitted one of 85 required deferred finding dispositions, causing exact coverage validation to abort without preserving the 84 completed classifications.",
+      "trigger": "Acceptance runtime sequence 431 failed with missing deferred finding disposition after the primary reviewer response.",
+      "resolution": "Added one bounded focused semantic coverage-repair call for only omitted deferred findings, preserved prior requirement judgments, retained CLI-owned evidence binding, and kept exact duplicate/unknown/missing validation.",
+      "guardrailCandidate": "Large structured semantic responses must repair omitted collection members through a bounded focused call without inventing dispositions or rerunning completed judgments.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T06:22:40.414Z",
+      "issueLogId": "issue-log-d6dcab81-d84b-4bac-bf66-6fde972e344b"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "failureCategory": "existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".agents/skills/senti.flow/SKILL.md",
+          "fingerprint": "05e82c57d1141fa310af1e0c916c180da8fdf670a3f63e518a4254e3b8460658"
+        },
+        {
+          "path": ".claude/skills/senti.flow/SKILL.md",
+          "fingerprint": "05e82c57d1141fa310af1e0c916c180da8fdf670a3f63e518a4254e3b8460658"
+        },
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "810a4beb38aa5dce0f2b8b0f12e8cf446674f61b85db6fc17489ea420cc654f4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/acceptance-review.json",
+          "fingerprint": "9925c9153c38c9109670fa05a128fd1c21be72dd9a99b36e1147f9d09af093ca"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-coverage-repair.json",
+          "fingerprint": "093109dc32d6782dae619340ec2a76781962be7bf2f07d80d11c1d0db76b8b5a"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-coverage-triage.json",
+          "fingerprint": "4833c79b36797307ab0af7305c53ee12a974e55958e9cd795a3199d5477ad59f"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-gate-source.json",
+          "fingerprint": "26eb7b6f4e9febd3ec9bb7e4000266e39d0c616f670fa6e70ab3a529a388f82b"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-questions-repair.json",
+          "fingerprint": "5dea3e3330cd8c773ebaf27f751015ecf195feab0f7ef63c7bbb8176dbb67949"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-questions-triage.json",
+          "fingerprint": "344649601eaa349433921e004f71077922272156236524d6060bf8be5857b482"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-review-coverage.json",
+          "fingerprint": "79a5b12106a132c6dc3bda200a392125253d40c80884b29ce44fd115d427a2fc"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-review-questions.json",
+          "fingerprint": "7f768836203010255c6405a49cb2d97a042331fc51c6390393fa7be8837313d8"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft.json",
+          "fingerprint": "b6051e6cf68a3e9f86c65b9b22503a7fcbf240b39ea2dff5a25a1daa545f4d2c"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/file-map.json",
+          "fingerprint": "3ca352c59120a30ce7c413cc4a0ded86719dd7e296939629db3e67875a86613f"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/flow-findings.json",
+          "fingerprint": "98256ee1736e730467d3ffeb1b5eeeab466178a8ec8cde4f333184d5c5e6c70c"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/impl-gate-result.json",
+          "fingerprint": "e2ff21198fee76923e298fb968fcb22c91953e0b117b849cf2bb5ad86788491a"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/impl-review.json",
+          "fingerprint": "3e80eb56d3861e9a28302c1f87caa80820b7069a8b25f664e0a38dfce6d75103"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/impl-triage.json",
+          "fingerprint": "a054e4bedbf9d1bba221f0e0c4a690d4ffbfc72064455af7d6c86af96e88ab07"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/issue.md",
+          "fingerprint": "10d53841b9a6330f663fa9982b9e9414fdad978d4839f45cae9d96d53f9792f4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "646df321b87542c0414add0f8618cb1e6d2fa80fbd7c4e209ce5e761da93989d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/repair-fingerprint.json",
+          "fingerprint": "f65d536b974ad8dca0736ed65f9c094586251e4b750794ed324d84955440bb46"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/retro.json",
+          "fingerprint": "fe583481875fdfba53c40635a72e42e99c28b6971f31f7e67c3f0c3960fa1f08"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-evidence/2b8de8dd1558545ead0e393a2396ff1858ab5a2b52c8e57d051408ca9dc0c5a4.json",
+          "fingerprint": "074ffa01d3d3dba001c4150975375bcdfddfaa2bd0ba6a91cb42832651624d18"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-evidence/610b704a22d6330c2e7bb48b4d54bd9d9abddc952fbeef1875e0f2a1818afa8f.json",
+          "fingerprint": "fa1a4d99d0b533b523d7100287c2eec9ed0fcb61b1f88d1a1937803f613d6fe2"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "94794f104ecc00e8516a7565a35d66ab48d74e28b9fa78f52a4373953c63e994"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "b2f25ca9041dec3ea546d2a725d07b6cf08972bb76ae32c02c72f1423dd66ef3"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-001.json",
+          "fingerprint": "730736b27a1d216899dcf3f47d76d32e32285e537852935dc8d07d4525792031"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-002.json",
+          "fingerprint": "dd8457a4953f04a22d68f5de408f9ff6edbf12082c57eb7cd4b8683a655c0b63"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-002.md",
+          "fingerprint": "9e2031160c6432923f78cef327d10bfeb7dfbce1f304e020823d18bf09ee34d8"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-003.json",
+          "fingerprint": "dd42dd0c0f0869115821b4dc9eafd95c628f8e5389e116a99f9892a683ebed86"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-003.md",
+          "fingerprint": "b2176a012de8f648e0ec9ba7aafbfc668a2120f90f00e2d980ee120663953794"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-004.json",
+          "fingerprint": "f9f2fdf0a2d50d59bc5fc8c6bcbba6bc3303df332970d0c9e882d47a5470f845"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-004.md",
+          "fingerprint": "500991c0b1244c2e611a2ec60327ba04510bc16c18666fdbae477a5ae7debde9"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-005.json",
+          "fingerprint": "181ec6287faa5347ddf649f2aa73be0cff5dec27c660f1f35828cc6e2ad96095"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-005.md",
+          "fingerprint": "a0a1fa5d47b76dffa06cf970295bc2322c6ac769ee270b5e3c6aa84d884b8818"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-006.json",
+          "fingerprint": "057f151fcaf97e4466d685e209d3088c634b51bb257b4c780903cc9c54d8a36a"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-006.md",
+          "fingerprint": "051f370c214d8e04f5b12c989c89acbffe3dccc7ac2d98b475fcec1282c0def1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/spec-attempt-001.json",
+          "fingerprint": "252578808b0406d0331869fc634edc73fe3bd76666cfb5a8cd1389d324cf761b"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-001.json",
+          "fingerprint": "f98bba9ee3b0f78b7c062c89e40d96f2814d6a809288285968b3e2b33089151b"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-001.md",
+          "fingerprint": "38d56127af53c2ca19aa7389c8b9fc2c4db5bbf4b33d033d4a63c398ae0c34f4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-002.json",
+          "fingerprint": "30245bcf88828ba51d436a6bca7abedddf6197cd709f73e31e869a1458048954"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-002.md",
+          "fingerprint": "ece695632db74f412b96c2a0d649fb02aecca9d60da4fa5046d3013b3f92bed9"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-003.json",
+          "fingerprint": "375d9f8faeb812fecbcebf8cb27c26205b0d291bed75d9e0d5b6083b54272ebb"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-003.md",
+          "fingerprint": "84c499bbf47d1cd3c0ca8e3f99986ed3fc705b15dbc79f7826f5abfff487b3d4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-004.json",
+          "fingerprint": "4c639be4acca01139c07f4e064c5839ba46aae5278a8bce25e73c60804576a26"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-004.md",
+          "fingerprint": "f0e39c714a84b39c121189dfb87a1f6489d71d4d5a04d3a7bcdda021dae52063"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-005.json",
+          "fingerprint": "8b3640aabc49db8816334c73d63dee8e273f1020321c680f3d929635ef3db15d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-005.md",
+          "fingerprint": "192c4539e1cb6a0603cba661fcff95b7dd7c880443aaf766093ef63396067c9a"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "07838cdda0c76bffc7e867863d0482affd7e1217651bb36fb9962e1651c443ab"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "373f633876a73f8a1a0a52038264a66a9331ff54646a4dde91147aae92c801c9"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "a72d5f971cf233487f88d4c4c6db1254fd4cd0da659901a13634a9a123518167"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "ab2077f25030d18e13ac86c383f4ec1de2c2975a2415a5682cb4ee675be6794f"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "b8baf4699cbcb6d8b964bf276b3220e3953bd7569302748fa6f34f44405b4d29"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/4dbd121285c99b0c6bc7641b.json",
+          "fingerprint": "2374c6439ceb44497e283171f9a85ba4acf8e0f69b2d3e35910410b557a8c707"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "087508f2ce017703fdf980fa1258c46cebdb75d990abaa4e73b1da338d48f9fb"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/5877c4faf46857698a626dab.json",
+          "fingerprint": "f05dcd2b861d2e93ebbc8003aac78b98de7c41f3ab1242155661c2aa7d72a275"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "24cc6c38c99ce1f07e6d4d2fe29540cf6cda24b0f2b970901bf97270c94e57a4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "f484d81bc6b6b8fe28bbbd1665d54a0200446473e2af7f1df5e17af9af09a9f2"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "d87db0a192257767256f95ef8c2e0fbec1c75dc8764a77529f6b05702191c754"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "3286ea39b8f52573c4852ef0c1682153a7613b1f937dea7317b10f11e41c9152"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+          "fingerprint": "f50e6cee8c2c10760a1976a2780ead4c657264da5be9c51e6bf31b037ad243db"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "c09c792852b60d50c6a15271c7e59bdb7357bb54bd604d2e2b1ef2cc1f17c076"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "252aabac6a8875b2aec17a84abdef28bf0c89d96383146149553b642c67237db"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "53072e2ab6d4951402e2033ea08ce9006a231d26d9bb93d5d93ff7e97a0e2de9"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "e4e6c2ce509b07dea92fa752736e8b2fdc8143d6131f7d402345af47afbef068"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/e51f274bf6293ee14a56412a.json",
+          "fingerprint": "342f3814ed4b8cb0aa1be6c2c0f0b48fa0f733d8fe39b663c7c26cd229b0c4cd"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/eac8dfc7f8c844e4c1567db0.json",
+          "fingerprint": "f5273f4d612f8752ad1d7bf7d1a47e3c41592db0bb59128f787c473e28ee55c2"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/ef731e69be25ed0d68406039.json",
+          "fingerprint": "fd1bd52208b1640db3bb0f8b5734164fabe57bbeafc72e5af9a949dee2d9d91d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review.md",
+          "fingerprint": "051f370c214d8e04f5b12c989c89acbffe3dccc7ac2d98b475fcec1282c0def1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/scenario-validity-result.json",
+          "fingerprint": "61a889ba927c9c1fefebe327036369e1f2422eab9d9219b4b7376114e29dcf6d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/spec-review.json",
+          "fingerprint": "2a187aa5b859d21add5ea0d48475e7fe16e24e5000a77fd9ef524878e2d2a0a6"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/spec.json",
+          "fingerprint": "a0e1d2b10cb7262273c9db7c31558e1cfd8bec50a03e36a0228db336ab349da0"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/spec.md",
+          "fingerprint": "123f52fb17c4ee855dbd1197dcabd76054a84d0335aefaba54caf5c6183296aa"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/task-impl-gate-source.json",
+          "fingerprint": "1138ae6e08d1bc68846d10b038e693c4aa81269471e3068a9b33142805e760c0"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-1.md",
+          "fingerprint": "187d4da60ef4b4b83ebe910f1a8278232d9302b1d16d9d78d9d0ac2189e83195"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-2.md",
+          "fingerprint": "a587b7668569b4d598c1d97de5c3e7a3b29eb8add7f98c9826b6047ceec1bd2c"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-3.md",
+          "fingerprint": "51489122e00890ecb848902669526910f779afc49efa82252c6dcc812f4c3d67"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-4.md",
+          "fingerprint": "e2195c27808fecacc287c4abddc9fd6903e0754afef3a99993aab1c89efa142d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-5.md",
+          "fingerprint": "417f8444b17eca6a40b301052af9df8862ff775841e3f21cf916b38b2aceedf1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-6.md",
+          "fingerprint": "e11d39554ea322616f4765f6d408a018cdf22c928a396bf6a1589a62bb30e4ca"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-coverage.json",
+          "fingerprint": "adaa630b2d5f884779809c933dc5a663b1411386bfb3a0a83c79fdc334055654"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-execute-result.json",
+          "fingerprint": "20692e033f38b42f3b45ffbebf11aa8cdc835466fc96ef0e8dfc2c70f5a06648"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-result-review.json",
+          "fingerprint": "7390b859ca183ec358a630a1d78fb44c71b8efcae282cf6be3c2e5d0d6b1a84e"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-result-review.md",
+          "fingerprint": "256361625b360dfe086430eeb42040603d604f00e20e672cdc68cf1bdf2a3fe1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-review.json",
+          "fingerprint": "f4c947a8dbc3439d7ba914992724b5ca8187f43d9f9ea92a591ae24e23ccd031"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-review.md",
+          "fingerprint": "64987e76087f9267fa3e6e5496bb8b8186b7818b953a7991a39fb323b64ee9a7"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/.raw/scenario-validity.log",
+          "fingerprint": "4a500c8f5ae64ff083a4877410f686c3fc84a88a41fb88289199bb390e581f0b"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/.raw/test-execution.log",
+          "fingerprint": "cf18c2c1e5c136d79c150e77f4737153c139c27ef90b740036b1bb774c0b0887"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/.raw/upgrade.log",
+          "fingerprint": "b04f78edff7b397a4b7fbadc33923f1ae84c09c65afb1a053e9bc338f26d3c30"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js",
+          "fingerprint": "7a14303123002d6b16a7952067c201f7f0550f1b3dc177910cfddfc377db66da"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/review-convergence-model.test.js",
+          "fingerprint": "b748e1e96faf806adb08acd3cbf1473d02a9572f32df0c34db0d60ec86198462"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js",
+          "fingerprint": "58d21fa9de248900fc0d6d7a13c71dc11f621ca09383c4b0cb4dc1690c760feb"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+          "fingerprint": "868ddb75b2dc524f2e67884e132380850851862f2263c302bb4b0676ef3a6ef1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/upgrade-result.json",
+          "fingerprint": "ef169cded9d059674f5f397e2531582ef2c3d984c904cc03e32d69a0bbe65c7a"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "eb0699bb32ae7e74421abbd9d1d36c29cc6f31b7ffe1b9c72c5c4b9e0f1a2bf5"
+        },
+        {
+          "path": "src/flow/definition.js",
+          "fingerprint": "8813230aba8ee3c8a6ee967198ee7661d676650bb362f551807fab41351c7e97"
+        },
+        {
+          "path": "src/flow/lib/acceptance-review-artifacts.js",
+          "fingerprint": "b04d287758ef0b8a32402c922a218a28039fcdab5c65ebce7988ae63b247cbda"
+        },
+        {
+          "path": "src/flow/lib/artifact-completion.js",
+          "fingerprint": "1f91e53a63ebf87b595a86932225a9359bd947592804b15e1100dee731a99b2d"
+        },
+        {
+          "path": "src/flow/lib/finding-disposition-policy.js",
+          "fingerprint": "4b84cd34ba9e4f2cf2583d2d30db8823f01de65f774450bd204622dd9ed1172b"
+        },
+        {
+          "path": "src/flow/lib/flow-findings.js",
+          "fingerprint": "ef59c6158383fd3bc7c0192f2c58579ba01cd88ca35b23508492f5c7d5f63c62"
+        },
+        {
+          "path": "src/flow/lib/flow-judgment-contract.js",
+          "fingerprint": "b0462bbbaabc3f01e698b4bff8dbefbeaaaa23f285be6119bf6ce4819b1deea1"
+        },
+        {
+          "path": "src/flow/lib/get-next-action.js",
+          "fingerprint": "8b9ee19e5906679771e65e25bfc42df537b4dbc7c074be9173b80a8ed995706b"
+        },
+        {
+          "path": "src/flow/lib/get-status.js",
+          "fingerprint": "8c13a98c10987c7c27e1c1264b0901ab4adc3a296bebdd5fb78ce2fd4f9ff96f"
+        },
+        {
+          "path": "src/flow/lib/repair-state-identity.js",
+          "fingerprint": "547d3b33c1bd819dcacd0e60e56c102c3f6942ee0b3a1f96ad864a1c901c30d7"
+        },
+        {
+          "path": "src/flow/lib/review-convergence.js",
+          "fingerprint": "87e24c726d14fc73447a813031421c9de042fa4902a9ea3a812d6aa588385de1"
+        },
+        {
+          "path": "src/flow/lib/review-evidence-store.js",
+          "fingerprint": "68231728fb3e86674fc51ae7098e6f49b3e1d5bb7cf01196ce562a69747b0025"
+        },
+        {
+          "path": "src/flow/lib/review-failure.js",
+          "fingerprint": "30bd03f688cfa023d5a02a9372cf1804a6d757c7b2d3dc31e1fe7d9f42e4d332"
+        },
+        {
+          "path": "src/flow/lib/run-acceptance-review.js",
+          "fingerprint": "bd5579d2e3b91c83d383679f9f14bc2470746fef016d3ea577489946247087a8"
+        },
+        {
+          "path": "src/flow/lib/run-finalize-cleanup.js",
+          "fingerprint": "711d515993c35a7eca7b1f85f60c52c71039af6a2088e1b26c30435d9700d394"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "8ab9dacfb6d7697b1b565fe49ab5110e27290dfdbf6ddf6d56155ddfd6e554e6"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "fingerprint": "f62bf92471f3e3ebb4a2f66ab9d436ae9e6e2efc30bc8a832adc7cfc99edef7f"
+        },
+        {
+          "path": "src/flow/lib/set-retry.js",
+          "fingerprint": "98cbd8d30e95fdc4de8c09fa480ae16cd6995da7b8fb44031953c8278b64027e"
+        },
+        {
+          "path": "src/flow/lib/set-review-evidence.js",
+          "fingerprint": "e7cec0a5296caee3e1a2af8e11158a5237890c9a0f5a6f3aa44d64bc4e6281b1"
+        },
+        {
+          "path": "src/flow/prompts/impl/acceptance-review.md",
+          "fingerprint": "488ebe7d318729976e29ea79b18e8adbd1634b20ff0edcfd9e876a0dd74dece2"
+        },
+        {
+          "path": "src/flow/prompts/impl/impl-review.md",
+          "fingerprint": "5e6d74f1471cc087c158813d81338759b8104fb943101009f5da2469099c954e"
+        },
+        {
+          "path": "src/flow/prompts/plan/draft-coverage-review.md",
+          "fingerprint": "1985ea49e7028e301a89b0e42046c10a694d63d609ef825ce9a6f049e530074f"
+        },
+        {
+          "path": "src/flow/prompts/plan/draft-questions-review.md",
+          "fingerprint": "2de7d8264d4cfda259d04632bfb62cd597a879f453d2a12ea59383065b7a509e"
+        },
+        {
+          "path": "src/flow/prompts/plan/spec-review.md",
+          "fingerprint": "f6104a034cf7c0cf686dfcb5191ebeb71fbf5fc45af26f28fc651c37eebdbadf"
+        },
+        {
+          "path": "src/flow/prompts/plan/test-review.md",
+          "fingerprint": "edd22ab54a899f5d524465e7765447c35f5aa1d525d6a21b5caa31d413b5fde7"
+        },
+        {
+          "path": "src/flow/prompts/task/task-review.md",
+          "fingerprint": "f51bc85d3a7320a4eb3a0f47c87c93bf311af3d9887ed1d98ecff01f1ae25a71"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "86b8b9b586f4869862f630b555e648ea6f7b42618f3d89494f874394966abdad"
+        },
+        {
+          "path": "src/lib/flow-manager.js",
+          "fingerprint": "b69cc25323aa1143d91fa0c0bb72f694e2dc116ccedf601859a56eb4d2bc619e"
+        },
+        {
+          "path": "src/skills/senti.flow/SKILL.md",
+          "fingerprint": "adfcfb5e99462cd78877f24c1d9cc74678d9a74c2dd309b815c16f85178eba36"
+        },
+        {
+          "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+          "fingerprint": "f2e66e49036a2527c07022c3c7ce0c70bcae94f971d653412825a26cd29bb7fd"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "24ae87a3b4d9ac7c29a4cd0a30933d82f942282d0b5cef6d6567466225956747"
+        },
+        {
+          "path": "tests/unit/flow/flow-state-shared-writer.test.js",
+          "fingerprint": "ec2c77e708beb0dfe126f59b3adc5a7c79d45febf93c21bcbb1d403b336f8536"
+        },
+        {
+          "path": "tests/unit/flow/gate-diff-compaction.test.js",
+          "fingerprint": "e141ae5cf53f718f602d6eb2ae6fb065c65a1a06c2e8fa504c5b5f40a6a718dc"
+        },
+        {
+          "path": "tests/unit/flow/gate-phase-inference.test.js",
+          "fingerprint": "dbd991bcf357f1c5a048444015864e0a00f6efe5741b7da3f730f0a08b637245"
+        },
+        {
+          "path": "tests/unit/flow/gate-spec-sanity.test.js",
+          "fingerprint": "dd03bb91e2088ee933d50434835a62c50e09acf7b396099846e011cf2ba47155"
+        },
+        {
+          "path": "tests/unit/flow/repair-state-identity.test.js",
+          "fingerprint": "b6ee8e083afa151c38ee99721d29c39a7f0f93e3c229ca2d80c7d6a263f96ea2"
+        },
+        {
+          "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+          "fingerprint": "405b2b5669a692f264c193314c89cc46b9678ee75618bd9f41f5c4957d95faba"
+        },
+        {
+          "path": "tests/unit/flow/run-review-advisory.test.js",
+          "fingerprint": "44e414f8baeae585ea4f09d11c42d998e1d4a78ca8984dc05a0ea50fe6cc0292"
+        },
+        {
+          "path": "tests/unit/flow/step-outcome.test.js",
+          "fingerprint": "c3377f99dd3188a111bd85ba545a5e4f6e61464f7631d196ff8056f9af3e32af"
+        },
+        {
+          "path": "tests/unit/flow/task-impl-review-lifecycle.test.js",
+          "fingerprint": "2b2e1896248fd12d21825df720b63a4af4d014233c1bfe203ff8fa5927f02cf5"
+        }
+      ],
+      "rawOutputPath": "specs/328-bounded-review-convergence/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-22T06:37:32.803Z",
+      "issueLogId": "issue-log-2d83db54-5093-44e0-ae98-6c45f89eb9ac"
+    },
+    {
+      "step": "final-regression",
+      "reason": "Typed reviewAction replaced legacy retryRecovery projections on status and next-action, but also removed the mandatory foreign pending recovery authority validation before those read surfaces.",
+      "trigger": "Full regression failed two retry-recovery-convergence subtests for status and next action after 2609 tests passed.",
+      "resolution": "Centralized review recovery authority validation and invoke it before producing typed reviewAction on both status and next-action; the targeted authority suite now passes 12 of 12.",
+      "guardrailCandidate": "Replacing a public recovery projection must preserve fail-closed validation of any pending durable recovery authority before read-side output.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T06:41:09.596Z",
+      "issueLogId": "issue-log-c4d24b0b-7808-4163-9141-7f35752a1543"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "invalid_project_test",
+      "failureCategory": "environment",
+      "reason": "final-regression failed: invalid_project_test",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".agents/skills/senti.flow/SKILL.md",
+          "fingerprint": "05e82c57d1141fa310af1e0c916c180da8fdf670a3f63e518a4254e3b8460658"
+        },
+        {
+          "path": ".claude/skills/senti.flow/SKILL.md",
+          "fingerprint": "05e82c57d1141fa310af1e0c916c180da8fdf670a3f63e518a4254e3b8460658"
+        },
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "810a4beb38aa5dce0f2b8b0f12e8cf446674f61b85db6fc17489ea420cc654f4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/acceptance-review.json",
+          "fingerprint": "9925c9153c38c9109670fa05a128fd1c21be72dd9a99b36e1147f9d09af093ca"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-coverage-repair.json",
+          "fingerprint": "093109dc32d6782dae619340ec2a76781962be7bf2f07d80d11c1d0db76b8b5a"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-coverage-triage.json",
+          "fingerprint": "4833c79b36797307ab0af7305c53ee12a974e55958e9cd795a3199d5477ad59f"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-gate-source.json",
+          "fingerprint": "26eb7b6f4e9febd3ec9bb7e4000266e39d0c616f670fa6e70ab3a529a388f82b"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-questions-repair.json",
+          "fingerprint": "5dea3e3330cd8c773ebaf27f751015ecf195feab0f7ef63c7bbb8176dbb67949"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-questions-triage.json",
+          "fingerprint": "344649601eaa349433921e004f71077922272156236524d6060bf8be5857b482"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-review-coverage.json",
+          "fingerprint": "79a5b12106a132c6dc3bda200a392125253d40c80884b29ce44fd115d427a2fc"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft-review-questions.json",
+          "fingerprint": "7f768836203010255c6405a49cb2d97a042331fc51c6390393fa7be8837313d8"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/draft.json",
+          "fingerprint": "b6051e6cf68a3e9f86c65b9b22503a7fcbf240b39ea2dff5a25a1daa545f4d2c"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/file-map.json",
+          "fingerprint": "3ca352c59120a30ce7c413cc4a0ded86719dd7e296939629db3e67875a86613f"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/flow-findings.json",
+          "fingerprint": "98256ee1736e730467d3ffeb1b5eeeab466178a8ec8cde4f333184d5c5e6c70c"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/impl-gate-result.json",
+          "fingerprint": "e2ff21198fee76923e298fb968fcb22c91953e0b117b849cf2bb5ad86788491a"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/impl-review.json",
+          "fingerprint": "3e80eb56d3861e9a28302c1f87caa80820b7069a8b25f664e0a38dfce6d75103"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/impl-triage.json",
+          "fingerprint": "a054e4bedbf9d1bba221f0e0c4a690d4ffbfc72064455af7d6c86af96e88ab07"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/issue.md",
+          "fingerprint": "10d53841b9a6330f663fa9982b9e9414fdad978d4839f45cae9d96d53f9792f4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "646df321b87542c0414add0f8618cb1e6d2fa80fbd7c4e209ce5e761da93989d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/repair-fingerprint.json",
+          "fingerprint": "f65d536b974ad8dca0736ed65f9c094586251e4b750794ed324d84955440bb46"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/retro.json",
+          "fingerprint": "fe583481875fdfba53c40635a72e42e99c28b6971f31f7e67c3f0c3960fa1f08"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-evidence/2b8de8dd1558545ead0e393a2396ff1858ab5a2b52c8e57d051408ca9dc0c5a4.json",
+          "fingerprint": "074ffa01d3d3dba001c4150975375bcdfddfaa2bd0ba6a91cb42832651624d18"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-evidence/610b704a22d6330c2e7bb48b4d54bd9d9abddc952fbeef1875e0f2a1818afa8f.json",
+          "fingerprint": "fa1a4d99d0b533b523d7100287c2eec9ed0fcb61b1f88d1a1937803f613d6fe2"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "94794f104ecc00e8516a7565a35d66ab48d74e28b9fa78f52a4373953c63e994"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "b2f25ca9041dec3ea546d2a725d07b6cf08972bb76ae32c02c72f1423dd66ef3"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-001.json",
+          "fingerprint": "730736b27a1d216899dcf3f47d76d32e32285e537852935dc8d07d4525792031"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-002.json",
+          "fingerprint": "dd8457a4953f04a22d68f5de408f9ff6edbf12082c57eb7cd4b8683a655c0b63"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-002.md",
+          "fingerprint": "9e2031160c6432923f78cef327d10bfeb7dfbce1f304e020823d18bf09ee34d8"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-003.json",
+          "fingerprint": "dd42dd0c0f0869115821b4dc9eafd95c628f8e5389e116a99f9892a683ebed86"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-003.md",
+          "fingerprint": "b2176a012de8f648e0ec9ba7aafbfc668a2120f90f00e2d980ee120663953794"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-004.json",
+          "fingerprint": "f9f2fdf0a2d50d59bc5fc8c6bcbba6bc3303df332970d0c9e882d47a5470f845"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-004.md",
+          "fingerprint": "500991c0b1244c2e611a2ec60327ba04510bc16c18666fdbae477a5ae7debde9"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-005.json",
+          "fingerprint": "181ec6287faa5347ddf649f2aa73be0cff5dec27c660f1f35828cc6e2ad96095"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-005.md",
+          "fingerprint": "a0a1fa5d47b76dffa06cf970295bc2322c6ac769ee270b5e3c6aa84d884b8818"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-006.json",
+          "fingerprint": "057f151fcaf97e4466d685e209d3088c634b51bb257b4c780903cc9c54d8a36a"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/impl-attempt-006.md",
+          "fingerprint": "051f370c214d8e04f5b12c989c89acbffe3dccc7ac2d98b475fcec1282c0def1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/spec-attempt-001.json",
+          "fingerprint": "252578808b0406d0331869fc634edc73fe3bd76666cfb5a8cd1389d324cf761b"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-001.json",
+          "fingerprint": "f98bba9ee3b0f78b7c062c89e40d96f2814d6a809288285968b3e2b33089151b"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-001.md",
+          "fingerprint": "38d56127af53c2ca19aa7389c8b9fc2c4db5bbf4b33d033d4a63c398ae0c34f4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-002.json",
+          "fingerprint": "30245bcf88828ba51d436a6bca7abedddf6197cd709f73e31e869a1458048954"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-002.md",
+          "fingerprint": "ece695632db74f412b96c2a0d649fb02aecca9d60da4fa5046d3013b3f92bed9"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-003.json",
+          "fingerprint": "375d9f8faeb812fecbcebf8cb27c26205b0d291bed75d9e0d5b6083b54272ebb"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-003.md",
+          "fingerprint": "84c499bbf47d1cd3c0ca8e3f99986ed3fc705b15dbc79f7826f5abfff487b3d4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-004.json",
+          "fingerprint": "4c639be4acca01139c07f4e064c5839ba46aae5278a8bce25e73c60804576a26"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-004.md",
+          "fingerprint": "f0e39c714a84b39c121189dfb87a1f6489d71d4d5a04d3a7bcdda021dae52063"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-005.json",
+          "fingerprint": "8b3640aabc49db8816334c73d63dee8e273f1020321c680f3d929635ef3db15d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/test-attempt-005.md",
+          "fingerprint": "192c4539e1cb6a0603cba661fcff95b7dd7c880443aaf766093ef63396067c9a"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "07838cdda0c76bffc7e867863d0482affd7e1217651bb36fb9962e1651c443ab"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "373f633876a73f8a1a0a52038264a66a9331ff54646a4dde91147aae92c801c9"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "a72d5f971cf233487f88d4c4c6db1254fd4cd0da659901a13634a9a123518167"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "ab2077f25030d18e13ac86c383f4ec1de2c2975a2415a5682cb4ee675be6794f"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "b8baf4699cbcb6d8b964bf276b3220e3953bd7569302748fa6f34f44405b4d29"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/4dbd121285c99b0c6bc7641b.json",
+          "fingerprint": "2374c6439ceb44497e283171f9a85ba4acf8e0f69b2d3e35910410b557a8c707"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "087508f2ce017703fdf980fa1258c46cebdb75d990abaa4e73b1da338d48f9fb"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/5877c4faf46857698a626dab.json",
+          "fingerprint": "f05dcd2b861d2e93ebbc8003aac78b98de7c41f3ab1242155661c2aa7d72a275"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "24cc6c38c99ce1f07e6d4d2fe29540cf6cda24b0f2b970901bf97270c94e57a4"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "f484d81bc6b6b8fe28bbbd1665d54a0200446473e2af7f1df5e17af9af09a9f2"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "d87db0a192257767256f95ef8c2e0fbec1c75dc8764a77529f6b05702191c754"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "3286ea39b8f52573c4852ef0c1682153a7613b1f937dea7317b10f11e41c9152"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+          "fingerprint": "f50e6cee8c2c10760a1976a2780ead4c657264da5be9c51e6bf31b037ad243db"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "c09c792852b60d50c6a15271c7e59bdb7357bb54bd604d2e2b1ef2cc1f17c076"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "252aabac6a8875b2aec17a84abdef28bf0c89d96383146149553b642c67237db"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "53072e2ab6d4951402e2033ea08ce9006a231d26d9bb93d5d93ff7e97a0e2de9"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "e4e6c2ce509b07dea92fa752736e8b2fdc8143d6131f7d402345af47afbef068"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/e51f274bf6293ee14a56412a.json",
+          "fingerprint": "342f3814ed4b8cb0aa1be6c2c0f0b48fa0f733d8fe39b663c7c26cd229b0c4cd"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/eac8dfc7f8c844e4c1567db0.json",
+          "fingerprint": "f5273f4d612f8752ad1d7bf7d1a47e3c41592db0bb59128f787c473e28ee55c2"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review-history/work-units/impl-review/ef731e69be25ed0d68406039.json",
+          "fingerprint": "fd1bd52208b1640db3bb0f8b5734164fabe57bbeafc72e5af9a949dee2d9d91d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/review.md",
+          "fingerprint": "051f370c214d8e04f5b12c989c89acbffe3dccc7ac2d98b475fcec1282c0def1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/scenario-validity-result.json",
+          "fingerprint": "61a889ba927c9c1fefebe327036369e1f2422eab9d9219b4b7376114e29dcf6d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/spec-review.json",
+          "fingerprint": "2a187aa5b859d21add5ea0d48475e7fe16e24e5000a77fd9ef524878e2d2a0a6"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/spec.json",
+          "fingerprint": "a0e1d2b10cb7262273c9db7c31558e1cfd8bec50a03e36a0228db336ab349da0"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/spec.md",
+          "fingerprint": "123f52fb17c4ee855dbd1197dcabd76054a84d0335aefaba54caf5c6183296aa"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/task-impl-gate-source.json",
+          "fingerprint": "1138ae6e08d1bc68846d10b038e693c4aa81269471e3068a9b33142805e760c0"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-1.md",
+          "fingerprint": "187d4da60ef4b4b83ebe910f1a8278232d9302b1d16d9d78d9d0ac2189e83195"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-2.md",
+          "fingerprint": "a587b7668569b4d598c1d97de5c3e7a3b29eb8add7f98c9826b6047ceec1bd2c"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-3.md",
+          "fingerprint": "51489122e00890ecb848902669526910f779afc49efa82252c6dcc812f4c3d67"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-4.md",
+          "fingerprint": "e2195c27808fecacc287c4abddc9fd6903e0754afef3a99993aab1c89efa142d"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-5.md",
+          "fingerprint": "417f8444b17eca6a40b301052af9df8862ff775841e3f21cf916b38b2aceedf1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tasks/T-6.md",
+          "fingerprint": "e11d39554ea322616f4765f6d408a018cdf22c928a396bf6a1589a62bb30e4ca"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-coverage.json",
+          "fingerprint": "adaa630b2d5f884779809c933dc5a663b1411386bfb3a0a83c79fdc334055654"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-execute-result.json",
+          "fingerprint": "20692e033f38b42f3b45ffbebf11aa8cdc835466fc96ef0e8dfc2c70f5a06648"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-result-review.json",
+          "fingerprint": "7390b859ca183ec358a630a1d78fb44c71b8efcae282cf6be3c2e5d0d6b1a84e"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-result-review.md",
+          "fingerprint": "256361625b360dfe086430eeb42040603d604f00e20e672cdc68cf1bdf2a3fe1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-review.json",
+          "fingerprint": "f4c947a8dbc3439d7ba914992724b5ca8187f43d9f9ea92a591ae24e23ccd031"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/test-review.md",
+          "fingerprint": "64987e76087f9267fa3e6e5496bb8b8186b7818b953a7991a39fb323b64ee9a7"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/.raw/scenario-validity.log",
+          "fingerprint": "4a500c8f5ae64ff083a4877410f686c3fc84a88a41fb88289199bb390e581f0b"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/.raw/test-execution.log",
+          "fingerprint": "cf18c2c1e5c136d79c150e77f4737153c139c27ef90b740036b1bb774c0b0887"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/.raw/upgrade.log",
+          "fingerprint": "b04f78edff7b397a4b7fbadc33923f1ae84c09c65afb1a053e9bc338f26d3c30"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js",
+          "fingerprint": "7a14303123002d6b16a7952067c201f7f0550f1b3dc177910cfddfc377db66da"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/review-convergence-model.test.js",
+          "fingerprint": "b748e1e96faf806adb08acd3cbf1473d02a9572f32df0c34db0d60ec86198462"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js",
+          "fingerprint": "58d21fa9de248900fc0d6d7a13c71dc11f621ca09383c4b0cb4dc1690c760feb"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/tests/review-execution-regression.test.js",
+          "fingerprint": "868ddb75b2dc524f2e67884e132380850851862f2263c302bb4b0676ef3a6ef1"
+        },
+        {
+          "path": "specs/328-bounded-review-convergence/upgrade-result.json",
+          "fingerprint": "ef169cded9d059674f5f397e2531582ef2c3d984c904cc03e32d69a0bbe65c7a"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "eb0699bb32ae7e74421abbd9d1d36c29cc6f31b7ffe1b9c72c5c4b9e0f1a2bf5"
+        },
+        {
+          "path": "src/flow/definition.js",
+          "fingerprint": "8813230aba8ee3c8a6ee967198ee7661d676650bb362f551807fab41351c7e97"
+        },
+        {
+          "path": "src/flow/lib/acceptance-review-artifacts.js",
+          "fingerprint": "b04d287758ef0b8a32402c922a218a28039fcdab5c65ebce7988ae63b247cbda"
+        },
+        {
+          "path": "src/flow/lib/artifact-completion.js",
+          "fingerprint": "1f91e53a63ebf87b595a86932225a9359bd947592804b15e1100dee731a99b2d"
+        },
+        {
+          "path": "src/flow/lib/finding-disposition-policy.js",
+          "fingerprint": "4b84cd34ba9e4f2cf2583d2d30db8823f01de65f774450bd204622dd9ed1172b"
+        },
+        {
+          "path": "src/flow/lib/flow-findings.js",
+          "fingerprint": "ef59c6158383fd3bc7c0192f2c58579ba01cd88ca35b23508492f5c7d5f63c62"
+        },
+        {
+          "path": "src/flow/lib/flow-judgment-contract.js",
+          "fingerprint": "b0462bbbaabc3f01e698b4bff8dbefbeaaaa23f285be6119bf6ce4819b1deea1"
+        },
+        {
+          "path": "src/flow/lib/get-next-action.js",
+          "fingerprint": "06a97bad135c756eba39a143557c8d91679c9fc5a7de282b4b769ecb449f1b84"
+        },
+        {
+          "path": "src/flow/lib/get-status.js",
+          "fingerprint": "1da6a49a6b777c8fb54120b4a0e3428d6859263a7d75176e0e48bec50d73f90f"
+        },
+        {
+          "path": "src/flow/lib/repair-state-identity.js",
+          "fingerprint": "547d3b33c1bd819dcacd0e60e56c102c3f6942ee0b3a1f96ad864a1c901c30d7"
+        },
+        {
+          "path": "src/flow/lib/review-convergence.js",
+          "fingerprint": "87e24c726d14fc73447a813031421c9de042fa4902a9ea3a812d6aa588385de1"
+        },
+        {
+          "path": "src/flow/lib/review-evidence-store.js",
+          "fingerprint": "68231728fb3e86674fc51ae7098e6f49b3e1d5bb7cf01196ce562a69747b0025"
+        },
+        {
+          "path": "src/flow/lib/review-failure.js",
+          "fingerprint": "30bd03f688cfa023d5a02a9372cf1804a6d757c7b2d3dc31e1fe7d9f42e4d332"
+        },
+        {
+          "path": "src/flow/lib/review-recovery-authority.js",
+          "fingerprint": "d4fa312b7b95f7898eac5a42e32f7c4dad33f04b5304f3f77b53af25b726bc55"
+        },
+        {
+          "path": "src/flow/lib/run-acceptance-review.js",
+          "fingerprint": "bd5579d2e3b91c83d383679f9f14bc2470746fef016d3ea577489946247087a8"
+        },
+        {
+          "path": "src/flow/lib/run-finalize-cleanup.js",
+          "fingerprint": "711d515993c35a7eca7b1f85f60c52c71039af6a2088e1b26c30435d9700d394"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "8ab9dacfb6d7697b1b565fe49ab5110e27290dfdbf6ddf6d56155ddfd6e554e6"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "fingerprint": "f62bf92471f3e3ebb4a2f66ab9d436ae9e6e2efc30bc8a832adc7cfc99edef7f"
+        },
+        {
+          "path": "src/flow/lib/set-retry.js",
+          "fingerprint": "98cbd8d30e95fdc4de8c09fa480ae16cd6995da7b8fb44031953c8278b64027e"
+        },
+        {
+          "path": "src/flow/lib/set-review-evidence.js",
+          "fingerprint": "e7cec0a5296caee3e1a2af8e11158a5237890c9a0f5a6f3aa44d64bc4e6281b1"
+        },
+        {
+          "path": "src/flow/prompts/impl/acceptance-review.md",
+          "fingerprint": "488ebe7d318729976e29ea79b18e8adbd1634b20ff0edcfd9e876a0dd74dece2"
+        },
+        {
+          "path": "src/flow/prompts/impl/impl-review.md",
+          "fingerprint": "5e6d74f1471cc087c158813d81338759b8104fb943101009f5da2469099c954e"
+        },
+        {
+          "path": "src/flow/prompts/plan/draft-coverage-review.md",
+          "fingerprint": "1985ea49e7028e301a89b0e42046c10a694d63d609ef825ce9a6f049e530074f"
+        },
+        {
+          "path": "src/flow/prompts/plan/draft-questions-review.md",
+          "fingerprint": "2de7d8264d4cfda259d04632bfb62cd597a879f453d2a12ea59383065b7a509e"
+        },
+        {
+          "path": "src/flow/prompts/plan/spec-review.md",
+          "fingerprint": "f6104a034cf7c0cf686dfcb5191ebeb71fbf5fc45af26f28fc651c37eebdbadf"
+        },
+        {
+          "path": "src/flow/prompts/plan/test-review.md",
+          "fingerprint": "edd22ab54a899f5d524465e7765447c35f5aa1d525d6a21b5caa31d413b5fde7"
+        },
+        {
+          "path": "src/flow/prompts/task/task-review.md",
+          "fingerprint": "f51bc85d3a7320a4eb3a0f47c87c93bf311af3d9887ed1d98ecff01f1ae25a71"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "86b8b9b586f4869862f630b555e648ea6f7b42618f3d89494f874394966abdad"
+        },
+        {
+          "path": "src/lib/flow-manager.js",
+          "fingerprint": "b69cc25323aa1143d91fa0c0bb72f694e2dc116ccedf601859a56eb4d2bc619e"
+        },
+        {
+          "path": "src/skills/senti.flow/SKILL.md",
+          "fingerprint": "adfcfb5e99462cd78877f24c1d9cc74678d9a74c2dd309b815c16f85178eba36"
+        },
+        {
+          "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+          "fingerprint": "f2e66e49036a2527c07022c3c7ce0c70bcae94f971d653412825a26cd29bb7fd"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "24ae87a3b4d9ac7c29a4cd0a30933d82f942282d0b5cef6d6567466225956747"
+        },
+        {
+          "path": "tests/unit/flow/flow-state-shared-writer.test.js",
+          "fingerprint": "ec2c77e708beb0dfe126f59b3adc5a7c79d45febf93c21bcbb1d403b336f8536"
+        },
+        {
+          "path": "tests/unit/flow/gate-diff-compaction.test.js",
+          "fingerprint": "e141ae5cf53f718f602d6eb2ae6fb065c65a1a06c2e8fa504c5b5f40a6a718dc"
+        },
+        {
+          "path": "tests/unit/flow/gate-phase-inference.test.js",
+          "fingerprint": "dbd991bcf357f1c5a048444015864e0a00f6efe5741b7da3f730f0a08b637245"
+        },
+        {
+          "path": "tests/unit/flow/gate-spec-sanity.test.js",
+          "fingerprint": "dd03bb91e2088ee933d50434835a62c50e09acf7b396099846e011cf2ba47155"
+        },
+        {
+          "path": "tests/unit/flow/repair-state-identity.test.js",
+          "fingerprint": "b6ee8e083afa151c38ee99721d29c39a7f0f93e3c229ca2d80c7d6a263f96ea2"
+        },
+        {
+          "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+          "fingerprint": "405b2b5669a692f264c193314c89cc46b9678ee75618bd9f41f5c4957d95faba"
+        },
+        {
+          "path": "tests/unit/flow/run-review-advisory.test.js",
+          "fingerprint": "44e414f8baeae585ea4f09d11c42d998e1d4a78ca8984dc05a0ea50fe6cc0292"
+        },
+        {
+          "path": "tests/unit/flow/step-outcome.test.js",
+          "fingerprint": "c3377f99dd3188a111bd85ba545a5e4f6e61464f7631d196ff8056f9af3e32af"
+        },
+        {
+          "path": "tests/unit/flow/task-impl-review-lifecycle.test.js",
+          "fingerprint": "2b2e1896248fd12d21825df720b63a4af4d014233c1bfe203ff8fa5927f02cf5"
+        }
+      ],
+      "rawOutputPath": "specs/328-bounded-review-convergence/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-22T06:41:31.097Z",
+      "issueLogId": "issue-log-717f5162-fcb2-438e-b94b-73a1c70233f6"
+    },
+    {
+      "step": "final-regression",
+      "reason": "User decision note recording failed because the note text was not shell-quoted",
+      "trigger": "flow set note rejected the multi-word text with ARGS_ERROR",
+      "resolution": "Re-ran the guarded note command with the full note enclosed in quotes",
+      "guardrailCandidate": "Quote every multi-word CLI value passed through the shell",
+      "taskId": "T-1",
+      "timestamp": "2026-07-22T08:21:31.607Z",
+      "issueLogId": "issue-log-0ef1efc7-1cf4-4aa6-8ac6-7d93e5b36bb8"
+    }
+  ]
+}

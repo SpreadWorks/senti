@@ -1,0 +1,65 @@
+{
+  "spec": "specs/328-bounded-review-convergence/spec.json",
+  "date": "2026-07-22T08:08:24.466Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The review domain shall use dedicated classes that enforce these invariants: ReviewDisposition is exactly PASS, ADVISORY, or REJECTED; PASS has no findings; ADVISORY has zero blocking findings and at least one advisory finding; REJECTED has at least one blocking finding; TOOLING_ERROR is represented only by ReviewToolingOutcome and can never be a disposition or finding.",
+      "status": "done",
+      "note": "R1: disposition classes enforce PASS ADVISORY and REJECTED finding invariants"
+    },
+    {
+      "desc": "Every review execution or independent evidence registration shall bind phase, taskId-or-null, current target tree SHA, provenance, and a CLI-computed canonical evidence digest into ReviewEvidenceIdentity. The CLI shall reject a stale tree SHA, foreign phase/task target, target-guard or revision mismatch, malformed evidence, and a repeated phase/task/tree/digest identity before a new provider execution or state mutation; rejection shall leave canonical evidence files and flow-state bytes unchanged.",
+      "status": "done",
+      "note": "R2: canonical review evidence derives a stable phase task tree and digest identity"
+    },
+    {
+      "desc": "A valid PASS or ADVISORY result shall complete the current review step exactly once without another review invocation. ADVISORY findings shall be projected with target tree SHA and provenance for later acceptance disposition. REJECTED shall consume only the definition-driven semantic remediation budget; at exhaustion its blocking findings shall be handed to acceptance and the same phase/task/tree/evidence review shall not run again.",
+      "status": "done",
+      "note": "R3: non-blocking evidence and exhausted rejection resolve to acceptance handoff"
+    },
+    {
+      "desc": "Provider startup, communication/subprocess, JSON parse/schema, post-hook, canonical evidence write, phase projection, and result-recording failures shall persist as TOOLING_ERROR outcomes with stage and attempt data, shall not create review findings or consume the semantic remediation budget, and shall share one persisted toolingMaxAttempts=1 budget per phase/task/tree target regardless of provider or process. After the permitted retry is consumed, another unchanged provider execution shall be rejected.",
+      "status": "done",
+      "note": "R4: tooling retry budget is shared by the target and cannot be reset by provider changes"
+    },
+    {
+      "desc": "senti flow set review-evidence --file <path> with normal target guards shall accept a version-1 finalized independent audit document located under the current spec directory. It shall require provenance.provider, provenance.invocationId, provenance.capturedAt, phase, taskId-or-null, treeSha, disposition, blockingFindings, and advisoryFindings; enforce bounded input and disposition/finding consistency; compute the digest itself; persist canonical evidence idempotently; and use the same CAS convergence transition as provider review without launching a provider.",
+      "status": "done",
+      "note": "R5: independent evidence requires every version-1 audit field including explicit null taskId"
+    },
+    {
+      "desc": "For an active review recovery state, next-action and status shall expose exactly one reviewAction kind among retry_review, register_alternative_evidence, move_to_acceptance, and stop_as_blocker. The projection shall include remainingToolingAttempts and exactly one of handoffFindings or blocker; it shall not emit simultaneous authoritative reviewStop and retryRecovery choices. move_to_acceptance means persist the handoff and complete the review leaf while normal definition ordering promotes subsequent non-review steps until acceptance consumes the evidence.",
+      "status": "done",
+      "note": "R6: each state exposes exactly one permitted operation and one handoff or blocker payload"
+    },
+    {
+      "desc": "Migration shall preserve flow run review command routing, source-verified options, target guards, exit-visible failures, phase artifact paths, review.md, phase-specific finding content, post-hook lifecycle ownership, semantic maxAttempts, task scope, revision/CAS checks, normal PASS/ADVISORY promotion, flow-findings final disposition, and acceptance judgment. Legacy artifact verdict FAIL shall be replaced by REJECTED, TOOLING_FAILURE shall be replaced by separate TOOLING_ERROR outcome, and ambiguous reviewStop plus retryRecovery authority shall be replaced by reviewAction without compatibility aliases.",
+      "status": "done",
+      "note": "R7: legacy FAIL and TOOLING_FAILURE values are not accepted as disposition aliases"
+    },
+    {
+      "desc": "autoApprove shall affect only definition actions whose requires_approval is true. A sandbox, OS, provider, subprocess, or filesystem permission failure shall produce TOOLING_ERROR or stop_as_blocker according to the persisted tooling state, shall not request flow approval, and shall not trigger privilege escalation or provider-repair work outside this spec's acceptance criteria.",
+      "status": "done",
+      "note": "R8: permission blocker never becomes a flow approval operation"
+    },
+    {
+      "desc": "Spec-local tests shall cover R1 through R8 with separate fixtures for PASS, ADVISORY, REJECTED before and at remediation exhaustion, provider startup failure, communication/subprocess failure, JSON parse failure, post-hook failure, canonical write/projection failure after result retrieval, independent evidence registration, duplicate identity rejection, tree change revalidation, next-action/status operation uniqueness, autoApprove permission separation, and the Issue #451 ADVISORY with zero blocking findings plus recording-path failure regression.",
+      "status": "done",
+      "note": "R9: spec-local test headers collectively cover R1 through R9"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "776b5ff779b1015bc3cfba7291109a4ae54a1bbc5ec135a2ff49ff2ad34c04e9"
+}

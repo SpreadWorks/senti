@@ -4775,6 +4775,16 @@ function createFinalizeCleanupCompletionTransition(flowManager, specId) {
   });
 }
 
+function completeFinalizeCleanupStep(flowManager, specId, operationOwnerToken) {
+  const transition = createFinalizeCleanupCompletionTransition(flowManager, specId);
+  if (!transition) return;
+  flowManager.updateStepStatus(transition, {
+    specId,
+    taskId: null,
+    operationOwnerToken,
+  });
+}
+
 async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
   const store = new FinalizeTeardownTransactionStore(reportRoot, ctx.flowState, { commitRequired: false });
   return withFinalizeTransactionStore(store, async () => {
@@ -4833,13 +4843,11 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
     if (!result) {
       const completionData = { status: "done", message: "spec-only mode" };
       if (!transaction.phase.atLeast("completed")) {
-        const transition = createFinalizeCleanupCompletionTransition(ctx.flowManager, specId);
-        if (transition) {
-          ctx.flowManager.updateStepStatus(transition, {
-            specId,
-            operationOwnerToken: ctx.repositoryOperationOwnerToken,
-          });
-        }
+        completeFinalizeCleanupStep(
+          ctx.flowManager,
+          specId,
+          ctx.repositoryOperationOwnerToken,
+        );
         const outbox = new FlowOutboxStore(ctx.flowManager, {
           specId,
           operationOwnerToken: ctx.repositoryOperationOwnerToken,
@@ -5844,13 +5852,7 @@ async function runTeardownTransactionOwned(
       : null,
   };
   if (!transaction.phase.atLeast("completed")) {
-    const transition = createFinalizeCleanupCompletionTransition(targetFm, specId);
-    if (transition) {
-      targetFm.updateStepStatus(transition, {
-        specId,
-        operationOwnerToken: ctx.repositoryOperationOwnerToken,
-      });
-    }
+    completeFinalizeCleanupStep(targetFm, specId, ctx.repositoryOperationOwnerToken);
     const completionOutbox = new FlowOutboxStore(targetFm, {
       specId,
       operationOwnerToken: ctx.repositoryOperationOwnerToken,

@@ -36,6 +36,7 @@ const PASS_ACCEPTANCE = JSON.stringify({
     testRefs: ["test-execute-result.json#R1"],
     missingEvidence: [],
   }],
+  deferredFindingDispositions: [],
 });
 
 const FAIL_REVIEW = JSON.stringify({
@@ -290,7 +291,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("review FAIL -> source repair -> retest -> acceptance -> report -> finalize cleanup", () => {
+  it("review REJECTED -> source repair -> retest -> acceptance -> report -> finalize cleanup", () => {
     tmp = createTmpDir("senti-cli-lifecycle-");
     setupFixture(tmp);
 
@@ -311,7 +312,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     assertNext(tmp, "task-review", "T-1");
 
     const failedReview = runEnvelope(tmp, ["flow", "run", "review"]);
-    assert.equal(failedReview.data.artifacts.verdict, "FAIL");
+    assert.equal(failedReview.data.artifacts.verdict, "REJECTED");
     assert.equal(failedReview.data.artifacts.taskId, "T-1");
     assertNext(tmp, "task-review", "T-1");
 

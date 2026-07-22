@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/328-bounded-review-convergence/spec.md",
+      "specs/328-bounded-review-convergence/task-impl-gate-source.json",
+      "specs/328-bounded-review-convergence/tasks/T-1.md",
+      "specs/328-bounded-review-convergence/tasks/T-2.md",
+      "specs/328-bounded-review-convergence/tasks/T-3.md",
+      "specs/328-bounded-review-convergence/tasks/T-4.md"
+    ],
+    "inputHash": "276bb5f0b1a5f917e069168be18eef24a103739dbb4f451f5891eb433999dff8",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "specs/328-bounded-review-convergence/spec.md",
+    "specs/328-bounded-review-convergence/task-impl-gate-source.json",
+    "specs/328-bounded-review-convergence/tasks/T-1.md",
+    "specs/328-bounded-review-convergence/tasks/T-2.md",
+    "specs/328-bounded-review-convergence/tasks/T-3.md",
+    "specs/328-bounded-review-convergence/tasks/T-4.md"
+  ],
+  "inputHash": "276bb5f0b1a5f917e069168be18eef24a103739dbb4f451f5891eb433999dff8",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-22T03:31:24.119Z",
+  "finishedAt": "2026-07-22T03:31:24.119Z",
+  "rawResponse": "### 1. Remove Duplicate Module Ownership Bullet\n**File:** `specs/328-bounded-review-convergence/spec.md`  \n**Requirement:** R1  \n**Issue:** `src/flow/lib/review-convergence.js` is listed twice under `### Modules` with overlapping ownership descriptions.  \n**Suggestion:** Merge the two bullets into one complete description covering dispositions, tooling outcomes, evidence identity, findings, convergence state, attempts, and permitted operations.\n\n### 2. Remove Empty Placeholder Sections\n**File:** `specs/328-bounded-review-convergence/spec.md`  \n**Requirement:** R9  \n**Issue:** `## Implementation Targets` contains only `-`, and `## Open Questions` contains only `- [ ]`. These are dead placeholders that add noise and can be mistaken for unfinished required content.  \n**Suggestion:** Either remove these sections or replace them with explicit content such as `None` if the renderer/project convention requires the headings.\n\n### 3. Avoid Duplicating Full Finding Payloads\n**File:** `specs/328-bounded-review-convergence/task-impl-gate-source.json`  \n**Requirement:** R9  \n**Issue:** The same guardrail failure text and metadata are duplicated across `evaluations[].observations[]` and top-level `observations[]`, with separate fingerprints for essentially the same finding. This increases drift risk in generated review artifacts.  \n**Suggestion:** Prefer a single canonical observation record referenced from evaluations, or keep the detailed payload in one place and use a lightweight reference in the other.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Duplicate Module Ownership Bullet",
+        "body": "**File:** `specs/328-bounded-review-convergence/spec.md`  \n**Requirement:** R1  \n**Issue:** `src/flow/lib/review-convergence.js` is listed twice under `### Modules` with overlapping ownership descriptions.  \n**Suggestion:** Merge the two bullets into one complete description covering dispositions, tooling outcomes, evidence identity, findings, convergence state, attempts, and permitted operations.",
+        "file": "specs/328-bounded-review-convergence/spec.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Remove Empty Placeholder Sections",
+        "body": "**File:** `specs/328-bounded-review-convergence/spec.md`  \n**Requirement:** R9  \n**Issue:** `## Implementation Targets` contains only `-`, and `## Open Questions` contains only `- [ ]`. These are dead placeholders that add noise and can be mistaken for unfinished required content.  \n**Suggestion:** Either remove these sections or replace them with explicit content such as `None` if the renderer/project convention requires the headings.",
+        "file": "specs/328-bounded-review-convergence/spec.md",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Avoid Duplicating Full Finding Payloads",
+        "body": "**File:** `specs/328-bounded-review-convergence/task-impl-gate-source.json`  \n**Requirement:** R9  \n**Issue:** The same guardrail failure text and metadata are duplicated across `evaluations[].observations[]` and top-level `observations[]`, with separate fingerprints for essentially the same finding. This increases drift risk in generated review artifacts.  \n**Suggestion:** Prefer a single canonical observation record referenced from evaluations, or keep the detailed payload in one place and use a lightweight reference in the other.",
+        "file": "specs/328-bounded-review-convergence/task-impl-gate-source.json",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

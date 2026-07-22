@@ -80,6 +80,9 @@ describe("spec review advisory verdict", () => {
     fs.mkdirSync(path.join(root, "specs", "demo"), { recursive: true });
     let processOptions = null;
     const command = new RunReviewCommand({
+      finalizeResult: ({ parse }) => parse(),
+      resolveTreeSha: () => "a".repeat(40),
+      resolveTargetStateDigest: () => "b".repeat(64),
       runCommand(_command, _args, options) {
         processOptions = options;
         return {
@@ -125,23 +128,23 @@ describe("spec review advisory verdict", () => {
     });
   });
 
-  it("routes FAIL to spec-triage instead of a prompt-owned review loop", () => {
+  it("routes REJECTED to spec-triage instead of a prompt-owned review loop", () => {
     const result = parseSpecReviewOutput(
       { ok: true },
-      "Spec review FAIL. 1 blocking finding(s) found. See spec-review.md.",
-      "  [spec-review] Results saved to specs/demo/spec-review.md\n  [spec-review] blockingCount=1 improvementCount=0 proposalCount=1\n  [spec-review] verdict=FAIL proposalCount=1",
+      "Spec review REJECTED. 1 blocking finding(s) found. See spec-review.md.",
+      "  [spec-review] Results saved to specs/demo/spec-review.md\n  [spec-review] blockingCount=1 improvementCount=0 proposalCount=1\n  [spec-review] verdict=REJECTED proposalCount=1",
     );
 
     assert.equal(result.result, "ok");
     assert.equal(result.next, "spec-triage");
     assert.deepEqual(result.artifacts, {
       phase: "spec",
-      verdict: "FAIL",
+      verdict: "REJECTED",
       proposalCount: 1,
     });
   });
 
-  it("post-hook advances FAIL to spec-triage by completing spec-review only", async () => {
+  it("post-hook advances REJECTED to spec-triage by completing spec-review only", async () => {
     const updates = [];
     const metrics = [];
     const flowState = {
@@ -164,7 +167,7 @@ describe("spec review advisory verdict", () => {
         },
       },
     }, {
-      artifacts: { phase: "spec", verdict: "FAIL", proposalCount: 1 },
+      artifacts: { phase: "spec", verdict: "REJECTED", proposalCount: 1 },
     });
 
     assert.deepEqual(updates, [{ stepId: "spec-review", status: "done" }]);
@@ -226,21 +229,28 @@ describe("test-review one-shot verdict routing", () => {
     });
   });
 
-  it("parses TOOLING_FAILURE without routing to implementation", () => {
+  it("parses TOOLING_ERROR without routing to implementation", () => {
     const result = parseTestReviewOutput(
       { ok: true },
-      "Test review TOOLING_FAILURE. Static review tooling failed; see test-review.json.",
-      "  [test-review] Results saved to specs/demo/test-review.md\n  [test-review] verdict=TOOLING_FAILURE blocking=0 advisory=0 toolingFailure=parser_error",
+      "Test review TOOLING_ERROR. Static review tooling failed; see test-review.json.",
+      "  [test-review] Results saved to specs/demo/test-review.md\n  [test-review] outcome=TOOLING_ERROR stage=parse attempt=1 maxAttempts=1 toolingKind=parser_error blocking=0 advisory=0",
     );
 
-    assert.equal(result.result, "tooling-failure");
+    assert.equal(result.result, "tooling-error");
     assert.equal(result.next, null);
     assert.deepEqual(result.artifacts, {
       phase: "test",
-      verdict: "TOOLING_FAILURE",
+      toolingOutcome: {
+        kind: "TOOLING_ERROR",
+        stage: "parse",
+        attempt: 1,
+        maxAttempts: 1,
+        remainingAttempts: 0,
+        reason: "parser_error",
+        permissionRelated: false,
+      },
       blockingCount: 0,
       advisoryCount: 0,
-      toolingFailure: "parser_error",
     });
   });
 
@@ -290,11 +300,24 @@ describe("test-review one-shot verdict routing", () => {
         flowState: { spec: "specs/demo/spec.json" },
         flowManager: {
           appendMetric(payload, opts) { toolingMetrics.push({ payload, opts }); },
-          updateStepStatus() { throw new Error("TOOLING_FAILURE must not complete test-review"); },
+          updateStepStatus() { throw new Error("TOOLING_ERROR must not complete test-review"); },
         },
       }, {
         changed: ["specs/demo/test-review.json"],
-        artifacts: { phase: "test", verdict: "TOOLING_FAILURE", blockingCount: 0, advisoryCount: 0, toolingFailure: "parser_error" },
+        artifacts: {
+          phase: "test",
+          toolingOutcome: {
+            kind: "TOOLING_ERROR",
+            stage: "parse",
+            attempt: 1,
+            maxAttempts: 1,
+            remainingAttempts: 0,
+            reason: "parser_error",
+            permissionRelated: false,
+          },
+          blockingCount: 0,
+          advisoryCount: 0,
+        },
       });
       assert.deepEqual(toolingMetrics, []);
       const issueLog = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/issue-log.json"), "utf8"));
@@ -312,7 +335,7 @@ describe("impl review structured verdict routing", () => {
     const cases = [
       { verdict: "PASS", blockingFindings: [], nonBlockingImprovements: [] },
       { verdict: "ADVISORY", blockingFindings: [], nonBlockingImprovements: [{ title: "Improve" }] },
-      { verdict: "FAIL", blockingFindings: [{ findingId: "F-1" }], nonBlockingImprovements: [] },
+      { verdict: "REJECTED", blockingFindings: [{ findingId: "F-1" }], nonBlockingImprovements: [] },
     ];
     for (const artifact of cases) {
       const contract = contractFromImplReviewArtifact(artifact);
@@ -353,11 +376,11 @@ describe("impl review structured verdict routing", () => {
         blockingFindings: [{ findingId: "F-1" }],
         nonBlockingImprovements: [],
       }),
-      /verdict must be FAIL/,
+      /verdict must be REJECTED/,
     );
     assert.throws(
       () => contractFromImplReviewArtifact({
-        verdict: "FAIL",
+        verdict: "REJECTED",
         blockingFindings: [],
         nonBlockingImprovements: [{ title: "Improve" }],
       }),
@@ -391,7 +414,7 @@ describe("impl review structured verdict routing", () => {
     });
   });
 
-  it("resets reviewRetry for PASS and ADVISORY but increments for FAIL", () => {
+  it("resets reviewRetry for PASS and ADVISORY but increments for REJECTED", () => {
     assert.deepEqual(metricsForImplVerdict("PASS"), [{
       payload: { phase: "impl", counter: "reviewRetry", delta: 0, reset: true },
       opts: { taskId: null },
@@ -400,13 +423,13 @@ describe("impl review structured verdict routing", () => {
       payload: { phase: "impl", counter: "reviewRetry", delta: 0, reset: true },
       opts: { taskId: null },
     }]);
-    assert.deepEqual(metricsForImplVerdict("FAIL"), [{
+    assert.deepEqual(metricsForImplVerdict("REJECTED"), [{
       payload: { phase: "impl", counter: "reviewRetry", delta: 1 },
       opts: { taskId: null },
     }]);
   });
 
-  it("post-hook closes no-repair leaves and routes FAIL to impl-triage", async () => {
+  it("post-hook closes no-repair leaves and routes REJECTED to impl-triage", async () => {
     async function updatesFor(verdict, blockingCount, nonBlockingCount) {
       const updates = [];
       const flowState = {
@@ -443,7 +466,7 @@ describe("impl review structured verdict routing", () => {
     ];
     assert.deepEqual(await updatesFor("PASS", 0, 0), noRepairUpdates);
     assert.deepEqual(await updatesFor("ADVISORY", 0, 1), noRepairUpdates);
-    assert.deepEqual(await updatesFor("FAIL", 1, 0), [
+    assert.deepEqual(await updatesFor("REJECTED", 1, 0), [
       { stepId: "impl-review", status: "done" },
       { stepId: "impl-triage", status: "in_progress" },
     ]);
@@ -464,7 +487,7 @@ function metricsForImplVerdict(verdict) {
       artifacts: {
         phase: "impl",
         verdict,
-        blockingCount: verdict === "FAIL" ? 1 : 0,
+        blockingCount: verdict === "REJECTED" ? 1 : 0,
         nonBlockingCount: verdict === "ADVISORY" ? 1 : 0,
       },
     },

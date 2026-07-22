@@ -56,25 +56,6 @@ export function reviewPhaseForStepId(stepId) {
   return REVIEW_PHASE_BY_STEP_ID[stepId] || null;
 }
 
-function countReviewRetry(entries, phase) {
-  if (!Array.isArray(entries)) return 0;
-  let count = 0;
-  for (const entry of entries) {
-    if (entry?.phase !== phase || entry?.counter !== "reviewRetry") continue;
-    if (entry.taskId != null) continue;
-    if (entry.reset) count = 0;
-    else count += entry.delta ?? 1;
-  }
-  return count;
-}
-
-function fallbackRecoveryCommand(stop) {
-  if (stop?.classification === "max_attempts_exceeded") {
-    return retryResetCommand(stop.phase);
-  }
-  return retryReviewCommand(stop?.phase || "impl");
-}
-
 function matchesInputSizeFailure(text) {
   return /TEST_REVIEW_PROMPT_TOO_LARGE|prompt.*too large|input.*too large|context.*length|maximum context|token limit/i.test(text);
 }
@@ -296,7 +277,7 @@ export class ReviewFailure {
     });
   }
 
-  shouldPersistStopState() {
+  requiresImmediateBlock() {
     return this.classification === "provider_failure" || this.classification === "input_size_failure";
   }
 
@@ -326,15 +307,6 @@ export class ReviewFailure {
     return data;
   }
 
-  toReviewStop() {
-    return {
-      ...this.toEnvelopeData(),
-      stopReason: this.classification,
-      recoveryCommand: this.recoveryCommand || fallbackRecoveryCommand(this),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
   toMarkerLine() {
     if (!MARKER_CLASSIFICATIONS.includes(this.classification)) {
       throw new Error(`classification cannot be emitted as review marker: ${this.classification}`);
@@ -360,45 +332,4 @@ export class ReviewFailure {
       || options.manualRecoveryRequired === true
       || options.specDecisionChanged === true;
   }
-}
-
-export function writeReviewStopState(state, failure) {
-  state.reviewStop = failure.toReviewStop();
-}
-
-export function clearReviewStopState(state, phase) {
-  if (!state?.reviewStop) return;
-  if (!phase || state.reviewStop.phase === phase) state.reviewStop = null;
-}
-
-export function buildReviewStopView(state, { surface = "next-action", phase = null, maxAttempts = null } = {}) {
-  const stopped = state?.reviewStop;
-  if (stopped && (!phase || stopped.phase === phase)) {
-    const recoveryCommand = stopped.recoveryCommand || fallbackRecoveryCommand(stopped);
-    return {
-      stopReason: stopped.stopReason || stopped.classification,
-      classification: stopped.classification,
-      phase: stopped.phase,
-      ...(stopped.reason && { reason: stopped.reason }),
-      retryBudgetConsumed: stopped.retryBudgetConsumed === true,
-      ...(stopped.recoveryHint && { recoveryHint: stopped.recoveryHint }),
-      recoveryCommand,
-      ...(surface === "status" && {
-        summary: `${stopped.classification}: ${stopped.reason || "review stopped"}; recovery: ${recoveryCommand}`,
-      }),
-    };
-  }
-
-  if (!phase || !Number.isSafeInteger(maxAttempts)) return null;
-  const attempts = countReviewRetry(state?.metrics, phase);
-  if (attempts < maxAttempts) return null;
-  const failure = ReviewFailure.maxAttemptsExceeded({ phase, attempts, max: maxAttempts });
-  const view = failure.toEnvelopeData();
-  return {
-    stopReason: failure.classification,
-    ...view,
-    ...(surface === "status" && {
-      summary: `${failure.classification}: ${attempts}/${maxAttempts}; recovery: ${view.recoveryCommand}`,
-    }),
-  };
 }

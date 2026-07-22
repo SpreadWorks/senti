@@ -125,7 +125,7 @@ export async function completeDraftArtifactChange(input = {}) {
     issueCodes.push("draft-schema-invalid");
     if (artifact && !hasQuestionState) issueCodes.push("draft-lifecycle-invalid");
   }
-  if (artifact?.review?.verdict === "FAIL" && !Array.isArray(artifact?.review?.triage?.applied)) {
+  if (artifact?.review?.verdict === "REJECTED" && !Array.isArray(artifact?.review?.triage?.applied)) {
     issueCodes.push("draft-schema-invalid", "draft-lifecycle-invalid", "review-triage-repair-audit-invalid");
   }
   if (textOf(artifact).includes("{{text}}") || textOf(artifact).includes("{{data")) {

@@ -250,6 +250,15 @@ function gateRuntimeLogStepId(ctx) {
   return resolveScopedGateStepId(ctx.flowState, phase);
 }
 
+function terminalGateRevalidation(ctx) {
+  if (ctx.phase == null || !ctx.flowState) return false;
+  const stepId = resolveScopedGateStepId(ctx.flowState, ctx.phase);
+  const step = findStepById(ctx.flowState.steps || [], stepId)
+    || ctx.flowState.tasks?.flatMap((task) => task.steps || []).find((entry) => entry.id === stepId);
+  const activeNode = findActiveNode(ctx.flowState);
+  return ["done", "skipped"].includes(step?.status) && activeNode?.stepId !== stepId;
+}
+
 function activeStepId(flowState, stepIds) {
   const steps = Array.isArray(flowState?.steps) ? flattenSteps(flowState.steps) : [];
   const allowed = new Set(stepIds);
@@ -867,6 +876,22 @@ export const FLOW_COMMANDS = {
       args: { positional: ["reqId"], rest: "paths", flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: senti flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
     },
+    "review-evidence": {
+      helpKey: "flow.set.review-evidence",
+      command: () => import("./lib/set-review-evidence.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: withTargetGuardOptions(["--file"]),
+      },
+      help: [
+        `Usage: senti flow set review-evidence --file <path> ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Register one finalized independent review document for the active review target.",
+        "The file must be a bounded regular JSON file inside the active spec directory.",
+        "The command validates phase, task, current tree, provenance, findings, and target guards.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     broad: {
       helpKey: "flow.set.broad",
       command: () => import("./lib/set-broad.js"),
@@ -983,6 +1008,10 @@ export const FLOW_COMMANDS = {
         // pre-hook's step-status update is only valid when phase is already
         // known, so skip it otherwise.
         if (ctx.phase == null) return;
+        if (terminalGateRevalidation(ctx)) {
+          ctx.terminalGateRevalidation = true;
+          return;
+        }
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "gate:pre",
           command: "run-gate",
@@ -1007,6 +1036,7 @@ export const FLOW_COMMANDS = {
         "  --skip-guardrail              Skip AI guardrail compliance check",
       ].join("\n"),
       async post(ctx, result) {
+        if (ctx.terminalGateRevalidation === true) return;
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "gate:post",
           command: "run-gate",
@@ -1020,6 +1050,7 @@ export const FLOW_COMMANDS = {
           || resolveGatePhaseFromState(ctx.flowState)?.phase;
         const errorCtx = { ...ctx, phase };
         tryAppendIssueLog(() => appendIssueLogFromGateError(errorCtx, err));
+        if (ctx.terminalGateRevalidation === true) return;
         if (err?.code === "GATE_OUTPUT_TOOLING_FAILURE") return;
         await applyLifecycleActionsFromRegistry(errorCtx, {
           event: "gate:onError",
@@ -1052,13 +1083,19 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
       async post(ctx, result) {
         assertDraftReviewRegistryHookBoundary();
-        await applyLifecycleActionsFromRegistry(ctx, {
-          event: "review:post",
-          command: "run-review",
-          phase: ctx.phase,
-          currentStepId: activeImplReviewStepId(ctx.flowState),
-          dryRun: ctx.dryRun,
-        }, result);
+        try {
+          await applyLifecycleActionsFromRegistry(ctx, {
+            event: "review:post",
+            command: "run-review",
+            phase: ctx.phase,
+            currentStepId: activeImplReviewStepId(ctx.flowState),
+            dryRun: ctx.dryRun,
+          }, result);
+        } catch (error) {
+          const reviewMod = await import("./lib/run-review.js");
+          reviewMod.persistReviewPostHookToolingFailure(ctx, result, error);
+          throw error;
+        }
       },
     },
     "auto-check": {

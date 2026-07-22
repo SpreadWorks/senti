@@ -385,6 +385,8 @@ export class RepairArtifactRegistry {
       ".senti/worktree/",
       `${this.specDir}/tests/.raw/`,
       `${this.specDir}/review-history/`,
+      `${this.specDir}/review-evidence/`,
+      `${this.specDir}/.flow.json.`,
       `${this.specDir}/${REPAIR_DELTA_DIR}/`,
       `${this.specDir}/${REPAIR_LOCK_DIR}/`,
     ]);

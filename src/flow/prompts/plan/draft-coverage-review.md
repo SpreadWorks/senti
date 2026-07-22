@@ -10,6 +10,6 @@
    - Report at most 3 `blockingFindings[]` entries, 3 `advisoryFindings[]` entries, and 3 `repairTargets[]` entries. If more seem possible in any category, report the highest-impact entries and stop.
    - After the review artifact is written, do not re-run this stage automatically.
    - Do not use this stage to judge answer ambiguity, wording quality, evidence strength, or rationale quality. Ambiguous answers are handled at the moment the answer is collected; draft-gate handles residual structural validation.
-   - The CLI marks this step done after the review artifact is written. PASS advances to `draft-gate` after the registry hook writes empty triage/repair bookkeeping artifacts. ADVISORY and FAIL advance to `draft-coverage-triage`.
+   - The CLI marks this step done after the review artifact is written. PASS advances to `draft-gate` after the registry hook writes empty triage/repair bookkeeping artifacts. ADVISORY and REJECTED advance to `draft-coverage-triage`.
    - `draft-coverage-repair` is responsible for setting draft approval after required repair bookkeeping is complete.
    - Draft-gate remains the blocking validation step.

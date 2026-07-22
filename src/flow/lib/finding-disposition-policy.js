@@ -520,7 +520,7 @@ export class ReviewFindingGateArtifact {
       typedFinding(finding)
     )));
     const expectedVerdict = this.blockingFindings.length > 0
-      ? "FAIL"
+      ? "REJECTED"
       : this.nonBlockingImprovements.length > 0 ? "ADVISORY" : "PASS";
     if (artifact.verdict !== expectedVerdict) {
       throw new Error(`${source}.verdict does not match its finding buckets`);

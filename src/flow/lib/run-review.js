@@ -19,11 +19,11 @@ import {
 import { flattenSteps } from "./step-tree.js";
 import path from "path";
 import fs from "fs";
+import crypto from "node:crypto";
+import { runGit } from "../../lib/git-helpers.js";
 import {
   REVIEW_FAILURE_MARKER_PREFIX,
   ReviewFailure,
-  clearReviewStopState,
-  writeReviewStopState,
 } from "./review-failure.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import { persistCurrentRecoveryBaseline, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
@@ -53,15 +53,31 @@ import {
   ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
+import {
+  ReviewConvergenceState,
+  ReviewConvergenceStore,
+  ReviewDisposition,
+  ReviewEvidence,
+  ReviewEvidenceReference,
+  ReviewToolingOutcome,
+  buildReviewHandoffFindings,
+  nextReviewToolingOutcome,
+  resolveReviewPermittedOperation,
+} from "./review-convergence.js";
+import {
+  ReviewEvidenceRegistrar,
+  ReviewEvidenceStore,
+  resolveCurrentReviewTreeSha as resolveReviewTargetTreeSha,
+} from "./review-evidence-store.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
-const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "FAIL", "TOOLING_FAILURE"]);
+const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "REJECTED"]);
 const REVIEW_VERDICTS = new Set(REVIEW_VERDICT_VALUES);
 const REVIEW_VERDICT_PATTERN = new RegExp(`verdict=(${REVIEW_VERDICT_VALUES.join("|")})`);
+const REVIEW_TOOLING_OUTCOME_PATTERN = /outcome=TOOLING_ERROR/;
 const REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "review-retry-exhausted";
-const REVIEW_RECOVERY_TRIGGER_STOP = "review-stop";
-const REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL = "review-verdict-fail";
+const REVIEW_RECOVERY_TRIGGER_VERDICT_REJECTED = "review-verdict-rejected";
 const REVIEW_FINDING_DISPOSITIONS = new Set(["must-fix", "informational", "deferred"]);
 const MAX_IMPL_DOWNSTREAM_RESET_STEPS = 20;
 // Review proposals invalidate all implementation leaves from fresh test
@@ -355,7 +371,7 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
   const specDir = specDirFromFlowState(ctx.root, ctx.flowState);
   let artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
   if (!artifact) return null;
-  if (artifact.verdict === "TOOLING_FAILURE" || artifact.toolingFailure) return null;
+  if (artifact.toolingOutcome) return null;
   if (phase === "test" && reviewArtifactHasStructuredCoverageFailure(specDir)) return null;
   let findings = reviewFindingsFromArtifact(artifact);
   if (findings.length === 0 || !findings.every(isReviewSemanticFinding)) return null;
@@ -438,7 +454,7 @@ export function checkReviewRetryBelowMax(ctx, phase) {
   const failure = ReviewFailure.maxAttemptsExceeded({ phase: persistedPhase, attempts: count, max });
   const envelope = Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",
     [
-      `review retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${persistedPhase}".`,
+      `review retry limit exhausted: ${count}/${max} REJECTED attempts recorded for phase "${persistedPhase}".`,
       "Resume after changed evidence with `senti flow set retry reset review <phase> --reason <text> --yes`.",
     ],
     failure.toEnvelopeData());
@@ -495,13 +511,13 @@ export function updateReviewRetryCounter(ctx, result) {
   const attemptsBefore = countReviewRetry(flowState.metrics, persistedPhase);
   let isPass;
   if (persistedPhase === "impl") {
-    if (result?.artifacts?.verdict === "TOOLING_FAILURE" || result?.result === "tooling-failure") return;
+    if (result?.artifacts?.toolingOutcome || result?.result === "tooling-error") return;
     isPass = isImplPass(result);
   } else {
-    if (result?.artifacts?.verdict === "TOOLING_FAILURE") {
+    if (result?.artifacts?.toolingOutcome) {
       const failure = ReviewFailure.subprocessFailure({
         phase: persistedPhase,
-        stderr: result?.artifacts?.toolingFailure || "review tooling failure",
+        stderr: result.artifacts.toolingOutcome.reason || "review tooling error",
       });
       recordReviewOutcome(reviewCtx, result, persistedPhase, attemptsBefore + 1, reviewExternalBlock(failure));
       return;
@@ -520,7 +536,7 @@ export function updateReviewRetryCounter(ctx, result) {
       Object.assign(result, deferred);
       recordReviewDeferral(reviewCtx, result, persistedPhase, attemptsBefore + 1);
     } else {
-      mutateReviewRecoveryState(reviewCtx, persistedPhase, REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL);
+      mutateReviewRecoveryState(reviewCtx, persistedPhase, REVIEW_RECOVERY_TRIGGER_VERDICT_REJECTED);
       const failure = ReviewFailure.maxAttemptsExceeded({
         phase: persistedPhase,
         attempts: attemptsBefore + 1,
@@ -530,12 +546,9 @@ export function updateReviewRetryCounter(ctx, result) {
     }
     return;
   }
-  if (isPass && typeof mgr.mutate === "function") {
-    mgr.mutate((state) => clearReviewStopState(state, persistedPhase));
-  }
   const outcome = isPass || result?.next
     ? new DecisionOutcome({
-        decision: result?.artifacts?.verdict || (isPass ? "PASS" : "FAIL"),
+        decision: result?.artifacts?.verdict || (isPass ? "PASS" : "REJECTED"),
         nextAction: result?.next || "refresh-next-action",
       })
     : new RetryOutcome({ nextAction: reviewRetryAction(persistedPhase) });
@@ -563,7 +576,7 @@ const PHASE_REVIEW_PARSERS = {
 function resolvePhaseReviewNextStep({ phase, verdict, retryPhase, next, failNext }) {
   if (phase !== "draft") {
     if (verdict === "PASS" || verdict === "ADVISORY") return next;
-    if (verdict === "FAIL") return failNext;
+    if (verdict === "REJECTED") return failNext;
     return null;
   }
   return resolveDraftReviewNextStep({ verdict, retryPhase });
@@ -586,31 +599,48 @@ function resolveDraftReviewNextStep({ verdict, retryPhase }) {
   return verdict === "PASS" ? route.passNextStepId : route.triageStepId;
 }
 
+function parseToolingOutcome(stderr) {
+  if (!REVIEW_TOOLING_OUTCOME_PATTERN.test(stderr)) return null;
+  const stage = stderr.match(/stage=([a-z_]+)/)?.[1] || "communication";
+  const attempt = Number(stderr.match(/attempt=(\d+)/)?.[1] || 1);
+  const maxAttempts = Number(stderr.match(/maxAttempts=(\d+)/)?.[1] || 1);
+  const toolingKind = stderr.match(/toolingKind=([a-z_]+)/)?.[1] || `${stage}_error`;
+  return new ReviewToolingOutcome({
+    stage,
+    attempt,
+    maxAttempts,
+    reason: toolingKind,
+    permissionRelated: /permission|EACCES|EPERM|sandbox/i.test(stderr),
+  });
+}
+
 function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next, failNext = null }) {
   const verdictMatch = stderr.match(REVIEW_VERDICT_PATTERN);
+  const toolingOutcome = parseToolingOutcome(stderr);
   const countMatch = stderr.match(countPattern);
   const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
   const retryPhaseMatch = stderr.match(/retryPhase=([a-z-]+)/);
   const retryPhase = retryPhaseMatch ? retryPhaseMatch[1] : null;
 
-  const verdict = verdictMatch ? verdictMatch[1] : (res.ok ? "PASS" : "FAIL");
+  const verdict = verdictMatch ? verdictMatch[1] : (res.ok ? "PASS" : "REJECTED");
   const count = countMatch ? parseInt(countMatch[countMatch.length - 1], 10) : null;
 
   const changed = [];
   if (reviewPathMatch) changed.push(reviewPathMatch[1]);
 
+  if (toolingOutcome) {
+    const artifacts = { phase, toolingOutcome: toolingOutcome.toJSON(), [countKey]: count ?? 0 };
+    if (retryPhase) artifacts.retryPhase = retryPhase;
+    return {
+      result: "tooling-error",
+      changed,
+      artifacts,
+      next: null,
+      output: stdout,
+    };
+  }
+
   if (!res.ok) {
-    if (verdict === "TOOLING_FAILURE") {
-      const artifacts = { phase, verdict, [countKey]: count ?? 0 };
-      if (retryPhase) artifacts.retryPhase = retryPhase;
-      return {
-        result: "tooling-failure",
-        changed,
-        artifacts,
-        next: null,
-        output: stdout,
-      };
-    }
     const detail = count === 0
       ? `${label} subprocess error (0 ${countWord} reported but process exited with error)`
       : count !== null
@@ -626,7 +656,7 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
   if (retryPhase) artifacts.retryPhase = retryPhase;
 
   return {
-    result: verdict === "TOOLING_FAILURE" ? "tooling-failure" : "ok",
+    result: "ok",
     changed,
     artifacts,
     next: resolvedNext,
@@ -638,8 +668,6 @@ function parseTestReviewOutput(res, stdout, stderr) {
   const parsed = parsePhaseReviewOutput(res, stdout, stderr, { phase: "test", ...PHASE_REVIEW_PARSERS.test });
   const advisoryMatch = stderr.match(/advisory=(\d+)/);
   if (advisoryMatch) parsed.artifacts.advisoryCount = parseInt(advisoryMatch[1], 10);
-  const toolingFailureMatch = stderr.match(/toolingFailure=([a-z_]+)/);
-  if (toolingFailureMatch) parsed.artifacts.toolingFailure = toolingFailureMatch[1];
   return parsed;
 }
 
@@ -653,6 +681,7 @@ function parseProposalReviewOutput(res, stdout, stderr) {
 
 function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
   const verdictMatch = stderr.match(REVIEW_VERDICT_PATTERN);
+  const toolingOutcome = parseToolingOutcome(stderr);
   const blockingMatch = stderr.match(/blocking=(\d+)/);
   const nonBlockingMatch = stderr.match(/nonBlocking=(\d+)/);
   const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
@@ -663,6 +692,21 @@ function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
   const changed = [];
   if (reviewPathMatch) changed.push(reviewPathMatch[1]);
   if (jsonPathMatch) changed.push(jsonPathMatch[1]);
+
+  if (toolingOutcome) {
+    return {
+      result: "tooling-error",
+      changed,
+      artifacts: {
+        phase: "impl",
+        toolingOutcome: toolingOutcome.toJSON(),
+        blockingCount: 0,
+        nonBlockingCount: 0,
+      },
+      next: null,
+      output: stdout,
+    };
+  }
 
   if (!res.ok) {
     throw new Error(
@@ -697,7 +741,7 @@ function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
     result: "ok",
     changed,
     artifacts,
-    next: verdict === "FAIL" ? null : "impl-gate",
+    next: verdict === "REJECTED" ? null : "impl-gate",
     output: stdout,
   };
 }
@@ -718,13 +762,13 @@ export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, par
 
 export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
   if (ctx?.phase !== "test") return;
-  if (result?.artifacts?.verdict !== "TOOLING_FAILURE") return;
+  if (!result?.artifacts?.toolingOutcome) return;
   const artifactPath = result?.changed?.find((p) => /test-review\.(json|md)$/.test(p));
   appendIssueLogEntry(ctx.root, ctx.flowState?.spec, {
     step: "test-review",
     phase: "test",
     failureKind: "tooling_failure",
-    reason: `test-review tooling failure: ${result.artifacts.toolingFailure || "see test-review artifacts"}`,
+    reason: `test-review tooling error: ${result.artifacts.toolingOutcome.reason}`,
     trigger: "test-review post hook (auto)",
     resolution: "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
     ...(artifactPath && { artifact: artifactPath }),
@@ -751,7 +795,7 @@ export function normalizeReviewSubprocessRetryDelayMs(value) {
 
 /**
  * Run a command function with mechanical subprocess retry logic.
- * This does not consume the step retry budget; review verdict FAIL is handled separately.
+ * This does not consume the step retry budget; review verdict REJECTED is handled separately.
  *
  * @param {function} cmdFn - Function that returns { ok, status, stdout, stderr, signal, killed }
  * @param {Object} [opts]
@@ -797,10 +841,822 @@ export async function runCmdWithRetry(cmdFn, opts = {}) {
   return lastRes;
 }
 
+function canonicalProviderVerdict(value) {
+  if (value === "TOOLING_ERROR") {
+    throw new Error("TOOLING_ERROR is not a reviewer disposition");
+  }
+  return value;
+}
+
+function canonicalFinding(input, artifactName) {
+  const findingId = String(
+    input.findingId || input.id || input.proposalId || input.findingKey || "review-finding",
+  ).trim();
+  const summary = String(
+    input.summary || input.title || input.issue || input.improvement || input.rationale || "Review finding.",
+  ).trim();
+  const fingerprint = typeof input.fingerprint === "string" && /^[a-f0-9]{64}$/.test(input.fingerprint)
+    ? input.fingerprint
+    : crypto.createHash("sha256").update(JSON.stringify(input)).digest("hex");
+  return {
+    findingId,
+    summary,
+    fingerprint,
+    evidenceRefs: [`${artifactName}#${findingId}`],
+  };
+}
+
+function reviewArtifactFindingLists(artifact) {
+  const blocking = [
+    artifact.blockingFindings,
+    artifact.blocking,
+    artifact.findings,
+    artifact.comments,
+    artifact.proposals,
+    artifact.questions,
+    artifact.issues,
+  ].find(Array.isArray) || [];
+  const advisory = [
+    artifact.advisoryFindings,
+    artifact.nonBlockingImprovements,
+    artifact.improvements,
+  ].find(Array.isArray) || [];
+  return { blocking, advisory };
+}
+
+function canonicalArtifactName(phase) {
+  return REVIEW_SOURCE_ARTIFACT_BY_PHASE[phase] || `${phase}-review.json`;
+}
+
+function resolveCurrentReviewTreeSha(ctx) {
+  return resolveReviewTargetTreeSha(ctx.root);
+}
+
+function resolveCurrentReviewRepairFingerprint(ctx) {
+  return buildRepairFingerprint({
+    root: ctx.root,
+    specPath: ctx.flowState.spec,
+    state: ctx.flowState,
+  }).hash;
+}
+
+function assertCurrentReviewTarget(ctx, expectedTreeSha, expectedRepairFingerprint) {
+  const currentTreeSha = resolveCurrentReviewTreeSha(ctx);
+  const currentRepairFingerprint = resolveCurrentReviewRepairFingerprint(ctx);
+  if (
+    currentTreeSha === expectedTreeSha
+    && currentRepairFingerprint === expectedRepairFingerprint
+  ) return;
+  const error = new Error(
+    "review target changed before evidence promotion",
+  );
+  error.code = "STALE_REVIEW_TARGET";
+  throw error;
+}
+
+function staleReviewTargetFailure({
+  expectedTreeSha,
+  currentTreeSha,
+  expectedRepairFingerprint,
+  currentRepairFingerprint,
+}) {
+  return Envelope.fail(
+    "run",
+    "review",
+    "STALE_REVIEW_TARGET",
+    "the review target tree changed before evidence promotion",
+    {
+      expectedTreeSha,
+      currentTreeSha,
+      expectedRepairFingerprint,
+      currentRepairFingerprint,
+    },
+  );
+}
+
+function persistCanonicalToolingOutcome(ctx, {
+  phase,
+  taskId = null,
+  treeSha,
+  repairFingerprint,
+  stage,
+  reason,
+  outcome = null,
+  provider = "senti-review",
+  expectedOriginal = null,
+}) {
+  if (!ctx?.flowManager) return null;
+  const store = new ReviewConvergenceStore({ flowManager: ctx.flowManager });
+  const current = store.read({
+    phase,
+    taskId,
+    treeSha,
+    targetStateDigest: repairFingerprint,
+  });
+  const normalizedOutcome = nextReviewToolingOutcome(current, {
+    stage: outcome?.stage || stage,
+    reason: outcome?.reason || reason,
+    permissionRelated: outcome?.permissionRelated
+      ?? /permission|EACCES|EPERM|sandbox/i.test(reason),
+  });
+  assertCurrentReviewTarget(ctx, treeSha, repairFingerprint);
+  const state = store.recordToolingOutcome({
+    phase,
+    taskId,
+    treeSha,
+    provider,
+    outcome: normalizedOutcome,
+    targetStateDigest: repairFingerprint,
+    expectedOriginal,
+  });
+  return { outcome: normalizedOutcome, state };
+}
+
+export function persistReviewPostHookToolingFailure(ctx, result, error) {
+  if (!ctx?.flowManager) return null;
+  const phase = reviewPhaseKeyForCtx(ctx, result?.artifacts?.phase || ctx.phase);
+  const taskId = result?.artifacts?.taskId ?? ctx.flowState.currentTaskId ?? null;
+  const treeSha = resolveCurrentReviewTreeSha(ctx);
+  const targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx);
+  const expectedOriginal = ctx.flowManager.load();
+  const store = new ReviewConvergenceStore({ flowManager: ctx.flowManager });
+  const current = store.read({ phase, taskId, treeSha, targetStateDigest });
+  const outcome = nextReviewToolingOutcome(current, {
+    stage: "post_hook",
+    reason: String(error?.message || error),
+    permissionRelated: /permission|EACCES|EPERM|sandbox/i.test(String(error?.message || error)),
+  });
+  assertCurrentReviewTarget(ctx, treeSha, targetStateDigest);
+  const state = store.recordToolingOutcome({
+    phase,
+    taskId,
+    treeSha,
+    provider: "senti-review",
+    outcome,
+    finalizedEvidenceAvailable: Boolean(current.evidence || current.finalizedEvidenceAvailable),
+    targetStateDigest,
+    expectedOriginal,
+  });
+  result.artifacts ||= {};
+  result.artifacts.toolingOutcome = outcome.toJSON();
+  result.reviewAction = resolveReviewPermittedOperation(state).toJSON();
+  return { outcome, state };
+}
+
+export class ReviewExecutionGuard {
+  constructor({ flowManager, boundaries } = {}) {
+    if (!flowManager) throw new Error("flowManager is required");
+    if (!boundaries || typeof boundaries !== "object") {
+      throw new Error("review execution guard boundaries are required");
+    }
+    if (typeof boundaries.resolveCurrentTreeSha !== "function") {
+      throw new Error("review execution guard must resolve the current tree SHA");
+    }
+    if (typeof boundaries.resolveCurrentTargetStateDigest !== "function") {
+      throw new Error("review execution guard must resolve the current target state digest");
+    }
+    this.boundaries = boundaries;
+    this.store = new ReviewConvergenceStore({ flowManager });
+    Object.freeze(this);
+  }
+
+  inspect({ phase, taskId = null, treeSha } = {}) {
+    const targetStateDigest = this.boundaries.resolveCurrentTargetStateDigest();
+    if (this.boundaries.resolveCurrentTreeSha() !== treeSha) {
+      return Object.freeze({
+        allowed: false,
+        targetStateDigest,
+        convergenceState: null,
+        nextOperation: null,
+        rejection: pipelineRejection(
+          "STALE_REVIEW_TARGET",
+          "the requested review tree is no longer current",
+        ),
+      });
+    }
+    const convergenceState = this.store.read({ phase, taskId, treeSha, targetStateDigest });
+    const nextOperation = resolveReviewPermittedOperation(convergenceState);
+    let rejection = null;
+    if (convergenceState.disposition === "PASS" || convergenceState.disposition === "ADVISORY") {
+      rejection = pipelineRejection(
+        "REVIEW_ALREADY_COMPLETED",
+        "review evidence is already completed for this target",
+      );
+    } else if (nextOperation.kind === "retry_review" && nextOperation.requiresChangedEvidence) {
+      rejection = pipelineRejection(
+        "REVIEW_EVIDENCE_CHANGE_REQUIRED",
+        "review remediation requires a changed target tree",
+      );
+    } else if (nextOperation.kind === "register_alternative_evidence") {
+      rejection = pipelineRejection(
+        "FINALIZED_REVIEW_EVIDENCE_REGISTRATION_REQUIRED",
+        "finalized review evidence must be registered instead of rerunning the provider",
+      );
+    } else if (nextOperation.kind === "stop_as_blocker") {
+      rejection = pipelineRejection(
+        "REVIEW_TOOLING_ATTEMPTS_EXHAUSTED",
+        "review tooling attempts are exhausted for this target",
+      );
+    }
+    return Object.freeze({
+      allowed: rejection == null,
+      targetStateDigest,
+      convergenceState,
+      nextOperation,
+      rejection,
+    });
+  }
+}
+
+function canonicalReviewExecutionBlock(
+  ctx,
+  phase,
+  taskId,
+  {
+    treeSha = resolveCurrentReviewTreeSha(ctx),
+    targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx),
+    resolveTreeSha = () => resolveCurrentReviewTreeSha(ctx),
+    resolveTargetStateDigest = () => resolveCurrentReviewRepairFingerprint(ctx),
+  } = {},
+) {
+  if (!ctx?.flowManager) return null;
+  const guard = new ReviewExecutionGuard({
+    flowManager: ctx.flowManager,
+    boundaries: {
+      resolveCurrentTreeSha: resolveTreeSha,
+      resolveCurrentTargetStateDigest: resolveTargetStateDigest,
+    },
+  });
+  if (resolveTargetStateDigest() !== targetStateDigest) {
+    return Envelope.fail(
+      "run",
+      "review",
+      "STALE_REVIEW_TARGET",
+      "the requested review target state is no longer current",
+    );
+  }
+  const inspection = guard.inspect({ phase, taskId, treeSha });
+  if (inspection.allowed) return null;
+  return Envelope.fail(
+    "run",
+    "review",
+    inspection.rejection.code,
+    inspection.rejection.message,
+    { reviewAction: inspection.nextOperation?.toJSON() ?? null },
+  );
+}
+
+function persistCanonicalReviewArtifact(
+  ctx,
+  result,
+  phase,
+  treeSha,
+  repairFingerprint,
+  expectedOriginal = null,
+) {
+  if (result?.artifacts?.toolingOutcome) return null;
+  if (!ctx?.flowManager || !ctx?.flowState?.spec) {
+    const error = new Error("successful review execution requires convergence flow context");
+    error.code = "REVIEW_CONVERGENCE_CONTEXT_REQUIRED";
+    throw error;
+  }
+  if (!Array.isArray(result.changed) || result.changed.length === 0) {
+    const error = new Error("successful review execution did not report a canonical source artifact");
+    error.code = "REVIEW_EVIDENCE_ARTIFACT_REQUIRED";
+    throw error;
+  }
+  const artifactName = canonicalArtifactName(phase);
+  const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+  const artifactPath = path.join(specDir, artifactName);
+  if (!fs.existsSync(artifactPath)) {
+    const error = new Error(`successful review execution is missing ${artifactName}`);
+    error.code = "REVIEW_EVIDENCE_ARTIFACT_MISSING";
+    throw error;
+  }
+  const bytes = fs.readFileSync(artifactPath);
+  const artifact = JSON.parse(bytes.toString("utf8"));
+  const { blocking, advisory } = reviewArtifactFindingLists(artifact);
+  const verdict = canonicalProviderVerdict(artifact.verdict || result.artifacts.verdict);
+  const capturedAt = artifact.generatedAt
+    || ctx.flowState.startedAt
+    || new Date(0).toISOString();
+  const taskId = result.artifacts.taskId ?? null;
+  const normalized = normalizeReviewExecution({
+    phase,
+    taskId,
+    treeSha,
+    providerResult: {
+      verdict,
+      blockingFindings: blocking.map((finding) => canonicalFinding(finding, artifactName)),
+      advisoryFindings: advisory.map((finding) => canonicalFinding(finding, artifactName)),
+      provenance: {
+        provider: "senti-review",
+        invocationId: crypto.createHash("sha256").update(bytes).digest("hex"),
+        capturedAt,
+      },
+    },
+    semanticMaxAttempts: resolveReviewRetryMax({ flowState: ctx.flowState }, phase),
+  });
+  const registrar = new ReviewEvidenceRegistrar({
+    store: new ReviewEvidenceStore({ root: ctx.root, specDir }),
+  });
+  let registration;
+  ctx.flowManager.mutate((flowState) => {
+    assertCurrentReviewTarget(ctx, treeSha, repairFingerprint);
+    registration = registrar.register({
+      flowState,
+      evidence: normalized.evidence,
+      expectedRevision: flowState,
+      configuredSemanticMaxAttempts: normalized.semanticMaxAttempts,
+      targetStateDigest: repairFingerprint,
+    });
+    registration.applyTo(flowState);
+  }, expectedOriginal == null ? {} : { expectedOriginal });
+  const state = registration.convergenceState;
+  result.reviewAction = resolveReviewPermittedOperation(state).toJSON();
+  result.artifacts.canonicalVerdict = verdict;
+  result.artifacts.evidenceDigest = normalized.evidence.identity.evidenceDigest;
+  return state;
+}
+
+function persistCanonicalToolingFailure(
+  ctx,
+  result,
+  phase,
+  treeSha,
+  repairFingerprint,
+  expectedOriginal = null,
+) {
+  if (!ctx?.flowManager || !result?.artifacts?.toolingOutcome) return null;
+  const outcome = new ReviewToolingOutcome(result.artifacts.toolingOutcome);
+  const recorded = persistCanonicalToolingOutcome(ctx, {
+    phase,
+    taskId: result.artifacts.taskId ?? null,
+    treeSha,
+    repairFingerprint,
+    outcome,
+    expectedOriginal,
+  });
+  result.reviewAction = resolveReviewPermittedOperation(recorded.state).toJSON();
+  result.artifacts.toolingOutcome = recorded.outcome.toJSON();
+  result.artifacts.canonicalToolingOutcome = recorded.outcome.toJSON();
+  return recorded.state;
+}
+
+function persistCanonicalReviewResult(
+  ctx,
+  result,
+  phase,
+  treeSha,
+  repairFingerprint,
+  expectedOriginal = null,
+) {
+  if (result?.artifacts?.toolingOutcome) {
+    return persistCanonicalToolingFailure(
+      ctx,
+      result,
+      phase,
+      treeSha,
+      repairFingerprint,
+      expectedOriginal,
+    );
+  }
+  return persistCanonicalReviewArtifact(
+    ctx,
+    result,
+    phase,
+    treeSha,
+    repairFingerprint,
+    expectedOriginal,
+  );
+}
+
+const REVIEW_PROMOTION_REJECTION_CODES = new Set([
+  "REVIEW_ALREADY_COMPLETED",
+  "REVIEW_CONVERGENCE_CONTEXT_REQUIRED",
+  "REVIEW_DUPLICATE_IDENTITY",
+  "REVIEW_EVIDENCE_ARTIFACT_MISSING",
+  "REVIEW_EVIDENCE_ARTIFACT_REQUIRED",
+  "REVIEW_EVIDENCE_CHANGE_REQUIRED",
+  "REVIEW_SEMANTIC_ATTEMPTS_EXHAUSTED",
+  "REVIEW_STATE_REVISION_MISMATCH",
+  "STALE_REVIEW_TARGET",
+]);
+
+function reviewPromotionFailureStage(error) {
+  if (error instanceof SyntaxError) return "parse";
+  if (/review-evidence|immutable|canonical|evidence (path|file|write)|EACCES|ENOTDIR/i.test(
+    String(error?.message || error),
+  )) {
+    return "canonical_write";
+  }
+  return "result_recording";
+}
+
+function reviewExecutionFailureEnvelope(ctx, {
+  phase,
+  taskId = null,
+  treeSha,
+  repairFingerprint,
+  stage,
+  error,
+  expectedOriginal = null,
+}) {
+  if (REVIEW_PROMOTION_REJECTION_CODES.has(error?.code)) {
+    return Envelope.fail(
+      "run",
+      "review",
+      error.code,
+      String(error.message || error),
+    );
+  }
+  const reason = String(error?.message || error);
+  let recorded = null;
+  try {
+    recorded = persistCanonicalToolingOutcome(ctx, {
+      phase,
+      taskId,
+      treeSha,
+      repairFingerprint,
+      stage,
+      reason,
+      expectedOriginal,
+    });
+  } catch (persistenceError) {
+    if (REVIEW_PROMOTION_REJECTION_CODES.has(persistenceError?.code)) {
+      return Envelope.fail(
+        "run",
+        "review",
+        persistenceError.code,
+        String(persistenceError.message || persistenceError),
+      );
+    }
+    throw persistenceError;
+  }
+  const toolingOutcome = recorded?.outcome ?? new ReviewToolingOutcome({
+    stage,
+    attempt: 1,
+    maxAttempts: 2,
+    reason,
+    permissionRelated: /permission|EACCES|EPERM|sandbox/i.test(reason),
+  });
+  return Envelope.fail(
+    "run",
+    "review",
+    "REVIEW_TOOLING_ERROR",
+    `review tooling error at ${stage}: ${reason}`,
+    {
+      toolingOutcome: toolingOutcome.toJSON(),
+      ...(recorded && {
+        reviewAction: resolveReviewPermittedOperation(recorded.state).toJSON(),
+      }),
+    },
+  );
+}
+
+function finalizeReviewCommandResult({
+  ctx,
+  phase,
+  taskId,
+  treeSha,
+  repairFingerprint,
+  expectedOriginal,
+  parse,
+}) {
+  let result;
+  try {
+    result = parse();
+  } catch (error) {
+    return reviewExecutionFailureEnvelope(ctx, {
+      phase,
+      taskId,
+      treeSha,
+      repairFingerprint,
+      stage: "parse",
+      error,
+      expectedOriginal,
+    });
+  }
+  try {
+    persistCanonicalReviewResult(
+      ctx,
+      result,
+      phase,
+      treeSha,
+      repairFingerprint,
+      expectedOriginal,
+    );
+  } catch (error) {
+    return reviewExecutionFailureEnvelope(ctx, {
+      phase,
+      taskId,
+      treeSha,
+      repairFingerprint,
+      stage: reviewPromotionFailureStage(error),
+      error,
+      expectedOriginal: ctx.flowManager?.load() ?? expectedOriginal,
+    });
+  }
+  return result;
+}
+
+function evidenceFromProviderResult({ phase, taskId, treeSha, providerResult }) {
+  if (!providerResult) return null;
+  const disposition = new ReviewDisposition({
+    value: canonicalProviderVerdict(providerResult.verdict),
+    blockingFindings: providerResult.blockingFindings || [],
+    advisoryFindings: providerResult.advisoryFindings || [],
+  });
+  return new ReviewEvidence({
+    phase,
+    taskId,
+    treeSha,
+    provenance: providerResult.provenance,
+    disposition,
+  });
+}
+
+function canonicalEvidenceWasPersisted(evidence, toolingOutcome) {
+  if (!evidence) return false;
+  if (!toolingOutcome) return true;
+  return !["startup", "communication", "parse", "post_hook", "canonical_write"]
+    .includes(toolingOutcome.stage);
+}
+
+export class NormalizedReviewExecution {
+  constructor({
+    phase,
+    taskId,
+    treeSha,
+    evidence,
+    toolingOutcome,
+    semanticMaxAttempts,
+  }) {
+    this.evidence = evidence;
+    this.toolingOutcome = toolingOutcome;
+    this.semanticMaxAttempts = semanticMaxAttempts;
+    this.findings = toolingOutcome ? [] : evidence?.findings || [];
+    this.handoffFindings = toolingOutcome || !evidence ? [] : buildReviewHandoffFindings(evidence);
+    this.finalizedEvidenceAvailable = evidence != null;
+    this.canonicalEvidencePersisted = canonicalEvidenceWasPersisted(evidence, toolingOutcome);
+    this.semanticRetryConsumed = Boolean(
+      evidence?.disposition.value === "REJECTED"
+      && this.canonicalEvidencePersisted
+      && !toolingOutcome,
+    );
+    const evidenceReference = this.canonicalEvidencePersisted && evidence
+      ? new ReviewEvidenceReference({
+          evidenceId: evidence.identity.evidenceDigest,
+          disposition: evidence.disposition,
+        })
+      : null;
+    const convergence = new ReviewConvergenceState({
+      phase,
+      taskId,
+      treeSha,
+      semanticAttempts: this.semanticRetryConsumed ? 1 : 0,
+      semanticMaxAttempts,
+      toolingAttempts: toolingOutcome ? Math.max(0, toolingOutcome.attempt - 1) : 0,
+      toolingMaxAttempts: toolingOutcome ? Math.max(1, toolingOutcome.maxAttempts - 1) : 1,
+      evidence: evidenceReference,
+      finalizedEvidenceAvailable: this.finalizedEvidenceAvailable,
+      handoffFindings: this.handoffFindings,
+      blocker: toolingOutcome && !evidence
+        ? { kind: "tooling_attempts_exhausted", reason: toolingOutcome.reason }
+        : null,
+      toolingOutcome,
+    });
+    this.nextOperation = resolveReviewPermittedOperation(convergence);
+    this.reviewCompleted = Boolean(
+      evidence
+      && ["PASS", "ADVISORY"].includes(evidence.disposition.value)
+      && this.canonicalEvidencePersisted,
+    );
+    this.rerunAllowed = this.nextOperation.kind === "retry_review";
+    this.requiresApproval = false;
+    this.privilegeEscalationAllowed = false;
+    Object.freeze(this.findings);
+    Object.freeze(this.handoffFindings);
+    Object.freeze(this);
+  }
+}
+
+export function normalizeReviewExecution({
+  phase,
+  taskId = null,
+  treeSha,
+  providerResult = null,
+  toolingFailure = null,
+  semanticMaxAttempts = 3,
+} = {}) {
+  const evidence = evidenceFromProviderResult({ phase, taskId, treeSha, providerResult });
+  const toolingOutcome = toolingFailure == null
+    ? null
+    : toolingFailure instanceof ReviewToolingOutcome
+      ? toolingFailure
+      : new ReviewToolingOutcome({
+          ...toolingFailure,
+          permissionRelated: toolingFailure.permissionRelated === true,
+        });
+  return new NormalizedReviewExecution({
+    phase,
+    taskId,
+    treeSha,
+    evidence,
+    toolingOutcome,
+    semanticMaxAttempts,
+  });
+}
+
+function pipelineRejection(code, message) {
+  return Object.freeze({ code, message });
+}
+
+function permissionRelatedFailure(error) {
+  return /permission|EACCES|EPERM|sandbox/i.test(String(error?.message || error));
+}
+
+export class ReviewExecutionPipeline {
+  constructor({ flowManager, boundaries } = {}) {
+    if (!flowManager) throw new Error("flowManager is required");
+    if (!boundaries || typeof boundaries !== "object") throw new Error("review execution boundaries are required");
+    if (typeof boundaries.resolveCurrentTargetStateDigest !== "function") {
+      throw new Error("review execution boundaries must resolve the current target state digest");
+    }
+    this.flowManager = flowManager;
+    this.boundaries = boundaries;
+    this.store = new ReviewConvergenceStore({ flowManager });
+    this.guard = new ReviewExecutionGuard({ flowManager, boundaries });
+    Object.freeze(this);
+  }
+
+  async execute({ phase, taskId = null, treeSha, provider } = {}) {
+    const inspection = this.guard.inspect({ phase, taskId, treeSha });
+    const targetStateDigest = inspection.targetStateDigest;
+    if (!inspection.allowed) {
+      return {
+        executionStarted: false,
+        convergenceState: inspection.convergenceState,
+        nextOperation: inspection.nextOperation,
+        rejection: inspection.rejection,
+      };
+    }
+
+    let providerResult = null;
+    let providerSession;
+    try {
+      providerSession = await this.boundaries.startProvider({ phase, taskId, treeSha, provider });
+    } catch (error) {
+      return this.#persistToolingFailure({
+        phase, taskId, treeSha, targetStateDigest, provider, stage: "startup", error, providerResult,
+      });
+    }
+    let payload;
+    try {
+      payload = await this.boundaries.communicate(providerSession, { phase, taskId, treeSha, provider });
+    } catch (error) {
+      return this.#persistToolingFailure({
+        phase, taskId, treeSha, targetStateDigest, provider, stage: "communication", error, providerResult,
+      });
+    }
+    try {
+      providerResult = this.boundaries.parseProviderResult(payload, { phase, taskId, treeSha, provider });
+    } catch (error) {
+      return this.#persistToolingFailure({
+        phase, taskId, treeSha, targetStateDigest, provider, stage: "parse", error, providerResult,
+      });
+    }
+    try {
+      await this.boundaries.runPostHook(providerResult, { phase, taskId, treeSha, provider });
+    } catch (error) {
+      return this.#persistToolingFailure({
+        phase, taskId, treeSha, targetStateDigest, provider, stage: "post_hook", error, providerResult,
+      });
+    }
+
+    const effectTreeSha = this.boundaries.resolveCurrentTreeSha();
+    const effectTargetStateDigest = this.boundaries.resolveCurrentTargetStateDigest();
+    if (effectTreeSha !== treeSha || effectTargetStateDigest !== targetStateDigest) {
+      return {
+        executionStarted: true,
+        rejection: pipelineRejection(
+          "STALE_REVIEW_TARGET",
+          "the review target changed before canonical evidence effects",
+        ),
+      };
+    }
+
+    const normalized = normalizeReviewExecution({ phase, taskId, treeSha, providerResult });
+    try {
+      await this.boundaries.writeCanonicalEvidence(normalized.evidence);
+    } catch (error) {
+      return this.#persistToolingFailure({
+        phase, taskId, treeSha, targetStateDigest, provider, stage: "canonical_write", error, providerResult,
+      });
+    }
+    try {
+      await this.boundaries.writeProjection(normalized, { phase, taskId, treeSha, provider });
+    } catch (error) {
+      return this.#persistToolingFailure({
+        phase, taskId, treeSha, targetStateDigest, provider, stage: "projection", error, providerResult,
+      });
+    }
+    try {
+      await this.boundaries.recordResult(normalized, { phase, taskId, treeSha, provider });
+    } catch (error) {
+      return this.#persistToolingFailure({
+        phase, taskId, treeSha, targetStateDigest, provider, stage: "result_recording", error, providerResult,
+      });
+    }
+    const expectedOriginal = this.flowManager.load();
+    const convergenceState = this.store.recordEvidence({
+      evidence: normalized.evidence,
+      provider,
+      targetStateDigest,
+      expectedOriginal,
+    });
+    return {
+      ...normalized,
+      executionStarted: true,
+      convergenceState,
+      nextOperation: resolveReviewPermittedOperation(convergenceState),
+    };
+  }
+
+  #persistToolingFailure({
+    phase,
+    taskId,
+    treeSha,
+    targetStateDigest,
+    provider,
+    stage,
+    error,
+    providerResult,
+  }) {
+    const current = this.store.read({ phase, taskId, treeSha, targetStateDigest });
+    const toolingOutcome = nextReviewToolingOutcome(current, {
+      stage,
+      reason: String(error?.message || error),
+      permissionRelated: permissionRelatedFailure(error),
+    });
+    const normalized = normalizeReviewExecution({
+      phase,
+      taskId,
+      treeSha,
+      providerResult,
+      toolingFailure: toolingOutcome,
+    });
+    const currentTreeSha = this.boundaries.resolveCurrentTreeSha();
+    const currentTargetStateDigest = this.boundaries.resolveCurrentTargetStateDigest();
+    if (currentTreeSha !== treeSha || currentTargetStateDigest !== targetStateDigest) {
+      return {
+        ...normalized,
+        findings: [],
+        executionStarted: true,
+        rejection: pipelineRejection(
+          "STALE_REVIEW_TARGET",
+          "the review tree changed before tooling outcome promotion",
+        ),
+      };
+    }
+    const expectedOriginal = this.flowManager.load();
+    const convergenceState = this.store.recordToolingOutcome({
+      phase,
+      taskId,
+      treeSha,
+      provider,
+      outcome: toolingOutcome,
+      evidence: normalized.evidence,
+      canonicalEvidencePersisted: normalized.canonicalEvidencePersisted,
+      targetStateDigest,
+      expectedOriginal,
+    });
+    return {
+      ...normalized,
+      // TOOLING_ERROR never becomes a review finding on the execution
+      // surface. Finalized evidence remains available through evidence and
+      // handoffFindings for canonical-write/projection recovery.
+      findings: [],
+      executionStarted: true,
+      convergenceState,
+      nextOperation: resolveReviewPermittedOperation(convergenceState),
+    };
+  }
+}
+
 export class RunReviewCommand extends FlowCommand {
-  constructor({ resolveScope = resolveImplReviewScope, runCommand = runCmd } = {}) {
+  constructor({
+    finalizeResult = finalizeReviewCommandResult,
+    resolveScope = resolveImplReviewScope,
+    resolveTreeSha = resolveCurrentReviewTreeSha,
+    resolveTargetStateDigest = resolveCurrentReviewRepairFingerprint,
+    runCommand = runCmd,
+  } = {}) {
     super();
+    this.finalizeResult = finalizeResult;
     this.resolveScope = resolveScope;
+    this.resolveTreeSha = resolveTreeSha;
+    this.resolveTargetStateDigest = resolveTargetStateDigest;
     this.runCommand = runCommand;
   }
 
@@ -857,9 +1713,20 @@ export class RunReviewCommand extends FlowCommand {
       });
     }
     const persistedPhase = reviewPhaseKeyForCtx(reviewCtx, phase);
-    if (ctx.flowManager) {
-      ctx.flowManager.mutate((state) => clearReviewStopState(state, persistedPhase));
-    }
+    const reviewTargetTreeSha = this.resolveTreeSha(reviewCtx);
+    const reviewTargetRepairFingerprint = this.resolveTargetStateDigest(reviewCtx);
+    const canonicalBlock = canonicalReviewExecutionBlock(
+      reviewCtx,
+      persistedPhase,
+      reviewCtx.flowState.currentTaskId ?? null,
+      {
+        treeSha: reviewTargetTreeSha,
+        targetStateDigest: reviewTargetRepairFingerprint,
+        resolveTreeSha: () => this.resolveTreeSha(reviewCtx),
+        resolveTargetStateDigest: () => this.resolveTargetStateDigest(reviewCtx),
+      },
+    );
+    if (canonicalBlock) return canonicalBlock;
 
     const dryRun = ctx.dryRun || false;
     const skipConfirm = ctx.skipConfirm || false;
@@ -887,31 +1754,87 @@ export class RunReviewCommand extends FlowCommand {
     if (skipConfirm) args.push("--skip-confirm");
 
     const timeoutMs = AgentTimeout.fromConfig(ctx.config?.agent).toMilliseconds();
-    const res = await runCmdWithRetry(
-      () => this.runCommand("node", [scriptPath, ...args], { cwd: root, timeout: timeoutMs }),
-      { phase: persistedPhase },
-    );
+    let res;
+    try {
+      res = await runCmdWithRetry(
+        () => this.runCommand("node", [scriptPath, ...args], { cwd: root, timeout: timeoutMs }),
+        { phase: persistedPhase, retryCount: 0 },
+      );
+    } catch (error) {
+      return reviewExecutionFailureEnvelope(reviewCtx, {
+        phase: persistedPhase,
+        taskId: reviewCtx.flowState.currentTaskId ?? null,
+        treeSha: reviewTargetTreeSha,
+        repairFingerprint: reviewTargetRepairFingerprint,
+        stage: "startup",
+        error,
+        expectedOriginal: reviewCtx.flowManager?.load() ?? null,
+      });
+    }
 
     const stdout = (res.stdout || "").trim();
     const stderr = (res.stderr || "").trim();
+    const currentReviewTreeSha = this.resolveTreeSha(reviewCtx);
+    const currentReviewRepairFingerprint = this.resolveTargetStateDigest(reviewCtx);
+    if (
+      currentReviewTreeSha !== reviewTargetTreeSha
+      || currentReviewRepairFingerprint !== reviewTargetRepairFingerprint
+    ) {
+      return staleReviewTargetFailure({
+        expectedTreeSha: reviewTargetTreeSha,
+        currentTreeSha: currentReviewTreeSha,
+        expectedRepairFingerprint: reviewTargetRepairFingerprint,
+        currentRepairFingerprint: currentReviewRepairFingerprint,
+      });
+    }
+    // Agent telemetry is persisted while the provider subprocess is running.
+    // Capture the CAS revision only after those expected mutations finish and
+    // immediately before canonical evidence promotion.
+    const reviewPromotionRevision = ctx.flowManager?.load() ?? null;
+    const finalizeResult = (parse) => this.finalizeResult({
+      ctx: reviewCtx,
+      phase: persistedPhase,
+      taskId: reviewCtx.flowState.currentTaskId ?? null,
+      treeSha: reviewTargetTreeSha,
+      repairFingerprint: reviewTargetRepairFingerprint,
+      expectedOriginal: reviewPromotionRevision,
+      parse,
+    });
     if (!res.ok) {
       const failure = ReviewFailure.fromSubprocessResult({ phase: persistedPhase, result: res });
+      const childToolingOutcome = parseToolingOutcome(stderr);
+      const canonicalTooling = persistCanonicalToolingOutcome(reviewCtx, {
+        phase: persistedPhase,
+        taskId: reviewCtx.flowState.currentTaskId ?? null,
+        treeSha: reviewTargetTreeSha,
+        repairFingerprint: reviewTargetRepairFingerprint,
+        stage: failure.classification === "schema_failure" ? "parse" : "communication",
+        reason: failure.reason,
+        outcome: childToolingOutcome,
+        expectedOriginal: reviewPromotionRevision,
+      });
       if (failure.classification === "schema_failure") {
-        return Envelope.fail("run", "review", failure.toEnvelopeCode(),
-          [`review stopped: ${failure.reason}`],
-          failure.toEnvelopeData());
-      }
-      if (failure.shouldPersistStopState()) {
-        const persisted = mutateReviewRecoveryState(
-          reviewCtx,
-          persistedPhase,
-          REVIEW_RECOVERY_TRIGGER_STOP,
-          (state) => writeReviewStopState(state, failure),
-        );
-        if (!persisted) writeReviewStopState(ctx.flowState, failure);
         const envelope = Envelope.fail("run", "review", failure.toEnvelopeCode(),
           [`review stopped: ${failure.reason}`],
           failure.toEnvelopeData());
+        if (canonicalTooling) {
+          envelope.data = {
+            ...envelope.data,
+            reviewAction: resolveReviewPermittedOperation(canonicalTooling.state).toJSON(),
+          };
+        }
+        return envelope;
+      }
+      if (failure.requiresImmediateBlock()) {
+        const envelope = Envelope.fail("run", "review", failure.toEnvelopeCode(),
+          [`review tooling error: ${failure.reason}`],
+          failure.toEnvelopeData());
+        if (canonicalTooling) {
+          envelope.data = {
+            ...envelope.data,
+            reviewAction: resolveReviewPermittedOperation(canonicalTooling.state).toJSON(),
+          };
+        }
         const attempt = recordReviewOutcome(
           reviewCtx,
           null,
@@ -933,17 +1856,17 @@ export class RunReviewCommand extends FlowCommand {
 
     // Route to draft review parser
     if (phase === "draft") {
-      return parseProposalReviewOutput(res, stdout, stderr);
+      return finalizeResult(() => parseProposalReviewOutput(res, stdout, stderr));
     }
 
     // Route to test review parser
     if (phase === "test") {
-      return parseTestReviewOutput(res, stdout, stderr);
+      return finalizeResult(() => parseTestReviewOutput(res, stdout, stderr));
     }
 
     // Route to spec review parser
     if (phase === "spec") {
-      return parseSpecReviewOutput(res, stdout, stderr);
+      return finalizeResult(() => parseSpecReviewOutput(res, stdout, stderr));
     }
 
     if (!res.ok) {
@@ -952,11 +1875,13 @@ export class RunReviewCommand extends FlowCommand {
       );
     }
 
-    const parsed = parseImplReviewOutput(res, stdout, stderr, { root });
-    parsed.artifacts.dryRun = dryRun;
-    parsed.artifacts.taskId = scopeDecision?.kind === "task" ? scopeDecision.task.id : null;
-    if (broadMode) parsed.artifacts.broadMode = broadMode;
-    return parsed;
+    return finalizeResult(() => {
+      const parsed = parseImplReviewOutput(res, stdout, stderr, { root });
+      parsed.artifacts.dryRun = dryRun;
+      parsed.artifacts.taskId = scopeDecision?.kind === "task" ? scopeDecision.task.id : null;
+      if (broadMode) parsed.artifacts.broadMode = broadMode;
+      return parsed;
+    });
   }
 }
 

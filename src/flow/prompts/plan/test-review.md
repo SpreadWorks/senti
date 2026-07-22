@@ -12,21 +12,18 @@
    - Verdicts:
      - `PASS`: no blocking or advisory findings. The post hook marks `test-review` done.
      - `ADVISORY`: non-blocking findings were recorded, but implementation may proceed. The post hook marks `test-review` done.
-     - `FAIL`: blocking findings exist. Fix the tests and run `senti flow run review --phase test` again only after the test design premise changes.
-     - `TOOLING_FAILURE`: subprocess/parser/coverage-artifact failure. Do not treat this as test quality failure; recover the tooling issue or record explicit evidence before proceeding.
-   - **TOOLING_FAILURE completion override recovery:**
-     - `TOOLING_FAILURE` is not a test-quality failure and does not complete `test-review` by itself.
-     - Prefer fixing the tooling failure and rerunning `senti flow run review --phase test`.
-     - If proceeding with accepted risk, write structured override evidence to `specs/<id>/completion-overrides.json` under `entries.test-review`.
-     - `entries.test-review` must include `userApproval=true`, `reason`, `approvedAt`, `approvedBy`, and `findings[]`.
-     - `findings[]` must be non-empty. Each entry must include `findingId`, `disposition`, `successorOwner`, and `acceptedRisk`.
-     - Allowed `disposition` values are `out_of_scope`, `transferred_to_successor`, `accepted_risk`, and `false_positive`.
-     - When a TOOLING_FAILURE artifact has no parsed review finding, use a stable synthetic `findingId` such as `test-review:tooling_failure:<toolingFailure>`; for example, `test-review:tooling_failure:parser_error`.
-     - For `accepted_risk`, keep an audit or task trail by referencing the issue-log TOOLING_FAILURE entry or an explicit related task reference in `reason` or `acceptedRisk`.
-     - Free-text issue-log alone is not completion override evidence. The structured `completion-overrides.json` entry is still required before marking `test-review` done.
+     - `REJECTED`: blocking findings exist. Fix the tests and run `senti flow run review --phase test` again only after the test design premise changes.
+     - `TOOLING_ERROR`: subprocess/parser/coverage-artifact failure. Do not treat this as test quality failure; recover the tooling issue or record explicit evidence before proceeding.
+   - **TOOLING_ERROR evidence recovery:**
+     - `TOOLING_ERROR` is not a test-quality failure and does not complete `test-review` by itself.
+     - Follow the single `reviewAction` returned by next-action/status. Do not infer a retry from process exit status.
+     - For `retry_review`, fix the tooling boundary and rerun only while `remainingToolingAttempts` permits it.
+     - For `register_alternative_evidence`, place a finalized version-1 audit document inside the active spec directory and run `senti flow set review-evidence --file <path>` with the normal target guards.
+     - For `move_to_acceptance`, keep the canonical handoff and continue normal lifecycle ordering; acceptance owns final finding disposition.
+     - For `stop_as_blocker`, stop and report the persisted blocker. Completion overrides do not substitute for canonical review evidence.
    - `test-review` uses flow-level repair between separate `senti flow run review --phase test` invocations. Fix tests only after the review command returns and rerun review only after requirements, acceptance criteria, target API, spec-local tests, or the requirement-to-test coverage artifact changed.
-   - Each semantic `FAIL` invocation consumes `reviewRetry`. At semantic retry exhaustion, unresolved findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition.
-   - `TOOLING_FAILURE` is non-semantic. It must be recovered or explicitly overridden and does not complete through semantic deferral.
+   - Each semantic `REJECTED` invocation consumes `reviewRetry`. At semantic retry exhaustion, unresolved findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition.
+   - `TOOLING_ERROR` is non-semantic. It must be recovered or explicitly overridden and does not complete through semantic deferral.
    - Recovery reason is required for manual retry reset, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
    - Quality gates after implementation (`test-execute`, `test-result-review`, `impl-review`, `impl-gate`, `acceptance-review`, `final-regression`) remain mandatory and are not weakened by deferred semantic review findings.
    - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.

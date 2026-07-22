@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/prompts/plan/spec-review.md",
+      "src/flow/prompts/plan/test-review.md",
+      "src/flow/prompts/task/task-review.md",
+      "src/flow/registry.js",
+      "src/lib/flow-manager.js",
+      "src/skills/senti.flow/SKILL.md"
+    ],
+    "inputHash": "0818bede5ab2b85fcdc216f27347817b5f873603f48288b45156ea51d006d106",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "src/flow/prompts/plan/spec-review.md",
+    "src/flow/prompts/plan/test-review.md",
+    "src/flow/prompts/task/task-review.md",
+    "src/flow/registry.js",
+    "src/lib/flow-manager.js",
+    "src/skills/senti.flow/SKILL.md"
+  ],
+  "inputHash": "0818bede5ab2b85fcdc216f27347817b5f873603f48288b45156ea51d006d106",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-22T03:43:50.467Z",
+  "finishedAt": "2026-07-22T03:43:50.467Z",
+  "rawResponse": "### 1. Remove Contradictory TOOLING_ERROR Override Language\n**File:** `src/flow/prompts/plan/test-review.md`  \n**Requirement:** R7  \n**Issue:** The new `TOOLING_ERROR evidence recovery` section says “Completion overrides do not substitute for canonical review evidence,” but the later bullet still says `TOOLING_ERROR` “must be recovered or explicitly overridden.” That preserves legacy override wording and conflicts with the new `reviewAction` model.  \n**Suggestion:** Replace the later sentence with wording aligned to the new flow, for example: ``TOOLING_ERROR` is non-semantic. It must be resolved through the returned `reviewAction` and does not complete through semantic deferral.`\n\n### 2. Prefer Consistent Review Action Naming In Prompt Text\n**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** The updated `test-review` sentence says “Follow the single `reviewAction`,” but does not name the allowed actions while the detailed phase prompt does. This makes the skill guidance less concrete and easier to drift from the canonical prompt.  \n**Suggestion:** Mirror the concise action names from `src/flow/prompts/plan/test-review.md`: `retry_review`, `register_alternative_evidence`, `move_to_acceptance`, and `stop_as_blocker`.\n\n### 3. Avoid Repeating Target Guard Help Assembly Inline\n**File:** `src/flow/registry.js`  \n**Requirement:** R5  \n**Issue:** The new `review-evidence` registry entry repeats the same help assembly pattern used by other guarded `flow set` commands: usage line, blank line, command description, validation notes, and `...FLOW_TARGET_GUARD_HELP_LINES`. As guarded commands grow, this pattern becomes easy to update inconsistently.  \n**Suggestion:** Extract a small helper for guarded help text in this file, such as `targetGuardedHelp(usage, lines)`, and use it for `review-evidence` and nearby guarded `set` commands where the same pattern already exists.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Contradictory TOOLING_ERROR Override Language",
+        "body": "**File:** `src/flow/prompts/plan/test-review.md`  \n**Requirement:** R7  \n**Issue:** The new `TOOLING_ERROR evidence recovery` section says “Completion overrides do not substitute for canonical review evidence,” but the later bullet still says `TOOLING_ERROR` “must be recovered or explicitly overridden.” That preserves legacy override wording and conflicts with the new `reviewAction` model.  \n**Suggestion:** Replace the later sentence with wording aligned to the new flow, for example: ``TOOLING_ERROR` is non-semantic. It must be resolved through the returned `reviewAction` and does not complete through semantic deferral.`",
+        "file": "src/flow/prompts/plan/test-review.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Prefer Consistent Review Action Naming In Prompt Text",
+        "body": "**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** The updated `test-review` sentence says “Follow the single `reviewAction`,” but does not name the allowed actions while the detailed phase prompt does. This makes the skill guidance less concrete and easier to drift from the canonical prompt.  \n**Suggestion:** Mirror the concise action names from `src/flow/prompts/plan/test-review.md`: `retry_review`, `register_alternative_evidence`, `move_to_acceptance`, and `stop_as_blocker`.",
+        "file": "src/skills/senti.flow/SKILL.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Avoid Repeating Target Guard Help Assembly Inline",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R5  \n**Issue:** The new `review-evidence` registry entry repeats the same help assembly pattern used by other guarded `flow set` commands: usage line, blank line, command description, validation notes, and `...FLOW_TARGET_GUARD_HELP_LINES`. As guarded commands grow, this pattern becomes easy to update inconsistently.  \n**Suggestion:** Extract a small helper for guarded help text in this file, such as `targetGuardedHelp(usage, lines)`, and use it for `review-evidence` and nearby guarded `set` commands where the same pattern already exists.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

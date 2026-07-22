@@ -1,0 +1,158 @@
+{
+  "devType": "bugfix",
+  "goal": "review disposition と review tooling outcome を別々の型付き事実として扱い、同じ対象・同じ evidence に対する処理を bounded にして、flow が acceptance または明示的 blocker へ決定的に収束するようにする。",
+  "analysis": {
+    "problem": "有効な review が ADVISORY かつ blocking finding 0 件でも、provider 起動、subprocess、parse、post-hook、結果記録の失敗が reviewer の判定と同じ未完了状態に畳まれる。retry と recovery の許可操作も一意に永続化されないため、同じ tree SHA と evidence に対する review または記録経路の復旧が繰り返され、Issue の Acceptance Criteria と無関係な tooling 作業で flow が収束しない。",
+    "proposedApproach": "PASS・ADVISORY・REJECTED の review disposition と TOOLING_ERROR の実行結果を独立した型付き evidence として永続化する。既存の review CLI invocation、phase artifact、status、target guard、revision・CAS、正常な phase promotion は同じ公開 surface で維持し、内部の retry metric・reviewStop・phase 別 tooling 分岐を共通の typed convergence state に置き換える。blocking finding がない有効結果と remediation 上限に達した結果は acceptance evidence へ引き継ぎ、tooling recovery は永続化した上限と重複キーで制限する。next-action は現在状態から許される retry review、register alternative evidence、move to acceptance、stop as blocker のいずれか一つだけを返す。",
+    "validation": "公開 surface ごとに behavior-level parity を検証する。flow run review は全 phase と task scope で既存 flags・target guard・artifact 出力を維持し、PASS と ADVISORY を完了、REJECTED を上限内 remediation、TOOLING_ERROR を semantic finding 非生成として検証する。get next-action と get status は各 state・上限前後で同じ target を表示し、一意操作・残り tooling retry・handoff または blocker を返す。set retry reset review は同一 phase・tree SHA・evidence を拒否し、tree SHA または evidence 変更後だけ再検証を許す。phase JSON、review.md、flow state、acceptance evidence は target tree SHA と provenance を追跡し、正常な既存 consumer と acceptance judgment が新経路でも動くことを検証する。review post-hook は disposition と tooling outcome を別々に永続化し、途中 failure で部分的な step promotion や findings を残さない。semantic maxAttempts と新しい tooling limit が独立して作用し、autoApprove が execution permission を要求しないことを確認する。さらに provider 起動、通信・subprocess、JSON parse、post-hook、結果記録 failure、Issue #451 の ADVISORY・blocking findings 0・記録経路 failure を個別 fixture で再現する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "[must] 現行の review runner は PASS と ADVISORY を成功扱いできる一方、TOOLING_FAILURE、subprocess failure、schema failure、provider stop の記録・遷移が review phase ごとに異なる。",
+      "[must] 現行 flow は review retry metric、reviewStop、StepAttempt outcome、retry recovery を保持するが、同じ tree SHA と evidence の重複実行を表す共通 identity は保持しない。",
+      "[must] 現行 acceptance は impl-review と deferred finding を evidence として参照するが、provenance と対象 phase・tree SHA・disposition を備えた独立 audit evidence の登録契約を持たない。",
+      "[must] 共通の収束契約は draft、spec、test、implementation、task review の全 phase に適用する。",
+      "[must] tooling recovery の既定上限は 1 回とし、上限後は finalized evidence 登録、acceptance handoff、blocker 停止の順で成立する一つの操作だけを許可する。",
+      "[must] 独立 audit evidence は provenance、review phase、target tree SHA、disposition、findings、evidence digest を必須とする。",
+      "[must] finalized result 取得後の記録失敗では reviewer を再実行せず、target と provenance を検証した alternative evidence 登録を一度だけ許可する。",
+      "[must] next-action は一つの許可操作、残り retry 数、handoff findings または blocker reason を返す。",
+      "[must] autoApprove は flow 判断の承認だけを表し、tooling 実行権限不足をユーザー承認へ変換しない。",
+      "[must] CLI flow run review と既存 flags は typed review execution の owner に維持し、PASS・ADVISORY・REJECTED・TOOLING_ERROR と phase artifact を一つの実行結果として返す。",
+      "[must] CLI flow get next-action は typed convergence decision の owner とし、同一 state から一つの permitted operation だけを返す。",
+      "[must] CLI flow get status は persisted review state の read projection の owner とし、target、attempt、disposition、tooling blocker を表示する。",
+      "[must] CLI flow set retry reset review は changed tree SHA または changed evidence の再検証入口として維持し、同一 identity の reset と rerun を拒否する。",
+      "[must] review.md と draft・spec・test・impl の既存 review JSON path は typed review evidence の owner に維持し、正常 consumer が同じ path から disposition と findings を読めるようにする。",
+      "[must] flow state の review retry metric・reviewStop・StepAttempt side effect は typed disposition、tooling attempt、permitted operation、evidence identity の一貫した state mutation に置き換え、partial promotion を許さない。",
+      "[must] review post-hook は typed result persistence と phase promotion の owner、acceptance-review は handoff finding と独立 audit evidence の最終 disposition owner とする。",
+      "[must] 既存 phase maxAttempts は REJECTED の semantic remediation budget として維持し、tooling recovery budget は別 state として既定 1 回に固定する。"
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "[must] Node.js 組み込みモジュールだけを使用し、外部依存を追加しない。",
+      "[must] review disposition、tooling outcome、evidence identity、許可操作など意味のある値は専用 class で invariant と振る舞いを所有する。",
+      "[must] src 以下に特定 Issue、provider、sandbox、利用プロジェクト固有の値や構造を埋め込まない。",
+      "[must] 既存の target guard、revision・CAS、acceptance judgment、正常な review を維持し、alpha 版として旧形式の互換層は追加しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "[must] 専用 class、artifact schema、CLI command、state mutation、next-action envelope の所有 module と名前は spec で既存 module 境界に沿って決める。",
+      "[must] duplicate identity の canonical serialization、digest、atomic persistence、target revision check の順序は spec で検証可能な契約に落とす。",
+      "[must] Draft で固定した public surface の retention、owner、removal decision、behavior-level parity を変更せず、専用 class、artifact field、atomic mutation、schema の詳細へ展開する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] PASS・ADVISORY・REJECTED と TOOLING_ERROR を分離した review state transition と evidence persistence。",
+      "[must] blocking finding 0 件の完了、ADVISORY handoff、REJECTED remediation 上限後の acceptance judgment。",
+      "[must] provider 起動、通信・subprocess、parse、post-hook、結果記録 failure の tooling classification と bounded recovery。",
+      "[must] provenance、対象 phase、tree SHA、disposition を持つ独立 evidence の登録・検証・acceptance 利用。",
+      "[must] 同一 phase・tree SHA・evidence の重複拒否と、tree SHA 変更後の再検証。",
+      "[must] next-action の残り retry 数、引き継ぐ finding または blocker、一意の許可操作。",
+      "[must] autoApprove と OS・sandbox・provider 実行権限の分離。"
+    ],
+    "out": [
+      "[must] 外部 app server、provider、sandbox 製品自体の修正。",
+      "[must] 権限確認の迂回、自動 privilege escalation、OS 権限の変更。",
+      "[must] 個別 Issue の product Acceptance Criteria に属する実装。",
+      "[must] review で見つかった指摘を同じ Issue に無制限に追加・修復する運用。"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] Command inventory: flow run review と --phase・--dry-run・--skip-confirm・--agent-work-dir・--log-file は維持し、typed review execution が disposition・tooling outcome・artifact path を返す owner になる。",
+    "[must] Command inventory: flow get next-action と flow get status は維持し、typed convergence state から一意操作、retry remaining、handoff findings または blocker を表示する owner になる。",
+    "[must] Command inventory: flow set retry reset review は changed tree SHA または changed evidence に限る明示的 revalidation command として維持し、同一 identity の再実行許可機能は削除する。",
+    "[must] API and hook inventory: review runner と phase post-hook は維持し、phase 別 verdict・tooling 分岐と retry metric 更新を typed result の一回の永続化と step transition に置き換える。",
+    "[must] Config inventory: flow definition の phase maxAttempts は REJECTED の semantic remediation limit として維持し、TOOLING_ERROR 用の persisted limit を別に設けて既定 1 回とする。provider・OS permission を autoApprove 設定へ追加しない。",
+    "[must] Artifact inventory: review.md、draft-review-questions.json、draft-review-coverage.json、spec-review.json、test-review.json、impl-review.json の path と phase 固有 findings は維持し、typed disposition、tooling outcome、target tree SHA、provenance、evidence identity を新 owner の review evidence に持たせる。",
+    "[must] State inventory: reviewRetry metric、reviewStop、retryRecovery、StepAttempt は外部表示の attempt・stop・resume 情報を維持しつつ、一意 permitted operation と duplicate identity を持つ typed convergence state の projection へ置き換える。",
+    "[must] Acceptance inventory: flow-findings と acceptance-review の deferred finding・final disposition・requirement judgment は維持し、ADVISORY、上限到達 REJECTED、独立 audit evidence を target-bound acceptance evidence として追加する。",
+    "[must] Side-effect inventory: PASS と blocking finding 0 件の ADVISORY は phase を完了し、REJECTED は limit 内だけ triage・repair、limit 後は acceptance、TOOLING_ERROR は finding を生成せず一回の recovery 後に evidence 登録または blocker へ進む。",
+      "[must] target guard、revision・CAS、task scope、正常な PASS・ADVISORY、既存 acceptance decision の user-visible behavior は退行させない。",
+      "[must] tooling permission shortage は flow approval に変換せず、typed tooling state または明示的 external blocker として表示する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] review の目的を、指摘を無制限に解消することではなく、review disposition と tooling outcome を分離して acceptance または明示的 blocker へ bounded に収束させることとしてよいか。",
+      "answer": "[must] はい。review の完了条件を reviewer disposition と tooling path の両方の成功に依存させず、判定を acceptance に引き継ぐ bounded process とする。",
+      "evidence": "ユーザーが preflight の Goal・Scope・Out of Scope を選択 [1] で承認。GitHub Issue #452 Summary と Problem も同じ収束性の問題を明記。",
+      "why": "非 blocking な有効結果に対する provider 切替や記録経路復旧の反復が、Issue #451 で flow を停止させた根本原因だから。",
+      "considered": "tooling path が成功するまで review を未完了に保つ案は、Issue が禁止する無制限 recovery loop を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "[must] 共通の typed disposition・TOOLING_ERROR・duplicate rejection・bounded recovery 契約を draft、spec、test、implementation、task review の全 phase に適用するか。",
+      "answer": "[must] 全 review phase と task review に共通契約を適用し、phase 固有の finding schema と正常な次工程は維持する。",
+      "evidence": "GitHub Issue #452 は対象を review 全般として定義し、Validation で PASS・ADVISORY・REJECTED と複数 tooling failure の共通 fixture を要求。src/flow/lib/run-review.js は同じ runner 内で draft・spec・test・impl・task scope を扱う。",
+      "why": "一部 phase だけを直すと、同じ tooling failure が別 phase で従来の未完了状態へ戻り、flow 全体の収束保証にならないため。",
+      "considered": "Issue #451 で観測した implementation review だけを対象にする案は差分が小さいが、Issue の設計レベルの目的と正常 review 非退行条件を満たさない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "[must] tooling recovery の既定上限を 1 回とし、上限後は有効な finalized evidence があれば登録、blocking finding なしの採用済み結果があれば acceptance へ移行、それ以外は blocker 停止という優先順位にするか。",
+      "answer": "[must] はい。tooling recovery は初回失敗後の retry を 1 回だけ許可し、以後は finalized evidence 登録、採用済み non-blocking result の acceptance handoff、evidence 不足時の blocker のうち成立する一つへ遷移する。",
+      "evidence": "GitHub Issue #452 Proposal 5 は既定回数を原則 1 回とし、失敗後を alternative evidence、acceptance、blocker のいずれかへ遷移させる。Proposal 8 は next-action の一意性を要求。",
+      "why": "永続化された小さい上限と一意の後続操作が、agent や provider の切替による実質無制限 retry を防ぐため。",
+      "considered": "provider 種別ごとの個別 retry 上限は同じ tree と evidence への総試行を増やせるため採用しない。即時 blocker は利用可能な finalized result を捨てるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "[must] 独立 audit evidence は provenance、review phase、target tree SHA、disposition、findings、evidence digest を必須とし、target guard と revision check を通過した場合だけ acceptance evidence として採用するか。",
+      "answer": "[must] はい。全 field と target guard・revision check を必須にし、現在 target と一致しない evidence は登録前に拒否する。",
+      "evidence": "GitHub Issue #452 Proposal 6・7 と Acceptance Criteria は provenance、target phase、tree SHA、disposition、重複拒否を要求。既存 acceptance evidence は src/flow/lib/acceptance-review-artifacts.js で repair fingerprint と参照先を検証する。",
+      "why": "外部結果を通常 evidence と同等に使うには、誰が何をどの source tree に対して判定したかと、同一内容かを機械的に拘束する必要があるため。",
+      "considered": "artifact path と disposition だけの登録は stale・foreign target・改変済み evidence を区別できないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "[must] reviewer の finalized result 取得後に post-hook または通常の結果記録だけが失敗した場合、同じ target tree SHA と provenance を検証して alternative evidence 登録へ一度だけ移行し、review 自体は再実行しない契約にするか。",
+      "answer": "[must] はい。有効 result の content と target binding が検証できる場合は alternative evidence 登録だけを許可し、review provider の再実行を拒否する。検証できない場合は TOOLING_ERROR の bounded recovery または blocker とする。",
+      "evidence": "GitHub Issue #452 Summary、Acceptance Criteria、Validation は Issue #451 の ADVISORY・blocking findings 0・記録経路失敗を回帰 fixture とし、独立 evidence 登録後の review 非再実行を要求。",
+      "why": "review content は既に確定しており、記録機構の失敗を理由に reviewer を再実行すると判定の揺れと重複 cost が発生するため。",
+      "considered": "通常 post-hook の再実行だけを許す案は safe な場合に利用できるが、同じ結果を再取得する provider review まで許可する契約にはしない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "[must] next-action は retry review、register alternative evidence、move to acceptance、stop as blocker のうち一つだけを返し、残り tooling retry 数と handoff findings または blocker reason を同じ response に含めるか。",
+      "answer": "[must] はい。状態から選ばれた一つの operation と、その根拠となる remaining attempts、handoff findings または blocker reason を返す。複数の recovery command を同時に許可しない。",
+      "evidence": "GitHub Issue #452 Acceptance Criteria が exactly one permitted operation と残り retry・findings・blocker の返却を要求。src/flow/lib/get-next-action.js は現状 reviewStop と retryRecovery を合成して表示する。",
+      "why": "agent が複数候補から都度選べる状態を残すと、永続化された bounded state を迂回して recovery loop を再開できるため。",
+      "considered": "候補一覧と推奨操作を返す案は flexible だが、Issue が求める deterministic convergence と CLI enforcement を満たさない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "[must] autoApprove は flow 上の判断承認だけに使用し、provider・sandbox・OS の実行権限不足はユーザー承認へ変換せず TOOLING_ERROR または external blocker として処理するか。",
+      "answer": "[must] はい。autoApprove は requires_approval の選択だけに作用し、tooling permission は typed failure として persisted state・next-action に反映する。権限昇格を自動実行しない。",
+      "evidence": "GitHub Issue #452 Proposal 9、Acceptance Criteria、Out of Scope が autoApprove と実行権限の分離、ユーザー承認への変換禁止、権限迂回・自動昇格の対象外を明記。",
+      "why": "flow の意思決定承認と外部実行権限は異なる authority であり、同一視すると auto mode が権限境界を越えるため。",
+      "considered": "permission shortage を flow approval としてユーザーに再確認する案は、承認しても OS・provider 権限が変化せず収束しないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-22T01:16:08Z",
+    "notes": "preflight でユーザーが Goal・Scope・Out of Scope と auto mode を承認。draft refine で全 QA を Issue・project rules・source evidence から解決し、coverage review は PASS。"
+  }
+}

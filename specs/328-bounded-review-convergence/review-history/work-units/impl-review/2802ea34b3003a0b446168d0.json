@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/set-retry.js",
+      "src/flow/lib/set-review-evidence.js",
+      "src/flow/prompts/impl/impl-review.md",
+      "src/flow/prompts/plan/draft-coverage-review.md",
+      "src/flow/prompts/plan/draft-questions-review.md"
+    ],
+    "inputHash": "70618eba7c7f7a12c517e2e9e5bf7f8cbc6f2fd6e0863acb5b363089ed6541cf",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/set-retry.js",
+    "src/flow/lib/set-review-evidence.js",
+    "src/flow/prompts/impl/impl-review.md",
+    "src/flow/prompts/plan/draft-coverage-review.md",
+    "src/flow/prompts/plan/draft-questions-review.md"
+  ],
+  "inputHash": "70618eba7c7f7a12c517e2e9e5bf7f8cbc6f2fd6e0863acb5b363089ed6541cf",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-22T03:57:06.449Z",
+  "finishedAt": "2026-07-22T03:57:06.449Z",
+  "rawResponse": "### 1. Extract Repeated Review Result Persistence Branches\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** The draft/test/spec branches repeat the same pattern: parse output, persist canonical review result, then return. This adds duplication and makes future routing changes easier to miss.  \n**Suggestion:** Add a small helper such as `parseAndPersistReviewResult(parser, res, stdout, stderr, reviewCtx, phase, revision)` or a parser map for non-impl phases, then route through that shared path.\n\n### 2. Centralize Tooling Error Envelope Decoration\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R4  \n**Issue:** The schema failure and immediate block branches both build an `Envelope.fail`, then conditionally merge `reviewAction` into `envelope.data`. The same pattern appears twice with only message text differing.  \n**Suggestion:** Extract a helper like `withCanonicalReviewAction(envelope, canonicalTooling)` or `toolingFailureEnvelope(...)` so TOOLING_ERROR response shaping stays consistent.\n\n### 3. Avoid Duplicated Permission Detection Regex\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R8  \n**Issue:** Permission-related detection is implemented more than once using `/permission|EACCES|EPERM|sandbox/i`, including in `parseToolingOutcome`, `persistCanonicalToolingOutcome`, and `permissionRelatedFailure`.  \n**Suggestion:** Reuse `permissionRelatedFailure(...)` everywhere, or rename it to `isPermissionRelatedFailureText(...)` and make all ReviewToolingOutcome construction call that helper.\n\n### 4. Rename Tooling Failure Helpers To Match New Outcome Model\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** `persistCanonicalToolingFailure` and `#persistToolingFailure` still use “Failure” terminology while the migration introduces `TOOLING_ERROR` / `ReviewToolingOutcome`. This keeps legacy wording in the new design surface.  \n**Suggestion:** Rename them to `persistCanonicalToolingOutcomeResult` and `#persistToolingOutcome`, or similar, so names align with the new model and avoid reintroducing TOOLING_FAILURE concepts.\n\n### 5. Replace Full Record Filtering With Reverse Search\n**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R6  \n**Issue:** `unchangedReviewConvergenceTarget` builds a full `matching` array just to use the last matching record. That does unnecessary bulk allocation over `reviewConvergence.records`.  \n**Suggestion:** Iterate backward with `findLast` or a reverse loop and stop at the first matching record. This is simpler and avoids loading all matches.\n\n### 6. Include Task Scope In Review Reset Identity Check\n**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R6  \n**Issue:** `unchangedReviewConvergenceTarget` only considers records where `taskId` is `null`. For task-scoped impl review convergence, the reset identity guard may ignore the active task record.  \n**Suggestion:** Resolve the active node/task in the command and pass `taskId` into `unchangedReviewConvergenceTarget(ctx, phase, taskId)`, matching both phase and task identity.\n\n### 7. Share Current Tree SHA Resolution Helper\n**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R5  \n**Issue:** `currentTreeSha` duplicates the same `runGit([\"rev-parse\", \"HEAD\"])` pattern added in other touched files. This makes error wording and normalization drift likely.  \n**Suggestion:** Extract or reuse a shared local helper from the touched review command path if feasible within this changeset, or at least align the helper naming and error behavior with `resolveCurrentReviewTreeSha`.\n\n### 8. Remove Redundant Evidence Conversion Inside Mutation\n**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R5  \n**Issue:** `input.toEvidence(target)` is called inside the `flowManager.mutate` callback even though it depends only on already validated input and target. That mixes pure conversion with state mutation.  \n**Suggestion:** Compute `const evidence = input.toEvidence(target)` before `mutate`, pass that value to `registrar.register`, and return it in `toCommandResult`. This makes the CAS mutation block smaller and easier to reason about.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Repeated Review Result Persistence Branches",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** The draft/test/spec branches repeat the same pattern: parse output, persist canonical review result, then return. This adds duplication and makes future routing changes easier to miss.  \n**Suggestion:** Add a small helper such as `parseAndPersistReviewResult(parser, res, stdout, stderr, reviewCtx, phase, revision)` or a parser map for non-impl phases, then route through that shared path.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Centralize Tooling Error Envelope Decoration",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R4  \n**Issue:** The schema failure and immediate block branches both build an `Envelope.fail`, then conditionally merge `reviewAction` into `envelope.data`. The same pattern appears twice with only message text differing.  \n**Suggestion:** Extract a helper like `withCanonicalReviewAction(envelope, canonicalTooling)` or `toolingFailureEnvelope(...)` so TOOLING_ERROR response shaping stays consistent.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Avoid Duplicated Permission Detection Regex",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R8  \n**Issue:** Permission-related detection is implemented more than once using `/permission|EACCES|EPERM|sandbox/i`, including in `parseToolingOutcome`, `persistCanonicalToolingOutcome`, and `permissionRelatedFailure`.  \n**Suggestion:** Reuse `permissionRelatedFailure(...)` everywhere, or rename it to `isPermissionRelatedFailureText(...)` and make all ReviewToolingOutcome construction call that helper.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Rename Tooling Failure Helpers To Match New Outcome Model",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** `persistCanonicalToolingFailure` and `#persistToolingFailure` still use “Failure” terminology while the migration introduces `TOOLING_ERROR` / `ReviewToolingOutcome`. This keeps legacy wording in the new design surface.  \n**Suggestion:** Rename them to `persistCanonicalToolingOutcomeResult` and `#persistToolingOutcome`, or similar, so names align with the new model and avoid reintroducing TOOLING_FAILURE concepts.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Replace Full Record Filtering With Reverse Search",
+        "body": "**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R6  \n**Issue:** `unchangedReviewConvergenceTarget` builds a full `matching` array just to use the last matching record. That does unnecessary bulk allocation over `reviewConvergence.records`.  \n**Suggestion:** Iterate backward with `findLast` or a reverse loop and stop at the first matching record. This is simpler and avoids loading all matches.",
+        "file": "src/flow/lib/set-retry.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "6. Include Task Scope In Review Reset Identity Check",
+        "body": "**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R6  \n**Issue:** `unchangedReviewConvergenceTarget` only considers records where `taskId` is `null`. For task-scoped impl review convergence, the reset identity guard may ignore the active task record.  \n**Suggestion:** Resolve the active node/task in the command and pass `taskId` into `unchangedReviewConvergenceTarget(ctx, phase, taskId)`, matching both phase and task identity.",
+        "file": "src/flow/lib/set-retry.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "7. Share Current Tree SHA Resolution Helper",
+        "body": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R5  \n**Issue:** `currentTreeSha` duplicates the same `runGit([\"rev-parse\", \"HEAD\"])` pattern added in other touched files. This makes error wording and normalization drift likely.  \n**Suggestion:** Extract or reuse a shared local helper from the touched review command path if feasible within this changeset, or at least align the helper naming and error behavior with `resolveCurrentReviewTreeSha`.",
+        "file": "src/flow/lib/set-review-evidence.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "8. Remove Redundant Evidence Conversion Inside Mutation",
+        "body": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R5  \n**Issue:** `input.toEvidence(target)` is called inside the `flowManager.mutate` callback even though it depends only on already validated input and target. That mixes pure conversion with state mutation.  \n**Suggestion:** Compute `const evidence = input.toEvidence(target)` before `mutate`, pass that value to `registrar.register`, and return it in `toCommandResult`. This makes the CAS mutation block smaller and easier to reason about.",
+        "file": "src/flow/lib/set-review-evidence.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

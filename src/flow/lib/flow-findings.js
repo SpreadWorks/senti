@@ -316,8 +316,26 @@ export function buildDeferredFindingsSummary({ specDir, flowState = null }) {
     seen.add(entry.sourceStep);
     sourceSteps.push(entry.sourceStep);
   }
+  const latestReviewRecords = new Map();
+  for (const record of flowState?.reviewConvergence?.records || []) {
+    latestReviewRecords.set(`${record.phase}:${record.taskId ?? ""}`, record);
+  }
+  const fingerprints = new Set(artifact.entries.map((entry) => entry.fingerprint));
+  const reviewHandoffs = [...latestReviewRecords.values()].flatMap((record) => (
+    Array.isArray(record.handoffFindings) ? record.handoffFindings : []
+  )).filter((finding) => {
+    if (fingerprints.has(finding.fingerprint)) return false;
+    fingerprints.add(finding.fingerprint);
+    return true;
+  });
+  for (const finding of reviewHandoffs) {
+    const sourceStep = finding.sourceStep || "review";
+    if (seen.has(sourceStep)) continue;
+    seen.add(sourceStep);
+    sourceSteps.push(sourceStep);
+  }
   return {
-    count: artifact.entries.length,
+    count: artifact.entries.length + reviewHandoffs.length,
     sourceSteps,
     artifactPath: FLOW_FINDINGS_FILE,
   };
@@ -354,6 +372,12 @@ function sourceFindingsForArtifact(artifact, sourceStep) {
   const review = reviewBlockingFindings(artifact, sourceStep);
   if (review.length > 0) return review;
   return blockingObservations(artifact);
+}
+
+export function findSourceFinding(artifact, sourceStep, sourceFindingId) {
+  return sourceFindingsForArtifact(artifact, sourceStep).find((finding, index) => (
+    stableSourceFindingId(sourceStep, finding, index) === sourceFindingId
+  )) || null;
 }
 
 function stableSourceFindingId(sourceStep, finding, index) {

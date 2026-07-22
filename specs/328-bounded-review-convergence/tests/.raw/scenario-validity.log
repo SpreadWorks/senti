@@ -1,0 +1,3510 @@
+[senti] scenario-validity tests start
+command: node --test specs/328-bounded-review-convergence/tests/review-action-resolution.test.js specs/328-bounded-review-convergence/tests/review-convergence-model.test.js specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js specs/328-bounded-review-convergence/tests/review-execution-regression.test.js
+[senti] scenario-validity file start command=node specs/328-bounded-review-convergence/tests/review-action-resolution.test.js
+TAP version 13
+# Subtest: R3: non-blocking evidence and exhausted rejection resolve to acceptance handoff
+not ok 1 - R3: non-blocking evidence and exhausted rejection resolve to acceptance handoff
+  ---
+  duration_ms: 1.753849
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:35:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-convergence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    model (file://<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:14:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:40:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R4: tooling retry budget is shared by the target and cannot be reset by provider changes
+not ok 2 - R4: tooling retry budget is shared by the target and cannot be reset by provider changes
+  ---
+  duration_ms: 0.434403
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:59:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-convergence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    model (file://<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:14:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:65:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R6: each state exposes exactly one permitted operation and one handoff or blocker payload
+not ok 3 - R6: each state exposes exactly one permitted operation and one handoff or blocker payload
+  ---
+  duration_ms: 1.266367
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:82:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-convergence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    model (file://<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:14:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:88:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R8: permission blocker never becomes a flow approval operation
+not ok 4 - R8: permission blocker never becomes a flow approval operation
+  ---
+  duration_ms: 0.403282
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:109:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-convergence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    model (file://<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:14:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-action-resolution.test.js:114:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18.052813
+Command failed: node specs/328-bounded-review-convergence/tests/review-action-resolution.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/328-bounded-review-convergence/tests/review-action-resolution.test.js
+[senti] scenario-validity file start command=node specs/328-bounded-review-convergence/tests/review-convergence-model.test.js
+TAP version 13
+# Subtest: R1: disposition classes enforce PASS ADVISORY and REJECTED finding invariants
+not ok 1 - R1: disposition classes enforce PASS ADVISORY and REJECTED finding invariants
+  ---
+  duration_ms: 1.95553
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:28:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-convergence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    model (file://<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:15:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:29:54)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: canonical review evidence derives a stable phase task tree and digest identity
+not ok 2 - R2: canonical review evidence derives a stable phase task tree and digest identity
+  ---
+  duration_ms: 0.428363
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:42:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-convergence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    model (file://<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:15:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:48:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R4: tooling outcome records a bounded stage attempt without a reviewer disposition
+not ok 3 - R4: tooling outcome records a bounded stage attempt without a reviewer disposition
+  ---
+  duration_ms: 1.648049
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:74:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-convergence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    model (file://<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:15:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:75:42)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: legacy FAIL and TOOLING_FAILURE values are not accepted as disposition aliases
+not ok 4 - R7: legacy FAIL and TOOLING_FAILURE values are not accepted as disposition aliases
+  ---
+  duration_ms: 0.351242
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:91:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-convergence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    model (file://<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:15:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-convergence-model.test.js:92:39)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 17.34989
+Command failed: node specs/328-bounded-review-convergence/tests/review-convergence-model.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/328-bounded-review-convergence/tests/review-convergence-model.test.js
+[senti] scenario-validity file start command=node specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js
+TAP version 13
+# Subtest: R2: evidence validator rejects stale target and caller supplied digest before persistence
+not ok 1 - R2: evidence validator rejects stale target and caller supplied digest before persistence
+  ---
+  duration_ms: 1.96245
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:47:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-evidence-store.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    evidenceStore (file://<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:43:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:48:41)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R5: spec-local independent evidence write is bounded immutable and idempotent
+not ok 2 - R5: spec-local independent evidence write is bounded immutable and idempotent
+  ---
+  duration_ms: 1.371207
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:57:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/review-evidence-store.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    evidenceStore (file://<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:43:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:61:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R5: registry and command expose one target-guarded review-evidence mutation boundary
+not ok 3 - R5: registry and command expose one target-guarded review-evidence mutation boundary
+  ---
+  duration_ms: 0.665603
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:81:1'
+  failureType: 'testCodeFailure'
+  error: 'src/flow/lib/set-review-evidence.js must be implemented'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    read (file://<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:12:10)
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:83:19)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: migrated review surfaces preserve paths while removing legacy authoritative values
+not ok 4 - R7: migrated review surfaces preserve paths while removing legacy authoritative values
+  ---
+  duration_ms: 3.050136
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:91:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /reviewAction/. Input:
+    
+    '/**\n' +
+      ' * src/flow/lib/run-review.js\n' +
+      ' *\n' +
+      ' * FlowCommand: review — wraps `flow commands/review.js` for AI code quality review.\n' +
+      ' * Runs review as a subprocess and parses its output.\n' +
+      ' */\n' +
+      '\n' +
+      'import { PKG_DIR } from "../../lib/cli.js";\n' +
+      'import { runCmd } from "../../lib/process.js";\n' +
+      'import { VALID_REVIEW_PHASES } from "../../lib/constants.js";\n' +
+      'import { AgentTimeout } from "../../lib/agent-timeout.js";\n' +
+      'import { FlowCommand } from "./base-command.js";\n' +
+      'import { Envelope } from "../../lib/flow-envelope.js";\n' +
+      'import {\n' +
+      '  flowLeafIdsBetween,\n' +
+      '  resolveMaxAttempts,\n' +
+      '  resetImplEvidenceAfterReviewProposals as resetImplEvidenceStateAfterReviewProposals,\n' +
+      '} from "../definition.js";\n' +
+      'import { flattenSteps } from "./step-tree.js";\n' +
+      'import path from "path";\n' +
+      'import fs from "fs";\n' +
+      'import {\n' +
+      '  REVIEW_FAILURE_MARKER_PREFIX,\n' +
+      '  ReviewFailure,\n' +
+      '  clearReviewStopState,\n' +
+      '  writeReviewStopState,\n' +
+      '} from "./review-failure.js";\n' +
+      'import { appendIssueLogEntry } from "./set-issue-log.js";\n' +
+      'import { persistCurrentRecoveryBaseline, resolveRecoveryMaxAttempts } from "./retry-recovery.js";\n' +
+      'import {\n' +
+      '  assertAuditedBroadMode,\n' +
+      '  resolveImplReviewScope,\n' +
+      '  resolveCurrentTaskSpec,\n' +
+      '  taskScopeViolationMessages,\n' +
+      '} from "./task-scope.js";\n' +
+      'import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";\n' +
+      'import {\n' +
+      '  deferExhaustedSemanticFindings,\n' +
+      '  readBoundedSourceArtifact,\n' +
+      '  specDirFromFlowState,\n' +
+      '} from "./flow-findings.js";\n' +
+      'import {\n' +
+      '  DecisionOutcome,\n' +
+      '  DeferOutcome,\n' +
+      '  ExternalBlockedOutcome,\n' +
+      '  RetryOutcome,\n' +
+      '  nextStepAttemptNumber,\n' +
+      '  recordStepAttempt,\n' +
+      '} from "./step-outcome.js";\n' +
+      'import {\n' +
+      '  assertRepairFingerprint,\n' +
+      '  buildRepairFingerprint,\n' +
+      '  ensureRepairFingerprintContract,\n' +
+      '} from "./impl-repair-artifacts.js";\n' +
+      'import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";\n' +
+      '\n' +
+      'const IMPL_REVIEW_PHASE = "impl";\n' +
+      'const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";\n' +
+      'const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "FAIL", "TOOLING_FAILURE"]);\n' +
+      'const REVIEW_VERDICTS = new Set(REVIEW_VERDICT_VALUES);\n' +
+      'const REVIEW_VERDICT_PATTERN = new RegExp(`verdict=(${REVIEW_VERDICT_VALUES.join("|")})`);\n' +
+      'const REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "review-retry-exhausted";\n' +
+      'const REVIEW_RECOVERY_TRIGGER_STOP = "review-stop";\n' +
+      'const REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL = "review-verdict-fail";\n' +
+      'const REVIEW_FINDING_DISPOSITIONS = new Set(["must-fix", "informational", "deferred"]);\n' +
+      'const MAX_IMPL_DOWNSTREAM_RESET_STEPS = 20;\n' +
+      '// Review proposals invalidate all implementation leaves from fresh test\n' +
+      '// execution through finalize cleanup; both endpoints are intentionally reset.\n' +
+      'const IMPL_REVIEW_DOWNSTREAM_STEP_IDS = flowLeafIdsBetween("test-execute", "finalize-cleanup");\n' +
+      'if (IMPL_REVIEW_DOWNSTREAM_STEP_IDS.length > MAX_IMPL_DOWNSTREAM_RESET_STEPS) {\n' +
+      '  throw new Error(`impl downstream reset leaf count exceeds max ${MAX_IMPL_DOWNSTREAM_RESET_STEPS}`);\n' +
+      '}\n' +
+      '\n' +
+      '// ---------------------------------------------------------------------------\n' +
+      '// Review retry counter (spec 253: enforce review maxAttempts on the CLI side)\n' +
+      '// ---------------------------------------------------------------------------\n' +
+      '\n' +
+      'const REVIEW_NODE_ID_BY_PHASE = Object.freeze({\n' +
+      '  "draft-questions": "draft-questions-review",\n' +
+      '  "draft-coverage": "draft-coverage-review",\n' +
+      '  spec: "spec-review",\n' +
+      '  test: "test-review",\n' +
+      '  impl: "impl-review",\n' +
+      '});\n' +
+      '\n' +
+      'const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));\n' +
+      'const REVIEW_SOURCE_ARTIFACT_BY_PHASE = Object.freeze({\n' +
+      '  "draft-questions": "draft-review-questions.json",\n' +
+      '  "draft-coverage": "draft-review-coverage.json",\n' +
+      '  spec: "spec-review.json",\n' +
+      '  test: "test-review.json",\n' +
+      '  impl: "impl-review.json",\n' +
+      '});\n' +
+      '\n' +
+      'function persistedPhaseKey(ctxPhase) {\n' +
+      '  return ctxPhase == null ? IMPL_REVIEW_PHASE : ctxPhase;\n' +
+      '}\n' +
+      '\n' +
+      'function isImplementationReviewPhase(phase) {\n' +
+      '  return phase == null || phase === IMPL_REVIEW_PHASE;\n' +
+      '}\n' +
+      '\n' +
+      'function taskCursorRequiredReviewFailure(decision, state) {\n' +
+      '  return Envelope.fail(\n' +
+      '    "run",\n' +
+      '    "review",\n' +
+      '    "TASK_CURSOR_REQUIRED",\n' +
+      '    taskScopeViolationMessages(decision, "impl-review"),\n' +
+      '    { currentTaskId: state?.currentTaskId ?? null },\n' +
+      '  );\n' +
+      '}\n' +
+      '\n' +
+      'function invalidReviewScopeFailure(decision, state) {\n' +
+      '  return Envelope.fail(\n' +
+      '    "run",\n' +
+      '    "review",\n' +
+      '    "REVIEW_SCOPE_INVALID",\n' +
+      '    [`implementation review scope is invalid: ${decision.reason}`],\n' +
+      '    {\n' +
+      '      currentTaskId: state?.currentTaskId ?? null,\n' +
+      '      reason: decision.reason,\n' +
+      '    },\n' +
+      '  );\n' +
+      '}\n' +
+      '\n' +
+      'function reviewContextForTaskId(ctx, taskId) {\n' +
+      '  return {\n' +
+      '    ...ctx,\n' +
+      '    flowState: {\n' +
+      '      ...(ctx?.flowState || {}),\n' +
+      '      currentTaskId: taskId,\n' +
+      '    },\n' +
+      '  };\n' +
+      '}\n' +
+      '\n' +
+      'function mutateReviewRecoveryState(ctx, phase, trigger, afterPersist) {\n' +
+      '  if (!ctx?.root || typeof ctx?.flowManager?.mutate !== "function") return false;\n' +
+      '  let persisted = false;\n' +
+      '  ctx.flowManager.mutate((state) => {\n' +
+      '    if (!state?.spec) return;\n' +
+      '    persistCurrentRecoveryBaseline({\n' +
+      '      root: ctx.root,\n' +
+      '      flowState: state,\n' +
+      '      kind: "review",\n' +
+      '      phase,\n' +
+      '      trigger,\n' +
+      '    });\n' +
+      '    persisted = true;\n' +
+      '    if (afterPersist) afterPersist(state);\n' +
+      '  });\n' +
+      '  return persisted;\n' +
+      '}\n' +
+      '\n' +
+      'function resolveDraftReviewPhaseKey(flowState = {}) {\n' +
+      '  const steps = Array.isArray(flowState.steps) ? flattenSteps(flowState.steps) : [];\n' +
+      '  const byId = new Map(steps.map((step) => [step.id, step]));\n' +
+      '  if (byId.get("draft-coverage-review")?.status === "in_progress") return "draft-coverage";\n' +
+      '  if (byId.get("draft-questions-review")?.status === "in_progress") return "draft-questions";\n' +
+      '  return "draft-questions";\n' +
+      '}\n' +
+      '\n' +
+      'function reviewPhaseKeyForCtx(ctx, phase) {\n' +
+      '  if (phase !== "draft") return persistedPhaseKey(phase);\n' +
+      '  return resolveDraftReviewPhaseKey(ctx?.flowState || {});\n' +
+      '}\n' +
+      '\n' +
+      '/**\n' +
+      ' * Replay a reset-aware reviewRetry counter for the given phase.\n' +
+      ' * Only counts flow-scope entries (taskId == null) per R19.\n' +
+      ' */\n' +
+      'export function countReviewRetry(entries, phase) {\n' +
+      '  if (!Array.isArray(entries)) return 0;\n' +
+      '  let count = 0;\n' +
+      '  for (const e of entries) {\n' +
+      '    if (e.phase !== phase || e.counter !== "reviewRetry") continue;\n' +
+      '    if (e.taskId != null) continue; // R19: task-scope leakage guard\n' +
+      '    if (e.reset) count = 0;\n' +
+      '    else count += e.delta ?? 1;\n' +
+      '  }\n' +
+      '  return count;\n' +
+      '}\n' +
+      '\n' +
+      '/**\n' +
+      ' * Resolve review max attempts from FLOW_DEFINITION (flow scope only).\n' +
+      ' * Throws on unknown phase — callers should catch via checkReviewRetryBelowMax.\n' +
+      ' */\n' +
+      'export function resolveReviewRetryMax(retryContext = {}, phase) {\n' +
+      '  const nodeId = REVIEW_NODE_ID_BY_PHASE[phase];\n' +
+      '  if (!nodeId) {\n' +
+      '    const err = new Error(`unknown review phase: ${phase}`);\n' +
+      '    err.code = "UNKNOWN_REVIEW_PHASE";\n' +
+      '    throw err;\n' +
+      '  }\n' +
+      '  const flowState = retryContext.flowState || retryContext;\n' +
+      '  return resolveMaxAttempts({ scope: "flow", stepId: nodeId, context: flowState }) ?? 5;\n' +
+      '}\n' +
+      '\n' +
+      'const REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES = new Set([\n' +
+      '  "tooling_failure",\n' +
+      '  "parser_error",\n' +
+      '  "coverage_error",\n' +
+      '  "schema_error",\n' +
+      '  "invalid_schema",\n' +
+      '  "command_failure",\n' +
+      '  "failed_command",\n' +
+      '  "failed_test_evidence",\n' +
+      '  "coverage_header_failure",\n' +
+      '  "missing_header",\n' +
+      '  "uncovered_requirement",\n' +
+      '  "unknown_requirement_id",\n' +
+      '  "malformed_header",\n' +
+      '  "duplicate_requirement_id",\n' +
+      '  "duplicate_header",\n' +
+      '  "not_testable_in_header",\n' +
+      '  "wrong_header_marker",\n' +
+      '  "header_without_test_name",\n' +
+      '  "test_name_without_header",\n' +
+      '  "no_progress_guard",\n' +
+      '  "flow_corruption",\n' +
+      '  "malformed_artifact",\n' +
+      ']);\n' +
+      '\n' +
+      'function normalizeFindingMode(value) {\n' +
+      '  return String(value || "").toLowerCase().replace(/[-\\s]+/g, "_");\n' +
+      '}\n' +
+      '\n' +
+      'function isStructuredReviewMechanicalFinding(finding) {\n' +
+      '  const origin = normalizeFindingMode(finding?.origin);\n' +
+      '  const failureKind = normalizeFindingMode(finding?.failureKind);\n' +
+      '  const failureMode = normalizeFindingMode(finding?.failureMode);\n' +
+      '  return origin === "test_coverage"\n' +
+      '    || REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(failureKind)\n' +
+      '    || REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(failureMode);\n' +
+      '}\n' +
+      '\n' +
+      'function reviewArtifactHasStructuredCoverageFailure(specDir) {\n' +
+      '  const coverage = readBoundedSourceArtifact(specDir, "test-coverage.json");\n' +
+      '  return coverage?.validation?.ok === false;\n' +
+      '}\n' +
+      '\n' +
+      'function isReviewSemanticFinding(finding) {\n' +
+      '  return !isStructuredReviewMechanicalFinding(finding);\n' +
+      '}\n' +
+      '\n' +
+      'function reviewFindingsFromArtifact(artifact) {\n' +
+      '  const candidates = [\n' +
+      '    artifact?.blocking,\n' +
+      '    artifact?.blockingFindings,\n' +
+      '    artifact?.findings,\n' +
+      '    artifact?.comments,\n' +
+      '    artifact?.proposals,\n' +
+      '    artifact?.advisoryFindings,\n' +
+      '  ];\n' +
+      '  return candidates.find(Array.isArray) || [];\n' +
+      '}\n' +
+      '\n' +
+      'function reviewFindingId(finding, index) {\n' +
+      '  return finding?.findingId || finding?.id || finding?.proposalId || `review-finding-${index + 1}`;\n' +
+      '}\n' +
+      '\n' +
+      'function assertDispositionedReviewFinding(finding, index) {\n' +
+      '  const label = `finding[${index}]`;\n' +
+      '  const disposition = String(finding?.disposition || "").trim();\n' +
+      '  if (!REVIEW_FINDING_DISPOSITIONS.has(disposition)) {\n' +
+      '    throw new Error(`${label}.disposition is required and must be must-fix, informational, or deferred`);\n' +
+      '  }\n' +
+      '  if (typeof finding?.rationale !== "string" || finding.rationale.trim() === "") {\n' +
+      '    throw new Error(`${label}.rationale must be a non-empty string`);\n' +
+      '  }\n' +
+      '  if (typeof finding?.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(finding.fingerprint)) {\n' +
+      '    throw new Error(`${label}.fingerprint must be a lowercase SHA-256 string`);\n' +
+      '  }\n' +
+      '  return finding;\n' +
+      '}\n' +
+      '\n' +
+      'function persistReviewSourceFindingIds(specDir, sourceArtifact, artifact, { defer = false, requireDisposition = false } = {}) {\n' +
+      '  const normalized = JSON.parse(JSON.stringify(artifact));\n' +
+      '  const findings = reviewFindingsFromArtifact(normalized);\n' +
+      '  findings.forEach((finding, index) => {\n' +
+      '    if (requireDisposition) assertDispositionedReviewFinding(finding, index);\n' +
+      '    if (!finding.findingId && !finding.id && !finding.proposalId) {\n' +
+      '      finding.findingId = reviewFindingId(finding, index);\n' +
+      '    }\n' +
+      '    if (defer && finding.disposition === "must-fix") finding.disposition = "deferred";\n' +
+      '  });\n' +
+      '  fs.writeFileSync(path.join(specDir, sourceArtifact), JSON.stringify(normalized, null, 2) + "\\n");\n' +
+      '  return { artifact: normalized, findings };\n' +
+      '}\n' +
+      '\n' +
+      'function reviewDeferredResult(phase, attempts, f'... 97637 more characters
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    /**
+     * src/flow/lib/run-review.js
+     *
+     * FlowCommand: review — wraps `flow commands/review.js` for AI code quality review.
+     * Runs review as a subprocess and parses its output.
+     */
+    
+    import { PKG_DIR } from "../../lib/cli.js";
+    import { runCmd } from "../../lib/process.js";
+    import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
+    import { AgentTimeout } from "../../lib/agent-timeout.js";
+    import { FlowCommand } from "./base-command.js";
+    import { Envelope } from "../../lib/flow-envelope.js";
+    import {
+      flowLeafIdsBetween,
+      resolveMaxAttempts,
+      resetImplEvidenceAfterReviewProposals as resetImplEvidenceStateAfterReviewProposals,
+    } from "../definition.js";
+    import { flattenSteps } from "./step-tree.js";
+    import path from "path";
+    import fs from "fs";
+    import {
+      REVIEW_FAILURE_MARKER_PREFIX,
+      ReviewFailure,
+      clearReviewStopState,
+      writeReviewStopState,
+    } from "./review-failure.js";
+    import { appendIssueLogEntry } from "./set-issue-log.js";
+    import { persistCurrentRecoveryBaseline, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
+    import {
+      assertAuditedBroadMode,
+      resolveImplReviewScope,
+      resolveCurrentTaskSpec,
+      taskScopeViolationMessages,
+    } from "./task-scope.js";
+    import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
+    import {
+      deferExhaustedSemanticFindings,
+      readBoundedSourceArtifact,
+      specDirFromFlowState,
+    } from "./flow-findings.js";
+    import {
+      DecisionOutcome,
+      DeferOutcome,
+      ExternalBlockedOutcome,
+      RetryOutcome,
+      nextStepAttemptNumber,
+      recordStepAttempt,
+    } from "./step-outcome.js";
+    import {
+      assertRepairFingerprint,
+      buildRepairFingerprint,
+      ensureRepairFingerprintContract,
+    } from "./impl-repair-artifacts.js";
+    import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
+    
+    const IMPL_REVIEW_PHASE = "impl";
+    const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
+    const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "FAIL", "TOOLING_FAILURE"]);
+    const REVIEW_VERDICTS = new Set(REVIEW_VERDICT_VALUES);
+    const REVIEW_VERDICT_PATTERN = new RegExp(`verdict=(${REVIEW_VERDICT_VALUES.join("|")})`);
+    const REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "review-retry-exhausted";
+    const REVIEW_RECOVERY_TRIGGER_STOP = "review-stop";
+    const REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL = "review-verdict-fail";
+    const REVIEW_FINDING_DISPOSITIONS = new Set(["must-fix", "informational", "deferred"]);
+    const MAX_IMPL_DOWNSTREAM_RESET_STEPS = 20;
+    // Review proposals invalidate all implementation leaves from fresh test
+    // execution through finalize cleanup; both endpoints are intentionally reset.
+    const IMPL_REVIEW_DOWNSTREAM_STEP_IDS = flowLeafIdsBetween("test-execute", "finalize-cleanup");
+    if (IMPL_REVIEW_DOWNSTREAM_STEP_IDS.length > MAX_IMPL_DOWNSTREAM_RESET_STEPS) {
+      throw new Error(`impl downstream reset leaf count exceeds max ${MAX_IMPL_DOWNSTREAM_RESET_STEPS}`);
+    }
+    
+    // ---------------------------------------------------------------------------
+    // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
+    // ---------------------------------------------------------------------------
+    
+    const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
+      "draft-questions": "draft-questions-review",
+      "draft-coverage": "draft-coverage-review",
+      spec: "spec-review",
+      test: "test-review",
+      impl: "impl-review",
+    });
+    
+    const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));
+    const REVIEW_SOURCE_ARTIFACT_BY_PHASE = Object.freeze({
+      "draft-questions": "draft-review-questions.json",
+      "draft-coverage": "draft-review-coverage.json",
+      spec: "spec-review.json",
+      test: "test-review.json",
+      impl: "impl-review.json",
+    });
+    
+    function persistedPhaseKey(ctxPhase) {
+      return ctxPhase == null ? IMPL_REVIEW_PHASE : ctxPhase;
+    }
+    
+    function isImplementationReviewPhase(phase) {
+      return phase == null || phase === IMPL_REVIEW_PHASE;
+    }
+    
+    function taskCursorRequiredReviewFailure(decision, state) {
+      return Envelope.fail(
+        "run",
+        "review",
+        "TASK_CURSOR_REQUIRED",
+        taskScopeViolationMessages(decision, "impl-review"),
+        { currentTaskId: state?.currentTaskId ?? null },
+      );
+    }
+    
+    function invalidReviewScopeFailure(decision, state) {
+      return Envelope.fail(
+        "run",
+        "review",
+        "REVIEW_SCOPE_INVALID",
+        [`implementation review scope is invalid: ${decision.reason}`],
+        {
+          currentTaskId: state?.currentTaskId ?? null,
+          reason: decision.reason,
+        },
+      );
+    }
+    
+    function reviewContextForTaskId(ctx, taskId) {
+      return {
+        ...ctx,
+        flowState: {
+          ...(ctx?.flowState || {}),
+          currentTaskId: taskId,
+        },
+      };
+    }
+    
+    function mutateReviewRecoveryState(ctx, phase, trigger, afterPersist) {
+      if (!ctx?.root || typeof ctx?.flowManager?.mutate !== "function") return false;
+      let persisted = false;
+      ctx.flowManager.mutate((state) => {
+        if (!state?.spec) return;
+        persistCurrentRecoveryBaseline({
+          root: ctx.root,
+          flowState: state,
+          kind: "review",
+          phase,
+          trigger,
+        });
+        persisted = true;
+        if (afterPersist) afterPersist(state);
+      });
+      return persisted;
+    }
+    
+    function resolveDraftReviewPhaseKey(flowState = {}) {
+      const steps = Array.isArray(flowState.steps) ? flattenSteps(flowState.steps) : [];
+      const byId = new Map(steps.map((step) => [step.id, step]));
+      if (byId.get("draft-coverage-review")?.status === "in_progress") return "draft-coverage";
+      if (byId.get("draft-questions-review")?.status === "in_progress") return "draft-questions";
+      return "draft-questions";
+    }
+    
+    function reviewPhaseKeyForCtx(ctx, phase) {
+      if (phase !== "draft") return persistedPhaseKey(phase);
+      return resolveDraftReviewPhaseKey(ctx?.flowState || {});
+    }
+    
+    /**
+     * Replay a reset-aware reviewRetry counter for the given phase.
+     * Only counts flow-scope entries (taskId == null) per R19.
+     */
+    export function countReviewRetry(entries, phase) {
+      if (!Array.isArray(entries)) return 0;
+      let count = 0;
+      for (const e of entries) {
+        if (e.phase !== phase || e.counter !== "reviewRetry") continue;
+        if (e.taskId != null) continue; // R19: task-scope leakage guard
+        if (e.reset) count = 0;
+        else count += e.delta ?? 1;
+      }
+      return count;
+    }
+    
+    /**
+     * Resolve review max attempts from FLOW_DEFINITION (flow scope only).
+     * Throws on unknown phase — callers should catch via checkReviewRetryBelowMax.
+     */
+    export function resolveReviewRetryMax(retryContext = {}, phase) {
+      const nodeId = REVIEW_NODE_ID_BY_PHASE[phase];
+      if (!nodeId) {
+        const err = new Error(`unknown review phase: ${phase}`);
+        err.code = "UNKNOWN_REVIEW_PHASE";
+        throw err;
+      }
+      const flowState = retryContext.flowState || retryContext;
+      return resolveMaxAttempts({ scope: "flow", stepId: nodeId, context: flowState }) ?? 5;
+    }
+    
+    const REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES = new Set([
+      "tooling_failure",
+      "parser_error",
+      "coverage_error",
+      "schema_error",
+      "invalid_schema",
+      "command_failure",
+      "failed_command",
+      "failed_test_evidence",
+      "coverage_header_failure",
+      "missing_header",
+      "uncovered_requirement",
+      "unknown_requirement_id",
+      "malformed_header",
+      "duplicate_requirement_id",
+      "duplicate_header",
+      "not_testable_in_header",
+      "wrong_header_marker",
+      "header_without_test_name",
+      "test_name_without_header",
+      "no_progress_guard",
+      "flow_corruption",
+      "malformed_artifact",
+    ]);
+    
+    function normalizeFindingMode(value) {
+      return String(value || "").toLowerCase().replace(/[-\s]+/g, "_");
+    }
+    
+    function isStructuredReviewMechanicalFinding(finding) {
+      const origin = normalizeFindingMode(finding?.origin);
+      const failureKind = normalizeFindingMode(finding?.failureKind);
+      const failureMode = normalizeFindingMode(finding?.failureMode);
+      return origin === "test_coverage"
+        || REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(failureKind)
+        || REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(failureMode);
+    }
+    
+    function reviewArtifactHasStructuredCoverageFailure(specDir) {
+      const coverage = readBoundedSourceArtifact(specDir, "test-coverage.json");
+      return coverage?.validation?.ok === false;
+    }
+    
+    function isReviewSemanticFinding(finding) {
+      return !isStructuredReviewMechanicalFinding(finding);
+    }
+    
+    function reviewFindingsFromArtifact(artifact) {
+      const candidates = [
+        artifact?.blocking,
+        artifact?.blockingFindings,
+        artifact?.findings,
+        artifact?.comments,
+        artifact?.proposals,
+        artifact?.advisoryFindings,
+      ];
+      return candidates.find(Array.isArray) || [];
+    }
+    
+    function reviewFindingId(finding, index) {
+      return finding?.findingId || finding?.id || finding?.proposalId || `review-finding-${index + 1}`;
+    }
+    
+    function assertDispositionedReviewFinding(finding, index) {
+      const label = `finding[${index}]`;
+      const disposition = String(finding?.disposition || "").trim();
+      if (!REVIEW_FINDING_DISPOSITIONS.has(disposition)) {
+        throw new Error(`${label}.disposition is required and must be must-fix, informational, or deferred`);
+      }
+      if (typeof finding?.rationale !== "string" || finding.rationale.trim() === "") {
+        throw new Error(`${label}.rationale must be a non-empty string`);
+      }
+      if (typeof finding?.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(finding.fingerprint)) {
+        throw new Error(`${label}.fingerprint must be a lowercase SHA-256 string`);
+      }
+      return finding;
+    }
+    
+    function persistReviewSourceFindingIds(specDir, sourceArtifact, artifact, { defer = false, requireDisposition = false } = {}) {
+      const normalized = JSON.parse(JSON.stringify(artifact));
+      const findings = reviewFindingsFromArtifact(normalized);
+      findings.forEach((finding, index) => {
+        if (requireDisposition) assertDispositionedReviewFinding(finding, index);
+        if (!finding.findingId && !finding.id && !finding.proposalId) {
+          finding.findingId = reviewFindingId(finding, index);
+        }
+        if (defer && finding.disposition === "must-fix") finding.disposition = "deferred";
+      });
+      fs.writeFileSync(path.join(specDir, sourceArtifact), JSON.stringify(normalized, null, 2) + "\n");
+      return { artifact: normalized, findings };
+    }
+    
+    function reviewDeferredResult(phase, attempts, findingCount) {
+      return {
+        result: "deferred",
+        changed: ["flow-findings.json"],
+        artifacts: {
+          phase,
+          verdict: "DEFERRED",
+          deferred: true,
+          retryExhausted: true,
+          attempts,
+          findingCount,
+          completionKind: "deferred",
+        },
+        next: null,
+      };
+    }
+    
+    function reviewStepId(ctx, phase) {
+      if (phase === IMPL_REVIEW_PHASE && ctx?.flowState?.currentTaskId != null) return "task-review";
+      return REVIEW_NODE_ID_BY_PHASE[phase] || "impl-review";
+    }
+    
+    function reviewRetryAction(phase) {
+      return phase === "impl" ? "run-review" : `run-review-${phase}`;
+    }
+    
+    function recordReviewOutcome(ctx, result, phase, attempt, outcome) {
+      return recordStepAttempt(ctx, {
+        stepId: reviewStepId(ctx, phase),
+        attempt: Math.max(1, attempt),
+        outcome,
+        result,
+      });
+    }
+    
+    function nextReviewAttemptNumber(ctx, phase) {
+      const flowState = ctx?.flowState || {};
+      if (phase === IMPL_REVIEW_PHASE && flowState.currentTaskId != null) {
+        return nextStepAttemptNumber(flowState, "task-review");
+      }
+      return countReviewRetry(flowState.metrics, phase) + 1;
+    }
+    
+    function recordReviewDeferral(ctx, result, phase, attempts) {
+      const outcome = new DeferOutcome({
+        nextAction: "refresh-next-action",
+        findingCount: result.artifacts.findingCount,
+      });
+      recordReviewOutcome(ctx, result, phase, attempts, outcome);
+      return result;
+    }
+    
+    function reviewExternalBlock(failure) {
+      const instruction = [failure.recoveryHint, failure.recoveryCommand].filter(Boolean).join(" ")
+        || "Resolve the external review failure, then retry the guarded next action.";
+      return new ExternalBlockedOutcome({
+        reason: failure.classification,
+        resumeInstruction: instruction,
+      });
+    }
+    
+    function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
+      if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
+      const sourceArtifact = REVIEW_SOURCE_ARTIFACT_BY_PHASE[phase];
+      if (!sourceArtifact) return null;
+      const specDir = specDirFromFlowState(ctx.root, ctx.flowState);
+      let artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
+      if (!artifact) return null;
+      if (artifact.verdict === "TOOLING_FAILURE" || artifact.toolingFailure) return null;
+      if (phase === "test" && reviewArtifactHasStructuredCoverageFailure(specDir)) return null;
+      let findings = reviewFindingsFromArtifact(artifact);
+      if (findings.length === 0 || !findings.every(isReviewSemanticFinding)) return null;
+      const requireDisposition = phase === "test" || phase === "impl";
+      if (requireDisposition) findings.forEach(assertDispositionedReviewFinding);
+      const repairFindings = requireDisposition
+        ? findings.filter((finding) => finding.disposition === "must-fix" || finding.disposition === "deferred")
+        : findings;
+      if (repairFindings.length === 0) return null;
+      const repairFingerprints = requireDisposition
+        ? new Set(repairFindings.map((finding) => finding.fingerprint))
+        : null;
+      const stepId = reviewStepId(ctx, phase);
+      const transition = createLifecycleStepTransition({
+        flowState: ctx.flowState,
+        stepId,
+        status: "done",
+        event: "review:defer",
+      });
+      if (transition) ctx.flowManager.updateStepStatus(transition);
+      ({ artifact, findings } = persistReviewSourceFindingIds(specDir, sourceArtifact, artifact, {
+        defer: requireDisposition,
+        requireDisposition,
+      }));
+      deferExhaustedSemanticFindings({
+        root: ctx.root,
+        flowState: ctx.flowState,
+        sourceStep: reviewStepId(ctx, phase),
+        sourceArtifact,
+        attempts,
+        ...(repairFingerprints && { fingerprints: repairFingerprints }),
+      });
+      const findingCount = requireDisposition
+        ? repairFingerprints.size
+        : findings.length;
+      return reviewDeferredResult(phase, attempts, findingCount);
+    }
+    
+    /**
+     * Pre-check called from RunReviewCommand.execute. Returns:
+     *  - null when count < max (proceed)
+     *  - Envelope.fail(REVIEW_MAX_ATTEMPTS_EXCEEDED) when count >= max
+     *  - Envelope.fail(UNKNOWN_REVIEW_PHASE) when phase is not mapped
+     */
+    export function checkReviewRetryBelowMax(ctx, phase) {
+      const flowState = ctx?.flowState || {};
+      const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
+      const taskScoped = persistedPhase === IMPL_REVIEW_PHASE && flowState.currentTaskId != null;
+      const stepId = taskScoped ? "task-review" : REVIEW_NODE_ID_BY_PHASE[persistedPhase];
+      const count = taskScoped
+        ? nextStepAttemptNumber(flowState, stepId) - 1
+        : countReviewRetry(flowState.metrics, persistedPhase);
+      let resolvedMax;
+      try {
+        resolvedMax = taskScoped
+          ? resolveMaxAttempts({ scope: "task", stepId, context: flowState }) ?? 1
+          : resolveReviewRetryMax({ flowState }, persistedPhase);
+      } catch (err) {
+        if (err.code === "UNKNOWN_REVIEW_PHASE") {
+          return Envelope.fail("run", "review", "UNKNOWN_REVIEW_PHASE",
+            [`unknown review phase: ${persistedPhase}`],
+            { phase: persistedPhase });
+        }
+        throw err;
+      }
+      const max = taskScoped
+        ? resolvedMax
+        : resolveRecoveryMaxAttempts({
+            root: ctx.root,
+            flowState,
+            kind: "review",
+            phase: persistedPhase,
+            attempts: count,
+            resolvedMax,
+          });
+      if (count < max) return null;
+      const deferred = tryDeferReviewRetryExhaustion(ctx, persistedPhase, count);
+      if (deferred) return recordReviewDeferral(ctx, deferred, persistedPhase, count);
+      mutateReviewRecoveryState(ctx, persistedPhase, REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED);
+      const failure = ReviewFailure.maxAttemptsExceeded({ phase: persistedPhase, attempts: count, max });
+      const envelope = Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",
+        [
+          `review retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${persistedPhase}".`,
+          "Resume after changed evidence with `senti flow set retry reset review <phase> --reason <text> --yes`.",
+        ],
+        failure.toEnvelopeData());
+      const attempt = recordReviewOutcome(ctx, null, persistedPhase, count, reviewExternalBlock(failure));
+      if (attempt) envelope.data = { ...envelope.data, stepAttempt: attempt.toJSON() };
+      return envelope;
+    }
+    
+    function isImplPass(result) {
+      if (!result) return false;
+      if (result.result === "no-changes" || result.result === "no-proposals") return true;
+      if (result.artifacts?.phase === "impl") {
+        return result.artifacts.verdict === "PASS" || result.artifacts.verdict === "ADVISORY";
+      }
+      if ((result.artifacts?.proposalCount ?? -1) === 0) return true;
+      return false;
+    }
+    
+    /**
+     * Post-hook helper: append a reviewRetry metric based on the result verdict.
+     * Task-scoped attempts are recorded in stepAttempts; flow-scoped attempts use metrics.
+     * Errors propagate to the dispatcher (R22 — do NOT swallow internally).
+     */
+    export function updateReviewRetryCounter(ctx, result) {
+      const persistedPhase = result?.artifacts?.retryPhase || reviewPhaseKeyForCtx(ctx, ctx?.phase);
+      if (persistedPhase !== IMPL_REVIEW_PHASE && ctx?.flowState?.currentTaskId != null) return;
+      const resultTaskId = persistedPhase === IMPL_REVIEW_PHASE
+        ? result?.artifacts?.taskId ?? null
+        : null;
+      const reviewCtx = reviewContextForTaskId(ctx, resultTaskId);
+      const flowState = reviewCtx.flowState;
+      if (resultTaskId != null) {
+        const stepId = reviewStepId(reviewCtx, IMPL_REVIEW_PHASE);
+        const pass = isImplPass(result);
+        const attempt = nextStepAttemptNumber(flowState, stepId);
+        const maxAttempts = resolveMaxAttempts({ scope: "task", stepId, context: flowState }) ?? 1;
+        if (!pass && attempt >= maxAttempts) {
+          const deferred = tryDeferReviewRetryExhaustion(reviewCtx, IMPL_REVIEW_PHASE, attempt);
+          if (deferred) {
+            Object.assign(result, deferred);
+            recordReviewDeferral(reviewCtx, result, IMPL_REVIEW_PHASE, attempt);
+            return;
+          }
+        }
+        const outcome = pass
+          ? new DecisionOutcome({ decision: "PASS", nextAction: result?.next || "refresh-next-action" })
+          : new RetryOutcome({ nextAction: "run-review-task" });
+        recordReviewOutcome(reviewCtx, result, IMPL_REVIEW_PHASE, attempt, outcome);
+        return;
+      }
+      if (!REVIEW_NODE_ID_BY_PHASE[persistedPhase]) return; // unmapped phase: no-op (post-hook should not crash)
+      const mgr = reviewCtx.flowManager;
+      if (!mgr) return;
+      const attemptsBefore = countReviewRetry(flowState.metrics, persistedPhase);
+      let isPass;
+      if (persistedPhase === "impl") {
+        if (result?.artifacts?.verdict === "TOOLING_FAILURE" || result?.result === "tooling-failure") return;
+        isPass = isImplPass(result);
+      } else {
+        if (result?.artifacts?.verdict === "TOOLING_FAILURE") {
+          const failure = ReviewFailure.subprocessFailure({
+            phase: persistedPhase,
+            stderr: result?.artifacts?.toolingFailure || "review tooling failure",
+          });
+          recordReviewOutcome(reviewCtx, result, persistedPhase, attemptsBefore + 1, reviewExternalBlock(failure));
+          return;
+        }
+        isPass = result?.artifacts?.verdict === "PASS"
+          || result?.artifacts?.verdict === "ADVISORY";
+      }
+      const maxAttempts = resolveReviewRetryMax({ flowState }, persistedPhase);
+      const payload = isPass
+        ? { phase: persistedPhase, counter: "reviewRetry", delta: 0, reset: true }
+        : { phase: persistedPhase, counter: "reviewRetry", delta: 1 };
+      mgr.appendMetric(payload, { taskId: null }); // R19: explicit flow-scope
+      if (!isPass && attemptsBefore + 1 >= maxAttempts) {
+        const deferred = tryDeferReviewRetryExhaustion(reviewCtx, persistedPhase, attemptsBefore + 1);
+        if (deferred) {
+          Object.assign(result, deferred);
+          recordReviewDeferral(reviewCtx, result, persistedPhase, attemptsBefore + 1);
+        } else {
+          mutateReviewRecoveryState(reviewCtx, persistedPhase, REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL);
+          const failure = ReviewFailure.maxAttemptsExceeded({
+            phase: persistedPhase,
+            attempts: attemptsBefore + 1,
+            max: maxAttempts,
+          });
+          recordReviewOutcome(reviewCtx, result, persistedPhase, attemptsBefore + 1, reviewExternalBlock(failure));
+        }
+        return;
+      }
+      if (isPass && typeof mgr.mutate === "function") {
+        mgr.mutate((state) => clearReviewStopState(state, persistedPhase));
+      }
+      const outcome = isPass || result?.next
+        ? new DecisionOutcome({
+            decision: result?.artifacts?.verdict || (isPass ? "PASS" : "FAIL"),
+            nextAction: result?.next || "refresh-next-action",
+          })
+        : new RetryOutcome({ nextAction: reviewRetryAction(persistedPhase) });
+      recordReviewOutcome(reviewCtx, result, persistedPhase, attemptsBefore + 1, outcome);
+    }
+    
+    export { REVIEW_PHASE_KEYS };
+    
+    export function resetImplEvidenceAfterReviewProposals(ctx, result) {
+      if (ctx?.phase) return false;
+      if ((result?.artifacts?.proposalCount ?? 0) <= 0) return false;
+      const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+      ctx.flowManager.mutate((state) => {
+        resetImplEvidenceStateAfterReviewProposals({ specDir, flowState: state });
+      });
+      return true;
+    }
+    
+    const PHASE_REVIEW_PARSERS = {
+      test:  { countPattern: /blocking=(\d+)/,   countKey: "blockingCount",   countWord: "blocking finding(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
+      spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "spec-gate", failNext: "spec-triage", commandId: "flow.spec.review.propose" },
+      draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "draft-gate", commandId: "flow.draft.review" },
+    };
+    
+    function resolvePhaseReviewNextStep({ phase, verdict, retryPhase, next, failNext }) {
+      if (phase !== "draft") {
+        if (verdict === "PASS" || verdict === "ADVISORY") return next;
+        if (verdict === "FAIL") return failNext;
+        return null;
+      }
+      return resolveDraftReviewNextStep({ verdict, retryPhase });
+    }
+    
+    function resolveDraftReviewRoute(retryPhase) {
+      const resolvedRetryPhase = retryPhase || DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE;
+      const resolvedRoute = draftReviewRouteForRetryPhase(resolvedRetryPhase);
+      if (!resolvedRoute) {
+        throw new Error(`unknown draft review retry phase: ${resolvedRetryPhase}`);
+      }
+      return resolvedRoute;
+    }
+    
+    function resolveDraftReviewNextStep({ verdict, retryPhase }) {
+      if (!REVIEW_VERDICTS.has(verdict)) {
+        throw new Error(`unknown draft review verdict: ${verdict}`);
+      }
+      const route = resolveDraftReviewRoute(retryPhase);
+      return verdict === "PASS" ? route.passNextStepId : route.triageStepId;
+    }
+    
+    function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next, failNext = null }) {
+      const verdictMatch = stderr.match(REVIEW_VERDICT_PATTERN);
+      const countMatch = stderr.match(countPattern);
+      const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
+      const retryPhaseMatch = stderr.match(/retryPhase=([a-z-]+)/);
+      const retryPhase = retryPhaseMatch ? retryPhaseMatch[1] : null;
+    
+      const verdict = verdictMatch ? verdictMatch[1] : (res.ok ? "PASS" : "FAIL");
+      const count = countMatch ? parseInt(countMatch[countMatch.length - 1], 10) : null;
+    
+      const changed = [];
+      if (reviewPathMatch) changed.push(reviewPathMatch[1]);
+    
+      if (!res.ok) {
+        if (verdict === "TOOLING_FAILURE") {
+          const artifacts = { phase, verdict, [countKey]: count ?? 0 };
+          if (retryPhase) artifacts.retryPhase = retryPhase;
+          return {
+            result: "tooling-failure",
+            changed,
+            artifacts,
+            next: null,
+            output: stdout,
+          };
+        }
+        const detail = count === 0
+          ? `${label} subprocess error (0 ${countWord} reported but process exited with error)`
+          : count !== null
+            ? `${label} FAIL: ${count} ${countWord} remaining`
+            : `${label} failed (subprocess error)`;
+        throw new Error(
+          [detail, ...(stderr ? [stderr] : []), ...(stdout ? [stdout] : [])].join("\n"),
+        );
+      }
+    
+      const resolvedNext = resolvePhaseReviewNextStep({ phase, verdict, retryPhase, next, failNext });
+      const artifacts = { phase, verdict, [countKey]: count ?? 0 };
+      if (retryPhase) artifacts.retryPhase = retryPhase;
+    
+      return {
+        result: verdict === "TOOLING_FAILURE" ? "tooling-failure" : "ok",
+        changed,
+        artifacts,
+        next: resolvedNext,
+        output: stdout,
+      };
+    }
+    
+    function parseTestReviewOutput(res, stdout, stderr) {
+      const parsed = parsePhaseReviewOutput(res, stdout, stderr, { phase: "test", ...PHASE_REVIEW_PARSERS.test });
+      const advisoryMatch = stderr.match(/advisory=(\d+)/);
+      if (advisoryMatch) parsed.artifacts.advisoryCount = parseInt(advisoryMatch[1], 10);
+      const toolingFailureMatch = stderr.match(/toolingFailure=([a-z_]+)/);
+      if (toolingFailureMatch) parsed.artifacts.toolingFailure = toolingFailureMatch[1];
+      return parsed;
+    }
+    
+    function parseSpecReviewOutput(res, stdout, stderr) {
+      return parsePhaseReviewOutput(res, stdout, stderr, { phase: "spec", ...PHASE_REVIEW_PARSERS.spec });
+    }
+    
+    function parseProposalReviewOutput(res, stdout, stderr) {
+      return parsePhaseReviewOutput(res, stdout, stderr, { phase: "draft", ...PHASE_REVIEW_PARSERS.draft });
+    }
+    
+    function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
+      const verdictMatch = stderr.match(REVIEW_VERDICT_PATTERN);
+      const blockingMatch = stderr.match(/blocking=(\d+)/);
+      const nonBlockingMatch = stderr.match(/nonBlocking=(\d+)/);
+      const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
+      const jsonPathMatch = stderr.match(/JSON saved to (\S+)/);
+      const taskIdMatch = stderr.match(/taskId=(\S+)/);
+      const targetMatch = stderr.match(/target=(\S+)/);
+    
+      const changed = [];
+      if (reviewPathMatch) changed.push(reviewPathMatch[1]);
+      if (jsonPathMatch) changed.push(jsonPathMatch[1]);
+    
+      if (!res.ok) {
+        throw new Error(
+          ["Impl review failed", ...(stderr ? [stderr] : []), ...(stdout ? [stdout] : [])].join("\n"),
+        );
+      }
+    
+      let artifactData = null;
+      if (opts.root && jsonPathMatch) {
+        const artifactPath = path.resolve(opts.root, jsonPathMatch[1]);
+        try {
+          artifactData = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+        } catch (err) {
+          throw new Error(`failed to read impl-review.json artifact: ${err.message}`);
+        }
+      }
+    
+      const verdict = artifactData?.verdict || (verdictMatch ? verdictMatch[1] : "PASS");
+      const blockingCount = artifactData?.summary?.blocking ?? (blockingMatch ? parseInt(blockingMatch[1], 10) : 0);
+      const nonBlockingCount = artifactData?.summary?.nonBlocking ?? (nonBlockingMatch ? parseInt(nonBlockingMatch[1], 10) : 0);
+    
+      const artifacts = {
+        phase: "impl",
+        verdict,
+        blockingCount,
+        nonBlockingCount,
+      };
+      if (taskIdMatch) artifacts.taskId = taskIdMatch[1];
+      if (targetMatch) artifacts.target = targetMatch[1];
+    
+      return {
+        result: "ok",
+        changed,
+        artifacts,
+        next: verdict === "FAIL" ? null : "impl-gate",
+        output: stdout,
+      };
+    }
+    
+    function normalizeImplReviewSubprocessResult(result = {}) {
+      const verdict = result.verdict || "PASS";
+      return {
+        verdict,
+        failureKind: result.failureKind || null,
+        retryable: result.retryable ?? null,
+        reviewRetryConsumed: false,
+        artifacts: result.artifacts || [],
+        message: result.message || "",
+      };
+    }
+    
+    export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, parseProposalReviewOutput, parseImplReviewOutput, normalizeImplReviewSubprocessResult };
+    
+    export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
+      if (ctx?.phase !== "test") return;
+      if (result?.artifacts?.verdict !== "TOOLING_FAILURE") return;
+      const artifactPath = result?.changed?.find((p) => /test-review\.(json|md)$/.test(p));
+      appendIssueLogEntry(ctx.root, ctx.flowState?.spec, {
+        step: "test-review",
+        phase: "test",
+        failureKind: "tooling_failure",
+        reason: `test-review tooling failure: ${result.artifacts.toolingFailure || "see test-review artifacts"}`,
+        trigger: "test-review post hook (auto)",
+        resolution: "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+        ...(artifactPath && { artifact: artifactPath }),
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    const DEFAULT_RETRY_COUNT = 2;
+    const DEFAULT_RETRY_DELAY_MS = 3000;
+    const MAX_REVIEW_SUBPROCESS_RETRIES = 2;
+    const MAX_REVIEW_SUBPROCESS_RETRY_DELAY_MS = 30_000;
+    
+    export function normalizeReviewSubprocessRetryCount(value) {
+      const parsed = Number(value ?? DEFAULT_RETRY_COUNT);
+      if (!Number.isFinite(parsed)) return DEFAULT_RETRY_COUNT;
+      return Math.min(MAX_REVIEW_SUBPROCESS_RETRIES, Math.max(0, Math.trunc(parsed)));
+    }
+    
+    export function normalizeReviewSubprocessRetryDelayMs(value) {
+      const parsed = Number(value ?? DEFAULT_RETRY_DELAY_MS);
+      if (!Number.isFinite(parsed)) return DEFAULT_RETRY_DELAY_MS;
+      return Math.min(MAX_REVIEW_SUBPROCESS_RETRY_DELAY_MS, Math.max(0, Math.trunc(parsed)));
+    }
+    
+    /**
+     * Run a command function with mechanical subprocess retry logic.
+     * This does not consume the step retry budget; review verdict FAIL is handled separately.
+     *
+     * @param {function} cmdFn - Function that returns { ok, status, stdout, stderr, signal, killed }
+     * @param {Object} [opts]
+     * @param {number} [opts.retryCount=2] - Number of retries (total attempts = retryCount + 1)
+     * @param {number} [opts.retryDelayMs=3000] - Delay between retries in milliseconds
+     * @returns {Promise<{ ok: boolean, status: number, stdout: string, stderr: string, signal: string|null, killed: boolean }>}
+     */
+    export async function runCmdWithRetry(cmdFn, opts = {}) {
+      const retryCount = normalizeReviewSubprocessRetryCount(opts.retryCount);
+      const retryDelayMs = normalizeReviewSubprocessRetryDelayMs(opts.retryDelayMs);
+    
+      let lastRes;
+      for (let attempt = 0; attempt <= retryCount; attempt++) {
+        lastRes = cmdFn();
+        if (lastRes.ok) return lastRes;
+        const failure = ReviewFailure.fromSubprocessResult({
+          phase: opts.phase || "impl",
+          result: lastRes,
+        });
+        const failureForAttempt = failure.withAttempts({
+          currentAttempt: attempt + 1,
+          maximumAttempts: retryCount + 1,
+        });
+        if (failureForAttempt !== failure) {
+          const marker = failureForAttempt.toMarkerLine();
+          const lines = String(lastRes.stderr || "").split(/\r?\n/);
+          const markerIndex = lines.findIndex((line) => line.trim().startsWith(REVIEW_FAILURE_MARKER_PREFIX));
+          if (markerIndex >= 0) lines[markerIndex] = marker;
+          else lines.unshift(marker);
+          lastRes = { ...lastRes, stderr: lines.join("\n") };
+        }
+    
+        if (attempt < retryCount) {
+          if (!failureForAttempt.shouldRetrySubprocess({ attempt: attempt + 1, maxAttempts: retryCount + 1 })) {
+            return lastRes;
+          }
+          const next = attempt + 2;
+          const total = retryCount + 1;
+          process.stderr.write(`[review] retry ${next}/${total} after ${retryDelayMs}ms...\n`);
+          await new Promise((r) => setTimeout(r, retryDelayMs));
+        }
+      }
+      return lastRes;
+    }
+    
+    export class RunReviewCommand extends FlowCommand {
+      constructor({ resolveScope = resolveImplReviewScope, runCommand = runCmd } = {}) {
+        super();
+        this.resolveScope = resolveScope;
+        this.runCommand = runCommand;
+      }
+    
+      async execute(ctx) {
+        const { root } = ctx;
+        const phase = ctx.phase || null;
+    
+        if (phase && !VALID_REVIEW_PHASES.includes(phase)) {
+          // spec 253 R8: return Envelope.fail with UNKNOWN_REVIEW_PHASE for unknown
+          // CLI phase values (uniform fail-closed contract — no throw, no max-attempts
+          // bypass via unknown phase).
+          return Envelope.fail("run", "review", "UNKNOWN_REVIEW_PHASE",
+            [`invalid phase: ${phase} (valid: ${VALID_REVIEW_PHASES.join(", ")})`],
+            { phase });
+        }
+    
+        if (isImplementationReviewPhase(phase) && ctx.flowState.currentTaskId == null) {
+          ensureRepairFingerprintContract({
+            root,
+            state: ctx.flowState,
+            flowManager: ctx.flowManager,
+          });
+        }
+    
+        let scopeDecision = null;
+        let reviewCtx = reviewContextForTaskId(ctx, null);
+        let taskReviewSpec = null;
+        let broadMode = null;
+        if (isImplementationReviewPhase(phase)) {
+          scopeDecision = this.resolveScope(ctx.flowState);
+          if (scopeDecision.kind === "invalid-current-task" || scopeDecision.kind === "invalid-review-scope") {
+            return invalidReviewScopeFailure(scopeDecision, ctx.flowState);
+          }
+          if (scopeDecision.kind === "blocked" || scopeDecision.promotable) {
+            return taskCursorRequiredReviewFailure(scopeDecision, ctx.flowState);
+          }
+          reviewCtx = reviewContextForTaskId(
+            ctx,
+            scopeDecision.kind === "task" ? scopeDecision.task.id : null,
+          );
+          if (scopeDecision.kind === "broad") {
+            broadMode = assertAuditedBroadMode(scopeDecision, "impl-review");
+          }
+        }
+    
+        // Enforce review maxAttempts after scope resolution and before durable mutation.
+        const preCheck = checkReviewRetryBelowMax(reviewCtx, phase);
+        if (preCheck) return preCheck;
+        if (scopeDecision?.kind === "task") {
+          taskReviewSpec = resolveCurrentTaskSpec({
+            root,
+            state: ctx.flowState,
+            decision: scopeDecision,
+          });
+        }
+        const persistedPhase = reviewPhaseKeyForCtx(reviewCtx, phase);
+        if (ctx.flowManager) {
+          ctx.flowManager.mutate((state) => clearReviewStopState(state, persistedPhase));
+        }
+    
+        const dryRun = ctx.dryRun || false;
+        const skipConfirm = ctx.skipConfirm || false;
+        if (isImplementationReviewPhase(phase)) {
+          if (!taskReviewSpec) {
+            const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
+            const fingerprint = buildRepairFingerprint({ root, specPath: ctx.flowState.spec, state: ctx.flowState });
+            for (const file of ["test-execute-result.json", "test-result-review.json"]) {
+              const artifactPath = path.join(specDir, file);
+              if (!fs.existsSync(artifactPath)) throw new Error(`${file} is required before impl-review`);
+              assertRepairFingerprint({
+                artifact: JSON.parse(fs.readFileSync(artifactPath, "utf8")),
+                fingerprint,
+                label: file,
+              });
+            }
+          }
+        }
+    
+        const scriptPath = path.join(PKG_DIR, "flow", "commands", "review.js");
+        const args = [];
+        if (phase && phase !== IMPL_REVIEW_PHASE) args.push("--phase", phase);
+        if (taskReviewSpec) args.push("--task-spec", taskReviewSpec.relPath);
+        if (dryRun) args.push("--dry-run");
+        if (skipConfirm) args.push("--skip-confirm");
+    
+        const timeoutMs = AgentTimeout.fromConfig(ctx.config?.agent).toMilliseconds();
+        const res = await runCmdWithRetry(
+          () => this.runCommand("node", [scriptPath, ...args], { cwd: root, timeout: timeoutMs }),
+          { phase: persistedPhase },
+        );
+    
+        const stdout = (res.stdout || "").trim();
+        const stderr = (res.stderr || "").trim();
+        if (!res.ok) {
+          const failure = ReviewFailure.fromSubprocessResult({ phase: persistedPhase, result: res });
+          if (failure.classification === "schema_failure") {
+            return Envelope.fail("run", "review", failure.toEnvelopeCode(),
+              [`review stopped: ${failure.reason}`],
+              failure.toEnvelopeData());
+          }
+          if (failure.shouldPersistStopState()) {
+            const persisted = mutateReviewRecoveryState(
+              reviewCtx,
+              persistedPhase,
+              REVIEW_RECOVERY_TRIGGER_STOP,
+              (state) => writeReviewStopState(state, failure),
+            );
+            if (!persisted) writeReviewStopState(ctx.flowState, failure);
+            const envelope = Envelope.fail("run", "review", failure.toEnvelopeCode(),
+              [`review stopped: ${failure.reason}`],
+              failure.toEnvelopeData());
+            const attempt = recordReviewOutcome(
+              reviewCtx,
+              null,
+              persistedPhase,
+              nextReviewAttemptNumber(reviewCtx, persistedPhase),
+              reviewExternalBlock(failure),
+            );
+            if (attempt) envelope.data = { ...envelope.data, stepAttempt: attempt.toJSON() };
+            return envelope;
+          }
+          recordReviewOutcome(
+            reviewCtx,
+            null,
+            persistedPhase,
+            nextReviewAttemptNumber(reviewCtx, persistedPhase),
+            reviewExternalBlock(failure),
+          );
+        }
+    
+        // Route to draft review parser
+        if (phase === "draft") {
+          return parseProposalReviewOutput(res, stdout, stderr);
+        }
+    
+        // Route to test review parser
+        if (phase === "test") {
+          return parseTestReviewOutput(res, stdout, stderr);
+        }
+    
+        // Route to spec review parser
+        if (phase === "spec") {
+          return parseSpecReviewOutput(res, stdout, stderr);
+        }
+    
+        if (!res.ok) {
+          throw new Error(
+            ["review command failed", ...(stderr ? [stderr] : []), ...(stdout ? [stdout] : [])].join("\n"),
+          );
+        }
+    
+        const parsed = parseImplReviewOutput(res, stdout, stderr, { root });
+        parsed.artifacts.dryRun = dryRun;
+        parsed.artifacts.taskId = scopeDecision?.kind === "task" ? scopeDecision.task.id : null;
+        if (broadMode) parsed.artifacts.broadMode = broadMode;
+        return parsed;
+      }
+    }
+    
+    export default RunReviewCommand;
+    export {
+      resolveDraftReviewNextStep,
+    };
+    
+    /**
+     * src/flow/lib/get-next-action.js
+     *
+     * Return the next AI/skill action for the current flow or task step.
+     *
+     * Derives behaviour from definition.js instead of context-rules.json.
+     * Adding a new flow step is done by editing definition.js — zero changes here.
+     */
+    
+    import { readFileSync } from "fs";
+    import path from "path";
+    import { fileURLToPath } from "url";
+    import { FlowCommand } from "./base-command.js";
+    import { getStepInstructions } from "./get-step-instructions.js";
+    import {
+      findActiveNode,
+      deriveNextAction,
+      getFlowNode,
+      getTaskNode,
+    } from "../definition.js";
+    import { flattenSteps, promoteNextPendingLeaf } from "./step-tree.js";
+    import { promoteNextPending } from "../../lib/flow-helpers.js";
+    import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
+    import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
+    import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
+    import { countReviewRetry } from "./run-review.js";
+    import { inspectDurableGateSemanticDeferral } from "./run-gate.js";
+    import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
+    import {
+      evaluateTaskScope,
+      taskScopeViolationMessages,
+    } from "./task-scope.js";
+    import { Envelope } from "../../lib/flow-envelope.js";
+    import { FlowCompletion } from "./flow-completion.js";
+    import {
+      AwaitingDecisionOutcome,
+      ExternalBlockedOutcome,
+      StepAttemptLog,
+    } from "./step-outcome.js";
+    
+    const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
+    
+    function resolveSchemaDir() {
+      return process.env.SENTI_NEXT_ACTION_SCHEMA_DIR || DEFAULT_SCHEMA_DIR;
+    }
+    
+    function loadSchema(relPath) {
+      const full = path.join(resolveSchemaDir(), relPath);
+      return JSON.parse(readFileSync(full, "utf8"));
+    }
+    
+    function findCurrentTask(state) {
+      if (state.currentTaskId == null) return null;
+      return state.tasks.find((t) => t.id === state.currentTaskId) || null;
+    }
+    
+    function normalizeTaskCursor(state) {
+      let changed = false;
+      let task = findCurrentTask(state);
+      if (!task) {
+        if (promoteNextPending(state) == null) return false;
+        task = findCurrentTask(state);
+        changed = true;
+      }
+      if (!task) return changed;
+      if (task.status === "pending") {
+        task.status = "in_progress";
+        changed = true;
+      }
+      if (Array.isArray(task.steps) && !task.steps.some((step) => step.status === "in_progress")) {
+        const pending = task.steps.find((step) => step.status === "pending");
+        if (pending) {
+          pending.status = "in_progress";
+          changed = true;
+        }
+      }
+      return changed;
+    }
+    
+    function findUnresolvedInProgressStep(steps, resolveNode) {
+      return flattenSteps(steps || []).find((step) => (
+        step.status === "in_progress" && !resolveNode(step.id)
+      )) || null;
+    }
+    
+    function findUnresolvedInProgressTarget(state) {
+      const task = findCurrentTask(state);
+      if (task && Array.isArray(task.steps)) {
+        const step = findUnresolvedInProgressStep(task.steps, getTaskNode);
+        if (step) return { scope: "task", taskId: state.currentTaskId, stepId: step.id };
+      }
+      const step = findUnresolvedInProgressStep(state.steps, getFlowNode);
+      if (step) return { scope: "flow", taskId: null, stepId: step.id };
+      return null;
+    }
+    
+    function assertNoUnresolvedInProgressTarget(state) {
+      const target = findUnresolvedInProgressTarget(state);
+      if (target) {
+        throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
+      }
+    }
+    
+    function deriveStateSet(state) {
+      const result = [];
+      if (state?.worktree === true) result.push("worktreeActive");
+      if (state?.autoApprove === true) result.push("autoApproveOn");
+      return result;
+    }
+    
+    let _cachedRules = null;
+    function getRulesCached() {
+      if (_cachedRules === null) {
+        try {
+          _cachedRules = loadRules();
+        } catch (err) {
+          // If rules.json is missing or invalid, fail loudly — drift mitigation is a core
+          // package guarantee per spec D7.
+          throw err;
+        }
+      }
+      return _cachedRules;
+    }
+    
+    function injectPersistentRules(baseContent, target, state) {
+      const rules = getRulesCached();
+      const phaseId = `${target.scope}.${target.stepId}`;
+      const stateSet = deriveStateSet(state);
+      const matched = filterRules(rules, { phase: phaseId, state: stateSet });
+      if (matched.length === 0) return baseContent;
+      const block = renderRuleBlock(matched);
+      return `${block}\n${baseContent}`;
+    }
+    
+    function buildContextDescriptor(kinds, target, state) {
+      const paths = {};
+      if (state.spec && kinds.includes("spec") && target.scope !== "task") {
+        paths.spec = state.spec;
+      }
+      if (target.scope === "task" && kinds.includes("task_spec")) {
+        const task = state.tasks.find((t) => t.id === target.taskId);
+        if (task?.spec) paths.task_spec = task.spec;
+      }
+      return { kinds, paths };
+    }
+    
+    function isFlowImplementationStep(target) {
+      return target?.scope === "flow"
+        && ["implement", "impl-review", "impl-triage", "impl-repair", "impl-gate"].includes(target.stepId);
+    }
+    
+    function attachRetryRecovery(result, stopKey, stopView, retryRecovery) {
+      const view = retryRecovery ? { ...(stopView || {}), ...retryRecovery } : stopView;
+      if (view && stopKey) result[stopKey] = view;
+      if (retryRecovery) result.retryRecovery = retryRecovery;
+      if (!view) return;
+      for (const key of ["stopReason", "classification", "phase", "retryBudgetConsumed", "recoveryCommand", "reason", "recoveryHint"]) {
+        if (view[key] !== undefined) result[key] = view[key];
+      }
+    }
+    
+    function buildRetryRecoveryForState(ctx, state, { kind, phase, attempts, max }) {
+      return buildStateRetryRecoveryView({
+        root: ctx.root,
+        flowState: state,
+        kind,
+        phase,
+        attempts,
+        max,
+      });
+    }
+    
+    function attachLatestStepAttempt(result, state, target) {
+      if (!state.runId || !target?.stepId) return;
+      const log = new StepAttemptLog(state.stepAttempts || []);
+      const lastAttempt = log.latestForRun(state.runId);
+      if (lastAttempt) {
+        result.lastStepAttempt = lastAttempt.toJSON();
+        result.lastStepOutcome = lastAttempt.outcome.toJSON();
+      }
+      const attempt = log.latest({
+        runId: state.runId,
+        taskId: target.taskId ?? null,
+        stepId: target.stepId,
+      });
+      if (!attempt) return;
+      result.stepAttempt = attempt.toJSON();
+      result.stepOutcome = attempt.outcome.toJSON();
+      if (attempt.outcome instanceof ExternalBlockedOutcome || attempt.outcome instanceof AwaitingDecisionOutcome) {
+        result.halt = true;
+        result.resumeInstruction = attempt.outcome.resumeInstruction;
+      }
+    }
+    
+    function buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay) {
+      if (!["draft", "spec"].includes(gateRecoveryDisplay.phase)) return null;
+      const inspection = inspectDurableGateSemanticDeferral({
+        root: ctx.root,
+        flowState: state,
+        phase: gateRecoveryDisplay.phase,
+      });
+      if (!inspection.deferAllowed || inspection.reason !== "semantic_findings") return null;
+      const phase = gateRecoveryDisplay.phase;
+      return Object.freeze({
+        kind: "gate",
+        phase,
+        canonicalPhase: phase,
+        attempts: gateRecoveryDisplay.attempts,
+        max: gateRecoveryDisplay.max,
+        recoveryPossible: true,
+        recoveryReason: "semantic_findings",
+        classification: "semantic_findings",
+        changedEvidence: null,
+        recoveryCommand: [
+          "senti flow run gate",
+          `--phase ${phase}`,
+          `--expect-run-id ${state.runId}`,
+          `--expect-issue ${state.issue}`,
+          `--expect-spec ${state.spec}`,
+        ].join(" "),
+        reason: "semantic_findings",
+      });
+    }
+    
+    function buildGateRetryRecovery(ctx, state, gateRecoveryDisplay) {
+      const existingRecovery = () => buildRetryRecoveryForState(ctx, state, {
+        kind: "gate",
+        phase: gateRecoveryDisplay.phase,
+        attempts: gateRecoveryDisplay.attempts,
+        max: gateRecoveryDisplay.max,
+      });
+      if (["task-impl", "integration"].includes(gateRecoveryDisplay.phase)) {
+        return existingRecovery();
+      }
+      return buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay)
+        || existingRecovery();
+    }
+    
+    function promoteNextAvailableTarget(state) {
+      const task = findCurrentTask(state);
+      if (task && Array.isArray(task.steps)) {
+        const pending = task.steps.find((s) => s.status === "pending");
+        if (pending) {
+          pending.status = "in_progress";
+          return true;
+        }
+      }
+      const leaf = promoteNextPendingLeaf(state.steps);
+      if (leaf) {
+        leaf.status = "in_progress";
+        return true;
+      }
+      state.currentTaskId = null;
+      return normalizeTaskCursor(state);
+    }
+    
+    function completedNextAction() {
+      return {
+        taskId: null,
+        step: null,
+        action: "completed",
+        instructions: null,
+        context: null,
+        output_schema: null,
+        requires_approval: false,
+      };
+    }
+    
+    function abortedNextAction() {
+      return {
+        taskId: null,
+        step: null,
+        action: "aborted",
+        instructions: null,
+        context: null,
+        output_schema: null,
+        requires_approval: false,
+      };
+    }
+    
+    export class NextActionPlanError extends Error {
+      constructor(code, message) {
+        super(message);
+        this.name = "NextActionPlanError";
+        this.code = code;
+      }
+    }
+    
+    function requiredPlanObject(value, field, display = field) {
+      if (value === null || typeof value !== "object" || Array.isArray(value)) {
+        throw new NextActionPlanError("NEXT_ACTION_PLAN_INVALID", `${field} (${display}) is required`);
+      }
+      return value;
+    }
+    
+    export class NextActionPromotionPlan {
+      constructor({
+        definition,
+        rule,
+        outputSchema,
+        instruction,
+        target,
+        taskScope,
+        expectedRevision,
+        maxAttempts,
+        nextState = null,
+        result = null,
+        commitRequired = null,
+      }) {
+        this.definition = requiredPlanObject(definition, "definition");
+        this.rule = requiredPlanObject(rule, "rule");
+        this.outputSchema = requiredPlanObject(outputSchema, "outputSchema", "output schema");
+        this.instruction = requiredPlanObject(instruction, "instruction");
+        this.target = requiredPlanObject(target, "target");
+        this.taskScope = requiredPlanObject(taskScope, "taskScope", "task scope");
+        this.expectedRevision = requiredPlanObject(expectedRevision, "expectedRevision", "expected revision");
+        if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10_000) {
+          throw new NextActionPlanError(
+            "NEXT_ACTION_PLAN_INVALID",
+            `maxAttempts must be a safe integer from 1 through 10000, got ${maxAttempts}`,
+          );
+        }
+        this.maxAttempts = maxAttempts;
+        this.nextState = nextState;
+        this.result = result;
+        this.commitRequired = commitRequired;
+        Object.freeze(this);
+      }
+    }
+    
+    class NextActionTerminalPlan {
+      constructor(result) {
+        this.result = result;
+        Object.freeze(this);
+      }
+    }
+    
+    function buildNextActionResult(ctx, state, target, derived, outputSchema, instruction) {
+      const context = buildContextDescriptor(derived.contextKinds, target, state);
+      const result = {
+        taskId: target.taskId,
+        step: target.stepId,
+        action: derived.action,
+        instructions: instruction,
+        context,
+        output_schema: outputSchema,
+        requires_approval: derived.requiresApproval === true,
+        maxAttempts: derived.maxAttempts,
+      };
+      if (state.autoUpgrade?.available === true) {
+        result.autoUpgrade = state.autoUpgrade;
+      }
+      if (target.stepId === "acceptance-review" && derived.failurePolicy) {
+        result.failurePolicy = derived.failurePolicy;
+      }
+      attachLatestStepAttempt(result, state, target);
+      const reviewPhase = reviewPhaseForStepId(target.stepId);
+      if (reviewPhase) {
+        const reviewAttempts = countReviewRetry(state.metrics, reviewPhase);
+        const reviewMaxAttempts = resolveRecoveryMaxAttempts({
+          root: ctx.root,
+          flowState: state,
+          kind: "review",
+          phase: reviewPhase,
+          attempts: reviewAttempts,
+          resolvedMax: derived.maxAttempts,
+        });
+        const reviewStop = buildReviewStopView(state, {
+          surface: "next-action",
+          phase: reviewPhase,
+          maxAttempts: reviewMaxAttempts,
+        });
+        const retryRecovery = buildRetryRecoveryForState(ctx, state, {
+          kind: "review",
+          phase: reviewPhase,
+          attempts: reviewAttempts,
+          max: reviewMaxAttempts,
+        });
+        if (reviewStop || retryRecovery) {
+          attachRetryRecovery(result, "reviewStop", reviewStop, retryRecovery);
+        }
+      }
+      const gateRecoveryDisplay = target.stepId.endsWith("-gate")
+        ? resolveGateRecoveryDisplayPhase({
+            root: ctx.root,
+            flowState: state,
+            stepId: target.stepId,
+            maxAttempts: derived.maxAttempts,
+          })
+        : null;
+      if (gateRecoveryDisplay) {
+        const retryRecovery = buildGateRetryRecovery(ctx, state, gateRecoveryDisplay);
+        if (retryRecovery) {
+          attachRetryRecovery(result, "gateStop", null, retryRecovery);
+        }
+      }
+      return result;
+    }
+    
+    export class NextActionPlanner {
+      build(ctx) {
+        const original = ctx.flowState;
+        if (original.acceptanceReview?.status === "aborted") {
+          return new NextActionTerminalPlan(abortedNextAction());
+        }
+        if (new FlowCompletion(original).complete) {
+          return new NextActionTerminalPlan(completedNextAction());
+        }
+    
+        const state = structuredClone(original);
+        assertNoUnresolvedInProgressTarget(state);
+        let promoted = false;
+        let target = findActiveNode(state);
+        if (isFlowImplementationStep(target)) {
+          const decision = evaluateTaskScope(state, target.stepId);
+          if (decision.kind === "invalid-current-task" || decision.kind === "blocked") {
+            return new NextActionTerminalPlan(Envelope.fail(
+              "get",
+              "next-action",
+              "TASK_CURSOR_REQUIRED",
+              taskScopeViolationMessages(decision, target.stepId),
+              { step: target.stepId, currentTaskId: state.currentTaskId ?? null },
+            ));
+          }
+          if (decision.promotable || decision.kind === "task") {
+            promoted = normalizeTaskCursor(state);
+            target = findActiveNode(state);
+          }
+        }
+        if (!target) {
+          promoted = promoteNextAvailableTarget(state);
+          if (promoted) {
+            assertNoUnresolvedInProgressTarget(state);
+            target = findActiveNode(state);
+          }
+        }
+        if (!target) return new NextActionTerminalPlan(completedNextAction());
+    
+        const derived = deriveNextAction({
+          scope: target.scope,
+          stepId: target.stepId,
+          context: state,
+        });
+        if (!derived) {
+          throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
+        }
+        const outputSchema = derived.outputSchemaRef ? loadSchema(derived.outputSchemaRef) : {};
+        const baseInstructions = getStepInstructions(derived.instructionsKey);
+        const instruction = {
+          key: derived.instructionsKey,
+          content: injectPersistentRules(baseInstructions, target, state),
+        };
+        const result = buildNextActionResult(ctx, state, target, derived, outputSchema, instruction);
+        return new NextActionPromotionPlan({
+          definition: target.scope === "task" ? getTaskNode(target.stepId) : getFlowNode(target.stepId),
+          rule: derived,
+          outputSchema,
+          instruction,
+          target: { ...target, runId: state.runId },
+          taskScope: { taskId: original.currentTaskId ?? null },
+          expectedRevision: original,
+          maxAttempts: derived.maxAttempts,
+          nextState: state,
+          result,
+          commitRequired: promoted,
+        });
+      }
+    }
+    
+    function targetStepForPlan(state, target) {
+      const scope = target.scope === "task"
+        ? state.tasks?.find((task) => task.id === target.taskId)
+        : state;
+      return flattenSteps(scope?.steps || []).find((step) => step.id === target.stepId) || null;
+    }
+    
+    function validatePlanAgainstState(plan, state) {
+      if (plan.nextState && plan.expectedRevision !== state) {
+        throw new NextActionPlanError(
+          "NEXT_ACTION_EXPECTED_REVISION_MISMATCH",
+          "expected revision does not match the loaded flow state",
+        );
+      }
+      if (plan.target.runId !== state.runId) {
+        throw new NextActionPlanError(
+          "NEXT_ACTION_TARGET_MISMATCH",
+          `target runId ${plan.target.runId ?? "missing"} does not match ${state.runId ?? "missing"}`,
+        );
+      }
+      const expectedTaskId = state.currentTaskId ?? null;
+      if ((plan.taskScope.taskId ?? null) !== expectedTaskId) {
+        throw new NextActionPlanError(
+          "NEXT_ACTION_TASK_SCOPE_MISMATCH",
+          `task scope ${plan.taskScope.taskId ?? "none"} does not match ${expectedTaskId ?? "none"}`,
+        );
+      }
+      if (
+        expectedTaskId !== null
+        && plan.nextState
+        && (plan.nextState.currentTaskId ?? null) !== expectedTaskId
+      ) {
+        throw new NextActionPlanError(
+          "NEXT_ACTION_TASK_SCOPE_MISMATCH",
+          `planned task ${plan.nextState.currentTaskId ?? "none"} does not match current task ${expectedTaskId}`,
+        );
+      }
+      const targetTaskId = plan.target.taskId ?? null;
+      const expectedTargetTaskId = plan.nextState
+        ? plan.nextState.currentTaskId
+        : state.currentTaskId;
+      if (
+        (plan.target.scope === "task" && plan.target.taskId !== expectedTargetTaskId)
+        || (plan.target.scope === "flow" && targetTaskId !== null)
+      ) {
+        throw new NextActionPlanError(
+          "NEXT_ACTION_TASK_SCOPE_MISMATCH",
+          `target ${plan.target.scope} task ${targetTaskId ?? "none"} does not match planned task ${expectedTargetTaskId ?? "none"}`,
+        );
+      }
+      const step = targetStepForPlan(state, plan.target);
+      if (!step || !["pending", "in_progress"].includes(step.status)) {
+        throw new NextActionPlanError(
+          "NEXT_ACTION_TARGET_MISMATCH",
+          `target ${plan.target.scope}.${plan.target.stepId} is not pending or in_progress`,
+        );
+      }
+      return step;
+    }
+    
+    function injectedPlanResult(plan) {
+      return {
+        taskId: plan.target.taskId ?? null,
+        step: plan.target.stepId,
+        action: plan.rule.action,
+        instructions: plan.instruction,
+        context: null,
+        output_schema: plan.outputSchema,
+        requires_approval: plan.rule.requiresApproval === true,
+        maxAttempts: plan.maxAttempts,
+      };
+    }
+    
+    export default class GetNextActionCommand extends FlowCommand {
+      constructor({ planner = new NextActionPlanner(), effects = null } = {}) {
+        super({ requiresFlow: false });
+        if (!planner || typeof planner.build !== "function") {
+          throw new Error("next-action planner.build is required");
+        }
+        if (effects) {
+          for (const method of ["writeRuntimeLog", "writeArtifact", "recordRetry"]) {
+            if (typeof effects[method] !== "function") {
+              throw new Error(`next-action effects.${method} is required`);
+            }
+          }
+        }
+        this.planner = planner;
+        this.effects = effects;
+      }
+    
+      async execute(ctx) {
+        if (!ctx.flowState) {
+          return {
+            taskId: null,
+            step: null,
+            action: null,
+            instructions: null,
+            context: null,
+            output_schema: null,
+            requires_approval: false,
+          };
+        }
+    
+        const candidate = this.planner.build(ctx);
+        if (candidate instanceof NextActionTerminalPlan) return candidate.result;
+        const plan = new NextActionPromotionPlan(candidate);
+        const currentStep = validatePlanAgainstState(plan, ctx.flowState);
+        const result = plan.result || injectedPlanResult(plan);
+        if (currentStep.status === "in_progress") return result;
+    
+        const nextState = plan.nextState ? structuredClone(plan.nextState) : structuredClone(ctx.flowState);
+        const nextStep = targetStepForPlan(nextState, plan.target);
+        if (!nextStep) {
+          throw new NextActionPlanError(
+            "NEXT_ACTION_TARGET_MISMATCH",
+            `target ${plan.target.scope}.${plan.target.stepId} is absent from the promotion state`,
+          );
+        }
+        nextStep.status = "in_progress";
+        if (!nextStep.startedAt) nextStep.startedAt = new Date().toISOString();
+        delete nextStep.finishedAt;
+    
+        if (plan.commitRequired === true && plan.nextState) {
+          ctx.flowManager.mutate((state) => {
+            for (const key of Object.keys(state)) delete state[key];
+            Object.assign(state, nextState);
+          }, { expectedOriginal: plan.expectedRevision });
+        } else {
+          ctx.flowManager.saveAtomic(nextState, {
+            expectedOriginal: plan.expectedRevision,
+          });
+        }
+        this.effects?.writeRuntimeLog({ plan, result });
+        this.effects?.writeArtifact({ plan, result });
+        this.effects?.recordRetry({ plan, result });
+        return result;
+      }
+    }
+    
+    /**
+     * src/flow/lib/get-status.js
+     *
+     * Return current flow state summary.
+     * Supports optional runId argument for runId-based resolution.
+     */
+    
+    import { derivePhase } from "../../lib/flow-helpers.js";
+    import fs from "node:fs";
+    import path from "node:path";
+    import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
+    import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
+    import { loadSpecRequirements } from "../../lib/spec-json.js";
+    import { findLatestInProgressLeaf, resolveMaxAttempts } from "../definition.js";
+    import { flattenSteps } from "./step-tree.js";
+    import { FlowCommand } from "./base-command.js";
+    import { Envelope } from "../../lib/flow-envelope.js";
+    import {
+      FlowTargetExpectation,
+      buildTargetMismatchEnvelope,
+      targetMismatchEnvelopeForInput,
+    } from "../../lib/flow-target-guard.js";
+    import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
+    import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
+    import { countReviewRetry } from "./run-review.js";
+    import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
+    import { buildBoundedBroadModeHistory } from "./task-scope.js";
+    import { buildDeferredFindingsSummary, specDirFromFlowState } from "./flow-findings.js";
+    import { validateFinalRegressionResult } from "./test-artifacts.js";
+    import { FlowCompletion } from "./flow-completion.js";
+    import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
+    
+    /** Token sub-fields that the Logger / flow-store emit per agent entry. */
+    export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
+    
+    /** Activity counter names consumed by the Report view (flat aggregates). */
+    export const ACTIVITY_COUNTERS = ["docsRead", "srcRead", "question", "issueLog"];
+    
+    /** Fresh zero-filled token accumulator (never share the literal — callers mutate). */
+    function zeroTokens() {
+      return Object.fromEntries(TOKEN_KEYS.map((k) => [k, 0]));
+    }
+    
+    function zeroProviderBucket() {
+      return {
+        callCount: 0,
+        responseChars: 0,
+        durationMs: 0,
+        tokens: zeroTokens(),
+        cost: 0,
+        costIncomplete: false,
+        models: {},
+      };
+    }
+    
+    /**
+     * Build an aggregated metricsSummary view over the flat append-only
+     * `state.metrics` entry array. Returns `{ flow, tasks: { <id>: {...} }, total }`,
+     * where each leaf is `{ <phase>: { <counter>: N, ... } }` with agent-call
+     * aggregates (callCount, responseChars, durationMs, tokens, cost, models)
+     * summed when present.
+     *
+     * spec 253 R28: This summary is **audit-only raw totals**. Reset entries
+     * (e.g. `{ counter: "gateRetry"|"reviewRetry", reset: true }` from
+     * `flow set retry reset ...`) are NOT interpreted here — the raw FAIL
+     * count accumulates across resets so the audit trail is preserved.
+     * Consumers needing the *current* retry count (post-reset) must call
+     * `countGateRetry` / `countReviewRetry` instead.
+     */
+    export function buildMetricsSummary(entries) {
+      const summary = { flow: {}, tasks: {}, total: {} };
+      if (!Array.isArray(entries) || entries.length === 0) return summary;
+    
+      for (const entry of entries) {
+        if (!entry || !entry.phase) continue;
+        const taskId = entry.taskId ?? null;
+        const bucket = taskId == null
+          ? summary.flow
+          : (summary.tasks[taskId] = summary.tasks[taskId] || {});
+        applyEntry(bucket, entry);
+        applyEntry(summary.total, entry);
+      }
+      return summary;
+    }
+    
+    function applyEntry(bucket, entry) {
+      const p = bucket[entry.phase] = bucket[entry.phase] || {};
+      if (entry.counter) {
+        p[entry.counter] = (p[entry.counter] || 0) + (entry.delta ?? 1);
+      }
+      if (entry.kind !== "agent") return;
+      p.callCount = (p.callCount || 0) + (entry.callCount || 0);
+      p.responseChars = (p.responseChars || 0) + (entry.responseChars || 0);
+      if (entry.durationMs != null) p.durationMs = (p.durationMs || 0) + entry.durationMs;
+      if (entry.tokens) {
+        p.tokens = p.tokens || zeroTokens();
+        for (const k of TOKEN_KEYS) p.tokens[k] += entry.tokens[k] || 0;
+      }
+      if (entry.cost != null) p.cost = (p.cost || 0) + entry.cost;
+      if (entry.costIncomplete) p.costIncomplete = true;
+      if (entry.model) {
+        p.models = p.models || {};
+        p.models[entry.model] = (p.models[entry.model] || 0) + 1;
+      }
+      applyProviderEntry(p, entry);
+    }
+    
+    function applyProviderEntry(phaseBucket, entry) {
+      const provider = normalizeAgentMetricDimension(entry.provider);
+      const profileKey = normalizeAgentMetricDimension(entry.profileKey);
+      phaseBucket.providers = phaseBucket.providers || {};
+      const providerBucket = phaseBucket.providers[provider] = phaseBucket.providers[provider] || {};
+      const bucket = providerBucket[profileKey] = providerBucket[profileKey] || zeroProviderBucket();
+    
+      bucket.callCount += entry.callCount || 0;
+      bucket.responseChars += entry.responseChars || 0;
+      if (entry.durationMs != null) bucket.durationMs += entry.durationMs;
+      if (entry.tokens) {
+        for (const k of TOKEN_KEYS) bucket.tokens[k] += entry.tokens[k] || 0;
+      }
+      if (entry.cost != null) bucket.cost += entry.cost;
+      if (entry.costIncomplete) bucket.costIncomplete = true;
+      if (entry.model) bucket.models[entry.model] = (bucket.models[entry.model] || 0) + 1;
+    }
+    
+    /**
+     * Extract report-shape totals (activity counters + agent runtime metrics) from
+     * a `metricsSummary.total` view. The report uses a flattened token shape
+     * (`input`/`output`/… on the root of `tokens`), so this path cannot share the
+     * `mergeAgentAggregates` routine directly; it iterates per-phase and pulls
+     * duration into a list.
+     */
+    export function buildReportTotals(summaryTotal) {
+      const activity = Object.fromEntries(ACTIVITY_COUNTERS.map((k) => [k, 0]));
+      const tokens = { ...zeroTokens(), cost: null, callCount: 0, durationMs: 0, phaseDurations: [] };
+      for (const [phase, data] of Object.entries(summaryTotal || {})) {
+        for (const k of ACTIVITY_COUNTERS) activity[k] += data[k] || 0;
+        if (data.tokens) for (const k of TOKEN_KEYS) tokens[k] += data.tokens[k] || 0;
+        if (data.cost != null) tokens.cost = (tokens.cost || 0) + data.cost;
+        tokens.callCount += data.callCount || 0;
+        if (data.durationMs) {
+          tokens.durationMs += data.durationMs;
+          tokens.phaseDurations.push({ phase, durationMs: data.durationMs });
+        }
+      }
+      return { activity, tokens };
+    }
+    
+    function resolveActiveStepMaxAttempts(state, active) {
+      if (!active?.id) return null;
+      const maxAttempts = resolveMaxAttempts({ scope: "flow", stepId: active.id, context: state });
+      return Number.isSafeInteger(maxAttempts) && maxAttempts >= 1 ? maxAttempts : null;
+    }
+    
+    function buildStatusReviewViews(state, active, root) {
+      const reviewPhase = reviewPhaseForStepId(active?.id);
+      if (!reviewPhase) return null;
+      const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
+      if (resolvedMaxAttempts == null) return null;
+      const attempts = countReviewRetry(state.metrics, reviewPhase);
+      const recoveryMaxAttempts = resolveRecoveryMaxAttempts({
+        root,
+        flowState: state,
+        kind: "review",
+        phase: reviewPhase,
+        attempts,
+        resolvedMax: resolvedMaxAttempts,
+      });
+      const reviewStop = buildReviewStopView(state, {
+        surface: "status",
+        phase: reviewPhase,
+        maxAttempts: recoveryMaxAttempts,
+      });
+      const retryRecovery = buildStatusRetryRecoveryView(root, state, {
+        kind: "review",
+        phase: reviewPhase,
+        attempts,
+        max: recoveryMaxAttempts,
+      });
+      return { reviewStop, retryRecovery };
+    }
+    
+    function buildStatusRetryRecoveryView(root, flowState, input) {
+      return buildStateRetryRecoveryView({
+        root,
+        flowState,
+        ...input,
+      });
+    }
+    
+    function buildFinalRegressionStatus(root, state) {
+      if (!state?.spec) return null;
+      const resultPath = path.join(path.dirname(path.resolve(root, state.spec)), "final-regression-result.json");
+      if (!fs.existsSync(resultPath)) return null;
+      const artifact = validateFinalRegressionResult(JSON.parse(fs.readFileSync(resultPath, "utf8")));
+      return {
+        result: artifact.result,
+        completed: artifact.completed,
+        failureKind: artifact.failureKind,
+        failureCategory: artifact.failureCategory || null,
+        rawOutputPath: artifact.rawOutputPath,
+        fixAttempts: artifact.fixAttempts ?? null,
+        selectedAction: artifact.selectedAction || null,
+        remainingRisk: artifact.remainingRisk || null,
+        nextAction: artifact.nextAction,
+        nextRecommendedAction: artifact.nextRecommendedAction || null,
+      };
+    }
+    
+    function buildStatusGateViews(state, active, root) {
+      if (!active || !active.id.endsWith("-gate")) return null;
+      const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
+      if (resolvedMaxAttempts == null) return null;
+      const gateRecoveryDisplay = resolveGateRecoveryDisplayPhase({
+        root,
+        flowState: state,
+        stepId: active.id,
+        maxAttempts: resolvedMaxAttempts,
+      });
+      if (!gateRecoveryDisplay) return null;
+      const retryRecovery = buildStatusRetryRecoveryView(root, state, {
+        kind: "gate",
+        phase: gateRecoveryDisplay.phase,
+        attempts: gateRecoveryDisplay.attempts,
+        max: gateRecoveryDisplay.max,
+      });
+      const gateStop = retryRecovery?.attempts >= retryRecovery?.max ? retryRecovery : null;
+      return { gateStop, retryRecovery };
+    }
+    
+    function validateRunId(runId) {
+      if (runId == null) return null;
+      if (typeof runId !== "string" || runId.length < 1 || runId.length > 200) {
+        throw new Error("invalid runId: expected a non-empty string token from 1 to 200 characters");
+      }
+      return runId;
+    }
+    
+    function buildStatusOutput(state, root, options = {}) {
+      const details = options.details === true;
+      const phase = state.steps ? derivePhase(state) : null;
+      // spec 251 R42: count leaf steps via flattenSteps so nested impl-phase
+      // children (test-execute, test-result-review, retro, finalize-*) are
+      // reflected accurately in stepsProgress.
+      const leafSteps = state.steps ? flattenSteps(state.steps) : [];
+      const active = findLatestInProgressLeaf(leafSteps);
+      const doneSteps = leafSteps.filter((s) => s.status === "done" || s.status === "skipped").length;
+      const totalSteps = leafSteps.length;
+      const requirements = loadSpecRequirements(root, state.spec);
+      const doneReqs = requirements.filter((r) => r.status === "done").length;
+      const totalReqs = requirements.length;
+      const reviewViews = buildStatusReviewViews(state, active, root);
+      const reviewStop = reviewViews?.reviewStop || null;
+      const gateViews = buildStatusGateViews(state, active, root);
+      const retryRecovery = reviewViews?.retryRecovery || gateViews?.retryRecovery || null;
+    
+      // autoApprove is always false in preparing state
+      const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
+      const deferredFindings = state.spec
+        ? buildDeferredFindingsSummary({ specDir: specDirFromFlowState(root, state), flowState: state })
+        : { count: 0, sourceSteps: [], artifactPath: "flow-findings.json" };
+      const finalRegression = buildFinalRegressionStatus(root, state);
+    
+      const output = {
+        active: !new FlowCompletion(state).complete,
+        spec: state.spec,
+        baseBranch: state.baseBranch,
+        featureBranch: state.featureBranch,
+        worktree: state.worktree || false,
+        issue: state.issue || null,
+        runId: state.runId || null,
+        phase,
+        steps: state.steps || [],
+        stepsProgress: { done: doneSteps, total: totalSteps },
+        requirements,
+        requirementsProgress: { done: doneReqs, total: totalReqs },
+        ...(deferredFindings.count > 0 && { deferredFindings }),
+        ...(finalRegression && { finalRegression }),
+        ...(retryRecovery && { retryRecovery }),
+        mergeStrategy: state.mergeStrategy || null,
+        autoApprove,
+      };
+    
+      if (!details) return output;
+    
+      const broadMode = buildBoundedBroadModeHistory(state, BROAD_MODE_HISTORY_MAX_ENTRIES);
+      return {
+        ...output,
+        request: state.request || null,
+        notes: state.notes || [],
+        metrics: state.metrics || [],
+        metricsSummary: buildMetricsSummary(state.metrics || []),
+        ...(reviewStop && { reviewStop }),
+        ...(gateViews?.gateStop && { gateStop: gateViews.gateStop }),
+        broadModeHistory: broadMode.entries,
+        broadModeHistoryTotal: broadMode.total,
+        broadModeHistoryTruncated: broadMode.truncated,
+      };
+    }
+    
+    export default class GetStatusCommand extends FlowCommand {
+      constructor() {
+        super({ requiresFlow: false, targetGuard: false });
+      }
+    
+      execute(ctx) {
+        const runId = validateRunId(ctx.runId);
+        const options = { details: ctx.details === true };
+    
+        if (ctx.flowResolutionError) {
+          return Envelope.fail(
+            "get",
+            "status",
+            ctx.flowResolutionError.code || "FLOW_TARGET_NOT_FOUND",
+            ctx.flowResolutionError.message,
+            ctx.flowResolutionError.data,
+          );
+        }
+    
+        if (runId) {
+          // The binding already selected the only permissible worktree target.
+          // A positional runId validates that state instead of redirecting it.
+          const state = ctx.worktreeFlowProvenance instanceof WorktreeFlowProvenance && ctx.flowState
+            ? ctx.flowState
+            : ctx.flowManager.resolveByRunId(runId);
+          if (!state) {
+            throw new Error(`RUN_ID_NOT_FOUND: ${runId}`);
+          }
+          const status = buildStatusOutput(state, ctx.root, options);
+          try {
+            const positionalExpectation = new FlowTargetExpectation({ expectRunId: runId });
+            const positionalMismatch = positionalExpectation.mismatchAgainst(state);
+            if (positionalMismatch) {
+              return buildTargetMismatchEnvelope({ type: "get", key: "status", data: positionalMismatch });
+            }
+            const expectation = new FlowTargetExpectation({
+              expectIssue: ctx.expectIssue,
+              expectNoIssue: ctx.expectNoIssue,
+              expectSpec: ctx.expectSpec,
+              expectRunId: ctx.expectRunId,
+            });
+            const mismatch = expectation.mismatchAgainst(state);
+            return mismatch ? buildTargetMismatchEnvelope({
+              type: "get",
+              key: "status",
+              data: {
+                ...mismatch,
+                ...(!("expectedRunId" in mismatch) && {
+                  expectedRunId: runId,
+                  activeRunId: state.runId || null,
+                }),
+              },
+            }) : status;
+          } catch (err) {
+            return Envelope.fail("get", "status", "ARGS_ERROR", err.message);
+          }
+        }
+    
+        const currentContextMismatch = targetMismatchEnvelopeForInput({
+          type: "get",
+          key: "status",
+          input: { expectSpec: ctx.expectSpec, expectRunId: ctx.expectRunId },
+          flowState: ctx.flowState,
+        });
+        if (currentContextMismatch) return currentContextMismatch;
+    
+        // Default: context-based resolution. No active flow is a normal state,
+        // not an error — consumers discriminate via the `active` field.
+        if (!ctx.flowState) {
+          return { active: false };
+        }
+        const status = buildStatusOutput(ctx.flowState, ctx.root, options);
+        return targetMismatchEnvelopeForInput({
+          type: "get",
+          key: "status",
+          input: ctx,
+          flowState: ctx.flowState,
+        }) || status;
+      }
+    }
+    
+    import fs from "node:fs";
+    import path from "node:path";
+    import { fileURLToPath } from "node:url";
+    import { validateSchema } from "../../lib/schema-validate.js";
+    import { resolveSpecDir } from "../../lib/spec-json.js";
+    import { flowLeafIdsBetween } from "../definition.js";
+    import { findStepById } from "./step-tree.js";
+    import { appendIssueLogEntry } from "./set-issue-log.js";
+    import {
+      ACCEPTANCE_FINAL_DISPOSITIONS,
+      mirrorFinalDispositions,
+      readBoundedSourceArtifact,
+      readFlowFindingsArtifact,
+      validateFinalDisposition,
+    } from "./flow-findings.js";
+    import {
+      assertRepairFingerprint,
+      buildRepairFingerprint,
+      ensureRepairFingerprintContract,
+      prepareImplTriageArtifact,
+      readImplRepairLedger,
+      readRejectedImplReviewTriage,
+      writeRepairEvidenceArtifact,
+    } from "./impl-repair-artifacts.js";
+    import {
+      validateScenarioValidityResult,
+      validateTestExecuteResultV2,
+      validateTestResultReview,
+    } from "./test-artifacts.js";
+    
+    export const ACCEPTANCE_REVIEW_ARTIFACT_FILE = "acceptance-review.json";
+    
+    const SCHEMA_PATH = fileURLToPath(new URL("../schemas/acceptance-review.schema.json", import.meta.url));
+    const JUDGMENT_STATUSES = new Set(["met", "notMet", "notVerifiable"]);
+    const VERDICTS = new Set(["pass", "repair_required", "user_decision_required", "blocked"]);
+    const USER_DECISION_CHOICES = new Set(["accept_risk_and_continue", "abort"]);
+    const REQUIRED_MECHANICAL_ARTIFACTS = Object.freeze([
+      "scenario-validity-result.json",
+      "test-execute-result.json",
+      "test-result-review.json",
+      "impl-review.json",
+      "impl-gate-result.json",
+      "retro.json",
+    ]);
+    const FINGERPRINTED_INPUT_ARTIFACTS = Object.freeze(REQUIRED_MECHANICAL_ARTIFACTS.slice(1));
+    const MAX_ACCEPTANCE_RAW_EVIDENCE_BYTES = 20 * 1024 * 1024;
+    
+    function requireString(value, field) {
+      if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
+      return value.trim();
+    }
+    
+    function requireStringArray(value, field, { allowEmpty = false } = {}) {
+      if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) {
+        throw new Error(`${field} must be ${allowEmpty ? "an" : "a non-empty"} array`);
+      }
+      return value.map((entry, index) => requireString(entry, `${field}[${index}]`));
+    }
+    
+    function clone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+    
+    function readJson(file) {
+      return JSON.parse(fs.readFileSync(file, "utf8"));
+    }
+    
+    function writeJson(file, value) {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
+    }
+    
+    function acceptanceSchema() {
+      return readJson(SCHEMA_PATH);
+    }
+    
+    function requireFinalDisposition(value, field = "finalDisposition") {
+      const disposition = validateFinalDisposition(value, field);
+      if (disposition === null) {
+        throw new Error(`${field} must be one of ${ACCEPTANCE_FINAL_DISPOSITIONS.join(", ")}`);
+      }
+      return disposition;
+    }
+    
+    export class RequirementAcceptanceJudgment {
+      constructor(input = {}) {
+        this.requirementId = requireString(input.requirementId, "requirementId");
+        this.status = requireString(input.status, "status");
+        if (!JUDGMENT_STATUSES.has(this.status)) throw new Error(`invalid acceptance judgment status: ${this.status}`);
+        this.requestRefs = Object.freeze(requireStringArray(input.requestRefs, "requestRefs"));
+        this.requirementRefs = Object.freeze(requireStringArray(input.requirementRefs, "requirementRefs"));
+        const evidenceMayBeMissing = this.status === "notVerifiable";
+        this.diffRefs = Object.freeze(requireStringArray(input.diffRefs || [], "diffRefs", { allowEmpty: evidenceMayBeMissing }));
+        this.repairRefs = Object.freeze(requireStringArray(input.repairRefs, "repairRefs"));
+        this.testRefs = Object.freeze(requireStringArray(input.testRefs || [], "testRefs", { allowEmpty: evidenceMayBeMissing }));
+        this.missingEvidence = Object.freeze(requireStringArray(input.missingEvidence || [], "missingEvidence", {
+          allowEmpty: !evidenceMayBeMissing,
+        }));
+        if (evidenceMayBeMissing && this.missingEvidence.length === 0) {
+          throw new Error("missingEvidence must be non-empty for notVerifiable");
+        }
+        if (!evidenceMayBeMissing && this.missingEvidence.length > 0) {
+          throw new Error(`missingEvidence must be empty for ${this.status}`);
+        }
+        Object.freeze(this);
+      }
+    
+      toJSON() {
+        return {
+          requirementId: this.requirementId,
+          status: this.status,
+          requestRefs: [...this.requestRefs],
+          requirementRefs: [...this.requirementRefs],
+          diffRefs: [...this.diffRefs],
+          repairRefs: [...this.repairRefs],
+          testRefs: [...this.testRefs],
+          missingEvidence: [...this.missingEvidence],
+        };
+      }
+    }
+    
+    export class MechanicalBlocker {
+      constructor(input = {}) {
+        this.blockerId = requireString(input.blockerId, "blockerId");
+        this.kind = requireString(input.kind, "kind");
+        this.summary = requireString(input.summary, "summary");
+        Object.freeze(this);
+      }
+    
+      toJSON() {
+        return { blockerId: this.blockerId, kind: this.kind, summary: this.summary };
+      }
+    }
+    
+    export class AcceptanceTestEvidenceProjection {
+      constructor(artifacts = {}) {
+        const project = (file, fields) => {
+          const source = artifacts[file];
+          if (!source) return null;
+          return Object.fromEntries(fields.filter((field) => Object.hasOwn(source, field)).map((field) => [field, clone(source[field])]));
+        };
+        this.artifacts = Object.freeze(Object.fromEntries([
+          ["scenario-validity-result.json", project("scenario-validity-result.json", ["version", "command", "process", "result", "summary"])],
+          ["test-execute-result.json", project("test-execute-result.json", ["version", "summary", "regression", "repairFingerprint"])],
+          ["test-result-review.json", project("test-result-review.json", ["verdict", "checked_items", "result_file_path", "raw_output_path", "repairFingerprint"])],
+          ["impl-review.json", project("impl-review.json", ["version", "phase", "verdict", "summary", "blockingFindings", "nonBlockingImprovements", "repairFingerprint"])],
+          ["impl-gate-result.json", project("impl-gate-result.json", ["verdict", "phase", "issues", "evaluations", "observations", "repairFingerprint"])],
+          ["retro.json", project("retro.json", ["mode", "date", "summary", "requirements", "repairFingerprint"])],
+        ].filter(([, value]) => value !== null)));
+        Object.freeze(this);
+      }
+    
+      toJSON() {
+        return clone(this.artifacts);
+      }
+    }
+    
+    export class DeferredAcceptanceFinding {
+      constructor(input = {}) {
+        this.findingId = requireString(input.findingId, "findingId");
+        this.sourceStep = requireString(input.sourceStep, "sourceStep");
+        this.sourceArtifact = requireString(input.sourceArtifact, "sourceArtifact");
+        this.sourceFindingId = requireString(input.sourceFindingId, "sourceFindingId");
+        this.finalDisposition = requireFinalDisposition(input.finalDisposition);
+        this.evidenceRefs = Object.freeze(requireStringArray(input.evidenceRefs || [], "evidenceRefs", { allowEmpty: true }));
+        Object.freeze(this);
+      }
+    
+      toJSON() {
+        return {
+          findingId: this.findingId,
+          sourceStep: this.sourceStep,
+          sourceArtifact: this.sourceArtifact,
+          sourceFindingId: this.sourceFindingId,
+          finalDisposition: this.finalDisposition,
+          evidenceRefs: [...this.evidenceRefs],
+        };
+      }
+    }
+    
+    export class AcceptanceReviewOutcome {
+      constructor(input = {}) {
+        if (input.version !== 2) throw new Error("acceptance-review version must be 2");
+        this.version = 2;
+        this.repairFingerprint = requireString(input.repairFingerprint, "repairFingerprint");
+        if (!/^[a-f0-9]{64}$/i.test(this.repairFingerprint)) {
+          throw new Error("repairFingerprint must be a 64-character SHA-256 digest");
+        }
+        if (!Array.isArray(input.mechanicalBlockers)) throw new Error("mechanicalBlockers must be an array");
+        this.mechanicalBlockers = Object.freeze(input.mechanicalBlockers.map((entry) => (
+          entry instanceof MechanicalBlocker ? entry : new MechanicalBlocker(entry)
+        )));
+        if (!Array.isArray(input.hardBlockers)) throw new Error("hardBlockers must be an array");
+        this.hardBlockers = Object.freeze(clone(input.hardBlockers));
+        if (!Array.isArray(input.requirementJudgments)) throw new Error("requirementJudgments must be an array");
+        this.requirementJudgments = Object.freeze(input.requirementJudgments.map((entry) => (
+          entry instanceof RequirementAcceptanceJudgment ? entry : new RequirementAcceptanceJudgment(entry)
+        )));
+        if (!Array.isArray(input.deferredFindings)) throw new Error("deferredFindings must be an array");
+        this.deferredFindings = Object.freeze(input.deferredFindings.map((entry) => (
+          entry instanceof DeferredAcceptanceFinding ? entry : new DeferredAcceptanceFinding(entry)
+        )));
+        this.userDecision = input.userDecision == null ? null : Object.freeze(clone(input.userDecision));
+        if (this.userDecision !== null) {
+          if (!USER_DECISION_CHOICES.has(this.userDecision.choice)) throw new Error("userDecision.choice is invalid");
+          if (Number.isNaN(Date.parse(this.userDecision.decidedAt))) throw new Error("userDecision.decidedAt must be an ISO timestamp");
+        }
+        this.verdict = deriveAcceptanceReviewVerdict(this);
+        Object.freeze(this);
+      }
+    
+      toJSON() {
+        return {
+          version: this.version,
+          repairFingerprint: this.repairFingerprint,
+          mechanicalBlockers: this.mechanicalBlockers.map((entry) => entry.toJSON()),
+          hardBlockers: clone(this.hardBlockers),
+          requirementJudgments: this.requirementJudgments.map((entry) => entry.toJSON()),
+          deferredFindings: this.deferredFindings.map((entry) => entry.toJSON()),
+          userDecision: this.userDecision == null ? null : clone(this.userDecision),
+          verdict: this.verdict,
+        };
+      }
+    }
+    
+    export class AcceptanceEvidenceBindings {
+      constructor(context) {
+        this.requestRef = "flow.request";
+        this.requirementIds = Object.freeze([...context.requirementIds]);
+        this.diffRefs = Object.freeze(
+          [...String(context.evidence.diff || "").matchAll(/^diff --git a\/(.+?) b\/(.+)$/gm)]
+            .flatMap((match) => [`diff:${match[1]}`, `diff:${match[2]}`]),
+        );
+        const repair = context.evidence.repairEvidence;
+        const repairRefs = new Set([repair.ref]);
+        if (repair.kind === "repair-audit") {
+          for (const [index, entry] of (repair.artifact?.repairs || []).entries()) {
+            repairRefs.add(`${repair.ref}#repairs[${index}]`);
+            if (entry?.id) repairRefs.add(`${repair.ref}#${entry.id}`);
+          }
+        }
+        this.repairRefs = Object.freeze([...repairRefs]);
+        Object.freeze(this);
+      }
+    
+      validate(input) {
+        const judgment = input instanceof RequirementAcceptanceJudgment
+          ? input
+          : new RequirementAcceptanceJudgment(input);
+        if (!this.requirementIds.includes(judgment.requirementId)) {
+          throw new Error(`unknown requirement judgment: ${judgment.requirementId}`);
+        }
+        if (judgment.requestRefs.some((ref) => ref !== this.requestRef)) {
+          throw new Error(`${judgment.requirementId}: requestRefs must cite ${this.requestRef}`);
+        }
+        const requirementRef = `spec.json#${judgment.requirementId}`;
+        if (judgment.requirementRefs.some((ref) => ref !== requirementRef)) {
+          throw new Error(`${judgment.requirementId}: requirementRefs must cite ${requirementRef}`);
+        }
+        if (judgment.diffRefs.some((ref) => !this.diffRefs.includes(ref))) {
+          throw new Error(`${judgment.requirementId}: diffRefs contain a path outside the current diff`);
+        }
+        if (judgment.repairRefs.some((ref) => !this.repairRefs.includes(ref))) {
+          throw new Error(`${judgment.requirementId}: repairRefs do not cite current repair evidence`);
+        }
+        const allowedTestRefs = new Set([
+          "test-execute-result.json",
+          `test-execute-result.json#${judgment.requirementId}`,
+          "test-result-review.json",
+        ]);
+        if (judgment.testRefs.some((ref) => !allowedTestRefs.has(ref))) {
+          throw new Error(`${judgment.requirementId}: testRefs do not cite current test evidence`);
+        }
+        return judgment;
+      }
+    }
+    
+    export function deriveAcceptanceReviewVerdict(artifact = {}) {
+      if ((artifact.mechanicalBlockers || []).length > 0 || (artifact.hardBlockers || []).length > 0) return "blocked";
+      const judgments = artifact.requirementJudgments || [];
+      if (judgments.some((judgment) => judgment.status === "notMet")) return "repair_required";
+      if (judgments.some((judgment) => judgment.status === "notVerifiable")) return "user_decision_required";
+      return "pass";
+    }
+    
+    function normalizeArtifact(input = {}) {
+      return new AcceptanceReviewOutcome(input).toJSON();
+    }
+    
+    export function validateAcceptanceReviewArtifact(artifact, { requirementIds = null } = {}) {
+      const errors = validateSchema(artifact, acceptanceSchema());
+      if (errors.length > 0) throw new Error(`acceptance-review schema validation failed: ${errors.join("; ")}`);
+      if (!VERDICTS.has(artifact.verdict)) throw new Error(`invalid acceptance-review verdict: ${artifact.verdict}`);
+      const judgments = artifact.requirementJudgments.map((entry) => new RequirementAcceptanceJudgment(entry));
+      const expected = Array.isArray(requirementIds) ? requirementIds : judgments.map((entry) => entry.requirementId);
+      const actual = new Set();
+      for (const judgment of judgments) {
+        if (actual.has(judgment.requirementId)) throw new Error(`duplicate requirement judgment: ${judgment.requirementId}`);
+        actual.add(judgment.requirementId);
+        if (!expected.includes(judgment.requirementId)) throw new Error(`unknown requirement judgment: ${judgment.requirementId}`);
+      }
+      for (const requirementId of expected) {
+        if (!actual.has(requirementId)) throw new Error(`missing requirement judgment: ${requirementId}`);
+      }
+      const derived = deriveAcceptanceReviewVerdict(artifact);
+      if (artifact.verdict !== derived) throw new Error(`acceptance-review verdict must match derived verdict: ${derived}`);
+      return artifact;
+    }
+    
+    function validateDeferredFindingCoverage(specDir, deferredFindings, flowState = null) {
+      const expected = readFlowFindingsArtifact(specDir, { flowState }).entries.map((entry) => entry.findingId);
+      const actual = deferredFindings.map((entry) => entry.findingId);
+      if (new Set(actual).size !== actual.length) throw new Error("duplicate deferred finding classification");
+      for (const findingId of expected) {
+        if (!actual.includes(findingId)) throw new Error(`missing deferred finding classification: ${findingId}`);
+      }
+      for (const findingId of actual) {
+        if (!expected.includes(findingId)) throw new Error(`unknown deferred finding classification: ${findingId}`);
+      }
+    }
+    
+    export function writeAcceptanceReviewArtifact({
+      specDir,
+      artifact,
+      requirementIds = null,
+      fingerprint = null,
+      flowState = null,
+    }) {
+      const normalized = normalizeArtifact(artifact);
+      const reportPath = path.join(specDir, "report.json");
+      if (fs.existsSync(reportPath)) normalized.reportRefs = ["report.json"];
+      validateDeferredFindingCoverage(specDir, normalized.deferredFindings, flowState);
+      validateAcceptanceReviewArtifact(normalized, { requirementIds });
+      if (!fingerprint) throw new Error("acceptance-review writer requires the current repair fingerprint");
+      const written = writeRepairEvidenceArtifact({
+        specDir,
+        stepId: "acceptance-review",
+        artifact: normalized,
+        fingerprint,
+      });
+      if (normalized.deferredFindings.length > 0) mirrorFinalDispositions(specDir, normalized.deferredFindings);
+      return written;
+    }
+    
+    function dispositionEvidence(specDir) {
+      const file = path.join(specDir, "acceptance-review-evidence.json");
+      if (!fs.existsSync(file)) return new Map();
+      const data = readJson(file);
+      return new Map((data.deferredFindingDispositions || []).map((entry) => [entry.findingId, {
+        finalDisposition: requireFinalDisposition(entry.finalDisposition),
+        evidenceRefs: Array.isArray(entry.evidenceRefs) ? entry.evidenceRefs : [],
+      }]));
+    }
+    
+    function buildDeferredFindingsFromEvidence(specDir, flowState = null) {
+      const evidence = dispositionEvidence(specDir);
+      return readFlowFindingsArtifact(specDir, { flowState }).entries.map((entry) => {
+        const decision = evidence.get(entry.findingId);
+        return new DeferredAcceptanceFinding({
+          findingId: entry.findingId,
+          sourceStep: entry.sourceStep,
+          sourceArtifact: entry.sourceArtifact,
+          sourceFindingId: entry.sourceFindingId,
+          finalDisposition: decision?.finalDisposition || "still_open",
+          evidenceRefs: decision?.evidenceRefs || [],
+        }).toJSON();
+      });
+    }
+    
+    function deferredSourceBlockers(specDir, deferredFindings) {
+      const blockers = [];
+      for (const finding of deferredFindings) {
+        const source = readBoundedSourceArtifact(specDir, finding.sourceArtifact);
+        if (!source || !JSON.stringify(source).includes(finding.sourceFindingId)) {
+          blockers.push(new MechanicalBlocker({
+            blockerId: `M-deferred-${blockers.length + 1}`,
+            kind: "missing_deferred_source",
+            summary: `Deferred source evidence is missing: ${finding.sourceArtifact}#${finding.sourceFindingId}.`,
+          }).toJSON());
+        } else if (finding.finalDisposition === "still_open" || finding.finalDisposition === "blocking") {
+          blockers.push(new MechanicalBlocker({
+            blockerId: `M-deferred-${blockers.length + 1}`,
+            kind: "unresolved_deferred_finding",
+            summary: `Deferred finding remains unresolved: ${finding.findingId}.`,
+          }).toJSON());
+        }
+      }
+      return blockers;
+    }
+    
+    export function classifyMechanicalBlockers(input = {}) {
+      const blockers = [];
+      const add = (kind, summary) => blockers.push(new MechanicalBlocker({
+        blockerId: `M-${blockers.length + 1}`,
+        kind,
+        summary,
+      }).toJSON());
+      if (input.tests?.missing) add("missing_tests", "Test evidence is missing.");
+      if (input.tests?.failed) add("failed_tests", "Test evidence contains failures.");
+      for (const id of input.tests?.missingRequired || []) add("missing_required_tests", `Required test coverage is missing for ${id}.`);
+      for (const file of input.artifacts?.missing || []) add("missing_artifact", `Required artifact is missing: ${file}.`);
+      for (const file of input.artifacts?.invalidSchemas || []) add("invalid_schema", `Required artifact is invalid: ${file}.`);
+      return blockers;
+    }
+    
+    function requirementList(specDir) {
+      return readJson(path.join(specDir, "spec.json")).requirements || [];
+    }
+    
+    function validateRequirementSummaryMembership(summary, requirements) {
+      const expected = requirements.filter((entry) => entry.testable !== false).map((entry) => entry.id);
+      const actual = Array.isArray(summary) ? summary.map((entry) => entry?.id) : [];
+      if (new Set(actual).size !== actual.length) throw new Error("test-execute summary contains duplicate requirement ids");
+      const missing = expected.filter((id) => !actual.includes(id));
+      const unknown = actual.filter((id) => !expected.includes(id));
+      if (missing.length > 0 || unknown.length > 0) {
+        throw new Error(`test-execute summary membership invalid: missing=${missing.join(",")} unknown=${unknown.join(",")}`);
+      }
+      return missing;
+    }
+    
+    function readScenarioRawEvidence(specDir) {
+      const file = path.join(specDir, "tests/.raw/scenario-validity.log");
+      if (!fs.existsSync(file)) throw new Error("scenario-validity raw evidence is missing");
+      const size = fs.statSync(file).size;
+      if (size > MAX_ACCEPTANCE_RAW_EVIDENCE_BYTES) {
+        throw new Error(`scenario-validity raw evidence exceeds ${MAX_ACCEPTANCE_RAW_EVIDENCE_BYTES} bytes`);
+      }
+      return fs.readFileSync(file, "utf8");
+    }
+    
+    function validateImplReviewEvidence(artifact) {
+      if (!artifact || typeof artifact !== "object") throw new Error("impl-review artifact must be an object");
+      if (!["PASS", "ADVISORY", "FAIL"].includes(artifact.verdict)) throw new Error("impl-review verdict is invalid");
+      if (!Array.isArray(artifact.blockingFindings)) throw new Error("impl-review blockingFindings must be an array");
+      if (!Array.isArray(artifact.nonBlockingImprovements)) throw new Error("impl-review nonBlockingImprovements must be an array");
+      if (!artifact.summary || typeof artifact.summary !== "object") throw new Error("impl-review summary is required");
+      if (artifact.summary.blocking !== artifact.blockingFindings.length) throw new Error("impl-review blocking summary is inconsistent");
+      if (artifact.summary.nonBlocking !== artifact.nonBlockingImprovements.length) throw new Error("impl-review non-blocking summary is inconsistent");
+      const expectedVerdict = artifact.blockingFindings.length > 0
+        ? "FAIL"
+        : artifact.nonBlockingImprovements.length > 0 ? "ADVISORY" : "PASS";
+      if (artifact.verdict !== expectedVerdict) throw new Error("impl-review verdict does not match findings");
+      for (const finding of artifact.blockingFindings) requireString(finding?.findingId, "impl-review findingId");
+    }
+    
+    function validateImplGateEvidence(artifact) {
+      if (!artifact || typeof artifact !== "object") throw new Error("impl-gate artifact must be an object");
+      if (!["pass", "fail"].includes(artifact.verdict)) throw new Error("impl-gate verdict is invalid");
+      if (artifact.phase !== "integration") throw new Error("impl-gate phase must be integration");
+      if (!Array.isArray(artifact.evaluations)) throw new Error("impl-gate evaluations must be an array");
+      if (!Array.isArray(artifact.issues)) throw new Error("impl-gate issues must be an array");
+      const hasFailure = artifact.issues.length > 0 || artifact.evaluations.some((entry) => entry?.result === "fail");
+      if ((artifact.verdict === "pass") === hasFailure) throw new Error("impl-gate verdict does not match evaluations");
+    }
+    
+    function validateRetroEvidence(artifact, requirements) {
+      if (!artifact || typeof artifact !== "object") throw new Error("retro artifact must be an object");
+      if (artifact.mode !== "result-file") throw new Error("retro mode must be result-file");
+      if (Number.isNaN(Date.parse(artifact.date))) throw new Error("retro date must be an ISO timestamp");
+      if (!Array.isArray(artifact.requirements)) throw new Error("retro requirements must be an array");
+      if (!artifact.summary || typeof artifact.summary !== "object") throw new Error("retro summary is required");
+      const expectedCount = requirements.filter((entry) => entry.testable !== false).length;
+      if (artifact.requirements.length !== expectedCount || artifact.summary.total !== expectedCount) {
+        throw new Error("retro requirement count is inconsistent");
+      }
+      if (!Number.isInteger(artifact.summary.not_done) || artifact.summary.not_done < 0) {
+        throw new Error("retro summary.not_done is invalid");
+      }
+      for (const entry of artifact.requirements) {
+        if (!new Set(["done", "not_done", "not_applicable"]).has(entry?.status)) {
+          throw new Error("retro requirement status is invalid");
+        }
+      }
+    }
+    
+    function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
+      const missing = [];
+      const invalidSchemas = [];
+      const artifacts = {};
+      let repairEvidenceProjection = null;
+      for (const file of REQUIRED_MECHANICAL_ARTIFACTS) {
+        try {
+          const value = readBoundedSourceArtifact(specDir, file);
+          if (!value) missing.push(file);
+          else artifacts[file] = value;
+        } catch (_) {
+          invalidSchemas.push(file);
+        }
+      }
+      if (artifacts["scenario-validity-result.json"]) {
+        try {
+          const rawText = readScenarioRawEvidence(specDir);
+          validateScenarioValidityResult(artifacts["scenario-validity-result.json"], {
+            root,
+            specDir,
+            requirements,
+            rawText,
+          });
+        } catch (_) {
+          invalidSchemas.push("scenario-validity-result.json");
+        }
+      }
+      let missingRequired = [];
+      if (artifacts["test-execute-result.json"]) {
+        try {
+          validateTestExecuteResultV2(artifacts["test-execute-result.json"]);
+          missingRequired = validateRequirementSummaryMembership(
+            artifacts["test-execute-result.json"].summary,
+            requirements,
+          );
+        } catch (_) {
+          invalidSchemas.push("test-execute-result.json");
+          const present = new Set((artifacts["test-execute-result.json"].summary || []).map((entry) => entry?.id));
+          missingRequired = requirements
+            .filter((entry) => entry.testable !== false && !present.has(entry.id))
+            .map((entry) => entry.id);
+        }
+      }
+      if (artifacts["test-result-review.json"]) {
+        try {
+          validateTestResultReview(artifacts["test-result-review.json"]);
+        } catch (_) {
+          invalidSchemas.push("test-result-review.json");
+        }
+      }
+      const rejectedReviewTriage = artifacts["impl-review.json"]?.verdict === "FAIL"
+        && !fs.existsSync(path.join(specDir, "impl-repair.json")) ? (() => {
+        try {
+          return readRejectedImplReviewTriage(specDir);
+        } catch (_) {
+          invalidSchemas.push("impl-triage.json");
+          return null;
+        }
+      })() : null;
+      if (artifacts["impl-review.json"]) {
+        try {
+          validateImplReviewEvidence(artifacts["impl-review.json"]);
+        } catch (_) {
+          invalidSchemas.push("impl-review.json");
+        }
+      }
+      if (artifacts["impl-gate-result.json"]) {
+        try {
+          validateImplGateEvidence(artifacts["impl-gate-result.json"]);
+        } catch (_) {
+          invalidSchemas.push("impl-gate-result.json");
+        }
+      }
+      if (artifacts["retro.json"]) {
+        try {
+          validateRetroEvidence(artifacts["retro.json"], requirements);
+        } catch (_) {
+          invalidSchemas.push("retro.json");
+        }
+      }
+      if (fs.existsSync(path.join(specDir, "impl-repair.json"))) {
+        try {
+          const ledger = readImplRepairLedger(specDir);
+          if (!ledger || ledger.entries.length === 0) throw new Error("impl-repair ledger must contain an entry");
+          repairEvidenceProjection = ledger.toProjection(fingerprint);
+          if (!repairEvidenceProjection.currentFingerprintMatched) {
+            throw new Error("impl-repair ledger does not end at the current fingerprint");
+          }
+        } catch (_) {
+          invalidSchemas.push("impl-repair.json");
+        }
+      }
+      for (const file of FINGERPRINTED_INPUT_ARTIFACTS) {
+        if (!artifacts[file]) continue;
+        try {
+          assertRepairFingerprint({ artifact: artifacts[file], fingerprint, label: file });
+        } catch (_) {
+          invalidSchemas.push(file);
+        }
+      }
+      const testSummary = artifacts["test-execute-result.json"]?.summary || [];
+      const failed = artifacts["scenario-validity-result.json"]?.result !== "pass"
+        || testSummary.some((entry) => entry.result === "fail")
+        || artifacts["test-result-review.json"]?.verdict !== "pass"
+        || (!rejectedReviewTriage && !["PASS", "ADVISORY"].includes(artifacts["impl-review.json"]?.verdict))
+        || artifacts["impl-gate-result.json"]?.verdict !== "pass"
+        || Number(artifacts["retro.json"]?.summary?.not_done || 0) > 0;
+      return {
+        artifacts,
+        repairEvidenceProjection,
+        blockers: classifyMechanicalBlockers({
+          tests: {
+            missing: !artifacts["test-execute-result.json"],
+            failed,
+            missingRequired,
+          },
+          artifacts: { missing, invalidSchemas: [...new Set(invalidSchemas)] },
+        }),
+      };
+    }
+    
+    export function buildAcceptanceReviewContext({ root, state, diff }) {
+      const specDir = resolveSpecDir(path.resolve(root, state.spec));
+      const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+      const requirements = requirementList(specDir);
+      const mechanical = mechanicalArtifactState({ root, specDir, fingerprint, requirements });
+      const deferredFindings = buildDeferredFindingsFromEvidence(specDir, state);
+      const repairPath = path.join(specDir, "impl-repair.json");
+      const implReview = mechanical.artifacts["impl-review.json"];
+      const rejectedReviewTriage = !fs.existsSync(repairPath) && implReview?.verdict === "FAIL"
+        ? readRejectedImplReviewTriage(specDir)
+        : null;
+      const repairEvidence = fs.existsSync(repairPath)
+        ? {
+            kind: "repair-audit",
+            ref: "impl-repair.json",
+            artifact: mechanical.repairEvidenceProjection || { currentFingerprintMatched: false, repairs: [] },
+          }
+        : rejectedReviewTriage
+          ? { kind: "no-repair", ref: "impl-triage.json", artifact: rejectedReviewTriage }
+          : { kind: "no-repair", ref: "acceptance:no-repair", artifact: { reason: "No implementation repair was required." } };
+      return {
+        root,
+        specDir,
+        fingerprint,
+        requirementIds: requirements.map((entry) => entry.id),
+        evidence: {
+          originalRequest: typeof state.request === "string" && state.request.trim() !== "" ? state.request : null,
+          requirements,
+          diff,
+          repairEvidence,
+          testEvidence: new AcceptanceTestEvidenceProjection(mechanical.artifacts).toJSON(),
+          deferredFindings,
+        },
+        mechanicalBlockers: [
+          ...mechanical.blockers,
+          ...deferredSourceBlockers(specDir, deferredFindings),
+          ...(typeof state.request === "string" && state.request.trim() !== "" ? [] : [new MechanicalBlocker({
+            blockerId: "M-request",
+            kind: "missing_request",
+            summary: "The original flow request is missing.",
+          }).toJSON()]),
+        ],
+        deferredFindings,
+      };
+    }
+    
+    export function artifactFromAcceptanceJudgments({ context, requirementJudgments }) {
+      const missingReason = context.mechanicalBlockers.map((entry) => entry.summary).join("; ") || "Mechanical evidence is unavailable.";
+      const bindings = context.mechanicalBlockers.length > 0 ? null : new AcceptanceEvidenceBindings(context);
+      const judgments = context.mechanicalBlockers.length > 0
+        ? context.requirementIds.map((requirementId) => new RequirementAcceptanceJudgment({
+          requirementId,
+          status: "notVerifiable",
+          requestRefs: ["flow.request"],
+          requirementRefs: [`spec.json#${requirementId}`],
+          diffRefs: [],
+          repairRefs: [context.evidence.repairEvidence.ref],
+          testRefs: [],
+          missingEvidence: [missingReason],
+        }).toJSON())
+        : requirementJudgments.map((judgment) => bindings.validate(judgment).toJSON());
+      return normalizeArtifact({
+        version: 2,
+        repairFingerprint: context.fingerprint.hash,
+        mechanicalBlockers: context.mechanicalBlockers,
+        hardBlockers: [],
+        requirementJudgments: judgments,
+        deferredFindings: context.deferredFindings,
+        userDecision: null,
+      });
+    }
+    
+    function markStep(state, id, status) {
+      const step = findStepById(state.steps || [], id);
+      if (!step) return;
+      step.status = status;
+      if (status === "pending") {
+        delete step.startedAt;
+        delete step.finishedAt;
+      }
+    }
+    
+    function resetSteps(state, ids, inProgress = null) {
+      for (const id of ids) markStep(state, id, id === inProgress ? "in_progress" : "pending");
+    }
+    
+    function acceptanceArtifactPath(state) {
+      return path.posix.join(path.posix.dirname(state.spec.split(path.sep).join("/")), ACCEPTANCE_REVIEW_ARTIFACT_FILE);
+    }
+    
+    export function applyAcceptanceReviewResult({ root, flowManager, artifact }) {
+      const state = flowManager.load();
+      if (!state?.spec) throw new Error("active flow spec is required");
+      ensureRepairFingerprintContract({ root, state, flowManager });
+      const specDir = resolveSpecDir(path.resolve(root, state.spec));
+      const requirements = requirementList(specDir);
+      const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+      if (requireString(artifact.repairFingerprint, "repairFingerprint") !== fingerprint.hash) {
+        throw new Error("acceptance-review repairFingerprint does not match current inputs");
+      }
+      const written = writeAcceptanceReviewArtifact({
+        specDir,
+        artifact,
+        requirementIds: requirements.map((entry) => entry.id),
+        fingerprint,
+        flowState: state,
+      });
+      const next = written.artifact;
+      if (next.verdict === "repair_required") {
+        const findings = next.requirementJudgments
+          .filter((judgment) => judgment.status === "notMet")
+          .map((judgment) => ({
+            findingId: `acceptance:${judgment.requirementId}`,
+            summary: `Acceptance judgment is notMet for ${judgment.requirementId}.`,
+            suggestion: `Repair ${judgment.requirementId} and regenerate evidence.`,
+          }));
+        prepareImplTriageArtifact({
+          specDir,
+          sourceStep: "acceptance-review",
+          sourceArtifact: ACCEPTANCE_REVIEW_ARTIFACT_FILE,
+          findings,
+          fingerprint,
+        });
+      }
+      flowManager.mutate((current) => {
+        current.acceptanceReview = {
+          verdict: next.verdict,
+          artifactPath: acceptanceArtifactPath(current),
+          requirementJudgments: next.requirementJudgments,
+          mechanicalBlockers: next.mechanicalBlockers,
+          deferredFindings: next.deferredFindings,
+          updatedAt: new Date().toISOString(),
+        };
+        if (next.verdict === "pass") {
+          markStep(current, "acceptance-review", "done");
+          markStep(current, "acceptance-decision", "done");
+          markStep(current, "final-regression", "in_progress");
+        } else if (next.verdict === "repair_required") {
+          resetSteps(current, flowLeafIdsBetween("impl-triage", "finalize-cleanup"), "impl-triage");
+          markStep(current, "acceptance-review", "done");
+          markStep(current, "impl-triage", "in_progress");
+        } else if (next.verdict === "user_decision_required") {
+          markStep(current, "acceptance-review", "done");
+          markStep(current, "acceptance-decision", "in_progress");
+          markStep(current, "final-regression", "pending");
+        } else {
+          markStep(current, "acceptance-review", "in_progress");
+          markStep(current, "acceptance-decision", "pending");
+          markStep(current, "final-regression", "pending");
+        }
+      });
+      return { verdict: next.verdict, artifactPath: acceptanceArtifactPath(state), artifact: next, path: written.path };
+    }
+    
+    function appendRiskDecisionIssue(root, state) {
+      appendIssueLogEntry(root, state.spec, {
+        step: "acceptance-decision",
+        reason: "User explicitly selected accept_risk_and_continue for notVerifiable acceptance evidence.",
+        trigger: "flow set acceptance-decision",
+        resolution: "continue to final-regression with accepted risk",
+        taskId: null,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    export function applyAcceptanceDecision({ root, flowManager, choice }) {
+      if (!USER_DECISION_CHOICES.has(choice)) throw new Error(`invalid acceptance decision choice: ${choice}`);
+      const state = flowManager.load();
+      if (!state?.spec) throw new Error("active flow spec is required");
+      ensureRepairFingerprintContract({ root, state, flowManager });
+      const specDir = resolveSpecDir(path.resolve(root, state.spec));
+      const file = path.join(specDir, ACCEPTANCE_REVIEW_ARTIFACT_FILE);
+      const artifact = readJson(file);
+      if (artifact.verdict !== "user_decision_required") {
+        throw new Error(`acceptance-decision is not available for verdict: ${artifact.verdict}`);
+      }
+      const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+      assertRepairFingerprint({ artifact, fingerprint, label: ACCEPTANCE_REVIEW_ARTIFACT_FILE });
+      const userDecision = { choice, decidedAt: new Date().toISOString() };
+      artifact.userDecision = userDecision;
+      const written = writeAcceptanceReviewArtifact({
+        specDir,
+        artifact,
+        requirementIds: requirementList(specDir).map((entry) => entry.id),
+        fingerprint,
+        flowState: state,
+      });
+      const decidedArtifact = written.artifact;
+      flowManager.mutate((current) => {
+        current.acceptanceReview = current.acceptanceReview || { verdict: decidedArtifact.verdict };
+        current.acceptanceReview.userDecision = userDecision;
+        markStep(current, "acceptance-decision", "done");
+        if (choice === "accept_risk_and_continue") markStep(current, "final-regression", "in_progress");
+        else current.acceptanceReview.status = "aborted";
+      });
+      if (choice === "accept_risk_and_continue") appendRiskDecisionIssue(root, state);
+      return { verdict: decidedArtifact.verdict, choice, userDecision };
+    }
+    
+    export { ACCEPTANCE_FINAL_DISPOSITIONS };
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js:105:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 23.13028
+Command failed: node specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/328-bounded-review-convergence/tests/review-evidence-registration.test.js
+[senti] scenario-validity file start command=node specs/328-bounded-review-convergence/tests/review-execution-regression.test.js
+TAP version 13
+# Subtest: R3: ADVISORY with zero blocking findings is a completed review with handoff evidence
+not ok 1 - R3: ADVISORY with zero blocking findings is a completed review with handoff evidence
+  ---
+  duration_ms: 85.552363
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:42:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    normalizeReviewExecution must be implemented
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    normalize (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:32:10)
+    async TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:43:18)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R4: every execution mechanism failure becomes TOOLING_ERROR without findings
+not ok 2 - R4: every execution mechanism failure becomes TOOLING_ERROR without findings
+  ---
+  duration_ms: 5.564229
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:51:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    normalizeReviewExecution must be implemented
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    normalize (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:32:10)
+    async TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:53:20)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: phase-specific provider findings survive normalization into the canonical path
+not ok 3 - R7: phase-specific provider findings survive normalization into the canonical path
+  ---
+  duration_ms: 0.418562
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:64:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    normalizeReviewExecution must be implemented
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    normalize (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:32:10)
+    async TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:65:18)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R8: permission failure is external tooling state and never requests flow approval
+not ok 4 - R8: permission failure is external tooling state and never requests flow approval
+  ---
+  duration_ms: 0.376482
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:72:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    normalizeReviewExecution must be implemented
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    normalize (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:32:10)
+    async TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:73:18)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R9: Issue 451 regression keeps finalized ADVISORY when projection recording fails
+not ok 5 - R9: Issue 451 regression keeps finalized ADVISORY when projection recording fails
+  ---
+  duration_ms: 3.77402
+  type: 'test'
+  location: '<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:88:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    normalizeReviewExecution must be implemented
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    normalize (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:32:10)
+    async TestContext.<anonymous> (file://<worktree>/specs/328-bounded-review-convergence/tests/review-execution-regression.test.js:89:18)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 111.93782
+Command failed: node specs/328-bounded-review-convergence/tests/review-execution-regression.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/328-bounded-review-convergence/tests/review-execution-regression.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: disposition classes enforce PASS ADVISORY and REJECTED finding invariants
+[senti] requirement R2 observed: R2: canonical review evidence derives a stable phase task tree and digest identity
+[senti] requirement R3 observed: R3: non-blocking evidence and exhausted rejection resolve to acceptance handoff
+[senti] requirement R4 observed: R4: tooling retry budget is shared by the target and cannot be reset by provider changes
+[senti] requirement R5 observed: R5: spec-local independent evidence write is bounded immutable and idempotent
+[senti] requirement R6 observed: R6: each state exposes exactly one permitted operation and one handoff or blocker payload
+[senti] requirement R7 observed: R7: legacy FAIL and TOOLING_FAILURE values are not accepted as disposition aliases
+[senti] requirement R8 observed: R8: permission blocker never becomes a flow approval operation
+[senti] requirement R9 observed: R9: Issue 451 regression keeps finalized ADVISORY when projection recording fails
+[senti] scenario-validity tests end

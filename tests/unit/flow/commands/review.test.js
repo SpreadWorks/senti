@@ -255,7 +255,7 @@ describe("test-review spec-local file scope", () => {
     const md = formatTestReviewMd({
       verdict: "ADVISORY",
       coverageArtifact: "specs/demo/test-coverage.json",
-      toolingFailure: null,
+      toolingOutcome: null,
       blockingFindings: [],
       advisoryFindings: [{
         title: "Boundary case",
@@ -702,7 +702,7 @@ describe("spec review classification helpers", () => {
 
   it("renders structured spec-review.json with counts and targets", () => {
     const json = JSON.parse(formatSpecReviewJson({
-      verdict: "FAIL",
+      verdict: "REJECTED",
       blocking: [{
         title: "Missing acceptance condition",
         body: [
@@ -724,7 +724,7 @@ describe("spec review classification helpers", () => {
 
     assert.equal(json.version, 1);
     assert.equal(json.phase, "spec");
-    assert.equal(json.verdict, "FAIL");
+    assert.equal(json.verdict, "REJECTED");
     assert.deepEqual(json.counts, { blocking: 1, nonBlocking: 1, total: 2 });
     assert.equal(json.blockingFindings[0].target, "R1");
     assert.equal(json.nonBlockingImprovements[0].target, "src/lib/example.js");
@@ -1411,7 +1411,7 @@ describe("impl review structured artifact helpers", () => {
       const result = await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
       const artifact = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
 
-      assert.equal(result.artifacts.verdict, "FAIL");
+      assert.equal(result.artifacts.verdict, "REJECTED");
       assert.equal(artifact.summary.total, 1);
       assert.equal(artifact.nonBlockingImprovements.length, 0);
       assert.equal(artifact.blockingFindings[0].disposition, "deferred");
@@ -1513,7 +1513,7 @@ describe("impl review structured artifact helpers", () => {
       });
       const artifact = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
 
-      assert.equal(result.artifacts.verdict, "FAIL");
+      assert.equal(result.artifacts.verdict, "REJECTED");
       assert.equal(artifact.blockingFindings.length, 1);
       assert.equal(artifact.blockingFindings[0].disposition, "must-fix");
       assert.equal(artifact.nonBlockingImprovements.length, 0);

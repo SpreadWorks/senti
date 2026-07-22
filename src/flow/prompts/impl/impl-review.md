@@ -10,7 +10,7 @@
    - Reuse the previous `findingKey` for the same problem even when wording changes; use a distinct key for a different problem tied to the same requirement or guardrail.
    - Findings should name a touched file when file-specific and provide a replacement action that names the affected function, branch, assertion, prompt sentence, or artifact field.
    - If a proposal concerns an intentional guardrail exception and the applicable guardrail article permits acknowledged exceptions, remediate by recording the guardrail id in `spec.json.constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`. Do not use `design_principles`, approval notes, overview entries, task text, or review notes as exception acknowledgments.
-   - **If `impl-review.json.verdict` is `FAIL`**:
+   - **If `impl-review.json.verdict` is `REJECTED`**:
      1. Read `impl-review.json` and `review.md`.
      2. Continue to `impl-triage`; do not repair directly from the review step.
      3. Apply only findings whose typed disposition is `must-fix` through the triage artifact.

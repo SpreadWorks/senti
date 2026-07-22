@@ -352,7 +352,7 @@ function resolveDraftReviewLifecycle(input) {
   const route = draftReviewRouteForInput(input);
   const verdict = input.result?.artifacts?.verdict;
   const actions = [];
-  if (!["PASS", "ADVISORY", "FAIL"].includes(verdict)) return actions;
+  if (!["PASS", "ADVISORY", "REJECTED"].includes(verdict)) return actions;
   actions.push(new SetStepStatus({ step: route.reviewStepId, status: "done" }));
   if (verdict === "PASS") {
     actions.push(new SetStepStatus({ step: route.triageStepId, status: "done" }));
@@ -370,11 +370,12 @@ function resolveDraftReviewLifecycle(input) {
 function resolvePlanReviewLifecycle(input) {
   const phase = input.result?.artifacts?.phase || input.phase;
   const verdict = input.result?.artifacts?.verdict;
+  const toolingOutcome = input.result?.artifacts?.toolingOutcome;
   if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") {
     return resolveDraftReviewLifecycle(input);
   }
   const actions = [];
-  const recordRetry = verdict !== "TOOLING_FAILURE";
+  const recordRetry = !toolingOutcome;
   if (phase === "spec") {
     if (verdict === "PASS" || verdict === "ADVISORY") {
       actions.push(
@@ -382,7 +383,7 @@ function resolvePlanReviewLifecycle(input) {
         new SetStepStatus({ step: "spec-triage", status: "done" }),
         new SetStepStatus({ step: "spec-repair", status: "done" }),
       );
-    } else if (verdict === "FAIL") {
+    } else if (verdict === "REJECTED") {
       actions.push(new SetStepStatus({ step: "spec-review", status: "done" }));
     }
     if (recordRetry) actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
@@ -391,7 +392,7 @@ function resolvePlanReviewLifecycle(input) {
   if (phase === "test") {
     if (verdict === "PASS" || verdict === "ADVISORY") {
       actions.push(new SetStepStatus({ step: "test-review", status: "done" }));
-    } else if (verdict === "TOOLING_FAILURE") {
+    } else if (toolingOutcome) {
       actions.push(new AppendIssueLog({ source: "test-review-tooling-failure" }));
     }
     if (recordRetry) actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
@@ -412,9 +413,11 @@ function resolveImplReviewLifecycle(input) {
     ];
   }
   const verdict = input.result?.artifacts?.verdict;
+  const toolingOutcome = input.result?.artifacts?.toolingOutcome;
   const proposalCount = input.result?.artifacts?.proposalCount ?? 0;
   const actions = [];
   if (input.result?.artifacts?.phase === "impl") {
+    if (toolingOutcome) return actions;
     if (!flowScoped) {
       if (verdict === "PASS" || verdict === "ADVISORY") {
         actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
@@ -429,7 +432,7 @@ function resolveImplReviewLifecycle(input) {
         new SetStepStatus({ step: "impl-repair", status: "done" }),
         new SetStepStatus({ step: "impl-gate", status: "in_progress" }),
       );
-    } else if (flowScoped && verdict === "FAIL") {
+    } else if (flowScoped && verdict === "REJECTED") {
       actions.push(
         new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }),
         new SetStepStatus({ step: "impl-triage", status: "in_progress" }),
@@ -659,6 +662,7 @@ class FlowNode {
     requiresApproval = false,
     skippable = false,
     maxAttempts = 1,
+    toolingMaxAttempts = null,
     fallbacks = null,
     children = null,
     sideEffects = null,
@@ -675,6 +679,7 @@ class FlowNode {
     this.requiresApproval = requiresApproval;
     this.skippable = skippable;
     this.maxAttempts = createMaxAttempts(maxAttempts);
+    this.toolingMaxAttempts = toolingMaxAttempts == null ? null : createMaxAttempts(toolingMaxAttempts);
     this.fallbacks = fallbacks ? Object.freeze([...fallbacks]) : null;
     this.children = children ? Object.freeze(children.map((c) => Object.freeze(c))) : null;
     this.sideEffects = sideEffects ? Object.freeze([...sideEffects]) : null;
@@ -691,6 +696,10 @@ class FlowNode {
 
   resolveMaxAttempts(context = {}) {
     return this.maxAttempts.resolve(context);
+  }
+
+  resolveToolingMaxAttempts(context = {}) {
+    return this.toolingMaxAttempts?.resolve(context) ?? null;
   }
 
   resolveLifecycle(input = {}) {
@@ -738,6 +747,7 @@ function createPlanReviewNode({ id, label, contextKinds }) {
     contextKinds,
     outputSchemaRef: "next-action/review.schema.json",
     maxAttempts,
+    toolingMaxAttempts: 1,
     failurePolicy: "retry",
     definitionLifecycleOwned: true,
   });
@@ -944,6 +954,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "diff", "testlog"],
         outputSchemaRef: "next-action/review.schema.json",
         maxAttempts: 4,
+        toolingMaxAttempts: 1,
         failurePolicy: "retry",
         definitionLifecycleOwned: true,
       }),
@@ -1096,6 +1107,7 @@ const TASK_DEFINITION = Object.freeze([
     contextKinds: ["task_spec", "diff", "testlog"],
     outputSchemaRef: "next-action/review.schema.json",
     maxAttempts: 4,
+    toolingMaxAttempts: 1,
     failurePolicy: "retry",
     definitionLifecycleOwned: true,
   }),
@@ -1185,6 +1197,11 @@ export function getTaskNode(id) {
 export function resolveMaxAttempts({ scope = "flow", stepId, context = {} }) {
   const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
   return node?.resolveMaxAttempts(context) ?? null;
+}
+
+export function resolveToolingMaxAttempts({ scope = "flow", stepId, context = {} }) {
+  const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
+  return node?.resolveToolingMaxAttempts(context) ?? null;
 }
 
 export function resolveSideEffects({ scope = "flow", stepId }) {

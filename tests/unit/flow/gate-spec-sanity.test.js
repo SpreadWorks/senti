@@ -152,7 +152,7 @@ function withSpecRepairArtifacts(files, fn) {
 
 describe("validateSpecRepairAudit — spec review repair audit", () => {
   const failReview = {
-    verdict: "FAIL",
+    verdict: "REJECTED",
     blockingFindings: [
       {
         title: "Missing implementation target",
@@ -213,7 +213,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
     assert.deepEqual(issues, []);
   });
 
-  it("requires spec-triage.json when spec-review verdict is FAIL", () => {
+  it("requires spec-triage.json when spec-review verdict is REJECTED", () => {
     const issues = withSpecRepairArtifacts({ "spec-review.json": failReview }, validateSpecRepairAudit);
     assert.ok(issues.some((issue) => /spec-triage\.json is missing/.test(issue)), issues);
   });

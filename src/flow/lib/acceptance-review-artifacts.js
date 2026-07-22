@@ -8,11 +8,18 @@ import { findStepById } from "./step-tree.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   ACCEPTANCE_FINAL_DISPOSITIONS,
+  findSourceFinding,
+  MAX_SOURCE_ARTIFACT_READ_BYTES,
   mirrorFinalDispositions,
   readBoundedSourceArtifact,
   readFlowFindingsArtifact,
   validateFinalDisposition,
 } from "./flow-findings.js";
+import {
+  buildReviewHandoffFindings,
+  ReviewDisposition,
+  ReviewEvidence,
+} from "./review-convergence.js";
 import {
   assertRepairFingerprint,
   buildRepairFingerprint,
@@ -178,6 +185,133 @@ export class DeferredAcceptanceFinding {
   }
 }
 
+export class DeferredFindingBlocker {
+  constructor(finding) {
+    const normalized = finding instanceof DeferredAcceptanceFinding
+      ? finding
+      : new DeferredAcceptanceFinding(finding);
+    this.findingId = normalized.findingId;
+    this.kind = normalized.finalDisposition === "blocking"
+      ? "blocking_deferred_finding"
+      : "unresolved_deferred_finding";
+    this.summary = normalized.finalDisposition === "blocking"
+      ? `Deferred finding remains blocking: ${normalized.findingId}.`
+      : `Deferred finding remains unresolved: ${normalized.findingId}.`;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { findingId: this.findingId, kind: this.kind, summary: this.summary };
+  }
+}
+
+export class DeferredFindingEvidenceProjection {
+  constructor({ finding, sourceFinding }) {
+    const normalized = finding instanceof DeferredAcceptanceFinding
+      ? finding
+      : new DeferredAcceptanceFinding(finding);
+    if (!sourceFinding || typeof sourceFinding !== "object" || Array.isArray(sourceFinding)) {
+      throw new Error("deferred source finding must be an object");
+    }
+    this.findingId = normalized.findingId;
+    this.sourceRef = `${normalized.sourceArtifact}#${normalized.sourceFindingId}`;
+    this.sourceFinding = Object.freeze(clone(sourceFinding));
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      findingId: this.findingId,
+      sourceRef: this.sourceRef,
+      sourceFinding: clone(this.sourceFinding),
+    };
+  }
+}
+
+export class CanonicalReviewEvidenceProjection {
+  constructor({ specDir, record }) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      throw new Error("review convergence record is required");
+    }
+    const sourceArtifact = requireString(record.canonicalEvidenceRef, "canonicalEvidenceRef");
+    const sourcePath = path.resolve(specDir, sourceArtifact);
+    const relative = path.relative(specDir, sourcePath);
+    if (relative.startsWith("..") || path.isAbsolute(relative) || !fs.existsSync(sourcePath)) {
+      throw new Error("canonical review evidence is missing or outside the spec directory");
+    }
+    const sourceStat = fs.lstatSync(sourcePath);
+    if (!sourceStat.isFile() || sourceStat.isSymbolicLink()) {
+      throw new Error("canonical review evidence must be a regular file");
+    }
+    if (sourceStat.size > MAX_SOURCE_ARTIFACT_READ_BYTES) {
+      throw new Error(`canonical review evidence exceeds ${MAX_SOURCE_ARTIFACT_READ_BYTES} bytes`);
+    }
+    const realRelative = path.relative(fs.realpathSync(specDir), fs.realpathSync(sourcePath));
+    if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) {
+      throw new Error("canonical review evidence resolves outside the spec directory");
+    }
+    const canonicalText = fs.readFileSync(sourcePath, "utf8").replace(/\n$/, "");
+    const document = JSON.parse(canonicalText);
+    const evidence = new ReviewEvidence({
+      ...document,
+      disposition: new ReviewDisposition({
+        value: document.disposition,
+        blockingFindings: document.blockingFindings,
+        advisoryFindings: document.advisoryFindings,
+      }),
+    });
+    if (evidence.canonicalText !== canonicalText) {
+      throw new Error("canonical review evidence bytes are not canonical");
+    }
+    const identity = record.evidenceIdentity;
+    const digest = evidence.identity.evidenceDigest;
+    const expectedSourceArtifact = `review-evidence/${digest}.json`;
+    const identityMatches = identity
+      && identity.phase === evidence.phase
+      && (identity.taskId ?? null) === evidence.taskId
+      && identity.treeSha === evidence.treeSha
+      && identity.evidenceDigest === digest
+      && ["provider", "invocationId", "capturedAt"].every((field) => (
+        identity.provenance?.[field] === evidence.provenance[field]
+      ));
+    if (
+      !identityMatches
+      || record.phase !== evidence.phase
+      || (record.taskId ?? null) !== evidence.taskId
+      || record.treeSha !== evidence.treeSha
+      || record.evidence?.evidenceId !== digest
+      || record.evidence?.disposition !== evidence.disposition.value
+      || sourceArtifact !== expectedSourceArtifact
+    ) {
+      throw new Error("canonical review evidence does not match current flow state");
+    }
+    const expectedHandoffs = buildReviewHandoffFindings(evidence).map((entry) => entry.toJSON());
+    if (JSON.stringify(record.handoffFindings || []) !== JSON.stringify(expectedHandoffs)) {
+      throw new Error("canonical review handoff findings do not match current flow state");
+    }
+    this.sourceArtifact = sourceArtifact;
+    this.evidence = evidence;
+    Object.freeze(this);
+  }
+
+  findFinding(findingId) {
+    return this.evidence.findings.find((finding) => finding.findingId === findingId) || null;
+  }
+
+  toJSON() {
+    return {
+      sourceArtifact: this.sourceArtifact,
+      phase: this.evidence.phase,
+      taskId: this.evidence.taskId,
+      treeSha: this.evidence.treeSha,
+      disposition: this.evidence.disposition.value,
+      evidenceDigest: this.evidence.identity.evidenceDigest,
+      provenance: this.evidence.provenance.toJSON(),
+      findings: this.evidence.findings.map((finding) => finding.toJSON()),
+    };
+  }
+}
+
 export class AcceptanceReviewOutcome {
   constructor(input = {}) {
     if (input.version !== 2) throw new Error("acceptance-review version must be 2");
@@ -227,10 +361,10 @@ export class AcceptanceEvidenceBindings {
   constructor(context) {
     this.requestRef = "flow.request";
     this.requirementIds = Object.freeze([...context.requirementIds]);
-    this.diffRefs = Object.freeze(
+    this.diffRefs = Object.freeze([...new Set(
       [...String(context.evidence.diff || "").matchAll(/^diff --git a\/(.+?) b\/(.+)$/gm)]
         .flatMap((match) => [`diff:${match[1]}`, `diff:${match[2]}`]),
-    );
+    )]);
     const repair = context.evidence.repairEvidence;
     const repairRefs = new Set([repair.ref]);
     if (repair.kind === "repair-audit") {
@@ -240,6 +374,11 @@ export class AcceptanceEvidenceBindings {
       }
     }
     this.repairRefs = Object.freeze([...repairRefs]);
+    this.testRefs = Object.freeze([
+      "test-execute-result.json",
+      ...this.requirementIds.map((requirementId) => `test-execute-result.json#${requirementId}`),
+      "test-result-review.json",
+    ]);
     Object.freeze(this);
   }
 
@@ -273,6 +412,66 @@ export class AcceptanceEvidenceBindings {
     }
     return judgment;
   }
+
+  validateDeferredDisposition(input, finding) {
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      throw new Error("deferred finding disposition must be an object");
+    }
+    const findingId = requireString(input.findingId, "deferred disposition findingId");
+    if (findingId !== finding.findingId) {
+      throw new Error(`deferred finding disposition does not match ${finding.findingId}`);
+    }
+    const evidenceRefs = requireStringArray(
+      input.evidenceRefs,
+      `${findingId}.evidenceRefs`,
+    );
+    const sourceRef = `${finding.sourceArtifact}#${finding.sourceFindingId}`;
+    if (!evidenceRefs.includes(sourceRef)) {
+      throw new Error(`${findingId}: evidenceRefs must cite ${sourceRef}`);
+    }
+    const allowedRefs = new Set([
+      sourceRef,
+      ...this.diffRefs,
+      ...this.repairRefs,
+      ...this.testRefs,
+    ]);
+    if (evidenceRefs.some((ref) => !allowedRefs.has(ref))) {
+      throw new Error(`${findingId}: evidenceRefs contain an unbound acceptance reference`);
+    }
+    return new DeferredAcceptanceFinding({
+      ...finding,
+      finalDisposition: requireFinalDisposition(input.finalDisposition, `${findingId}.finalDisposition`),
+      evidenceRefs,
+    });
+  }
+}
+
+function resolveDeferredFindings({ context, bindings, dispositionJudgments }) {
+  const judgments = Array.isArray(dispositionJudgments) ? dispositionJudgments : [];
+  const byId = new Map();
+  for (const judgment of judgments) {
+    const findingId = requireString(judgment?.findingId, "deferred disposition findingId");
+    if (byId.has(findingId)) throw new Error(`duplicate deferred finding disposition: ${findingId}`);
+    byId.set(findingId, judgment);
+  }
+  const expectedIds = new Set(context.deferredFindings.map((finding) => finding.findingId));
+  for (const findingId of byId.keys()) {
+    if (!expectedIds.has(findingId)) throw new Error(`unknown deferred finding disposition: ${findingId}`);
+  }
+  return context.deferredFindings.map((finding) => {
+    const judgment = byId.get(finding.findingId);
+    if (judgment) return bindings.validateDeferredDisposition(judgment, finding).toJSON();
+    if (!["still_open", "blocking"].includes(finding.finalDisposition)) {
+      return new DeferredAcceptanceFinding(finding).toJSON();
+    }
+    throw new Error(`missing deferred finding disposition: ${finding.findingId}`);
+  });
+}
+
+function deferredFindingBlockers(deferredFindings) {
+  return deferredFindings
+    .filter((finding) => ["still_open", "blocking"].includes(finding.finalDisposition))
+    .map((finding) => new DeferredFindingBlocker(finding).toJSON());
 }
 
 export function deriveAcceptanceReviewVerdict(artifact = {}) {
@@ -308,7 +507,10 @@ export function validateAcceptanceReviewArtifact(artifact, { requirementIds = nu
 }
 
 function validateDeferredFindingCoverage(specDir, deferredFindings, flowState = null) {
-  const expected = readFlowFindingsArtifact(specDir, { flowState }).entries.map((entry) => entry.findingId);
+  const expected = [
+    ...readFlowFindingsArtifact(specDir, { flowState }).entries.map((entry) => entry.findingId),
+    ...reviewHandoffFindings(flowState).map((entry) => entry.findingId),
+  ];
   const actual = deferredFindings.map((entry) => entry.findingId);
   if (new Set(actual).size !== actual.length) throw new Error("duplicate deferred finding classification");
   for (const findingId of expected) {
@@ -352,9 +554,40 @@ function dispositionEvidence(specDir) {
   }]));
 }
 
+function latestReviewConvergenceRecords(flowState) {
+  const records = Array.isArray(flowState?.reviewConvergence?.records)
+    ? flowState.reviewConvergence.records
+    : [];
+  const latest = new Map();
+  for (const record of records) {
+    latest.set(`${record.phase}:${record.taskId ?? ""}`, record);
+  }
+  return [...latest.values()];
+}
+
+function reviewHandoffFindingId(record, finding) {
+  const digest = record.evidence?.evidenceId || record.evidenceIdentity?.evidenceDigest;
+  return `RF-${String(digest).slice(0, 12)}-${finding.findingId}`;
+}
+
+function reviewHandoffFindings(flowState) {
+  return latestReviewConvergenceRecords(flowState).flatMap((record) => (
+    Array.isArray(record.handoffFindings) ? record.handoffFindings.map((finding) => ({
+      findingId: reviewHandoffFindingId(record, finding),
+      sourceStep: finding.sourceStep || (record.taskId == null ? `${record.phase}-review` : "task-review"),
+      sourceArtifact: record.canonicalEvidenceRef || finding.canonicalEvidenceRef,
+      sourceFindingId: finding.findingId,
+      handoffFinding: finding,
+      record,
+    })) : []
+  ));
+}
+
 function buildDeferredFindingsFromEvidence(specDir, flowState = null) {
   const evidence = dispositionEvidence(specDir);
-  return readFlowFindingsArtifact(specDir, { flowState }).entries.map((entry) => {
+  const flowFindingEntries = readFlowFindingsArtifact(specDir, { flowState }).entries;
+  const deferredFingerprints = new Set(flowFindingEntries.map((entry) => entry.fingerprint));
+  const deferred = flowFindingEntries.map((entry) => {
     const decision = evidence.get(entry.findingId);
     return new DeferredAcceptanceFinding({
       findingId: entry.findingId,
@@ -365,27 +598,82 @@ function buildDeferredFindingsFromEvidence(specDir, flowState = null) {
       evidenceRefs: decision?.evidenceRefs || [],
     }).toJSON();
   });
+  const reviewHandoffs = reviewHandoffFindings(flowState)
+    .filter((entry) => !deferredFingerprints.has(entry.handoffFinding.fingerprint))
+    .map((entry) => {
+    const decision = evidence.get(entry.findingId);
+    return new DeferredAcceptanceFinding({
+      findingId: entry.findingId,
+      sourceStep: entry.sourceStep,
+      sourceArtifact: entry.sourceArtifact,
+      sourceFindingId: entry.sourceFindingId,
+      finalDisposition: decision?.finalDisposition || "still_open",
+      evidenceRefs: decision?.evidenceRefs || [],
+    }).toJSON();
+    });
+  return [...deferred, ...reviewHandoffs];
 }
 
-function deferredSourceBlockers(specDir, deferredFindings) {
+function latestImplReviewRecord(flowState) {
+  return latestReviewConvergenceRecords(flowState).find((record) => (
+    record.phase === "impl" && (record.taskId ?? null) === null
+  )) || null;
+}
+
+function readCanonicalImplReviewEvidence(specDir, flowState) {
+  const record = latestImplReviewRecord(flowState);
+  return record == null ? null : new CanonicalReviewEvidenceProjection({ specDir, record });
+}
+
+function inspectDeferredSources(specDir, deferredFindings, flowState) {
   const blockers = [];
+  const evidence = [];
+  const sourceCache = new Map();
+  const canonicalCache = new Map();
+  const reviewHandoffs = new Map(reviewHandoffFindings(flowState).map((entry) => [entry.findingId, entry]));
+  const addMissing = (finding) => blockers.push(new MechanicalBlocker({
+    blockerId: `M-deferred-${blockers.length + 1}`,
+    kind: "missing_deferred_source",
+    summary: `Deferred source evidence is missing: ${finding.sourceArtifact}#${finding.sourceFindingId}.`,
+  }).toJSON());
+
   for (const finding of deferredFindings) {
-    const source = readBoundedSourceArtifact(specDir, finding.sourceArtifact);
-    if (!source || !JSON.stringify(source).includes(finding.sourceFindingId)) {
-      blockers.push(new MechanicalBlocker({
-        blockerId: `M-deferred-${blockers.length + 1}`,
-        kind: "missing_deferred_source",
-        summary: `Deferred source evidence is missing: ${finding.sourceArtifact}#${finding.sourceFindingId}.`,
-      }).toJSON());
-    } else if (finding.finalDisposition === "still_open" || finding.finalDisposition === "blocking") {
-      blockers.push(new MechanicalBlocker({
-        blockerId: `M-deferred-${blockers.length + 1}`,
-        kind: "unresolved_deferred_finding",
-        summary: `Deferred finding remains unresolved: ${finding.findingId}.`,
-      }).toJSON());
+    const handoff = reviewHandoffs.get(finding.findingId);
+    let sourceFinding = null;
+    try {
+      if (handoff) {
+        const record = handoff.record;
+        if (record.canonicalEvidenceRef !== finding.sourceArtifact) {
+          addMissing(finding);
+          continue;
+        }
+        if (!canonicalCache.has(record)) {
+          canonicalCache.set(record, new CanonicalReviewEvidenceProjection({ specDir, record }));
+        }
+        sourceFinding = canonicalCache.get(record).findFinding(finding.sourceFindingId);
+      } else {
+        if (!sourceCache.has(finding.sourceArtifact)) {
+          sourceCache.set(
+            finding.sourceArtifact,
+            readBoundedSourceArtifact(specDir, finding.sourceArtifact),
+          );
+        }
+        sourceFinding = findSourceFinding(
+          sourceCache.get(finding.sourceArtifact),
+          finding.sourceStep,
+          finding.sourceFindingId,
+        );
+      }
+    } catch (_) {
+      sourceFinding = null;
     }
+    if (!sourceFinding) {
+      addMissing(finding);
+      continue;
+    }
+    evidence.push(new DeferredFindingEvidenceProjection({ finding, sourceFinding }).toJSON());
   }
-  return blockers;
+  return { blockers, evidence };
 }
 
 export function classifyMechanicalBlockers(input = {}) {
@@ -431,14 +719,14 @@ function readScenarioRawEvidence(specDir) {
 
 function validateImplReviewEvidence(artifact) {
   if (!artifact || typeof artifact !== "object") throw new Error("impl-review artifact must be an object");
-  if (!["PASS", "ADVISORY", "FAIL"].includes(artifact.verdict)) throw new Error("impl-review verdict is invalid");
+  if (!["PASS", "ADVISORY", "REJECTED"].includes(artifact.verdict)) throw new Error("impl-review verdict is invalid");
   if (!Array.isArray(artifact.blockingFindings)) throw new Error("impl-review blockingFindings must be an array");
   if (!Array.isArray(artifact.nonBlockingImprovements)) throw new Error("impl-review nonBlockingImprovements must be an array");
   if (!artifact.summary || typeof artifact.summary !== "object") throw new Error("impl-review summary is required");
   if (artifact.summary.blocking !== artifact.blockingFindings.length) throw new Error("impl-review blocking summary is inconsistent");
   if (artifact.summary.nonBlocking !== artifact.nonBlockingImprovements.length) throw new Error("impl-review non-blocking summary is inconsistent");
   const expectedVerdict = artifact.blockingFindings.length > 0
-    ? "FAIL"
+    ? "REJECTED"
     : artifact.nonBlockingImprovements.length > 0 ? "ADVISORY" : "PASS";
   if (artifact.verdict !== expectedVerdict) throw new Error("impl-review verdict does not match findings");
   for (const finding of artifact.blockingFindings) requireString(finding?.findingId, "impl-review findingId");
@@ -474,11 +762,12 @@ function validateRetroEvidence(artifact, requirements) {
   }
 }
 
-function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
+function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flowState }) {
   const missing = [];
   const invalidSchemas = [];
   const artifacts = {};
   let repairEvidenceProjection = null;
+  let canonicalImplReviewEvidence = null;
   for (const file of REQUIRED_MECHANICAL_ARTIFACTS) {
     try {
       const value = readBoundedSourceArtifact(specDir, file);
@@ -524,7 +813,16 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
       invalidSchemas.push("test-result-review.json");
     }
   }
-  const rejectedReviewTriage = artifacts["impl-review.json"]?.verdict === "FAIL"
+  if (latestImplReviewRecord(flowState)) {
+    try {
+      canonicalImplReviewEvidence = readCanonicalImplReviewEvidence(specDir, flowState);
+    } catch (_) {
+      invalidSchemas.push("impl-review.json");
+    }
+  }
+  const implReviewVerdict = canonicalImplReviewEvidence?.evidence.disposition.value
+    || artifacts["impl-review.json"]?.verdict;
+  const rejectedReviewTriage = implReviewVerdict === "REJECTED"
     && !fs.existsSync(path.join(specDir, "impl-repair.json")) ? (() => {
     try {
       return readRejectedImplReviewTriage(specDir);
@@ -536,6 +834,20 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
   if (artifacts["impl-review.json"]) {
     try {
       validateImplReviewEvidence(artifacts["impl-review.json"]);
+      if (canonicalImplReviewEvidence) {
+        const canonical = canonicalImplReviewEvidence.evidence;
+        const artifactFindingIds = [
+          ...artifacts["impl-review.json"].blockingFindings,
+          ...artifacts["impl-review.json"].nonBlockingImprovements,
+        ].map((finding) => finding.findingId);
+        const canonicalFindingIds = canonical.findings.map((finding) => finding.findingId);
+        if (
+          artifacts["impl-review.json"].verdict !== canonical.disposition.value
+          || JSON.stringify(artifactFindingIds) !== JSON.stringify(canonicalFindingIds)
+        ) {
+          throw new Error("impl-review phase artifact does not match canonical typed evidence");
+        }
+      }
     } catch (_) {
       invalidSchemas.push("impl-review.json");
     }
@@ -568,6 +880,7 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
   }
   for (const file of FINGERPRINTED_INPUT_ARTIFACTS) {
     if (!artifacts[file]) continue;
+    if (file === "impl-review.json" && canonicalImplReviewEvidence) continue;
     try {
       assertRepairFingerprint({ artifact: artifacts[file], fingerprint, label: file });
     } catch (_) {
@@ -578,11 +891,12 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements }) {
   const failed = artifacts["scenario-validity-result.json"]?.result !== "pass"
     || testSummary.some((entry) => entry.result === "fail")
     || artifacts["test-result-review.json"]?.verdict !== "pass"
-    || (!rejectedReviewTriage && !["PASS", "ADVISORY"].includes(artifacts["impl-review.json"]?.verdict))
+    || (!rejectedReviewTriage && !["PASS", "ADVISORY"].includes(implReviewVerdict))
     || artifacts["impl-gate-result.json"]?.verdict !== "pass"
     || Number(artifacts["retro.json"]?.summary?.not_done || 0) > 0;
   return {
     artifacts,
+    canonicalImplReviewEvidence,
     repairEvidenceProjection,
     blockers: classifyMechanicalBlockers({
       tests: {
@@ -599,11 +913,18 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
   const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
   const requirements = requirementList(specDir);
-  const mechanical = mechanicalArtifactState({ root, specDir, fingerprint, requirements });
+  const mechanical = mechanicalArtifactState({
+    root,
+    specDir,
+    fingerprint,
+    requirements,
+    flowState: state,
+  });
   const deferredFindings = buildDeferredFindingsFromEvidence(specDir, state);
+  const deferredSources = inspectDeferredSources(specDir, deferredFindings, state);
   const repairPath = path.join(specDir, "impl-repair.json");
   const implReview = mechanical.artifacts["impl-review.json"];
-  const rejectedReviewTriage = !fs.existsSync(repairPath) && implReview?.verdict === "FAIL"
+  const rejectedReviewTriage = !fs.existsSync(repairPath) && implReview?.verdict === "REJECTED"
     ? readRejectedImplReviewTriage(specDir)
     : null;
   const repairEvidence = fs.existsSync(repairPath)
@@ -626,11 +947,13 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
       diff,
       repairEvidence,
       testEvidence: new AcceptanceTestEvidenceProjection(mechanical.artifacts).toJSON(),
+      reviewEvidence: mechanical.canonicalImplReviewEvidence?.toJSON() || null,
       deferredFindings,
+      deferredFindingEvidence: deferredSources.evidence,
     },
     mechanicalBlockers: [
       ...mechanical.blockers,
-      ...deferredSourceBlockers(specDir, deferredFindings),
+      ...deferredSources.blockers,
       ...(typeof state.request === "string" && state.request.trim() !== "" ? [] : [new MechanicalBlocker({
         blockerId: "M-request",
         kind: "missing_request",
@@ -641,7 +964,11 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
   };
 }
 
-export function artifactFromAcceptanceJudgments({ context, requirementJudgments }) {
+export function artifactFromAcceptanceJudgments({
+  context,
+  requirementJudgments,
+  deferredFindingDispositions = [],
+}) {
   const missingReason = context.mechanicalBlockers.map((entry) => entry.summary).join("; ") || "Mechanical evidence is unavailable.";
   const bindings = context.mechanicalBlockers.length > 0 ? null : new AcceptanceEvidenceBindings(context);
   const judgments = context.mechanicalBlockers.length > 0
@@ -656,13 +983,22 @@ export function artifactFromAcceptanceJudgments({ context, requirementJudgments 
       missingEvidence: [missingReason],
     }).toJSON())
     : requirementJudgments.map((judgment) => bindings.validate(judgment).toJSON());
+  const deferredFindings = context.mechanicalBlockers.length > 0
+    ? context.deferredFindings
+    : resolveDeferredFindings({
+        context,
+        bindings,
+        dispositionJudgments: deferredFindingDispositions,
+      });
   return normalizeArtifact({
     version: 2,
     repairFingerprint: context.fingerprint.hash,
     mechanicalBlockers: context.mechanicalBlockers,
-    hardBlockers: [],
+    hardBlockers: context.mechanicalBlockers.length > 0
+      ? []
+      : deferredFindingBlockers(deferredFindings),
     requirementJudgments: judgments,
-    deferredFindings: context.deferredFindings,
+    deferredFindings,
     userDecision: null,
   });
 }

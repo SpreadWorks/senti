@@ -7,6 +7,7 @@
    - Evidence refs are bound to the current request, exact requirement id, paths present in the current base-branch diff, the selected repair/no-repair record, and current test artifacts. Do not invent citation strings.
    - Any `notMet` judgment routes to `impl-triage`.
    - With no `notMet`, any `notVerifiable` judgment routes to approval-required `acceptance-decision`.
-   - Deferred findings must receive a bounded `finalDisposition` and the command mirrors that disposition back into `flow-findings.json`.
+   - `still_open` is an input state, not a mechanical blocker. After source evidence is verified, the semantic reviewer must assign each unresolved deferred finding one bounded `finalDisposition`; `still_open` or `blocking` then becomes a hard blocker, while resolved dispositions are mirrored back into `flow-findings.json`.
+   - Canonical typed review evidence referenced by current flow state is authoritative for review identity and handoff content. The phase artifact path remains required and must match it, but its older repair fingerprint is not itself stale when the canonical digest, provenance, tree, disposition, and findings all match flow state.
    - Passing acceptance promotes `final-regression`; non-pass verdicts must not promote it until the matching acceptance-decision path resolves.
    - **On complete:** the command owns artifact writing and state routing. Do not manually mark this step done unless the artifact-backed completion guard allows it.

@@ -67,6 +67,7 @@ import {
   prepareImplTriageArtifact,
   stampRepairFingerprint,
 } from "../lib/impl-repair-artifacts.js";
+import { ReviewToolingOutcome } from "../lib/review-convergence.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -699,7 +700,7 @@ class ImplReviewArtifact {
       item instanceof ImplReviewFinding ? item : new ImplReviewFinding("improvement", item, allowedRequirementIds),
     );
     this.verdict = this.blockingFindings.length > 0
-      ? "FAIL"
+      ? "REJECTED"
       : this.nonBlockingImprovements.length > 0
         ? "ADVISORY"
         : "PASS";
@@ -1211,7 +1212,7 @@ async function runImplReviewWithPersistence({
       repairFingerprint: fingerprint.hash,
       ...(taskSpec ? { taskId: taskSpec.task.id, target: taskSpec.relPath } : {}),
     },
-    next: artifact.verdict === "FAIL" ? null : (taskSpec ? "task-gate" : "impl-gate"),
+    next: artifact.verdict === "REJECTED" ? null : (taskSpec ? "task-gate" : "impl-gate"),
     output: "",
   };
 }
@@ -1495,7 +1496,15 @@ function persistLoopFinalArtifacts({ specDir, proposals, requirementIds }) {
 
 function toolingFailureResult(failure) {
   return {
-    verdict: "TOOLING_FAILURE",
+    toolingOutcome: new ReviewToolingOutcome({
+      stage: ["parser_failure", "schema_failure"].includes(failure.failureKind)
+        ? "parse"
+        : "communication",
+      attempt: 1,
+      maxAttempts: 1,
+      reason: failure.message || failure.failureKind,
+      permissionRelated: /permission|EACCES|EPERM|sandbox/i.test(failure.message || ""),
+    }),
     failureKind: failure.failureKind,
     reviewRetryConsumed: false,
     proposals: [],
@@ -1604,7 +1613,7 @@ async function runLoopReviewWithDependencies({
             parseReviewProposals,
             validateProviderOutput,
           });
-          if (childExecution.verdict === "TOOLING_FAILURE") return childExecution;
+          if (childExecution.toolingOutcome) return childExecution;
           childProposals.push(...childExecution.proposals);
           if (!childExecution.reused) reviewCallCount += 1;
         }
@@ -1622,7 +1631,7 @@ async function runLoopReviewWithDependencies({
           validateProviderOutput,
         })
         : { rawResponse: await reviewChunk(chunk, input), proposals: null, reused: false };
-      if (execution.verdict === "TOOLING_FAILURE") return execution;
+      if (execution.toolingOutcome) return execution;
       result = execution.rawResponse;
       proposals = execution.proposals;
       if (!execution.reused) reviewCallCount += 1;
@@ -1659,7 +1668,7 @@ async function runLoopReviewWithDependencies({
         validateProviderOutput,
       })
       : { rawResponse: await crossCheck(summaries), proposals: null, reused: false };
-    if (execution.verdict === "TOOLING_FAILURE") return execution;
+    if (execution.toolingOutcome) return execution;
     const crossCheckResult = execution.rawResponse;
     if (!execution.reused) reviewCallCount += 1;
     if (!crossCheckResult.includes("NO_PROPOSALS")) {
@@ -1734,7 +1743,7 @@ async function runActiveImplReviewWithDependencies({
 }) {
   const useLoopReview = shouldUseLoopReview(touchedFiles.size);
   const reviewOutput = useLoopReview ? await runLoopReview() : await runSingleReview();
-  if (reviewOutput?.verdict === "TOOLING_FAILURE") return reviewOutput;
+  if (reviewOutput?.toolingOutcome) return reviewOutput;
   const persistenceStrategy = useLoopReview && TrustedLoopImplReviewOutput.isAuthentic(reviewOutput)
     ? TRUSTED_LOOP_IMPL_REVIEW_PERSISTENCE
     : STRICT_IMPL_REVIEW_PERSISTENCE;
@@ -1743,19 +1752,19 @@ async function runActiveImplReviewWithDependencies({
 
 async function runReviewWithDependencies(options) {
   const result = await runActiveImplReviewWithDependencies(options);
-  if (result?.verdict === "TOOLING_FAILURE") {
+  if (result?.toolingOutcome) {
     return {
-      result: "tooling-failure",
+      result: "tooling-error",
       changed: [],
       artifacts: {
         phase: "impl",
-        verdict: "TOOLING_FAILURE",
         blockingCount: 0,
         nonBlockingCount: 0,
         failureKind: result.failureKind,
+        toolingOutcome: result.toolingOutcome.toJSON(),
       },
       next: null,
-      output: result.failureKind || "WorkUnit tooling failure",
+      output: result.toolingOutcome.reason,
     };
   }
   return result;
@@ -1819,7 +1828,7 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
   console.error(`  [loop-review] ${touchedFiles.size} files → ${groups.length} group(s) after compaction → ${result.reviewCallCount} AI call(s).`);
 
   console.error(`  [loop-review] ${result.proposals.length} total proposal(s).`);
-  return result.verdict === "TOOLING_FAILURE" ? result : result.proposals;
+  return result.toolingOutcome ? result : result.proposals;
 }
 
 // ---------------------------------------------------------------------------
@@ -1879,7 +1888,7 @@ async function runReviewLoop({ maxRetries, label, dryRun, detect, fix }) {
     }
   }
 
-  const verdict = finalIssues.length === 0 ? "PASS" : "FAIL";
+  const verdict = finalIssues.length === 0 ? "PASS" : "REJECTED";
   return { history, finalIssues, verdict };
 }
 
@@ -2243,32 +2252,30 @@ class TestCoverageFailureArtifact {
   }
 }
 
-class TestReviewToolingFailure {
-  constructor({ kind, message, recovery }) {
-    this.kind = normalizeTestReviewText(kind, "tooling_error");
-    this.message = normalizeTestReviewText(message, "test-review tooling failed");
-    this.recovery = normalizeTestReviewText(recovery, "Recover the tooling failure or record an evidence-based override.");
-  }
-
-  toJSON() {
-    return {
-      kind: this.kind,
-      message: this.message,
-      recovery: this.recovery,
-    };
-  }
-}
-
 class TestReviewArtifact {
-  constructor({ verdict, coverageArtifact, blocking = [], advisory = [], toolingFailure = null, generatedAt = new Date().toISOString() }) {
+  constructor({ verdict = null, coverageArtifact, blocking = [], advisory = [], toolingOutcome = null, generatedAt = new Date().toISOString() }) {
     this.version = 1;
     this.phase = "test";
     this.generatedAt = generatedAt;
-    this.verdict = verdict;
     this.coverageArtifact = coverageArtifact;
     this.blockingFindings = blocking.map((item) => item instanceof TestReviewFinding ? item : new TestReviewFinding("blocking", item));
     this.advisoryFindings = advisory.map((item) => item instanceof TestReviewFinding ? item : new TestReviewFinding("advisory", item));
-    this.toolingFailure = toolingFailure;
+    this.toolingOutcome = toolingOutcome == null
+      ? null
+      : toolingOutcome instanceof ReviewToolingOutcome
+        ? toolingOutcome
+        : new ReviewToolingOutcome(toolingOutcome);
+    if (this.toolingOutcome) {
+      if (verdict != null) throw new Error("test review tooling outcome cannot also contain a verdict");
+      if (this.blockingFindings.length > 0 || this.advisoryFindings.length > 0) {
+        throw new Error("test review tooling outcome cannot contain findings");
+      }
+    } else {
+      if (!["PASS", "ADVISORY", "REJECTED"].includes(verdict)) {
+        throw new Error(`invalid test review verdict: ${verdict}`);
+      }
+      this.verdict = verdict;
+    }
     this.counts = Object.freeze({
       blocking: this.blockingFindings.length,
       advisory: this.advisoryFindings.length,
@@ -2281,12 +2288,12 @@ class TestReviewArtifact {
       version: this.version,
       phase: this.phase,
       generatedAt: this.generatedAt,
-      verdict: this.verdict,
+      ...(this.verdict && { verdict: this.verdict }),
+      ...(this.toolingOutcome && { toolingOutcome: this.toolingOutcome.toJSON() }),
       counts: this.counts,
       coverageArtifact: this.coverageArtifact,
       blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
       advisoryFindings: this.advisoryFindings.map((item) => item.toJSON()),
-      ...(this.toolingFailure && { toolingFailure: this.toolingFailure.toJSON() }),
     };
   }
 }
@@ -2298,7 +2305,7 @@ function buildTestReviewPrompt(requirements, coverageArtifact, testFiles) {
       "This review runs once and does not auto-fix tests.",
       "PASS means blockingFindings[] and advisoryFindings[] are both empty.",
       "ADVISORY means blockingFindings[] is empty and advisoryFindings[] has useful non-blocking improvements.",
-      "FAIL means blockingFindings[] has at least one issue that blocks implementation.",
+      "REJECTED means blockingFindings[] has at least one issue that blocks implementation.",
       "Use blockingFindings[] only for concrete blockers:",
       "- an acceptance requirement has no corresponding spec-local test coverage",
       "- a critical risk has no regression test",
@@ -2570,15 +2577,21 @@ function applyTestFixes(text, root, specDir) {
  */
 function formatTestReviewMd(reviewArtifact) {
   const lines = ["# Test Review Results", ""];
-  lines.push(`## Verdict: ${reviewArtifact.verdict}`, "");
+  if (reviewArtifact.toolingOutcome) {
+    lines.push(`## Tooling Outcome: ${reviewArtifact.toolingOutcome.kind}`, "");
+  } else {
+    lines.push(`## Verdict: ${reviewArtifact.verdict}`, "");
+  }
   lines.push(`Coverage artifact: \`${reviewArtifact.coverageArtifact}\``, "");
 
-  if (reviewArtifact.toolingFailure) {
-    const failure = reviewArtifact.toolingFailure;
-    lines.push("## Tooling Failure", "");
-    lines.push(`- kind: ${failure.kind}`);
-    lines.push(`- message: ${failure.message}`);
-    lines.push(`- recovery: ${failure.recovery}`);
+  if (reviewArtifact.toolingOutcome) {
+    const outcome = reviewArtifact.toolingOutcome;
+    lines.push("## Tooling Outcome", "");
+    lines.push(`- kind: ${outcome.kind}`);
+    lines.push(`- stage: ${outcome.stage}`);
+    lines.push(`- attempt: ${outcome.attempt}/${outcome.maxAttempts}`);
+    lines.push(`- reason: ${outcome.reason}`);
+    lines.push("- recovery: Recover the test-review tooling error or register finalized independent evidence.");
     lines.push("");
   }
 
@@ -2620,9 +2633,11 @@ function writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtif
   const reviewJsonPath = path.join(reviewDir, TEST_REVIEW_JSON_FILE);
   const reviewMdPath = path.join(reviewDir, "test-review.md");
   const reviewJson = reviewArtifact.toJSON();
-  reviewJson.contractSummary = contractFromTestReviewArtifact(reviewJson, {
-    artifactPath: path.relative(root, reviewJsonPath).split(path.sep).join("/"),
-  }).summary.toJSON();
+  if (reviewJson.verdict) {
+    reviewJson.contractSummary = contractFromTestReviewArtifact(reviewJson, {
+      artifactPath: path.relative(root, reviewJsonPath).split(path.sep).join("/"),
+    }).summary.toJSON();
+  }
   const attemptNumber = reviewHistoryAttemptNumber(reviewDir, "test");
   writeJsonArtifact(coveragePath, coverageArtifact);
   writeReviewAttemptHistory({
@@ -2660,17 +2675,18 @@ function writeTestCoverageArtifact({ root, specDir, coverageArtifact }) {
 
 function buildToolingFailureReview({ kind, err, coverageRelPath }) {
   const message = err?.message || String(err);
-  const toolingFailure = new TestReviewToolingFailure({
-    kind,
-    message,
-    recovery: "Fix the test-review tooling failure, then rerun test-review. If proceeding with accepted risk, record structured evidence in completion-overrides.json entries.test-review; issue-log alone is audit context, not override evidence.",
+  const toolingOutcome = new ReviewToolingOutcome({
+    stage: kind === "coverage_error" || kind === "parser_error" ? "parse" : "communication",
+    attempt: 1,
+    maxAttempts: 1,
+    reason: normalizeTestReviewText(message, kind),
+    permissionRelated: /permission|EACCES|EPERM|sandbox/i.test(message),
   });
   return new TestReviewArtifact({
-    verdict: "TOOLING_FAILURE",
     coverageArtifact: coverageRelPath || TEST_COVERAGE_JSON_FILE,
     blocking: [],
     advisory: [],
-    toolingFailure,
+    toolingOutcome,
   });
 }
 
@@ -2722,8 +2738,8 @@ async function runTestReview(root, flow, config, dryRun) {
     console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
     console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
     console.error(`  [test-review] Coverage saved to ${artifactPaths.coveragePath}`);
-    console.error("  [test-review] verdict=TOOLING_FAILURE blocking=0 advisory=0 toolingFailure=coverage_error");
-    console.log("Test review TOOLING_FAILURE. Coverage artifact generation failed; see test-review.json.");
+    console.error("  [test-review] outcome=TOOLING_ERROR stage=parse attempt=1 maxAttempts=1 toolingKind=coverage_error blocking=0 advisory=0");
+    console.log("Test review TOOLING_ERROR. Coverage artifact generation failed; see test-review.json.");
     return;
   }
 
@@ -2752,15 +2768,16 @@ async function runTestReview(root, flow, config, dryRun) {
     console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
     console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
     console.error(`  [test-review] Coverage saved to ${artifactPaths.coveragePath}`);
-    console.error(`  [test-review] verdict=TOOLING_FAILURE blocking=0 advisory=0 toolingFailure=${kind}`);
-    console.log("Test review TOOLING_FAILURE. Static review tooling failed; see test-review.json.");
+    const stage = kind === "parser_error" ? "parse" : "communication";
+    console.error(`  [test-review] outcome=TOOLING_ERROR stage=${stage} attempt=1 maxAttempts=1 toolingKind=${kind} blocking=0 advisory=0`);
+    console.log("Test review TOOLING_ERROR. Static review tooling failed; see test-review.json.");
     return;
   }
 
   const blockingFindings = [...headerBlockingFindings, ...aiFindings.blocking];
   const advisoryFindings = aiFindings.advisory;
   const verdict = blockingFindings.length > 0
-    ? "FAIL"
+    ? "REJECTED"
     : advisoryFindings.length > 0
       ? "ADVISORY"
       : "PASS";
@@ -2781,7 +2798,7 @@ async function runTestReview(root, flow, config, dryRun) {
   } else if (verdict === "ADVISORY") {
     console.log(`Test review ADVISORY. ${advisoryFindings.length} non-blocking finding(s) recorded; implementation may proceed.`);
   } else {
-    console.log(`Test review FAIL. ${blockingFindings.length} blocking finding(s) recorded; fix tests before implementation.`);
+    console.log(`Test review REJECTED. ${blockingFindings.length} blocking finding(s) recorded; fix tests before implementation.`);
   }
 }
 
@@ -3255,7 +3272,7 @@ function formatPhaseReviewMd(title, history, verdict, finalIssues) {
     lines.push("");
   }
   lines.push(`## Verdict: ${verdict}`);
-  if (verdict === "FAIL" && finalIssues.length > 0) {
+  if (verdict === "REJECTED" && finalIssues.length > 0) {
     lines.push("");
     lines.push("### Remaining Issues");
     for (const p of finalIssues) {
@@ -3268,7 +3285,7 @@ function formatPhaseReviewMd(title, history, verdict, finalIssues) {
 
 function formatSpecReviewMd(input = {}) {
   const normalized = Array.isArray(input)
-    ? { blocking: input, improvements: [], verdict: input.length > 0 ? "FAIL" : "PASS" }
+    ? { blocking: input, improvements: [], verdict: input.length > 0 ? "REJECTED" : "PASS" }
     : input;
   const { blocking = [], improvements = [], verdict = "PASS" } = normalized;
   const lines = ["# Spec Review Results", ""];
@@ -3351,7 +3368,7 @@ async function runSpecReview(root, flow, config, dryRun) {
   const blockingCount = findings.blocking.length;
   const improvementCount = findings.improvements.length;
   const proposalCount = blockingCount + improvementCount;
-  const verdict = blockingCount > 0 ? "FAIL" : improvementCount > 0 ? "ADVISORY" : "PASS";
+  const verdict = blockingCount > 0 ? "REJECTED" : improvementCount > 0 ? "ADVISORY" : "PASS";
 
   const specReviewArtifact = { ...findings, verdict };
   const attemptNumber = reviewHistoryAttemptNumber(reviewDir, "spec");
@@ -3383,7 +3400,7 @@ async function runSpecReview(root, flow, config, dryRun) {
   } else if (verdict === "ADVISORY") {
     console.log(`Spec review ADVISORY. ${improvementCount} non-blocking improvement(s) recorded. See spec-review.md.`);
   } else {
-    console.log(`Spec review FAIL. ${blockingCount} blocking finding(s) found. See spec-review.md.`);
+    console.log(`Spec review REJECTED. ${blockingCount} blocking finding(s) found. See spec-review.md.`);
   }
 }
 
@@ -3629,7 +3646,7 @@ class DraftReviewArtifact {
     this.advisoryFindings = advisoryFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
     this.repairTargets = repairTargets.slice(0, DRAFT_REVIEW_ARRAY_CAP);
     this.verdict = this.blockingFindings.length > 0
-      ? "FAIL"
+      ? "REJECTED"
       : this.advisoryFindings.length > 0 || this.repairTargets.length > 0
         ? "ADVISORY"
         : "PASS";
@@ -4020,7 +4037,7 @@ async function runReview(rawArgs) {
     shouldUseLoopReview: (fileCount) => !taskSpec && shouldUseLoopReview(fileCount),
     runLoopReview: async () => {
       const proposals = await runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails, config);
-      return proposals?.verdict === "TOOLING_FAILURE"
+      return proposals?.toolingOutcome
         ? proposals
         : loopProposalsToImplReviewJson(proposals, requirementIds);
     },
@@ -4055,6 +4072,18 @@ async function runReview(rawArgs) {
       taskSpec,
     }),
   });
+  if (result.artifacts.toolingOutcome) {
+    const outcome = result.artifacts.toolingOutcome;
+    console.error([
+      "  [review] outcome=TOOLING_ERROR",
+      `stage=${outcome.stage}`,
+      `attempt=${outcome.attempt}`,
+      `maxAttempts=${outcome.maxAttempts}`,
+      ...(result.artifacts.taskId ? [`taskId=${result.artifacts.taskId}`, `target=${result.artifacts.target}`] : []),
+    ].join(" "));
+    console.log("Impl review TOOLING_ERROR. Review tooling failed before a disposition was produced.");
+    return;
+  }
   console.error(`  [review] Results saved to ${result.changed[0]}`);
   console.error(`  [review] JSON saved to ${result.changed[1]}`);
   console.error([
@@ -4068,7 +4097,7 @@ async function runReview(rawArgs) {
   } else if (result.artifacts.verdict === "ADVISORY") {
     console.log(`Impl review ADVISORY. ${result.artifacts.nonBlockingCount} non-blocking improvement(s) recorded. See review.md.`);
   } else {
-    console.log(`Impl review FAIL. ${result.artifacts.blockingCount} blocking finding(s) recorded. See review.md.`);
+    console.log(`Impl review REJECTED. ${result.artifacts.blockingCount} blocking finding(s) recorded. See review.md.`);
   }
 }
 

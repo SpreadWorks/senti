@@ -210,7 +210,7 @@ export class StepCompletionPolicy {
       ["test-review", new StepCompletionPolicy({ stepId: "test-review", allowedVerdicts: ["PASS", "ADVISORY"] })],
       ["impl-review", new StepCompletionPolicy({
         stepId: "impl-review",
-        allowedVerdicts: ["PASS", "ADVISORY", "FAIL"],
+        allowedVerdicts: ["PASS", "ADVISORY", "REJECTED"],
         requireNoBlocking: false,
       })],
       ["impl-gate", new StepCompletionPolicy({ stepId: "impl-gate", allowedVerdicts: ["pass"] })],
@@ -480,11 +480,14 @@ function contractInput(targetStep, artifact, opts) {
 }
 
 export function contractFromTestReviewArtifact(artifact, opts = {}) {
+  if (artifact?.toolingOutcome) {
+    throw new Error("TOOLING_ERROR outcome cannot satisfy the test-review judgment contract");
+  }
   return new FlowJudgmentContract({
     ...contractInput("test-review", artifact, opts),
     verdict: artifact.verdict,
     blockingFindings: artifact.blockingFindings || [],
-    failureKind: artifact.toolingFailure ? "tooling_failure" : null,
+    failureKind: null,
     nextAction: artifact.verdict === "PASS" || artifact.verdict === "ADVISORY" ? "implement" : null,
   });
 }
@@ -497,7 +500,7 @@ export function contractFromImplReviewArtifact(artifact, opts = {}) {
     throw new Error("impl-review nonBlockingImprovements must be an array");
   }
   const expectedVerdict = artifact.blockingFindings.length > 0
-    ? "FAIL"
+    ? "REJECTED"
     : artifact.nonBlockingImprovements.length > 0
       ? "ADVISORY"
       : "PASS";

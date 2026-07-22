@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "ef731e69be25ed0d68406039",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-e4ab3ebeb98c5a9b",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".agents/skills/senti.flow/SKILL.md",
+      "specs/328-bounded-review-convergence/draft-review-coverage.json",
+      "specs/328-bounded-review-convergence/impl-review.json",
+      "specs/328-bounded-review-convergence/review-history/impl-attempt-001.json",
+      "specs/328-bounded-review-convergence/review-history/test-attempt-002.json",
+      "specs/328-bounded-review-convergence/review-history/test-attempt-005.json",
+      "specs/328-bounded-review-convergence/spec.md",
+      "specs/328-bounded-review-convergence/tasks/T-5.md",
+      "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/get-status.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/prompts/plan/spec-review.md",
+      "tests/e2e/231-task-e2e-full-lifecycle.test.js"
+    ],
+    "inputHash": "e4ab3ebeb98c5a9ba8b784a145c54788c52cadb4d3d20793072e744be655da75",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "ef731e69be25ed0d68406039"
+  },
+  "targetFiles": [
+    ".agents/skills/senti.flow/SKILL.md",
+    "specs/328-bounded-review-convergence/draft-review-coverage.json",
+    "specs/328-bounded-review-convergence/impl-review.json",
+    "specs/328-bounded-review-convergence/review-history/impl-attempt-001.json",
+    "specs/328-bounded-review-convergence/review-history/test-attempt-002.json",
+    "specs/328-bounded-review-convergence/review-history/test-attempt-005.json",
+    "specs/328-bounded-review-convergence/spec.md",
+    "specs/328-bounded-review-convergence/tasks/T-5.md",
+    "specs/328-bounded-review-convergence/tests/review-action-resolution.test.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/get-status.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/prompts/plan/spec-review.md",
+    "tests/e2e/231-task-e2e-full-lifecycle.test.js"
+  ],
+  "inputHash": "e4ab3ebeb98c5a9ba8b784a145c54788c52cadb4d3d20793072e744be655da75",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-22T03:57:31.665Z",
+  "finishedAt": "2026-07-22T03:57:31.665Z",
+  "rawResponse": "### 1. Standardize review finding storage across artifacts\n**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-001.json`\n**Requirement:** R9\n**Issue:** Multiple JSON artifacts duplicate the same finding payloads across grouped arrays such as `blockingFindings` / `advisoryFindings` and flattened `findings`, while gate source artifacts duplicate observations under both evaluation-local and top-level arrays. This creates a cross-file schema drift risk for the same review data model.\n**Suggestion:** Define one canonical finding/observation collection for review artifacts, and make alternate grouped or evaluation views contain only lightweight references such as `findingId`, `fingerprint`, or `observationId`.\n\n### 2. Unify review-history count field naming\n**File:** `specs/328-bounded-review-convergence/review-history/impl-attempt-001.json`\n**Requirement:** R9\n**Issue:** `impl-attempt-001.json` uses `summary` for review counts, while `spec-attempt-001.json` and `test-attempt-001.json` use `counts` for the same concept. Consumers must branch by phase even though the artifact family is shared.\n**Suggestion:** Standardize all review-history JSON artifacts on one field name, preferably `counts`, and update generators/readers together.\n\n### 3. Centralize review verdict vocabulary\n**File:** `src/flow/definition.js`\n**Requirement:** R7\n**Issue:** The verdict literals `PASS`, `ADVISORY`, and `REJECTED` are repeated across `src/flow/definition.js`, `src/flow/lib/run-gate.js`, `src/flow/lib/flow-judgment-contract.js`, tests, and prompt/skill text. This makes terminology migrations error-prone, as shown by remaining stale `failReview` / `failedReview` names.\n**Suggestion:** Export or locally centralize canonical review verdict constants where appropriate, and rename stale test fixtures/variables to `rejectedReview` so code, tests, and prompts use the same vocabulary.\n\n### 4. Align review handoff source-step derivation\n**File:** `src/flow/lib/flow-findings.js`\n**Requirement:** R3\n**Issue:** `flow-findings.js` defaults handoff source steps to `\"review\"`, while `acceptance-review-artifacts.js` derives source steps from phase/task context. The same handoff findings can therefore be counted or rendered differently depending on the consumer.\n**Suggestion:** Extract a shared helper such as `reviewHandoffSourceStep(record, finding)` and use it in both files.\n\n### 5. Share review target resolution logic\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R7\n**Issue:** Review target identity logic is duplicated across `semanticMaxAttempts()`, `toolingMaxAttempts()`, and retry/reset handling, with one reported path ignoring task-scoped records. This risks inconsistent convergence behavior between status, retry, and review execution.\n**Suggestion:** Introduce a shared `reviewStepTargetFor(phase, taskId)` or equivalent target identity helper and use it anywhere review convergence records are matched or max attempts are resolved.\n\n### 6. Normalize tooling outcome naming and permission detection\n**File:** `src/flow/lib/run-review.js`\n**Requirement:** R8\n**Issue:** Tooling outcome construction and permission-related detection are repeated across `run-review.js` and `src/flow/commands/review.js`, while some helper names still use legacy “Failure” terminology despite the new `TOOLING_ERROR` / `ReviewToolingOutcome` model.\n**Suggestion:** Use one helper for permission detection, one helper for tooling outcome construction/envelope decoration, and rename persistence helpers from “Failure” to “Outcome” terminology.\n\n### 7. Apply consistent bounded-resource limits to review state processing\n**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R3\n**Issue:** Several files process persisted review data without explicit bounds: convergence records and handoff findings in `acceptance-review-artifacts.js`, convergence record scans in `review-convergence.js`, recursive evidence canonicalization in `review-convergence.js`, issue-log growth, metrics history, and recursive test snapshots.\n**Suggestion:** Define named limits for review records, handoff findings, evidence depth/bytes, metric history, issue-log entries, and snapshot size, then enforce them at read/validation boundaries.\n\n### 8. Make canonical versus generated artifacts explicit\n**File:** `specs/328-bounded-review-convergence/review.md`\n**Requirement:** R9\n**Issue:** Several artifact pairs duplicate the same information across JSON and Markdown, and some canonical paths show multiple competing versions such as `review.md` / `impl-review.json` PASS versus ADVISORY outputs. This makes it unclear which file is authoritative.\n**Suggestion:** Treat JSON as the canonical source for machine-readable review results, generate Markdown from it with clear generated metadata, and keep prior attempts only under attempt-specific `review-history/` paths.\n\n### 9. Deduplicate generated empty/no-op artifact templates\n**File:** `specs/328-bounded-review-convergence/draft-questions-triage.json`\n**Requirement:** R7\n**Issue:** Empty triage, repair, and PASS review-history artifacts repeat the same structure across multiple files with only phase/source/timestamp differences. This adds review noise and increases generator maintenance.\n**Suggestion:** Generate empty/no-op artifacts from a shared metadata-driven template, or omit committed no-op artifacts when they can be regenerated deterministically.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize review finding storage across artifacts",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/test-attempt-001.json`\n**Requirement:** R9\n**Issue:** Multiple JSON artifacts duplicate the same finding payloads across grouped arrays such as `blockingFindings` / `advisoryFindings` and flattened `findings`, while gate source artifacts duplicate observations under both evaluation-local and top-level arrays. This creates a cross-file schema drift risk for the same review data model.\n**Suggestion:** Define one canonical finding/observation collection for review artifacts, and make alternate grouped or evaluation views contain only lightweight references such as `findingId`, `fingerprint`, or `observationId`.",
+        "file": "specs/328-bounded-review-convergence/review-history/test-attempt-001.json",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Unify review-history count field naming",
+        "body": "**File:** `specs/328-bounded-review-convergence/review-history/impl-attempt-001.json`\n**Requirement:** R9\n**Issue:** `impl-attempt-001.json` uses `summary` for review counts, while `spec-attempt-001.json` and `test-attempt-001.json` use `counts` for the same concept. Consumers must branch by phase even though the artifact family is shared.\n**Suggestion:** Standardize all review-history JSON artifacts on one field name, preferably `counts`, and update generators/readers together.",
+        "file": "specs/328-bounded-review-convergence/review-history/impl-attempt-001.json",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Centralize review verdict vocabulary",
+        "body": "**File:** `src/flow/definition.js`\n**Requirement:** R7\n**Issue:** The verdict literals `PASS`, `ADVISORY`, and `REJECTED` are repeated across `src/flow/definition.js`, `src/flow/lib/run-gate.js`, `src/flow/lib/flow-judgment-contract.js`, tests, and prompt/skill text. This makes terminology migrations error-prone, as shown by remaining stale `failReview` / `failedReview` names.\n**Suggestion:** Export or locally centralize canonical review verdict constants where appropriate, and rename stale test fixtures/variables to `rejectedReview` so code, tests, and prompts use the same vocabulary.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Align review handoff source-step derivation",
+        "body": "**File:** `src/flow/lib/flow-findings.js`\n**Requirement:** R3\n**Issue:** `flow-findings.js` defaults handoff source steps to `\"review\"`, while `acceptance-review-artifacts.js` derives source steps from phase/task context. The same handoff findings can therefore be counted or rendered differently depending on the consumer.\n**Suggestion:** Extract a shared helper such as `reviewHandoffSourceStep(record, finding)` and use it in both files.",
+        "file": "src/flow/lib/flow-findings.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Share review target resolution logic",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R7\n**Issue:** Review target identity logic is duplicated across `semanticMaxAttempts()`, `toolingMaxAttempts()`, and retry/reset handling, with one reported path ignoring task-scoped records. This risks inconsistent convergence behavior between status, retry, and review execution.\n**Suggestion:** Introduce a shared `reviewStepTargetFor(phase, taskId)` or equivalent target identity helper and use it anywhere review convergence records are matched or max attempts are resolved.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "6. Normalize tooling outcome naming and permission detection",
+        "body": "**File:** `src/flow/lib/run-review.js`\n**Requirement:** R8\n**Issue:** Tooling outcome construction and permission-related detection are repeated across `run-review.js` and `src/flow/commands/review.js`, while some helper names still use legacy “Failure” terminology despite the new `TOOLING_ERROR` / `ReviewToolingOutcome` model.\n**Suggestion:** Use one helper for permission detection, one helper for tooling outcome construction/envelope decoration, and rename persistence helpers from “Failure” to “Outcome” terminology.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "7. Apply consistent bounded-resource limits to review state processing",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R3\n**Issue:** Several files process persisted review data without explicit bounds: convergence records and handoff findings in `acceptance-review-artifacts.js`, convergence record scans in `review-convergence.js`, recursive evidence canonicalization in `review-convergence.js`, issue-log growth, metrics history, and recursive test snapshots.\n**Suggestion:** Define named limits for review records, handoff findings, evidence depth/bytes, metric history, issue-log entries, and snapshot size, then enforce them at read/validation boundaries.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "8. Make canonical versus generated artifacts explicit",
+        "body": "**File:** `specs/328-bounded-review-convergence/review.md`\n**Requirement:** R9\n**Issue:** Several artifact pairs duplicate the same information across JSON and Markdown, and some canonical paths show multiple competing versions such as `review.md` / `impl-review.json` PASS versus ADVISORY outputs. This makes it unclear which file is authoritative.\n**Suggestion:** Treat JSON as the canonical source for machine-readable review results, generate Markdown from it with clear generated metadata, and keep prior attempts only under attempt-specific `review-history/` paths.",
+        "file": "specs/328-bounded-review-convergence/review.md",
+        "requirementId": "R9"
+      },
+      {
+        "title": "9. Deduplicate generated empty/no-op artifact templates",
+        "body": "**File:** `specs/328-bounded-review-convergence/draft-questions-triage.json`\n**Requirement:** R7\n**Issue:** Empty triage, repair, and PASS review-history artifacts repeat the same structure across multiple files with only phase/source/timestamp differences. This adds review noise and increases generator maintenance.\n**Suggestion:** Generate empty/no-op artifacts from a shared metadata-driven template, or omit committed no-op artifacts when they can be regenerated deterministically.",
+        "file": "specs/328-bounded-review-convergence/draft-questions-triage.json",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}
