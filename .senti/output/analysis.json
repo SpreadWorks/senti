@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-22T08:22:37.792Z",
+  "analyzedAt": "2026-07-22T14:15:36.371Z",
   "package": {
     "entries": [
       {
@@ -8560,9 +8560,9 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "d00fd36fe67d2350baca275e3c963c2b",
-        "lines": 474,
-        "mtime": "2026-07-21T10:46:39.019Z",
+        "hash": "3802eadcd80234456b77d1d9632fc0c5",
+        "lines": 464,
+        "mtime": "2026-07-22T14:15:21.017Z",
         "className": "set-step",
         "methods": [
           "preValidateImplementStepCompletion",
@@ -8601,22 +8601,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "summary": "Implements flow set step, including guarded status transitions and step-specific completion checks. It prevents invalid advancement by verifying required artifacts and invoking flow-side effects before committing state.",
-        "detail": "SetStepCommand validates requested status changes against flow transition contracts before mutating the active step. It performs targeted prechecks for test, approval, managed post-hook, and implementation completion paths, reading durable artifacts from the spec directory as needed. The module builds definition lifecycle transitions and side-effect plans, syncs spec tasks back into flow state, and can trigger auto-check logic to produce skip or repair outcomes. Failures are returned as structured envelopes with issue codes so invalid step completion does not silently proceed.",
+        "summary": "Implements the `flow set step` command and coordinates validated step status changes in the flow state. It enforces transition rules, artifact checks, and follow-up workflow actions before persisting results.",
+        "detail": "This module centers the logic for changing a step's status through the `SetStepCommand` class, using `Envelope` failures for consistent CLI error reporting. Before allowing completion of specific step types, it performs targeted pre-validation against spec data and generated artifacts such as test headers, approval freshness, retro outputs, file maps, and test execution results. It also synchronizes spec-derived tasks, evaluates transition contracts, and integrates auto-check or repair-oriented follow-up intents when a completed step triggers extra workflow handling. Helper functions collect side effects and build lifecycle transitions so status changes remain coupled to the broader flow engine.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.959Z",
+          "processedAt": "2026-07-22T14:16:23.527Z",
           "attempts": 1
         },
         "keywords": [
-          "step status transition",
           "flow set step",
-          "pre-validation",
+          "step status transition",
+          "CLI command handler",
+          "workflow validation",
           "artifact checks",
-          "auto-check",
-          "lifecycle transition",
-          "implementation gate"
+          "auto check",
+          "state mutation",
+          "repair intent"
         ]
       },
       {
@@ -8823,7 +8824,8 @@
           "src/flow/lib/lifecycle-step-transition.js",
           "src/flow/lib/run-reopen-draft.js",
           "src/flow/lib/set-step.js",
-          "src/flow/registry.js"
+          "src/flow/registry.js",
+          "src/flow/lib/sync-spec-tasks.js"
         ],
         "id": "fdbadaab",
         "summary": "Defines the policy objects that represent allowed step transitions in the flow engine. It centralizes validation for lifecycle statuses, recovery changes, and commit intent behavior.",
@@ -8910,11 +8912,13 @@
       },
       {
         "file": "src/flow/lib/sync-spec-tasks.js",
-        "hash": "2e94db1cd9502f236ccb80974bddb209",
-        "lines": 103,
-        "mtime": "2026-07-18T23:18:53.717Z",
+        "hash": "ffb81228d27786703ce4d507686d1ddb",
+        "lines": 142,
+        "mtime": "2026-07-22T14:15:21.017Z",
         "className": "sync-spec-tasks",
         "methods": [
+          "SpecTaskSyncCommitIntent",
+          "prepareSpecTaskSync",
           "syncSpecTasksToFlow",
           "buildFlowTask"
         ],
@@ -8924,31 +8928,36 @@
           "../../lib/flow-manager.js",
           "../../lib/spec-json.js",
           "../../lib/flow-helpers.js",
-          "../../spec/lib/render-contract.js"
+          "../../spec/lib/render-contract.js",
+          "./step-transition-policy.js"
         ],
         "exports": [
+          "SpecTaskSyncCommitIntent",
+          "prepareSpecTaskSync",
           "syncSpecTasksToFlow"
         ],
-        "extends": null,
+        "extends": "StepTransitionCommitIntent",
         "usedBy": [
           "src/flow/lib/set-step.js"
         ],
         "id": "5bb691f5",
-        "summary": "Synchronizes task definitions from `spec.json` into the active flow state. It converts spec tasks into flow tasks with normalized output paths and initial workflow steps.",
-        "detail": "`syncSpecTasksToFlow()` first checks for an active flow and returns a skipped result when no flow state is present. When a spec exists, it resolves the spec path, loads and validates `spec.json`, and derives the sibling `tasks` directory used for task markdown outputs. Each spec task is converted into a flow task with a confined `TaskOutputPath`, normalized repository-relative paths, an assigned round, and initial step scaffolding. The helper is designed to bridge declarative spec tasks into executable flow-manager state.",
+        "summary": "Prepares and applies synchronization between tasks declared in a spec and tasks stored in the active flow state. It converts spec tasks into normalized flow tasks and commits only safe additions.",
+        "detail": "This module defines a commit-intent class for spec task synchronization and validates the prepared task payload aggressively before any state change is applied. It rejects malformed task collections, duplicate prepared task IDs, and collisions with tasks that already exist in the flow state. During preparation, it resolves the active spec path, derives task output locations under the sibling `tasks` directory, and builds flow task records with normalized relative paths and assigned rounds. The sync path uses flow helpers to insert initial task steps and promote the next pending task so the workflow queue stays consistent after new tasks are added.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-18T23:21:47.184Z",
+          "processedAt": "2026-07-22T14:16:23.527Z",
           "attempts": 1
         },
         "keywords": [
-          "task sync",
+          "spec task sync",
           "flow manager",
-          "spec tasks",
-          "task bootstrap",
-          "normalized paths",
-          "workflow steps"
+          "commit intent",
+          "task preparation",
+          "workflow synchronization",
+          "spec.json",
+          "pending task promotion",
+          "relative output path"
         ]
       },
       {
@@ -14196,9 +14205,9 @@
     ],
     "summary": {
       "total": 252,
-      "totalMethods": 2770
+      "totalMethods": 2772
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-22T08:25:26.093Z"
+  "enrichedAt": "2026-07-22T14:16:23.527Z"
 }
