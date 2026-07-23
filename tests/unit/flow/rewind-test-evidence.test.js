@@ -113,6 +113,7 @@ function authorityPaths(fixture) {
   return [
     `${fixture.specDir}/flow.json`,
     `${fixture.specDir}/issue-log.json`,
+    `${fixture.specDir}/impl-gate-result.json`,
     `${fixture.specDir}/test-execute-result.json`,
     `${fixture.specDir}/test-result-review.json`,
     `${fixture.specDir}/tests/.raw/test-execution.log`,
@@ -212,6 +213,24 @@ function activeTask() {
   };
 }
 
+function staleOwnerTask({ status = "in_progress", stepStatuses = {} } = {}) {
+  return {
+    id: "T-1",
+    title: "Stale current task owner",
+    goal: "Represent completed task leaves retained by an integration attempt.",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status,
+    steps: ["task-impl", "task-review", "task-gate"].map((id) => ({
+      id,
+      status: stepStatuses[id] || "done",
+    })),
+    requirements: [],
+    summary: null,
+  };
+}
+
 function prepareFixture({
   activeStep = "impl-gate",
   latestOutcome = "external-blocked",
@@ -220,6 +239,12 @@ function prepareFixture({
   inconsistentReviewFingerprint = false,
   materializedRepair = true,
   ambiguousTask = false,
+  staleAttemptOwner = false,
+  staleTaskStatus = "in_progress",
+  staleTaskStepStatuses = {},
+  attemptTaskId = undefined,
+  currentTaskId = undefined,
+  gateArtifactOverrides = {},
 } = {}) {
   const root = createTmpDir("rewind-stale-test-evidence-");
   roots.add(root);
@@ -271,19 +296,43 @@ function prepareFixture({
   writeJson(root, `${specDir}/impl-gate-result.json`, {
     repairFingerprint: previous.hash,
     result: "fail",
+    level: "integration",
+    phase: "integration",
+    contractSummary: {
+      targetStep: "impl-gate",
+    },
+    ...gateArtifactOverrides,
   });
   if (applySourceChange) {
     writeFile(root, "src/repair-target.js", "export const value = 'after';\n");
   }
 
+  const task = staleAttemptOwner
+    ? staleOwnerTask({
+        status: staleTaskStatus,
+        stepStatuses: staleTaskStepStatuses,
+      })
+    : ambiguousTask
+      ? activeTask()
+      : completedTask();
+  const resolvedCurrentTaskId = currentTaskId !== undefined
+    ? currentTaskId
+    : staleAttemptOwner || ambiguousTask
+      ? "T-1"
+      : null;
+  const resolvedAttemptTaskId = attemptTaskId !== undefined
+    ? attemptTaskId
+    : staleAttemptOwner
+      ? "T-1"
+      : null;
   const state = moveFlowToStep(makeFlowState({
     spec: SPEC_PATH,
     runId: RUN_ID,
     issue: ISSUE,
     baseBranch: "main",
     featureBranch: "feature/stale-test-evidence",
-    currentTaskId: ambiguousTask ? "T-1" : null,
-    tasks: [ambiguousTask ? activeTask() : completedTask()],
+    currentTaskId: resolvedCurrentTaskId,
+    tasks: [task],
     metrics: [
       { phase: "integration", counter: "gateRetry", delta: 5, taskId: null, ts: "2026-07-23T00:00:00.000Z" },
     ],
@@ -298,7 +347,7 @@ function prepareFixture({
     : new RetryOutcome({ nextAction: "run-gate-integration" });
   state.stepAttempts = [new StepAttempt({
     runId: RUN_ID,
-    taskId: null,
+    taskId: resolvedAttemptTaskId,
     stepId: "impl-gate",
     attempt: 1,
     outcome,
@@ -482,6 +531,111 @@ describe("public stale test evidence recovery", () => {
     });
   });
 
+  it("accepts the bounded real integration shape with a stale task attempt owner", async () => {
+    await withFixtureCase({
+      caseName: "matrix-v4-stale-task-owner-success-and-second-invocation",
+      expectedCode: "OK_THEN_STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH",
+      options: { staleAttemptOwner: true },
+    }, async (fixture, recorder) => {
+      const before = fixture.flowManager.loadReadOnly();
+      assert.equal(before.currentTaskId, "T-1");
+      assert.equal(before.tasks[0].status, "in_progress");
+      assert.ok(before.tasks[0].steps.every((step) => step.status === "done"));
+      assert.equal(before.stepAttempts.at(-1).taskId, "T-1");
+
+      const result = await recorder.dispatch(fixture, "first");
+      recorder.assert("stale-owner-integration-transition", () => {
+        assert.equal(result.exitCode, 0, JSON.stringify(result.envelope));
+        assert.equal(result.envelope.ok, true, JSON.stringify(result.envelope.errors));
+        assert.equal(result.envelope.data.activeStep, "test-execute");
+        const after = fixture.flowManager.loadReadOnly();
+        assert.deepEqual(after.tasks, before.tasks);
+        assert.equal(after.currentTaskId, "T-1");
+        assert.deepEqual(after.stepAttempts, before.stepAttempts);
+        assert.deepEqual(findActiveNode(after), {
+          scope: "flow",
+          stepId: "test-execute",
+          taskId: null,
+        });
+      });
+
+      const beforeSecond = snapshot(fixture.root, [
+        `${fixture.specDir}/flow.json`,
+        `${fixture.specDir}/impl-repair.json`,
+        `${fixture.specDir}/repair-fingerprint.json`,
+        "src/repair-target.js",
+      ]);
+      const second = await recorder.dispatch(fixture, "second");
+      recorder.assert("stale-owner-second-invocation-fails-closed", () => {
+        assert.equal(second.exitCode, 1);
+        assert.equal(second.envelope.ok, false);
+        assert.equal(second.envelope.errors[0].code, "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH");
+        assert.deepEqual(snapshot(fixture.root, Object.keys(beforeSecond)), beforeSecond);
+      });
+    });
+  });
+
+  it("rejects non-integration, incomplete, mismatched, and task-scoped stale owners", async () => {
+    const cases = [
+      [
+        "matrix-v4-active-task-impl",
+        { staleAttemptOwner: true, staleTaskStepStatuses: { "task-impl": "in_progress" } },
+        "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH",
+      ],
+      [
+        "matrix-v4-incomplete-task-leaf",
+        { staleAttemptOwner: true, staleTaskStepStatuses: { "task-review": "pending" } },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+      [
+        "matrix-v4-active-task-gate",
+        { staleAttemptOwner: true, staleTaskStepStatuses: { "task-gate": "in_progress" } },
+        "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH",
+      ],
+      [
+        "matrix-v4-current-latest-owner-mismatch",
+        { staleAttemptOwner: true, attemptTaskId: "T-2" },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+      [
+        "matrix-v4-inconsistent-completed-task-status",
+        { staleAttemptOwner: true, staleTaskStatus: "done" },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+      [
+        "matrix-v4-task-scoped-gate-artifact",
+        { staleAttemptOwner: true, gateArtifactOverrides: { taskId: "T-1" } },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+      [
+        "matrix-v4-target-scoped-gate-artifact",
+        { staleAttemptOwner: true, gateArtifactOverrides: { target: "T-1" } },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+      [
+        "matrix-v4-wrong-gate-level",
+        { staleAttemptOwner: true, gateArtifactOverrides: { level: "task" } },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+      [
+        "matrix-v4-wrong-gate-phase",
+        { staleAttemptOwner: true, gateArtifactOverrides: { phase: "task-impl" } },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+      [
+        "matrix-v4-wrong-gate-target-step",
+        {
+          staleAttemptOwner: true,
+          gateArtifactOverrides: { contractSummary: { targetStep: "task-gate" } },
+        },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+    ];
+    for (const [caseName, options, expectedCode] of cases) {
+      await assertRejectedWithoutMutation({ caseName, expectedCode, options });
+    }
+  });
+
   it("fails closed for wrong lifecycle, outcome, structural failure, and valid competing task authority", async () => {
     const cases = [
       ["matrix-b-wrong-phase", { activeStep: "impl-review" }, "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH"],
@@ -547,12 +701,18 @@ describe("public stale test evidence recovery", () => {
       ["matrix-f-precommit-manifest", (fixture) => replaceJsonWhitespace(fixture, "repair-fingerprint.json")],
       ["matrix-f-precommit-triage", (fixture) => replaceJsonWhitespace(fixture, "impl-triage.json")],
       ["matrix-f-precommit-impl-review", (fixture) => replaceJsonWhitespace(fixture, "impl-review.json")],
+      [
+        "matrix-v4-precommit-integration-gate",
+        (fixture) => replaceJsonWhitespace(fixture, "impl-gate-result.json"),
+        { staleAttemptOwner: true },
+      ],
     ];
 
-    for (const [caseName, injectFault] of cases) {
+    for (const [caseName, injectFault, options = {}] of cases) {
       await withFixtureCase({
         caseName,
         expectedCode: "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+        options,
       }, async (fixture, recorder) => {
         const paths = authorityPaths(fixture);
         let afterFault = null;

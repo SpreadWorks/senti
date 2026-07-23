@@ -21,6 +21,7 @@ import {
 import {
   ExplicitRecoveryTransition,
 } from "./step-transition-policy.js";
+import { resolveGatePhaseFromState } from "./gate-step.js";
 import { flattenSteps } from "./step-tree.js";
 import {
   REPAIR_FINGERPRINT_MANIFEST_FILE,
@@ -32,6 +33,7 @@ const TEST_RESULT_REVIEW = "test-result-review.json";
 const TEST_EXECUTION_LOG = "tests/.raw/test-execution.log";
 const ISSUE_LOG = "issue-log.json";
 const IMPL_REVIEW = "impl-review.json";
+const IMPL_GATE_RESULT = "impl-gate-result.json";
 const MAX_EVIDENCE_BYTES = 1024 * 1024;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 const FINGERPRINT_MISMATCH_PATTERN = /^(test-execute-result\.json|test-result-review\.json) repairFingerprint mismatch: expected ([a-f0-9]{64}), got ([a-f0-9]{64})$/;
@@ -299,38 +301,86 @@ function requireExactGuards(ctx, state) {
   return null;
 }
 
-function assertFlowLevelImplGateBlocked(state) {
-  const active = findActiveNode(state);
-  const flowInProgress = flattenSteps(state.steps || []).filter((step) => step.status === "in_progress");
-  const taskInProgress = (state.tasks || []).flatMap((task) => (
-    flattenSteps(task.steps || []).filter((step) => step.status === "in_progress")
-  ));
-  if (
-    active?.scope !== "flow"
-    || active.stepId !== "impl-gate"
-    || flowInProgress.length !== 1
-    || flowInProgress[0].id !== "impl-gate"
-    || taskInProgress.length !== 0
-  ) {
-    reject(
-      "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH",
-      "recovery requires one unambiguous flow-level impl-gate in_progress lifecycle",
-    );
+class ImplGateBlockerAuthority {
+  constructor(state) {
+    const active = findActiveNode(state);
+    const flowInProgress = flattenSteps(state.steps || []).filter((step) => step.status === "in_progress");
+    const taskInProgress = (state.tasks || []).flatMap((task) => (
+      flattenSteps(task.steps || []).filter((step) => step.status === "in_progress")
+    ));
+    const phase = resolveGatePhaseFromState(state);
+    if (
+      active?.scope !== "flow"
+      || active.stepId !== "impl-gate"
+      || phase?.phase !== "integration"
+      || flowInProgress.length !== 1
+      || flowInProgress[0].id !== "impl-gate"
+      || taskInProgress.length !== 0
+    ) {
+      reject(
+        "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH",
+        "recovery requires one unambiguous flow-level integration impl-gate lifecycle with no active task leaf",
+      );
+    }
+
+    const attempts = new StepAttemptLog(state.stepAttempts || []);
+    const latest = attempts.latestForRun(state.runId);
+    if (
+      latest?.stepId !== "impl-gate"
+      || !(latest.outcome instanceof ExternalBlockedOutcome)
+    ) {
+      reject(
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+        "the latest flow attempt must be an impl-gate external-blocked outcome",
+      );
+    }
+
+    this.latest = latest;
+    this.staleTaskOwner = latest.taskId === null
+      ? null
+      : this.#resolveStaleTaskOwner(state, latest.taskId);
+    Object.freeze(this);
   }
 
-  const attempts = new StepAttemptLog(state.stepAttempts || []);
-  const latest = attempts.latestForRun(state.runId);
-  if (
-    latest?.taskId !== null
-    || latest?.stepId !== "impl-gate"
-    || !(latest.outcome instanceof ExternalBlockedOutcome)
-  ) {
-    reject(
-      "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
-      "the latest flow attempt must be a flow-level impl-gate external-blocked outcome",
-    );
+  #resolveStaleTaskOwner(state, taskId) {
+    const task = (state.tasks || []).find((candidate) => candidate.id === taskId);
+    const leaves = task ? flattenSteps(task.steps || []) : [];
+    if (
+      state.currentTaskId !== taskId
+      || !task
+      || task.status !== "in_progress"
+      || leaves.length === 0
+      || leaves.some((step) => !["done", "skipped"].includes(step.status))
+    ) {
+      reject(
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+        "the non-null impl-gate attempt owner must be the stale current task with completed task leaves",
+      );
+    }
+    return task;
   }
-  return latest;
+
+  captureIntegrationArtifact(specDir, capture) {
+    if (this.staleTaskOwner === null) return;
+    const gate = capture(path.join(specDir, IMPL_GATE_RESULT), IMPL_GATE_RESULT);
+    const artifact = gate.value;
+    if (
+      artifact.level !== "integration"
+      || artifact.phase !== "integration"
+      || artifact.contractSummary?.targetStep !== "impl-gate"
+      || Object.hasOwn(artifact, "taskId")
+      || Object.hasOwn(artifact, "target")
+    ) {
+      reject(
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+        "the stale task owner is not backed by an unscoped integration impl-gate artifact",
+      );
+    }
+  }
+}
+
+function assertFlowLevelImplGateBlocked(state) {
+  return new ImplGateBlockerAuthority(state);
 }
 
 function latestFingerprintMismatch(entries) {
@@ -411,13 +461,14 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
       return captured;
     };
     try {
-      assertFlowLevelImplGateBlocked(state);
+      const blockerAuthority = assertFlowLevelImplGateBlocked(state);
       const specDir = path.dirname(path.resolve(root, state.spec));
       const issueLog = capture(path.join(specDir, ISSUE_LOG), ISSUE_LOG);
       if (!Array.isArray(issueLog.value.entries)) {
         reject("STALE_TEST_EVIDENCE_BLOCKER_MISMATCH", `${ISSUE_LOG} entries must be an array`);
       }
       const mismatch = latestFingerprintMismatch(issueLog.value.entries);
+      blockerAuthority.captureIntegrationArtifact(specDir, capture);
       const execute = capture(path.join(specDir, TEST_EXECUTE_RESULT), TEST_EXECUTE_RESULT);
       const review = capture(path.join(specDir, TEST_RESULT_REVIEW), TEST_RESULT_REVIEW);
       const authority = new StaleTestEvidenceAuthority({
