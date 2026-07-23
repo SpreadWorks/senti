@@ -14,6 +14,7 @@ import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { IssueLogStore } from "./issue-log-store.js";
+import { RuntimeModuleIdentity } from "./runtime-module-identity.js";
 
 export const RECOVERY_REASON_MIN_LENGTH = 20;
 export const RECOVERY_REASON_MAX_LENGTH = 500;
@@ -47,6 +48,10 @@ const REVIEW_INPUT_PHASES = Object.freeze([
   "test",
   "impl",
 ]);
+const GATE_EVALUATOR_IDENTITY = new RuntimeModuleIdentity({
+  key: "gate-evaluator",
+  moduleUrl: new URL("./run-gate.js", import.meta.url),
+});
 
 const PUBLIC_RECOVERY_ENTRY_KEYS = Object.freeze([
   "id", "kind", "phase", "canonicalPhase", "reason", "changedEvidence",
@@ -137,7 +142,7 @@ function recoveryCommandFor(input) {
   return `senti flow set retry reset ${input.kind} ${input.phase} --reason "${reason}" --yes`;
 }
 
-function sha256ForFiles(root, relPaths) {
+function sha256ForFiles(root, relPaths, runtimeIdentities = []) {
   const hash = crypto.createHash("sha256");
   for (const relPath of relPaths) {
     const full = path.resolve(root, relPath);
@@ -150,6 +155,9 @@ function sha256ForFiles(root, relPaths) {
     }
     hash.update(fs.readFileSync(full));
     hash.update("\0");
+  }
+  for (const identity of [...runtimeIdentities].sort((left, right) => left.key.localeCompare(right.key))) {
+    identity.fingerprint().update(hash);
   }
   return hash.digest("hex");
 }
@@ -362,17 +370,29 @@ export class RecoveryEvidenceSource {
   constructor(input = {}) {
     this.sourceKind = requireString(input.sourceKind, "sourceKind");
     this.paths = normalizeChangedPaths(input.paths);
+    this.runtimeIdentities = Object.freeze([...(input.runtimeIdentities || [])]);
+    if (this.runtimeIdentities.some((identity) => !(identity instanceof RuntimeModuleIdentity))) {
+      throw new Error("recovery runtime identities must be RuntimeModuleIdentity values");
+    }
   }
 
   includes(relPath) {
     return this.paths.some((sourcePath) => sourcePathMatches(sourcePath, relPath));
+  }
+
+  fingerprint(root, paths) {
+    return sha256ForFiles(root, paths, this.runtimeIdentities);
   }
 }
 
 export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir }) {
   const dir = normalizeRelPath(specDir || ".");
   if (kind === "gate" && canonicalPhase === "task-impl") {
-    return new RecoveryEvidenceSource({ sourceKind: "implementation-diff", paths: ["src", `${dir}/spec.json`] });
+    return new RecoveryEvidenceSource({
+      sourceKind: "implementation-diff",
+      paths: ["src", `${dir}/spec.json`],
+      runtimeIdentities: [GATE_EVALUATOR_IDENTITY],
+    });
   }
   if (kind === "gate" && canonicalPhase === "integration") {
     return new RecoveryEvidenceSource({
@@ -751,16 +771,22 @@ export function buildCurrentRecoveryFingerprint({ root, flowState, kind, canonic
   let truncated = false;
 
   if (source.sourceKind === "implementation-diff" || source.sourceKind === "implementation-and-test-artifacts") {
-    try {
-      paths = listChangedFilesDetailed({
-        cwd: root,
-        baseBranch: flowState.baseBranch || "main",
-        untrackedFiles: "all",
-        maxChangedFileEntries: MAX_FINGERPRINT_FILES,
-      })
-        .map((entry) => entry.path)
-        .filter((p) => source.includes(p));
-    } catch (_) {
+    if (fs.existsSync(path.join(root, ".git"))) {
+      try {
+        paths = listChangedFilesDetailed({
+          cwd: root,
+          baseBranch: flowState.baseBranch || "main",
+          untrackedFiles: "all",
+          maxChangedFileEntries: MAX_FINGERPRINT_FILES,
+        })
+          .map((entry) => entry.path)
+          .filter((p) => source.includes(p));
+      } catch (_) {
+        const fallback = [];
+        truncated = walkFiles(root, "src", fallback);
+        paths = fallback.filter((p) => source.includes(p));
+      }
+    } else {
       const fallback = [];
       truncated = walkFiles(root, "src", fallback);
       paths = fallback.filter((p) => source.includes(p));
@@ -779,7 +805,7 @@ export function buildCurrentRecoveryFingerprint({ root, flowState, kind, canonic
   const normalized = normalizeChangedPaths(paths).sort();
   return new EvidenceFingerprint({
     sourceKind: source.sourceKind,
-    hash: sha256ForFiles(root, normalized),
+    hash: source.fingerprint(root, normalized),
     paths: normalized,
     truncated,
   });
