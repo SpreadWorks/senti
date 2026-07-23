@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 import { Envelope } from "../../lib/flow-envelope.js";
 import { findActiveNode, flowLeafIdsBetween } from "../definition.js";
@@ -8,10 +9,11 @@ import {
   commitImplRepairEffects,
   completeImplRepair,
   completeImplTriage,
+  IMPL_TRIAGE_ARTIFACT_FILE,
+  ImplRepairPrecommitAuthority,
   ImplRepairTransitionIntent,
 } from "./impl-repair-artifacts.js";
 import { FlowCommand } from "./base-command.js";
-import { loadIssueLog } from "./set-issue-log.js";
 import {
   ExternalBlockedOutcome,
   StepAttemptLog,
@@ -20,11 +22,16 @@ import {
   ExplicitRecoveryTransition,
 } from "./step-transition-policy.js";
 import { flattenSteps } from "./step-tree.js";
-import { readRepairFingerprintManifest } from "./repair-state-identity.js";
+import {
+  REPAIR_FINGERPRINT_MANIFEST_FILE,
+  RepairFingerprintManifest,
+} from "./repair-state-identity.js";
 
 const TEST_EXECUTE_RESULT = "test-execute-result.json";
 const TEST_RESULT_REVIEW = "test-result-review.json";
 const TEST_EXECUTION_LOG = "tests/.raw/test-execution.log";
+const ISSUE_LOG = "issue-log.json";
+const IMPL_REVIEW = "impl-review.json";
 const MAX_EVIDENCE_BYTES = 1024 * 1024;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 const FINGERPRINT_MISMATCH_PATTERN = /^(test-execute-result\.json|test-result-review\.json) repairFingerprint mismatch: expected ([a-f0-9]{64}), got ([a-f0-9]{64})$/;
@@ -63,33 +70,175 @@ function normalizeRepoPath(value, field) {
   return path.posix.normalize(normalized);
 }
 
-function readBoundedJson(file, label) {
-  let stat;
-  try {
-    stat = fs.lstatSync(file);
-  } catch (error) {
-    reject("STALE_TEST_EVIDENCE_MISSING", `${label} is missing: ${error.message}`);
+function fileIdentity(stat) {
+  return Object.freeze({
+    dev: stat.dev.toString(),
+    ino: stat.ino.toString(),
+    mode: stat.mode.toString(),
+    nlink: stat.nlink.toString(),
+    size: stat.size.toString(),
+    mtimeNs: stat.mtimeNs.toString(),
+    ctimeNs: stat.ctimeNs.toString(),
+  });
+}
+
+function sameFileIdentity(left, right) {
+  return Object.keys(left).every((key) => left[key] === right[key]);
+}
+
+class SecureBoundedFileSnapshot {
+  constructor({ file, label, descriptor, identity, bytes }) {
+    this.file = file;
+    this.label = label;
+    this.descriptor = descriptor;
+    this.identity = identity;
+    this.bytes = Buffer.from(bytes);
+    Object.freeze(this);
   }
-  if (!stat.isFile() || stat.isSymbolicLink()) {
-    reject("STALE_TEST_EVIDENCE_AUTHORITY_INVALID", `${label} must be a regular file`);
-  }
-  if (stat.size > MAX_EVIDENCE_BYTES) {
-    reject("STALE_TEST_EVIDENCE_AUTHORITY_INVALID", `${label} exceeds ${MAX_EVIDENCE_BYTES} bytes`);
-  }
-  try {
-    const value = JSON.parse(fs.readFileSync(file, "utf8"));
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      reject("STALE_TEST_EVIDENCE_AUTHORITY_INVALID", `${label} must contain a JSON object`);
+
+  static capture(file, label) {
+    let descriptor;
+    const flags = fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW;
+    try {
+      descriptor = fs.openSync(file, flags);
+    } catch (error) {
+      const code = error.code === "ENOENT"
+        ? "STALE_TEST_EVIDENCE_MISSING"
+        : "STALE_TEST_EVIDENCE_AUTHORITY_INVALID";
+      reject(code, `${label} cannot be opened as a real file: ${error.message}`);
     }
-    return value;
+
+    try {
+      const before = fs.fstatSync(descriptor, { bigint: true });
+      if (!before.isFile()) {
+        reject("STALE_TEST_EVIDENCE_AUTHORITY_INVALID", `${label} must be a regular file`);
+      }
+      if (before.size > BigInt(MAX_EVIDENCE_BYTES)) {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_INVALID",
+          `${label} exceeds ${MAX_EVIDENCE_BYTES} bytes`,
+        );
+      }
+      const chunks = [];
+      let total = 0;
+      while (total <= MAX_EVIDENCE_BYTES) {
+        const chunk = Buffer.alloc(Math.min(
+          64 * 1024,
+          MAX_EVIDENCE_BYTES + 1 - total,
+        ));
+        const count = fs.readSync(descriptor, chunk, 0, chunk.length, null);
+        if (count === 0) break;
+        chunks.push(chunk.subarray(0, count));
+        total += count;
+      }
+      if (total > MAX_EVIDENCE_BYTES) {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_INVALID",
+          `${label} exceeds ${MAX_EVIDENCE_BYTES} bytes`,
+        );
+      }
+      const bytes = Buffer.concat(chunks, total);
+      const after = fs.fstatSync(descriptor, { bigint: true });
+      const beforeIdentity = fileIdentity(before);
+      if (
+        !sameFileIdentity(beforeIdentity, fileIdentity(after))
+        || after.size !== BigInt(bytes.length)
+      ) {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_INVALID",
+          `${label} changed while its authority was captured`,
+        );
+      }
+      return new SecureBoundedFileSnapshot({
+        file,
+        label,
+        descriptor,
+        identity: beforeIdentity,
+        bytes,
+      });
+    } catch (error) {
+      fs.closeSync(descriptor);
+      throw error;
+    }
+  }
+
+  json() {
+    try {
+      const value = JSON.parse(this.bytes.toString("utf8"));
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        reject("STALE_TEST_EVIDENCE_AUTHORITY_INVALID", `${this.label} must contain a JSON object`);
+      }
+      return value;
+    } catch (error) {
+      if (error instanceof StaleTestEvidenceRecoveryError) throw error;
+      reject(
+        "STALE_TEST_EVIDENCE_AUTHORITY_INVALID",
+        `${this.label} is not valid JSON: ${error.message}`,
+      );
+    }
+  }
+
+  assertCurrent() {
+    let observed = null;
+    try {
+      observed = SecureBoundedFileSnapshot.capture(this.file, this.label);
+      if (
+        !sameFileIdentity(this.identity, observed.identity)
+        || !this.bytes.equals(observed.bytes)
+      ) {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+          `${this.label} authority changed before recovery mutation`,
+        );
+      }
+    } catch (error) {
+      if (
+        error instanceof StaleTestEvidenceRecoveryError
+        && error.code === "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED"
+      ) {
+        throw error;
+      }
+      reject(
+        "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+        `${this.label} authority changed before recovery mutation: ${error.message}`,
+      );
+    } finally {
+      observed?.close();
+    }
+  }
+
+  close() {
+    try {
+      fs.closeSync(this.descriptor);
+    } catch (error) {
+      if (error.code !== "EBADF") throw error;
+    }
+  }
+}
+
+function captureJson(file, label) {
+  const snapshot = SecureBoundedFileSnapshot.capture(file, label);
+  try {
+    return { snapshot, value: snapshot.json() };
   } catch (error) {
-    if (error instanceof StaleTestEvidenceRecoveryError) throw error;
-    reject("STALE_TEST_EVIDENCE_AUTHORITY_INVALID", `${label} is not valid JSON: ${error.message}`);
+    snapshot.close();
+    throw error;
+  }
+}
+
+function captureMaterializationJson(file, label) {
+  try {
+    return captureJson(file, label);
+  } catch (error) {
+    reject(
+      "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      `${label} repair materialization is unavailable: ${error.message}`,
+    );
   }
 }
 
 class StaleTestEvidenceAuthority {
-  constructor({ root, specPath, executeArtifact, reviewArtifact }) {
+  constructor({ specPath, executeArtifact, reviewArtifact }) {
     const executeHash = String(executeArtifact.repairFingerprint || "");
     const reviewHash = String(reviewArtifact.repairFingerprint || "");
     if (!HASH_PATTERN.test(executeHash) || !HASH_PATTERN.test(reviewHash)) {
@@ -123,11 +272,6 @@ class StaleTestEvidenceAuthority {
         "test-execute and test-result-review do not reference the active spec raw test output",
       );
     }
-    const rawFile = path.resolve(root, expectedRawPath);
-    if (!fs.existsSync(rawFile) || !fs.lstatSync(rawFile).isFile()) {
-      reject("STALE_TEST_EVIDENCE_MISSING", "the referenced raw test output is missing");
-    }
-
     this.fingerprint = executeHash;
     this.executeArtifact = executeArtifact;
     this.reviewArtifact = reviewArtifact;
@@ -189,8 +333,7 @@ function assertFlowLevelImplGateBlocked(state) {
   return latest;
 }
 
-function latestFingerprintMismatch(root, state) {
-  const entries = loadIssueLog(root, state.spec).entries || [];
+function latestFingerprintMismatch(entries) {
   const gateFailures = entries.filter((entry) => (
     entry?.step === "impl-gate"
     && entry?.phase === "integration"
@@ -212,51 +355,272 @@ function latestFingerprintMismatch(root, state) {
   });
 }
 
-function loadStaleTestEvidence(root, state) {
-  const specDir = path.dirname(path.resolve(root, state.spec));
-  return {
-    specDir,
-    authority: new StaleTestEvidenceAuthority({
-      root,
-      specPath: state.spec,
-      executeArtifact: readBoundedJson(path.join(specDir, TEST_EXECUTE_RESULT), TEST_EXECUTE_RESULT),
-      reviewArtifact: readBoundedJson(path.join(specDir, TEST_RESULT_REVIEW), TEST_RESULT_REVIEW),
-    }),
-  };
+function flowIdentity(state) {
+  return Object.freeze({
+    runId: state.runId,
+    spec: state.spec,
+    hasIssue: Object.hasOwn(state, "issue") && state.issue != null,
+    issue: state.issue == null ? null : Number(state.issue),
+  });
 }
 
-function assertRepairReady({ root, state, specDir, authority, mismatch }) {
-  const previous = readRepairFingerprintManifest(specDir);
-  const current = buildRepairFingerprint({ root, specPath: state.spec, state });
-  if (authority.fingerprint !== previous.hash) {
+function sameFlowIdentity(left, right) {
+  return (
+    left.runId === right.runId
+    && left.spec === right.spec
+    && left.hasIssue === right.hasIssue
+    && left.issue === right.issue
+  );
+}
+
+class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
+  constructor({
+    root,
+    specDir,
+    specId,
+    state,
+    files,
+    issueLog,
+    authority,
+    previous,
+    current,
+    mismatch,
+  }) {
+    super();
+    this.root = root;
+    this.specDir = specDir;
+    this.specId = specId;
+    this.originalState = structuredClone(state);
+    this.identity = flowIdentity(state);
+    this.files = Object.freeze([...files]);
+    this.issueLog = issueLog;
+    this.authority = authority;
+    this.previous = previous;
+    this.current = current;
+    this.mismatch = mismatch;
+    Object.freeze(this);
+  }
+
+  static capture({ root, state, specId }) {
+    const files = [];
+    const capture = (file, label, { materialization = false } = {}) => {
+      const captured = materialization
+        ? captureMaterializationJson(file, label)
+        : captureJson(file, label);
+      files.push(captured.snapshot);
+      return captured;
+    };
+    try {
+      assertFlowLevelImplGateBlocked(state);
+      const specDir = path.dirname(path.resolve(root, state.spec));
+      const issueLog = capture(path.join(specDir, ISSUE_LOG), ISSUE_LOG);
+      if (!Array.isArray(issueLog.value.entries)) {
+        reject("STALE_TEST_EVIDENCE_BLOCKER_MISMATCH", `${ISSUE_LOG} entries must be an array`);
+      }
+      const mismatch = latestFingerprintMismatch(issueLog.value.entries);
+      const execute = capture(path.join(specDir, TEST_EXECUTE_RESULT), TEST_EXECUTE_RESULT);
+      const review = capture(path.join(specDir, TEST_RESULT_REVIEW), TEST_RESULT_REVIEW);
+      const authority = new StaleTestEvidenceAuthority({
+        specPath: state.spec,
+        executeArtifact: execute.value,
+        reviewArtifact: review.value,
+      });
+      const raw = SecureBoundedFileSnapshot.capture(
+        path.join(specDir, TEST_EXECUTION_LOG),
+        TEST_EXECUTION_LOG,
+      );
+      files.push(raw);
+      const manifest = capture(
+        path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE),
+        REPAIR_FINGERPRINT_MANIFEST_FILE,
+        { materialization: true },
+      );
+      let previous;
+      try {
+        previous = new RepairFingerprintManifest(manifest.value);
+      } catch (error) {
+        reject(
+          "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+          `${REPAIR_FINGERPRINT_MANIFEST_FILE} repair materialization is invalid: ${error.message}`,
+        );
+      }
+      const triage = capture(
+        path.join(specDir, IMPL_TRIAGE_ARTIFACT_FILE),
+        IMPL_TRIAGE_ARTIFACT_FILE,
+        { materialization: true },
+      );
+      if (
+        triage.value.sourceStep !== "impl-review"
+        || triage.value.sourceArtifact !== IMPL_REVIEW
+      ) {
+        reject(
+          "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+          "stale implementation test evidence requires impl-review triage authority",
+        );
+      }
+      capture(path.join(specDir, IMPL_REVIEW), IMPL_REVIEW, { materialization: true });
+      try {
+        const triageResult = completeImplTriage({ specDir });
+        if (!triageResult.requiresRepair) {
+          reject(
+            "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+            "current repair evidence has no applied impl-triage finding",
+          );
+        }
+      } catch (error) {
+        if (
+          error instanceof StaleTestEvidenceRecoveryError
+          && error.code === "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED"
+        ) {
+          throw error;
+        }
+        reject(
+          "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+          `impl-triage repair materialization is invalid: ${error.message}`,
+        );
+      }
+      const current = buildRepairFingerprint({ root, specPath: state.spec, state });
+      if (authority.fingerprint !== previous.hash) {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_MISMATCH",
+          "stale test evidence does not match the materialized repair manifest",
+        );
+      }
+      if (current.hash === previous.hash) {
+        reject(
+          "STALE_TEST_EVIDENCE_ALREADY_CURRENT",
+          "test evidence already matches the current repair fingerprint",
+        );
+      }
+      if (
+        mismatch.expected !== current.hash
+        || mismatch.observed !== authority.fingerprint
+      ) {
+        reject(
+          "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+          "the structural failure fingerprint pair does not match current and stale evidence",
+        );
+      }
+      return new StaleTestEvidenceAuthoritySnapshot({
+        root,
+        specDir,
+        specId: specId || state.spec.split("/")[1],
+        state,
+        files,
+        issueLog: issueLog.snapshot,
+        authority,
+        previous,
+        current,
+        mismatch,
+      });
+    } catch (error) {
+      for (const file of files) file.close();
+      throw error;
+    }
+  }
+
+  assertTransition(state, transaction) {
+    try {
+      this.#assertIdentity(state);
+      if (!isDeepStrictEqual(state, this.originalState)) {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+          "flow revision changed before stale test evidence recovery",
+        );
+      }
+      assertFlowLevelImplGateBlocked(state);
+      const mismatch = latestFingerprintMismatch(this.issueLog.json().entries);
+      if (!isDeepStrictEqual(mismatch, this.mismatch)) {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+          "structural blocker authority changed before recovery mutation",
+        );
+      }
+      this.#assertEvidenceAndRepair(state, transaction);
+    } catch (error) {
+      this.#rejectChanged(error);
+    }
+  }
+
+  assertEffects(state, transaction) {
+    try {
+      this.#assertIdentity(state);
+      const active = findActiveNode(state);
+      if (active?.scope !== "flow" || active.stepId !== "test-execute") {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+          "owned impl-repair transition is not active at test-execute",
+        );
+      }
+      if (
+        state.implRepairTransaction == null
+        || !isDeepStrictEqual(state.implRepairTransaction, transaction.toJSON())
+      ) {
+        reject(
+          "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+          "owned impl-repair transaction changed before effects commit",
+        );
+      }
+      this.#assertEvidenceAndRepair(state, transaction);
+    } catch (error) {
+      this.#rejectChanged(error);
+    }
+  }
+
+  #assertIdentity(state) {
+    if (!sameFlowIdentity(this.identity, flowIdentity(state))) {
+      reject(
+        "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+        "flow run, spec, or Issue authority changed before recovery mutation",
+      );
+    }
+  }
+
+  #assertEvidenceAndRepair(state, transaction) {
+    for (const file of this.files) file.assertCurrent();
+    const observed = buildRepairFingerprint({
+      root: this.root,
+      specPath: this.identity.spec,
+      state,
+    });
+    if (
+      observed.hash !== this.current.hash
+      || transaction.currentManifest.hash !== this.current.hash
+      || transaction.entry.previousHash !== this.previous.hash
+      || transaction.entry.currentHash !== this.current.hash
+    ) {
+      reject(
+        "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+        "repair fingerprint authority changed before recovery mutation",
+      );
+    }
+    try {
+      const triage = completeImplTriage({ specDir: this.specDir });
+      if (!triage.requiresRepair) throw new Error("impl-triage no longer requires repair");
+    } catch (error) {
+      reject(
+        "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+        `impl-triage materialization changed before recovery mutation: ${error.message}`,
+      );
+    }
+  }
+
+  #rejectChanged(error) {
+    if (
+      error instanceof StaleTestEvidenceRecoveryError
+      && error.code === "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED"
+    ) {
+      throw error;
+    }
     reject(
-      "STALE_TEST_EVIDENCE_AUTHORITY_MISMATCH",
-      "stale test evidence does not match the materialized repair manifest",
+      "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+      `stale test evidence authority changed before recovery mutation: ${error.message}`,
     );
   }
-  if (current.hash === previous.hash) {
-    reject(
-      "STALE_TEST_EVIDENCE_ALREADY_CURRENT",
-      "test evidence already matches the current repair fingerprint",
-    );
+
+  close() {
+    for (const file of this.files) file.close();
   }
-  if (
-    mismatch.expected !== current.hash
-    || mismatch.observed !== authority.fingerprint
-  ) {
-    reject(
-      "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
-      "the structural failure fingerprint pair does not match current and stale evidence",
-    );
-  }
-  const triage = completeImplTriage({ specDir });
-  if (!triage.requiresRepair) {
-    reject(
-      "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
-      "current repair evidence has no applied impl-triage finding",
-    );
-  }
-  return { previous, current };
 }
 
 function recoveryTransition(completed) {
@@ -289,16 +653,12 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
     const guardFailure = requireExactGuards(ctx, state);
     if (guardFailure) return guardFailure;
 
+    let snapshot = null;
     try {
-      assertFlowLevelImplGateBlocked(state);
-      const mismatch = latestFingerprintMismatch(ctx.root, state);
-      const { specDir, authority } = loadStaleTestEvidence(ctx.root, state);
-      const { previous, current } = assertRepairReady({
+      snapshot = StaleTestEvidenceAuthoritySnapshot.capture({
         root: ctx.root,
         state,
-        specDir,
-        authority,
-        mismatch,
+        specId: ctx.specId,
       });
       const completed = completeImplRepair({
         root: ctx.root,
@@ -309,11 +669,22 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
       const mutationOptions = {
         ...(ctx.specId ? { specId: ctx.specId } : {}),
         taskId: null,
+        expectedOriginal: state,
+        passThroughError: (error) => error instanceof StaleTestEvidenceRecoveryError,
       };
+      if (this.container.has("staleTestEvidenceRecoveryFaultInjector")) {
+        this.container.get("staleTestEvidenceRecoveryFaultInjector")({
+          phase: "before-update-step-statuses",
+          root: ctx.root,
+          specDir: snapshot.specDir,
+          specId: snapshot.specId,
+          flowManager: ctx.flowManager,
+        });
+      }
       ctx.flowManager.updateStepStatus(
         transition,
         mutationOptions,
-        new ImplRepairTransitionIntent(completed.transaction),
+        new ImplRepairTransitionIntent(completed.transaction, snapshot),
       );
       commitImplRepairEffects({
         root: ctx.root,
@@ -321,6 +692,7 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
         flowManager: ctx.flowManager,
         transaction: completed.transaction,
         specId: ctx.specId,
+        precommitAuthority: snapshot,
       });
 
       const refreshed = ctx.specId
@@ -335,8 +707,8 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
       }
       return Envelope.ok("run", "rewind-test-evidence", {
         recovered: true,
-        previousRepairFingerprint: previous.hash,
-        currentRepairFingerprint: current.hash,
+        previousRepairFingerprint: snapshot.previous.hash,
+        currentRepairFingerprint: snapshot.current.hash,
         repair: completed.entry,
         invalidatedArtifacts: completed.invalidations.map((entry) => entry.path),
         activeStep: active.stepId,
@@ -345,12 +717,22 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
       if (error instanceof StaleTestEvidenceRecoveryError) {
         return Envelope.fail("run", "rewind-test-evidence", error.code, error.message);
       }
+      if (error?.code === "FLOW_STATE_ATOMIC_STALE") {
+        return Envelope.fail(
+          "run",
+          "rewind-test-evidence",
+          "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+          "flow revision changed before stale test evidence recovery mutation",
+        );
+      }
       return Envelope.fail(
         "run",
         "rewind-test-evidence",
         "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
         `stale test evidence recovery rejected: ${error.message}`,
       );
+    } finally {
+      snapshot?.close();
     }
   }
 }

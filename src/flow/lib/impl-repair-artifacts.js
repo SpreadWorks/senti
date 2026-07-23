@@ -373,13 +373,40 @@ export class ImplRepairTransaction {
   }
 }
 
+export class ImplRepairPrecommitAuthority {
+  constructor() {
+    if (new.target === ImplRepairPrecommitAuthority) {
+      throw new Error("impl-repair precommit authority must use a concrete type");
+    }
+  }
+
+  assertTransition() {
+    throw new Error("impl-repair precommit authority must validate the transition");
+  }
+
+  assertEffects() {
+    throw new Error("impl-repair precommit authority must validate the effects");
+  }
+}
+
 export class ImplRepairTransitionIntent extends StepTransitionCommitIntent {
-  constructor(transaction) {
+  constructor(transaction, precommitAuthority = null) {
     super();
     this.transaction = transaction instanceof ImplRepairTransaction
       ? transaction
       : new ImplRepairTransaction(transaction);
+    if (
+      precommitAuthority != null
+      && !(precommitAuthority instanceof ImplRepairPrecommitAuthority)
+    ) {
+      throw new Error("impl-repair transition precommit authority is invalid");
+    }
+    this.precommitAuthority = precommitAuthority;
     Object.freeze(this);
+  }
+
+  assertBeforeTransition(state) {
+    this.precommitAuthority?.assertTransition(state, this.transaction);
   }
 
   applyTo(state) {
@@ -972,7 +999,14 @@ function clearImplRepairTransitionIntent({ flowManager, transaction, specId = nu
   return true;
 }
 
-export function commitImplRepairEffects({ root, state, flowManager = null, transaction, specId = null }) {
+export function commitImplRepairEffects({
+  root,
+  state,
+  flowManager = null,
+  transaction,
+  specId = null,
+  precommitAuthority = null,
+}) {
   const specDir = path.dirname(path.resolve(root, state.spec));
   const lock = new RepairRunLock(specDir);
   lock.acquire();
@@ -980,6 +1014,21 @@ export function commitImplRepairEffects({ root, state, flowManager = null, trans
     const journal = transaction instanceof ImplRepairTransaction
       ? transaction
       : new ImplRepairTransaction(transaction);
+    if (
+      precommitAuthority != null
+      && !(precommitAuthority instanceof ImplRepairPrecommitAuthority)
+    ) {
+      throw new Error("impl-repair effects precommit authority is invalid");
+    }
+    if (precommitAuthority) {
+      const load = typeof flowManager?.loadReadOnly === "function"
+        ? flowManager.loadReadOnly.bind(flowManager)
+        : typeof flowManager?.load === "function"
+          ? flowManager.load.bind(flowManager)
+          : null;
+      const committedState = load ? load(specId ?? undefined) : state;
+      precommitAuthority.assertEffects(committedState, journal);
+    }
     writeJson(path.join(specDir, REPAIR_TRANSACTION_FILE), journal.toJSON());
     const result = commitRepairTransaction({
       root,

@@ -24,6 +24,8 @@ export class StepTransitionCommitIntent {
     }
   }
 
+  assertBeforeTransition() {}
+
   applyTo() {
     throw new StepTransitionError("step transition commit intent must implement applyTo(state)");
   }

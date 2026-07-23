@@ -28,6 +28,7 @@ const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
 const RUN_ID = "run-stale-test-evidence";
 const ISSUE = 7;
 const TRACE_PREFIX = "/tmp/impl-gate-stale-test-evidence-case";
+const MAX_EVIDENCE_BYTES = 1024 * 1024;
 
 const roots = new Set();
 
@@ -106,6 +107,37 @@ function snapshot(root, relativePaths) {
     const file = path.join(root, relativePath);
     return [relativePath, fs.existsSync(file) ? fs.readFileSync(file).toString("base64") : null];
   }));
+}
+
+function authorityPaths(fixture) {
+  return [
+    `${fixture.specDir}/flow.json`,
+    `${fixture.specDir}/issue-log.json`,
+    `${fixture.specDir}/test-execute-result.json`,
+    `${fixture.specDir}/test-result-review.json`,
+    `${fixture.specDir}/tests/.raw/test-execution.log`,
+    `${fixture.specDir}/repair-fingerprint.json`,
+    `${fixture.specDir}/impl-triage.json`,
+    `${fixture.specDir}/impl-review.json`,
+    `${fixture.specDir}/impl-repair.json`,
+    `${fixture.specDir}/impl-repair-transaction.json`,
+    `${fixture.specDir}/repair-deltas/repair-001.json`,
+    "src/repair-target.js",
+  ];
+}
+
+function replaceAuthorityFile(root, relativePath, bytes) {
+  const target = path.join(root, relativePath);
+  const replacement = `${target}.fault-replacement`;
+  fs.writeFileSync(replacement, bytes);
+  fs.renameSync(replacement, target);
+}
+
+function replaceWithSymlink(root, relativePath) {
+  const target = path.join(root, relativePath);
+  const authorityTarget = `${target}.symlink-target`;
+  fs.renameSync(target, authorityTarget);
+  fs.symlinkSync(path.basename(authorityTarget), target);
 }
 
 function makeContainer(root, flowManager) {
@@ -334,16 +366,20 @@ async function withFixtureCase({ caseName, expectedCode, options = {} }, action)
   }
 }
 
-async function assertRejectedWithoutMutation({ caseName, expectedCode, options = {}, overrides = {} }) {
+async function assertRejectedWithoutMutation({
+  caseName,
+  expectedCode,
+  options = {},
+  overrides = {},
+  arrange = null,
+}) {
   await withFixtureCase({ caseName, expectedCode, options }, async (fixture, recorder) => {
-    const paths = [
-      `${fixture.specDir}/flow.json`,
-      `${fixture.specDir}/test-execute-result.json`,
-      `${fixture.specDir}/test-result-review.json`,
-      `${fixture.specDir}/repair-fingerprint.json`,
-      `${fixture.specDir}/issue-log.json`,
-      "src/repair-target.js",
-    ];
+    if (arrange) {
+      recorder.record("fixture-arrange", "start");
+      arrange(fixture);
+      recorder.record("fixture-arrange", "done");
+    }
+    const paths = authorityPaths(fixture);
     const before = snapshot(fixture.root, paths);
     const result = await recorder.dispatch(fixture, "rejection", overrides);
     recorder.assert("rejection-and-no-mutation", () => {
@@ -466,6 +502,106 @@ describe("public stale test evidence recovery", () => {
     ];
     for (const [caseName, options, expectedCode] of cases) {
       await assertRejectedWithoutMutation({ caseName, expectedCode, options });
+    }
+  });
+
+  it("rejects authority replacement between validation and the locked transition boundary", async () => {
+    const replaceJsonWhitespace = (fixture, artifact) => {
+      const relativePath = `${fixture.specDir}/${artifact}`;
+      const bytes = fs.readFileSync(path.join(fixture.root, relativePath));
+      replaceAuthorityFile(fixture.root, relativePath, Buffer.concat([bytes, Buffer.from("\n")]));
+    };
+    const cases = [
+      ["matrix-f-precommit-flow-run", (fixture) => {
+        const relativePath = `${fixture.specDir}/flow.json`;
+        const flow = readJson(fixture.root, relativePath);
+        flow.runId = "run-replaced-after-validation";
+        replaceAuthorityFile(
+          fixture.root,
+          relativePath,
+          Buffer.from(`${JSON.stringify(flow, null, 2)}\n`),
+        );
+      }],
+      ["matrix-f-precommit-flow-issue", (fixture) => {
+        const relativePath = `${fixture.specDir}/flow.json`;
+        const flow = readJson(fixture.root, relativePath);
+        flow.issue = ISSUE + 1;
+        replaceAuthorityFile(
+          fixture.root,
+          relativePath,
+          Buffer.from(`${JSON.stringify(flow, null, 2)}\n`),
+        );
+      }],
+      ["matrix-f-precommit-issue-log", (fixture) => replaceJsonWhitespace(fixture, "issue-log.json")],
+      ["matrix-f-precommit-result", (fixture) => replaceJsonWhitespace(fixture, "test-execute-result.json")],
+      ["matrix-f-precommit-review", (fixture) => replaceJsonWhitespace(fixture, "test-result-review.json")],
+      ["matrix-f-precommit-raw", (fixture) => {
+        const relativePath = `${fixture.specDir}/tests/.raw/test-execution.log`;
+        const bytes = fs.readFileSync(path.join(fixture.root, relativePath));
+        replaceAuthorityFile(
+          fixture.root,
+          relativePath,
+          Buffer.concat([bytes, Buffer.from("replacement\n")]),
+        );
+      }],
+      ["matrix-f-precommit-manifest", (fixture) => replaceJsonWhitespace(fixture, "repair-fingerprint.json")],
+      ["matrix-f-precommit-triage", (fixture) => replaceJsonWhitespace(fixture, "impl-triage.json")],
+      ["matrix-f-precommit-impl-review", (fixture) => replaceJsonWhitespace(fixture, "impl-review.json")],
+    ];
+
+    for (const [caseName, injectFault] of cases) {
+      await withFixtureCase({
+        caseName,
+        expectedCode: "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+      }, async (fixture, recorder) => {
+        const paths = authorityPaths(fixture);
+        let afterFault = null;
+        fixture.container.register("staleTestEvidenceRecoveryFaultInjector", ({ phase }) => {
+          assert.equal(phase, "before-update-step-statuses");
+          recorder.record("fault-injection", "start", { phase });
+          injectFault(fixture);
+          afterFault = snapshot(fixture.root, paths);
+          recorder.record("fault-injection", "done", { phase });
+        });
+
+        const result = await recorder.dispatch(fixture, "precommit-authority-replacement");
+        recorder.assert("typed-reject-and-no-owned-mutation", () => {
+          assert.equal(result.exitCode, 1, caseName);
+          assert.equal(result.envelope.ok, false, caseName);
+          assert.equal(
+            result.envelope.errors[0].code,
+            "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
+            `${caseName}: ${JSON.stringify(result.envelope.errors)}`,
+          );
+          assert.ok(afterFault, `${caseName}: fault hook did not run`);
+          assert.deepEqual(snapshot(fixture.root, paths), afterFault, caseName);
+        });
+      });
+    }
+  });
+
+  it("rejects symlinked or oversized result, review, and raw evidence without mutation", async () => {
+    const cases = [
+      ["matrix-g-raw-symlink", "tests/.raw/test-execution.log", "symlink"],
+      ["matrix-g-raw-oversized", "tests/.raw/test-execution.log", "oversized"],
+      ["matrix-g-result-symlink", "test-execute-result.json", "symlink"],
+      ["matrix-g-result-oversized", "test-execute-result.json", "oversized"],
+      ["matrix-g-review-symlink", "test-result-review.json", "symlink"],
+      ["matrix-g-review-oversized", "test-result-review.json", "oversized"],
+    ];
+    for (const [caseName, artifact, mode] of cases) {
+      await assertRejectedWithoutMutation({
+        caseName,
+        expectedCode: "STALE_TEST_EVIDENCE_AUTHORITY_INVALID",
+        arrange: (fixture) => {
+          const relativePath = `${fixture.specDir}/${artifact}`;
+          if (mode === "symlink") {
+            replaceWithSymlink(fixture.root, relativePath);
+            return;
+          }
+          writeFile(fixture.root, relativePath, Buffer.alloc(MAX_EVIDENCE_BYTES + 1, "x"));
+        },
+      });
     }
   });
 

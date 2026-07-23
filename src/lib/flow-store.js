@@ -738,6 +738,7 @@ export class FlowStore {
         }
         return { change, step };
       });
+      commitIntent?.assertBeforeTransition(state);
       for (const { change, step } of resolved) {
         const status = change.requestedStatus;
         step.status = status;
