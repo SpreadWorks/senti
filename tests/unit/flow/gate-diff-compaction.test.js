@@ -1,11 +1,17 @@
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 
 import {
   buildGuardrailTargetTextForPrompt,
   compactDiffForGuardrailPrompt,
   excludeScenarioValidityEvidenceFromTaskGateDiff,
+  default as RunGateCommand,
 } from "../../../src/flow/lib/run-gate.js";
+import { container } from "../../../src/lib/container.js";
+import { commitAll, checkoutNewBranch, initGitRepo } from "../../helpers/git-repo.js";
+import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 
 function deletionOnlyDiff(file, removedBody) {
   return [
@@ -103,13 +109,48 @@ describe("guardrail diff prompt compaction", () => {
 describe("task gate scenario-validity evidence", () => {
   it("excludes active-spec pre-fix evidence while retaining implementation and post-fix evidence", () => {
     const specDir = "specs/999-example";
+    const preamble = "diagnostic preamble\n";
+    const malformed = [
+      "diff --git malformed-header",
+      "+malformed content remains",
+      "",
+    ].join("\n");
+    const quoted = [
+      'diff --git "a/specs/999-example/tests/.raw/scenario-validity.log" "b/specs/999-example/tests/.raw/scenario-validity.log"',
+      '--- "a/specs/999-example/tests/.raw/scenario-validity.log"',
+      '+++ "b/specs/999-example/tests/.raw/scenario-validity.log"',
+      "@@ -0,0 +1 @@",
+      "+quoted path remains",
+      "",
+    ].join("\n");
+    const special = modifiedDiff("specs/999-example/証拠-ß.json");
+    const scenarioResult = modifiedDiff(`${specDir}/scenario-validity-result.json`);
+    const scenarioLog = modifiedDiff(`${specDir}/tests/.raw/scenario-validity.log`);
+    const testExecuteResult = modifiedDiff(`${specDir}/test-execute-result.json`);
+    const testExecutionLog = modifiedDiff(`${specDir}/tests/.raw/test-execution.log`);
+    const otherSpecScenario = modifiedDiff("specs/998-other/scenario-validity-result.json");
+    const implementation = modifiedDiff("src/flow/lib/review-convergence.js");
     const diff = [
-      modifiedDiff(`${specDir}/scenario-validity-result.json`),
-      modifiedDiff(`${specDir}/tests/.raw/scenario-validity.log`),
-      modifiedDiff(`${specDir}/test-execute-result.json`),
-      modifiedDiff(`${specDir}/tests/.raw/test-execution.log`),
-      modifiedDiff("specs/998-other/scenario-validity-result.json"),
-      modifiedDiff("src/flow/lib/review-convergence.js"),
+      preamble,
+      scenarioResult,
+      malformed,
+      scenarioLog,
+      quoted,
+      testExecuteResult,
+      testExecutionLog,
+      otherSpecScenario,
+      special,
+      implementation,
+    ].join("");
+    const expected = [
+      preamble,
+      malformed,
+      quoted,
+      testExecuteResult,
+      testExecutionLog,
+      otherSpecScenario,
+      special,
+      implementation,
     ].join("");
 
     const filtered = excludeScenarioValidityEvidenceFromTaskGateDiff(
@@ -117,11 +158,179 @@ describe("task gate scenario-validity evidence", () => {
       `${specDir}/spec.json`,
     );
 
-    assert.doesNotMatch(filtered, new RegExp(`${specDir}/scenario-validity-result\\.json`));
-    assert.doesNotMatch(filtered, new RegExp(`${specDir}/tests/\\.raw/scenario-validity\\.log`));
+    assert.equal(filtered, expected);
     assert.match(filtered, new RegExp(`${specDir}/test-execute-result\\.json`));
     assert.match(filtered, new RegExp(`${specDir}/tests/\\.raw/test-execution\\.log`));
     assert.match(filtered, /specs\/998-other\/scenario-validity-result\.json/);
     assert.match(filtered, /src\/flow\/lib\/review-convergence\.js/);
+    assert.ok(filtered.startsWith(preamble));
+    assert.match(filtered, /diff --git malformed-header\n\+malformed content remains/);
+    assert.match(filtered, /diff --git "a\/specs\/999-example\/tests\/\.raw\/scenario-validity\.log"/);
+    assert.match(filtered, /\+quoted path remains/);
+    assert.match(filtered, /specs\/999-example\/証拠-ß\.json/);
+    assert.ok(filtered.indexOf("malformed-header") < filtered.indexOf("quoted path remains"));
+    assert.ok(filtered.indexOf("quoted path remains") < filtered.indexOf("test-execute-result.json"));
+  });
+});
+
+const TASK_GATE_SPEC_ID = "001-task-gate-evidence";
+const TASK_GATE_SPEC = `specs/${TASK_GATE_SPEC_ID}/spec.json`;
+const TASK_GATE_TASK_SPEC = `specs/${TASK_GATE_SPEC_ID}/tasks/T-1.md`;
+
+function taskGateState() {
+  return {
+    spec: TASK_GATE_SPEC,
+    runId: "run-task-gate-evidence",
+    planRewindAt: null,
+    baseBranch: "main",
+    featureBranch: `feature/${TASK_GATE_SPEC_ID}`,
+    metrics: [],
+    steps: [],
+    requirements: [],
+    tasks: [{
+      id: "T-1",
+      title: "Validate task gate evidence",
+      goal: "Evaluate implementation evidence without plan-phase runtime output.",
+      spec: TASK_GATE_TASK_SPEC,
+      status: "in_progress",
+      steps: [
+        { id: "task-impl", status: "done" },
+        { id: "task-review", status: "done" },
+        { id: "task-gate", status: "in_progress" },
+      ],
+    }],
+    currentTaskId: "T-1",
+  };
+}
+
+function setupTaskGateRepository(root) {
+  writeJson(root, ".senti/config.json", {
+    lang: "en",
+    type: "base",
+    docs: { languages: ["en"], defaultLanguage: "en" },
+  });
+  writeJson(root, TASK_GATE_SPEC, {
+    goal: "Validate task gate evidence.",
+    requirements: [],
+  });
+  writeFile(root, TASK_GATE_TASK_SPEC, "# Task T-1\n\nValidate implementation evidence.\n");
+  writeJson(root, `specs/${TASK_GATE_SPEC_ID}/impl-review.json`, {
+    version: 1,
+    phase: "impl",
+    runId: "run-task-gate-evidence",
+    planRewindAt: null,
+    taskId: "T-1",
+    generatedAt: "2026-07-23T00:00:00.000Z",
+    verdict: "PASS",
+    summary: { blocking: 0, nonBlocking: 0, total: 0 },
+    blockingFindings: [],
+    nonBlockingImprovements: [],
+  });
+  writeJson(root, `specs/${TASK_GATE_SPEC_ID}/issue-log.json`, { entries: [] });
+  initGitRepo(root);
+  commitAll(root, "initial fixture");
+  checkoutNewBranch(root, `feature/${TASK_GATE_SPEC_ID}`);
+}
+
+function scenarioResult(padding = "") {
+  return `${JSON.stringify({
+    version: "1",
+    process: { started: true, exitCode: 1 },
+    result: "pass",
+    padding,
+  })}\n`;
+}
+
+async function executeTaskGate(root, state, skipGuardrail = true) {
+  const command = new RunGateCommand();
+  return command.executeTaskImplGate({
+    root,
+    flowState: state,
+    config: {},
+  }, root, "task", "task-impl", skipGuardrail);
+}
+
+describe("task gate scenario-validity evidence through task scope", () => {
+  let tmp;
+
+  afterEach(() => {
+    if (tmp) removeTmpDir(tmp);
+    tmp = null;
+  });
+
+  it("rejects scenario-validity-only changes as no task implementation evidence", async () => {
+    tmp = createTmpDir("task-gate-scenario-only-");
+    setupTaskGateRepository(tmp);
+    writeFile(tmp, `specs/${TASK_GATE_SPEC_ID}/scenario-validity-result.json`, scenarioResult());
+    writeFile(
+      tmp,
+      `specs/${TASK_GATE_SPEC_ID}/tests/.raw/scenario-validity.log`,
+      "not ok 1 - expected pre-fix failure\n",
+    );
+    commitAll(tmp, "record scenario validity");
+
+    const result = await executeTaskGate(tmp, taskGateState());
+
+    assert.equal(result.result, "fail");
+    assert.deepEqual(
+      result.artifacts.issues,
+      ["no changes found (committed or uncommitted) against base branch"],
+    );
+  });
+
+  it("sizes and evaluates only implementation and post-fix evidence", async () => {
+    tmp = createTmpDir("task-gate-filtered-size-");
+    setupTaskGateRepository(tmp);
+    const scenarioLogPath = `specs/${TASK_GATE_SPEC_ID}/tests/.raw/scenario-validity.log`;
+    writeFile(
+      tmp,
+      `specs/${TASK_GATE_SPEC_ID}/scenario-validity-result.json`,
+      scenarioResult("x".repeat(600_000)),
+    );
+    writeFile(tmp, scenarioLogPath, "");
+    writeFile(tmp, "src/task-evidence.js", "export const taskEvidence = true;\n");
+    writeJson(tmp, `specs/${TASK_GATE_SPEC_ID}/test-execute-result.json`, {
+      version: 2,
+      result: "pass",
+    });
+    writeFile(
+      tmp,
+      `specs/${TASK_GATE_SPEC_ID}/tests/.raw/test-execution.log`,
+      "post-fix tests pass\n",
+    );
+    commitAll(tmp, "record implementation and test evidence");
+    writeFile(tmp, scenarioLogPath, `not ok expected pre-fix failure\n${"y".repeat(600_000)}\n`);
+    const preFixEvidenceBytes = fs.statSync(
+      path.join(tmp, `specs/${TASK_GATE_SPEC_ID}/scenario-validity-result.json`),
+    ).size + fs.statSync(path.join(tmp, scenarioLogPath)).size;
+    assert.ok(preFixEvidenceBytes > 1024 * 1024);
+
+    let capturedPrompt = "";
+    const originalGet = container.get.bind(container);
+    container.get = (key) => {
+      if (key !== "agent") return originalGet(key);
+      return {
+        resolve: (commandId) => commandId === "flow.spec.gate",
+        call: async (prompt) => {
+          capturedPrompt = prompt;
+          return JSON.stringify({ observations: [] });
+        },
+      };
+    };
+
+    let result;
+    try {
+      result = await executeTaskGate(tmp, taskGateState(), false);
+    } finally {
+      container.get = originalGet;
+    }
+
+    assert.equal(result.result, "pass");
+    assert.match(capturedPrompt, /src\/task-evidence\.js/);
+    assert.match(capturedPrompt, /test-execute-result\.json/);
+    assert.match(capturedPrompt, /tests\/\.raw\/test-execution\.log/);
+    assert.doesNotMatch(capturedPrompt, /scenario-validity-result\.json/);
+    assert.doesNotMatch(capturedPrompt, /tests\/\.raw\/scenario-validity\.log/);
+    assert.doesNotMatch(capturedPrompt, /expected pre-fix failure/);
   });
 });

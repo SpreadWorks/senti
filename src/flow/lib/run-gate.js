@@ -401,9 +401,12 @@ export function excludeScenarioValidityEvidenceFromTaskGateDiff(diff, specPath) 
     `${specDir}/scenario-validity-result.json`,
     `${specDir}/tests/.raw/scenario-validity.log`,
   ]);
-  return [...splitDiffByFile(diff)]
-    .filter(([file]) => !excluded.has(file))
-    .map(([, fileDiff]) => fileDiff)
+  return diff
+    .split(/(?=^diff --git )/m)
+    .filter((segment) => {
+      const header = segment.match(/^diff --git a\/.+? b\/(.+)\r?$/m);
+      return !header || !excluded.has(header[1]);
+    })
     .join("");
 }
 
@@ -5213,12 +5216,13 @@ export class RunGateCommand extends FlowCommand {
       excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, state.spec),
     });
     const diff = committed + uncommitted + untracked;
-    if (!diff.trim()) {
+    const guardrailDiff = excludeScenarioValidityEvidenceFromTaskGateDiff(diff, state.spec);
+    if (!guardrailDiff.trim()) {
       return gateFail(level, phase, taskSpec.relPath, [], [
         "no changes found (committed or uncommitted) against base branch",
       ]);
     }
-    const diffBytes = Buffer.byteLength(diff, "utf8");
+    const diffBytes = Buffer.byteLength(guardrailDiff, "utf8");
     if (diffBytes > TASK_IMPL_GATE_DIFF_MAX_BYTES) {
       return gateFail(level, phase, taskSpec.relPath, [], [
         `task implementation diff is ${diffBytes} bytes, exceeds limit ${TASK_IMPL_GATE_DIFF_MAX_BYTES}`,
@@ -5227,7 +5231,6 @@ export class RunGateCommand extends FlowCommand {
 
     const gitState = computeGitState(root);
     ctx.gitState = gitState;
-    const guardrailDiff = excludeScenarioValidityEvidenceFromTaskGateDiff(diff, state.spec);
     const targetText = `${taskSpec.text}\n\n## Git Diff\n${guardrailDiff}`;
 
     return runGateFlow({
