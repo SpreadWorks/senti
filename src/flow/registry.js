@@ -1027,6 +1027,22 @@ export const FLOW_COMMANDS = {
     },
   },
   run: {
+    "rewind-test-evidence": {
+      helpKey: "flow.run.rewind-test-evidence",
+      command: () => import("./lib/run-rewind-test-evidence.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: FLOW_TARGET_GUARD_OPTIONS,
+      },
+      help: [
+        `Usage: senti flow run rewind-test-evidence ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Recover a flow-level impl-gate blocked only by stale test evidence after a materialized implementation repair; exact runId, spec, and Issue identity guards are required, with no step, fingerprint, or allowlist input.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     gate: {
       helpKey: "flow.run.gate",
       responsibilities: DRAFT_REVIEW_GATE_RESPONSIBILITIES,
