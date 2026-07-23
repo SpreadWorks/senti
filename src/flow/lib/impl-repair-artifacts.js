@@ -318,6 +318,56 @@ export class ImplRepairLedger {
   }
 }
 
+export class ImplRepairPurpose {
+  constructor(kind) {
+    if (new.target === ImplRepairPurpose) {
+      throw new Error("ImplRepairPurpose is abstract");
+    }
+    this.kind = requireString(kind, "impl-repair purpose kind");
+  }
+
+  static from(input = null) {
+    const kind = input == null
+      ? "applied-finding-repair"
+      : input instanceof ImplRepairPurpose
+        ? input.kind
+        : input.kind;
+    if (kind === "applied-finding-repair") return new AppliedFindingRepairPurpose();
+    if (kind === "test-evidence-refresh") return new TestEvidenceRefreshPurpose();
+    throw new Error(`unknown impl-repair purpose: ${kind}`);
+  }
+
+  toJSON() {
+    return { kind: this.kind };
+  }
+
+  recordEvidence() {
+    throw new Error(`impl-repair purpose ${this.kind} must implement recordEvidence`);
+  }
+}
+
+export class AppliedFindingRepairPurpose extends ImplRepairPurpose {
+  constructor() {
+    super("applied-finding-repair");
+    Object.freeze(this);
+  }
+
+  recordEvidence({ root, specPath, sourceStep, entry }) {
+    recordAppliedFindingRepairEvidence({ root, specPath, sourceStep, entry });
+  }
+}
+
+export class TestEvidenceRefreshPurpose extends ImplRepairPurpose {
+  constructor() {
+    super("test-evidence-refresh");
+    Object.freeze(this);
+  }
+
+  recordEvidence() {
+    // Refresh-only transactions deliberately emit no consumable finding repair evidence.
+  }
+}
+
 export class ImplRepairTransaction {
   constructor(input = {}) {
     if (input.version !== 1) throw new Error("impl-repair transaction version must be 1");
@@ -334,6 +384,7 @@ export class ImplRepairTransaction {
       ? input.currentManifest
       : new RepairFingerprintManifest(input.currentManifest);
     this.delta = input.delta instanceof RepairDeltaArtifact ? input.delta : new RepairDeltaArtifact(input.delta);
+    this.purpose = ImplRepairPurpose.from(input.purpose);
     if (this.id !== this.entry.id || this.id !== this.delta.id) {
       throw new Error("impl-repair transaction id is inconsistent");
     }
@@ -368,6 +419,9 @@ export class ImplRepairTransaction {
       ledger: this.ledger.toJSON(),
       currentManifest: this.currentManifest.toJSON(),
       delta: this.delta.toJSON(),
+      ...(this.purpose instanceof TestEvidenceRefreshPurpose
+        ? { purpose: this.purpose.toJSON() }
+        : {}),
       invalidations: this.invalidations.map((record) => record.toJSON()),
     };
   }
@@ -667,7 +721,7 @@ export function appendImplRepairEntry({ specDir, entry }) {
   return { path: file, artifact };
 }
 
-function recordImplRepairEvidence({ root, specPath, sourceStep, entry }) {
+function recordAppliedFindingRepairEvidence({ root, specPath, sourceStep, entry }) {
   const repairFile = entry.changedPathsPreview[0];
   for (const findingId of entry.sourceFindingIds) {
     appendIssueLogEntry(root, specPath, {
@@ -905,7 +959,12 @@ function commitRepairTransaction({
   faultInjector?.({ phase: "after-manifest" });
   applyRepairInvalidations(specDir, journal.invalidations);
   faultInjector?.({ phase: "after-invalidation" });
-  recordImplRepairEvidence({ root, specPath: state.spec, sourceStep: journal.sourceStep, entry });
+  journal.purpose.recordEvidence({
+    root,
+    specPath: state.spec,
+    sourceStep: journal.sourceStep,
+    entry,
+  });
   if (commitFlowState) updateRepairSteps(flowManager, journal.resetStepIds);
   faultInjector?.({ phase: "after-flow-state" });
   fs.rmSync(path.join(specDir, REPAIR_TRANSACTION_FILE), { force: true });

@@ -1,5 +1,5 @@
-import fs from "node:fs";
 import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
@@ -21,6 +21,7 @@ import {
   ImplRepairTransitionIntent,
   InvalidatedArtifactRecord,
   readImplRepairLedger,
+  TestEvidenceRefreshPurpose,
 } from "./impl-repair-artifacts.js";
 import { FlowCommand } from "./base-command.js";
 import { IssueLogDocument } from "./issue-log-store.js";
@@ -49,8 +50,13 @@ const ISSUE_LOG = "issue-log.json";
 const IMPL_REVIEW = "impl-review.json";
 const IMPL_GATE_RESULT = "impl-gate-result.json";
 const MAX_EVIDENCE_BYTES = 1024 * 1024;
-const MAX_SEMANTIC_FINDINGS = 100;
-const MAX_REPAIR_REFERENCES = 100;
+const MAX_SEMANTIC_FINDINGS = 32;
+const MAX_CANDIDATE_ENTRIES = 256;
+const MAX_AGGREGATE_REFS = 64;
+const MAX_UNIQUE_REFS = 16;
+const MAX_GIT_AUTHORITY_CALLS = 128;
+const MAX_TASK_AUTHORITY_CHARS = 32 * 1024;
+const MAX_TASK_AUTHORITY_TOKENS = 2048;
 const CHANGED_PATH_PREVIEW_LIMIT = 20;
 const CHANGED_PATH_GROUP_LIMIT = 20;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
@@ -438,17 +444,6 @@ function parseTimestamp(value, field) {
   return timestamp;
 }
 
-function gitResult(root, args, label) {
-  const result = runGit(args, { cwd: root });
-  if (!result.ok) {
-    reject(
-      "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
-      `${label}: ${result.stderr.trim() || "Git authority query failed"}`,
-    );
-  }
-  return result.stdout.trim();
-}
-
 function gitBlobOid(bytes, objectFormat) {
   const algorithm = objectFormat === "sha256" ? "sha256" : "sha1";
   return crypto.createHash(algorithm)
@@ -457,18 +452,69 @@ function gitBlobOid(bytes, objectFormat) {
     .digest("hex");
 }
 
-function containsRequirement(value, requirementId) {
-  const escaped = requirementId.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^A-Za-z0-9_-])${escaped}([^A-Za-z0-9_-]|$)`).test(
-    Array.isArray(value) ? value.join("\n") : String(value || ""),
-  );
+function rejectBound(message) {
+  reject("STALE_TEST_EVIDENCE_BOUND_EXCEEDED", message);
 }
 
-class MaterialRepairEvidenceAuthority {
+class BoundedGitAuthority {
+  constructor(root, runner) {
+    this.root = root;
+    this.runner = runner;
+    this.calls = 0;
+  }
+
+  run(args) {
+    if (this.calls >= MAX_GIT_AUTHORITY_CALLS) {
+      rejectBound(`material repair Git authority exceeds ${MAX_GIT_AUTHORITY_CALLS} calls`);
+    }
+    this.calls += 1;
+    return this.runner(args, { cwd: this.root });
+  }
+
+  required(args, label) {
+    const result = this.run(args);
+    if (!result.ok) {
+      reject(
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+        `${label}: ${result.stderr.trim() || "Git authority query failed"}`,
+      );
+    }
+    return result.stdout.trim();
+  }
+}
+
+class SpecTaskRequirementIndex {
+  constructor(spec) {
+    this.byId = new Map();
+    for (const task of Array.isArray(spec.tasks) ? spec.tasks : []) {
+      if (typeof task?.id !== "string" || task.id.trim() === "") continue;
+      const values = [
+        task.goal,
+        ...(Array.isArray(task.acceptance) ? task.acceptance : [task.acceptance]),
+        task.origin,
+      ].filter((value) => typeof value === "string");
+      const text = values.join("\n").normalize("NFKC");
+      if (text.length > MAX_TASK_AUTHORITY_CHARS) {
+        rejectBound(`spec task ${task.id} authority exceeds ${MAX_TASK_AUTHORITY_CHARS} characters`);
+      }
+      const tokens = text.match(/[A-Za-z0-9][A-Za-z0-9_-]*/g) || [];
+      if (tokens.length > MAX_TASK_AUTHORITY_TOKENS) {
+        rejectBound(`spec task ${task.id} authority exceeds ${MAX_TASK_AUTHORITY_TOKENS} tokens`);
+      }
+      this.byId.set(task.id, new Set(tokens));
+    }
+    Object.freeze(this);
+  }
+
+  covers(taskId, requirementId) {
+    return this.byId.get(taskId)?.has(requirementId) === true;
+  }
+}
+
+class MaterialRepairCandidateSet {
   constructor({
     root,
     state,
-    specDir,
     issueLog,
     gateArtifact,
     mismatch,
@@ -508,80 +554,120 @@ class MaterialRepairEvidenceAuthority {
       && finding.requirementId.trim() !== ""
     ));
     if (findings.length === 0 || findings.length > MAX_SEMANTIC_FINDINGS) {
+      if (findings.length > MAX_SEMANTIC_FINDINGS) {
+        rejectBound(`semantic integration findings exceed ${MAX_SEMANTIC_FINDINGS}`);
+      }
       reject(
         "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
-        `semantic integration findings must contain 1-${MAX_SEMANTIC_FINDINGS} must-fix entries`,
+        "semantic integration findings contain no must-fix entry",
       );
     }
-
+    const findingById = new Map();
+    for (const finding of findings) {
+      if (findingById.has(finding.findingId)) {
+        reject(
+          "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+          `semantic integration finding ${finding.findingId} is ambiguous`,
+        );
+      }
+      findingById.set(finding.findingId, Object.freeze({
+        findingId: finding.findingId,
+        requirementId: finding.requirementId.trim(),
+        reportedAt: parseTimestamp(
+          finding.reportedAt || artifact.generatedAt,
+          `finding ${finding.findingId} reportedAt`,
+        ),
+      }));
+    }
     const spec = capture(path.resolve(root, state.spec), state.spec).value;
+    const tasks = new SpecTaskRequirementIndex(spec);
     const document = new IssueLogDocument(issueLog);
-    if (document.entries.length > MAX_REPAIR_REFERENCES) {
-      reject(
-        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
-        `formal repair issue-log entries exceed ${MAX_REPAIR_REFERENCES}`,
-      );
-    }
     const registry = new RepairArtifactRegistry(state.spec);
     const specPrefix = `${path.posix.dirname(state.spec.replaceAll("\\", "/"))}/`;
-    const qualified = [];
-    for (const finding of findings) {
-      const findingAt = parseTimestamp(
-        finding.reportedAt || artifact.generatedAt,
-        `finding ${finding.findingId} reportedAt`,
-      );
-      const entries = document.entries.filter((entry) => (
-        entry?.normalizedFindingId === finding.findingId
-        && entry?.step === "impl-gate"
+    const references = new Map();
+    let candidateEntries = 0;
+    let aggregateRefs = 0;
+    for (const entry of document.entries) {
+      const finding = findingById.get(entry?.normalizedFindingId);
+      if (!finding) continue;
+      candidateEntries += 1;
+      if (candidateEntries > MAX_CANDIDATE_ENTRIES) {
+        rejectBound(`formal repair entries exceed ${MAX_CANDIDATE_ENTRIES}`);
+      }
+      if (!(
+        entry?.step === "impl-gate"
         && (entry.phase == null || entry.phase === "integration")
         && typeof entry?.trigger === "string"
         && /\bintegration gate\b/i.test(entry.trigger)
         && typeof entry?.reason === "string"
         && entry.reason.trim() !== ""
-      ));
-      for (const entry of entries) {
-        const entryAt = parseTimestamp(entry.timestamp, `repair entry ${finding.findingId} timestamp`);
-        if (entryAt <= findingAt || entryAt >= structuralAt) continue;
-        if (!this.#taskMatches(spec, entry.taskId, finding.requirementId)) continue;
-        const references = entry.repairRef?.files;
-        if (!Array.isArray(references) || references.length === 0) continue;
-        if (references.length > MAX_REPAIR_REFERENCES) {
-          reject(
-            "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
-            `repair entry ${finding.findingId} exceeds ${MAX_REPAIR_REFERENCES} file references`,
-          );
+      )) continue;
+      const entryAt = parseTimestamp(entry.timestamp, `repair entry ${finding.findingId} timestamp`);
+      if (entryAt <= finding.reportedAt || entryAt >= structuralAt) continue;
+      if (typeof entry.taskId !== "string" || entry.taskId.trim() === "") {
+        reject(
+          "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+          `repair entry ${finding.findingId} requires explicit spec task authority`,
+        );
+      }
+      const taskId = entry.taskId.trim();
+      if (!tasks.covers(taskId, finding.requirementId)) continue;
+      const repairRefs = entry.repairRef?.files;
+      if (!Array.isArray(repairRefs) || repairRefs.length === 0) continue;
+      aggregateRefs += repairRefs.length;
+      if (aggregateRefs > MAX_AGGREGATE_REFS) {
+        rejectBound(`formal repair references exceed ${MAX_AGGREGATE_REFS}`);
+      }
+      for (const reference of repairRefs) {
+        const relPath = normalizeRepoPath(reference, "issue-log repairRef.files[]");
+        if (
+          relPath.startsWith(specPrefix)
+          || relPath.startsWith(".senti/")
+          || registry.owns(relPath)
+        ) continue;
+        const matches = references.get(relPath) || new Map();
+        matches.set(finding.findingId, finding.reportedAt);
+        references.set(relPath, matches);
+        if (references.size > MAX_UNIQUE_REFS) {
+          rejectBound(`unique formal repair references exceed ${MAX_UNIQUE_REFS}`);
         }
-        for (const reference of references) {
-          const relPath = normalizeRepoPath(reference, "issue-log repairRef.files[]");
-          if (
-            relPath.startsWith(specPrefix)
-            || relPath.startsWith(".senti/")
-            || registry.owns(relPath)
-          ) {
-            continue;
-          }
-          const file = captureFile(path.resolve(root, relPath), relPath);
-          if (
-            fs.realpathSync(file.file) !== file.file
-            || !this.#qualifiesCommittedPath({
-              root,
-              state,
-              relPath,
-              bytes: file.bytes,
-              findingAt,
-              previous,
-            })
-          ) {
-            continue;
-          }
-          qualified.push(Object.freeze({
-            findingId: finding.findingId,
-            requirementId: finding.requirementId,
-            relPath,
-          }));
-          break;
+      }
+    }
+    if (references.size === 0) {
+      reject(
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+        "no semantic integration finding has a bounded formal repair reference",
+      );
+    }
+    this.references = Object.freeze([...references.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([relPath, matches]) => Object.freeze({
+        relPath,
+        matches: Object.freeze([...matches.entries()]),
+        file: captureFile(path.resolve(root, relPath), relPath),
+      })));
+    Object.freeze(this);
+  }
+}
+
+class MaterialRepairEvidenceAuthority {
+  constructor({ root, state, previous, candidates, gitRunner }) {
+    const git = new BoundedGitAuthority(root, gitRunner);
+    const qualified = [];
+    for (const candidate of candidates.references) {
+      if (fs.realpathSync(candidate.file.file) !== candidate.file.file) continue;
+      const committedAt = this.#qualifyingCommitTimestamp({
+        git,
+        state,
+        relPath: candidate.relPath,
+        bytes: candidate.file.bytes,
+        previous,
+      });
+      if (committedAt == null) continue;
+      for (const [findingId, findingAt] of candidate.matches) {
+        if (committedAt > findingAt) {
+          qualified.push(Object.freeze({ findingId, relPath: candidate.relPath }));
         }
-        if (qualified.at(-1)?.findingId === finding.findingId) break;
       }
     }
     if (qualified.length === 0) {
@@ -590,76 +676,58 @@ class MaterialRepairEvidenceAuthority {
         "no semantic integration finding has qualifying formal material repair evidence",
       );
     }
-
     this.findingIds = Object.freeze([...new Set(qualified.map((entry) => entry.findingId))]);
     this.paths = Object.freeze([...new Set(qualified.map((entry) => entry.relPath))].sort());
     this.root = root;
     this.baseRef = state.baseBranch;
-    this.headOid = gitResult(root, ["rev-parse", "HEAD"], "resolve material repair HEAD");
-    this.baseOid = gitResult(root, ["rev-parse", state.baseBranch], "resolve material repair base");
+    this.git = git;
+    this.headOid = git.required(["rev-parse", "HEAD"], "resolve material repair HEAD");
+    this.baseOid = git.required(["rev-parse", state.baseBranch], "resolve material repair base");
     Object.freeze(this);
   }
 
-  #taskMatches(spec, taskId, requirementId) {
-    if (taskId == null) return true;
-    const task = Array.isArray(spec.tasks)
-      ? spec.tasks.find((candidate) => candidate?.id === taskId)
-      : null;
-    return Boolean(
-      task
-      && [
-        task.goal,
-        task.acceptance,
-        task.origin,
-      ].some((value) => containsRequirement(value, requirementId)),
-    );
-  }
-
-  #qualifiesCommittedPath({ root, state, relPath, bytes, findingAt, previous }) {
-    const tracked = runGit(["ls-files", "--error-unmatch", "--", relPath], { cwd: root });
-    if (!tracked.ok) return false;
+  #qualifyingCommitTimestamp({ git, state, relPath, bytes, previous }) {
+    const tracked = git.run(["ls-files", "--error-unmatch", "--", relPath]);
+    if (!tracked.ok) return null;
     const currentBlob = gitBlobOid(bytes, previous.baseline.objectFormat);
-    const headBlob = gitResult(root, ["rev-parse", `HEAD:${relPath}`], `resolve HEAD blob for ${relPath}`);
-    if (currentBlob !== headBlob) return false;
+    const headBlob = git.required(["rev-parse", `HEAD:${relPath}`], `resolve HEAD blob for ${relPath}`);
+    if (currentBlob !== headBlob) return null;
 
-    const featureDiff = gitResult(
-      root,
+    const featureDiff = git.required(
       ["diff", "--name-only", `${state.baseBranch}...HEAD`, "--", relPath],
       `resolve feature diff for ${relPath}`,
     ).split("\n").filter(Boolean);
-    if (!featureDiff.includes(relPath)) return false;
+    if (!featureDiff.includes(relPath)) return null;
 
-    const staleBlob = runGit(["rev-parse", `${previous.headOid}:${relPath}`], { cwd: root });
-    if (staleBlob.ok && staleBlob.stdout.trim() === currentBlob) return false;
+    const staleBlob = git.run(["rev-parse", `${previous.headOid}:${relPath}`]);
+    if (staleBlob.ok && staleBlob.stdout.trim() === currentBlob) return null;
     const manifestEntry = previous.entries.find((entry) => entry.path === relPath);
     const contentHash = crypto.createHash("sha256").update(bytes).digest("hex");
-    if (manifestEntry && manifestEntry.contentHash === contentHash) return false;
+    if (manifestEntry && manifestEntry.contentHash === contentHash) return null;
 
-    const log = gitResult(
-      root,
+    const log = git.required(
       ["log", "-1", "--format=%H%x00%cI", "--", relPath],
       `resolve material repair commit for ${relPath}`,
     );
     const [commitOid, committedAtValue] = log.split("\0");
-    if (!commitOid || parseTimestamp(committedAtValue, `material repair commit ${relPath}`) <= findingAt) {
-      return false;
-    }
-    if (!runGit(["merge-base", "--is-ancestor", commitOid, "HEAD"], { cwd: root }).ok) return false;
-    const inBase = runGit(["merge-base", "--is-ancestor", commitOid, state.baseBranch], { cwd: root });
-    if (inBase.ok) return false;
+    if (!commitOid) return null;
+    const committedAt = parseTimestamp(committedAtValue, `material repair commit ${relPath}`);
+    if (!git.run(["merge-base", "--is-ancestor", commitOid, "HEAD"]).ok) return null;
+    const inBase = git.run(["merge-base", "--is-ancestor", commitOid, state.baseBranch]);
+    if (inBase.ok) return null;
     if (inBase.status !== 1) {
       reject(
         "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
         `failed to prove feature-only material repair commit for ${relPath}`,
       );
     }
-    return true;
+    return committedAt;
   }
 
   assertCurrent() {
     if (
-      gitResult(this.root, ["rev-parse", "HEAD"], "revalidate material repair HEAD") !== this.headOid
-      || gitResult(this.root, ["rev-parse", this.baseRef], "revalidate material repair base") !== this.baseOid
+      this.git.required(["rev-parse", "HEAD"], "revalidate material repair HEAD") !== this.headOid
+      || this.git.required(["rev-parse", this.baseRef], "revalidate material repair base") !== this.baseOid
     ) {
       reject(
         "STALE_TEST_EVIDENCE_AUTHORITY_CHANGED",
@@ -777,6 +845,7 @@ function completeMaterialRepair({
     ledger: existing.append(entry),
     currentManifest: current,
     delta,
+    purpose: new TestEvidenceRefreshPurpose(),
     invalidations,
   });
   return {
@@ -842,7 +911,7 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
     Object.freeze(this);
   }
 
-  static capture({ root, state, specId }) {
+  static capture({ root, state, specId, gitRunner = runGit }) {
     const files = [];
     const captureFile = (file, label) => {
       const snapshot = SecureBoundedFileSnapshot.capture(file, label);
@@ -924,6 +993,29 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
           "mixed impl-triage decisions cannot authorize stale test evidence recovery",
         );
       }
+      let materialCandidates = null;
+      if (!triageResult.requiresRepair) {
+        if (
+          triageResult.artifact.items.length === 0
+          || triageResult.artifact.items.some((item) => item.decision !== "reject")
+        ) {
+          reject(
+            "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+            "material repair recovery requires complete all-reject impl-triage authority",
+          );
+        }
+        gateArtifact ||= capture(path.join(specDir, IMPL_GATE_RESULT), IMPL_GATE_RESULT);
+        materialCandidates = new MaterialRepairCandidateSet({
+          root,
+          state,
+          issueLog: issueLog.value,
+          gateArtifact,
+          mismatch,
+          previous,
+          capture,
+          captureFile,
+        });
+      }
       const current = buildRepairFingerprint({ root, specPath: state.spec, state });
       if (authority.fingerprint !== previous.hash) {
         reject(
@@ -947,27 +1039,13 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
         );
       }
       let materialRepair = null;
-      if (!triageResult.requiresRepair) {
-        if (
-          triageResult.artifact.items.length === 0
-          || triageResult.artifact.items.some((item) => item.decision !== "reject")
-        ) {
-          reject(
-            "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
-            "material repair recovery requires complete all-reject impl-triage authority",
-          );
-        }
-        gateArtifact ||= capture(path.join(specDir, IMPL_GATE_RESULT), IMPL_GATE_RESULT);
+      if (materialCandidates !== null) {
         materialRepair = new MaterialRepairEvidenceAuthority({
           root,
           state,
-          specDir,
-          issueLog: issueLog.value,
-          gateArtifact,
-          mismatch,
           previous,
-          capture,
-          captureFile,
+          candidates: materialCandidates,
+          gitRunner,
         });
       }
       return new StaleTestEvidenceAuthoritySnapshot({
@@ -1100,6 +1178,8 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
           throw new Error("all-reject impl-triage authority changed");
         }
         if (
+          !(transaction.purpose instanceof TestEvidenceRefreshPurpose)
+          ||
           !isDeepStrictEqual(
             transaction.entry.sourceFindingIds,
             this.materialRepair.findingIds,
@@ -1177,6 +1257,9 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
         root: ctx.root,
         state,
         specId: ctx.specId,
+        gitRunner: this.container.has("staleTestEvidenceRecoveryGitRunner")
+          ? this.container.get("staleTestEvidenceRecoveryGitRunner")
+          : runGit,
       });
       const completed = snapshot.completeRepair(
         state,
@@ -1203,6 +1286,15 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
         mutationOptions,
         new ImplRepairTransitionIntent(completed.transaction, snapshot),
       );
+      if (this.container.has("staleTestEvidenceRecoveryFaultInjector")) {
+        this.container.get("staleTestEvidenceRecoveryFaultInjector")({
+          phase: "after-update-step-statuses",
+          root: ctx.root,
+          specDir: snapshot.specDir,
+          specId: snapshot.specId,
+          flowManager: ctx.flowManager,
+        });
+      }
       commitImplRepairEffects({
         root: ctx.root,
         state,

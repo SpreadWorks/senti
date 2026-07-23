@@ -11,6 +11,7 @@ import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import {
   buildRepairFingerprint,
   prepareImplTriageArtifact,
+  recoverImplRepairTransaction,
 } from "../../../src/flow/lib/impl-repair-artifacts.js";
 import { runGit } from "../../../src/lib/git-helpers.js";
 import { resolveFlowContext } from "../../../src/flow/lib/flow-context.js";
@@ -273,6 +274,8 @@ function prepareFixture({
   gateArtifactOverrides = {},
   materialRepair = false,
   materialReference = MATERIAL_REPAIR_PATH,
+  materialReferences = undefined,
+  materialTaskId = "T-2",
   materialCommitAt = MATERIAL_REPAIR_AT,
   materialIssueAt = MATERIAL_ISSUE_AT,
   materialFindingId = SEMANTIC_FINDING_ID,
@@ -287,6 +290,7 @@ function prepareFixture({
   const specDir = `specs/${SPEC_ID}`;
   const rawOutputPath = `${specDir}/tests/.raw/test-execution.log`;
   const resultPath = `${specDir}/test-execute-result.json`;
+  const resolvedMaterialReferences = materialReferences ?? [materialReference];
 
   writeJson(root, SPEC_PATH, {
     goal: "Recover stale implementation test evidence.",
@@ -375,11 +379,12 @@ function prepareFixture({
   if (materialRepair) {
     writeFile(root, MATERIAL_REPAIR_PATH, "test('after material repair', () => {});\n");
     commitFixture(root, "Add formal material repair", materialCommitAt, [MATERIAL_REPAIR_PATH]);
-    if (materialReference === "src/untracked.js") {
-      writeFile(root, materialReference, "export const untracked = true;\n");
-    } else if (materialReference === "node_modules/material-link.js") {
+    if (resolvedMaterialReferences.includes("src/untracked.js")) {
+      writeFile(root, "src/untracked.js", "export const untracked = true;\n");
+    }
+    if (resolvedMaterialReferences.includes("node_modules/material-link.js")) {
       fs.mkdirSync(path.join(root, "node_modules"), { recursive: true });
-      fs.symlinkSync("../src/unchanged.js", path.join(root, materialReference));
+      fs.symlinkSync("../src/unchanged.js", path.join(root, "node_modules/material-link.js"));
     }
   } else if (applySourceChange) {
     writeFile(root, "src/repair-target.js", "export const value = 'after';\n");
@@ -439,8 +444,8 @@ function prepareFixture({
       reason: "The formal focused repair was implemented after the semantic gate finding.",
       trigger: "integration gate attempt 1 identified missing requirement coverage",
       normalizedFindingId: materialFindingId,
-      repairRef: { files: [materialReference] },
-      taskId: "T-2",
+      repairRef: { files: resolvedMaterialReferences },
+      taskId: materialTaskId,
       timestamp: materialIssueAt,
     }] : []), {
       step: "impl-gate",
@@ -728,9 +733,18 @@ describe("public stale test evidence recovery", () => {
     await withFixtureCase({
       caseName: "matrix-v5-real-shape-material-repair-success",
       expectedCode: "OK_THEN_STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH",
-      options: { materialRepair: true },
+      options: {
+        materialRepair: true,
+        materialReferences: ["src/unchanged.js", MATERIAL_REPAIR_PATH, MATERIAL_REPAIR_PATH],
+      },
     }, async (fixture, recorder) => {
       const before = fixture.flowManager.loadReadOnly();
+      const issueLogBefore = readJson(fixture.root, `${fixture.specDir}/issue-log.json`);
+      let gitCalls = 0;
+      fixture.container.register("staleTestEvidenceRecoveryGitRunner", (args, options) => {
+        gitCalls += 1;
+        return runGit(args, options);
+      });
       const result = await recorder.dispatch(fixture, "first");
       recorder.assert("material-repair-refresh-only", () => {
         assert.equal(result.exitCode, 0, JSON.stringify(result.envelope));
@@ -745,6 +759,15 @@ describe("public stale test evidence recovery", () => {
         assert.match(repair.reason, /finding resolution is not asserted/);
         assert.equal(Object.hasOwn(after, "allFindingsResolved"), false);
         assert.equal(Object.hasOwn(after, "resolvedFindings"), false);
+        assert.deepEqual(
+          readJson(fixture.root, `${fixture.specDir}/issue-log.json`),
+          issueLogBefore,
+        );
+        assert.equal(
+          issueLogBefore.entries.some((entry) => Object.hasOwn(entry, "resolution")),
+          false,
+        );
+        assert.ok(gitCalls > 0 && gitCalls <= 128, `bounded Git calls: ${gitCalls}`);
       });
 
       const beforeSecond = snapshot(fixture.root, [
@@ -759,6 +782,93 @@ describe("public stale test evidence recovery", () => {
         assert.equal(second.envelope.ok, false);
         assert.equal(second.envelope.errors[0].code, "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH");
         assert.deepEqual(snapshot(fixture.root, Object.keys(beforeSecond)), beforeSecond);
+      });
+    });
+  });
+
+  it("rejects aggregate material repair references before any Git authority query", async () => {
+    let gitCalls = 0;
+    await assertRejectedWithoutMutation({
+      caseName: "matrix-v5-aggregate-references-bound",
+      expectedCode: "STALE_TEST_EVIDENCE_BOUND_EXCEEDED",
+      options: {
+        materialRepair: true,
+        materialReferences: Array.from({ length: 65 }, () => MATERIAL_REPAIR_PATH),
+      },
+      arrange: (fixture) => {
+        fixture.container.register("staleTestEvidenceRecoveryGitRunner", (args, options) => {
+          gitCalls += 1;
+          return runGit(args, options);
+        });
+      },
+    });
+    assert.equal(gitCalls, 0);
+  });
+
+  it("preserves refresh-only purpose and unresolved finding authority through recovery", async () => {
+    await withFixtureCase({
+      caseName: "matrix-v5-refresh-purpose-crash-recovery",
+      expectedCode: "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED_THEN_RECOVERED",
+      options: { materialRepair: true },
+    }, async (fixture, recorder) => {
+      const issueLogBefore = readJson(fixture.root, `${fixture.specDir}/issue-log.json`);
+      let faultInjected = false;
+      fixture.container.register("staleTestEvidenceRecoveryFaultInjector", ({ phase }) => {
+        if (phase !== "after-update-step-statuses" || faultInjected) return;
+        faultInjected = true;
+        throw new Error("simulated crash after durable transition intent");
+      });
+
+      const result = await recorder.dispatch(fixture, "crash-after-transition-intent");
+      recorder.assert("durable-refresh-purpose", () => {
+        assert.equal(result.exitCode, 1);
+        assert.equal(result.envelope.ok, false);
+        assert.equal(
+          result.envelope.errors[0].code,
+          "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+        );
+        assert.equal(faultInjected, true);
+        const pending = fixture.flowManager.loadReadOnly();
+        assert.deepEqual(findActiveNode(pending), {
+          scope: "flow",
+          stepId: "test-execute",
+          taskId: null,
+        });
+        assert.equal(
+          pending.implRepairTransaction?.purpose?.kind,
+          "test-evidence-refresh",
+        );
+        assert.deepEqual(
+          readJson(fixture.root, `${fixture.specDir}/issue-log.json`),
+          issueLogBefore,
+        );
+      });
+
+      const pending = fixture.flowManager.loadReadOnly();
+      const recovered = recoverImplRepairTransaction({
+        root: fixture.root,
+        state: pending,
+        flowManager: fixture.flowManager,
+      });
+      recorder.assert("refresh-only-recovery", () => {
+        assert.equal(recovered.entry.id, "repair-001");
+        const after = fixture.flowManager.loadReadOnly();
+        assert.equal(after.implRepairTransaction, undefined);
+        assert.equal(findStepById(after.steps, "impl-gate").status, "pending");
+        assert.equal(Object.hasOwn(after, "allFindingsResolved"), false);
+        assert.equal(Object.hasOwn(after, "resolvedFindings"), false);
+        const issueLogAfter = readJson(fixture.root, `${fixture.specDir}/issue-log.json`);
+        assert.deepEqual(issueLogAfter, issueLogBefore);
+        assert.equal(
+          issueLogAfter.entries.filter(
+            (entry) => entry.normalizedFindingId === SEMANTIC_FINDING_ID,
+          ).length,
+          1,
+        );
+        assert.equal(
+          issueLogAfter.entries.some((entry) => Object.hasOwn(entry, "resolution")),
+          false,
+        );
       });
     });
   });
@@ -803,6 +913,21 @@ describe("public stale test evidence recovery", () => {
       [
         "matrix-v5-wrong-task-requirement",
         { materialRepair: true, materialTaskAcceptance: "R9 covers another task." },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-null-task-authority",
+        { materialRepair: true, materialTaskId: null },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-empty-task-authority",
+        { materialRepair: true, materialTaskId: "" },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-unknown-task-authority",
+        { materialRepair: true, materialTaskId: "T-unknown" },
         "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
       ],
       [
