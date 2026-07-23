@@ -391,6 +391,22 @@ function splitDiffByFile(diffText) {
   return map;
 }
 
+export function excludeScenarioValidityEvidenceFromTaskGateDiff(diff, specPath) {
+  if (typeof diff !== "string") throw new Error("diff must be a string");
+  if (typeof specPath !== "string" || specPath.trim() === "") {
+    throw new Error("specPath must be a non-empty string");
+  }
+  const specDir = path.posix.dirname(specPath.split(path.sep).join("/"));
+  const excluded = new Set([
+    `${specDir}/scenario-validity-result.json`,
+    `${specDir}/tests/.raw/scenario-validity.log`,
+  ]);
+  return [...splitDiffByFile(diff)]
+    .filter(([file]) => !excluded.has(file))
+    .map(([, fileDiff]) => fileDiff)
+    .join("");
+}
+
 function summarizeDiffSegment(file, fileDiff) {
   const added = (fileDiff.match(/^\+(?!\+\+)/gm) || []).length;
   const removed = (fileDiff.match(/^-(?!--)/gm) || []).length;
@@ -5211,7 +5227,8 @@ export class RunGateCommand extends FlowCommand {
 
     const gitState = computeGitState(root);
     ctx.gitState = gitState;
-    const targetText = `${taskSpec.text}\n\n## Git Diff\n${diff}`;
+    const guardrailDiff = excludeScenarioValidityEvidenceFromTaskGateDiff(diff, state.spec);
+    const targetText = `${taskSpec.text}\n\n## Git Diff\n${guardrailDiff}`;
 
     return runGateFlow({
       root,

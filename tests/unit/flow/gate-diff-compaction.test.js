@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildGuardrailTargetTextForPrompt,
   compactDiffForGuardrailPrompt,
+  excludeScenarioValidityEvidenceFromTaskGateDiff,
 } from "../../../src/flow/lib/run-gate.js";
 
 function deletionOnlyDiff(file, removedBody) {
@@ -96,5 +97,31 @@ describe("guardrail diff prompt compaction", () => {
     assert.match(targetText, /review-regression\.test\.js: \/\/ spec: R2 R9/);
     assert.match(targetText, /R2: rejects stale target evidence/);
     assert.match(targetText, /R9: keeps advisory evidence after projection failure/);
+  });
+});
+
+describe("task gate scenario-validity evidence", () => {
+  it("excludes active-spec pre-fix evidence while retaining implementation and post-fix evidence", () => {
+    const specDir = "specs/999-example";
+    const diff = [
+      modifiedDiff(`${specDir}/scenario-validity-result.json`),
+      modifiedDiff(`${specDir}/tests/.raw/scenario-validity.log`),
+      modifiedDiff(`${specDir}/test-execute-result.json`),
+      modifiedDiff(`${specDir}/tests/.raw/test-execution.log`),
+      modifiedDiff("specs/998-other/scenario-validity-result.json"),
+      modifiedDiff("src/flow/lib/review-convergence.js"),
+    ].join("");
+
+    const filtered = excludeScenarioValidityEvidenceFromTaskGateDiff(
+      diff,
+      `${specDir}/spec.json`,
+    );
+
+    assert.doesNotMatch(filtered, new RegExp(`${specDir}/scenario-validity-result\\.json`));
+    assert.doesNotMatch(filtered, new RegExp(`${specDir}/tests/\\.raw/scenario-validity\\.log`));
+    assert.match(filtered, new RegExp(`${specDir}/test-execute-result\\.json`));
+    assert.match(filtered, new RegExp(`${specDir}/tests/\\.raw/test-execution\\.log`));
+    assert.match(filtered, /specs\/998-other\/scenario-validity-result\.json/);
+    assert.match(filtered, /src\/flow\/lib\/review-convergence\.js/);
   });
 });
