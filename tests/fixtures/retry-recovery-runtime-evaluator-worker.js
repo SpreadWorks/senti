@@ -84,6 +84,13 @@ function featureEvidenceHash(root) {
     .digest("hex");
 }
 
+function gateRetryCount(flowState) {
+  return flowState.metrics.reduce((count, metric) => {
+    if (metric.phase !== "task-impl" || metric.counter !== "gateRetry") return count;
+    return metric.reset ? 0 : count + (metric.delta ?? 1);
+  }, 0);
+}
+
 function makeFlowState(buildInitialSteps) {
   return {
     spec: SPEC_PATH,
@@ -224,9 +231,13 @@ export async function runRuntimeEvaluatorScenario({ diagnosticPath, sourceRoot }
     writeFile(projectRoot, FEATURE_PATH, "export const featureEvidence = 2;\n");
     writeFile(projectRoot, `${path.dirname(SPEC_PATH)}/task-impl-gate-source.json`, `${JSON.stringify({
       phase: "task-impl",
+      runId: "run-runtime-evaluator-recovery",
+      planRewindAt: null,
+      generatedAt: "2026-07-22T00:00:00.000Z",
       result: "fail",
       evaluations: [{
         findingId: FINDING_ID,
+        fingerprint: FINDING_ID,
         result: "fail",
         reason: "runtime evaluator rejected the unchanged feature evidence",
         reportedAt: "2026-07-22T00:00:00.000Z",
@@ -255,18 +266,12 @@ export async function runRuntimeEvaluatorScenario({ diagnosticPath, sourceRoot }
     });
     baseManager.create(state);
     baseManager.addActiveFlow(SPEC_ID, "branch");
-    const repair = await runPublicCommand(trace, phase, runtimeV1, "issue-log", [
-      "--step", "task-gate",
-      "--task-id", "T-1",
-      "--reason", "Recorded formal matching repair evidence before retry recovery.",
-      "--resolution", "The exact normalized finding is bound to the unchanged feature evidence file.",
-      "--normalized-finding-id", FINDING_ID,
-      "--repair-ref-file", FEATURE_PATH,
-    ]);
-    assert.equal(repair.exitCode, 0, repair.stderr || repair.stdout);
-    assert.equal(repair.envelope.ok, true);
+    assert.match(baseline.fingerprint.components.projectHash, /^[a-f0-9]{64}$/);
+    assert.equal(baseline.fingerprint.components.runtimeHash == null, false);
     trace.phase(phase, "passed", {
       baselineHash: baseline.fingerprint.hash,
+      projectHash: baseline.fingerprint.components.projectHash,
+      runtimeHash: baseline.fingerprint.components.runtimeHash,
       evaluatorDigest: evaluatorBefore.digest,
       evaluatorBytes: evaluatorBefore.bytes,
     });
@@ -287,12 +292,74 @@ export async function runRuntimeEvaluatorScenario({ diagnosticPath, sourceRoot }
     trace.phase(phase, "started");
     const runtimeV2 = await loadRuntime(runtimeV2Root, projectRoot);
     const evaluatorAfter = runtimeEvaluatorFingerprint(runtimeV2.retryModule, path.dirname(SPEC_PATH));
+    const currentFingerprint = runtimeV2.retryModule.buildCurrentRecoveryFingerprint({
+      root: projectRoot,
+      flowState: state,
+      kind: "gate",
+      canonicalPhase: "task-impl",
+      baseline,
+    });
     assert.notEqual(evaluatorAfter.digest, evaluatorBefore.digest);
     assert.equal(featureEvidenceHash(projectRoot), projectEvidenceBefore);
+    assert.equal(
+      currentFingerprint.components.projectHash,
+      baseline.fingerprint.components.projectHash,
+    );
+    assert.notEqual(
+      currentFingerprint.components.runtimeHash,
+      baseline.fingerprint.components.runtimeHash,
+    );
     trace.phase(phase, "passed", {
       evaluatorBefore: evaluatorBefore.digest,
       evaluatorAfter: evaluatorAfter.digest,
       projectEvidenceHash: projectEvidenceBefore,
+      projectComponentHash: currentFingerprint.components.projectHash,
+      runtimeComponentBefore: baseline.fingerprint.components.runtimeHash,
+      runtimeComponentAfter: currentFingerprint.components.runtimeHash,
+    });
+
+    phase = "missing repair evidence";
+    trace.phase(phase, "started");
+    const missingEvidence = await runPublicCommand(trace, phase, runtimeV2, "retry", [
+      "reset", "gate", "task-impl",
+      "--reason", "The evaluator changed but formal repair evidence is still missing.",
+      "--yes",
+    ]);
+    assert.equal(missingEvidence.exitCode, 1, missingEvidence.stderr || missingEvidence.stdout);
+    assert.equal(missingEvidence.envelope.ok, false);
+    assert.equal(
+      missingEvidence.envelope.errors[0]?.code,
+      "EVALUATOR_REPAIR_EVIDENCE_REQUIRED",
+    );
+    const rejectedState = new runtimeV2.FlowManager({
+      root: projectRoot,
+      mainRoot: projectRoot,
+      inWorktree: false,
+      specId: SPEC_ID,
+    }).loadReadOnly(SPEC_ID);
+    assert.equal(rejectedState.retryRecovery?.entries?.length ?? 0, 0);
+    assert.equal(gateRetryCount(rejectedState), MAX_ATTEMPTS);
+    trace.phase(phase, "passed", {
+      code: missingEvidence.envelope.errors[0].code,
+      grantCount: rejectedState.retryRecovery?.entries?.length ?? 0,
+      counterAfter: gateRetryCount(rejectedState),
+    });
+
+    phase = "formal repair evidence";
+    trace.phase(phase, "started");
+    const repair = await runPublicCommand(trace, phase, runtimeV2, "issue-log", [
+      "--step", "task-gate",
+      "--task-id", "T-1",
+      "--reason", "Recorded formal matching repair evidence before retry recovery.",
+      "--resolution", "The exact normalized finding is bound to the unchanged feature evidence file.",
+      "--normalized-finding-id", FINDING_ID,
+      "--repair-ref-file", FEATURE_PATH,
+    ]);
+    assert.equal(repair.exitCode, 0, repair.stderr || repair.stdout);
+    assert.equal(repair.envelope.ok, true);
+    trace.phase(phase, "passed", {
+      normalizedFindingId: repair.envelope.data.entry.normalizedFindingId,
+      taskId: repair.envelope.data.entry.taskId,
     });
 
     phase = "recovery grant";
@@ -321,10 +388,7 @@ export async function runRuntimeEvaluatorScenario({ diagnosticPath, sourceRoot }
     assert.equal(grant.permittedReevaluationCount, 1);
     assert.equal(grant.counterAfter, MAX_ATTEMPTS - 1);
     assert.notEqual(grant.changedEvidence.baselineHash, grant.changedEvidence.currentHash);
-    const currentRetryCount = persisted.metrics.reduce((count, metric) => {
-      if (metric.phase !== "task-impl" || metric.counter !== "gateRetry") return count;
-      return metric.reset ? 0 : count + (metric.delta ?? 1);
-    }, 0);
+    const currentRetryCount = gateRetryCount(persisted);
     assert.equal(currentRetryCount, MAX_ATTEMPTS - 1);
     assert.equal(featureEvidenceHash(projectRoot), projectEvidenceBefore);
     trace.phase(phase, "passed", {

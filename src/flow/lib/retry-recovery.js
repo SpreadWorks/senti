@@ -15,6 +15,7 @@ import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owne
 import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import { RuntimeModuleIdentity } from "./runtime-module-identity.js";
+import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
 
 export const RECOVERY_REASON_MIN_LENGTH = 20;
 export const RECOVERY_REASON_MAX_LENGTH = 500;
@@ -142,7 +143,7 @@ function recoveryCommandFor(input) {
   return `senti flow set retry reset ${input.kind} ${input.phase} --reason "${reason}" --yes`;
 }
 
-function sha256ForFiles(root, relPaths, runtimeIdentities = []) {
+function sha256ForFiles(root, relPaths, runtimeFingerprints = []) {
   const hash = crypto.createHash("sha256");
   for (const relPath of relPaths) {
     const full = path.resolve(root, relPath);
@@ -156,9 +157,16 @@ function sha256ForFiles(root, relPaths, runtimeIdentities = []) {
     hash.update(fs.readFileSync(full));
     hash.update("\0");
   }
-  for (const identity of [...runtimeIdentities].sort((left, right) => left.key.localeCompare(right.key))) {
-    identity.fingerprint().update(hash);
+  for (const fingerprint of runtimeFingerprints) {
+    fingerprint.update(hash);
   }
+  return hash.digest("hex");
+}
+
+function sha256ForRuntimeFingerprints(runtimeFingerprints) {
+  if (runtimeFingerprints.length === 0) return null;
+  const hash = crypto.createHash("sha256");
+  for (const fingerprint of runtimeFingerprints) fingerprint.update(hash);
   return hash.digest("hex");
 }
 
@@ -381,7 +389,20 @@ export class RecoveryEvidenceSource {
   }
 
   fingerprint(root, paths) {
-    return sha256ForFiles(root, paths, this.runtimeIdentities);
+    const runtimeFingerprints = this.runtimeIdentities
+      .map((identity) => identity.fingerprint())
+      .sort((left, right) => left.key.localeCompare(right.key));
+    const components = new EvidenceFingerprintComponents({
+      projectHash: sha256ForFiles(root, paths),
+      runtimeHash: sha256ForRuntimeFingerprints(runtimeFingerprints),
+    });
+    return new EvidenceFingerprint({
+      sourceKind: this.sourceKind,
+      hash: sha256ForFiles(root, paths, runtimeFingerprints),
+      paths,
+      truncated: false,
+      components,
+    });
   }
 }
 
@@ -422,12 +443,34 @@ export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir })
   return new RecoveryEvidenceSource({ sourceKind: "unknown", paths: [] });
 }
 
+export class EvidenceFingerprintComponents {
+  constructor(input = {}) {
+    this.projectHash = requireSha256(input.projectHash, "fingerprint components.projectHash");
+    this.runtimeHash = input.runtimeHash == null
+      ? null
+      : requireSha256(input.runtimeHash, "fingerprint components.runtimeHash");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      projectHash: this.projectHash,
+      runtimeHash: this.runtimeHash,
+    };
+  }
+}
+
 export class EvidenceFingerprint {
   constructor(input = {}) {
     this.sourceKind = requireString(input.sourceKind, "sourceKind");
     this.hash = requireString(input.hash, "hash");
     this.paths = normalizeChangedPaths(input.paths);
     this.truncated = input.truncated === true;
+    this.components = input.components == null
+      ? null
+      : input.components instanceof EvidenceFingerprintComponents
+        ? input.components
+        : new EvidenceFingerprintComponents(input.components);
   }
 
   toJSON() {
@@ -436,6 +479,22 @@ export class EvidenceFingerprint {
       hash: this.hash,
       paths: this.paths,
       truncated: this.truncated,
+      ...(this.components && { components: this.components.toJSON() }),
+    };
+  }
+
+  componentChangeFrom(baseline) {
+    const previous = baseline instanceof EvidenceFingerprint
+      ? baseline
+      : new EvidenceFingerprint(baseline || {});
+    if (!this.components) return null;
+    const previousComponents = previous.components || new EvidenceFingerprintComponents({
+      projectHash: previous.hash,
+      runtimeHash: null,
+    });
+    return {
+      projectChanged: previousComponents.projectHash !== this.components.projectHash,
+      runtimeChanged: previousComponents.runtimeHash !== this.components.runtimeHash,
     };
   }
 }
@@ -705,7 +764,16 @@ export function evaluateRecoveryEligibility(input = {}) {
   if (!changedEvidence.changed) {
     return { recoverable: false, reason: "unchanged-evidence", changedEvidence };
   }
-  return { recoverable: true, reason: "changed-evidence", changedEvidence };
+  const componentChange = current.componentChangeFrom(baseline.fingerprint);
+  return {
+    recoverable: true,
+    reason: "changed-evidence",
+    changedEvidence,
+    changeKind: (
+      componentChange?.projectChanged === false
+      && componentChange.runtimeChanged === true
+    ) ? "runtime-evaluator" : "project-evidence",
+  };
 }
 
 export function evaluateRepeatedRecovery(input = {}) {
@@ -802,11 +870,9 @@ export function buildCurrentRecoveryFingerprint({ root, flowState, kind, canonic
     paths = listed;
   }
 
-  const normalized = normalizeChangedPaths(paths).sort();
+  const fingerprint = source.fingerprint(root, normalizeChangedPaths(paths).sort());
   return new EvidenceFingerprint({
-    sourceKind: source.sourceKind,
-    hash: source.fingerprint(root, normalized),
-    paths: normalized,
+    ...fingerprint.toJSON(),
     truncated,
   });
 }
@@ -1530,6 +1596,37 @@ function retryRequestError(code, recoveryInput, attempts, maxAttempts, reason) {
   );
 }
 
+function assertEvaluatorOnlyRepairEvidence({
+  root,
+  flowState,
+  eligibility,
+  issueLogEntries,
+  recoveryInput,
+  attempts,
+  maxAttempts,
+}) {
+  if (
+    recoveryInput.kind !== "gate"
+    || recoveryInput.canonicalPhase !== "task-impl"
+    || eligibility.changeKind !== "runtime-evaluator"
+  ) {
+    return;
+  }
+  const assessment = assessTaskGateRepairEvidence({
+    root,
+    flowState,
+    issueLogEntries,
+  });
+  if (assessment.valid) return;
+  throw retryRequestError(
+    "EVALUATOR_REPAIR_EVIDENCE_REQUIRED",
+    recoveryInput,
+    attempts,
+    maxAttempts,
+    assessment.reason,
+  );
+}
+
 export function applyRetryReset(input = {}) {
   const root = requireString(input.root, "root");
   const spec = requireString(input.spec, "spec");
@@ -1577,6 +1674,15 @@ export function applyRetryReset(input = {}) {
       resolveConfiguredMaxAttempts: input.resolveConfiguredMaxAttempts,
     });
     assertTransactionAuthority(authority.transaction, spec, observation.flowState);
+    assertEvaluatorOnlyRepairEvidence({
+      root,
+      flowState: observation.flowState,
+      eligibility: observation.eligibility,
+      issueLogEntries: issueSnapshot.document.entries,
+      recoveryInput,
+      attempts: observation.attempts,
+      maxAttempts: observation.maxAttempts,
+    });
 
     let record = authority.transaction?.status === "pending" ? authority.transaction : null;
     if (record) {
@@ -1699,6 +1805,15 @@ export function applyRetryReset(input = {}) {
             flowState,
             kind: recoveryInput.kind,
             phase: recoveryInput.phase,
+            attempts: attemptsBefore,
+            maxAttempts,
+          });
+          assertEvaluatorOnlyRepairEvidence({
+            root,
+            flowState,
+            eligibility,
+            issueLogEntries: issueSnapshot.document.entries,
+            recoveryInput,
             attempts: attemptsBefore,
             maxAttempts,
           });
