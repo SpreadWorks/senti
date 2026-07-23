@@ -1,0 +1,119 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+        "test_name": "R1: draft-questions repairTargets-only records one canonical advisory finding",
+        "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 201
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+        "test_name": "R2: draft-coverage repairTargets-only uses the same canonical advisory contract",
+        "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 201
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+        "test_name": "R3: advisory and repair findings remain advisory without a blocking record",
+        "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 201
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+        "test_name": "R4: repair target category and authored fields remain available to triage",
+        "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 201
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+        "test_name": "R5: empty draft review records PASS with zero canonical findings",
+        "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 201
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "test_name": "R6: repaired advisory baseline keeps invalid disposition matrices rejected",
+        "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 201
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "test_name": "R7: repaired advisory evidence records once and rejects duplicate or completed-target reuse",
+        "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 201
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+        "test_name": "R8: checkpoint-shaped repair target is recorded once without review AI",
+        "command": "node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 201
+        }
+      }
+    }
+  ]
+}

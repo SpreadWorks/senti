@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-17c0d45a-28eb-41b8-bc84-bef144790715",
+      "kind": "gate",
+      "phase": "task-impl",
+      "canonicalPhase": "task-impl",
+      "reason": "corrective task-impl repair evidence issue-log-bae892a0-0138-434f-b4f6-903dd4efb2af now matches finding 4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be and materializes the rebased evaluator fix",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "3243445d34b9c325097a77cd60a9f8d81ddcbc2ac887d46d8e5e145ec348b9c0",
+        "currentHash": "b04e477a7ac536d6c36299f8b9c31e06fb087292dcd7dee82ff0f06a58683fed",
+        "changedPaths": [
+          "specs/330-draft-review-repair-target/spec.json",
+          "src/flow/commands/review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate task-impl --reason \"corrective task-impl repair evidence issue-log-bae892a0-0138-434f-b4f6-903dd4efb2af now matches finding 4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be and materializes the rebased evaluator fix\" --yes",
+      "createdAt": "2026-07-23T10:25:23.022Z"
+    }
+  ]
+}

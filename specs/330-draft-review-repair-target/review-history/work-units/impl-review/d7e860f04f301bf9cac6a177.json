@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/330-draft-review-repair-target/review-history/spec-attempt-001.json",
+      "specs/330-draft-review-repair-target/review-history/spec-attempt-001.md",
+      "specs/330-draft-review-repair-target/review-history/test-attempt-001.json",
+      "specs/330-draft-review-repair-target/review-history/test-attempt-001.md",
+      "specs/330-draft-review-repair-target/review-history/test-attempt-002.json",
+      "specs/330-draft-review-repair-target/spec-review.md"
+    ],
+    "inputHash": "6ed7b9b17a4ec497845eb6c3cda7046bf7ea2c2c6cf820096cefffa7e50ba6f6",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "specs/330-draft-review-repair-target/review-history/spec-attempt-001.json",
+    "specs/330-draft-review-repair-target/review-history/spec-attempt-001.md",
+    "specs/330-draft-review-repair-target/review-history/test-attempt-001.json",
+    "specs/330-draft-review-repair-target/review-history/test-attempt-001.md",
+    "specs/330-draft-review-repair-target/review-history/test-attempt-002.json",
+    "specs/330-draft-review-repair-target/spec-review.md"
+  ],
+  "inputHash": "6ed7b9b17a4ec497845eb6c3cda7046bf7ea2c2c6cf820096cefffa7e50ba6f6",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-23T13:48:01.470Z",
+  "finishedAt": "2026-07-23T13:48:01.470Z",
+  "rawResponse": "### 1. Remove duplicated finding payloads\n**File:** `specs/330-draft-review-repair-target/review-history/test-attempt-001.json`  \n**Requirement:** R8  \n**Issue:** Each finding is stored twice: once in `blockingFindings` and again in `findings`, with largely duplicated title/body/rationale/fingerprint data. This increases drift risk between the two representations.  \n**Suggestion:** Keep one canonical finding list and derive grouped views such as `blockingFindings` from it when rendering or reading the artifact.\n\n### 2. Remove duplicated finding payloads\n**File:** `specs/330-draft-review-repair-target/review-history/test-attempt-002.json`  \n**Requirement:** R8  \n**Issue:** The same blocking findings are duplicated in both `blockingFindings` and `findings`. This repeats identifiers, fingerprints, rationale, and body text without adding distinct information.  \n**Suggestion:** Store findings once, then compute severity-specific collections from the canonical list.\n\n### 3. Add trailing newline\n**File:** `specs/330-draft-review-repair-target/review-history/spec-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The Markdown file has no trailing newline, which is inconsistent with standard text-file formatting and can create noisy diffs later.  \n**Suggestion:** Add a final newline at EOF.\n\n### 4. Add trailing newline\n**File:** `specs/330-draft-review-repair-target/review-history/test-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The Markdown file has no trailing newline, creating avoidable formatting inconsistency.  \n**Suggestion:** Add a final newline at EOF.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated finding payloads",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/test-attempt-001.json`  \n**Requirement:** R8  \n**Issue:** Each finding is stored twice: once in `blockingFindings` and again in `findings`, with largely duplicated title/body/rationale/fingerprint data. This increases drift risk between the two representations.  \n**Suggestion:** Keep one canonical finding list and derive grouped views such as `blockingFindings` from it when rendering or reading the artifact.",
+        "file": "specs/330-draft-review-repair-target/review-history/test-attempt-001.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Remove duplicated finding payloads",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/test-attempt-002.json`  \n**Requirement:** R8  \n**Issue:** The same blocking findings are duplicated in both `blockingFindings` and `findings`. This repeats identifiers, fingerprints, rationale, and body text without adding distinct information.  \n**Suggestion:** Store findings once, then compute severity-specific collections from the canonical list.",
+        "file": "specs/330-draft-review-repair-target/review-history/test-attempt-002.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Add trailing newline",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/spec-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The Markdown file has no trailing newline, which is inconsistent with standard text-file formatting and can create noisy diffs later.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/330-draft-review-repair-target/review-history/spec-attempt-001.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Add trailing newline",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/test-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The Markdown file has no trailing newline, creating avoidable formatting inconsistency.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/330-draft-review-repair-target/review-history/test-attempt-001.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

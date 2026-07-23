@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-23T08:01:21.086Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/330-draft-review-repair-target/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R8 no-op AI bypass assertion",
+      "target": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:157",
+      "findingId": "676ee75d9c579ee44adc175d35069c59506c21588a77fe75e31558fe135ea949",
+      "fingerprint": "676ee75d9c579ee44adc175d35069c59506c21588a77fe75e31558fe135ea949",
+      "disposition": "must-fix",
+      "rationale": "R8 explicitly requires advancing from finalized checkpoint evidence without invoking review AI; the current test has a static anti-pattern that passes without exercising that production behavior.",
+      "issue": "The `AgentInvocationProbe` is never passed into or connected to any production replay/review path. `replay()` only snapshots `agentProbe.calls`, calls the local recorder, and parses hard-coded command output, so the assertions that review AI was not invoked would pass even if production replay invoked review AI.",
+      "requiredChange": "Route the R8 scenario through the production checkpoint/replay path with an injected/stubbed review runner or agent hook, and assert that hook is not called.",
+      "whyBlocking": "R8 explicitly requires advancing from finalized checkpoint evidence without invoking review AI; the current test has a static anti-pattern that passes without exercising that production behavior.",
+      "origin": "R8",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 triage transition is hard-coded",
+      "target": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:171",
+      "findingId": "aa2eead7be8960cfa1dc0aeb816b45f8499feb886ce91a26b0ad3af3066f5b75",
+      "fingerprint": "aa2eead7be8960cfa1dc0aeb816b45f8499feb886ce91a26b0ad3af3066f5b75",
+      "disposition": "must-fix",
+      "rationale": "R8 requires the raw fixture to pass through producer normalization and advance to triage; the current test does not cover the production behavior and can pass on a fabricated transition.",
+      "issue": "The test obtains `next` by calling `parseProposalReviewOutput` on a hard-coded stdout string rather than exercising the producer/replay code that should decide to advance to `draft-questions-triage`. This would pass even if the production transition never advanced to triage.",
+      "requiredChange": "Exercise the production replay/producer transition that consumes the recorded repair-target artifact and assert its actual next phase is `draft-questions-triage`.",
+      "whyBlocking": "R8 requires the raw fixture to pass through producer normalization and advance to triage; the current test does not cover the production behavior and can pass on a fabricated transition.",
+      "origin": "R8",
+      "failureKind": "static anti-pattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/330-draft-review-repair-target/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "a2ee829658fff76eeee73030ad6d8ebd291ded39b903ea1d8818d379dd386edd"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "676ee75d9c579ee44adc175d35069c59506c21588a77fe75e31558fe135ea949",
+      "findingId": "676ee75d9c579ee44adc175d35069c59506c21588a77fe75e31558fe135ea949",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R8 no-op AI bypass assertion",
+      "body": "The `AgentInvocationProbe` is never passed into or connected to any production replay/review path. `replay()` only snapshots `agentProbe.calls`, calls the local recorder, and parses hard-coded command output, so the assertions that review AI was not invoked would pass even if production replay invoked review AI.",
+      "category": "unknown",
+      "fingerprint": "676ee75d9c579ee44adc175d35069c59506c21588a77fe75e31558fe135ea949",
+      "disposition": "must-fix",
+      "rationale": "R8 explicitly requires advancing from finalized checkpoint evidence without invoking review AI; the current test has a static anti-pattern that passes without exercising that production behavior."
+    },
+    {
+      "id": "aa2eead7be8960cfa1dc0aeb816b45f8499feb886ce91a26b0ad3af3066f5b75",
+      "findingId": "aa2eead7be8960cfa1dc0aeb816b45f8499feb886ce91a26b0ad3af3066f5b75",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R8 triage transition is hard-coded",
+      "body": "The test obtains `next` by calling `parseProposalReviewOutput` on a hard-coded stdout string rather than exercising the producer/replay code that should decide to advance to `draft-questions-triage`. This would pass even if the production transition never advanced to triage.",
+      "category": "unknown",
+      "fingerprint": "aa2eead7be8960cfa1dc0aeb816b45f8499feb886ce91a26b0ad3af3066f5b75",
+      "disposition": "must-fix",
+      "rationale": "R8 requires the raw fixture to pass through producer normalization and advance to triage; the current test does not cover the production behavior and can pass on a fabricated transition."
+    }
+  ]
+}

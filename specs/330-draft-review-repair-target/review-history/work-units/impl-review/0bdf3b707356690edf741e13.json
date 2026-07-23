@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0bdf3b707356690edf741e13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0000",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/330-draft-review-repair-target/.retry-recovery.transaction.json",
+      "specs/330-draft-review-repair-target/draft-coverage-repair.json",
+      "specs/330-draft-review-repair-target/draft-coverage-triage.json",
+      "specs/330-draft-review-repair-target/draft-gate-source.json",
+      "specs/330-draft-review-repair-target/draft-questions-repair.json"
+    ],
+    "inputHash": "a697b0399c8ccfdd74fc9e13ae495c09111874f48852aedbe7f664f6b979791b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0bdf3b707356690edf741e13"
+  },
+  "targetFiles": [
+    "specs/330-draft-review-repair-target/.retry-recovery.transaction.json",
+    "specs/330-draft-review-repair-target/draft-coverage-repair.json",
+    "specs/330-draft-review-repair-target/draft-coverage-triage.json",
+    "specs/330-draft-review-repair-target/draft-gate-source.json",
+    "specs/330-draft-review-repair-target/draft-questions-repair.json"
+  ],
+  "inputHash": "a697b0399c8ccfdd74fc9e13ae495c09111874f48852aedbe7f664f6b979791b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-23T13:46:05.991Z",
+  "finishedAt": "2026-07-23T13:46:05.991Z",
+  "rawResponse": "### 1. Remove duplicated finding payloads\n**File:** `specs/330-draft-review-repair-target/draft-gate-source.json`  \n**Requirement:** R7  \n**Issue:** The same guardrail failures are represented twice, once under `evaluations` and again under `observations`, with largely duplicated fields and different `findingId` / `fingerprint` values. This increases drift risk and makes it unclear which collection is authoritative.  \n**Suggestion:** Keep one canonical representation, or make one section reference the other by stable IDs instead of duplicating the full payload.\n\n### 2. Normalize guardrail field naming\n**File:** `specs/330-draft-review-repair-target/draft-gate-source.json`  \n**Requirement:** R7  \n**Issue:** The file mixes `guardrail_id`, `guardrailId`, `requirementRef`, and `requirementId` for closely related concepts. This weakens schema consistency and makes downstream consumers more error-prone.  \n**Suggestion:** Use one naming convention for persisted JSON fields, preferably the project’s existing schema convention, and remove redundant aliases unless compatibility requires them.\n\n### 3. Avoid committing transient recovery state\n**File:** `specs/330-draft-review-repair-target/.retry-recovery.transaction.json`  \n**Requirement:** R8  \n**Issue:** The file contains only `transaction: null`, which appears to be transient recovery state rather than meaningful spec data. As committed data, it adds noise without carrying useful state.  \n**Suggestion:** Omit this file when there is no active transaction, or generate it on demand as runtime state rather than persisting an empty placeholder.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated finding payloads",
+        "body": "**File:** `specs/330-draft-review-repair-target/draft-gate-source.json`  \n**Requirement:** R7  \n**Issue:** The same guardrail failures are represented twice, once under `evaluations` and again under `observations`, with largely duplicated fields and different `findingId` / `fingerprint` values. This increases drift risk and makes it unclear which collection is authoritative.  \n**Suggestion:** Keep one canonical representation, or make one section reference the other by stable IDs instead of duplicating the full payload.",
+        "file": "specs/330-draft-review-repair-target/draft-gate-source.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Normalize guardrail field naming",
+        "body": "**File:** `specs/330-draft-review-repair-target/draft-gate-source.json`  \n**Requirement:** R7  \n**Issue:** The file mixes `guardrail_id`, `guardrailId`, `requirementRef`, and `requirementId` for closely related concepts. This weakens schema consistency and makes downstream consumers more error-prone.  \n**Suggestion:** Use one naming convention for persisted JSON fields, preferably the project’s existing schema convention, and remove redundant aliases unless compatibility requires them.",
+        "file": "specs/330-draft-review-repair-target/draft-gate-source.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Avoid committing transient recovery state",
+        "body": "**File:** `specs/330-draft-review-repair-target/.retry-recovery.transaction.json`  \n**Requirement:** R8  \n**Issue:** The file contains only `transaction: null`, which appears to be transient recovery state rather than meaningful spec data. As committed data, it adds noise without carrying useful state.  \n**Suggestion:** Omit this file when there is no active transaction, or generate it on demand as runtime state rather than persisting an empty placeholder.",
+        "file": "specs/330-draft-review-repair-target/.retry-recovery.transaction.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

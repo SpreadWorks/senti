@@ -1,0 +1,79 @@
+{
+  "devType": "bugfix",
+  "goal": "[must] draft-questions/draft-coverageのrepairTargetsをraw ADVISORYと整合するcanonical advisory findingとして一度だけ記録し、category=repair_targetとtriage伝播を維持する。",
+  "analysis": {
+    "problem": "src/flow/commands/review.jsはrepairTargetsを含むraw artifactをADVISORYとして作る一方、同じrepairTargetsをblocking findingへ正規化する。既存のsrc/flow/lib/review-convergence.jsはADVISORYにblocking findingがある不正な組合せを正しくrejectするため、Issue #453がresult_recordingで停止した。このproducer-side不整合を、同一phase・tree・evidenceへのduplicate retryでは解消しない。",
+    "proposedApproach": "[must] producer側ではdraft-questionsとdraft-coverage双方のrepairTargets各要素をcategory=repair_targetかつseverity=advisoryのcanonical findingへ正規化し、raw disposition=ADVISORYと一致させる。両routeへ同一matrixを適用し、producer出力からcanonical recordingを経てtriageへcategory、severity、内容が保持されることを検証する。判定条件は、findingがないemptyをPASS、repairTargets-onlyとadvisory+repairをADVISORY、ADVISORY+blocking finding・PASS+finding・REJECTED+blocking findingなしをinvalid artifactとしてblocking rejectとする。review-convergence validator、invalid artifactのfail-closed、duplicate禁止、既定retry上限を維持し、同じ正規化patternが2箇所以上ならhelperへ抽出する。Issue #453のAcceptance Criteriaやprovider、prompt、sandbox、pause/checkpoint lifecycleは変更しない。",
+    "validation": "[must] 修正前にdisposition=ADVISORY、blockingFindings=[]、advisoryFindings=[]、repairTargets=[{title:\"Empty initial QA list\",target:\"qa[]\",rationale:\"Initial QA list is empty before answer collection\",evidence:\"qa[] is empty before any answer exists\"}]のfixtureをproducerからcanonical recordingへ1回入力し、result_recording失敗を再現する。修正後はdraft-questionsとdraft-coverageの各phaseで、(a) emptyはPASSかつfinding 0件、(b) repairTargets-onlyはADVISORYかつadvisory severityのrepair_target 1件、(c) advisory+repairはADVISORYかつ元advisory findingとrepair_targetの双方保持、の6 positive caseを確認する。さらにADVISORY+blockingFindings、PASS+finding、REJECTED+blockingFindingsなしの3 invalid caseがすべてrejectされることを確認する。node --test tests/unit/flow/commands/review.test.js tests/unit/flow/retry-exhaustion-defer.test.js を1回実行し、exit code 0かつfailed test 0件を確認する。次にfixed commitを作成し、別子エージェントがそのcommitを独立監査1回でAC1〜AC8と前記9 caseに照合する。監査PASS後に限り npm test を1回実行し、exit code 0かつfailed test 0件を完了条件とする。同じtree SHAでは各commandを再実行しない。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #454は8件のAcceptance Criteriaとfocused verificationを定義している。",
+      "src/flow/commands/review.jsはrepairTargetsを含むraw artifactをADVISORYとして扱う。",
+      "現在のproducer正規化はrepairTargetsをblocking findingへ変換する。",
+      "src/flow/lib/review-convergence.jsはPASSにfindingがある場合、ADVISORYにblocking findingがある場合、REJECTEDにblocking findingがない場合をrejectする。",
+      "src/flow/lib/draft-review-routes.jsはdraft-questionsとdraft-coverageの両routeおよびtriage経路を定義する。",
+      "Issue #453のcheckpoint evidenceはcheckpoint/issue-453-review-blockerのcommit 9f07be31355b05882e165b93e08f9ccdbd76dc29に保存されている。"
+    ],
+    "decisionPoints": [
+      "[must] repair targetはproducer-sideでcanonical advisory findingに分類する。",
+      "[must] category=repair_targetとtriageへの伝播を維持する。",
+      "[should] 同じ正規化patternが2箇所以上なら共通helperへ抽出する。",
+      "[must] disposition=ADVISORY、blockingFindings=[]、advisoryFindings=[]、repairTargets=[{title:\"Empty initial QA list\",target:\"qa[]\",rationale:\"Initial QA list is empty before answer collection\",evidence:\"qa[] is empty before any answer exists\"}]のfixtureをproducerからcanonical recordingへ入力し、review AIを呼ばず1回再現する。",
+      "[must] PASS、ADVISORY、REJECTEDのnegative invariantを維持する。"
+    ],
+    "resolvedByProjectRules": [
+      "[must] Node.js組み込みモジュールだけを使い、外部依存を追加しない。",
+      "[must] testを通すためのassertion削減、skip、allowlistその他のtest弱体化をしない。",
+      "[must] Issue #453の3つのAcceptance Criteriaは#454で実装しない。",
+      "[must] 同一phase・tree・evidenceへのreview再実行と同一artifact再登録を許可しない。",
+      "[must] q1でrepairTargetsをcanonical advisory findingへ分類し、review-convergence validatorを変更しない方針を承認した。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "[should] source確認でdraft-questionsとdraft-coverageのrepair-target severity mappingが2箇所以上に存在する場合はsrc/flow/commands/review.js内の1関数へ抽出し、存在が1箇所ならinlineのままにする。",
+      "[should] src/flow/lib/review-convergence.jsを変更する場合だけtests/unit/flow/retry-exhaustion-defer.test.jsへPASS/ADVISORY/REJECTEDのnegative invariant caseを追加し、変更しない場合は同fileを無変更で実行する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] src/flow/commands/review.jsのdraft repair-target正規化。",
+      "[must] src/flow/lib/review-convergence.jsの既存invariantを変更せず確認する。",
+      "[must] tests/unit/flow/commands/review.test.jsでdraft-questionsとdraft-coverageの各phaseについて、empty→PASS/finding 0件、repairTargets-only→ADVISORY/advisory severityのrepair_target 1件、advisory+repair→ADVISORY/元advisory findingとrepair_target双方保持、の6 caseを検証する。",
+      "[should] src/flow/lib/review-convergence.jsを変更する場合に限り、ADVISORY+blockingFindings、PASS+finding、REJECTED+blockingFindingsなしの3 caseがすべてrejectされるtestをtests/unit/flow/retry-exhaustion-defer.test.jsへ追加する。"
+    ],
+    "out": [
+      "[must] Issue #453の3つのAcceptance Criteriaは変更しない。",
+      "[must] review retry上限とcounter resetは変更しない。",
+      "[must] 同一artifact登録または同一phase・tree・evidenceのduplicate reviewを許可しない。",
+      "[must] provider、prompt、sandboxを変更しない。",
+      "[must] flow state、review artifact、gate artifactを手動変更しない。",
+      "[must] active flowのpause/checkpoint lifecycleを追加しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] repairTargets-onlyとadvisory+repairのdraft reviewをcanonical記録できるようにする。",
+    "[must] category=repair_targetと既存triage経路を維持する。",
+    "[must] 既存のinvalid disposition/finding組合せは引き続きrejectする。",
+    "[must] 既存のretry budgetとduplicate禁止契約を変えない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] repairTargetsをcanonical advisory findingとして分類し、review-convergence validatorを変更しない方針を承認しますか？",
+      "answer": "[must] 承認する。repairTargetsはraw ADVISORYと整合するcanonical advisory findingとして分類し、review-convergence validatorは変更しない。",
+      "evidence": "Issue #454 Acceptance Criteria 1〜4はrepairTargets-onlyとadvisory+repairをADVISORYとして記録しcategory=repair_targetとtriage伝播を維持するよう要求し、既存review-convergence invariantはADVISORYにblocking findingを許可しない。",
+      "why": "[must] producer側のseverityだけを整合させればresult_recordingを成立させつつinvalid artifactのfail-closed検証を維持でき、retry・validator緩和・#453 ACへのscope拡大を避けられる。",
+      "considered": "raw verdictをREJECTEDへ変える案とvalidatorを緩和する案はIssue ACおよび既存invariantに反するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-22T19:30:00.000Z",
+    "notes": "Parent approved the final exact fixture fields, six positive route cases, three invalid cases, and gate-attempt-3 cap."
+  }
+}

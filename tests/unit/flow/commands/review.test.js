@@ -1,4 +1,4 @@
-import { describe, it, afterEach } from "node:test";
+import { describe, it, afterEach, mock } from "node:test";
 import os from "os";
 import fs from "fs";
 import assert from "node:assert/strict";
@@ -10,6 +10,7 @@ import { FlowManager } from "../../../../src/lib/flow-manager.js";
 import { Agent } from "../../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../../src/lib/provider.js";
 import { Logger } from "../../../../src/lib/log.js";
+import { FLOW_COMMANDS } from "../../../../src/flow/registry.js";
 import {
   parseProposals,
   buildDraftReviewPrompt,
@@ -42,6 +43,8 @@ import {
   runActiveImplReviewWithDependencies,
   resolveMergeBase,
   loopProposalsToImplReviewJson,
+  buildDraftReviewArtifact,
+  writeReviewAttemptHistory,
 } from "../../../../src/flow/commands/review.js";
 
 function assertAllMatch(text, patterns) {
@@ -67,6 +70,42 @@ function resolveAgent(cfg, commandId) {
 const FLOW_CMD = join(process.cwd(), "src/senti.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
+class DraftRepairTargetCheckpoint {
+  constructor() {
+    this.disposition = "ADVISORY";
+    this.blockingFindings = Object.freeze([]);
+    this.advisoryFindings = Object.freeze([]);
+    this.repairTargets = Object.freeze([Object.freeze({
+      title: "Empty initial QA list",
+      target: "qa[]",
+      rationale: "Initial QA list is empty before answer collection",
+      evidence: "qa[] is empty before any answer exists",
+    })]);
+    Object.freeze(this);
+  }
+
+  toProposal() {
+    const [target] = this.repairTargets;
+    return {
+      title: target.title,
+      file: null,
+      body: [
+        `**QA:** ${target.target}`,
+        `**Issue:** ${target.evidence}`,
+        `**Suggestion:** ${target.rationale}`,
+        "**Classification:** repair_target",
+      ].join("\n"),
+    };
+  }
+
+  toRecordingArtifact(producedArtifact) {
+    return {
+      ...producedArtifact.toJSON(),
+      disposition: this.disposition,
+    };
+  }
+}
+
 describe("FLOW_STEPS includes impl-review", () => {
   it("has impl-review between implement and finalize-commit", () => {
     const implIdx = FLOW_STEPS.indexOf("implement");
@@ -76,6 +115,129 @@ describe("FLOW_STEPS includes impl-review", () => {
     assert.ok(reviewIdx > implIdx, "impl-review comes after implement");
     assert.ok(finalIdx > 0, "finalize-commit step exists");
     assert.ok(reviewIdx < finalIdx, "impl-review comes before finalize-commit");
+  });
+});
+
+describe("draft repair target checkpoint replay", () => {
+  it("records the exact R8 ADVISORY fixture once and advances through the production triage hook without review AI", async () => {
+    const tmp = createTmpDir("draft-repair-target-checkpoint-");
+    const specDir = path.join(tmp, "specs/demo");
+    fs.mkdirSync(specDir, { recursive: true });
+    const checkpoint = new DraftRepairTargetCheckpoint();
+    const agentCall = mock.method(Agent.prototype, "call", () => {
+      throw new Error("review AI must not run while replaying finalized checkpoint evidence");
+    });
+    const transitions = [];
+    const flowState = {
+      currentTaskId: null,
+      steps: [
+        { id: "draft-questions-review", status: "in_progress" },
+        { id: "draft-questions-triage", status: "pending" },
+        { id: "draft-questions-repair", status: "pending" },
+      ],
+      tasks: [],
+    };
+    const flowManager = {
+      appendMetric() {},
+      updateStepStatus(transition) {
+        transitions.push({
+          stepId: transition.stepId,
+          status: transition.requestedStatus,
+        });
+        flowState.steps.find((step) => step.id === transition.stepId).status =
+          transition.requestedStatus;
+      },
+    };
+
+    try {
+      assert.equal(checkpoint.disposition, "ADVISORY");
+      assert.deepEqual(checkpoint.blockingFindings, []);
+      assert.deepEqual(checkpoint.advisoryFindings, []);
+      assert.deepEqual(checkpoint.repairTargets, [{
+        title: "Empty initial QA list",
+        target: "qa[]",
+        rationale: "Initial QA list is empty before answer collection",
+        evidence: "qa[] is empty before any answer exists",
+      }]);
+
+      const producedArtifact = buildDraftReviewArtifact({
+        raw: "FINALIZED_CHECKPOINT_EVIDENCE",
+        draftPath: "draft.json",
+        proposals: [checkpoint.toProposal()],
+        stage: {
+          reviewPhase: "draft-questions-review",
+          findingClassification: "repair_target",
+        },
+      });
+      assert.equal(producedArtifact.verdict, checkpoint.disposition);
+      assert.deepEqual(producedArtifact.blockingFindings, []);
+      assert.deepEqual(producedArtifact.advisoryFindings, []);
+      assert.equal(producedArtifact.repairTargets.length, 1);
+
+      const written = writeReviewAttemptHistory({
+        specDir,
+        phase: "draft-questions",
+        latestBasename: "draft-review-questions.json",
+        artifact: checkpoint.toRecordingArtifact(producedArtifact),
+        attemptNumber: 1,
+      });
+      const recordedArtifact = JSON.parse(fs.readFileSync(written.latestPath, "utf8"));
+      const historyArtifact = JSON.parse(fs.readFileSync(written.historyJsonPath, "utf8"));
+
+      assert.equal(recordedArtifact.disposition, "ADVISORY");
+      assert.equal(historyArtifact.findings.length, 1);
+      assert.deepEqual(historyArtifact.findings[0], {
+        id: "draft-questions-001-non-blocking-001",
+        findingId: "draft-questions-001-non-blocking-001",
+        phase: "draft-questions",
+        sourceArtifact: "draft-review-questions.json",
+        attempt: 1,
+        severity: "non-blocking",
+        title: "Empty initial QA list",
+        body: "Initial QA list is empty before answer collection",
+        category: "repair_target",
+        target: "qa[]",
+        evidence: "qa[] is empty before any answer exists",
+        rationale: "Initial QA list is empty before answer collection",
+      });
+      assert.deepEqual(
+        historyArtifact.findings[0].target,
+        recordedArtifact.repairTargets[0].target,
+      );
+      assert.deepEqual(
+        historyArtifact.findings[0].evidence,
+        recordedArtifact.repairTargets[0].evidence,
+      );
+
+      await FLOW_COMMANDS.run.review.post({
+        phase: "draft",
+        flowState,
+        flowManager,
+      }, {
+        artifacts: {
+          phase: "draft",
+          verdict: recordedArtifact.verdict,
+          issueCount: historyArtifact.findings.length,
+          retryPhase: historyArtifact.phase,
+        },
+      });
+
+      assert.equal(agentCall.mock.callCount(), 0);
+      assert.deepEqual(transitions, [{
+        stepId: "draft-questions-review",
+        status: "done",
+      }]);
+      assert.equal(flowState.steps[0].status, "done");
+      assert.equal(flowState.steps[1].status, "pending");
+      assert.equal(flowState.steps[2].status, "pending");
+      assert.deepEqual(
+        fs.readdirSync(path.join(specDir, "review-history")),
+        ["draft-questions-attempt-001.json"],
+      );
+    } finally {
+      agentCall.mock.restore();
+      removeTmpDir(tmp);
+    }
   });
 });
 

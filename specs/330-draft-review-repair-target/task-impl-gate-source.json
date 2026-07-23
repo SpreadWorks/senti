@@ -1,0 +1,404 @@
+{
+  "version": 1,
+  "runId": "83f7c34e-e868-4342-8085-bb5564b47d8d",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-23T10:26:03.766Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added gate artifact records the scenario-validity project test command with process.exitCode 1 while marking result as pass, which is explicit evidence that project tests are not all passing.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+            "locator": "evaluations[0].reason"
+          },
+          "observed": "The added gate artifact records the scenario-validity project test command with process.exitCode 1 while marking result as pass, which is explicit evidence that project tests are not all passing.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the scenario-validity project test command with process.exitCode 1 while marking result as pass, which is explicit evidence that project tests are not all passing.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T08:38:47.974Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added gate artifact records the R1 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+            "locator": "evaluations[1].reason"
+          },
+          "observed": "The added gate artifact records the R1 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R1 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T08:38:47.974Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added gate artifact records the R2 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+            "locator": "evaluations[2].reason"
+          },
+          "observed": "The added gate artifact records the R2 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R2 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T08:38:47.974Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added gate artifact records the R3 scenario-validity subtest as not ok because not every canonical finding had severity 'non-blocking'.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+            "locator": "evaluations[3].reason"
+          },
+          "observed": "The added gate artifact records the R3 scenario-validity subtest as not ok because not every canonical finding had severity 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R3 scenario-validity subtest as not ok because not every canonical finding had severity 'non-blocking'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T08:38:47.974Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added gate artifact records the R8 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+            "locator": "evaluations[4].reason"
+          },
+          "observed": "The added gate artifact records the R8 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R8 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T08:38:47.974Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added gate artifact records the R6 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+            "locator": "evaluations[5].reason"
+          },
+          "observed": "The added gate artifact records the R6 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R6 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T08:38:47.974Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added gate artifact records the R7 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+            "locator": "evaluations[6].reason"
+          },
+          "observed": "The added gate artifact records the R7 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R7 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T08:38:47.974Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+        "locator": "evaluations[0].reason"
+      },
+      "observed": "The added gate artifact records the scenario-validity project test command with process.exitCode 1 while marking result as pass, which is explicit evidence that project tests are not all passing.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the scenario-validity project test command with process.exitCode 1 while marking result as pass, which is explicit evidence that project tests are not all passing.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T10:26:03.766Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+        "locator": "evaluations[1].reason"
+      },
+      "observed": "The added gate artifact records the R1 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R1 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T10:26:03.766Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+        "locator": "evaluations[2].reason"
+      },
+      "observed": "The added gate artifact records the R2 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R2 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T10:26:03.766Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+        "locator": "evaluations[3].reason"
+      },
+      "observed": "The added gate artifact records the R3 scenario-validity subtest as not ok because not every canonical finding had severity 'non-blocking'.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R3 scenario-validity subtest as not ok because not every canonical finding had severity 'non-blocking'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T10:26:03.766Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+        "locator": "evaluations[4].reason"
+      },
+      "observed": "The added gate artifact records the R8 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R8 scenario-validity subtest as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T10:26:03.766Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+        "locator": "evaluations[5].reason"
+      },
+      "observed": "The added gate artifact records the R6 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R6 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T10:26:03.766Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+        "locator": "evaluations[6].reason"
+      },
+      "observed": "The added gate artifact records the R7 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added gate artifact records the R7 scenario-validity subtest as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-23T10:26:03.766Z",
+      "repeatCount": 1
+    }
+  ]
+}

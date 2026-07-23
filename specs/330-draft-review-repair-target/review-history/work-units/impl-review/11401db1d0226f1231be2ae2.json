@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/330-draft-review-repair-target/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+      "specs/330-draft-review-repair-target/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+      "specs/330-draft-review-repair-target/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+      "specs/330-draft-review-repair-target/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+      "specs/330-draft-review-repair-target/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json"
+    ],
+    "inputHash": "b582ac2a77cd4f7ae301d663d21567ceb395b62019a8b01d2211cff998c7dd90",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "specs/330-draft-review-repair-target/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+    "specs/330-draft-review-repair-target/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+    "specs/330-draft-review-repair-target/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+    "specs/330-draft-review-repair-target/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+    "specs/330-draft-review-repair-target/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json"
+  ],
+  "inputHash": "b582ac2a77cd4f7ae301d663d21567ceb395b62019a8b01d2211cff998c7dd90",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-23T13:48:46.176Z",
+  "finishedAt": "2026-07-23T13:48:46.176Z",
+  "rawResponse": "### 1. Remove duplicated work-unit identity fields\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json`  \n**Requirement:** R8  \n**Issue:** The same metadata is stored both at top level and under `identity`: `phase`, `kind`, `unitId`, `targetFiles`, and `inputHash`. This creates two sources of truth inside one artifact and increases drift risk.  \n**Suggestion:** Keep canonical immutable identity data under `identity`, and remove the duplicated top-level copies unless a consumer requires them. If consumers need easy access, derive those fields when reading the artifact.\n\n### 2. Remove duplicated raw and parsed proposal content\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json`  \n**Requirement:** R8  \n**Issue:** Each proposal exists twice: once embedded in `rawResponse` and again as structured entries under `success.proposals`. This repeats substantial text and makes manual repair or review harder.  \n**Suggestion:** Store only `success.proposals` as the canonical review result. If raw provider output is needed for debugging, keep it in a separate transient log or bounded evidence file outside the committed artifact.\n\n### 3. Bound stored provider output size\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json`  \n**Requirement:** R3  \n**Issue:** `rawResponse` stores provider output without an apparent size bound. For review loops, this can grow with prompt failures or verbose providers and violates the bounded-resource-usage guardrail for bulk text capture.  \n**Suggestion:** Add an explicit maximum stored `rawResponse` length, truncate with metadata such as `rawResponseTruncated: true`, or omit raw output once structured parsing succeeds.\n\n### 4. Strip conversational preamble from parsed proposal titles\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json`  \n**Requirement:** R8  \n**Issue:** The first parsed proposal title includes provider chatter: `I’ll review only...### 1. Preserve repair target fields...`. That makes the structured artifact malformed and harder for downstream consumers to display or compare.  \n**Suggestion:** Normalize parsed proposal titles to start at the actual heading text, or reject provider responses that include non-schema prose before the first proposal.\n\n### 5. Use a consistent empty-result representation\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json`  \n**Requirement:** R8  \n**Issue:** The artifact records `rawResponse: \"NO_PROPOSALS\"` while also storing `success.proposals: []`. These encode the same result in two different ways.  \n**Suggestion:** Use `success.proposals: []` as the canonical empty state and omit `rawResponse`, or replace it with a structured status field such as `proposalCount: 0`.\n\n### 6. Normalize repeated schema metadata across artifacts\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json`  \n**Requirement:** R8  \n**Issue:** Fields like `providerIdentity`, `promptVersion`, and `schemaVersion` are repeated at top level while the command identity already captures closely related execution metadata. The pattern is repeated across all added work-unit artifacts.  \n**Suggestion:** Consolidate execution metadata into a single object, for example `execution.providerIdentity`, `execution.promptVersion`, and `execution.schemaVersion`, to reduce flat-field noise and make the artifact shape easier to evolve.",
+  "success": {
+    "proposals": []
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "runId": "83f7c34e-e868-4342-8085-bb5564b47d8d",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-23T07:11:11.159Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Requirement R8 depends on an external 'Issue #453 checkpoint evidence' and says the fixture is 'equivalent' without defining the concrete fixture contents, so independent reviewers could disagree on whether it is satisfied.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R8].desc"
+          },
+          "observed": "Requirement R8 depends on an external 'Issue #453 checkpoint evidence' and says the fixture is 'equivalent' without defining the concrete fixture contents, so independent reviewers could disagree on whether it is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "fingerprint": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "disposition": "must-fix",
+      "rationale": "Requirement R8 depends on an external 'Issue #453 checkpoint evidence' and says the fixture is 'equivalent' without defining the concrete fixture contents, so independent reviewers could disagree on whether it is satisfied.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-23T07:11:11.159Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The test strategy directs coverage to `tests/unit/flow/commands/review.test.js` instead of requiring new spec behavior coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[T-2].test_strategy"
+          },
+          "observed": "The test strategy directs coverage to `tests/unit/flow/commands/review.test.js` instead of requiring new spec behavior coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "findingId": "8f494674a0f65fc9835edc3c6fabd28a9998001fc21b8de52017da527bf71aff",
+      "fingerprint": "8f494674a0f65fc9835edc3c6fabd28a9998001fc21b8de52017da527bf71aff",
+      "disposition": "must-fix",
+      "rationale": "The test strategy directs coverage to `tests/unit/flow/commands/review.test.js` instead of requiring new spec behavior coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "requirementId": null,
+      "guardrailId": "spec-test-coverage",
+      "reportedAt": "2026-07-23T07:11:11.159Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The test strategy directs focused tests to `tests/unit/flow/retry-exhaustion-defer.test.js` and the producer focused test, but does not require spec-local coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[T-3].test_strategy"
+          },
+          "observed": "The test strategy directs focused tests to `tests/unit/flow/retry-exhaustion-defer.test.js` and the producer focused test, but does not require spec-local coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "findingId": "8f494674a0f65fc9835edc3c6fabd28a9998001fc21b8de52017da527bf71aff",
+      "fingerprint": "8f494674a0f65fc9835edc3c6fabd28a9998001fc21b8de52017da527bf71aff",
+      "disposition": "must-fix",
+      "rationale": "The test strategy directs focused tests to `tests/unit/flow/retry-exhaustion-defer.test.js` and the producer focused test, but does not require spec-local coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "requirementId": null,
+      "guardrailId": "spec-test-coverage",
+      "reportedAt": "2026-07-23T07:11:11.159Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R8].desc"
+      },
+      "observed": "Requirement R8 depends on an external 'Issue #453 checkpoint evidence' and says the fixture is 'equivalent' without defining the concrete fixture contents, so independent reviewers could disagree on whether it is satisfied.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "fingerprint": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "disposition": "must-fix",
+      "rationale": "Requirement R8 depends on an external 'Issue #453 checkpoint evidence' and says the fixture is 'equivalent' without defining the concrete fixture contents, so independent reviewers could disagree on whether it is satisfied.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-23T07:11:11.159Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[T-2].test_strategy"
+      },
+      "observed": "The test strategy directs coverage to `tests/unit/flow/commands/review.test.js` instead of requiring new spec behavior coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ],
+      "result": "fail",
+      "guardrail_id": "spec-test-coverage",
+      "category": "guardrail",
+      "findingId": "b88a19fbc15c9d7b478af0f7ff278493f5fa55dd50bcab029f9cc0d26fb599b2",
+      "fingerprint": "b88a19fbc15c9d7b478af0f7ff278493f5fa55dd50bcab029f9cc0d26fb599b2",
+      "disposition": "must-fix",
+      "rationale": "The test strategy directs coverage to `tests/unit/flow/commands/review.test.js` instead of requiring new spec behavior coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "requirementId": null,
+      "guardrailId": "spec-test-coverage",
+      "reportedAt": "2026-07-23T07:11:11.159Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[T-3].test_strategy"
+      },
+      "observed": "The test strategy directs focused tests to `tests/unit/flow/retry-exhaustion-defer.test.js` and the producer focused test, but does not require spec-local coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ],
+      "result": "fail",
+      "guardrail_id": "spec-test-coverage",
+      "category": "guardrail",
+      "findingId": "b88a19fbc15c9d7b478af0f7ff278493f5fa55dd50bcab029f9cc0d26fb599b2",
+      "fingerprint": "b88a19fbc15c9d7b478af0f7ff278493f5fa55dd50bcab029f9cc0d26fb599b2",
+      "disposition": "must-fix",
+      "rationale": "The test strategy directs focused tests to `tests/unit/flow/retry-exhaustion-defer.test.js` and the producer focused test, but does not require spec-local coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "requirementId": null,
+      "guardrailId": "spec-test-coverage",
+      "reportedAt": "2026-07-23T07:11:11.159Z",
+      "repeatCount": 1
+    }
+  ]
+}

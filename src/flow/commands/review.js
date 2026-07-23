@@ -3791,7 +3791,7 @@ function findingCategory(phase, item) {
 
 function normalizeReviewFindingRecords({ phase, sourceArtifact, attempt, artifact = {}, findings = [] }) {
   const records = [];
-  const push = (item, severity) => {
+  const push = (item, severity, { repairTarget = false } = {}) => {
     const normalizedSeverity = normalizeFindingSeverity(severity);
     const idx = records.length + 1;
     records.push({
@@ -3804,6 +3804,10 @@ function normalizeReviewFindingRecords({ phase, sourceArtifact, attempt, artifac
       title: String(item.title || "Untitled finding").trim(),
       body: findingText(item),
       category: findingCategory(phase, item),
+      ...(repairTarget && {
+        target: normalizeDraftReviewText(item.target, "GLOBAL"),
+        evidence: normalizeDraftReviewText(item.evidence, "Draft review output."),
+      }),
       ...(item.fingerprint && { fingerprint: item.fingerprint }),
       ...(item.disposition && { disposition: item.disposition }),
       ...(item.rationale && { rationale: item.rationale }),
@@ -3816,7 +3820,13 @@ function normalizeReviewFindingRecords({ phase, sourceArtifact, attempt, artifac
   for (const item of artifact.blockingFindings || []) push(item, "blocking");
   for (const item of artifact.nonBlockingImprovements || []) push(item, "non-blocking");
   for (const item of artifact.advisoryFindings || []) push(item, "non-blocking");
-  for (const item of artifact.repairTargets || []) push(item, "blocking");
+  const isDraftRepairPhase =
+    phase === "draft-questions" || phase === "draft-coverage";
+  for (const item of artifact.repairTargets || []) {
+    push(item, isDraftRepairPhase ? "non-blocking" : "blocking", {
+      repairTarget: isDraftRepairPhase,
+    });
+  }
   return records;
 }
 

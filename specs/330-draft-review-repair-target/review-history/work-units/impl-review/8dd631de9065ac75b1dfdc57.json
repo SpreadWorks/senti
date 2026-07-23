@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "8dd631de9065ac75b1dfdc57",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0014",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/330-draft-review-repair-target/test-review.json",
+      "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+      "specs/330-draft-review-repair-target/tests/.raw/test-execution.log",
+      "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+      "specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js"
+    ],
+    "inputHash": "8cacd40d1ab1a584921b7821d0b1faad97f80332c6ea679778a8f49743cae72f",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8dd631de9065ac75b1dfdc57"
+  },
+  "targetFiles": [
+    "specs/330-draft-review-repair-target/test-review.json",
+    "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+    "specs/330-draft-review-repair-target/tests/.raw/test-execution.log",
+    "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+    "specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js"
+  ],
+  "inputHash": "8cacd40d1ab1a584921b7821d0b1faad97f80332c6ea679778a8f49743cae72f",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-23T13:50:16.422Z",
+  "finishedAt": "2026-07-23T13:50:16.422Z",
+  "rawResponse": "### 1. Extract shared repair-target fixtures\n**File:** `specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R4  \n**Issue:** `REPAIR_TARGET`, temp directory cleanup, and canonical history-to-disposition conversion are duplicated with `review-convergence-contract.test.js`. This makes future contract changes easy to update in one test but miss in the other.  \n**Suggestion:** Move the shared repair target fixture and conversion helper into `review-fixture-helpers.js`, then import them from both touched test files.\n\n### 2. Remove stale failing scenario log from passing change set\n**File:** `specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log`  \n**Requirement:** R8  \n**Issue:** This newly added raw log records failing pre-fix output, while `test-review.json` and `test-execution.log` report PASS. Keeping contradictory generated evidence in the same change set makes review and later debugging harder.  \n**Suggestion:** Replace this file with the final passing scenario-validity output, or omit the stale raw failure artifact if only final evidence is intended.\n\n### 3. Rename issue-specific fixture prefixes\n**File:** `specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js`  \n**Requirement:** R7  \n**Issue:** Temporary directory prefixes and provider names use `issue-454-*`, but the spec path is `330-draft-review-repair-target`. The mismatch looks like copied fixture naming and weakens traceability.  \n**Suggestion:** Rename prefixes such as `issue-454-convergence-` and provider `issue-454-fixture` to names derived from spec 330, for example `spec-330-convergence-` and `spec-330-fixture`.\n\n### 4. Simplify repeated route assertions\n**File:** `specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R1  \n**Issue:** The R1 and R2 tests repeat the same assertions for different routes. The only meaningful variation is `questions` vs `coverage`.  \n**Suggestion:** Use a small helper like `assertRepairTargetOnlyRoute(route)` or loop over route cases with requirement-specific test names, so the canonical advisory contract is expressed once.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract shared repair-target fixtures",
+        "body": "**File:** `specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R4  \n**Issue:** `REPAIR_TARGET`, temp directory cleanup, and canonical history-to-disposition conversion are duplicated with `review-convergence-contract.test.js`. This makes future contract changes easy to update in one test but miss in the other.  \n**Suggestion:** Move the shared repair target fixture and conversion helper into `review-fixture-helpers.js`, then import them from both touched test files.",
+        "file": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Remove stale failing scenario log from passing change set",
+        "body": "**File:** `specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log`  \n**Requirement:** R8  \n**Issue:** This newly added raw log records failing pre-fix output, while `test-review.json` and `test-execution.log` report PASS. Keeping contradictory generated evidence in the same change set makes review and later debugging harder.  \n**Suggestion:** Replace this file with the final passing scenario-validity output, or omit the stale raw failure artifact if only final evidence is intended.",
+        "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Rename issue-specific fixture prefixes",
+        "body": "**File:** `specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js`  \n**Requirement:** R7  \n**Issue:** Temporary directory prefixes and provider names use `issue-454-*`, but the spec path is `330-draft-review-repair-target`. The mismatch looks like copied fixture naming and weakens traceability.  \n**Suggestion:** Rename prefixes such as `issue-454-convergence-` and provider `issue-454-fixture` to names derived from spec 330, for example `spec-330-convergence-` and `spec-330-fixture`.",
+        "file": "specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Simplify repeated route assertions",
+        "body": "**File:** `specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R1  \n**Issue:** The R1 and R2 tests repeat the same assertions for different routes. The only meaningful variation is `questions` vs `coverage`.  \n**Suggestion:** Use a small helper like `assertRepairTargetOnlyRoute(route)` or loop over route cases with requirement-specific test names, so the canonical advisory contract is expressed once.",
+        "file": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

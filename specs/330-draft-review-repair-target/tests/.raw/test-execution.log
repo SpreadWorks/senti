@@ -1,0 +1,84 @@
+[senti] spec-local tests start
+command: node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js
+process.kind: passed
+process.command: node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 1891
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 355.213123
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R1: draft-questions repairTargets-only records one canonical advisory finding
+ok 1 - R1: draft-questions repairTargets-only records one canonical advisory finding
+  ---
+  duration_ms: 4.650384
+  type: 'test'
+  ...
+# Subtest: R2: draft-coverage repairTargets-only uses the same canonical advisory contract
+ok 2 - R2: draft-coverage repairTargets-only uses the same canonical advisory contract
+  ---
+  duration_ms: 1.749969
+  type: 'test'
+  ...
+# Subtest: R3: advisory and repair findings remain advisory without a blocking record
+ok 3 - R3: advisory and repair findings remain advisory without a blocking record
+  ---
+  duration_ms: 2.386372
+  type: 'test'
+  ...
+# Subtest: R4: repair target category and authored fields remain available to triage
+ok 4 - R4: repair target category and authored fields remain available to triage
+  ---
+  duration_ms: 1.318287
+  type: 'test'
+  ...
+# Subtest: R5: empty draft review records PASS with zero canonical findings
+ok 5 - R5: empty draft review records PASS with zero canonical findings
+  ---
+  duration_ms: 2.433213
+  type: 'test'
+  ...
+# Subtest: R8: checkpoint-shaped repair target is recorded once without review AI
+ok 6 - R8: checkpoint-shaped repair target is recorded once without review AI
+  ---
+  duration_ms: 17.897613
+  type: 'test'
+  ...
+# Subtest: R6: repaired advisory baseline keeps invalid disposition matrices rejected
+ok 7 - R6: repaired advisory baseline keeps invalid disposition matrices rejected
+  ---
+  duration_ms: 4.735264
+  type: 'test'
+  ...
+# Subtest: R7: repaired advisory evidence records once and rejects duplicate or completed-target reuse
+ok 8 - R7: repaired advisory evidence records once and rejects duplicate or completed-target reuse
+  ---
+  duration_ms: 3.88974
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 355.213123
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] spec-local tests end

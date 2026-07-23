@@ -1,0 +1,60 @@
+{
+  "spec": "specs/330-draft-review-repair-target/spec.json",
+  "date": "2026-07-23T13:53:53.486Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "A draft-questions raw ADVISORY containing only repairTargets shall be recorded once as canonical advisory findings with category=repair_target, and result_recording shall succeed.",
+      "status": "done",
+      "note": "R1: draft-questions repairTargets-only records one canonical advisory finding"
+    },
+    {
+      "desc": "A draft-coverage raw ADVISORY containing only repairTargets shall use the same canonical advisory normalization and record successfully.",
+      "status": "done",
+      "note": "R2: draft-coverage repairTargets-only uses the same canonical advisory contract"
+    },
+    {
+      "desc": "When advisoryFindings and repairTargets coexist, canonical recording shall preserve both as advisory findings and shall produce no blocking finding.",
+      "status": "done",
+      "note": "R3: advisory and repair findings remain advisory without a blocking record"
+    },
+    {
+      "desc": "Every normalized repair target shall retain category=repair_target and its title, target, rationale, and evidence through canonical recording and triage handoff.",
+      "status": "done",
+      "note": "R4: repair target category and authored fields remain available to triage"
+    },
+    {
+      "desc": "When blockingFindings, advisoryFindings, and repairTargets are all empty, the producer shall record PASS with zero canonical findings.",
+      "status": "done",
+      "note": "R5: empty draft review records PASS with zero canonical findings"
+    },
+    {
+      "desc": "Canonical validation shall continue to reject ADVISORY with a blocking finding, PASS with any finding, and REJECTED without a blocking finding.",
+      "status": "done",
+      "note": "R6: repaired advisory baseline keeps invalid disposition matrices rejected"
+    },
+    {
+      "desc": "The change shall not permit registration of the same artifact twice or rerunning review for the same phase, tree, and evidence.",
+      "status": "done",
+      "note": "R7: repaired advisory evidence records once and rejects duplicate or completed-target reuse"
+    },
+    {
+      "desc": "A raw fixture with disposition=ADVISORY, blockingFindings=[], advisoryFindings=[], and repairTargets=[{title:\"Empty initial QA list\", target:\"qa[]\", rationale:\"Initial QA list is empty before answer collection\", evidence:\"qa[] is empty before any answer exists\"}] shall reproduce the current severity=blocking recording failure, then after the fix pass exactly once through producer normalization as severity=non-blocking and category=repair_target and advance to triage without invoking review AI.",
+      "status": "done",
+      "note": "R8: checkpoint-shaped repair target is recorded once without review AI"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "12ed76460c8185a4f88c590679240a1332e3b84c0da6e1044ef1d741b6d5a57b"
+}

@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-23T07:49:36.102Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/330-draft-review-repair-target/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Repair target target/evidence are not covered in canonical recording",
+      "target": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js R4",
+      "findingId": "e5056e1a916318de3fe5c5c1903c48e0319aa9088fbcf8f78fbc719447a8e4a4",
+      "fingerprint": "e5056e1a916318de3fe5c5c1903c48e0319aa9088fbcf8f78fbc719447a8e4a4",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for two required retained fields in canonical recording.",
+      "issue": "R4 requires every normalized repair target to retain category, title, target, rationale, and evidence through canonical recording and triage handoff. The test checks triageTarget has all fields, but the canonical finding assertions only verify category, title, and body/rationale. A canonical recorder could drop target and evidence while these tests still pass.",
+      "requiredChange": "Add assertions that the canonical recorded finding preserves the repair target target and evidence fields, using the actual canonical field names expected by the production API.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for two required retained fields in canonical recording.",
+      "origin": "R4",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 does not cover regression failure reproduction or triage advancement",
+      "target": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js R8",
+      "findingId": "1410d493add0d371ad3536ca73812637236552674d112e844f328ee2201517db",
+      "fingerprint": "1410d493add0d371ad3536ca73812637236552674d112e844f328ee2201517db",
+      "disposition": "must-fix",
+      "rationale": "Multiple explicit acceptance clauses in R8 have no executable coverage, so the requirement coverage artifact overstates coverage.",
+      "issue": "R8 requires the checkpoint-shaped raw fixture to reproduce the current severity=blocking recording failure, then after the fix pass exactly once through producer normalization as non-blocking repair_target and advance to triage without invoking review AI. The test only records a synthesized producer artifact and asserts final fields. It does not encode the pre-fix raw fixture failure mode, does not exercise an actual triage transition/advance, and does not assert that review AI was not invoked.",
+      "requiredChange": "Add spec-local coverage for the raw checkpoint fixture path that demonstrates the previous recording failure shape, verifies the fixed normalization result, verifies the triage handoff/advance behavior, and guards the path with a no-review-AI stub or injectable fake assertion.",
+      "whyBlocking": "Multiple explicit acceptance clauses in R8 have no executable coverage, so the requirement coverage artifact overstates coverage.",
+      "origin": "R8",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/330-draft-review-repair-target/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "1b4cfaeba2616744a71644248e8222d2ef74acb7663831c594cfc96a3e1d34d5"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "e5056e1a916318de3fe5c5c1903c48e0319aa9088fbcf8f78fbc719447a8e4a4",
+      "findingId": "e5056e1a916318de3fe5c5c1903c48e0319aa9088fbcf8f78fbc719447a8e4a4",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Repair target target/evidence are not covered in canonical recording",
+      "body": "R4 requires every normalized repair target to retain category, title, target, rationale, and evidence through canonical recording and triage handoff. The test checks triageTarget has all fields, but the canonical finding assertions only verify category, title, and body/rationale. A canonical recorder could drop target and evidence while these tests still pass.",
+      "category": "unknown",
+      "fingerprint": "e5056e1a916318de3fe5c5c1903c48e0319aa9088fbcf8f78fbc719447a8e4a4",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for two required retained fields in canonical recording."
+    },
+    {
+      "id": "1410d493add0d371ad3536ca73812637236552674d112e844f328ee2201517db",
+      "findingId": "1410d493add0d371ad3536ca73812637236552674d112e844f328ee2201517db",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R8 does not cover regression failure reproduction or triage advancement",
+      "body": "R8 requires the checkpoint-shaped raw fixture to reproduce the current severity=blocking recording failure, then after the fix pass exactly once through producer normalization as non-blocking repair_target and advance to triage without invoking review AI. The test only records a synthesized producer artifact and asserts final fields. It does not encode the pre-fix raw fixture failure mode, does not exercise an actual triage transition/advance, and does not assert that review AI was not invoked.",
+      "category": "unknown",
+      "fingerprint": "1410d493add0d371ad3536ca73812637236552674d112e844f328ee2201517db",
+      "disposition": "must-fix",
+      "rationale": "Multiple explicit acceptance clauses in R8 have no executable coverage, so the requirement coverage artifact overstates coverage."
+    }
+  ]
+}

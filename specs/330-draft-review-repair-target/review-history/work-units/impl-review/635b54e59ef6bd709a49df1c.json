@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/330-draft-review-repair-target/flow-findings.json",
+      "specs/330-draft-review-repair-target/flow.json",
+      "specs/330-draft-review-repair-target/impl-triage.json",
+      "specs/330-draft-review-repair-target/issue-log.json",
+      "specs/330-draft-review-repair-target/issue.md"
+    ],
+    "inputHash": "d007e235098b025fc99f20148634c3e0c24b0634ca2af3ed375c0485030b5376",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "specs/330-draft-review-repair-target/flow-findings.json",
+    "specs/330-draft-review-repair-target/flow.json",
+    "specs/330-draft-review-repair-target/impl-triage.json",
+    "specs/330-draft-review-repair-target/issue-log.json",
+    "specs/330-draft-review-repair-target/issue.md"
+  ],
+  "inputHash": "d007e235098b025fc99f20148634c3e0c24b0634ca2af3ed375c0485030b5376",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-23T13:46:42.683Z",
+  "finishedAt": "2026-07-23T13:46:42.683Z",
+  "rawResponse": "### 1. Deduplicate recovery baselines\n**File:** `specs/330-draft-review-repair-target/flow.json`  \n**Requirement:** R7  \n**Issue:** `reviewRecoveryBaselines` stores five identical `task-impl` baseline records that differ only by `createdAt`. This duplicates persisted state and makes repeat handling harder to reason about.  \n**Suggestion:** Store one baseline per `{kind, phase, fingerprint.hash, trigger}` and keep repeated occurrences in a bounded `attempts`/`createdAtHistory` field if those timestamps are required.\n\n### 2. Remove stale active-step runtime metadata\n**File:** `specs/330-draft-review-repair-target/flow.json`  \n**Requirement:** R7  \n**Issue:** The `impl-review` step is `in_progress`, but its `runtimeLog.endedAt` is earlier than the step’s current `startedAt`, so the active state contains stale execution metadata.  \n**Suggestion:** Clear `runtimeLog` when a step is reopened, or move prior executions into `stepAttempts` so the active step only describes the current run.\n\n### 3. Collapse repeated gate failure issue-log entries\n**File:** `specs/330-draft-review-repair-target/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The same scenario-validity failure block is copied across multiple `spec-gate` entries, including nearly identical `reason`, `observations`, and `failedEvaluations`.  \n**Suggestion:** Keep one canonical issue entry for the failure and add compact repeat records with `repeatedFromIssueLogId`, `attempt`, and timestamp.\n\n### 4. Make truncation bounds structured\n**File:** `specs/330-draft-review-repair-target/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The `impl-review` entry says recovery discovery was “truncated at 200 entries,” but the bound and candidate count are only in prose. This weakens auditability under `bounded-resource-usage`.  \n**Suggestion:** Add structured fields such as `scanLimit: 200`, `candidateCount`, and `truncated: true`.\n\n### 5. Fix triage scope leakage\n**File:** `specs/330-draft-review-repair-target/impl-triage.json`  \n**Requirement:** R8  \n**Issue:** Many rejected triage items propose changes for files that are not in this supplied diff, which conflicts with the review scope constraint and leaves noisy, unactionable triage state.  \n**Suggestion:** Regenerate or filter `impl-triage.json` so its items only reference files actually present in the diff for this change set.\n\n### 6. Remove volatile timestamp from committed triage artifact\n**File:** `specs/330-draft-review-repair-target/impl-triage.json`  \n**Requirement:** R8  \n**Issue:** `generatedAt` is a volatile timestamp in a committed artifact and will churn whenever the artifact is regenerated, even if the logical triage result is unchanged.  \n**Suggestion:** Omit `generatedAt` from committed canonical state, or move generation timestamps into transient runtime logs.\n\n### 7. Add final newline\n**File:** `specs/330-draft-review-repair-target/issue.md`  \n**Requirement:** R1  \n**Issue:** The file has no trailing newline, which creates avoidable diff noise and is inconsistent with normal markdown/text-file conventions.  \n**Suggestion:** Ensure the issue markdown writer terminates generated markdown files with `\\n`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Deduplicate recovery baselines",
+        "body": "**File:** `specs/330-draft-review-repair-target/flow.json`  \n**Requirement:** R7  \n**Issue:** `reviewRecoveryBaselines` stores five identical `task-impl` baseline records that differ only by `createdAt`. This duplicates persisted state and makes repeat handling harder to reason about.  \n**Suggestion:** Store one baseline per `{kind, phase, fingerprint.hash, trigger}` and keep repeated occurrences in a bounded `attempts`/`createdAtHistory` field if those timestamps are required.",
+        "file": "specs/330-draft-review-repair-target/flow.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Remove stale active-step runtime metadata",
+        "body": "**File:** `specs/330-draft-review-repair-target/flow.json`  \n**Requirement:** R7  \n**Issue:** The `impl-review` step is `in_progress`, but its `runtimeLog.endedAt` is earlier than the step’s current `startedAt`, so the active state contains stale execution metadata.  \n**Suggestion:** Clear `runtimeLog` when a step is reopened, or move prior executions into `stepAttempts` so the active step only describes the current run.",
+        "file": "specs/330-draft-review-repair-target/flow.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Collapse repeated gate failure issue-log entries",
+        "body": "**File:** `specs/330-draft-review-repair-target/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The same scenario-validity failure block is copied across multiple `spec-gate` entries, including nearly identical `reason`, `observations`, and `failedEvaluations`.  \n**Suggestion:** Keep one canonical issue entry for the failure and add compact repeat records with `repeatedFromIssueLogId`, `attempt`, and timestamp.",
+        "file": "specs/330-draft-review-repair-target/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Make truncation bounds structured",
+        "body": "**File:** `specs/330-draft-review-repair-target/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The `impl-review` entry says recovery discovery was “truncated at 200 entries,” but the bound and candidate count are only in prose. This weakens auditability under `bounded-resource-usage`.  \n**Suggestion:** Add structured fields such as `scanLimit: 200`, `candidateCount`, and `truncated: true`.",
+        "file": "specs/330-draft-review-repair-target/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Fix triage scope leakage",
+        "body": "**File:** `specs/330-draft-review-repair-target/impl-triage.json`  \n**Requirement:** R8  \n**Issue:** Many rejected triage items propose changes for files that are not in this supplied diff, which conflicts with the review scope constraint and leaves noisy, unactionable triage state.  \n**Suggestion:** Regenerate or filter `impl-triage.json` so its items only reference files actually present in the diff for this change set.",
+        "file": "specs/330-draft-review-repair-target/impl-triage.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "6. Remove volatile timestamp from committed triage artifact",
+        "body": "**File:** `specs/330-draft-review-repair-target/impl-triage.json`  \n**Requirement:** R8  \n**Issue:** `generatedAt` is a volatile timestamp in a committed artifact and will churn whenever the artifact is regenerated, even if the logical triage result is unchanged.  \n**Suggestion:** Omit `generatedAt` from committed canonical state, or move generation timestamps into transient runtime logs.",
+        "file": "specs/330-draft-review-repair-target/impl-triage.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "7. Add final newline",
+        "body": "**File:** `specs/330-draft-review-repair-target/issue.md`  \n**Requirement:** R1  \n**Issue:** The file has no trailing newline, which creates avoidable diff noise and is inconsistent with normal markdown/text-file conventions.  \n**Suggestion:** Ensure the issue markdown writer terminates generated markdown files with `\\n`.",
+        "file": "specs/330-draft-review-repair-target/issue.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

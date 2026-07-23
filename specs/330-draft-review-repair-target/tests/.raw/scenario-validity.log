@@ -1,0 +1,201 @@
+[senti] scenario-validity tests start
+command: node --test specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js
+[senti] scenario-validity file start command=node specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js
+TAP version 13
+# Subtest: R1: draft-questions repairTargets-only records one canonical advisory finding
+not ok 1 - R1: draft-questions repairTargets-only records one canonical advisory finding
+  ---
+  duration_ms: 6.978276
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:128:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'blocking'
+    - 'non-blocking'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'non-blocking'
+  actual: 'blocking'
+  operator: 'strictEqual'
+  stack: |-
+    assertCanonicalRepairTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:122:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:136:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: draft-coverage repairTargets-only uses the same canonical advisory contract
+not ok 2 - R2: draft-coverage repairTargets-only uses the same canonical advisory contract
+  ---
+  duration_ms: 2.230052
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:139:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'blocking'
+    - 'non-blocking'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'non-blocking'
+  actual: 'blocking'
+  operator: 'strictEqual'
+  stack: |-
+    assertCanonicalRepairTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:122:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:147:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R3: advisory and repair findings remain advisory without a blocking record
+not ok 3 - R3: advisory and repair findings remain advisory without a blocking record
+  ---
+  duration_ms: 7.60756
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:150:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(result.canonicalFindings.every((finding) => finding.severity === "non-blocking"))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:160:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: repair target category and authored fields remain available to triage
+ok 4 - R4: repair target category and authored fields remain available to triage
+  ---
+  duration_ms: 1.228807
+  type: 'test'
+  ...
+# Subtest: R5: empty draft review records PASS with zero canonical findings
+ok 5 - R5: empty draft review records PASS with zero canonical findings
+  ---
+  duration_ms: 2.575574
+  type: 'test'
+  ...
+# Subtest: R8: checkpoint-shaped repair target is recorded once without review AI
+not ok 6 - R8: checkpoint-shaped repair target is recorded once without review AI
+  ---
+  duration_ms: 1.750249
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:188:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'blocking'
+    - 'non-blocking'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'non-blocking'
+  actual: 'blocking'
+  operator: 'strictEqual'
+  stack: |-
+    assertCanonicalRepairTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:122:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js:200:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 2
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 37.020872
+Command failed: node specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js
+[senti] scenario-validity file start command=node specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js
+TAP version 13
+# Subtest: R6: repaired advisory baseline keeps invalid disposition matrices rejected
+not ok 1 - R6: repaired advisory baseline keeps invalid disposition matrices rejected
+  ---
+  duration_ms: 3.8135
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js:104:1'
+  failureType: 'testCodeFailure'
+  error: 'ADVISORY disposition requires advisory findings and no blocking findings'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    new ReviewDisposition (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/src/flow/lib/review-convergence.js:162:13)
+    new RecordedRepairTargetFixture (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js:72:24)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js:105:20)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R7: repaired advisory evidence records once and rejects duplicate or completed-target reuse
+not ok 2 - R7: repaired advisory evidence records once and rejects duplicate or completed-target reuse
+  ---
+  duration_ms: 2.770215
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js:136:1'
+  failureType: 'testCodeFailure'
+  error: 'ADVISORY disposition requires advisory findings and no blocking findings'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    new ReviewDisposition (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/src/flow/lib/review-convergence.js:162:13)
+    new RecordedRepairTargetFixture (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js:72:24)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-330-draft-review-repair-target/specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js:138:19)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18.415456
+Command failed: node specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: draft-questions repairTargets-only records one canonical advisory finding
+[senti] requirement R2 observed: R2: draft-coverage repairTargets-only uses the same canonical advisory contract
+[senti] requirement R3 observed: R3: advisory and repair findings remain advisory without a blocking record
+[senti] requirement R4 observed: R4: repair target category and authored fields remain available to triage
+[senti] requirement R5 observed: R5: empty draft review records PASS with zero canonical findings
+[senti] requirement R6 observed: R6: repaired advisory baseline keeps invalid disposition matrices rejected
+[senti] requirement R7 observed: R7: repaired advisory evidence records once and rejects duplicate or completed-target reuse
+[senti] requirement R8 observed: R8: checkpoint-shaped repair target is recorded once without review AI
+[senti] scenario-validity tests end

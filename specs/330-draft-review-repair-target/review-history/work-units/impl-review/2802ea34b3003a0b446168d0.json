@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+      "specs/330-draft-review-repair-target/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+      "specs/330-draft-review-repair-target/scenario-validity-result.json",
+      "specs/330-draft-review-repair-target/spec-gate-source.json",
+      "specs/330-draft-review-repair-target/spec-review.json"
+    ],
+    "inputHash": "8e200fe4b50b010ffb9f9040ed07e14393fd1d0af909bd1eb96524180fb699fe",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+    "specs/330-draft-review-repair-target/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+    "specs/330-draft-review-repair-target/scenario-validity-result.json",
+    "specs/330-draft-review-repair-target/spec-gate-source.json",
+    "specs/330-draft-review-repair-target/spec-review.json"
+  ],
+  "inputHash": "8e200fe4b50b010ffb9f9040ed07e14393fd1d0af909bd1eb96524180fb699fe",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-23T13:49:32.465Z",
+  "finishedAt": "2026-07-23T13:49:32.465Z",
+  "rawResponse": "### 1. Remove duplicated work-unit metadata\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R1  \n**Issue:** `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId` are stored both inside `identity` and again at the top level. This creates drift risk in persisted review artifacts.  \n**Suggestion:** Keep `identity` as the canonical metadata block and remove the duplicated top-level fields, or store only a compact reference at the top level if consumers require direct access.\n\n### 2. Store review proposals once\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R2  \n**Issue:** The same proposals are duplicated in `rawResponse` as rendered markdown and in `success.proposals` as structured data. Any repair to one representation can leave the other stale.  \n**Suggestion:** Persist only `success.proposals` and render markdown on demand, or mark `rawResponse` as debug-only output outside the durable artifact schema.\n\n### 3. Apply the same work-unit normalization to the second review artifact\n**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`  \n**Requirement:** R3  \n**Issue:** This file repeats the same two duplication patterns: identity metadata is copied at two levels, and proposal content is stored both as `rawResponse` markdown and as structured `success.proposals`.  \n**Suggestion:** Use the same single-source representation as the other impl-review work unit so all review-history artifacts follow one consistent schema.\n\n### 4. Extract repeated scenario evidence fields\n**File:** `specs/330-draft-review-repair-target/scenario-validity-result.json`  \n**Requirement:** R4  \n**Issue:** Every `summary[].evidence` repeats the identical `command` and `raw_output_lines` range. This makes the artifact verbose and increases the chance of inconsistent edits if the command or output range changes.  \n**Suggestion:** Move shared evidence such as `command` and common raw output range to a top-level `evidence` or `run` block, and keep per-requirement entries limited to `test_file`, `test_name`, and requirement-specific classification.\n\n### 5. Normalize duplicated gate findings\n**File:** `specs/330-draft-review-repair-target/spec-gate-source.json`  \n**Requirement:** R5  \n**Issue:** Each violation appears in both `evaluations[].observations[]` and top-level `observations[]`, with duplicated `where`, `observed`, severity, guardrail, disposition, rationale, and timestamps.  \n**Suggestion:** Store one canonical finding list and have evaluations reference finding IDs, or derive top-level observations from evaluations during rendering.\n\n### 6. Use requirement IDs instead of null\n**File:** `specs/330-draft-review-repair-target/spec-gate-source.json`  \n**Requirement:** R8  \n**Issue:** The first evaluation explicitly points to `requirements[R8].desc`, but `requirementId` is `null`. The test-strategy findings also point to task locators that appear tied to requirements, but the structured field is empty.  \n**Suggestion:** Populate `requirementId` when the locator or reason identifies a requirement, especially `R8` for `requirements[R8].desc`, and reserve `null` for truly cross-cutting findings.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated work-unit metadata",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R1  \n**Issue:** `targetFiles`, `inputHash`, `providerIdentity`, `promptVersion`, `schemaVersion`, and `unitId` are stored both inside `identity` and again at the top level. This creates drift risk in persisted review artifacts.  \n**Suggestion:** Keep `identity` as the canonical metadata block and remove the duplicated top-level fields, or store only a compact reference at the top level if consumers require direct access.",
+        "file": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Store review proposals once",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json`  \n**Requirement:** R2  \n**Issue:** The same proposals are duplicated in `rawResponse` as rendered markdown and in `success.proposals` as structured data. Any repair to one representation can leave the other stale.  \n**Suggestion:** Persist only `success.proposals` and render markdown on demand, or mark `rawResponse` as debug-only output outside the durable artifact schema.",
+        "file": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Apply the same work-unit normalization to the second review artifact",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json`  \n**Requirement:** R3  \n**Issue:** This file repeats the same two duplication patterns: identity metadata is copied at two levels, and proposal content is stored both as `rawResponse` markdown and as structured `success.proposals`.  \n**Suggestion:** Use the same single-source representation as the other impl-review work unit so all review-history artifacts follow one consistent schema.",
+        "file": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Extract repeated scenario evidence fields",
+        "body": "**File:** `specs/330-draft-review-repair-target/scenario-validity-result.json`  \n**Requirement:** R4  \n**Issue:** Every `summary[].evidence` repeats the identical `command` and `raw_output_lines` range. This makes the artifact verbose and increases the chance of inconsistent edits if the command or output range changes.  \n**Suggestion:** Move shared evidence such as `command` and common raw output range to a top-level `evidence` or `run` block, and keep per-requirement entries limited to `test_file`, `test_name`, and requirement-specific classification.",
+        "file": "specs/330-draft-review-repair-target/scenario-validity-result.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Normalize duplicated gate findings",
+        "body": "**File:** `specs/330-draft-review-repair-target/spec-gate-source.json`  \n**Requirement:** R5  \n**Issue:** Each violation appears in both `evaluations[].observations[]` and top-level `observations[]`, with duplicated `where`, `observed`, severity, guardrail, disposition, rationale, and timestamps.  \n**Suggestion:** Store one canonical finding list and have evaluations reference finding IDs, or derive top-level observations from evaluations during rendering.",
+        "file": "specs/330-draft-review-repair-target/spec-gate-source.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "6. Use requirement IDs instead of null",
+        "body": "**File:** `specs/330-draft-review-repair-target/spec-gate-source.json`  \n**Requirement:** R8  \n**Issue:** The first evaluation explicitly points to `requirements[R8].desc`, but `requirementId` is `null`. The test-strategy findings also point to task locators that appear tied to requirements, but the structured field is empty.  \n**Suggestion:** Populate `requirementId` when the locator or reason identifies a requirement, especially `R8` for `requirements[R8].desc`, and reserve `null` for truly cross-cutting findings.",
+        "file": "specs/330-draft-review-repair-target/spec-gate-source.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

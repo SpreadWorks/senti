@@ -1,0 +1,93 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "id": "repair-001",
+      "sourceFindingIds": [
+        "2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f"
+      ],
+      "reason": "Material repair requires stale tests to rerun; finding resolution is not asserted (2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f).",
+      "changedPathCount": 9,
+      "changedPathsPreview": [
+        "specs/330-draft-review-repair-target/spec.json",
+        "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+        "src/flow/lib/impl-repair-artifacts.js",
+        "src/flow/lib/run-rewind-test-evidence.js",
+        "src/flow/lib/step-transition-policy.js",
+        "src/flow/registry.js",
+        "src/lib/flow-store.js",
+        "tests/unit/flow/commands/review.test.js",
+        "tests/unit/flow/rewind-test-evidence.test.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "src/flow/",
+          "count": 4
+        },
+        {
+          "prefix": "specs/330-draft-review-repair-target/",
+          "count": 2
+        },
+        {
+          "prefix": "tests/unit/",
+          "count": 2
+        },
+        {
+          "prefix": "src/lib/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-001.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md",
+        "impl-gate-result.json"
+      ],
+      "previousHash": "0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93",
+      "currentHash": "12ed76460c8185a4f88c590679240a1332e3b84c0da6e1044ef1d741b6d5a57b",
+      "createdAt": "2026-07-23T13:39:19.943Z",
+      "changedPathsDigest": "4817c8913a4ba442c76adef6949a7c081cc696a42607f5be70b8485f34ddce65",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "Material repair requires stale tests to rerun; finding resolution is not asserted (2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f). (repair_fingerprint_mismatch)",
+          "previousFingerprint": "0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "Material repair requires stale tests to rerun; finding resolution is not asserted (2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f). (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "Material repair requires stale tests to rerun; finding resolution is not asserted (2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f). (repair_fingerprint_mismatch)",
+          "previousFingerprint": "0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "Material repair requires stale tests to rerun; finding resolution is not asserted (2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f). (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "Material repair requires stale tests to rerun; finding resolution is not asserted (2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f). (repair_fingerprint_mismatch)",
+          "previousFingerprint": "0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93"
+        },
+        {
+          "path": "review.md",
+          "reason": "Material repair requires stale tests to rerun; finding resolution is not asserted (2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f). (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93"
+        },
+        {
+          "path": "impl-gate-result.json",
+          "reason": "Material repair requires stale tests to rerun; finding resolution is not asserted (2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f). (repair_fingerprint_mismatch)",
+          "previousFingerprint": "0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93"
+        }
+      ]
+    }
+  ]
+}

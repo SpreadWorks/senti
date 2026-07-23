@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/330-draft-review-repair-target/plugin-artifacts/workflow/prepare.json",
+      "specs/330-draft-review-repair-target/repair-fingerprint.json",
+      "specs/330-draft-review-repair-target/retry-recovery.json",
+      "specs/330-draft-review-repair-target/review-evidence/00fffd8b995e5f37e435e08367bb3e0f58bc3c3ea3350f294e8082c0aedd4868.json",
+      "specs/330-draft-review-repair-target/review-evidence/011410bc9402313a53c684cbf73c9efc9f3fb8b190bf2b06e5d312f890a29e17.json"
+    ],
+    "inputHash": "d706aecde79e896d0d04debae24366b498737ea8162dc6a95af7cd2fe755e8f7",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/330-draft-review-repair-target/plugin-artifacts/workflow/prepare.json",
+    "specs/330-draft-review-repair-target/repair-fingerprint.json",
+    "specs/330-draft-review-repair-target/retry-recovery.json",
+    "specs/330-draft-review-repair-target/review-evidence/00fffd8b995e5f37e435e08367bb3e0f58bc3c3ea3350f294e8082c0aedd4868.json",
+    "specs/330-draft-review-repair-target/review-evidence/011410bc9402313a53c684cbf73c9efc9f3fb8b190bf2b06e5d312f890a29e17.json"
+  ],
+  "inputHash": "d706aecde79e896d0d04debae24366b498737ea8162dc6a95af7cd2fe755e8f7",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-23T13:46:56.860Z",
+  "finishedAt": "2026-07-23T13:46:56.860Z",
+  "rawResponse": "### 1. Remove duplicated issue number\n**File:** `specs/330-draft-review-repair-target/plugin-artifacts/workflow/prepare.json`  \n**Requirement:** R1  \n**Issue:** The same issue number is stored twice as `issue` and `result.issueNumber`, which creates a small consistency risk if one value is updated without the other.  \n**Suggestion:** Keep one canonical issue field, preferably `result.issueNumber` if the rest of the workflow result schema already treats `result` as the command output.\n\n### 2. Avoid storing duplicate phase aliases when identical\n**File:** `specs/330-draft-review-repair-target/retry-recovery.json`  \n**Requirement:** R1  \n**Issue:** `phase` and `canonicalPhase` both contain `\"task-impl\"` in the entry. When they are identical, the duplicate field adds noise and can drift later.  \n**Suggestion:** Store only `canonicalPhase`, or omit `canonicalPhase` unless normalization changed the original `phase`.\n\n### 3. Replace embedded command string with structured command data\n**File:** `specs/330-draft-review-repair-target/retry-recovery.json`  \n**Requirement:** R4  \n**Issue:** `recoveryCommand` duplicates data already present in the entry, including phase and reason. The quoted command is harder to safely consume than structured fields.  \n**Suggestion:** Store structured recovery intent, such as command name, target phase, reason, and confirmation flag, then render the CLI command only at display time.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated issue number",
+        "body": "**File:** `specs/330-draft-review-repair-target/plugin-artifacts/workflow/prepare.json`  \n**Requirement:** R1  \n**Issue:** The same issue number is stored twice as `issue` and `result.issueNumber`, which creates a small consistency risk if one value is updated without the other.  \n**Suggestion:** Keep one canonical issue field, preferably `result.issueNumber` if the rest of the workflow result schema already treats `result` as the command output.",
+        "file": "specs/330-draft-review-repair-target/plugin-artifacts/workflow/prepare.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Avoid storing duplicate phase aliases when identical",
+        "body": "**File:** `specs/330-draft-review-repair-target/retry-recovery.json`  \n**Requirement:** R1  \n**Issue:** `phase` and `canonicalPhase` both contain `\"task-impl\"` in the entry. When they are identical, the duplicate field adds noise and can drift later.  \n**Suggestion:** Store only `canonicalPhase`, or omit `canonicalPhase` unless normalization changed the original `phase`.",
+        "file": "specs/330-draft-review-repair-target/retry-recovery.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Replace embedded command string with structured command data",
+        "body": "**File:** `specs/330-draft-review-repair-target/retry-recovery.json`  \n**Requirement:** R4  \n**Issue:** `recoveryCommand` duplicates data already present in the entry, including phase and reason. The quoted command is harder to safely consume than structured fields.  \n**Suggestion:** Store structured recovery intent, such as command name, target phase, reason, and confirmation flag, then render the CLI command only at display time.",
+        "file": "specs/330-draft-review-repair-target/retry-recovery.json",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1648 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement includes `関連tests`, which does not state which tests must run or what verifiable condition makes this complete.; The requirement includes `full regression 1回` without defining the regression command, scope, or pass criteria, so independent reviewers may not agree on satisfaction.; The requirement uses `最小限`, which is a vague qualifier and does not state a verifiable boundary for the allowed test reinforcement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T16:14:06.321Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The requirement includes `関連tests`, which does not state which tests must run or what verifiable condition makes this complete.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The requirement includes `full regression 1回` without defining the regression command, scope, or pass criteria, so independent reviewers may not agree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[3]"
+          },
+          "observed": "The requirement uses `最小限`, which is a vague qualifier and does not state a verifiable boundary for the allowed test reinforcement.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement includes `関連tests`, which does not state which tests must run or what verifiable condition makes this complete."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement includes `full regression 1回` without defining the regression command, scope, or pass criteria, so independent reviewers may not agree on satisfaction."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses `最小限`, which is a vague qualifier and does not state a verifiable boundary for the allowed test reinforcement."
+        }
+      ],
+      "issueLogId": "issue-log-a2c711bd-09c3-42cd-ac7a-dc46034222de"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the vague condition `Issue #453と同形のrepairTargets-only fixture` without stating the verifiable fixture contents or equivalence criteria for `同形`.; Two independent reviewers may not agree what qualifies as `Issue #453と同形のrepairTargets-only fixture` because the required fixture shape is not specified in measurable terms.; The requirement `focused regression matrix` uses the vague adjective `focused` without stating verifiable coverage criteria for the regression matrix.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T16:18:21.833Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The requirement uses the vague condition `Issue #453と同形のrepairTargets-only fixture` without stating the verifiable fixture contents or equivalence criteria for `同形`.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "Two independent reviewers may not agree what qualifies as `Issue #453と同形のrepairTargets-only fixture` because the required fixture shape is not specified in measurable terms.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement `focused regression matrix` uses the vague adjective `focused` without stating verifiable coverage criteria for the regression matrix.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague condition `Issue #453と同形のrepairTargets-only fixture` without stating the verifiable fixture contents or equivalence criteria for `同形`."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Two independent reviewers may not agree what qualifies as `Issue #453と同形のrepairTargets-only fixture` because the required fixture shape is not specified in measurable terms."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement `focused regression matrix` uses the vague adjective `focused` without stating verifiable coverage criteria for the regression matrix."
+        }
+      ],
+      "issueLogId": "issue-log-347c8498-7c2e-4457-95ab-1149b6525b0e"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement says \"draft-questionsとdraft-coverageを共通契約で扱い\" but does not define what the shared contract must contain or how compliance is verified.; The phrase \"共通契約で扱い\" is not specific enough for two independent reviewers to agree whether an implementation satisfies it.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-22T16:22:42.437Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "Content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement says \"draft-questionsとdraft-coverageを共通契約で扱い\" but does not define what the shared contract must contain or how compliance is verified.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "Content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The phrase \"共通契約で扱い\" is not specific enough for two independent reviewers to agree whether an implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement says \"draft-questionsとdraft-coverageを共通契約で扱い\" but does not define what the shared contract must contain or how compliance is verified."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The phrase \"共通契約で扱い\" is not specific enough for two independent reviewers to agree whether an implementation satisfies it."
+        }
+      ],
+      "issueLogId": "issue-log-04307c77-0b11-40a3-b18e-745bf809630b"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate remained FAIL after the parent-bounded third attempt; the latest semantic finding requires enumerating the producer contract in analysis.proposedApproach, but another edit or fourth gate would violate the orchestration cap.",
+      "trigger": "Draft gate attempt 3 returned unambiguous-requirements and complete-context findings after two changed-evidence remediation rounds.",
+      "resolution": "Stopped without bypass or further remediation. Preserve a WIP checkpoint and resume only after an explicit redesign resets the bounded draft-gate cycle; do not mark the gate or Issue complete.",
+      "guardrailCandidate": "Before the first semantic gate, expand every named common contract into exact inputs, outputs, invariants, and verification cases; stop at the parent-defined gate cap instead of chaining findings.",
+      "taskId": null,
+      "timestamp": "2026-07-22T16:24:02.445Z",
+      "issueLogId": "issue-log-f8520b97-8a4e-48e3-8e5b-484b6f760dd1"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement says \"draft-questionsとdraft-coverageを共通契約で扱い\" but does not define what the shared contract must contain or how compliance is verified.; The phrase \"共通契約で扱い\" is not specific enough for two independent reviewers to agree whether an implementation satisfies it.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T06:59:54.087Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "Content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement says \"draft-questionsとdraft-coverageを共通契約で扱い\" but does not define what the shared contract must contain or how compliance is verified.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "Content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The phrase \"共通契約で扱い\" is not specific enough for two independent reviewers to agree whether an implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement says \"draft-questionsとdraft-coverageを共通契約で扱い\" but does not define what the shared contract must contain or how compliance is verified."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The phrase \"共通契約で扱い\" is not specific enough for two independent reviewers to agree whether an implementation satisfies it."
+        }
+      ],
+      "issueLogId": "issue-log-a15d23cc-2aba-439a-aa67-f0f14e9c6986"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requirement R8 depends on an external 'Issue #453 checkpoint evidence' and says the fixture is 'equivalent' without defining the concrete fixture contents, so independent reviewers could disagree on whether it is satisfied.; The test strategy directs coverage to `tests/unit/flow/commands/review.test.js` instead of requiring new spec behavior coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.; The test strategy directs focused tests to `tests/unit/flow/retry-exhaustion-defer.test.js` and the producer focused test, but does not require spec-local coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T07:11:11.210Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R8].desc"
+          },
+          "observed": "Requirement R8 depends on an external 'Issue #453 checkpoint evidence' and says the fixture is 'equivalent' without defining the concrete fixture contents, so independent reviewers could disagree on whether it is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[T-2].test_strategy"
+          },
+          "observed": "The test strategy directs coverage to `tests/unit/flow/commands/review.test.js` instead of requiring new spec behavior coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[T-3].test_strategy"
+          },
+          "observed": "The test strategy directs focused tests to `tests/unit/flow/retry-exhaustion-defer.test.js` and the producer focused test, but does not require spec-local coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement R8 depends on an external 'Issue #453 checkpoint evidence' and says the fixture is 'equivalent' without defining the concrete fixture contents, so independent reviewers could disagree on whether it is satisfied."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The test strategy directs coverage to `tests/unit/flow/commands/review.test.js` instead of requiring new spec behavior coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The test strategy directs focused tests to `tests/unit/flow/retry-exhaustion-defer.test.js` and the producer focused test, but does not require spec-local coverage under `specs/<specid>/tests/` with a `// spec: R<N> ...` header."
+        }
+      ],
+      "issueLogId": "issue-log-52347f74-7045-407d-b200-19389169c43b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "must-fix finding 8b9833f3480bd4ab9216d09098db973aab0d224907c2707762c04c77e1a6f321 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T08:28:55.128Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 8b9833f3480bd4ab9216d09098db973aab0d224907c2707762c04c77e1a6f321 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-e0ba5ea9-2460-45ef-9f17-05458ae15905"
+    },
+    {
+      "step": "task-review",
+      "reason": "Resolved the task-review finding by restricting repair-target non-blocking normalization and authored-field preservation to draft-questions and draft-coverage.",
+      "normalizedFindingId": "8b9833f3480bd4ab9216d09098db973aab0d224907c2707762c04c77e1a6f321",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T08:31:28.555Z",
+      "issueLogId": "issue-log-10a545a7-1034-4921-bc5f-bea6332218b1"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: recorded matching repair evidence for the T-1 must-fix finding",
+      "resolution": "The evidence links finding 8b9833f3480bd4ab9216d09098db973aab0d224907c2707762c04c77e1a6f321, task T-1, and src/flow/commands/review.js.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T08:32:09.931Z",
+      "issueLogId": "issue-log-68a4d536-ce90-4d8c-bbdf-8ebf8fd94feb"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added scenario-validity evidence records exitCode: 1 with failing tests for R1, R2, R3, R6, R7, and R8, while project-test-integrity requires all project tests to pass.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T08:38:48.126Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "added log lines show failing scenario-validity command"
+          },
+          "observed": "The added scenario-validity evidence records exitCode: 1 with failing tests for R1, R2, R3, R6, R7, and R8, while project-test-integrity requires all project tests to pass.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity evidence records exitCode: 1 with failing tests for R1, R2, R3, R6, R7, and R8, while project-test-integrity requires all project tests to pass."
+        }
+      ],
+      "issueLogId": "issue-log-b36bf44f-4101-45a8-aa7a-282df3e9cf6f"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "acknowledge: finding 4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be is pre-fix scenario evidence, not a current project-test failure",
+      "resolution": "scenario-validity intentionally recorded expected failures before implementation; T-1 prohibits test execution and runtime verification is centralized at test-execute.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T08:40:52.979Z",
+      "issueLogId": "issue-log-58a371a2-4698-496b-a161-ed49b17f9c53"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added scenario-validity result marks result as pass while recording process.exitCode: 1 for the project scenario test command, so the diff records failing project tests instead of all project tests passing.; The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'.; The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.; The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T08:41:43.510Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/scenario-validity-result.json",
+            "locator": "process.exitCode"
+          },
+          "observed": "The added scenario-validity result marks result as pass while recording process.exitCode: 1 for the project scenario test command, so the diff records failing project tests instead of all project tests passing.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R1 subtest"
+          },
+          "observed": "The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R2 subtest"
+          },
+          "observed": "The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R3 subtest"
+          },
+          "observed": "The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R8 subtest"
+          },
+          "observed": "The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R6 subtest"
+          },
+          "observed": "The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R7 subtest"
+          },
+          "observed": "The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity result marks result as pass while recording process.exitCode: 1 for the project scenario test command, so the diff records failing project tests instead of all project tests passing."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'."
+        }
+      ],
+      "issueLogId": "issue-log-c7998b6a-9429-4c3f-bd1a-8e6ba318c5d7"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "acknowledge: attempt 2 repeated finding 4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be across seven pre-fix scenario observations",
+      "resolution": "All observations derive from scenario-validity expected-fail evidence; changing the artifact or running tests during T-1 would violate the approved verification sequence, so no product or test change is warranted.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T08:43:03.450Z",
+      "issueLogId": "issue-log-f7acbcd7-0721-46dc-8223-918bc42cf712"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added scenario-validity result records the project scenario test command with exitCode 1 while marking the result as pass, so the diff records failing project tests instead of all project tests passing.; The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'.; The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.; The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T08:44:18.909Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/scenario-validity-result.json",
+            "locator": "process.exitCode"
+          },
+          "observed": "The added scenario-validity result records the project scenario test command with exitCode 1 while marking the result as pass, so the diff records failing project tests instead of all project tests passing.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R1 subtest"
+          },
+          "observed": "The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R2 subtest"
+          },
+          "observed": "The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R3 subtest"
+          },
+          "observed": "The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R8 subtest"
+          },
+          "observed": "The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R6 subtest"
+          },
+          "observed": "The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R7 subtest"
+          },
+          "observed": "The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity result records the project scenario test command with exitCode 1 while marking the result as pass, so the diff records failing project tests instead of all project tests passing."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'."
+        }
+      ],
+      "issueLogId": "issue-log-b1ee94de-fef8-4b6d-a5a1-7284324854c1"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "acknowledge: attempt 3 repeated finding 4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be without new evidence",
+      "resolution": "The seven observations are unchanged pre-fix scenario-validity evidence; no #454 product or test modification is justified, and the bounded gate will hand unresolved semantics to acceptance-review at exhaustion.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T08:44:50.908Z",
+      "issueLogId": "issue-log-e8c13002-aacb-44ef-a491-f53f2e0c3fdc"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added scenario-validity result records the project scenario test command with exitCode 1 while marking result as pass, so the diff records failing project tests instead of all project tests passing.; The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'.; The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.; The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T08:49:10.986Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/scenario-validity-result.json",
+            "locator": "process.exitCode"
+          },
+          "observed": "The added scenario-validity result records the project scenario test command with exitCode 1 while marking result as pass, so the diff records failing project tests instead of all project tests passing.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R1 subtest"
+          },
+          "observed": "The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R2 subtest"
+          },
+          "observed": "The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R3 subtest"
+          },
+          "observed": "The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R8 subtest"
+          },
+          "observed": "The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R6 subtest"
+          },
+          "observed": "The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R7 subtest"
+          },
+          "observed": "The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity result records the project scenario test command with exitCode 1 while marking result as pass, so the diff records failing project tests instead of all project tests passing."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'."
+        }
+      ],
+      "issueLogId": "issue-log-59e63df0-89c9-4d6c-ac12-0aaba114583f"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "acknowledge: attempt 4 repeated finding 4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be without any new project-test failure",
+      "resolution": "The observations still reference only the immutable pre-fix scenario-validity evidence; no implementation or test change is authorized, so attempt 5 must use the bounded semantic-defer handoff.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T08:50:29.120Z",
+      "issueLogId": "issue-log-aad6022b-bc69-4ace-b6f4-2db156f8f209"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added scenario-validity result records the project scenario test command with process.exitCode 1 while marking result as pass, so the diff records failing project tests instead of all project tests passing.; The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'.; The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.; The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.; The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T08:51:33.939Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/scenario-validity-result.json",
+            "locator": "process.exitCode"
+          },
+          "observed": "The added scenario-validity result records the project scenario test command with process.exitCode 1 while marking result as pass, so the diff records failing project tests instead of all project tests passing.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R1 subtest"
+          },
+          "observed": "The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R2 subtest"
+          },
+          "observed": "The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R3 subtest"
+          },
+          "observed": "The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R8 subtest"
+          },
+          "observed": "The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R6 subtest"
+          },
+          "observed": "The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+            "locator": "R7 subtest"
+          },
+          "observed": "The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity result records the project scenario test command with process.exitCode 1 while marking result as pass, so the diff records failing project tests instead of all project tests passing."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R1 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R2 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R3 as not ok because not every canonical finding had severity 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R8 as not ok because canonical repair target severity was actual 'blocking' instead of expected 'non-blocking'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R6 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added scenario-validity log records R7 as not ok with 'ADVISORY disposition requires advisory findings and no blocking findings'."
+        }
+      ],
+      "issueLogId": "issue-log-b904a6fb-92e8-4933-b8d1-7fbfb8ec230a"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "main recovery commit 0a704b525df80d3d670ce9eb6c80b60743516856 excludes the active spec scenario-validity pre-fix evidence from task implementation guardrail input instead of treating it as a current project-test failure",
+      "resolution": "Rebased the recovery implementation and linked its exact source file as the matching repair evidence for the repeated task-gate finding.",
+      "normalizedFindingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T09:25:58.194Z",
+      "issueLogId": "issue-log-74f25db9-0c15-4a1c-8c22-56f80b794190"
+    },
+    {
+      "step": "task-impl",
+      "reason": "corrective evidence: the existing impl-gate entry does not match the task-gate recovery scope, so this entry correctly materializes the main recovery evaluator fix for the task-impl finding",
+      "resolution": "The exact finding, T-1 scope, task-impl phase, and materialized src/flow/lib/run-gate.js repair reference now align with evaluator recovery matching.",
+      "normalizedFindingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T10:24:59.434Z",
+      "issueLogId": "issue-log-bae892a0-0138-434f-b4f6-903dd4efb2af"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-17c0d45a-28eb-41b8-bc84-bef144790715",
+      "id": "recovery-17c0d45a-28eb-41b8-bc84-bef144790715",
+      "kind": "gate",
+      "phase": "task-impl",
+      "canonicalPhase": "task-impl",
+      "reason": "corrective task-impl repair evidence issue-log-bae892a0-0138-434f-b4f6-903dd4efb2af now matches finding 4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be and materializes the rebased evaluator fix",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "3243445d34b9c325097a77cd60a9f8d81ddcbc2ac887d46d8e5e145ec348b9c0",
+        "currentHash": "b04e477a7ac536d6c36299f8b9c31e06fb087292dcd7dee82ff0f06a58683fed",
+        "changedPaths": [
+          "specs/330-draft-review-repair-target/spec.json",
+          "src/flow/commands/review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate task-impl --reason \"corrective task-impl repair evidence issue-log-bae892a0-0138-434f-b4f6-903dd4efb2af now matches finding 4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be and materializes the rebased evaluator fix\" --yes",
+      "createdAt": "2026-07-23T10:25:23.022Z",
+      "timestamp": "2026-07-23T10:25:23.022Z",
+      "issueLogId": "recovery-17c0d45a-28eb-41b8-bc84-bef144790715"
+    },
+    {
+      "step": "impl-review",
+      "reason": "flow resume --spec could not select the exact active target because recovery discovery truncated at 200 entries",
+      "trigger": "RESUME_TARGET_NOT_FOUND for active spec 330 after scanAllFlows reported truncation",
+      "resolution": "continued only after exact runId, issue, and spec target-aware status guard passed",
+      "guardrailCandidate": "resolve active authority from .senti/.active-flow before bounded directory discovery",
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T10:33:59.753Z",
+      "issueLogId": "issue-log-63f2d25f-57bb-4603-99e0-a5899eebe7fc"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R1] Core producer normalization for draft-questions repairTargets-only is present: src/flow/commands/review.js maps repairTargets in phase draft-questions to severity non-blocking while preserving category via findingCategory, and the added draft-repair-target-recording.test.js asserts one non-blocking repair_target finding. However the same authoritative context forbids manually changing flow state, review artifacts, and gate artifacts [OUT:5], while the diff adds/modifies many such artifacts including specs/330-draft-review-repair-target/flow.json, draft-review-questions.json, draft-questions-triage.json, impl-review.json, and task-impl-gate-source.json. Because mapped implementation evidence contradicts an explicit must constraint in the R1 context, R1 fails.; [REQ:R4] requires every normalized repair target to retain category=repair_target plus title, target, rationale, and evidence through canonical recording and triage handoff. The implementation only adds target/evidence when `repairTarget && isDraftRepairPhase` is true, so non-draft `artifact.repairTargets` still normalize with `category=repair_target` but omit target/evidence, contradicting the “every normalized repair target” field-retention contract. Source: [FILE-MAP:R4:2] `src/flow/commands/review.js` diff around `normalizeReviewFindingRecords`, where `repairTarget: isDraftRepairPhase` gates the added `target` and `evidence` fields.; [REQ:R8] and [AC:8] require the exact raw fixture field disposition=ADVISORY and the R8 checkpoint path to be covered; the mapped test fixture in [FILE-MAP:R8:1] uses rawArtifact.verdict / verdict:\"ADVISORY\" instead of disposition, so the exact required fixture field is omitted. [TASK:T-2] also requires focused coverage in tests/unit/flow/commands/review.test.js, but the mapped implementation evidence only adds spec-local tests and changes src/flow/commands/review.js in [EVIDENCE:R8].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T10:40:04.339Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "[REQ:R1] Core producer normalization for draft-questions repairTargets-only is present: src/flow/commands/review.js maps repairTargets in phase draft-questions to severity non-blocking while preserving category via findingCategory, and the added draft-repair-target-recording.test.js asserts one non-blocking repair_target finding. However the same authoritative context forbids manually changing flow state, review artifacts, and gate artifacts [OUT:5], while the diff adds/modifies many such artifacts including specs/330-draft-review-repair-target/flow.json, draft-review-questions.json, draft-questions-triage.json, impl-review.json, and task-impl-gate-source.json. Because mapped implementation evidence contradicts an explicit must constraint in the R1 context, R1 fails.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires every normalized repair target to retain category=repair_target plus title, target, rationale, and evidence through canonical recording and triage handoff. The implementation only adds target/evidence when `repairTarget && isDraftRepairPhase` is true, so non-draft `artifact.repairTargets` still normalize with `category=repair_target` but omit target/evidence, contradicting the “every normalized repair target” field-retention contract. Source: [FILE-MAP:R4:2] `src/flow/commands/review.js` diff around `normalizeReviewFindingRecords`, where `repairTarget: isDraftRepairPhase` gates the added `target` and `evidence` fields.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "[REQ:R8] and [AC:8] require the exact raw fixture field disposition=ADVISORY and the R8 checkpoint path to be covered; the mapped test fixture in [FILE-MAP:R8:1] uses rawArtifact.verdict / verdict:\"ADVISORY\" instead of disposition, so the exact required fixture field is omitted. [TASK:T-2] also requires focused coverage in tests/unit/flow/commands/review.test.js, but the mapped implementation evidence only adds spec-local tests and changes src/flow/commands/review.js in [EVIDENCE:R8].",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R3",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "[REQ:R1] Core producer normalization for draft-questions repairTargets-only is present: src/flow/commands/review.js maps repairTargets in phase draft-questions to severity non-blocking while preserving category via findingCategory, and the added draft-repair-target-recording.test.js asserts one non-blocking repair_target finding. However the same authoritative context forbids manually changing flow state, review artifacts, and gate artifacts [OUT:5], while the diff adds/modifies many such artifacts including specs/330-draft-review-repair-target/flow.json, draft-review-questions.json, draft-questions-triage.json, impl-review.json, and task-impl-gate-source.json. Because mapped implementation evidence contradicts an explicit must constraint in the R1 context, R1 fails."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires every normalized repair target to retain category=repair_target plus title, target, rationale, and evidence through canonical recording and triage handoff. The implementation only adds target/evidence when `repairTarget && isDraftRepairPhase` is true, so non-draft `artifact.repairTargets` still normalize with `category=repair_target` but omit target/evidence, contradicting the “every normalized repair target” field-retention contract. Source: [FILE-MAP:R4:2] `src/flow/commands/review.js` diff around `normalizeReviewFindingRecords`, where `repairTarget: isDraftRepairPhase` gates the added `target` and `evidence` fields."
+        },
+        {
+          "guardrail_id": "R8",
+          "reason": "[REQ:R8] and [AC:8] require the exact raw fixture field disposition=ADVISORY and the R8 checkpoint path to be covered; the mapped test fixture in [FILE-MAP:R8:1] uses rawArtifact.verdict / verdict:\"ADVISORY\" instead of disposition, so the exact required fixture field is omitted. [TASK:T-2] also requires focused coverage in tests/unit/flow/commands/review.test.js, but the mapped implementation evidence only adds spec-local tests and changes src/flow/commands/review.js in [EVIDENCE:R8]."
+        }
+      ],
+      "issueLogId": "issue-log-2e868ed2-2570-4471-9798-415e1f5d287b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: documented that the R1 flow, review, and gate artifacts were generated by public flow CLI hooks in this run, not manually edited",
+      "trigger": "integration gate attempt 1 treated materialized flow artifacts as prohibited manual state changes",
+      "resolution": "flow.json runtimeLog receipts and review-history artifacts preserve the command provenance; no artifact was deleted or hand-edited",
+      "guardrailCandidate": "integration gates must distinguish public flow-generated artifacts from prohibited manual artifact mutation",
+      "normalizedFindingId": "9ecbb287bc45692ec4172cbefbcb7403098e2435f1a61862b91c84d2b7b0ebe9",
+      "repairRef": {
+        "files": [
+          "specs/330-draft-review-repair-target/flow.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T10:43:33.955Z",
+      "issueLogId": "issue-log-ff18f2e1-12aa-4704-9a91-1ec4a8701018"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: recorded the approved R4 scope clarification that every normalized repair target means every normalized draft review repair target in this spec",
+      "trigger": "integration gate attempt 1 expanded R4 beyond the draft-questions and draft-coverage scope",
+      "resolution": "the existing phase guard remains unchanged and preserves authored fields for both approved draft routes without changing non-draft behavior",
+      "guardrailCandidate": "gate requirement interpretation must remain bounded by the spec goal, scope, acceptance criteria, and task implementation notes",
+      "normalizedFindingId": "7047d9599db612beb6cbe9e072923b7dfb44198a2e4d9ed88521135b18a8fdd8",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-23T10:43:53.676Z",
+      "issueLogId": "issue-log-bd9bf5fe-c39a-4764-955d-b98a923934d2"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added the T-2 focused R8 unit fixture with disposition ADVISORY, empty blocking and advisory arrays, and one exact repair target",
+      "trigger": "integration gate attempt 1 found the approved tests/unit producer coverage absent",
+      "resolution": "the new fixture crosses buildDraftReviewArtifact, writeReviewAttemptHistory, and the production review post hook exactly once while asserting non-blocking repair_target fields and zero Agent calls",
+      "guardrailCandidate": "task implementation notes that name a focused project test file require direct coverage in that file",
+      "normalizedFindingId": "2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f",
+      "repairRef": {
+        "files": [
+          "tests/unit/flow/commands/review.test.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-23T10:44:27.920Z",
+      "issueLogId": "issue-log-85494279-03bf-4d24-86e1-243754e95c3d"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "related test command failed opaquely at the review.test.js file boundary after the new R8 focused case passed",
+      "trigger": "node --test review.test.js and retry-exhaustion-defer.test.js returned one file-level ERR_TEST_FAILURE",
+      "resolution": "saved the only execution output and stopped without rerunning the same command; exact failing case still requires one bounded diagnostic execution",
+      "guardrailCandidate": "test runners must preserve individual failing case output for file-level failures",
+      "taskId": "T-2",
+      "timestamp": "2026-07-23T10:45:54.940Z",
+      "issueLogId": "issue-log-42e23a4a-d5ba-4654-9274-8d2c8e1db9f1"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "bounded direct harness diagnosis confirmed the new R8 fixture passes and all review.test.js failures are pre-existing subprocess sandbox EPERM cases",
+      "trigger": "one approved direct harness diagnostic on HEAD 864a1d0f with dirty diff hash 0a4563d0733a2fa233e57a4667e7c2ac6f49d260",
+      "resolution": "kept the R8 test unchanged; retry invariant passed, the R8 fixture passed, and unrelated node or git spawn tests remain outside Issue 454",
+      "guardrailCandidate": "related test evidence should distinguish sandbox subprocess denial from failures in changed test behavior",
+      "taskId": "T-2",
+      "timestamp": "2026-07-23T10:47:05.995Z",
+      "issueLogId": "issue-log-fc093cab-6fd9-4190-bc62-167cb2fa5e99"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "test-execute-result.json repairFingerprint mismatch: expected e0378b0e99e0e9e367032003e11cae8a56f26ee4c1540bd46effb94ae422fe46, got 0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-23T10:48:38.700Z",
+      "issueLogId": "issue-log-dd4e6fa4-d453-4934-8274-086f5372df28"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T10:48:38.786Z",
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-1b53e553-6847-47e3-9dc0-cdfffe9fced6"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "test-execute-result.json repairFingerprint mismatch: expected 511b6826264507545549aac64586d50bd1490e4341af38a2d68ddaf4f4986e37, got 0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-23T12:43:44.097Z",
+      "issueLogId": "issue-log-c785b1ab-5297-4bc8-a3c9-d91397c13872"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T12:43:44.186Z",
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-2d675c5d-45ff-4738-bc19-505fe04d9b63"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "test-execute-result.json repairFingerprint mismatch: expected 12ed76460c8185a4f88c590679240a1332e3b84c0da6e1044ef1d741b6d5a57b, got 0bad28b0279ebdd30d0447bb8023548ea8cf8e6af44bbe9a1298be81f278fb93",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-23T13:37:01.407Z",
+      "issueLogId": "issue-log-f333a3ec-62e7-40c4-bfd4-09c081392a42"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-23T13:37:01.493Z",
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-6a92c116-e8e8-4284-8690-fb6728a78430"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "failureCategory": "existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "b6021294197d02f0b8ca5f66503119505b5da552a07fbc3a66ef9ac7f7895fcd"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/.retry-recovery.transaction.json",
+          "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/acceptance-review.json",
+          "fingerprint": "d78d62b9b9257aaf138967a6cd9aa39242ac275f6261a149179749bb343160ca"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/draft-coverage-repair.json",
+          "fingerprint": "cab6d75418ef062a25037239748270181278d6794e6b064b7362f49e16d850bb"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/draft-coverage-triage.json",
+          "fingerprint": "b13cef7513609f23162238ae073d81de0e8b746923d2f4b2e6c4f9472b593eb3"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/draft-gate-source.json",
+          "fingerprint": "cbdb81e80d1994135433d329967c43f6a536cc97aa47ffe91bab979f9efd9293"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/draft-questions-repair.json",
+          "fingerprint": "3332f30a8c526afb3771ae94ff9e893cd0a2e45eb5ea5c688197772e82c9def4"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/draft-questions-triage.json",
+          "fingerprint": "7c9ab1dfdc72c5f25b4e30188d0bd86b08222c45fcaf9f89ebd83f9177cc9a63"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/draft-review-coverage.json",
+          "fingerprint": "6b6783d5cef9e5a827b414a0112f50b3c124dfae6f2e9a8556102dcd88b5301b"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/draft-review-questions.json",
+          "fingerprint": "862a7b6c7d69dbea3b00cde322857f9c16287d8df45e1efb404bece9fba19225"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/draft.json",
+          "fingerprint": "2336bf8ff03ab2f9e64a14a154a8f279404fc11b0bafbf0c174b87e30688da2d"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/file-map.json",
+          "fingerprint": "592be39c74a7f8da5ff0fdeb0b0e57601bf637c682a4d538529c8dd27c4a5397"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/flow-findings.json",
+          "fingerprint": "b84d4a4c51f07ea7c93b2ebb48290e7614f1cd1f715802ecf313ae14cec6f514"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/impl-gate-result.json",
+          "fingerprint": "57fe397c0322b4ea4dec345fc3bcb64d641df3a5272402369c68b7c0f02117cd"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/impl-repair.json",
+          "fingerprint": "bd6235e79d30f9e67879320e738fa20058e3ae0a24208a9d979c43a0d3f73004"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/impl-review.json",
+          "fingerprint": "6479fad97531435191349c723d481733f1a4e941960f3991ab61ae077d188c3f"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/impl-triage.json",
+          "fingerprint": "6209ee5b5612f941b109f72156ac6a36f5f5b63706ecb2eb06276df9e3364639"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/issue.md",
+          "fingerprint": "08d3e3748f9e267b664d533cdbd413ffc44ea73899c9d3ec3f5ef8712b05fa47"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "3fe99d569a9951ea8f69a6ef9084e8e6655cd276e007d2bc15697d982e287b3f"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/repair-deltas/repair-001.json",
+          "fingerprint": "7a99c7ab2948f96e25b4ed5e310a17039c9a5589fae5f1d1dca3958cc2140de5"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/repair-fingerprint.json",
+          "fingerprint": "7e2156c16949f2fd0a360b70412d7dea6141b660c90e317bec946641fd4d0f66"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/retro.json",
+          "fingerprint": "33f50611ae47f7ffc1accef31de0c9fa82aefda446e0467ed8737d3a4a59de13"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/retry-recovery.json",
+          "fingerprint": "394b81a5cac693817443bfa6438a4fba7f708f9e06b3bdc838f7308bfe27e274"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/00fffd8b995e5f37e435e08367bb3e0f58bc3c3ea3350f294e8082c0aedd4868.json",
+          "fingerprint": "eb2efc7863328e0838629fc1b38c772e4c39e6688603146fa952cc5f830f4820"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/011410bc9402313a53c684cbf73c9efc9f3fb8b190bf2b06e5d312f890a29e17.json",
+          "fingerprint": "865590828c149872674f04a9d75ea0c394708099f8aa9bab85aaaea4dc49023a"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/13066c5a48f3f9f9ecbb11c94180fde01cc71748b445e52d0aa2b6dfebc59a02.json",
+          "fingerprint": "1b1d2d27efae56bd181cdf4bf82a4cb40318f9dc95a0240c05b9f5830237f951"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/14335cd58eb8ff2ea5ec7ef9763c7a89a549774d6d6e2a1f444b556b2b65b664.json",
+          "fingerprint": "7ab67e5ed1c04816d9fbd99dda366fc88e3eefa68e7f61c5848d5f1a050f5beb"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/1df24344b3df3fb62c45aa20eb47499165e847d946a13685cac6c7383d8ee0bc.json",
+          "fingerprint": "bc71d6c1b9bc0a18fd76a56076436fe4ea7b1f3b7b5393cf7a6e82c7efba68cf"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/2128352e7fd65a0d520c6282f2af2897947bdba23da38bbebc075f38f452c5b9.json",
+          "fingerprint": "e926b4372ff3fadf9cb8a97b7b865859d55518fb2ded86153dbac793b4ac03e3"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/2ff90e1f96f82f02c42e8a57ebdf2ee40f32138a0cbb38d5800d2810220675d8.json",
+          "fingerprint": "f0be652bba53fdfcc145cc3ab3ee84a95e24d3dd0df059d4c5b14f0817519b48"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/522e86daef92470a1f1b2446a0023441d5bf0e135f370f55f63d951c768f4509.json",
+          "fingerprint": "5de9fe7708d1bc5842ee54f9817bf16d6002abfabb7a8e2d9314d7c23c894887"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/84e5a68088f5306c199e6841e335c8c61805e0f936567ffbd5c98e955b79b0a4.json",
+          "fingerprint": "5acd6b1d8665e714699cd11cbfe16133c46994db149f5f6feeba7482c86c1dd9"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-evidence/c565234d1ebecc96557cd7e642886c785b44d1f633e00284ebce5df4ea161149.json",
+          "fingerprint": "5556d956ac2ced9a7c8513e812038c1d00e137cb527dd4fa1b2cfadcef4a1011"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "447cb49170eb6f461c2a9f524320f477fe72c226a39862990eb9de38d74c0715"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "c387edc168e5fea18b15a4f96e2192124ae057ef539adcd742c09ec0972fdd01"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/impl-attempt-001.json",
+          "fingerprint": "97c4c9b04cbdc3093230dbc74e3ba6fe07869348740be04b2d8e3381e0e35dbb"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/impl-attempt-001.md",
+          "fingerprint": "02cbcb794f2ccc2a4883f2efa61c8d17e5945255966cc705eb23f665b33bd7a6"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/impl-attempt-002.json",
+          "fingerprint": "3c0aefc1057c752360c98737c4ecdc78f5e09b585e5d79af4c1d4ac08ebdd845"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/impl-attempt-003.json",
+          "fingerprint": "7a0c58a10803803eeb3afb0737b583d3a3ed41543b85606bf763acea7f6eb2b8"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/impl-attempt-003.md",
+          "fingerprint": "00f9289708324e3df2cbd32d68e1633bef3aba03b49849ae74e328f7bbabd1da"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/impl-attempt-004.json",
+          "fingerprint": "f105054e72c7324f70b0b462c091a0ce903ff4704117cff01f140850b4cc2a47"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/impl-attempt-004.md",
+          "fingerprint": "c235106558dea45b82a11028c8874ccf6f7ad443e6524d38003384da6d7b7c39"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/spec-attempt-001.json",
+          "fingerprint": "c77d4af7e81c1bc574acf6394fe283ebe9c0f0fb66623fa05e2f3e47d5566eef"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/test-attempt-001.json",
+          "fingerprint": "10d490ffeb5bfc5688fc80c955d1c4b836f6e4bd5e7cdeb57e163ac7dc32775c"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/test-attempt-001.md",
+          "fingerprint": "e488cf4694c507fce373b1e03f3b76f9adf6d099d94afe1780715ef9744c35ac"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/test-attempt-002.json",
+          "fingerprint": "02e3ac8c82e37395b09aea067206f9a5543b0df64be108a9f162d20c898de9a0"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/test-attempt-002.md",
+          "fingerprint": "8275b769e01e6296c21459fa44336e76ada8116f1d7ab64df25ba78c708f0280"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/test-attempt-003.json",
+          "fingerprint": "6e61d9f1f5728f9c946be680e3cca563ebc5f8420732ed589d766d7d8a3879d8"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/test-attempt-003.md",
+          "fingerprint": "4b6a3b3e50038df0cfc304c70c4b6da42d3a7d5e730ca33159eb82770d950d7d"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "56b9adf785d6c2b354e32c6908517d9595d5cf0df6fbed52eb36d4a23f8f93d5"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "02fd1bf72cc806e698749fdd3a7ecb076c9f600fd15b2d6e59c54285fac2dd77"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+          "fingerprint": "c63d712ff13d10cb92698c68c43f4fff2be7e5e974e918f1136601596eebbc32"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "79fdaad57f13b1b60f0af2d488052edb7cef6c28d24f323bdd87ee7bfda2943f"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "0e1b0d5ad430dc01b6c533ac7625295d129430471e51472f00d42cbaafa2ab95"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "e2e40c23af8efbbe70602429799f9ad7b04985957ca5ec8fbed0d046b73974a5"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "82c42010716108b440dd2d8527adfe924f00a8dae58cc91a9e5cdc49afa0aa8f"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "64ed014ab07f6a1b82cf110b1756d3f905f3a9a4813bc898140f70b489eb41db"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "5a4a42c1ad4631fb39f61e37dcc70a8df7f236b13ea77f4727cbd926e08cbd60"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "4ebc9c5ba4168810df8b71d0c6e16320c30de11cbbe01db9719a521d6207756f"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "0b552a45d5b7a766e8b7008952af2250f045e506e32708eff0f6638437f9f25b"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+          "fingerprint": "7570bc7e8b758448b0f0e7ad98f675b9e2e1eb6e4347fb68d11e05eab230df9d"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/99d5a512adc8a07b358722f3.json",
+          "fingerprint": "e4993e254875739c2cae3f2c6d5f89f0bf7618791fc407fe7bfa46004542a73d"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "9a85cfdbcf95a4caaf598d56fc27ba42ddeb110716c50fb2c232f638295b1313"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "05e692696c414347cf2854077880bcf65b9f3f54499fc0231a671e703ea84438"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "9515b77d16ddb57393ebc35b0b38422798bd36f70a79b6f29824a3673f6e578d"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "d2a33010974d16fefdd1870dbd9923a18c869b18022e04e90de4e2796ed1e3c7"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/review.md",
+          "fingerprint": "c235106558dea45b82a11028c8874ccf6f7ad443e6524d38003384da6d7b7c39"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/scenario-validity-result.json",
+          "fingerprint": "c895485576526c42bd462064a985f86a2e615ad3708b2dfc3281234075713ceb"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/spec-gate-source.json",
+          "fingerprint": "6b36ce5ac93770a5ab42f755604cabb3aa8eb4c2dc319335259e65eacf5e9f6e"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/spec-review.json",
+          "fingerprint": "197e58e654b7fe59dd726bc42e7f327eb2343afd3f57df0721d9cef7b0057dbe"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/spec.json",
+          "fingerprint": "c81fae9c15bc48e227d98107c6f500988d22d90e0fda37f9764876c056a679da"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/spec.md",
+          "fingerprint": "698ca3094704b76cbd597f551ba4e7a098200ea293e0735c53e38b91146e5c4c"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+          "fingerprint": "a9342486c5c7dfcb80ac0df624b68d5cca368f473327ecc668e2305e5a99dffb"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/tasks/T-1.md",
+          "fingerprint": "f44b2433980069041e476dd1427fb24d64e7b50c628dd5bcf73ce2850ada1991"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/tasks/T-2.md",
+          "fingerprint": "f59b4d4d40b111211799bd9846daefa5067f873620ab4e0259a637f2c6151818"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/tasks/T-3.md",
+          "fingerprint": "334017638e2e1bb8f1aabfe692aa741ab7f60ea88019fb7f255682997ab070b5"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/test-coverage.json",
+          "fingerprint": "041233e49087890e2a4da0a0f593d597656148b8c70ffb06805dfd09f8c7a896"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/test-execute-result.json",
+          "fingerprint": "65addbd24136304518824b77f971bbd722ee254e6ee315d334cef1165346812b"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/test-result-review.json",
+          "fingerprint": "880255c3b052ad9035f916f4cae488242e6e5fe4cf4c469b5fc0d5a6d77da899"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/test-result-review.md",
+          "fingerprint": "ff01730784708132062d6f977471a97afc6809ee99a340ae3cd41c00f515a0dd"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/test-review.json",
+          "fingerprint": "1c06446042ec3ae763a2df9214c6320d99a837e51c29deb0503a4e6fe368fdfe"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/test-review.md",
+          "fingerprint": "4b6a3b3e50038df0cfc304c70c4b6da42d3a7d5e730ca33159eb82770d950d7d"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/tests/.raw/scenario-validity.log",
+          "fingerprint": "5936ef9b6895bf6e9090e07b89fafc1c38c9c20d3e0e98aeda1e5823049b07e7"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/tests/.raw/test-execution.log",
+          "fingerprint": "74e530d52915e798c34bb84f6dc4e95b9af362d9afb366a166dd0ec10cc481c0"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/tests/draft-repair-target-recording.test.js",
+          "fingerprint": "6e8fb13372bd4923ea553429f6f81ebf11c33216adb56d3380114370fbc6c576"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js",
+          "fingerprint": "16b70bd629fb69b8aa3695ea0ae6a7685720c3c98c251660cff523f80f30709e"
+        },
+        {
+          "path": "specs/330-draft-review-repair-target/tests/review-fixture-helpers.js",
+          "fingerprint": "c9395c4d31b84e492f70634877dc9d5a99d1e306388063aceeaa0a18bcfdda42"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "d9e3b474d0978433491f071305fd340ff34a08561eabfc930a748b6a9d71afab"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "cde79afcf30c6ff0b4f63f7ac86809854f1ca3634c50fd67cce5a89c1e45a8f7"
+        }
+      ],
+      "rawOutputPath": "specs/330-draft-review-repair-target/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-23T14:26:08.517Z",
+      "issueLogId": "issue-log-3eb0b0f7-192b-440e-8797-4685e553ecca"
+    },
+    {
+      "step": "test",
+      "reason": "A representative test reason for issue-log capture",
+      "taskId": "T-2",
+      "timestamp": "2026-07-23T14:27:37.852Z",
+      "issueLogId": "issue-log-85726bd2-27a5-473c-90ae-8a653f6dd3b2"
+    },
+    {
+      "step": "final-regression",
+      "reason": "The sole full regression generated docs/change_log.md after the failed evidence snapshot, causing the first record-and-proceed freshness check to reject as stale.",
+      "trigger": "FINAL_REGRESSION_RECORD_AND_PROCEED_STALE with onlyCurrent docs/change_log.md",
+      "resolution": "Verified pre-run clean state, single-writer ownership, and test-time mtime, then restored only that generated side effect from fixed HEAD ef03151a without rerunning tests.",
+      "guardrailCandidate": "Final-regression must capture or clean synchronous generated file side effects before persisting freshness evidence.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-23T14:37:22.297Z",
+      "issueLogId": "issue-log-9025c08c-5ead-4931-b366-f571587c2c9d"
+    }
+  ]
+}

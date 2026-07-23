@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "99d5a512adc8a07b358722f3",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-64cb1807abc38ed5",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/330-draft-review-repair-target/draft-coverage-repair.json",
+      "specs/330-draft-review-repair-target/draft-questions-triage.json",
+      "specs/330-draft-review-repair-target/flow.json",
+      "specs/330-draft-review-repair-target/review-history/spec-attempt-001.md",
+      "specs/330-draft-review-repair-target/review-history/test-attempt-002.md",
+      "specs/330-draft-review-repair-target/spec-gate-source.json",
+      "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+      "specs/330-draft-review-repair-target/test-coverage.json",
+      "specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js"
+    ],
+    "inputHash": "64cb1807abc38ed5e0ece90625118c4af2ad5ebbe60f2eb528a20998567baf59",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "99d5a512adc8a07b358722f3"
+  },
+  "targetFiles": [
+    "specs/330-draft-review-repair-target/draft-coverage-repair.json",
+    "specs/330-draft-review-repair-target/draft-questions-triage.json",
+    "specs/330-draft-review-repair-target/flow.json",
+    "specs/330-draft-review-repair-target/review-history/spec-attempt-001.md",
+    "specs/330-draft-review-repair-target/review-history/test-attempt-002.md",
+    "specs/330-draft-review-repair-target/spec-gate-source.json",
+    "specs/330-draft-review-repair-target/task-impl-gate-source.json",
+    "specs/330-draft-review-repair-target/test-coverage.json",
+    "specs/330-draft-review-repair-target/tests/review-convergence-contract.test.js"
+  ],
+  "inputHash": "64cb1807abc38ed5e0ece90625118c4af2ad5ebbe60f2eb528a20998567baf59",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-23T10:37:19.901Z",
+  "finishedAt": "2026-07-23T10:37:19.901Z",
+  "rawResponse": "### 1. Consolidate duplicated gate observation schema\n**File:** `specs/330-draft-review-repair-target/*-gate-source.json`\n**Requirement:** R1\n**Issue:** Multiple gate artifacts repeat the same schema problem: findings are stored both under `evaluations[*].observations` and top-level `observations`, often with duplicated payload fields. This is a cross-file contract inconsistency, not just a local artifact issue.\n**Suggestion:** Define one canonical gate finding representation for all gate-source artifacts. Either store full findings once and reference them by stable IDs, or derive one view at render/read time.\n\n### 2. Normalize finding field naming across artifacts\n**File:** `specs/330-draft-review-repair-target/*.json`\n**Requirement:** R2\n**Issue:** Review and gate artifacts mix naming styles and ownership fields: examples include `guardrail_id` vs `guardrailId`, `findingId` vs `fingerprint`, and `requirementId: null` while requirement IDs appear in prose. This forces consumers to handle multiple equivalent contracts.\n**Suggestion:** Pick one persisted schema for finding metadata across gate, review, repair, and history artifacts. Populate structured `requirementId` where known and remove redundant aliases unless they are only emitted at an external boundary.\n\n### 3. Share empty review and repair artifact templates\n**File:** `specs/330-draft-review-repair-target/draft-*-repair.json`\n**Requirement:** R8\n**Issue:** Empty review, repair, and triage artifacts repeat nearly identical structure and summary wording across coverage/questions phases, with small phrase variations such as “to triage” versus “recorded.”\n**Suggestion:** Generate empty artifacts through shared templates parameterized by phase, source artifact, and artifact type. Keep empty-state summary wording consistent unless a phase-specific distinction is intentional and documented.\n\n### 4. Deduplicate review-history finding views\n**File:** `specs/330-draft-review-repair-target/review-history/test-attempt-*.json`\n**Requirement:** R4\n**Issue:** Review-history JSON stores the same findings in both `blockingFindings` and `findings`, while gate artifacts have a similar duplicated-observation pattern. Together this suggests duplicated finding views are being persisted throughout the review pipeline.\n**Suggestion:** Move to a single canonical finding list across review-history and gate artifacts, then derive filtered views such as blocking/advisory/repair-target findings when reading or rendering.\n\n### 5. Align repair target semantics between source and generated artifacts\n**File:** `src/flow/commands/review.js`\n**Requirement:** R4\n**Issue:** The source review notes indicate `repairTargets` are normalized inconsistently: non-draft repair targets receive `category=repair_target` but lose fields like `target` and `evidence`. That inconsistency can propagate into multiple generated artifacts and make cross-file review state disagree.\n**Suggestion:** Treat every `artifact.repairTargets` item as a repair target for field preservation, and keep phase-specific logic limited to severity or blocking policy.\n\n### 6. Standardize markdown artifact formatting\n**File:** `specs/330-draft-review-repair-target/review-history/*.md`\n**Requirement:** R1\n**Issue:** Several markdown review-history artifacts lack trailing newlines. Because this appears in multiple files, it points to a generator-level formatting inconsistency.\n**Suggestion:** Update the markdown artifact writer so every emitted `.md` review artifact ends with a final newline.\n\n### 7. Remove repeated transient or bounded-scan evidence from committed state\n**File:** `specs/330-draft-review-repair-target/issue-log.json`\n**Requirement:** R7\n**Issue:** Several artifacts preserve repeated execution or recovery evidence: duplicate recovery baselines, repeated gate failure blocks, raw command output repeated per requirement, and prose-only truncation at 200 entries. These patterns weaken the bounded-resource guardrail across the workflow state.\n**Suggestion:** Store bounded evidence structurally and once: use fields like `scanLimit`, `candidateCount`, `truncated`, `attempt`, and references to prior entries instead of copying repeated payloads or relying on prose.\n\n### 8. Keep spec/review verdict artifacts mutually consistent\n**File:** `specs/330-draft-review-repair-target/spec-review.json`\n**Requirement:** R8\n**Issue:** `spec-review.json` reports a passing review while `spec-gate-source.json` reports failing blocking guardrail violations for the same phase. This is a cross-file state contradiction.\n**Suggestion:** Regenerate or remove stale artifacts so review verdicts and gate-source results agree. If the final state is pass, update the gate source; if the gate failed, the review artifact should not report a clean pass.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate duplicated gate observation schema",
+        "body": "**File:** `specs/330-draft-review-repair-target/*-gate-source.json`\n**Requirement:** R1\n**Issue:** Multiple gate artifacts repeat the same schema problem: findings are stored both under `evaluations[*].observations` and top-level `observations`, often with duplicated payload fields. This is a cross-file contract inconsistency, not just a local artifact issue.\n**Suggestion:** Define one canonical gate finding representation for all gate-source artifacts. Either store full findings once and reference them by stable IDs, or derive one view at render/read time.",
+        "file": "specs/330-draft-review-repair-target/*-gate-source.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Normalize finding field naming across artifacts",
+        "body": "**File:** `specs/330-draft-review-repair-target/*.json`\n**Requirement:** R2\n**Issue:** Review and gate artifacts mix naming styles and ownership fields: examples include `guardrail_id` vs `guardrailId`, `findingId` vs `fingerprint`, and `requirementId: null` while requirement IDs appear in prose. This forces consumers to handle multiple equivalent contracts.\n**Suggestion:** Pick one persisted schema for finding metadata across gate, review, repair, and history artifacts. Populate structured `requirementId` where known and remove redundant aliases unless they are only emitted at an external boundary.",
+        "file": "specs/330-draft-review-repair-target/*.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Share empty review and repair artifact templates",
+        "body": "**File:** `specs/330-draft-review-repair-target/draft-*-repair.json`\n**Requirement:** R8\n**Issue:** Empty review, repair, and triage artifacts repeat nearly identical structure and summary wording across coverage/questions phases, with small phrase variations such as “to triage” versus “recorded.”\n**Suggestion:** Generate empty artifacts through shared templates parameterized by phase, source artifact, and artifact type. Keep empty-state summary wording consistent unless a phase-specific distinction is intentional and documented.",
+        "file": "specs/330-draft-review-repair-target/draft-*-repair.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Deduplicate review-history finding views",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/test-attempt-*.json`\n**Requirement:** R4\n**Issue:** Review-history JSON stores the same findings in both `blockingFindings` and `findings`, while gate artifacts have a similar duplicated-observation pattern. Together this suggests duplicated finding views are being persisted throughout the review pipeline.\n**Suggestion:** Move to a single canonical finding list across review-history and gate artifacts, then derive filtered views such as blocking/advisory/repair-target findings when reading or rendering.",
+        "file": "specs/330-draft-review-repair-target/review-history/test-attempt-*.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Align repair target semantics between source and generated artifacts",
+        "body": "**File:** `src/flow/commands/review.js`\n**Requirement:** R4\n**Issue:** The source review notes indicate `repairTargets` are normalized inconsistently: non-draft repair targets receive `category=repair_target` but lose fields like `target` and `evidence`. That inconsistency can propagate into multiple generated artifacts and make cross-file review state disagree.\n**Suggestion:** Treat every `artifact.repairTargets` item as a repair target for field preservation, and keep phase-specific logic limited to severity or blocking policy.",
+        "file": "src/flow/commands/review.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "6. Standardize markdown artifact formatting",
+        "body": "**File:** `specs/330-draft-review-repair-target/review-history/*.md`\n**Requirement:** R1\n**Issue:** Several markdown review-history artifacts lack trailing newlines. Because this appears in multiple files, it points to a generator-level formatting inconsistency.\n**Suggestion:** Update the markdown artifact writer so every emitted `.md` review artifact ends with a final newline.",
+        "file": "specs/330-draft-review-repair-target/review-history/*.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "7. Remove repeated transient or bounded-scan evidence from committed state",
+        "body": "**File:** `specs/330-draft-review-repair-target/issue-log.json`\n**Requirement:** R7\n**Issue:** Several artifacts preserve repeated execution or recovery evidence: duplicate recovery baselines, repeated gate failure blocks, raw command output repeated per requirement, and prose-only truncation at 200 entries. These patterns weaken the bounded-resource guardrail across the workflow state.\n**Suggestion:** Store bounded evidence structurally and once: use fields like `scanLimit`, `candidateCount`, `truncated`, `attempt`, and references to prior entries instead of copying repeated payloads or relying on prose.",
+        "file": "specs/330-draft-review-repair-target/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "8. Keep spec/review verdict artifacts mutually consistent",
+        "body": "**File:** `specs/330-draft-review-repair-target/spec-review.json`\n**Requirement:** R8\n**Issue:** `spec-review.json` reports a passing review while `spec-gate-source.json` reports failing blocking guardrail violations for the same phase. This is a cross-file state contradiction.\n**Suggestion:** Regenerate or remove stale artifacts so review verdicts and gate-source results agree. If the final state is pass, update the gate source; if the gate failed, the review artifact should not report a clean pass.",
+        "file": "specs/330-draft-review-repair-target/spec-review.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}
