@@ -12,6 +12,7 @@ import {
   buildRepairFingerprint,
   prepareImplTriageArtifact,
 } from "../../../src/flow/lib/impl-repair-artifacts.js";
+import { runGit } from "../../../src/lib/git-helpers.js";
 import { resolveFlowContext } from "../../../src/flow/lib/flow-context.js";
 import {
   ExternalBlockedOutcome,
@@ -29,6 +30,12 @@ const RUN_ID = "run-stale-test-evidence";
 const ISSUE = 7;
 const TRACE_PREFIX = "/tmp/impl-gate-stale-test-evidence-case";
 const MAX_EVIDENCE_BYTES = 1024 * 1024;
+const SEMANTIC_FINDING_ID = "2".repeat(64);
+const SEMANTIC_FINDING_AT = "2026-07-23T10:40:03.000Z";
+const MATERIAL_REPAIR_AT = "2026-07-23T10:42:00.000Z";
+const MATERIAL_ISSUE_AT = "2026-07-23T10:44:00.000Z";
+const STRUCTURAL_BLOCKER_AT = "2026-07-23T10:48:00.000Z";
+const MATERIAL_REPAIR_PATH = "tests/unit/flow/commands/review.test.js";
 
 const roots = new Set();
 
@@ -102,6 +109,23 @@ function readJson(root, relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
 }
 
+function runFixtureGit(root, args, env = {}) {
+  const result = runGit(args, {
+    cwd: root,
+    env: { ...process.env, ...env },
+  });
+  assert.equal(result.ok, true, `${args.join(" ")}: ${result.stderr}`);
+  return result.stdout.trim();
+}
+
+function commitFixture(root, message, timestamp, paths = ["."]) {
+  runFixtureGit(root, ["add", "--", ...paths]);
+  runFixtureGit(root, ["commit", "-m", message], {
+    GIT_AUTHOR_DATE: timestamp,
+    GIT_COMMITTER_DATE: timestamp,
+  });
+}
+
 function snapshot(root, relativePaths) {
   return Object.fromEntries(relativePaths.map((relativePath) => {
     const file = path.join(root, relativePath);
@@ -111,6 +135,7 @@ function snapshot(root, relativePaths) {
 
 function authorityPaths(fixture) {
   return [
+    SPEC_PATH,
     `${fixture.specDir}/flow.json`,
     `${fixture.specDir}/issue-log.json`,
     `${fixture.specDir}/impl-gate-result.json`,
@@ -124,6 +149,7 @@ function authorityPaths(fixture) {
     `${fixture.specDir}/impl-repair-transaction.json`,
     `${fixture.specDir}/repair-deltas/repair-001.json`,
     "src/repair-target.js",
+    MATERIAL_REPAIR_PATH,
   ];
 }
 
@@ -245,6 +271,16 @@ function prepareFixture({
   attemptTaskId = undefined,
   currentTaskId = undefined,
   gateArtifactOverrides = {},
+  materialRepair = false,
+  materialReference = MATERIAL_REPAIR_PATH,
+  materialCommitAt = MATERIAL_REPAIR_AT,
+  materialIssueAt = MATERIAL_ISSUE_AT,
+  materialFindingId = SEMANTIC_FINDING_ID,
+  materialRequirementId = "R8",
+  materialTaskAcceptance = "R8 requires the focused producer fixture.",
+  semanticFinding = true,
+  triageDecisions = undefined,
+  structuralExpected = undefined,
 } = {}) {
   const root = createTmpDir("rewind-stale-test-evidence-");
   roots.add(root);
@@ -255,20 +291,39 @@ function prepareFixture({
   writeJson(root, SPEC_PATH, {
     goal: "Recover stale implementation test evidence.",
     requirements: [],
-    tasks: [],
+    tasks: materialRepair ? [{
+      id: "T-2",
+      goal: "Add the focused requirement regression.",
+      acceptance: [materialTaskAcceptance],
+      origin: "plan",
+    }] : [],
   });
   writeJson(root, `${specDir}/draft.json`, { marker: "draft remains unchanged" });
   writeJson(root, `${specDir}/file-map.json`, { marker: "source evidence remains unchanged" });
   writeJson(root, `${specDir}/retry-recovery.json`, { marker: "retry recovery remains unchanged" });
   writeFile(root, "src/repair-target.js", "export const value = 'before';\n");
+  if (materialRepair) {
+    writeFile(root, MATERIAL_REPAIR_PATH, "test('before material repair', () => {});\n");
+    writeFile(root, "src/unchanged.js", "export const unchanged = true;\n");
+    runFixtureGit(root, ["init", "-b", "main"]);
+    runFixtureGit(root, ["config", "user.name", "Fixture Author"]);
+    runFixtureGit(root, ["config", "user.email", "fixture@example.test"]);
+    commitFixture(root, "Create material repair baseline", "2026-07-23T10:30:00.000Z");
+    runFixtureGit(root, ["switch", "-c", "feature/material-repair"]);
+  }
 
   const previous = buildRepairFingerprint({ root, specPath: SPEC_PATH });
+  const decisions = triageDecisions ?? (materialRepair ? ["reject"] : ["apply"]);
+  const reviewFindings = decisions.map((decision, index) => ({
+    findingId: `F-${index + 1}`,
+    suggestion: `Disposition ${decision} for fixture finding ${index + 1}.`,
+  }));
   writeJson(root, `${specDir}/impl-review.json`, {
     version: 1,
     phase: "impl",
     verdict: "REJECTED",
-    summary: { blocking: 1, nonBlocking: 0, total: 1 },
-    blockingFindings: [{ findingId: "F-1", suggestion: "Apply the verified repair." }],
+    summary: { blocking: reviewFindings.length, nonBlocking: 0, total: reviewFindings.length },
+    blockingFindings: reviewFindings,
     nonBlockingImprovements: [],
     repairFingerprint: previous.hash,
   });
@@ -277,9 +332,15 @@ function prepareFixture({
       specDir: path.join(root, specDir),
       sourceStep: "impl-review",
       sourceArtifact: "impl-review.json",
-      findings: [{ findingId: "F-1", suggestion: "Apply the verified repair." }],
+      findings: reviewFindings,
       fingerprint: previous,
     });
+    const triage = readJson(root, `${specDir}/impl-triage.json`);
+    triage.items = triage.items.map((item, index) => ({
+      ...item,
+      decision: decisions[index],
+    }));
+    writeJson(root, `${specDir}/impl-triage.json`, triage);
   }
   writeFile(root, rawOutputPath, "test output\n");
   writeJson(root, resultPath, {
@@ -296,18 +357,36 @@ function prepareFixture({
   writeJson(root, `${specDir}/impl-gate-result.json`, {
     repairFingerprint: previous.hash,
     result: "fail",
+    generatedAt: SEMANTIC_FINDING_AT,
     level: "integration",
     phase: "integration",
+    evaluations: semanticFinding ? [{
+      findingId: SEMANTIC_FINDING_ID,
+      requirementId: materialRequirementId,
+      result: "fail",
+      disposition: "must-fix",
+      reportedAt: SEMANTIC_FINDING_AT,
+    }] : [],
     contractSummary: {
       targetStep: "impl-gate",
     },
     ...gateArtifactOverrides,
   });
-  if (applySourceChange) {
+  if (materialRepair) {
+    writeFile(root, MATERIAL_REPAIR_PATH, "test('after material repair', () => {});\n");
+    commitFixture(root, "Add formal material repair", materialCommitAt, [MATERIAL_REPAIR_PATH]);
+    if (materialReference === "src/untracked.js") {
+      writeFile(root, materialReference, "export const untracked = true;\n");
+    } else if (materialReference === "node_modules/material-link.js") {
+      fs.mkdirSync(path.join(root, "node_modules"), { recursive: true });
+      fs.symlinkSync("../src/unchanged.js", path.join(root, materialReference));
+    }
+  } else if (applySourceChange) {
     writeFile(root, "src/repair-target.js", "export const value = 'after';\n");
   }
 
-  const task = staleAttemptOwner
+  const effectiveStaleOwner = staleAttemptOwner || materialRepair;
+  const task = effectiveStaleOwner
     ? staleOwnerTask({
         status: staleTaskStatus,
         stepStatuses: staleTaskStepStatuses,
@@ -317,12 +396,12 @@ function prepareFixture({
       : completedTask();
   const resolvedCurrentTaskId = currentTaskId !== undefined
     ? currentTaskId
-    : staleAttemptOwner || ambiguousTask
+    : effectiveStaleOwner || ambiguousTask
       ? "T-1"
       : null;
   const resolvedAttemptTaskId = attemptTaskId !== undefined
     ? attemptTaskId
-    : staleAttemptOwner
+    : effectiveStaleOwner
       ? "T-1"
       : null;
   const state = moveFlowToStep(makeFlowState({
@@ -331,6 +410,7 @@ function prepareFixture({
     issue: ISSUE,
     baseBranch: "main",
     featureBranch: "feature/stale-test-evidence",
+    ...(materialRepair ? { repairBaseline: previous.baseline.toJSON() } : {}),
     currentTaskId: resolvedCurrentTaskId,
     tasks: [task],
     metrics: [
@@ -354,12 +434,20 @@ function prepareFixture({
     recordedAt: "2026-07-23T00:00:02.000Z",
   }).toJSON()];
   writeJson(root, `${specDir}/issue-log.json`, {
-    entries: [{
+    entries: [...(materialRepair ? [{
+      step: "impl-gate",
+      reason: "The formal focused repair was implemented after the semantic gate finding.",
+      trigger: "integration gate attempt 1 identified missing requirement coverage",
+      normalizedFindingId: materialFindingId,
+      repairRef: { files: [materialReference] },
+      taskId: "T-2",
+      timestamp: materialIssueAt,
+    }] : []), {
       step: "impl-gate",
       phase: "integration",
       trigger: "gate onError hook (auto)",
-      reason: failureReason || `${resultPath.split("/").at(-1)} repairFingerprint mismatch: expected ${current.hash}, got ${previous.hash}`,
-      timestamp: "2026-07-23T00:00:01.000Z",
+      reason: failureReason || `${resultPath.split("/").at(-1)} repairFingerprint mismatch: expected ${structuralExpected || current.hash}, got ${previous.hash}`,
+      timestamp: materialRepair ? STRUCTURAL_BLOCKER_AT : "2026-07-23T00:00:01.000Z",
     }],
   });
 
@@ -636,6 +724,113 @@ describe("public stale test evidence recovery", () => {
     }
   });
 
+  it("refreshes stale tests from a formal material repair without resolving gate findings", async () => {
+    await withFixtureCase({
+      caseName: "matrix-v5-real-shape-material-repair-success",
+      expectedCode: "OK_THEN_STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH",
+      options: { materialRepair: true },
+    }, async (fixture, recorder) => {
+      const before = fixture.flowManager.loadReadOnly();
+      const result = await recorder.dispatch(fixture, "first");
+      recorder.assert("material-repair-refresh-only", () => {
+        assert.equal(result.exitCode, 0, JSON.stringify(result.envelope));
+        assert.equal(result.envelope.ok, true, JSON.stringify(result.envelope.errors));
+        assert.equal(result.envelope.data.activeStep, "test-execute");
+        const after = fixture.flowManager.loadReadOnly();
+        assert.deepEqual(after.tasks, before.tasks);
+        assert.deepEqual(after.stepAttempts, before.stepAttempts);
+        assert.equal(findStepById(after.steps, "impl-gate").status, "pending");
+        const repair = readJson(fixture.root, `${fixture.specDir}/impl-repair.json`).entries.at(-1);
+        assert.deepEqual(repair.sourceFindingIds, [SEMANTIC_FINDING_ID]);
+        assert.match(repair.reason, /finding resolution is not asserted/);
+        assert.equal(Object.hasOwn(after, "allFindingsResolved"), false);
+        assert.equal(Object.hasOwn(after, "resolvedFindings"), false);
+      });
+
+      const beforeSecond = snapshot(fixture.root, [
+        `${fixture.specDir}/flow.json`,
+        `${fixture.specDir}/impl-repair.json`,
+        `${fixture.specDir}/repair-fingerprint.json`,
+        MATERIAL_REPAIR_PATH,
+      ]);
+      const second = await recorder.dispatch(fixture, "second");
+      recorder.assert("material-repair-second-invocation-fails-closed", () => {
+        assert.equal(second.exitCode, 1);
+        assert.equal(second.envelope.ok, false);
+        assert.equal(second.envelope.errors[0].code, "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH");
+        assert.deepEqual(snapshot(fixture.root, Object.keys(beforeSecond)), beforeSecond);
+      });
+    });
+  });
+
+  it("rejects non-formal, stale, mismatched, or ambiguous material repair authority", async () => {
+    const cases = [
+      [
+        "matrix-v5-generated-artifact-ref",
+        { materialRepair: true, materialReference: `specs/${SPEC_ID}/flow.json` },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-unchanged-ref",
+        { materialRepair: true, materialReference: "src/unchanged.js" },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-untracked-ref",
+        { materialRepair: true, materialReference: "src/untracked.js" },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-symlink-ref",
+        { materialRepair: true, materialReference: "node_modules/material-link.js" },
+        "STALE_TEST_EVIDENCE_AUTHORITY_INVALID",
+      ],
+      [
+        "matrix-v5-stale-issue-entry",
+        { materialRepair: true, materialIssueAt: "2026-07-23T10:39:00.000Z" },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-stale-material-commit",
+        { materialRepair: true, materialCommitAt: "2026-07-23T10:35:00.000Z" },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-wrong-normalized-finding",
+        { materialRepair: true, materialFindingId: "3".repeat(64) },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-wrong-task-requirement",
+        { materialRepair: true, materialTaskAcceptance: "R9 covers another task." },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-no-semantic-finding",
+        { materialRepair: true, semanticFinding: false },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-mixed-triage",
+        { materialRepair: true, triageDecisions: ["apply", "reject"] },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-pending-triage",
+        { materialRepair: true, triageDecisions: ["pending"] },
+        "STALE_TEST_EVIDENCE_REPAIR_NOT_MATERIALIZED",
+      ],
+      [
+        "matrix-v5-stale-structural-expected",
+        { materialRepair: true, structuralExpected: "f".repeat(64) },
+        "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      ],
+    ];
+    for (const [caseName, options, expectedCode] of cases) {
+      await assertRejectedWithoutMutation({ caseName, expectedCode, options });
+    }
+  });
+
   it("fails closed for wrong lifecycle, outcome, structural failure, and valid competing task authority", async () => {
     const cases = [
       ["matrix-b-wrong-phase", { activeStep: "impl-review" }, "STALE_TEST_EVIDENCE_LIFECYCLE_MISMATCH"],
@@ -705,6 +900,18 @@ describe("public stale test evidence recovery", () => {
         "matrix-v4-precommit-integration-gate",
         (fixture) => replaceJsonWhitespace(fixture, "impl-gate-result.json"),
         { staleAttemptOwner: true },
+      ],
+      [
+        "matrix-v5-precommit-material-repair",
+        (fixture) => {
+          const bytes = fs.readFileSync(path.join(fixture.root, MATERIAL_REPAIR_PATH));
+          replaceAuthorityFile(
+            fixture.root,
+            MATERIAL_REPAIR_PATH,
+            Buffer.concat([bytes, Buffer.from("\n")]),
+          );
+        },
+        { materialRepair: true },
       ],
     ];
 
