@@ -143,6 +143,113 @@ export class FlowTargetAmbiguousError extends Error {
   }
 }
 
+export class ParkedFlowError extends Error {
+  constructor(code, message, { cause, data } = {}) {
+    super(message, { cause });
+    this.name = "ParkedFlowError";
+    this.code = code;
+    this.data = data;
+  }
+}
+
+export class ParkedFlowIdentity {
+  constructor(input = {}) {
+    const expectation = input instanceof FlowTargetExpectation
+      ? input
+      : new FlowTargetExpectation(input);
+    if (
+      expectation.runId == null
+      || expectation.spec == null
+      || (expectation.issue == null && expectation.issueAbsent !== true)
+    ) {
+      throw new ParkedFlowError(
+        "FLOW_PARK_TARGET_REQUIRED",
+        "parked flow operations require exact --expect-run-id, --expect-spec, and Issue identity guards",
+      );
+    }
+    this.runId = expectation.runId;
+    this.specId = expectation.spec;
+    this.issue = expectation.issue;
+    this.issueAbsent = expectation.issueAbsent;
+    this.expectation = expectation;
+    Object.freeze(this);
+  }
+
+  assertMatches(state, label = "flow authority") {
+    const mismatch = this.expectation.mismatchAgainst(state);
+    if (mismatch) {
+      throw new ParkedFlowError(
+        "FLOW_PARK_IDENTITY_MISMATCH",
+        `${label} does not match the exact parked flow identity`,
+        { data: mismatch },
+      );
+    }
+    return state;
+  }
+
+  guardArgv() {
+    return [
+      "--expect-run-id", this.runId,
+      "--expect-spec", `specs/${this.specId}/spec.json`,
+      ...(this.issueAbsent
+        ? ["--expect-no-issue"]
+        : ["--expect-issue", String(this.issue)]),
+    ];
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      spec: `specs/${this.specId}/spec.json`,
+      issue: this.issue,
+    };
+  }
+}
+
+export class ParkedFlowAuthorityReceipt {
+  constructor({ action, identity, executionRoot, changed }) {
+    if (!new Set(["park", "resume"]).has(action)) {
+      throw new Error(`invalid parked flow authority action: ${action}`);
+    }
+    if (!(identity instanceof ParkedFlowIdentity)) {
+      throw new Error("parked flow authority receipt requires an exact identity");
+    }
+    if (typeof executionRoot !== "string" || !path.isAbsolute(executionRoot)) {
+      throw new Error("parked flow authority receipt requires an absolute execution root");
+    }
+    const canonicalRoot = fs.realpathSync(executionRoot);
+    if (canonicalRoot !== path.resolve(executionRoot)) {
+      throw new Error("parked flow authority receipt execution root must be canonical");
+    }
+    if (typeof changed !== "boolean") {
+      throw new Error("parked flow authority receipt changed must be boolean");
+    }
+    this.action = action;
+    this.identity = identity;
+    this.executionRoot = canonicalRoot;
+    this.mode = "worktree";
+    this.changed = changed;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    const result = {
+      [this.action === "park" ? "parked" : "resumed"]: true,
+      changed: this.changed,
+      identity: this.identity.toJSON(),
+      mode: this.mode,
+      executionRoot: this.executionRoot,
+    };
+    if (this.action === "park") {
+      result.resume = {
+        executionRoot: this.executionRoot,
+        argv: ["flow", "resume", "--parked", ...this.identity.guardArgv()],
+      };
+    }
+    return result;
+  }
+}
+
 function flowTargetSummary(expectation) {
   return [
     expectation.runId && `runId ${expectation.runId}`,
@@ -431,6 +538,73 @@ export class FlowManager {
   removeActiveFlow(specId, options) { return this._activeFlows.remove(specId, options); }
   cleanStaleFlows(options) { return this._activeFlows.cleanStale(options); }
 
+  parkActiveFlow(identity, options = {}) {
+    if (!(identity instanceof ParkedFlowIdentity)) {
+      throw new ParkedFlowError(
+        "FLOW_PARK_TARGET_REQUIRED",
+        "park requires an exact parked flow identity",
+      );
+    }
+    return this.#withParkedFlowOperation(options, (operationOwnerToken) => {
+      const resolved = this.#resolveParkedWorktreeOwned(identity);
+      const entry = this._activeFlows.load().find((candidate) => candidate.spec === identity.specId);
+      if (!entry) {
+        throw new ParkedFlowError(
+          "FLOW_PARK_TARGET_ABSENT",
+          `active flow pointer is absent for ${identity.specId}`,
+        );
+      }
+      if (entry.mode !== "worktree") {
+        throw new ParkedFlowError(
+          "FLOW_PARK_MODE_UNSUPPORTED",
+          `flow park supports managed worktree mode only, got ${entry.mode}`,
+        );
+      }
+      this._activeFlows.park(identity.specId, {
+        ...options,
+        operationOwnerToken,
+      });
+      return new ParkedFlowAuthorityReceipt({
+        action: "park",
+        identity,
+        executionRoot: resolved.binding.worktreePath,
+        changed: true,
+      });
+    });
+  }
+
+  resumeParkedFlow(identity, options = {}) {
+    if (!(identity instanceof ParkedFlowIdentity)) {
+      throw new ParkedFlowError(
+        "FLOW_PARK_TARGET_REQUIRED",
+        "parked resume requires an exact parked flow identity",
+      );
+    }
+    return this.#withParkedFlowOperation(options, (operationOwnerToken) => {
+      const resolved = this.#resolveParkedWorktreeOwned(identity);
+      const entry = this._activeFlows.load().find((candidate) => candidate.spec === identity.specId);
+      if (entry && entry.mode !== "worktree") {
+        throw new ParkedFlowError(
+          "FLOW_PARK_ACTIVE_CONFLICT",
+          `active flow pointer for ${identity.specId} has foreign mode ${entry.mode}`,
+        );
+      }
+      const changed = entry == null;
+      if (changed) {
+        this._activeFlows.add(identity.specId, "worktree", {
+          ...options,
+          operationOwnerToken,
+        });
+      }
+      return new ParkedFlowAuthorityReceipt({
+        action: "resume",
+        identity,
+        executionRoot: resolved.binding.worktreePath,
+        changed,
+      });
+    });
+  }
+
   /**
    * Clear the active-flow entry for a spec. If specId is omitted,
    * resolves it from the current context.
@@ -443,6 +617,77 @@ export class FlowManager {
       specId = current.spec;
     }
     this._activeFlows.remove(specId, options);
+  }
+
+  #resolveParkedWorktreeOwned(identity) {
+    if (!this._worktreeBinding) {
+      throw new ParkedFlowError(
+        "FLOW_PARK_MODE_UNSUPPORTED",
+        "parked flow operations must run from the target managed worktree",
+      );
+    }
+    try {
+      return this._worktreeBinding.withLock(() => {
+        const binding = this._worktreeBinding.loadOwned().identity;
+        identity.assertMatches(binding.toJSON(), "managed worktree binding");
+        if (this._worktreeBinding.loadIssueTransitionOwned()) {
+          throw new ParkedFlowError(
+            "FLOW_PARK_IDENTITY_UNSETTLED",
+            "parked flow operations require a settled worktree identity",
+          );
+        }
+        const state = this._store.loadReadOnly(binding.specId);
+        binding.assertFlowState(state);
+        identity.assertMatches(state, "flow state");
+        if (state.state?.finalizedAt) {
+          throw new ParkedFlowError(
+            "FLOW_PARK_FINALIZED",
+            "a finalized flow cannot be parked or resumed",
+          );
+        }
+        return { binding, state };
+      });
+    } catch (error) {
+      if (error instanceof ParkedFlowError) throw error;
+      throw new ParkedFlowError(
+        error.code || "FLOW_PARK_WORKTREE_INVALID",
+        `managed worktree authority validation failed: ${error.message}`,
+        { cause: error },
+      );
+    }
+  }
+
+  #withParkedFlowOperation(options, body) {
+    const operationLock = new RepositoryFlowOperationLock({
+      mainRoot: this._mainRoot,
+      maintenanceOwnerToken: options.maintenanceOwnerToken,
+      operationOwnerToken: options.operationOwnerToken,
+      ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
+    });
+    const operationOwnerToken = operationLock.acquire();
+    let result;
+    let primary = null;
+    try {
+      result = body(operationOwnerToken);
+    } catch (error) {
+      primary = error;
+    }
+    let releaseError = null;
+    try {
+      operationLock.release();
+    } catch (error) {
+      releaseError = error;
+    }
+    if (primary && releaseError) {
+      throw new AggregateError(
+        [primary, releaseError],
+        "parked flow authority transaction and repository lock release both failed",
+        { cause: primary },
+      );
+    }
+    if (primary) throw primary;
+    if (releaseError) throw releaseError;
+    return result;
   }
 
   // ── preparing flow (PreparingFlowStore) ─────────────────────────────────────

@@ -85,6 +85,19 @@ describe("senti dispatcher", () => {
     }
   });
 
+  it("routes exact worktree park and parked resume help", () => {
+    const park = execFileSync("node", [SENTI, "flow", "park", "--help"], { encoding: "utf8" });
+    assert.match(park, /flow park/);
+    assert.match(park, /--expect-run-id/);
+    assert.match(park, /--expect-spec/);
+    assert.match(park, /--expect-issue|--expect-no-issue/);
+
+    const resume = execFileSync("node", [SENTI, "flow", "resume", "--help"], { encoding: "utf8" });
+    assert.match(resume, /--parked/);
+    assert.match(resume, /--expect-run-id/);
+    assert.match(resume, /no discovery/i);
+  });
+
   it("shows docs subcommand list when 'docs' has no args", () => {
     try {
       execFileSync("node", [SENTI, "docs"], { encoding: "utf8" });

@@ -629,18 +629,48 @@ function pluginCommandName(command) {
 
 
 export const FLOW_COMMANDS = {
+  park: {
+    helpKey: "flow.park",
+    helpPath: "senti flow park --help",
+    requiresFlow: false,
+    targetGuard: false,
+    directParkedAuthority: true,
+    command: () => import("./lib/run-park.js"),
+    args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
+    help: [
+      `Usage: senti flow park ${FLOW_TARGET_GUARD_USAGE}`,
+      "",
+      "Remove one exact managed-worktree flow pointer from the active authority.",
+      "The target runId, spec, and Issue identity guards are all required.",
+      "Flow state, artifacts, worktree, branch, and Git refs are not changed.",
+      "",
+      "Options:",
+      ...FLOW_TARGET_GUARD_HELP_LINES,
+    ].join("\n"),
+  },
   resume: {
     helpKey: "flow.resume",
     helpPath: "senti flow resume --help",
     requiresFlow: false,
+    directParkedAuthority: "when-parked",
     command: () => import("./lib/run-resume.js"),
-    args: { options: ["--spec"] },
+    args: {
+      flags: withTargetGuardFlags(["--parked"]),
+      options: withTargetGuardOptions(["--spec"]),
+    },
     help: [
-      "Usage: senti flow resume [--spec <specId>]",
+      `Usage: senti flow resume [--spec <specId>] [--parked] ${FLOW_TARGET_GUARD_USAGE}`,
       "",
-      "Discover and display active flow context for recovery.",
+      "Discover active flows; --parked restores one exact pointer with no discovery.",
       "When multiple flows are active concurrently, pass --spec to select one.",
+      "With --parked, restore one exact managed-worktree pointer from its saved execution root.",
+      "Parked resume requires runId, spec, and Issue identity guards and performs no discovery.",
       "Use `senti flow get status` for current-context status display.",
+      "",
+      "Options:",
+      "  --spec <specId>          Select a discovery candidate for normal resume.",
+      "  --parked                Restore the exact parked managed-worktree pointer.",
+      ...FLOW_TARGET_GUARD_HELP_LINES,
     ].join("\n"),
   },
   prepare: {

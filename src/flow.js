@@ -2,8 +2,8 @@
 /**
  * src/flow.js
  *
- * Flow dispatcher. Top-level command routing (prepare / resume / get / set /
- * run) feeds the shared dispatcher (src/lib/dispatcher.js), which handles
+ * Flow dispatcher. Top-level command routing (prepare / park / resume / get /
+ * set / run) feeds the shared dispatcher (src/lib/dispatcher.js), which handles
  * argument parsing, lifecycle hooks, and envelope output uniformly across
  * every domain.
  */
@@ -34,7 +34,10 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
   const resolvedEntry = entry?.helpPath
     ? entry
     : { ...entry, helpPath: helpPathOverride || `senti flow ${envelopeType} ${envelopeKey} --help` };
-  const runtimeLog = !(group === "get" && envelopeKey === "runtime-log");
+  const directParkedInvocation = resolvedEntry.directParkedAuthority === true
+    || (resolvedEntry.directParkedAuthority === "when-parked" && argv.includes("--parked"));
+  const runtimeLog = !directParkedInvocation
+    && !(group === "get" && envelopeKey === "runtime-log");
   await dispatch({
     container,
     entry: resolvedEntry,
@@ -42,17 +45,40 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
     envelopeType,
     envelopeKey,
     runtimeLog,
-    buildHookCtx: (c, input = {}) => resolveFlowContext(c, {
-      allowMissingActive: resolvedEntry.requiresFlow === false,
-      explicitTargetResolution: resolvedEntry.explicitTargetResolution === true,
-      mismatchTargetResolution: resolvedEntry.mismatchTargetResolution === true,
-      preparingRunIdSelection: resolvedEntry.preparingRunIdSelection !== false,
-      input,
-    }),
+    buildHookCtx: (c, input = {}) => {
+      if (directParkedInvocation) {
+        return {
+          root: c.get("paths").root,
+          mainRoot: c.get("mainRoot"),
+          config: c.get("config"),
+          flowManager: c.get("flowManager"),
+          flowState: null,
+          preparingFlowState: null,
+          specId: null,
+          inWorktree: c.get("inWorktree"),
+          authorityRoot: c.get("paths").root,
+          flowResolutionError: null,
+          worktreeFlowProvenance: null,
+        };
+      }
+      return resolveFlowContext(c, {
+        allowMissingActive: resolvedEntry.requiresFlow === false,
+        explicitTargetResolution: resolvedEntry.explicitTargetResolution === true,
+        mismatchTargetResolution: resolvedEntry.mismatchTargetResolution === true,
+        preparingRunIdSelection: resolvedEntry.preparingRunIdSelection !== false,
+        input,
+      });
+    },
   });
 }
 
 async function dispatchFlow() {
+  // Top-level: park
+  if (group === "park") {
+    await run(flowDefinition.find(["park"]), rest, "run", "park");
+    return;
+  }
+
   // Top-level: resume
   if (group === "resume") {
     await run(flowDefinition.find(["resume"]), rest, "run", "resume");

@@ -62,6 +62,8 @@ describe("registry structure", () => {
       FLOW_COMMANDS.set["acceptance-decision"],
       FLOW_COMMANDS.set.auto,
       FLOW_COMMANDS.run["auto-check"],
+      FLOW_COMMANDS.park,
+      FLOW_COMMANDS.resume,
       FLOW_COMMANDS.prepare,
       FLOW_COMMANDS.run.sync,
     ];
@@ -112,6 +114,34 @@ describe("registry structure", () => {
     assert.equal(FLOW_COMMANDS.set.request.requiresFlow, false);
     assert.equal(FLOW_COMMANDS.set.note.requiresFlow, false);
     assert.equal(FLOW_COMMANDS.set.auto.requiresFlow, false);
+  });
+
+  it("park and parked resume expose the exact guarded recovery contract", () => {
+    const park = FLOW_COMMANDS.park;
+    const resume = FLOW_COMMANDS.resume;
+    const exactGuards = [
+      "--expect-issue",
+      "--expect-no-issue",
+      "--expect-spec",
+      "--expect-run-id",
+    ];
+
+    assert.equal(park.helpPath, "senti flow park --help");
+    assert.equal(resume.helpPath, "senti flow resume --help");
+    assert.equal(park.requiresFlow, false);
+    assert.equal(park.targetGuard, false);
+    assert.equal(park.directParkedAuthority, true);
+    assert.equal(resume.directParkedAuthority, "when-parked");
+    assert.equal(resume.args.flags.includes("--parked"), true);
+    for (const entry of [park, resume]) {
+      const declared = [...entry.args.flags, ...entry.args.options];
+      for (const guard of exactGuards) {
+        assert.equal(declared.includes(guard), true, `${entry.helpKey} must accept ${guard}`);
+        assert.match(entry.help, new RegExp(guard));
+      }
+    }
+    assert.match(park.help, /managed-worktree|managed worktree/i);
+    assert.match(resume.help, /no discovery/i);
   });
 });
 

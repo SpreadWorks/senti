@@ -10,6 +10,7 @@ import { FlowCommand } from "./base-command.js";
 import { buildResolvedFlowContext } from "./resolve-context-envelope.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
+import { ParkedFlowIdentity } from "../../lib/flow-manager.js";
 
 function tryBuildActiveContext(ctx) {
   try {
@@ -56,7 +57,22 @@ export default class RunResumeCommand extends FlowCommand {
     super({ requiresFlow: false });
   }
 
+  async run(container, input = {}) {
+    if (input.parked === true) {
+      // Parked recovery must not run ambient flow discovery or reconcile a
+      // pending worktree identity transition before the owned validation.
+      this.container = container;
+      return this.execute({ ...input, flowManager: container.get("flowManager") });
+    }
+    return super.run(container, input);
+  }
+
   execute(ctx) {
+    if (ctx.parked === true) {
+      const identity = new ParkedFlowIdentity(ctx);
+      return ctx.flowManager.resumeParkedFlow(identity).toJSON();
+    }
+
     const base = tryBuildActiveContext(ctx);
     const { discovery, candidates } = ctx.flowManager.discoverRecoveryFlows();
     const recoveryCandidates = candidates.map((candidate) => candidate.toJSON());
