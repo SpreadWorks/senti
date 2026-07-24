@@ -7,6 +7,8 @@ const SHA256_RE = /^[a-f0-9]{64}$/;
 const COMMIT_RE = /^[a-f0-9]{7,40}$/i;
 const MANDATORY_REQUIREMENT_PRIORITIES = new Set(["must", "required", "blocking"]);
 const REVIEW_DISPOSITIONS = new Set(["must-fix", "deferred", "informational"]);
+const REVIEW_FINDING_CANONICAL_TUPLE_LENGTH = 4;
+export const REVIEW_FINDING_CANONICAL_FIELD_MAX_CHARS = 1200;
 
 function requireRecord(value, field) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -101,6 +103,28 @@ export class ReviewFindingFingerprint {
     const digest = crypto
       .createHash("sha256")
       .update(stableStringify(findingIdentity(finding)))
+      .digest("hex");
+    return new ReviewFindingFingerprint(digest);
+  }
+
+  static fromCanonicalTuple(values) {
+    if (
+      !Array.isArray(values)
+      || values.length !== REVIEW_FINDING_CANONICAL_TUPLE_LENGTH
+      || values.some((value) => (
+        typeof value !== "string"
+        || value.trim() === ""
+        || value.length > REVIEW_FINDING_CANONICAL_FIELD_MAX_CHARS
+      ))
+    ) {
+      throw new Error(
+        `finding canonical tuple must contain exactly ${REVIEW_FINDING_CANONICAL_TUPLE_LENGTH} non-empty strings`
+        + ` of at most ${REVIEW_FINDING_CANONICAL_FIELD_MAX_CHARS} characters`,
+      );
+    }
+    const digest = crypto
+      .createHash("sha256")
+      .update(stableStringify(values))
       .digest("hex");
     return new ReviewFindingFingerprint(digest);
   }

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-78abaa09-6a56-46fc-9ac4-dd2e6df01e07",
+      "kind": "gate",
+      "phase": "task-impl",
+      "canonicalPhase": "task-impl",
+      "reason": "Generated flow lifecycle artifacts are now excluded from task and integration gate diffs while product code and spec tests remain evaluated.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "0b4c1017043a3ed0ca8079e8b3c20081f54d65ebcd0ebe3ae3a9563afb01aa87",
+        "currentHash": "5f44c02ddad09c985035a93622e70881df64724453cc3e717c0c8fa270c20cbe",
+        "changedPaths": [
+          "specs/329-review-convergence-edges/spec.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/finding-disposition-policy.js",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-retry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate task-impl --reason \"Generated flow lifecycle artifacts are now excluded from task and integration gate diffs while product code and spec tests remain evaluated.\" --yes",
+      "createdAt": "2026-07-24T15:36:27.055Z"
+    },
+    {
+      "id": "recovery-a915df62-5965-4a5a-a57f-694c977befd9",
+      "kind": "gate",
+      "phase": "task-impl",
+      "canonicalPhase": "task-impl",
+      "reason": "Gate lifecycle diff filtering now preserves project test evidence and has a focused regression test.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "5f44c02ddad09c985035a93622e70881df64724453cc3e717c0c8fa270c20cbe",
+        "currentHash": "72a4bebb2dac6683aef77238d7037a468285541402884f4bb61149b55429eb55",
+        "changedPaths": [
+          "specs/329-review-convergence-edges/spec.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/finding-disposition-policy.js",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-retry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate task-impl --reason \"Gate lifecycle diff filtering now preserves project test evidence and has a focused regression test.\" --yes",
+      "createdAt": "2026-07-24T15:38:56.442Z"
+    }
+  ]
+}

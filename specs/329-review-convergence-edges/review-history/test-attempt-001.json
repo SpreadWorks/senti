@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T14:59:58.979Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/329-review-convergence-edges/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 recovery grant persistence is not covered",
+      "target": "specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js",
+      "findingId": "6eba3400b3b2b1487b8beaf220d7f7bd6301cdf1fda212d5d0314841c0cd2726",
+      "fingerprint": "6eba3400b3b2b1487b8beaf220d7f7bd6301cdf1fda212d5d0314841c0cd2726",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for the recovery grant persistence half of the atomic mutation.",
+      "issue": "R4 requires changed-tree recovery to save both the toolingAttempts 1->0 reset and one recovery grant in the same flow state CAS mutation. The tests assert the record reset and preservation fields, but never assert that retryRecovery/recovery grant state is written exactly once or coupled to the same mutation.",
+      "requiredChange": "Add a spec-local assertion that a successful changed-tree recovery writes exactly one recovery grant entry together with the toolingAttempts reset, and that a repeated recovery does not add another grant.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for the recovery grant persistence half of the atomic mutation.",
+      "origin": "R4",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 flow handoff and idempotence are not covered",
+      "target": "specs/329-review-convergence-edges/tests/review-completion-scope.test.js",
+      "findingId": "bcce2aa7e79abb2eac546449210a22aaa0dcb900902d8ce37a90fc47502e6306",
+      "fingerprint": "bcce2aa7e79abb2eac546449210a22aaa0dcb900902d8ce37a90fc47502e6306",
+      "disposition": "must-fix",
+      "rationale": "A must requirement has only partial coverage, leaving critical convergence/idempotence behavior untested.",
+      "issue": "R5 requires canonical exhaustion for flow-level test/impl review to save taskId:null completion records and flow finding handoff once per identity, with no additional records when the same evidence is reprocessed. The tests only exercise post-hook tooling failure persistence and taskId:null scope; they do not cover flow finding handoff creation or same-evidence idempotence.",
+      "requiredChange": "Add spec-local tests for flow-level canonical exhaustion that assert one flow finding handoff per identity and no duplicate completion record or handoff when the same evidence is processed again.",
+      "whyBlocking": "A must requirement has only partial coverage, leaving critical convergence/idempotence behavior untested.",
+      "origin": "R5",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 bucket and protected-file invariants are not covered",
+      "target": "specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js",
+      "findingId": "50ce5aa92d51079475959dba42844fbcef792b1ca3111ebeeef24153d855a558",
+      "fingerprint": "50ce5aa92d51079475959dba42844fbcef792b1ca3111ebeeef24153d855a558",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact marks R7 covered while significant required behavior has no corresponding tests.",
+      "issue": "R7 includes PASS/ADVISORY/REJECTED bucket invariants, same-tree/evidence duplicate rejection, protected acceptance files, semantic maxAttempts, and toolingMaxAttempts=1. The current R7 test only checks recovery preserves toolingMaxAttempts, semanticMaxAttempts, and prior provenance; it does not cover the bucket invariants, duplicate rejection, or protected acceptance files.",
+      "requiredChange": "Add spec-local coverage for the untested R7 invariants, or split the requirement coverage artifact so only the actually covered R7 clauses are marked covered.",
+      "whyBlocking": "The requirement coverage artifact marks R7 covered while significant required behavior has no corresponding tests.",
+      "origin": "R7",
+      "failureKind": "coverage_artifact_contradiction"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/329-review-convergence-edges/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "973a5cc67a4ca363b723fe3f21d1abafcb97f8687546ee537a357e10d82d04a4"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "6eba3400b3b2b1487b8beaf220d7f7bd6301cdf1fda212d5d0314841c0cd2726",
+      "findingId": "6eba3400b3b2b1487b8beaf220d7f7bd6301cdf1fda212d5d0314841c0cd2726",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R4 recovery grant persistence is not covered",
+      "body": "R4 requires changed-tree recovery to save both the toolingAttempts 1->0 reset and one recovery grant in the same flow state CAS mutation. The tests assert the record reset and preservation fields, but never assert that retryRecovery/recovery grant state is written exactly once or coupled to the same mutation.",
+      "category": "unknown",
+      "fingerprint": "6eba3400b3b2b1487b8beaf220d7f7bd6301cdf1fda212d5d0314841c0cd2726",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for the recovery grant persistence half of the atomic mutation."
+    },
+    {
+      "id": "bcce2aa7e79abb2eac546449210a22aaa0dcb900902d8ce37a90fc47502e6306",
+      "findingId": "bcce2aa7e79abb2eac546449210a22aaa0dcb900902d8ce37a90fc47502e6306",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R5 flow handoff and idempotence are not covered",
+      "body": "R5 requires canonical exhaustion for flow-level test/impl review to save taskId:null completion records and flow finding handoff once per identity, with no additional records when the same evidence is reprocessed. The tests only exercise post-hook tooling failure persistence and taskId:null scope; they do not cover flow finding handoff creation or same-evidence idempotence.",
+      "category": "unknown",
+      "fingerprint": "bcce2aa7e79abb2eac546449210a22aaa0dcb900902d8ce37a90fc47502e6306",
+      "disposition": "must-fix",
+      "rationale": "A must requirement has only partial coverage, leaving critical convergence/idempotence behavior untested."
+    },
+    {
+      "id": "50ce5aa92d51079475959dba42844fbcef792b1ca3111ebeeef24153d855a558",
+      "findingId": "50ce5aa92d51079475959dba42844fbcef792b1ca3111ebeeef24153d855a558",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R7 bucket and protected-file invariants are not covered",
+      "body": "R7 includes PASS/ADVISORY/REJECTED bucket invariants, same-tree/evidence duplicate rejection, protected acceptance files, semantic maxAttempts, and toolingMaxAttempts=1. The current R7 test only checks recovery preserves toolingMaxAttempts, semanticMaxAttempts, and prior provenance; it does not cover the bucket invariants, duplicate rejection, or protected acceptance files.",
+      "category": "unknown",
+      "fingerprint": "50ce5aa92d51079475959dba42844fbcef792b1ca3111ebeeef24153d855a558",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact marks R7 covered while significant required behavior has no corresponding tests."
+    }
+  ]
+}

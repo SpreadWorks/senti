@@ -181,6 +181,45 @@ function reviewPhaseKeyForCtx(ctx, phase) {
   return resolveDraftReviewPhaseKey(ctx?.flowState || {});
 }
 
+class ReviewCompletionScope {
+  constructor({ phase, taskId = null } = {}) {
+    if (!REVIEW_PHASE_KEYS.includes(phase)) {
+      throw new Error(`invalid review completion phase: ${phase}`);
+    }
+    if (taskId != null && (typeof taskId !== "string" || taskId.trim() === "")) {
+      throw new Error("review completion taskId must be null or a non-empty string");
+    }
+    this.phase = phase;
+    this.taskId = taskId == null ? null : taskId.trim();
+    Object.freeze(this);
+  }
+
+  static forExecution({ phase, scopeDecision = null } = {}) {
+    return new ReviewCompletionScope({
+      phase,
+      taskId: phase === IMPL_REVIEW_PHASE && scopeDecision?.kind === "task"
+        ? scopeDecision.task.id
+        : null,
+    });
+  }
+
+  static forPostHook({ result, phase } = {}) {
+    const artifacts = result?.artifacts;
+    if (
+      phase === IMPL_REVIEW_PHASE
+      && artifacts
+      && Object.hasOwn(artifacts, "taskId")
+    ) {
+      return new ReviewCompletionScope({ phase, taskId: artifacts.taskId });
+    }
+    return new ReviewCompletionScope({ phase, taskId: null });
+  }
+
+  context(ctx) {
+    return reviewContextForTaskId(ctx, this.taskId);
+  }
+}
+
 /**
  * Replay a reset-aware reviewRetry counter for the given phase.
  * Only counts flow-scope entries (taskId == null) per R19.
@@ -482,10 +521,12 @@ function isImplPass(result) {
 export function updateReviewRetryCounter(ctx, result) {
   const persistedPhase = result?.artifacts?.retryPhase || reviewPhaseKeyForCtx(ctx, ctx?.phase);
   if (persistedPhase !== IMPL_REVIEW_PHASE && ctx?.flowState?.currentTaskId != null) return;
-  const resultTaskId = persistedPhase === IMPL_REVIEW_PHASE
-    ? result?.artifacts?.taskId ?? null
-    : null;
-  const reviewCtx = reviewContextForTaskId(ctx, resultTaskId);
+  const completionScope = ReviewCompletionScope.forPostHook({
+    result,
+    phase: persistedPhase,
+  });
+  const resultTaskId = completionScope.taskId;
+  const reviewCtx = completionScope.context(ctx);
   const flowState = reviewCtx.flowState;
   if (resultTaskId != null) {
     const stepId = reviewStepId(reviewCtx, IMPL_REVIEW_PHASE);
@@ -1007,7 +1048,8 @@ function persistCanonicalToolingOutcome(ctx, {
 export function persistReviewPostHookToolingFailure(ctx, result, error) {
   if (!ctx?.flowManager) return null;
   const phase = reviewPhaseKeyForCtx(ctx, result?.artifacts?.phase || ctx.phase);
-  const taskId = result?.artifacts?.taskId ?? ctx.flowState.currentTaskId ?? null;
+  const completionScope = ReviewCompletionScope.forPostHook({ result, phase });
+  const taskId = completionScope.taskId;
   const treeSha = resolveCurrentReviewTreeSha(ctx);
   const targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx);
   const expectedOriginal = ctx.flowManager.load();
@@ -1675,7 +1717,13 @@ export class ReviewExecutionPipeline {
   }
 }
 
-export function checkImplReviewTestArtifacts({ specDir, fingerprint, flowManager }) {
+export function checkImplReviewTestArtifacts({
+  root,
+  state,
+  specDir,
+  fingerprint,
+  flowManager,
+}) {
   const artifactNames = ["test-execute-result.json", "test-result-review.json"];
   const artifacts = new Map();
   for (const file of artifactNames) {
@@ -1689,9 +1737,12 @@ export function checkImplReviewTestArtifacts({ specDir, fingerprint, flowManager
   });
   if (mismatch) {
     const refresh = mismatch.recover({
+      root,
+      state,
       specDir,
       flowManager,
       reason: "implementation review detected stale fingerprint evidence",
+      sourceStep: "impl-review",
     });
     return {
       result: "recovered",
@@ -1749,7 +1800,6 @@ export class RunReviewCommand extends FlowCommand {
     }
 
     let scopeDecision = null;
-    let reviewCtx = reviewContextForTaskId(ctx, null);
     let taskReviewSpec = null;
     let broadMode = null;
     if (isImplementationReviewPhase(phase)) {
@@ -1760,14 +1810,15 @@ export class RunReviewCommand extends FlowCommand {
       if (scopeDecision.kind === "blocked" || scopeDecision.promotable) {
         return taskCursorRequiredReviewFailure(scopeDecision, ctx.flowState);
       }
-      reviewCtx = reviewContextForTaskId(
-        ctx,
-        scopeDecision.kind === "task" ? scopeDecision.task.id : null,
-      );
       if (scopeDecision.kind === "broad") {
         broadMode = assertAuditedBroadMode(scopeDecision, "impl-review");
       }
     }
+    const completionScope = ReviewCompletionScope.forExecution({
+      phase: reviewPhaseKeyForCtx(ctx, phase),
+      scopeDecision,
+    });
+    const reviewCtx = completionScope.context(ctx);
 
     // Enforce review maxAttempts after scope resolution and before durable mutation.
     const preCheck = checkReviewRetryBelowMax(reviewCtx, phase);
@@ -1785,7 +1836,7 @@ export class RunReviewCommand extends FlowCommand {
     const canonicalBlock = canonicalReviewExecutionBlock(
       reviewCtx,
       persistedPhase,
-      reviewCtx.flowState.currentTaskId ?? null,
+      completionScope.taskId,
       {
         treeSha: reviewTargetTreeSha,
         targetStateDigest: reviewTargetRepairFingerprint,
@@ -1802,6 +1853,8 @@ export class RunReviewCommand extends FlowCommand {
         const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
         const fingerprint = buildRepairFingerprint({ root, specPath: ctx.flowState.spec, state: ctx.flowState });
         const evidenceRefresh = checkImplReviewTestArtifacts({
+          root,
+          state: ctx.flowState,
           specDir,
           fingerprint,
           flowManager: ctx.flowManager,
@@ -1827,7 +1880,7 @@ export class RunReviewCommand extends FlowCommand {
     } catch (error) {
       return reviewExecutionFailureEnvelope(reviewCtx, {
         phase: persistedPhase,
-        taskId: reviewCtx.flowState.currentTaskId ?? null,
+        taskId: completionScope.taskId,
         treeSha: reviewTargetTreeSha,
         repairFingerprint: reviewTargetRepairFingerprint,
         stage: "startup",
@@ -1858,7 +1911,7 @@ export class RunReviewCommand extends FlowCommand {
     const finalizeResult = (parse) => this.finalizeResult({
       ctx: reviewCtx,
       phase: persistedPhase,
-      taskId: reviewCtx.flowState.currentTaskId ?? null,
+      taskId: completionScope.taskId,
       treeSha: reviewTargetTreeSha,
       repairFingerprint: reviewTargetRepairFingerprint,
       expectedOriginal: reviewPromotionRevision,
@@ -1869,7 +1922,7 @@ export class RunReviewCommand extends FlowCommand {
       const childToolingOutcome = parseToolingOutcome(stderr);
       const canonicalTooling = persistCanonicalToolingOutcome(reviewCtx, {
         phase: persistedPhase,
-        taskId: reviewCtx.flowState.currentTaskId ?? null,
+        taskId: completionScope.taskId,
         treeSha: reviewTargetTreeSha,
         repairFingerprint: reviewTargetRepairFingerprint,
         stage: failure.classification === "schema_failure" ? "parse" : "communication",
@@ -1942,7 +1995,7 @@ export class RunReviewCommand extends FlowCommand {
     return finalizeResult(() => {
       const parsed = parseImplReviewOutput(res, stdout, stderr, { root });
       parsed.artifacts.dryRun = dryRun;
-      parsed.artifacts.taskId = scopeDecision?.kind === "task" ? scopeDecision.task.id : null;
+      parsed.artifacts.taskId = completionScope.taskId;
       if (broadMode) parsed.artifacts.broadMode = broadMode;
       return parsed;
     });

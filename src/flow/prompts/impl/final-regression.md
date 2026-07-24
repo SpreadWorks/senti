@@ -1,6 +1,7 @@
    - Run `senti flow run final-regression`.
    - This step is the only default full project regression point. Do not run full project regression from `test-execute`, `impl-review`, `impl-gate`, or `retro`.
    - Outcomes:
+     - `recovered`: stale same-flow test evidence was invalidated after an implementation change and the flow returned to `test-execute`; follow the refreshed dispatcher action instead of rerunning final-regression.
      - `executed`: project regression command ran and `final-regression-result.json` has `result: "pass"` or `result: "fail"`.
      - `covered_by_test_execute_full_regression`: command did not run because same-flow `test-execute-result.json` already has fresh full/pass evidence with exact command identity and changed-file fingerprints.
      - `risk_based_static_proof`: command did not run because every changed path is explicitly non-runtime and required static/evidence checks passed.

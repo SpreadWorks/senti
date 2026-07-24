@@ -40,6 +40,7 @@ import {
   buildRepairFingerprint,
   ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
+import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -860,6 +861,35 @@ function finalRegressionSkipDecision({ root, state, config, specDir, changedFile
   });
 }
 
+function recoverStaleTestEvidence({ root, state, specDir, flowManager }) {
+  const testExecute = readJsonIfExists(testExecuteArtifactPath(specDir));
+  if (!testExecute) return null;
+  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const mismatch = StaleTestEvidenceMismatch.detect({
+    artifacts: new Map([["test-execute-result.json", testExecute]]),
+    currentFingerprint: fingerprint.hash,
+  });
+  if (!mismatch) return null;
+  const refresh = mismatch.recover({
+    root,
+    state,
+    specDir,
+    flowManager,
+    reason: "final-regression detected stale fingerprint evidence",
+    sourceStep: "final-regression",
+    additionalArtifacts: [FINAL_REGRESSION_RESULT_FILE],
+  });
+  return {
+    result: "recovered",
+    changed: [...refresh.invalidatedArtifacts],
+    artifacts: {
+      staleArtifacts: [...mismatch.artifactNames],
+      evidenceRefresh: refresh.toJSON(),
+    },
+    next: refresh.activeStep,
+  };
+}
+
 function classifyChangeScope({ root, state, config, changedFiles }) {
   const analysis = readAnalysisIfExists(root);
   const classification = classifyRegression({ root, state, analysis, config, changedFiles });
@@ -1165,6 +1195,14 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     if (ctx.recordAndProceed) {
       return this.recordAndProceed(ctx, { specDir, resultPath, resultPathRelative });
     }
+
+    const staleEvidenceRecovery = recoverStaleTestEvidence({
+      root,
+      state,
+      specDir,
+      flowManager: ctx.flowManager,
+    });
+    if (staleEvidenceRecovery) return staleEvidenceRecovery;
 
     const attemptPath = nextFinalRegressionAttempt(specDir);
     const rawOutputPathRelative = repoRelative(root, attemptPath);

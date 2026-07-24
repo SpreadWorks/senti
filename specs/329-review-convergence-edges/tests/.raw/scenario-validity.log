@@ -1,0 +1,264 @@
+[senti] scenario-validity tests start
+command: node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js
+[senti] scenario-validity file start command=node specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js
+TAP version 13
+# Subtest: R3: same-tree recovery is rejected without changing convergence state
+ok 1 - R3: same-tree recovery is rejected without changing convergence state
+  ---
+  duration_ms: 3.432098
+  type: 'test'
+  ...
+# Subtest: R4: changed-tree recovery resets tooling state once and preserves target guards
+not ok 2 - R4: changed-tree recovery resets tooling state once and preserves target guards
+  ---
+  duration_ms: 0.632843
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:80:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ReviewToolingRecoveryMutation must implement changed-tree recovery
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    mutation (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:51:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:82:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R4: target guard mismatch rejects the whole recovery mutation
+not ok 3 - R4: target guard mismatch rejects the whole recovery mutation
+  ---
+  duration_ms: 1.704969
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:102:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /run|target|guard/i. Input:
+    
+    'AssertionError [ERR_ASSERTION]: ReviewToolingRecoveryMutation must implement changed-tree recovery\n' +
+      '+ actual - expected\n' +
+      '\n' +
+      "+ 'undefined'\n" +
+      "- 'function'\n"
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    generatedMessage: false
+    actual: 'undefined'
+    expected: 'function'
+    operator: 'strictEqual'
+    diff: 'simple'
+  error: |-
+    ReviewToolingRecoveryMutation must implement changed-tree recovery
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    mutation (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:51:10)
+    file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:107:11
+    getActual (node:assert:609:5)
+    Function.throws (node:assert:757:24)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:106:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:106:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: recovery preserves configured limits and the prior tooling outcome provenance
+not ok 4 - R7: recovery preserves configured limits and the prior tooling outcome provenance
+  ---
+  duration_ms: 0.341082
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:113:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ReviewToolingRecoveryMutation must implement changed-tree recovery
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    mutation (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:51:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js:116:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 1
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20.351827
+Command failed: node specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js
+[senti] scenario-validity file start command=node specs/329-review-convergence-edges/tests/review-completion-scope.test.js
+TAP version 13
+# Subtest: R5: flow-level test post-hook ignores a residual task cursor
+not ok 1 - R5: flow-level test post-hook ignores a residual task cursor
+  ---
+  duration_ms: 216.942299
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/review-completion-scope.test.js:62:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'T-default'
+    - null
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual: 'T-default'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/review-completion-scope.test.js:73:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R5: flow-level impl post-hook preserves an explicit null task scope
+not ok 2 - R5: flow-level impl post-hook preserves an explicit null task scope
+  ---
+  duration_ms: 204.940516
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/review-completion-scope.test.js:77:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'T-default'
+    - null
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual: 'T-default'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/review-completion-scope.test.js:88:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R6: task-level post-hook retains its task without changing flow lifecycle state
+ok 3 - R6: task-level post-hook retains its task without changing flow lifecycle state
+  ---
+  duration_ms: 195.797948
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 1
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 630.778631
+Command failed: node specs/329-review-convergence-edges/tests/review-completion-scope.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/329-review-convergence-edges/tests/review-completion-scope.test.js
+[senti] scenario-validity file start command=node specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js
+TAP version 13
+# Subtest: R1: same-target findings retain title and issue in distinct canonical identities
+not ok 1 - R1: same-target findings retain title and issue in distinct canonical identities
+  ---
+  duration_ms: 3.93518
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js:38:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected "actual" to be strictly unequal to:
+    
+    '708d3eed8e9944072b6bad9a1bd07455d404a55933e1057083d0859f418aa943'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '708d3eed8e9944072b6bad9a1bd07455d404a55933e1057083d0859f418aa943'
+  actual: '708d3eed8e9944072b6bad9a1bd07455d404a55933e1057083d0859f418aa943'
+  operator: 'notStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-329-review-convergence-edges/specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js:47:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: reparsing and reordering preserve identity while exact duplicates are rejected
+ok 2 - R2: reparsing and reordering preserve identity while exact duplicates are rejected
+  ---
+  duration_ms: 3.104737
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18.602378
+Command failed: node specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: same-target findings retain title and issue in distinct canonical identities
+[senti] requirement R2 observed: R2: reparsing and reordering preserve identity while exact duplicates are rejected
+[senti] requirement R3 observed: R3: same-tree recovery is rejected without changing convergence state
+[senti] requirement R4 observed: R4: changed-tree recovery resets tooling state once and preserves target guards
+[senti] requirement R5 observed: R5: flow-level test post-hook ignores a residual task cursor
+[senti] requirement R6 observed: R6: task-level post-hook retains its task without changing flow lifecycle state
+[senti] requirement R7 observed: R7: recovery preserves configured limits and the prior tooling outcome provenance
+[senti] scenario-validity tests end

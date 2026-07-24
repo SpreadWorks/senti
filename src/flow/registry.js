@@ -1531,6 +1531,10 @@ export const FLOW_COMMANDS = {
         "Persists specs/<spec>/final-regression-result.json and specs/<spec>/tests/.raw/final-regression-attempt-<N>.log (zero-padded to at least three digits).",
       ].join("\n"),
       async post(ctx, result) {
+        if (
+          result?.result === "recovered"
+          && result?.artifacts?.evidenceRefresh?.recovered === true
+        ) return;
         const path = await import("node:path");
         const { readJsonStrict, validateFinalRegressionResult } = await import("./lib/test-artifacts.js");
         const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));

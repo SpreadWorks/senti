@@ -479,6 +479,7 @@ describe("impl review structured verdict routing", () => {
     const previousFingerprint = "a".repeat(64);
     const currentFingerprint = "b".repeat(64);
     const flowState = {
+      spec: "specs/demo/spec.json",
       steps: [
         { id: "test-execute", status: "done" },
         { id: "test-result-review", status: "done" },
@@ -494,6 +495,8 @@ describe("impl review structured verdict routing", () => {
         })}\n`);
       }
       const result = checkImplReviewTestArtifacts({
+        root,
+        state: flowState,
         specDir,
         fingerprint: { hash: currentFingerprint },
         flowManager: {

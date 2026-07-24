@@ -13,6 +13,8 @@ import { countGateRetry, resolveRetryMax } from "./run-gate.js";
 import { countReviewRetry, resolveReviewRetryMax } from "./run-review.js";
 import { flattenSteps } from "./step-tree.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
+import { ReviewToolingRecoveryMutation } from "./review-convergence.js";
+import { resolveImplReviewScope } from "./task-scope.js";
 import {
   RetryRecoveryInput,
   RetryRecoveryGrantError,
@@ -50,10 +52,11 @@ function resolveReviewResetPhases(ctx, phase) {
 }
 
 class RetryResetOperation {
-  constructor({ input, attemptsBefore, maxAttempts }) {
+  constructor({ input, attemptsBefore, maxAttempts, afterReset = null }) {
     this.input = input;
     this.attemptsBefore = attemptsBefore;
     this.maxAttempts = maxAttempts;
+    this.afterReset = afterReset;
     Object.freeze(this);
   }
 
@@ -62,16 +65,27 @@ class RetryResetOperation {
   }
 }
 
-function unchangedReviewConvergenceTarget(ctx, phase) {
-  const records = Array.isArray(ctx.flowState?.reviewConvergence?.records)
-    ? ctx.flowState.reviewConvergence.records
+function reviewRecoveryTaskId(flowState, phase) {
+  if (phase !== "impl") return null;
+  const scope = resolveImplReviewScope(flowState);
+  if (scope.kind === "task") return scope.task.id;
+  if (scope.kind === "flow" || scope.kind === "broad") return null;
+  throw new Error(scope.reason || "review recovery scope could not be resolved");
+}
+
+function latestReviewConvergenceRecord(flowState, phase, taskId) {
+  const records = Array.isArray(flowState?.reviewConvergence?.records)
+    ? flowState.reviewConvergence.records
     : [];
   const matching = records.filter((record) => (
-    record.phase === phase && (record.taskId ?? null) === null
+    record.phase === phase && (record.taskId ?? null) === taskId
   ));
-  if (matching.length === 0) return false;
-  const current = matching[matching.length - 1];
-  return current.treeSha === resolveCurrentReviewTreeSha(ctx.root);
+  return matching[matching.length - 1] ?? null;
+}
+
+function unchangedReviewConvergenceTarget(ctx, phase, taskId) {
+  const current = latestReviewConvergenceRecord(ctx.flowState, phase, taskId);
+  return current?.treeSha === resolveCurrentReviewTreeSha(ctx.root);
 }
 
 export default class SetRetryCommand extends FlowCommand {
@@ -88,8 +102,15 @@ export default class SetRetryCommand extends FlowCommand {
       );
     }
     const { kind, phase } = input;
+    const normalizedReviewPhase = kind === "review" ? normalizeReviewResetPhase(phase) : null;
+    const reviewTaskId = kind === "review"
+      ? reviewRecoveryTaskId(ctx.flowState, normalizedReviewPhase)
+      : null;
 
-    if (kind === "review" && unchangedReviewConvergenceTarget(ctx, normalizeReviewResetPhase(phase))) {
+    if (
+      kind === "review"
+      && unchangedReviewConvergenceTarget(ctx, normalizedReviewPhase, reviewTaskId)
+    ) {
       return Envelope.fail(
         "set",
         "retry",
@@ -123,10 +144,26 @@ export default class SetRetryCommand extends FlowCommand {
         attempts: attemptsBefore,
         resolvedMax: resolveConfiguredMaxAttempts({ flowState: ctx.flowState }, p),
       });
+      const reviewRecord = kind === "review"
+        ? latestReviewConvergenceRecord(ctx.flowState, p, reviewTaskId)
+        : null;
       operations.push(new RetryResetOperation({
         input: phaseInput,
         attemptsBefore,
         maxAttempts,
+        afterReset: reviewRecord == null
+          ? null
+          : new ReviewToolingRecoveryMutation({
+              phase: p,
+              taskId: reviewTaskId,
+              previousTreeSha: reviewRecord.treeSha,
+              nextTreeSha: resolveCurrentReviewTreeSha(ctx.root),
+              expectedRunId: ctx.flowState.runId,
+              expectedSpec: ctx.flowState.spec,
+              ...(Object.hasOwn(ctx.flowState, "issue") && {
+                expectedIssue: ctx.flowState.issue,
+              }),
+            }),
       }));
     }
 
@@ -146,7 +183,9 @@ export default class SetRetryCommand extends FlowCommand {
           resolveConfiguredMaxAttempts(state, targetPhase) {
             return resolveConfiguredMaxAttempts({ flowState: state }, targetPhase);
           },
-          afterReset: null,
+          afterReset: op.afterReset == null
+            ? null
+            : (flowState) => op.afterReset.apply(flowState),
         });
         if (reset.grant) grants.push(reset.grant.toJSON());
       } catch (error) {

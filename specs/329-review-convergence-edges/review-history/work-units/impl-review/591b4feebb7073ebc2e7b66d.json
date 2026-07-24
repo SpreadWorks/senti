@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-convergence.js"
+    ],
+    "inputHash": "49816b9b317af48796d89b6545f723766006acda22653acd6fcb5eeda8e5a1fb",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-convergence.js"
+  ],
+  "inputHash": "49816b9b317af48796d89b6545f723766006acda22653acd6fcb5eeda8e5a1fb",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:26:35.793Z",
+  "finishedAt": "2026-07-24T23:26:35.793Z",
+  "rawResponse": "I’ll review only the two touched files in the provided diff and check the added code against the bounded-resource guardrail and the listed requirements.### 1. Add an explicit bound for additional refresh artifacts\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R7\n**Issue:** `additionalArtifacts` is processed without an explicit count bound in `completeTestEvidenceRefresh` and `planAdditionalRefreshInvalidations`. This violates the `bounded-resource-usage` guardrail for bulk data processing.\n**Suggestion:** Define a maximum such as `MAX_REFRESH_ADDITIONAL_ARTIFACTS`, validate `additionalArtifacts.length` before processing, and reject inputs over the limit.\n\n### 2. Normalize `reason` once before invalidation planning\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R7\n**Issue:** `requireString(reason, \"reason\")` is called inside `planAdditionalRefreshInvalidations` for every artifact even though the value is invariant.\n**Suggestion:** Validate once at the start of `completeTestEvidenceRefresh` or `planAdditionalRefreshInvalidations`, store it as `refreshReason`, and reuse it.\n\n### 3. Clarify expected fingerprint parameter shape\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R7\n**Issue:** `expectedCurrentFingerprint` is treated like a hash string in `current.hash !== expectedCurrentFingerprint`, but elsewhere the naming suggests a fingerprint object.\n**Suggestion:** Rename it to `expectedCurrentHash`, or accept both explicitly by normalizing to `expectedCurrentHash` before comparison and return values.\n\n### 4. Extract recovery target guard logic\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R4\n**Issue:** `ReviewToolingRecoveryMutation.apply` embeds run/spec/issue guard validation inline, making the mutation harder to scan and easier to diverge from other guarded mutations.\n**Suggestion:** Move the guard check into a small helper such as `assertRecoveryTargetGuard(flowState, mutation)` and keep `apply` focused on recovery state transition logic.\n\n### 5. Avoid repeated structured clones in recovery mutation\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R4\n**Issue:** `nextRecords[index]` clones `records[index]` even though `nextRecords` was already built from cloned records.\n**Suggestion:** Replace the assignment with `{ ...nextRecords[index], ...recovered.toJSON() }` to remove redundant cloning and simplify the code.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Add an explicit bound for additional refresh artifacts",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R7\n**Issue:** `additionalArtifacts` is processed without an explicit count bound in `completeTestEvidenceRefresh` and `planAdditionalRefreshInvalidations`. This violates the `bounded-resource-usage` guardrail for bulk data processing.\n**Suggestion:** Define a maximum such as `MAX_REFRESH_ADDITIONAL_ARTIFACTS`, validate `additionalArtifacts.length` before processing, and reject inputs over the limit.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Normalize `reason` once before invalidation planning",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R7\n**Issue:** `requireString(reason, \"reason\")` is called inside `planAdditionalRefreshInvalidations` for every artifact even though the value is invariant.\n**Suggestion:** Validate once at the start of `completeTestEvidenceRefresh` or `planAdditionalRefreshInvalidations`, store it as `refreshReason`, and reuse it.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Clarify expected fingerprint parameter shape",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R7\n**Issue:** `expectedCurrentFingerprint` is treated like a hash string in `current.hash !== expectedCurrentFingerprint`, but elsewhere the naming suggests a fingerprint object.\n**Suggestion:** Rename it to `expectedCurrentHash`, or accept both explicitly by normalizing to `expectedCurrentHash` before comparison and return values.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Extract recovery target guard logic",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R4\n**Issue:** `ReviewToolingRecoveryMutation.apply` embeds run/spec/issue guard validation inline, making the mutation harder to scan and easier to diverge from other guarded mutations.\n**Suggestion:** Move the guard check into a small helper such as `assertRecoveryTargetGuard(flowState, mutation)` and keep `apply` focused on recovery state transition logic.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Avoid repeated structured clones in recovery mutation",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R4\n**Issue:** `nextRecords[index]` clones `records[index]` even though `nextRecords` was already built from cloned records.\n**Suggestion:** Replace the assignment with `{ ...nextRecords[index], ...recovered.toJSON() }` to remove redundant cloning and simplify the code.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

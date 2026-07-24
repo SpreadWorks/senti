@@ -3,7 +3,19 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 
+import {
+  buildRepairFingerprint,
+  completeImplRepair,
+  prepareImplTriageArtifact,
+  readImplRepairLedger,
+} from "../../../src/flow/lib/impl-repair-artifacts.js";
+import { AcceptanceEvidenceRefresh } from "../../../src/flow/lib/acceptance-review-artifacts.js";
 import { StaleTestEvidenceRefresh } from "../../../src/flow/lib/stale-test-evidence-refresh.js";
+import { flowLeafIdsBetween } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { writeRepairFingerprintManifest } from "../../../src/flow/lib/repair-state-identity.js";
+import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 
 let tmp;
@@ -40,4 +52,113 @@ test("stale evidence refresh rejects additional artifact paths outside the spec 
     );
     assert.equal(fs.existsSync(outsidePath), true);
   }
+});
+
+test("acceptance refresh treats a stale repair ledger endpoint as part of stale evidence recovery", () => {
+  const previousFingerprint = "a".repeat(64);
+  const currentFingerprint = "b".repeat(64);
+  const refresh = new AcceptanceEvidenceRefresh({
+    fingerprint: { hash: currentFingerprint },
+    artifacts: {
+      "test-execute-result.json": { repairFingerprint: previousFingerprint },
+    },
+    blockers: [
+      {
+        kind: "invalid_schema",
+        summary: "Required artifact is invalid: impl-repair.json.",
+      },
+      {
+        kind: "invalid_schema",
+        summary: "Required artifact is invalid: test-execute-result.json.",
+      },
+    ],
+    deferredFindings: [],
+  });
+
+  assert.equal(refresh.required, true);
+  assert.deepEqual(refresh.staleArtifacts, ["test-execute-result.json"]);
+});
+
+test("stale evidence refresh extends an existing repair ledger to the current fingerprint", () => {
+  tmp = createTmpDir("stale-test-evidence-refresh-ledger-");
+  const specPath = "specs/demo/spec.json";
+  const specDir = path.join(tmp, "specs", "demo");
+  writeFile(tmp, specPath, JSON.stringify({ requirements: [] }, null, 2));
+  writeFile(tmp, "src/value.js", "export const value = 1;\n");
+  initGitRepo(tmp);
+  commitAll(tmp, "initial");
+
+  const baseline = buildRepairFingerprint({ root: tmp, specPath });
+  const state = moveFlowToStep(makeFlowState({
+    spec: specPath,
+    repairBaseline: baseline.baseline.toJSON(),
+  }), "impl-repair");
+  const flowManager = {
+    load() {
+      return state;
+    },
+    mutate(mutator) {
+      mutator(state);
+    },
+  };
+  writeFile(tmp, "specs/demo/impl-review.json", JSON.stringify({
+    repairFingerprint: baseline.hash,
+    blockingFindings: [{ findingId: "F-1" }],
+    nonBlockingImprovements: [],
+  }, null, 2));
+  prepareImplTriageArtifact({
+    specDir,
+    sourceStep: "impl-review",
+    sourceArtifact: "impl-review.json",
+    findings: [{ findingId: "F-1", summary: "Apply the first repair." }],
+    fingerprint: baseline,
+  });
+  writeFile(tmp, "specs/demo/test-execute-result.json", JSON.stringify({
+    repairFingerprint: baseline.hash,
+  }, null, 2));
+  writeFile(tmp, "src/value.js", "export const value = 2;\n");
+  completeImplRepair({
+    root: tmp,
+    state,
+    flowManager,
+    resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+  });
+
+  const repaired = buildRepairFingerprint({ root: tmp, specPath, state });
+  writeFile(tmp, "src/value.js", "export const value = 2.5;\n");
+  const unledgeredRefresh = buildRepairFingerprint({ root: tmp, specPath, state });
+  writeRepairFingerprintManifest(specDir, unledgeredRefresh);
+  writeFile(tmp, "specs/demo/test-execute-result.json", JSON.stringify({
+    repairFingerprint: unledgeredRefresh.hash,
+  }, null, 2));
+  writeFile(tmp, "specs/demo/retro.json", JSON.stringify({
+    repairFingerprint: unledgeredRefresh.hash,
+  }, null, 2));
+  moveFlowToStep(state, "final-regression");
+  writeFile(tmp, "src/value.js", "export const value = 3;\n");
+  const current = buildRepairFingerprint({ root: tmp, specPath, state });
+
+  const result = new StaleTestEvidenceRefresh({
+    previousFingerprint: unledgeredRefresh.hash,
+    currentFingerprint: current.hash,
+  }).recover({
+    specDir,
+    flowManager,
+    reason: "final regression detected stale evidence",
+    sourceStep: "final-regression",
+  });
+
+  const ledger = readImplRepairLedger(specDir);
+  assert.equal(ledger.entries.length, 2);
+  assert.equal(ledger.entries[0].currentHash, repaired.hash);
+  assert.equal(ledger.entries[1].previousHash, repaired.hash);
+  assert.equal(ledger.entries[1].currentHash, current.hash);
+  assert.deepEqual(ledger.entries[1].sourceFindingIds, [
+    "test-evidence-refresh:final-regression",
+  ]);
+  assert.equal(result.currentFingerprint, current.hash);
+  assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
+  assert.equal(findStepById(state.steps, "final-regression").status, "pending");
+  assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);
+  assert.equal(fs.existsSync(path.join(specDir, "retro.json")), false);
 });

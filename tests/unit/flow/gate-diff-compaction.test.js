@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   buildGuardrailTargetTextForPrompt,
   compactDiffForGuardrailPrompt,
+  excludeGateLifecycleArtifactsFromGateDiff,
   excludeScenarioValidityEvidenceFromTaskGateDiff,
   default as RunGateCommand,
 } from "../../../src/flow/lib/run-gate.js";
@@ -170,6 +171,28 @@ describe("task gate scenario-validity evidence", () => {
     assert.match(filtered, /specs\/999-example\/証拠-ß\.json/);
     assert.ok(filtered.indexOf("malformed-header") < filtered.indexOf("quoted path remains"));
     assert.ok(filtered.indexOf("quoted path remains") < filtered.indexOf("test-execute-result.json"));
+  });
+});
+
+describe("gate lifecycle evidence", () => {
+  it("excludes active gate state while retaining product and test evidence", () => {
+    const specDir = "specs/999-example";
+    const flowState = modifiedDiff(`${specDir}/flow.json`);
+    const gateResult = modifiedDiff(`${specDir}/task-impl-gate-result.json`);
+    const testResult = modifiedDiff(`${specDir}/test-execute-result.json`);
+    const specTest = modifiedDiff(`${specDir}/tests/review-scope.test.js`);
+    const implementation = modifiedDiff("src/flow/lib/run-review.js");
+
+    const filtered = excludeGateLifecycleArtifactsFromGateDiff(
+      flowState + gateResult + testResult + specTest + implementation,
+      `${specDir}/spec.json`,
+    );
+
+    assert.doesNotMatch(filtered, /flow\.json/);
+    assert.doesNotMatch(filtered, /task-impl-gate-result\.json/);
+    assert.match(filtered, /test-execute-result\.json/);
+    assert.match(filtered, /tests\/review-scope\.test\.js/);
+    assert.match(filtered, /src\/flow\/lib\/run-review\.js/);
   });
 });
 

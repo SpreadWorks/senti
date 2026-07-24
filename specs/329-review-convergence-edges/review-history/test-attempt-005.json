@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T15:07:47.501Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/329-review-convergence-edges/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Recovery atomicity is not exercised",
+      "target": "specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js",
+      "findingId": "0a4e0ca0812b5f1eb0eb78de387f821e468a4e54ce20c98b30a263a35d65d71f",
+      "fingerprint": "0a4e0ca0812b5f1eb0eb78de387f821e468a4e54ce20c98b30a263a35d65d71f",
+      "disposition": "must-fix",
+      "rationale": "Atomic persistence is an explicit must requirement and currently has no executable regression coverage.",
+      "issue": "R4 requires the toolingAttempts 1->0 reset and the recovery grant to be persisted in the same flow state CAS mutation, but the public recovery test only observes final state after a successful command and idempotent second run. It would still pass if implementation wrote the reset and grant in separate mutations with an inconsistent intermediate state on CAS/write failure.",
+      "requiredChange": "Add a spec-local test that forces or observes a single CAS mutation for changed-tree recovery, such as injecting a CAS/write conflict/failure and asserting neither the reset nor grant is partially persisted.",
+      "whyBlocking": "Atomic persistence is an explicit must requirement and currently has no executable regression coverage.",
+      "origin": "R4",
+      "failureKind": "missing_atomicity_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Flow finding handoff persistence is not covered",
+      "target": "specs/329-review-convergence-edges/tests/review-completion-scope.test.js",
+      "findingId": "5f8eced16c168c1bac0c117f45d3ca0a99709fed86953eccf90dc45582a63e2f",
+      "fingerprint": "5f8eced16c168c1bac0c117f45d3ca0a99709fed86953eccf90dc45582a63e2f",
+      "disposition": "must-fix",
+      "rationale": "A required persistence side effect for flow finding handoff has no corresponding spec-local coverage.",
+      "issue": "R5 requires flow-level canonical exhaustion to save a flow finding handoff once per identity even when currentTaskId is non-null, but the test only inspects reviewConvergence.records[0].handoffFindings in memory. It does not verify the actual flow-level handoff artifact/state is persisted or idempotent across repeated evidence processing.",
+      "requiredChange": "Add a spec-local flow-level exhaustion test that verifies the persisted flow finding handoff contains one entry per finding identity and that reprocessing identical evidence does not add handoff records.",
+      "whyBlocking": "A required persistence side effect for flow finding handoff has no corresponding spec-local coverage.",
+      "origin": "R5",
+      "failureKind": "missing_persistence_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/329-review-convergence-edges/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "08885ccbe97575de68e13aaae59d2ae9734a0449f2c8cb6a5ab612bcbdd5afa4"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "0a4e0ca0812b5f1eb0eb78de387f821e468a4e54ce20c98b30a263a35d65d71f",
+      "findingId": "0a4e0ca0812b5f1eb0eb78de387f821e468a4e54ce20c98b30a263a35d65d71f",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Recovery atomicity is not exercised",
+      "body": "R4 requires the toolingAttempts 1->0 reset and the recovery grant to be persisted in the same flow state CAS mutation, but the public recovery test only observes final state after a successful command and idempotent second run. It would still pass if implementation wrote the reset and grant in separate mutations with an inconsistent intermediate state on CAS/write failure.",
+      "category": "unknown",
+      "fingerprint": "0a4e0ca0812b5f1eb0eb78de387f821e468a4e54ce20c98b30a263a35d65d71f",
+      "disposition": "must-fix",
+      "rationale": "Atomic persistence is an explicit must requirement and currently has no executable regression coverage."
+    },
+    {
+      "id": "5f8eced16c168c1bac0c117f45d3ca0a99709fed86953eccf90dc45582a63e2f",
+      "findingId": "5f8eced16c168c1bac0c117f45d3ca0a99709fed86953eccf90dc45582a63e2f",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Flow finding handoff persistence is not covered",
+      "body": "R5 requires flow-level canonical exhaustion to save a flow finding handoff once per identity even when currentTaskId is non-null, but the test only inspects reviewConvergence.records[0].handoffFindings in memory. It does not verify the actual flow-level handoff artifact/state is persisted or idempotent across repeated evidence processing.",
+      "category": "unknown",
+      "fingerprint": "5f8eced16c168c1bac0c117f45d3ca0a99709fed86953eccf90dc45582a63e2f",
+      "disposition": "must-fix",
+      "rationale": "A required persistence side effect for flow finding handoff has no corresponding spec-local coverage."
+    }
+  ]
+}

@@ -1,10 +1,5 @@
-import fs from "node:fs";
-import path from "node:path";
-
-import { flowLeafIdsBetween } from "../definition.js";
 import { normalizeSourceArtifactPath } from "./flow-findings.js";
-import { invalidateRepairEvidence } from "./impl-repair-artifacts.js";
-import { findStepById } from "./step-tree.js";
+import { completeTestEvidenceRefresh } from "./impl-repair-artifacts.js";
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
@@ -15,27 +10,13 @@ function requireHash(value, field) {
   return value;
 }
 
-function resetStep(step, status, now) {
-  step.status = status;
-  delete step.startedAt;
-  delete step.finishedAt;
-  if (status === "in_progress") step.startedAt = now;
-}
-
-class AdditionalArtifactDeletion {
-  constructor({ specDir, relativePath, index }) {
+class AdditionalRefreshArtifact {
+  constructor({ relativePath, index }) {
     this.relativePath = normalizeSourceArtifactPath(
       relativePath,
       `additionalArtifacts[${index}]`,
     );
-    this.path = path.resolve(specDir, this.relativePath);
     Object.freeze(this);
-  }
-
-  apply() {
-    if (!fs.existsSync(this.path)) return false;
-    fs.rmSync(this.path, { force: true });
-    return true;
   }
 }
 
@@ -116,45 +97,35 @@ export class StaleTestEvidenceRefresh {
   }
 
   recover({
+    root,
+    state,
     specDir,
     flowManager,
     reason,
+    sourceStep = "test-evidence-refresh",
     additionalArtifacts = [],
   }) {
-    const additionalArtifactDeletions = additionalArtifacts.map(
-      (relativePath, index) => new AdditionalArtifactDeletion({
-        specDir,
+    const normalizedAdditionalArtifacts = additionalArtifacts.map(
+      (relativePath, index) => new AdditionalRefreshArtifact({
         relativePath,
         index,
-      }),
+      }).relativePath,
     );
-    const invalidated = invalidateRepairEvidence({
+    const completed = completeTestEvidenceRefresh({
+      root,
+      state,
       specDir,
-      currentFingerprint: this.currentFingerprint,
-      previousFingerprint: this.previousFingerprint,
+      flowManager,
       reason,
-    });
-    const additional = [];
-    for (const deletion of additionalArtifactDeletions) {
-      if (!deletion.apply()) continue;
-      additional.push(deletion.relativePath);
-    }
-    const now = new Date().toISOString();
-    flowManager.mutate((state) => {
-      for (const stepId of flowLeafIdsBetween("test-execute", "finalize-cleanup")) {
-        const step = findStepById(state.steps || [], stepId);
-        if (!step) continue;
-        resetStep(step, stepId === "test-execute" ? "in_progress" : "pending", now);
-      }
-      delete state.acceptanceReview;
+      sourceStep,
+      additionalArtifacts: normalizedAdditionalArtifacts,
+      expectedPreviousFingerprint: this.previousFingerprint,
+      expectedCurrentFingerprint: this.currentFingerprint,
     });
     return new StaleTestEvidenceRefreshResult({
       previousFingerprint: this.previousFingerprint,
       currentFingerprint: this.currentFingerprint,
-      invalidatedArtifacts: [
-        ...invalidated.invalidatedArtifacts,
-        ...additional,
-      ],
+      invalidatedArtifacts: completed.invalidatedArtifacts,
     });
   }
 }

@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "112907d9968395551c614413",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-68412c00d20403c1",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/329-review-convergence-edges/draft-review-questions.json",
+      "specs/329-review-convergence-edges/flow.json",
+      "specs/329-review-convergence-edges/issue.md",
+      "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+      "specs/329-review-convergence-edges/spec.json",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/stale-test-evidence-refresh.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/stale-test-evidence-refresh.test.js"
+    ],
+    "inputHash": "68412c00d20403c1dd3a958b8ffebe325cef73c1b80d11dc2e52462d115e35b9",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "112907d9968395551c614413"
+  },
+  "targetFiles": [
+    "specs/329-review-convergence-edges/draft-review-questions.json",
+    "specs/329-review-convergence-edges/flow.json",
+    "specs/329-review-convergence-edges/issue.md",
+    "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+    "specs/329-review-convergence-edges/spec.json",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/stale-test-evidence-refresh.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/final-regression.test.js",
+    "tests/unit/flow/stale-test-evidence-refresh.test.js"
+  ],
+  "inputHash": "68412c00d20403c1dd3a958b8ffebe325cef73c1b80d11dc2e52462d115e35b9",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:21:14.776Z",
+  "finishedAt": "2026-07-24T23:21:14.776Z",
+  "rawResponse": "### 1. Align Additional Artifact Bounds Across Refresh Paths\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R7\n**Issue:** Both `impl-repair-artifacts.js` and `stale-test-evidence-refresh.js` introduce unbounded `additionalArtifacts` processing. The same bounded-resource concern appears in two refresh paths, but the proposals suggest fixing them independently, which risks different limits or validation behavior.\n**Suggestion:** Define one shared maximum and validation helper for additional refresh artifacts, then use it from both repair refresh and stale-evidence refresh paths.\n\n### 2. Centralize Fingerprint Hash Construction\n**File:** `src/flow/lib/finding-disposition-policy.js`\n**Requirement:** R1\n**Issue:** Fingerprint construction concerns appear across `finding-disposition-policy.js`, `impl-repair-artifacts.js`, and stale evidence/final regression flows. Several proposals mention naming or recomputation around fingerprints, suggesting the same SHA/hash/object distinction is being handled inconsistently between files.\n**Suggestion:** Introduce a shared fingerprint helper or clearly named factory methods for stable-value hashing and current-repair fingerprint hashes, then update call sites to distinguish fingerprint objects from fingerprint hash strings.\n\n### 3. Normalize Review History Schema Across Attempts\n**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`\n**Requirement:** R1\n**Issue:** `draft-questions-attempt-001.json` and `draft-questions-attempt-002.json` represent the same finding shape differently: attempt 001 omits fields that attempt 002 includes, and severity/verdict wording diverges. That is a cross-file interface inconsistency in generated review-history artifacts.\n**Suggestion:** Make all review-history attempts emit the same finding schema and severity vocabulary, even when older attempts are retained.\n\n### 4. Consolidate Repeated Artifact Invalidity Matching\n**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R7\n**Issue:** Artifact invalid-summary matching in `acceptance-review-artifacts.js` overlaps conceptually with artifact invalidation/refresh logic in `impl-repair-artifacts.js` and `stale-test-evidence-refresh.js`. Keeping summary string construction local to one file while refresh paths manage artifact lists elsewhere creates drift risk.\n**Suggestion:** Use a shared artifact invalidation summary helper or constant naming convention that all artifact refresh/recovery files consume.\n\n### 5. Unify Gate Lifecycle Diff Filtering Names\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R7\n**Issue:** Gate lifecycle artifact filtering and scenario validity evidence filtering use parallel diff exclusion concepts, but the names differ enough that their relationship is unclear. This naming inconsistency spans helper definitions and call sites.\n**Suggestion:** Extract a shared `excludeDiffFiles(diff, predicate)` helper and name predicates by excluded artifact class, such as `isExcludedGateLifecycleArtifact` and `isExcludedScenarioValidityArtifact`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Align Additional Artifact Bounds Across Refresh Paths",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R7\n**Issue:** Both `impl-repair-artifacts.js` and `stale-test-evidence-refresh.js` introduce unbounded `additionalArtifacts` processing. The same bounded-resource concern appears in two refresh paths, but the proposals suggest fixing them independently, which risks different limits or validation behavior.\n**Suggestion:** Define one shared maximum and validation helper for additional refresh artifacts, then use it from both repair refresh and stale-evidence refresh paths.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Centralize Fingerprint Hash Construction",
+        "body": "**File:** `src/flow/lib/finding-disposition-policy.js`\n**Requirement:** R1\n**Issue:** Fingerprint construction concerns appear across `finding-disposition-policy.js`, `impl-repair-artifacts.js`, and stale evidence/final regression flows. Several proposals mention naming or recomputation around fingerprints, suggesting the same SHA/hash/object distinction is being handled inconsistently between files.\n**Suggestion:** Introduce a shared fingerprint helper or clearly named factory methods for stable-value hashing and current-repair fingerprint hashes, then update call sites to distinguish fingerprint objects from fingerprint hash strings.",
+        "file": "src/flow/lib/finding-disposition-policy.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Normalize Review History Schema Across Attempts",
+        "body": "**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`\n**Requirement:** R1\n**Issue:** `draft-questions-attempt-001.json` and `draft-questions-attempt-002.json` represent the same finding shape differently: attempt 001 omits fields that attempt 002 includes, and severity/verdict wording diverges. That is a cross-file interface inconsistency in generated review-history artifacts.\n**Suggestion:** Make all review-history attempts emit the same finding schema and severity vocabulary, even when older attempts are retained.",
+        "file": "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Consolidate Repeated Artifact Invalidity Matching",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R7\n**Issue:** Artifact invalid-summary matching in `acceptance-review-artifacts.js` overlaps conceptually with artifact invalidation/refresh logic in `impl-repair-artifacts.js` and `stale-test-evidence-refresh.js`. Keeping summary string construction local to one file while refresh paths manage artifact lists elsewhere creates drift risk.\n**Suggestion:** Use a shared artifact invalidation summary helper or constant naming convention that all artifact refresh/recovery files consume.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Unify Gate Lifecycle Diff Filtering Names",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R7\n**Issue:** Gate lifecycle artifact filtering and scenario validity evidence filtering use parallel diff exclusion concepts, but the names differ enough that their relationship is unclear. This naming inconsistency spans helper definitions and call sites.\n**Suggestion:** Extract a shared `excludeDiffFiles(diff, predicate)` helper and name predicates by excluded artifact class, such as `isExcludedGateLifecycleArtifact` and `isExcludedScenarioValidityArtifact`.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

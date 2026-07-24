@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/gate-diff-compaction.test.js"
+    ],
+    "inputHash": "e8cbab7e43e4357cc3a0b85d5216ad54df7bd7826ce4fe9ee93b64a5454b4052",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "tests/unit/flow/final-regression.test.js",
+    "tests/unit/flow/gate-diff-compaction.test.js"
+  ],
+  "inputHash": "e8cbab7e43e4357cc3a0b85d5216ad54df7bd7826ce4fe9ee93b64a5454b4052",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:20:40.750Z",
+  "finishedAt": "2026-07-24T23:20:40.750Z",
+  "rawResponse": "### 1. Extract Stale Evidence Artifact Paths\n**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R7  \n**Issue:** The stale-evidence test repeats the same artifact paths across setup and assertions, which makes future changes easy to miss or update inconsistently.  \n**Suggestion:** Define a local `staleEvidencePaths` array for `test-execute-result.json`, `retro.json`, and `final-regression-result.json`, then use it for both writing stale files and asserting removal.\n\n### 2. Simplify Gate Diff Fixture Assembly\n**File:** `tests/unit/flow/gate-diff-compaction.test.js`  \n**Requirement:** R7  \n**Issue:** The test builds the combined diff with direct string concatenation, which is harder to scan and easier to break if another fixture is added.  \n**Suggestion:** Store the `modifiedDiff(...)` values in an array and call `.join(\"\")`, making the set of included diff entries explicit while preserving the existing behavior.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Stale Evidence Artifact Paths",
+        "body": "**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R7  \n**Issue:** The stale-evidence test repeats the same artifact paths across setup and assertions, which makes future changes easy to miss or update inconsistently.  \n**Suggestion:** Define a local `staleEvidencePaths` array for `test-execute-result.json`, `retro.json`, and `final-regression-result.json`, then use it for both writing stale files and asserting removal.",
+        "file": "tests/unit/flow/final-regression.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Simplify Gate Diff Fixture Assembly",
+        "body": "**File:** `tests/unit/flow/gate-diff-compaction.test.js`  \n**Requirement:** R7  \n**Issue:** The test builds the combined diff with direct string concatenation, which is harder to scan and easier to break if another fixture is added.  \n**Suggestion:** Store the `modifiedDiff(...)` values in an array and call `.join(\"\")`, making the set of included diff entries explicit while preserving the existing behavior.",
+        "file": "tests/unit/flow/gate-diff-compaction.test.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

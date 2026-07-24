@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T15:06:17.990Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/329-review-convergence-edges/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing target normalization coverage for findingId",
+      "target": "specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+      "findingId": "8c3c64d760d7d73dac037d60186c919dd85084ade0a8df6a3c9d183950e6d6ab",
+      "fingerprint": "8c3c64d760d7d73dac037d60186c919dd85084ade0a8df6a3c9d183950e6d6ab",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding test coverage for its normalization behavior.",
+      "issue": "R1 requires findingId to be derived from a normalized target, but the tests only use already-normalized targets like \"R3\" and \"R4\". A parser that hashes raw target text would still pass these tests while violating the requirement.",
+      "requiredChange": "Add a spec-local identity test that parses equivalent non-normalized target representations and asserts they produce the same findingId as the normalized target.",
+      "whyBlocking": "An acceptance requirement has no corresponding test coverage for its normalization behavior.",
+      "origin": "R1",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Flow exhaustion is not tested with residual currentTaskId",
+      "target": "specs/329-review-convergence-edges/tests/review-completion-scope.test.js",
+      "findingId": "b9b43e49e447a98f2ef2337e840fc6b173a6ab58b328de40ed90bc4d7754308a",
+      "fingerprint": "b9b43e49e447a98f2ef2337e840fc6b173a6ab58b328de40ed90bc4d7754308a",
+      "disposition": "must-fix",
+      "rationale": "A core acceptance condition for flow-level review scope can pass without exercising the residual task cursor case named by the requirement.",
+      "issue": "R5 specifically requires flow-level canonical exhaustion to save taskId:null completion and flow finding handoff even when currentTaskId is non-null, but the exhaustion evidence test uses state = { reviewConvergence: { version: 1, records: [] } } with no currentTaskId.",
+      "requiredChange": "Set currentTaskId to a non-null value in the exhausted flow evidence test and assert the saved record remains taskId:null with one handoff per identity.",
+      "whyBlocking": "A core acceptance condition for flow-level review scope can pass without exercising the residual task cursor case named by the requirement.",
+      "origin": "R5",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/329-review-convergence-edges/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "157b38f09d0ff97bb9d89503f04b426e7b1d9bf130252e14581f6aa8b1c5a3d7"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "8c3c64d760d7d73dac037d60186c919dd85084ade0a8df6a3c9d183950e6d6ab",
+      "findingId": "8c3c64d760d7d73dac037d60186c919dd85084ade0a8df6a3c9d183950e6d6ab",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing target normalization coverage for findingId",
+      "body": "R1 requires findingId to be derived from a normalized target, but the tests only use already-normalized targets like \"R3\" and \"R4\". A parser that hashes raw target text would still pass these tests while violating the requirement.",
+      "category": "unknown",
+      "fingerprint": "8c3c64d760d7d73dac037d60186c919dd85084ade0a8df6a3c9d183950e6d6ab",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding test coverage for its normalization behavior."
+    },
+    {
+      "id": "b9b43e49e447a98f2ef2337e840fc6b173a6ab58b328de40ed90bc4d7754308a",
+      "findingId": "b9b43e49e447a98f2ef2337e840fc6b173a6ab58b328de40ed90bc4d7754308a",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Flow exhaustion is not tested with residual currentTaskId",
+      "body": "R5 specifically requires flow-level canonical exhaustion to save taskId:null completion and flow finding handoff even when currentTaskId is non-null, but the exhaustion evidence test uses state = { reviewConvergence: { version: 1, records: [] } } with no currentTaskId.",
+      "category": "unknown",
+      "fingerprint": "b9b43e49e447a98f2ef2337e840fc6b173a6ab58b328de40ed90bc4d7754308a",
+      "disposition": "must-fix",
+      "rationale": "A core acceptance condition for flow-level review scope can pass without exercising the residual task cursor case named by the requirement."
+    }
+  ]
+}

@@ -717,6 +717,177 @@ export function invalidateRepairEvidence({ specDir, currentFingerprint, previous
   };
 }
 
+function planAdditionalRefreshInvalidations({
+  specDir,
+  relativePaths,
+  currentFingerprint,
+  previousFingerprint,
+  reason,
+  plannedPaths,
+}) {
+  return relativePaths.flatMap((relPath) => {
+    if (plannedPaths.has(relPath)) return [];
+    const file = path.join(specDir, relPath);
+    if (!fs.existsSync(file)) return [];
+    let artifact = null;
+    try { artifact = readJson(file); } catch (_) { artifact = null; }
+    return [new InvalidatedArtifactRecord({
+      path: relPath,
+      reason: `${requireString(reason, "reason")} (explicit_refresh_artifact)`,
+      previousFingerprint: evidencePreviousFingerprint(artifact, previousFingerprint)
+        || currentFingerprint.hash,
+    })];
+  });
+}
+
+export function completeTestEvidenceRefresh({
+  root,
+  state,
+  specDir,
+  flowManager,
+  reason,
+  sourceStep,
+  resetStepIds = flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+  additionalArtifacts = [],
+  expectedPreviousFingerprint = null,
+  expectedCurrentFingerprint = null,
+}) {
+  const lock = new RepairRunLock(specDir);
+  lock.acquire();
+  try {
+    const manifestPath = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
+    if (!fs.existsSync(manifestPath)) {
+      const invalidated = invalidateRepairEvidence({
+        specDir,
+        currentFingerprint: expectedCurrentFingerprint,
+        previousFingerprint: expectedPreviousFingerprint,
+        reason,
+      });
+      const invalidatedArtifacts = [...invalidated.invalidatedArtifacts];
+      for (const relPath of additionalArtifacts) {
+        const file = path.join(specDir, relPath);
+        if (!fs.existsSync(file)) continue;
+        fs.rmSync(file, { force: true });
+        if (!invalidatedArtifacts.includes(relPath)) invalidatedArtifacts.push(relPath);
+      }
+      updateRepairSteps(flowManager, resetStepIds);
+      flowManager.mutate((next) => {
+        delete next.acceptanceReview;
+      });
+      return {
+        entry: null,
+        invalidations: invalidated.invalidations,
+        previousFingerprint: null,
+        currentFingerprint: expectedCurrentFingerprint,
+        invalidatedArtifacts,
+      };
+    }
+    const activeState = state || flowManager.load();
+    const specParent = path.dirname(activeState.spec);
+    const inferredRoot = path.resolve(
+      specDir,
+      ...specParent.split(/[\\/]/).filter((part) => part && part !== ".").map(() => ".."),
+    );
+    const executionRoot = root || inferredRoot;
+    if (path.dirname(path.resolve(executionRoot, activeState.spec)) !== path.resolve(specDir)) {
+      throw new Error("test evidence refresh spec directory does not match the active flow");
+    }
+    const previous = readRepairFingerprintManifest(specDir);
+    const current = buildRepairFingerprint({
+      root: executionRoot,
+      specPath: activeState.spec,
+      state: activeState,
+    });
+    if (expectedCurrentFingerprint && current.hash !== expectedCurrentFingerprint) {
+      throw new Error("test evidence refresh fingerprint changed before recovery");
+    }
+    const existing = readImplRepairLedger(specDir) || new ImplRepairLedger({ version: 2, entries: [] });
+    const ledgerPreviousHash = existing.entries.at(-1)?.currentHash || previous.hash;
+    if (ledgerPreviousHash === current.hash) {
+      throw new Error("test evidence refresh requires a repair fingerprint change");
+    }
+    const changedPaths = ledgerPreviousHash === previous.hash
+      ? changedRepairPaths(previous, current)
+      : current.entries.map((entry) => entry.path);
+    if (changedPaths.length === 0) {
+      throw new Error("test evidence refresh changed paths must be non-empty");
+    }
+    const invalidations = planRepairInvalidation({
+      specDir,
+      currentFingerprint: current,
+      previousFingerprint: previous,
+      reason,
+    });
+    const plannedPaths = new Set(invalidations.map((record) => record.path));
+    invalidations.push(...planAdditionalRefreshInvalidations({
+      specDir,
+      relativePaths: additionalArtifacts,
+      currentFingerprint: current,
+      previousFingerprint: previous,
+      reason,
+      plannedPaths,
+    }));
+    if (invalidations.length === 0) {
+      throw new Error("test evidence refresh must invalidate at least one stale artifact");
+    }
+    const id = `repair-${String(existing.entries.length + 1).padStart(3, "0")}`;
+    const delta = ledgerPreviousHash === previous.hash
+      ? repairDeltaArtifact({ id, previous, current, changedPaths })
+      : new RepairDeltaArtifact({
+          version: 1,
+          id,
+          previousHash: ledgerPreviousHash,
+          currentHash: current.hash,
+          changedPaths,
+        });
+    const entry = new ImplRepairEntry({
+      id,
+      sourceFindingIds: [`test-evidence-refresh:${requireString(sourceStep, "sourceStep")}`],
+      reason,
+      previousHash: ledgerPreviousHash,
+      currentHash: current.hash,
+      changedPathCount: changedPaths.length,
+      changedPathsRef: `${REPAIR_DELTA_DIR}/${id}.json`,
+      changedPathsDigest: delta.digest,
+      changedPathsPreview: changedPaths.slice(0, CHANGED_PATH_PREVIEW_LIMIT),
+      changedPathGroups: changedPathGroups(changedPaths),
+      invalidations,
+      createdAt: new Date().toISOString(),
+    });
+    const transaction = new ImplRepairTransaction({
+      version: 1,
+      id,
+      sourceStep,
+      resetStepIds,
+      entry,
+      ledger: existing.append(entry),
+      currentManifest: current,
+      delta,
+      purpose: new TestEvidenceRefreshPurpose(),
+      invalidations,
+    });
+    writeJson(path.join(specDir, REPAIR_TRANSACTION_FILE), transaction.toJSON());
+    const result = commitRepairTransaction({
+      root: executionRoot,
+      state: activeState,
+      specDir,
+      flowManager,
+      transaction,
+    });
+    flowManager.mutate((next) => {
+      delete next.acceptanceReview;
+    });
+    return {
+      ...result,
+      previousFingerprint: ledgerPreviousHash,
+      currentFingerprint: current.hash,
+      invalidatedArtifacts: result.invalidations.map((record) => record.path),
+    };
+  } finally {
+    lock.release();
+  }
+}
+
 export function appendImplRepairEntry({ specDir, entry }) {
   const normalized = entry instanceof ImplRepairEntry ? entry : new ImplRepairEntry(entry);
   const file = path.join(specDir, IMPL_REPAIR_ARTIFACT_FILE);

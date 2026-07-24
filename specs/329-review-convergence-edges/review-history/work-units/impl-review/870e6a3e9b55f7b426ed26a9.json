@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "870e6a3e9b55f7b426ed26a9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-01a09c9647dcb746",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/329-review-convergence-edges/draft-review-questions.json",
+      "specs/329-review-convergence-edges/flow.json",
+      "specs/329-review-convergence-edges/issue.md",
+      "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+      "specs/329-review-convergence-edges/spec.json",
+      "src/flow/lib/finding-disposition-policy.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/prompts/impl/final-regression.md",
+      "tests/unit/flow/final-regression-record-and-proceed.test.js",
+      "tests/unit/flow/gate-diff-compaction.test.js"
+    ],
+    "inputHash": "01a09c9647dcb74622fc773ffa667efe43ba595c4fad33a45e06ab6c04b97e72",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "870e6a3e9b55f7b426ed26a9"
+  },
+  "targetFiles": [
+    "specs/329-review-convergence-edges/draft-review-questions.json",
+    "specs/329-review-convergence-edges/flow.json",
+    "specs/329-review-convergence-edges/issue.md",
+    "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+    "specs/329-review-convergence-edges/spec.json",
+    "src/flow/lib/finding-disposition-policy.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/prompts/impl/final-regression.md",
+    "tests/unit/flow/final-regression-record-and-proceed.test.js",
+    "tests/unit/flow/gate-diff-compaction.test.js"
+  ],
+  "inputHash": "01a09c9647dcb74622fc773ffa667efe43ba595c4fad33a45e06ab6c04b97e72",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T22:56:34.000Z",
+  "finishedAt": "2026-07-24T22:56:34.000Z",
+  "rawResponse": "### 1. Align Review History Finding Schema\n**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** `draft-questions-attempt-001.json` and `draft-questions-attempt-002.json` appear to represent the same review-history artifact type, but their `findings[0]` payloads differ: attempt 001 omits fields like `target` and `evidence` that attempt 002 includes. This creates a cross-file interface inconsistency for consumers reading review history across attempts.  \n**Suggestion:** Define one canonical finding shape for review-history artifacts and update both attempt files to use it consistently, or store full finding details only in `repairTargets` and keep `findings` minimal in both files.\n\n### 2. Centralize Diff File Exclusion Logic\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R7  \n**Issue:** Multiple files introduce or discuss diff/artifact filtering behavior, including gate lifecycle exclusions and final-regression stale evidence handling. The summaries show repeated path-filtering and artifact-name logic across `run-gate.js`, `run-final-regression.js`, and related tests, increasing drift risk between gate and final-regression flows.  \n**Suggestion:** Extract shared helpers for diff file exclusion and artifact path constants, then have gate, final-regression, and tests consume the same names where practical.\n\n### 3. Normalize Recovery Result Detection\n**File:** `src/flow/registry.js`  \n**Requirement:** R7  \n**Issue:** Recovery result detection is repeated across registry post-hooks for `gate`, `review`, and `final-regression`, while final-regression tests also construct a similar recovered artifact shape. This duplicates the interface contract for “recovered evidence refresh” across files.  \n**Suggestion:** Add a shared helper such as `isRecoveredEvidenceRefreshResult(result)` and use it in all registry post-hooks. Tests should name fixtures after that shared concept, for example `staleEvidenceRecoveryResult`.\n\n### 4. Use Consistent Fingerprint Terminology\n**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R7  \n**Issue:** Fingerprint naming varies across files: production code uses canonical fingerprint concepts, review tests use generic names like `previous` and `current`, and retry recovery tests use raw repeated hash literals. This makes cross-file intent harder to follow when reviewing stale, refreshed, canonical, and target-state fingerprints together.  \n**Suggestion:** Adopt role-based names across tests and implementation-adjacent fixtures, such as `staleRepairFingerprint`, `refreshedRepairFingerprint`, `previousTreeSha`, `nextTreeSha`, and `targetStateDigest`.\n\n### 5. Consolidate Bounded History Retention Policy\n**File:** `specs/329-review-convergence-edges/flow.json`  \n**Requirement:** R7  \n**Issue:** Several artifacts independently accumulate repeated history or duplicate evidence: `flow.json` has unbounded convergence/recovery arrays, `issue-log.json` has duplicate fingerprints and repeated gate observations, and `spec.json` contains duplicated overview entries. The same bounded-resource concern is appearing across multiple state files without a shared retention rule.  \n**Suggestion:** Add a single retention/deduplication policy for generated review artifacts, then apply it consistently to convergence records, issue-log observations, changed-file fingerprints, and generated spec overview entries.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Align Review History Finding Schema",
+        "body": "**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** `draft-questions-attempt-001.json` and `draft-questions-attempt-002.json` appear to represent the same review-history artifact type, but their `findings[0]` payloads differ: attempt 001 omits fields like `target` and `evidence` that attempt 002 includes. This creates a cross-file interface inconsistency for consumers reading review history across attempts.  \n**Suggestion:** Define one canonical finding shape for review-history artifacts and update both attempt files to use it consistently, or store full finding details only in `repairTargets` and keep `findings` minimal in both files.",
+        "file": "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Centralize Diff File Exclusion Logic",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R7  \n**Issue:** Multiple files introduce or discuss diff/artifact filtering behavior, including gate lifecycle exclusions and final-regression stale evidence handling. The summaries show repeated path-filtering and artifact-name logic across `run-gate.js`, `run-final-regression.js`, and related tests, increasing drift risk between gate and final-regression flows.  \n**Suggestion:** Extract shared helpers for diff file exclusion and artifact path constants, then have gate, final-regression, and tests consume the same names where practical.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Normalize Recovery Result Detection",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R7  \n**Issue:** Recovery result detection is repeated across registry post-hooks for `gate`, `review`, and `final-regression`, while final-regression tests also construct a similar recovered artifact shape. This duplicates the interface contract for “recovered evidence refresh” across files.  \n**Suggestion:** Add a shared helper such as `isRecoveredEvidenceRefreshResult(result)` and use it in all registry post-hooks. Tests should name fixtures after that shared concept, for example `staleEvidenceRecoveryResult`.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Use Consistent Fingerprint Terminology",
+        "body": "**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R7  \n**Issue:** Fingerprint naming varies across files: production code uses canonical fingerprint concepts, review tests use generic names like `previous` and `current`, and retry recovery tests use raw repeated hash literals. This makes cross-file intent harder to follow when reviewing stale, refreshed, canonical, and target-state fingerprints together.  \n**Suggestion:** Adopt role-based names across tests and implementation-adjacent fixtures, such as `staleRepairFingerprint`, `refreshedRepairFingerprint`, `previousTreeSha`, `nextTreeSha`, and `targetStateDigest`.",
+        "file": "tests/unit/flow/final-regression.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Consolidate Bounded History Retention Policy",
+        "body": "**File:** `specs/329-review-convergence-edges/flow.json`  \n**Requirement:** R7  \n**Issue:** Several artifacts independently accumulate repeated history or duplicate evidence: `flow.json` has unbounded convergence/recovery arrays, `issue-log.json` has duplicate fingerprints and repeated gate observations, and `spec.json` contains duplicated overview entries. The same bounded-resource concern is appearing across multiple state files without a shared retention rule.  \n**Suggestion:** Add a single retention/deduplication policy for generated review artifacts, then apply it consistently to convergence records, issue-log observations, changed-file fingerprints, and generated spec overview entries.",
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "8330acf1773858bb060d05b0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-7586ce118f4efab2",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/329-review-convergence-edges/draft-review-questions.json",
+      "specs/329-review-convergence-edges/flow.json",
+      "specs/329-review-convergence-edges/issue.md",
+      "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+      "specs/329-review-convergence-edges/spec.json",
+      "src/flow/lib/finding-disposition-policy.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/prompts/impl/final-regression.md",
+      "tests/unit/flow/final-regression-record-and-proceed.test.js",
+      "tests/unit/flow/gate-diff-compaction.test.js"
+    ],
+    "inputHash": "7586ce118f4efab213bcb64f2f3a2d7123526c08f36dbfd057cfb54ad34b5e7f",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8330acf1773858bb060d05b0"
+  },
+  "targetFiles": [
+    "specs/329-review-convergence-edges/draft-review-questions.json",
+    "specs/329-review-convergence-edges/flow.json",
+    "specs/329-review-convergence-edges/issue.md",
+    "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+    "specs/329-review-convergence-edges/spec.json",
+    "src/flow/lib/finding-disposition-policy.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/prompts/impl/final-regression.md",
+    "tests/unit/flow/final-regression-record-and-proceed.test.js",
+    "tests/unit/flow/gate-diff-compaction.test.js"
+  ],
+  "inputHash": "7586ce118f4efab213bcb64f2f3a2d7123526c08f36dbfd057cfb54ad34b5e7f",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T22:59:09.302Z",
+  "finishedAt": "2026-07-24T22:59:09.302Z",
+  "rawResponse": "### 1. Centralize Review Convergence Retention Rules\n**File:** `specs/329-review-convergence-edges/flow.json`\n**Requirement:** R7\n**Issue:** Multiple artifacts now raise the same bounded-growth concern for review convergence state, issue-log entries, recovery baselines, evidence histories, metrics, and repeated gate observations. The retention behavior appears spread across `flow.json`, `issue-log.json`, and implementation/test expectations rather than defined once.\n**Suggestion:** Add one canonical retention/compaction policy for review convergence and lifecycle evidence, then reference it from `flow.json`, `issue-log.json`, and tests instead of describing per-artifact bounds independently.\n\n### 2. Align Review History Schema Across Attempts\n**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`\n**Requirement:** R1\n**Issue:** Attempt 001 and attempt 002 store the same draft-review finding with different field shapes: attempt 001 omits `target` and `evidence` in `findings[0]`, while attempt 002 includes them. This creates a cross-file interface inconsistency for consumers reading review-history attempts.\n**Suggestion:** Normalize both attempt files to the same schema, either by including `target` and `evidence` in all `findings` entries or by keeping that detail only in `repairTargets` across both files.\n\n### 3. Unify Recovery Result Predicate Naming\n**File:** `src/flow/registry.js`\n**Requirement:** R7\n**Issue:** The same recovered evidence-refresh condition is repeated across `gate`, `review`, and `final-regression` post-hooks, while related recovery behavior is also named differently in `run-final-regression.js`. This spreads one lifecycle interface across files and increases drift risk.\n**Suggestion:** Introduce a shared helper such as `isRecoveredEvidenceRefreshResult(result)` and use it in all registry hooks. Consider aligning recovery function names around the same “evidence refresh recovery” wording.\n\n### 4. Share Diff File Filtering Logic\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R7\n**Issue:** Gate lifecycle diff filtering duplicates the diff-segment parsing pattern already used for scenario-validity evidence filtering. This is a cross-function duplicate introduction in the same gate surface and can lead to inconsistent path filtering behavior.\n**Suggestion:** Extract a shared `excludeDiffFiles(diff, predicate)` helper and route both lifecycle-artifact and scenario-validity evidence exclusions through it.\n\n### 5. Use Consistent Review Task ID Threading\n**File:** `src/flow/lib/run-review.js`\n**Requirement:** R5\n**Issue:** `completionScope.taskId` is repeatedly passed through review execution, artifacts, failure envelopes, and finalization, while related convergence/retry code also resolves review task IDs separately. This creates a cross-file consistency risk around task-scoped versus flow-scoped review behavior.\n**Suggestion:** Resolve `const reviewTaskId = completionScope.taskId` once in the review path and use that name consistently. Mirror that naming in convergence and retry helpers where the same task identity is consumed.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Review Convergence Retention Rules",
+        "body": "**File:** `specs/329-review-convergence-edges/flow.json`\n**Requirement:** R7\n**Issue:** Multiple artifacts now raise the same bounded-growth concern for review convergence state, issue-log entries, recovery baselines, evidence histories, metrics, and repeated gate observations. The retention behavior appears spread across `flow.json`, `issue-log.json`, and implementation/test expectations rather than defined once.\n**Suggestion:** Add one canonical retention/compaction policy for review convergence and lifecycle evidence, then reference it from `flow.json`, `issue-log.json`, and tests instead of describing per-artifact bounds independently.",
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Align Review History Schema Across Attempts",
+        "body": "**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`\n**Requirement:** R1\n**Issue:** Attempt 001 and attempt 002 store the same draft-review finding with different field shapes: attempt 001 omits `target` and `evidence` in `findings[0]`, while attempt 002 includes them. This creates a cross-file interface inconsistency for consumers reading review-history attempts.\n**Suggestion:** Normalize both attempt files to the same schema, either by including `target` and `evidence` in all `findings` entries or by keeping that detail only in `repairTargets` across both files.",
+        "file": "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Unify Recovery Result Predicate Naming",
+        "body": "**File:** `src/flow/registry.js`\n**Requirement:** R7\n**Issue:** The same recovered evidence-refresh condition is repeated across `gate`, `review`, and `final-regression` post-hooks, while related recovery behavior is also named differently in `run-final-regression.js`. This spreads one lifecycle interface across files and increases drift risk.\n**Suggestion:** Introduce a shared helper such as `isRecoveredEvidenceRefreshResult(result)` and use it in all registry hooks. Consider aligning recovery function names around the same “evidence refresh recovery” wording.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Share Diff File Filtering Logic",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R7\n**Issue:** Gate lifecycle diff filtering duplicates the diff-segment parsing pattern already used for scenario-validity evidence filtering. This is a cross-function duplicate introduction in the same gate surface and can lead to inconsistent path filtering behavior.\n**Suggestion:** Extract a shared `excludeDiffFiles(diff, predicate)` helper and route both lifecycle-artifact and scenario-validity evidence exclusions through it.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Use Consistent Review Task ID Threading",
+        "body": "**File:** `src/flow/lib/run-review.js`\n**Requirement:** R5\n**Issue:** `completionScope.taskId` is repeatedly passed through review execution, artifacts, failure envelopes, and finalization, while related convergence/retry code also resolves review task IDs separately. This creates a cross-file consistency risk around task-scoped versus flow-scoped review behavior.\n**Suggestion:** Resolve `const reviewTaskId = completionScope.taskId` once in the review path and use that name consistently. Mirror that naming in convergence and retry helpers where the same task identity is consumed.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

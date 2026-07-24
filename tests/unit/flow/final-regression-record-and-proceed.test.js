@@ -147,6 +147,26 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
     }
   });
 
+  test("registry post-hook accepts stale-evidence recovery without a final artifact", async () => {
+    const updated = [];
+    await FLOW_COMMANDS.run["final-regression"].post({
+      root: "/unused",
+      flowState: {},
+      flowManager: {
+        updateStepStatus(transition) {
+          updated.push(transition);
+        },
+      },
+    }, {
+      result: "recovered",
+      artifacts: {
+        evidenceRefresh: { recovered: true },
+      },
+    });
+
+    assert.deepEqual(updated, []);
+  });
+
   test("prompt and report expose auto recommendation and failed-recorded non-pass details", () => {
     const prompt = fs.readFileSync("src/flow/prompts/impl/final-regression.md", "utf8");
     assert.match(prompt, /auto(?:Approve| mode).*recommended action/i);

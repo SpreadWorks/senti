@@ -141,7 +141,7 @@ export class MechanicalBlocker {
   }
 }
 
-class AcceptanceEvidenceRefresh {
+export class AcceptanceEvidenceRefresh {
   constructor({ fingerprint, artifacts, blockers, deferredFindings }) {
     this.currentFingerprint = fingerprint.hash;
     this.staleArtifacts = Object.freeze(FINGERPRINTED_INPUT_ARTIFACTS
@@ -162,6 +162,9 @@ class AcceptanceEvidenceRefresh {
 
   supports(blocker, deferredFindings) {
     if (blocker.kind === "invalid_schema") {
+      if (blocker.summary === "Required artifact is invalid: impl-repair.json.") {
+        return this.staleArtifacts.length > 0;
+      }
       return this.staleArtifacts.some((file) => (
         blocker.summary === `Required artifact is invalid: ${file}.`
       ));

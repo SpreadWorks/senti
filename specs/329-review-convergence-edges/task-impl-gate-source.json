@@ -1,0 +1,404 @@
+{
+  "version": 1,
+  "runId": "a7aadb80-78ec-419a-b196-41365664b797",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-24T15:37:07.517Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added T-3 task gate status is `in_progress`, so the diff does not show the required completed passing project test/gate state.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/329-review-convergence-edges/flow.json",
+            "locator": "tasks[id=T-3].steps[id=task-gate].status"
+          },
+          "observed": "The added T-3 task gate status is `in_progress`, so the diff does not show the required completed passing project test/gate state.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "fingerprint": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task gate status is `in_progress`, so the diff does not show the required completed passing project test/gate state.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:30:48.950Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added T-3 task gate runtime log records `exitCode: 1`, indicating a failing project gate/test run instead of all project tests passing.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/329-review-convergence-edges/flow.json",
+            "locator": "tasks[id=T-3].steps[id=task-gate].runtimeLog.exitCode"
+          },
+          "observed": "The added T-3 task gate runtime log records `exitCode: 1`, indicating a failing project gate/test run instead of all project tests passing.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "fingerprint": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task gate runtime log records `exitCode: 1`, indicating a failing project gate/test run instead of all project tests passing.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:30:48.950Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/329-review-convergence-edges/flow.json",
+            "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=1].outcome"
+          },
+          "observed": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "fingerprint": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:30:48.950Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/329-review-convergence-edges/flow.json",
+            "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=2].outcome"
+          },
+          "observed": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "fingerprint": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:30:48.950Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/329-review-convergence-edges/flow.json",
+            "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=3].outcome"
+          },
+          "observed": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "fingerprint": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:30:48.950Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/329-review-convergence-edges/flow.json",
+            "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=4].outcome"
+          },
+          "observed": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "fingerprint": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:30:48.950Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added T-3 task-gate attempt records `kind: external-blocked` with reason `missing_repair_evidence`, which is not a passing project test/gate state.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/329-review-convergence-edges/flow.json",
+            "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=5].outcome"
+          },
+          "observed": "The added T-3 task-gate attempt records `kind: external-blocked` with reason `missing_repair_evidence`, which is not a passing project test/gate state.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "fingerprint": "a996f05a45349d82a3c9bc4520ddf5ae419f75d3063ef6a836c4f0dd3784447b",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: external-blocked` with reason `missing_repair_evidence`, which is not a passing project test/gate state.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:30:48.950Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "locator": "tasks[id=T-3].steps[id=task-gate].status"
+      },
+      "observed": "The added T-3 task gate status is `in_progress`, so the diff does not show the required completed passing project test/gate state.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "fingerprint": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task gate status is `in_progress`, so the diff does not show the required completed passing project test/gate state.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:37:07.517Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "locator": "tasks[id=T-3].steps[id=task-gate].runtimeLog.exitCode"
+      },
+      "observed": "The added T-3 task gate runtime log records `exitCode: 1`, indicating a failing project gate/test run instead of all project tests passing.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "fingerprint": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task gate runtime log records `exitCode: 1`, indicating a failing project gate/test run instead of all project tests passing.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:37:07.517Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=1].outcome"
+      },
+      "observed": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "fingerprint": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:37:07.517Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=2].outcome"
+      },
+      "observed": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "fingerprint": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:37:07.517Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=3].outcome"
+      },
+      "observed": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "fingerprint": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:37:07.517Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=4].outcome"
+      },
+      "observed": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "fingerprint": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: retry` and `terminal: false`, which is a non-passing project gate state rather than evidence that all project tests passed.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:37:07.517Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "locator": "stepAttempts[taskId=T-3,stepId=task-gate,attempt=5].outcome"
+      },
+      "observed": "The added T-3 task-gate attempt records `kind: external-blocked` with reason `missing_repair_evidence`, which is not a passing project test/gate state.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "fingerprint": "185fc7a76b9a4d22086df7327454815c55c1e6c9182335d77103edd63b3f1182",
+      "disposition": "must-fix",
+      "rationale": "The added T-3 task-gate attempt records `kind: external-blocked` with reason `missing_repair_evidence`, which is not a passing project test/gate state.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T15:37:07.517Z",
+      "repeatCount": 1
+    }
+  ]
+}

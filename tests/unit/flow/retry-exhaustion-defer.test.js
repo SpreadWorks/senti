@@ -1030,6 +1030,8 @@ test("integration gate rewinds stale fingerprint evidence before semantic evalua
     changed_files: [changedFile],
     trigger_relevant_changed_files: [changedFile],
   };
+  testResult.summary[0].result = "fail";
+  testResult.summary[0].error = "stale failure fixed by the current implementation";
   fs.writeFileSync(testResultPath, `${JSON.stringify(testResult, null, 2)}\n`);
   const state = flowStateAt("impl-gate", {
     spec: fixture.specPath,

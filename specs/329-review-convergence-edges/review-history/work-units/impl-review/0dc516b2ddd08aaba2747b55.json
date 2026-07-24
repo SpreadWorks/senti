@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0dc516b2ddd08aaba2747b55",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0015",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/gate-diff-compaction.test.js"
+    ],
+    "inputHash": "5bc7186fe423915fa1f82b9349e12eee38c50282f3ec9e83faee0e88ca58fc43",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0dc516b2ddd08aaba2747b55"
+  },
+  "targetFiles": [
+    "tests/unit/flow/gate-diff-compaction.test.js"
+  ],
+  "inputHash": "5bc7186fe423915fa1f82b9349e12eee38c50282f3ec9e83faee0e88ca58fc43",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T15:48:54.657Z",
+  "finishedAt": "2026-07-24T15:48:54.657Z",
+  "rawResponse": "### 1. Use an array for diff fixture composition\n**File:** `tests/unit/flow/gate-diff-compaction.test.js`  \n**Requirement:** R1  \n**Issue:** The test builds the combined diff with chained string concatenation, which is harder to scan and easier to break when adding/removing fixtures.  \n**Suggestion:** Replace `flowState + gateResult + testResult + specTest + implementation` with an array and `.join(\"\")`, e.g. `[flowState, gateResult, testResult, specTest, implementation].join(\"\")`.\n\n### 2. Rename `implementation` for consistency with evidence naming\n**File:** `tests/unit/flow/gate-diff-compaction.test.js`  \n**Requirement:** R2  \n**Issue:** The test name says it retains “product and test evidence,” but the variable is named `implementation`, while the other variables are named by artifact type.  \n**Suggestion:** Rename `implementation` to `productCode` or `productEvidence` to align with the assertion intent.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Use an array for diff fixture composition",
+        "body": "**File:** `tests/unit/flow/gate-diff-compaction.test.js`  \n**Requirement:** R1  \n**Issue:** The test builds the combined diff with chained string concatenation, which is harder to scan and easier to break when adding/removing fixtures.  \n**Suggestion:** Replace `flowState + gateResult + testResult + specTest + implementation` with an array and `.join(\"\")`, e.g. `[flowState, gateResult, testResult, specTest, implementation].join(\"\")`.",
+        "file": "tests/unit/flow/gate-diff-compaction.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Rename `implementation` for consistency with evidence naming",
+        "body": "**File:** `tests/unit/flow/gate-diff-compaction.test.js`  \n**Requirement:** R2  \n**Issue:** The test name says it retains “product and test evidence,” but the variable is named `implementation`, while the other variables are named by artifact type.  \n**Suggestion:** Rename `implementation` to `productCode` or `productEvidence` to align with the assertion intent.",
+        "file": "tests/unit/flow/gate-diff-compaction.test.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

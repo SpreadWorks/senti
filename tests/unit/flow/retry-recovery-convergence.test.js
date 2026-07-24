@@ -12,6 +12,7 @@ import {
   persistRecoveryBaseline,
   resolveRecoveryMaxAttempts,
 } from "../../../src/flow/lib/retry-recovery.js";
+import { ReviewToolingRecoveryMutation } from "../../../src/flow/lib/review-convergence.js";
 import { checkReviewRetryBelowMax } from "../../../src/flow/lib/run-review.js";
 import GetStatusCommand from "../../../src/flow/lib/get-status.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
@@ -152,6 +153,107 @@ describe("retry recovery authority convergence", () => {
     assert.equal(display.phase, "integration");
     assert.equal(display.attempts, 0);
     assert.equal(display.max, 5);
+  });
+
+  it("commits a changed-tree review grant and tooling reset in one flow mutation", () => {
+    const root = createTmpDir("retry-convergence-review-tooling-");
+    roots.push(root);
+    const spec = "specs/review-tooling/spec.json";
+    const specDir = path.join(root, path.dirname(spec));
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(root, spec), '{"revision":1}\n');
+    const previousTreeSha = "1".repeat(40);
+    const nextTreeSha = "2".repeat(40);
+    const state = makeFlowState({
+      spec,
+      runId: "run-review-tooling",
+      metrics: [{ phase: "spec", counter: "reviewRetry", delta: 1, taskId: null }],
+      reviewConvergence: {
+        version: 1,
+        records: [{
+          phase: "spec",
+          taskId: null,
+          treeSha: previousTreeSha,
+          semanticAttempts: 2,
+          semanticMaxAttempts: 4,
+          toolingAttempts: 1,
+          toolingMaxAttempts: 1,
+          evidence: null,
+          finalizedEvidenceAvailable: false,
+          handoffFindings: [],
+          blocker: {
+            kind: "tooling_attempts_exhausted",
+            reason: "review provider failed",
+          },
+          toolingOutcome: {
+            kind: "TOOLING_ERROR",
+            stage: "communication",
+            attempt: 2,
+            maxAttempts: 2,
+            remainingAttempts: 0,
+            reason: "review provider failed",
+            permissionRelated: false,
+          },
+          provider: "independent-reviewer",
+          targetStateDigest: "3".repeat(64),
+        }],
+      },
+    });
+    setOnlyInProgress(state, "spec-review");
+    const baseline = buildCurrentRecoveryFingerprint({
+      root,
+      flowState: state,
+      kind: "review",
+      canonicalPhase: "spec",
+      baseline: null,
+    });
+    persistRecoveryBaseline(state, {
+      kind: "review",
+      phase: "spec",
+      fingerprint: baseline,
+      createdAt: "2026-07-24T00:00:00.000Z",
+    });
+    const flowManager = makeFlowManager(root);
+    flowManager.create(state);
+    fs.writeFileSync(path.join(root, spec), '{"revision":2}\n');
+
+    applyRetryReset({
+      root,
+      spec,
+      flowManager,
+      input: {
+        action: "reset",
+        kind: "review",
+        phase: "spec",
+        reason: "changed review evidence",
+        yes: true,
+      },
+      expectedAttempts: 1,
+      expectedMaxAttempts: 1,
+      expectedRunId: state.runId,
+      expectedHasIssue: false,
+      createdAt: "2026-07-24T00:01:00.000Z",
+      resolveConfiguredMaxAttempts: () => 1,
+      afterReset(flowState) {
+        new ReviewToolingRecoveryMutation({
+          phase: "spec",
+          taskId: null,
+          previousTreeSha,
+          nextTreeSha,
+          expectedRunId: state.runId,
+          expectedSpec: spec,
+        }).apply(flowState);
+      },
+    });
+
+    const recovered = flowManager.load();
+    assert.equal(recovered.retryRecovery.entries.length, 1);
+    assert.equal(recovered.reviewConvergence.records.length, 1);
+    assert.equal(recovered.reviewConvergence.records[0].treeSha, nextTreeSha);
+    assert.equal(recovered.reviewConvergence.records[0].toolingAttempts, 0);
+    assert.equal(recovered.reviewConvergence.records[0].toolingMaxAttempts, 1);
+    assert.equal(recovered.reviewConvergence.records[0].semanticAttempts, 2);
+    assert.equal(recovered.reviewConvergence.records[0].provider, "independent-reviewer");
   });
 
   for (const scenario of ["flow-payload", "flow-duplicate", "public-payload", "issue-payload"]) {

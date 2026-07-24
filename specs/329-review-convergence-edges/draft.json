@@ -1,0 +1,73 @@
+{
+  "devType": "bugfix",
+  "goal": "同一targetのfinding identity、tree SHA変更時のtooling recovery、flow/task scopeを修正し、target・provenance・evidence digest・dispositionを検証済みのcanonical review evidenceとflow-level handoff recordを各1件だけ保存する。",
+  "analysis": {
+    "problem": "Issue #452後も、same-targetの別finding identity衝突、tooling exhaustion後のchanged-tree recoveryにおけるatomic state更新、残留currentTaskId下のflow/task canonical exhaustion scopeという3境界が未解決で、target・provenance・evidence digest・dispositionを持つreview結果がcanonical evidence保存またはacceptance handoffで停止しうる。",
+    "proposedApproach": "#448/#452で確立したscope、CAS、同一tree/evidenceのduplicate execution拒否を維持する。findingIdのSHA-256入力へ正規化済みtarget、finding kindまたはfailureMode、title、issueまたはimprovementを含め、配列indexとfinding順序を含めない。tree SHAが変わった場合だけtoolingAttemptsをexhausted値1から0へ単一CASで戻し、toolingMaxAttempts=1、semanticAttempts、semanticMaxAttempts、provenance、target guardを維持する。canonical exhaustionのscopeはactive review phaseから決め、flow-levelはtaskId:null、task-levelは対象taskIdを使用する。",
+    "validation": "tests/unit/flow/commands/review.test.jsで同一targetのdistinct finding、同一finding再parse、finding順序変更、true duplicateのidentity matrixを検証する。tests/unit/flow/retry-recovery-convergence.test.jsでsame-tree拒否、changed-tree時にtoolingAttemptsを1から0へ一度だけ戻すこと、toolingMaxAttempts=1によりinitial execution後のretryが1回かつReviewToolingOutcomeのtotal maxAttemptsが2であること、semanticAttempts・semanticMaxAttempts・provenance・target guard保持、単一CAS更新を検証する。tests/unit/flow/run-review-advisory.test.js、tests/unit/flow/retry-exhaustion-defer.test.js、tests/e2e/231-task-e2e-full-lifecycle.test.jsでtest/implのflow scopeがcurrentTaskId残留時もtaskId:null、task reviewが対象taskId、PASS/ADVISORY/REJECTED/exhaustionの各経路がacceptanceへ一度だけhandoffすることを検証する。これらのtestとnpm testをexit code 0で完了し、同一tree/evidenceのduplicate拒否、review semantic maxAttemptsのdraft-questions=1・draft-coverage=1・spec=4・test=5・impl=4・task=4、toolingMaxAttempts=1、semantic attemptとprovenance保持、flow/task lifecycle分離が維持されることを確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #452でreview dispositionとtooling failureは分離済みだが、finding identity、tree SHA変更時にtoolingAttemptsを1から0へ一度だけ戻すrecovery、flow/task scopeの3境界が残っている。",
+      "must: #448/#452のscope、CAS、同一tree/evidenceのduplicate execution拒否、review semantic maxAttemptsのdraft-questions=1・draft-coverage=1・spec=4・test=5・impl=4・task=4、toolingMaxAttempts=1を維持する。",
+      "must: 証拠commit daa1900a、6923e01a、53a38a1cとbranch fix/test-review-finding-identityは参照専用であり、直接mergeしない。"
+    ],
+    "decisionPoints": [
+      "must: findingIdのSHA-256入力は正規化済みtarget、finding kindまたはfailureMode、title、issueまたはimprovementを含み、配列indexとfinding順序を含めない。同じtupleは同じID、titleまたはissue/improvementが異なるtupleは異なるIDにする。",
+      "must: tooling exhaustion後は同一treeで再開せず、tree SHA変更時だけtoolingAttemptsを1から0へ一度戻し、toolingMaxAttempts=1、semanticAttempts、semanticMaxAttemptsを保持する。",
+      "must: canonical exhaustion scopeはactive review phaseから決定し、flow-levelはtaskId:null、task-levelは対象taskIdを維持する。",
+      "must: flow-level findingはacceptanceへ一度だけhandoffし、task-level reviewはflow lifecycleを変更しない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: src/flow/definition.jsのreview semantic maxAttempts（draft-questions=1、draft-coverage=1、spec=4、test=5、impl=4、task=4）と全review nodeのtoolingMaxAttempts=1を変更しない。",
+      "must: src/lib/agent.js、src/lib/process.js、provider profile設定、OS・sandbox permission処理を変更せず、外部依存を追加しない。",
+      "must: Issue #453のAcceptance Criteriaまたはvalidation matrixを表すassertionを削除・skip・todo化・真偽反転・入力case削減せず、失敗時はproduction codeを修正する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: findingIdは正規化済みtarget、finding kindまたはfailureMode、title、issueまたはimprovementを含み、配列indexとfinding順序を含まないcanonical JSONのSHA-256とする。同じ正規化tupleは同じID、titleまたはissue/improvementが異なるtupleは異なるIDにする。",
+      "must: changed-tree recoveryはexpected revision不一致なら書き込まず、一致時はtoolingAttemptsの1から0への変更とrecovery grantを同じcommitで1回だけ保存し、semanticAttempts、semanticMaxAttempts、provenance、runId・issue・spec・phase・taskIdのtarget guardをbyte-equivalentに保持する。",
+      "must: test/impl flow reviewはcurrentTaskIdが非nullでもtaskId:nullのcompletionとhandoff各1件、task reviewは対象taskIdのcompletion 1件かつflow step・currentTaskId・acceptance handoff変更0件としてspec要件へ分解する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/flow/commands/review.jsのfinding identity生成境界を対象とする。",
+      "must: src/flow/lib/review-convergence.jsのtarget・provenance・evidence digest・disposition検証、semantic/tooling attempt state、canonical evidence重複拒否、handoff record生成を対象とする。",
+      "must: src/flow/lib/set-retry.jsのtree SHA変更時にtoolingAttemptsを1から0へ一度だけ戻すrecoveryと単一CAS更新を対象とする。",
+      "must: src/flow/lib/run-review.jsのretry exhaustion、flow/task scope、canonical promotion経路を対象とする。",
+      "must: tests/unit/flow/commands/review.test.js、tests/unit/flow/retry-recovery-convergence.test.js、tests/unit/flow/run-review-advisory.test.js、tests/unit/flow/retry-exhaustion-defer.test.js、tests/e2e/231-task-e2e-full-lifecycle.test.jsで3境界を検証するcaseの追加または更新を対象とする。"
+    ],
+    "out": [
+      "must: review semantic maxAttemptsのdraft-questions=1・draft-coverage=1・spec=4・test=5・impl=4・task=4、および全review nodeのtoolingMaxAttempts=1を増加させない。",
+      "must: src/lib/agent.js、src/lib/process.js、provider profile設定、OS・sandbox permission処理を変更しない。",
+      "must: 入力finding内容からPASS・ADVISORY・REJECTEDおよびblocking・advisory bucketを決める既存判定を変更しない。",
+      "must: src/flow/lib/run-acceptance-review.js、src/flow/lib/acceptance-review-artifacts.js、src/flow/lib/set-acceptance-decision.js、src/flow/schemas/acceptance-review.schema.json、src/flow/schemas/next-action/acceptance-review.schema.json、src/flow/prompts/impl/acceptance-review.md、src/flow/prompts/impl/acceptance-decision.mdを変更しない。",
+      "must: 証拠branchまたは証拠commitを直接mergeしない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: 同一phase・taskId・tree SHA・evidence digestの2回目のexecutionとcanonical evidence insertを拒否し、expected revision不一致ではreview convergence recordを0件変更する。",
+    "must: tree SHA変更後もsemanticAttempts、semanticMaxAttempts、既存provenanceを保持し、toolingAttemptsだけをexhausted値1から0へ一度戻す。toolingMaxAttempts=1は変更しない。",
+    "must: test/impl flow reviewはtaskId:nullのcompletionとhandoffを各1件保存し、task reviewは対象taskIdのcompletionを1件保存してflow step・currentTaskId・acceptance handoffを0件変更する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] Issue #453で定義されたGoal、Scope、Out of Scope、Invariantsを変更せず、toolingMaxAttempts=1を維持した3境界の修正として進めますか？",
+      "answer": "[must] 採用する。Issue #453の意図を修正せず、同一targetのfinding identity、tree SHA変更時だけtoolingAttemptsを1から0へ一度戻すrecovery、active review phaseに基づくflow/task canonical exhaustion scopeを対象とする。",
+      "evidence": "flow.json notes[0] records that the Issue #453 intent was accepted without revision; issue.md defines the three boundaries, scope, exclusions, and invariants reflected in this draft.",
+      "why": "[must] Goalと境界を先に固定することで、review semantic maxAttemptsまたはtoolingMaxAttemptsの増加、provider・sandbox修正、PASS・ADVISORY・REJECTED判定変更、acceptance reviewの3実装module・2 schema・2 promptの変更へscopeが拡大することを防ぐ。",
+      "considered": "Issue #453の意図を修正する案はpreludeで選択されず、証拠branchを直接mergeする案はOut of Scopeのため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-24T14:21:19.000Z",
+    "notes": "Issue #453 preludeで受理済みのGoal、Scope、Out of Scope、Invariantsに基づく。"
+  }
+}

@@ -187,9 +187,12 @@ class StaleIntegrationTestEvidence {
 
   recover(ctx, { level, phase, specDir }) {
     const refresh = this.mismatch.recover({
+      root: ctx.root,
+      state: ctx.flowState,
       specDir,
       flowManager: ctx.flowManager,
       reason: "integration gate detected stale fingerprint evidence",
+      sourceStep: "impl-gate",
     });
     ctx.gateEvidenceRefresh = true;
     return {
@@ -216,6 +219,19 @@ class StaleIntegrationTestEvidence {
 export function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
   const specPath = state.spec;
   const specDir = path.dirname(path.resolve(root, specPath));
+  const fingerprint = buildRepairFingerprint({ root, specPath, state });
+  const artifacts = new Map();
+  for (const file of ["test-execute-result.json", "test-result-review.json"]) {
+    const artifactPath = path.join(specDir, file);
+    if (!fs.existsSync(artifactPath)) continue;
+    const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+    artifacts.set(file, artifact);
+  }
+  const mismatch = StaleTestEvidenceMismatch.detect({
+    artifacts,
+    currentFingerprint: fingerprint.hash,
+  });
+  if (mismatch) return new StaleIntegrationTestEvidence(mismatch);
   const result = validateIntegrationArtifactTrust({
     root,
     specDir,
@@ -229,18 +245,6 @@ export function checkIntegrationTestArtifacts(root, state, level, phase, config 
       `test artifact validation failed: ${result.reason}`,
     ], { phase, level, spec: specPath });
   }
-  const fingerprint = buildRepairFingerprint({ root, specPath, state });
-  const artifacts = new Map();
-  for (const file of ["test-execute-result.json", "test-result-review.json"]) {
-    const artifactPath = path.join(specDir, file);
-    const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
-    artifacts.set(file, artifact);
-  }
-  const mismatch = StaleTestEvidenceMismatch.detect({
-    artifacts,
-    currentFingerprint: fingerprint.hash,
-  });
-  if (mismatch) return new StaleIntegrationTestEvidence(mismatch);
   for (const [file, artifact] of artifacts) {
     assertRepairFingerprint({
       artifact,
@@ -449,6 +453,24 @@ export function excludeScenarioValidityEvidenceFromTaskGateDiff(diff, specPath) 
     .join("");
 }
 
+export function excludeGateLifecycleArtifactsFromGateDiff(diff, specPath) {
+  if (typeof diff !== "string") throw new Error("diff must be a string");
+  return diff
+    .split(/(?=^diff --git )/m)
+    .filter((segment) => {
+      const header = segment.match(/^diff --git a\/.+? b\/(.+)\r?$/m);
+      return !header || !isGateLifecycleArtifactForGate(header[1], specPath);
+    })
+    .join("");
+}
+
+function buildGateEvaluationDiff({ committed, uncommitted, untracked, specPath }) {
+  return excludeGateLifecycleArtifactsFromGateDiff(
+    committed + uncommitted + untracked,
+    specPath,
+  );
+}
+
 function summarizeDiffSegment(file, fileDiff) {
   const added = (fileDiff.match(/^\+(?!\+\+)/gm) || []).length;
   const removed = (fileDiff.match(/^-(?!--)/gm) || []).length;
@@ -539,6 +561,19 @@ function isGeneratedSpecArtifactForGate(relPath, specPath) {
   if (!normalized.startsWith(`${specDir}/`)) return false;
   if (/^specs\/[^/]+\/tests\/[^/]+\.(test|spec)\.(js|mjs|ts)$/.test(normalized)) return false;
   return true;
+}
+
+function isGateLifecycleArtifactForGate(relPath, specPath) {
+  if (!specPath) return false;
+  const specDir = path.posix.dirname(specPath.split(path.sep).join("/"));
+  const normalized = relPath.split(path.sep).join("/");
+  if (!normalized.startsWith(`${specDir}/`)) return false;
+  const localPath = normalized.slice(specDir.length + 1);
+  return localPath === "flow.json"
+    || localPath === "issue-log.json"
+    || localPath === "retry-recovery.json"
+    || localPath === ".retry-recovery.transaction.json"
+    || /^(?:draft|spec|task-impl|impl)-gate-(?:source|result)\.json$/.test(localPath);
 }
 
 function sectionAt(lines, lineIdx) {
@@ -5110,7 +5145,12 @@ export class RunGateCommand extends FlowCommand {
     const untracked = await collectUntrackedDiff(root, {
       excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, state.spec),
     });
-    const diff = committed + uncommitted + untracked;
+    const diff = buildGateEvaluationDiff({
+      committed,
+      uncommitted,
+      untracked,
+      specPath: state.spec,
+    });
 
     if (!diff.trim()) {
       return finish(gateFail(level, phase, specPath, [], [
@@ -5261,7 +5301,12 @@ export class RunGateCommand extends FlowCommand {
     const untracked = await collectUntrackedDiff(root, {
       excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, state.spec),
     });
-    const diff = committed + uncommitted + untracked;
+    const diff = buildGateEvaluationDiff({
+      committed,
+      uncommitted,
+      untracked,
+      specPath: state.spec,
+    });
     const guardrailDiff = excludeScenarioValidityEvidenceFromTaskGateDiff(diff, state.spec);
     if (!guardrailDiff.trim()) {
       return gateFail(level, phase, taskSpec.relPath, [], [

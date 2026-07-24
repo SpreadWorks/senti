@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js"
+    ],
+    "inputHash": "933c84a50d5c8f7d5927a6f75cedb03ad9386b8836f8d9a704c462e3b8b10e99",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js"
+  ],
+  "inputHash": "933c84a50d5c8f7d5927a6f75cedb03ad9386b8836f8d9a704c462e3b8b10e99",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:27:41.228Z",
+  "finishedAt": "2026-07-24T23:27:41.228Z",
+  "rawResponse": "I’ll inspect the touched test file context before proposing anything, so the review stays scoped to the diff and avoids guessing about local helper patterns.The paths in the prompt are relative to the repo, but this workspace root appears to be a temporary wrapper. I’m locating the checkout before reading the touched files.### 1. Extract the Exhausted Review Record Fixture\n**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R3  \n**Issue:** The new test builds a large inline `reviewConvergence.records[0]` object, mixing the scenario setup with low-level convergence record shape. This makes the test harder to scan and likely duplicates fixture structure used by adjacent retry recovery tests.  \n**Suggestion:** Move the record construction into a local helper such as `makeToolingExhaustedReviewRecord({ phase, treeSha, targetStateDigest })`, with only scenario-specific fields passed in. Keep assertions in the test focused on the changed-tree tooling reset behavior.\n\n### 2. Name the Stale Failure Summary Entry\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The added lines mutate `testResult.summary[0]` twice, which hides the intent of the fixture change and repeats the positional lookup.  \n**Suggestion:** Assign the entry to a named local before mutation, for example `const staleFailure = testResult.summary[0];`, then set `staleFailure.result` and `staleFailure.error`. This makes it clearer that the test is intentionally preparing stale failed evidence before the refresh-only repair path.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract the Exhausted Review Record Fixture",
+        "body": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R3  \n**Issue:** The new test builds a large inline `reviewConvergence.records[0]` object, mixing the scenario setup with low-level convergence record shape. This makes the test harder to scan and likely duplicates fixture structure used by adjacent retry recovery tests.  \n**Suggestion:** Move the record construction into a local helper such as `makeToolingExhaustedReviewRecord({ phase, treeSha, targetStateDigest })`, with only scenario-specific fields passed in. Keep assertions in the test focused on the changed-tree tooling reset behavior.",
+        "file": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Name the Stale Failure Summary Entry",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The added lines mutate `testResult.summary[0]` twice, which hides the intent of the fixture change and repeats the positional lookup.  \n**Suggestion:** Assign the entry to a named local before mutation, for example `const staleFailure = testResult.summary[0];`, then set `staleFailure.result` and `staleFailure.error`. This makes it clearer that the test is intentionally preparing stale failed evidence before the refresh-only repair path.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

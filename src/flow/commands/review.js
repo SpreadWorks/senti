@@ -59,6 +59,7 @@ import {
 import {
   FindingDispositionPolicy,
   MustFixDisposition,
+  REVIEW_FINDING_CANONICAL_FIELD_MAX_CHARS,
   ReviewFindingCycle,
   ReviewFindingFingerprint,
 } from "../lib/finding-disposition-policy.js";
@@ -2037,7 +2038,6 @@ function buildTestFixPrompt(testDesign, gaps, testFiles) {
 const TEST_REVIEW_JSON_FILE = "test-review.json";
 const TEST_COVERAGE_JSON_FILE = "test-coverage.json";
 const TEST_REVIEW_FINDING_KINDS = Object.freeze(["blocking", "advisory"]);
-const TEST_REVIEW_FIELD_MAX_CHARS = 1200;
 const TEST_REVIEW_TRUNCATION_SUFFIX = " [truncated]";
 
 const TEST_REVIEW_BLOCKING_ITEM_SCHEMA = Object.freeze({
@@ -2093,8 +2093,8 @@ const TEST_REVIEW_FMT_FALLBACK = [
 
 function normalizeTestReviewText(value, fallback) {
   const text = typeof value === "string" && value.trim() !== "" ? value.trim() : fallback;
-  return text.length > TEST_REVIEW_FIELD_MAX_CHARS
-    ? `${text.slice(0, TEST_REVIEW_FIELD_MAX_CHARS - TEST_REVIEW_TRUNCATION_SUFFIX.length)}${TEST_REVIEW_TRUNCATION_SUFFIX}`
+  return text.length > REVIEW_FINDING_CANONICAL_FIELD_MAX_CHARS
+    ? `${text.slice(0, REVIEW_FINDING_CANONICAL_FIELD_MAX_CHARS - TEST_REVIEW_TRUNCATION_SUFFIX.length)}${TEST_REVIEW_TRUNCATION_SUFFIX}`
     : text;
 }
 
@@ -2105,7 +2105,7 @@ class TestReviewFinding {
     }
     this.kind = kind;
     this.title = normalizeTestReviewText(item.title, "Untitled test review finding");
-    this.target = normalizeTestReviewText(item.target, "GLOBAL");
+    this.target = normalizeTestReviewText(item.target, "GLOBAL").replaceAll("\\", "/");
     if (kind === "blocking") {
       this.issue = normalizeTestReviewText(item.issue, "Blocking test issue.");
       this.requiredChange = normalizeTestReviewText(item.requiredChange, "Fix the blocking test issue.");
@@ -2118,13 +2118,12 @@ class TestReviewFinding {
     }
     this.disposition = kind === "blocking" ? "must-fix" : "informational";
     this.rationale = kind === "blocking" ? this.whyBlocking : this.whyNonBlocking;
-    this.fingerprint = ReviewFindingFingerprint.fromFinding({
-      category: this.failureKind || kind,
-      requirementId: this.target,
-      file: this.target.includes("/") ? this.target : null,
-      title: this.title,
-      issue: kind === "blocking" ? this.issue : this.improvement,
-    }).value;
+    this.fingerprint = ReviewFindingFingerprint.fromCanonicalTuple([
+      this.target,
+      this.failureKind || kind,
+      this.title,
+      kind === "blocking" ? this.issue : this.improvement,
+    ]).value;
     this.findingId = this.fingerprint;
   }
 

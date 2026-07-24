@@ -1,0 +1,161 @@
+[senti] spec-local tests start
+command: node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js
+process.kind: passed
+process.command: node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 4770
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 2851.165135
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R3: same-tree recovery is rejected without changing convergence state
+ok 1 - R3: same-tree recovery is rejected without changing convergence state
+  ---
+  duration_ms: 3.264017
+  type: 'test'
+  ...
+# Subtest: R4: changed-tree recovery resets tooling state once and preserves target guards
+ok 2 - R4: changed-tree recovery resets tooling state once and preserves target guards
+  ---
+  duration_ms: 1.200807
+  type: 'test'
+  ...
+# Subtest: R4: public recovery commits one grant with the tooling reset and stays idempotent
+ok 3 - R4: public recovery commits one grant with the tooling reset and stays idempotent
+  ---
+  duration_ms: 606.027949
+  type: 'test'
+  ...
+# Subtest: R4: flow-state write failure persists neither recovery grant nor tooling reset
+ok 4 - R4: flow-state write failure persists neither recovery grant nor tooling reset
+  ---
+  duration_ms: 137.223553
+  type: 'test'
+  ...
+# Subtest: R4: target guard mismatch rejects the whole recovery mutation
+ok 5 - R4: target guard mismatch rejects the whole recovery mutation
+  ---
+  duration_ms: 0.555563
+  type: 'test'
+  ...
+# Subtest: R7: recovery preserves configured limits and the prior tooling outcome provenance
+ok 6 - R7: recovery preserves configured limits and the prior tooling outcome provenance
+  ---
+  duration_ms: 0.393642
+  type: 'test'
+  ...
+# Subtest: R7: implementation leaves acceptance semantics protected and limits stale-ledger routing
+ok 7 - R7: implementation leaves acceptance semantics protected and limits stale-ledger routing
+  ---
+  duration_ms: 18.512137
+  type: 'test'
+  ...
+# Subtest: R7: final-regression invalidates stale test evidence before project tests start
+ok 8 - R7: final-regression invalidates stale test evidence before project tests start
+  ---
+  duration_ms: 570.930166
+  type: 'test'
+  ...
+# Subtest: R7: recovered final-regression bypasses completion post-hook validation
+ok 9 - R7: recovered final-regression bypasses completion post-hook validation
+  ---
+  duration_ms: 2.765415
+  type: 'test'
+  ...
+# Subtest: R7: gate input excludes only gate-owned lifecycle artifacts
+ok 10 - R7: gate input excludes only gate-owned lifecycle artifacts
+  ---
+  duration_ms: 2.244332
+  type: 'test'
+  ...
+# Subtest: R7: PASS ADVISORY and REJECTED retain their finding bucket invariants
+ok 11 - R7: PASS ADVISORY and REJECTED retain their finding bucket invariants
+  ---
+  duration_ms: 1.336247
+  type: 'test'
+  ...
+# Subtest: R7: canonical finding tuples enforce fixed and bounded input
+ok 12 - R7: canonical finding tuples enforce fixed and bounded input
+  ---
+  duration_ms: 0.526843
+  type: 'test'
+  ...
+# Subtest: R5: flow-level test post-hook ignores a residual task cursor
+ok 13 - R5: flow-level test post-hook ignores a residual task cursor
+  ---
+  duration_ms: 237.898996
+  type: 'test'
+  ...
+# Subtest: R5: flow-level impl post-hook preserves an explicit null task scope
+ok 14 - R5: flow-level impl post-hook preserves an explicit null task scope
+  ---
+  duration_ms: 194.578451
+  type: 'test'
+  ...
+# Subtest: R5: exhausted flow evidence creates one handoff and rejects identical reprocessing
+ok 15 - R5: exhausted flow evidence creates one handoff and rejects identical reprocessing
+  ---
+  duration_ms: 3.786419
+  type: 'test'
+  ...
+# Subtest: R5: exhausted flow findings persist once per identity despite a residual task cursor
+ok 16 - R5: exhausted flow findings persist once per identity despite a residual task cursor
+  ---
+  duration_ms: 56.892415
+  type: 'test'
+  ...
+# Subtest: R6: task-level post-hook retains its task without changing flow lifecycle state
+ok 17 - R6: task-level post-hook retains its task without changing flow lifecycle state
+  ---
+  duration_ms: 197.016743
+  type: 'test'
+  ...
+# Subtest: R1: same-target findings retain title and issue in distinct canonical identities
+ok 18 - R1: same-target findings retain title and issue in distinct canonical identities
+  ---
+  duration_ms: 3.063456
+  type: 'test'
+  ...
+# Subtest: R1: target kind failure mode and advisory improvement participate in the canonical tuple
+ok 19 - R1: target kind failure mode and advisory improvement participate in the canonical tuple
+  ---
+  duration_ms: 2.541773
+  type: 'test'
+  ...
+# Subtest: R1: equivalent path target representations normalize to one identity
+ok 20 - R1: equivalent path target representations normalize to one identity
+  ---
+  duration_ms: 0.880564
+  type: 'test'
+  ...
+# Subtest: R2: reparsing and reordering preserve identity while exact duplicates are rejected
+ok 21 - R2: reparsing and reordering preserve identity while exact duplicates are rejected
+  ---
+  duration_ms: 2.090251
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2851.165135
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] spec-local tests end

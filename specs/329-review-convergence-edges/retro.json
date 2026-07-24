@@ -1,0 +1,55 @@
+{
+  "spec": "specs/329-review-convergence-edges/spec.json",
+  "date": "2026-07-24T23:30:02.929Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "test-review findingIdは正規化済みtarget、finding kindまたはfailureMode、title、issueまたはimprovementを含み、配列indexとfinding順序を含まないcanonical tupleのSHA-256とする。",
+      "status": "done",
+      "note": "R1: same-target findings retain title and issue in distinct canonical identities"
+    },
+    {
+      "desc": "同じcanonical tupleの再parseとfinding順序変更は同じfindingIdを生成し、titleまたはissue/improvementが異なるsame-target tupleは異なるfindingIdを生成し、完全一致tupleだけをduplicateとして拒否する。",
+      "status": "done",
+      "note": "R2: reparsing and reordering preserve identity while exact duplicates are rejected"
+    },
+    {
+      "desc": "toolingAttempts=1でexhaustedしたreviewは同じtree SHAでは再開を拒否し、tree SHAが変わった場合だけtoolingAttemptsを0へ一度戻してtoolingMaxAttempts=1のretryを許可する。",
+      "status": "done",
+      "note": "R3: same-tree recovery is rejected without changing convergence state"
+    },
+    {
+      "desc": "changed-tree recoveryはexpected revision一致時にtoolingAttempts 1→0とrecovery grantを同じflow state CAS mutationで各1件保存し、semanticAttempts、semanticMaxAttempts、provenance、runId・issue・spec・phase・taskId guardを変更しない。",
+      "status": "done",
+      "note": "R4: changed-tree recovery resets tooling state once and preserves target guards"
+    },
+    {
+      "desc": "flow-level test/impl reviewのcanonical exhaustionはcurrentTaskIdが非nullでもtaskId:nullのcompletion recordとflow finding handoffを各identityにつき1件保存し、同じevidenceの再処理で追加recordを作らない。",
+      "status": "done",
+      "note": "R5: flow-level test post-hook ignores a residual task cursor"
+    },
+    {
+      "desc": "task-level reviewは対象taskIdのcompletion recordを1件保存し、flow-level step status、currentTaskId、acceptance handoffを変更しない。",
+      "status": "done",
+      "note": "R6: task-level post-hook retains its task without changing flow lifecycle state"
+    },
+    {
+      "desc": "review semantic maxAttempts、toolingMaxAttempts=1、same-tree/evidence duplicate拒否、PASS・ADVISORY・REJECTED bucket invariant、protected acceptance source filesを変更せず、final-regressionの修正後stale test evidenceはhashを手編集せず既存refresh-only repair transactionでdelta・ledger・manifestを現行fingerprintまで更新し、無効化してtest-executeへ戻す。",
+      "status": "done",
+      "note": "R7: recovery preserves configured limits and the prior tooling outcome provenance"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "acf9e7702cc2106a54250d667543feaa426b229fed79d3653e392d95ffc61bd5"
+}

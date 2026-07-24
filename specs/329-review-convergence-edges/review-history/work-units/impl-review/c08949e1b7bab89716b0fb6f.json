@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "c08949e1b7bab89716b0fb6f",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-333baa1d004babd7",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/329-review-convergence-edges/draft-review-questions.json",
+      "specs/329-review-convergence-edges/flow.json",
+      "specs/329-review-convergence-edges/issue.md",
+      "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+      "specs/329-review-convergence-edges/spec.json",
+      "src/flow/lib/finding-disposition-policy.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/set-retry.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js"
+    ],
+    "inputHash": "333baa1d004babd7139fc49a07ec9d15a97b321f999af268dcde157c58cb064f",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c08949e1b7bab89716b0fb6f"
+  },
+  "targetFiles": [
+    "specs/329-review-convergence-edges/draft-review-questions.json",
+    "specs/329-review-convergence-edges/flow.json",
+    "specs/329-review-convergence-edges/issue.md",
+    "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+    "specs/329-review-convergence-edges/spec.json",
+    "src/flow/lib/finding-disposition-policy.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/set-retry.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js"
+  ],
+  "inputHash": "333baa1d004babd7139fc49a07ec9d15a97b321f999af268dcde157c58cb064f",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T16:30:41.056Z",
+  "finishedAt": "2026-07-24T16:30:41.056Z",
+  "rawResponse": "### 1. Normalize Review History Finding Schema\n**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** Review history attempts use inconsistent finding payload shapes: attempt 001 omits `target` and `evidence`, while attempt 002 includes them. This creates a cross-file interface inconsistency for consumers reading `review-history/*.json`.  \n**Suggestion:** Make all review-history attempt files use the same finding schema, either by adding `target` and `evidence` to attempt 001 or by moving detailed finding data exclusively into `repairTargets` across all attempts.\n\n### 2. Choose One Canonical Recovery Source\n**File:** `specs/329-review-convergence-edges/issue-log.json`  \n**Requirement:** R3  \n**Issue:** Retry recovery state is duplicated across `flow.json.retryRecovery.entries` and `issue-log.json`, including matching ids, attempts, evidence changes, max attempts, and recovery commands. This introduces cross-file drift risk between lifecycle state and issue-log reporting.  \n**Suggestion:** Keep structured retry recovery data canonical in `flow.json`, and store only concise references plus human-readable notes in `issue-log.json`.\n\n### 3. Align Review Scope Naming Across Runtime Files\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R5  \n**Issue:** `ReviewCompletionScope` in `run-review.js` appears to represent the same broader review phase/task scope used by `set-retry.js` helpers such as `reviewRecoveryTaskId()` and convergence-target lookup. The naming differs across files, making the shared interface concept harder to follow.  \n**Suggestion:** Use a consistent naming family such as `ReviewScope`, `ReviewAttemptScope`, `resolveReviewScope`, and `resolveReviewConvergenceTaskId` across `run-review.js` and `set-retry.js`.\n\n### 4. Centralize Review Identity Hashing\n**File:** `src/flow/lib/finding-disposition-policy.js`  \n**Requirement:** R1  \n**Issue:** Finding identity construction is discussed in both `review.js` and `finding-disposition-policy.js`, but hashing and identity-body selection are split across files with duplicated or unnamed logic. This makes the cross-file identity contract harder to audit.  \n**Suggestion:** Introduce a clearly named shared helper for stable SHA-256 fingerprinting and use named identity-body variables at call sites before passing canonical tuples.\n\n### 5. Consolidate Generated Artifact Retention Rules\n**File:** `specs/329-review-convergence-edges/flow.json`  \n**Requirement:** R7  \n**Issue:** Multiple files introduce or preserve unbounded generated history: `flow.json` arrays, `issue-log.json` repeated gate attempts, and `review-history/*.json` near-duplicate attempts. The retention behavior is inconsistent across artifacts.  \n**Suggestion:** Define one retention policy for generated review/gate history, then apply it consistently across `flow.json`, `issue-log.json`, and `review-history` artifacts using bounded histories or grouped summaries.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Review History Finding Schema",
+        "body": "**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** Review history attempts use inconsistent finding payload shapes: attempt 001 omits `target` and `evidence`, while attempt 002 includes them. This creates a cross-file interface inconsistency for consumers reading `review-history/*.json`.  \n**Suggestion:** Make all review-history attempt files use the same finding schema, either by adding `target` and `evidence` to attempt 001 or by moving detailed finding data exclusively into `repairTargets` across all attempts.",
+        "file": "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Choose One Canonical Recovery Source",
+        "body": "**File:** `specs/329-review-convergence-edges/issue-log.json`  \n**Requirement:** R3  \n**Issue:** Retry recovery state is duplicated across `flow.json.retryRecovery.entries` and `issue-log.json`, including matching ids, attempts, evidence changes, max attempts, and recovery commands. This introduces cross-file drift risk between lifecycle state and issue-log reporting.  \n**Suggestion:** Keep structured retry recovery data canonical in `flow.json`, and store only concise references plus human-readable notes in `issue-log.json`.",
+        "file": "specs/329-review-convergence-edges/issue-log.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Align Review Scope Naming Across Runtime Files",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R5  \n**Issue:** `ReviewCompletionScope` in `run-review.js` appears to represent the same broader review phase/task scope used by `set-retry.js` helpers such as `reviewRecoveryTaskId()` and convergence-target lookup. The naming differs across files, making the shared interface concept harder to follow.  \n**Suggestion:** Use a consistent naming family such as `ReviewScope`, `ReviewAttemptScope`, `resolveReviewScope`, and `resolveReviewConvergenceTaskId` across `run-review.js` and `set-retry.js`.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Centralize Review Identity Hashing",
+        "body": "**File:** `src/flow/lib/finding-disposition-policy.js`  \n**Requirement:** R1  \n**Issue:** Finding identity construction is discussed in both `review.js` and `finding-disposition-policy.js`, but hashing and identity-body selection are split across files with duplicated or unnamed logic. This makes the cross-file identity contract harder to audit.  \n**Suggestion:** Introduce a clearly named shared helper for stable SHA-256 fingerprinting and use named identity-body variables at call sites before passing canonical tuples.",
+        "file": "src/flow/lib/finding-disposition-policy.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Consolidate Generated Artifact Retention Rules",
+        "body": "**File:** `specs/329-review-convergence-edges/flow.json`  \n**Requirement:** R7  \n**Issue:** Multiple files introduce or preserve unbounded generated history: `flow.json` arrays, `issue-log.json` repeated gate attempts, and `review-history/*.json` near-duplicate attempts. The retention behavior is inconsistent across artifacts.  \n**Suggestion:** Define one retention policy for generated review/gate history, then apply it consistently across `flow.json`, `issue-log.json`, and `review-history` artifacts using bounded histories or grouped summaries.",
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

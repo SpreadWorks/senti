@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/329-review-convergence-edges/flow.json",
+      "specs/329-review-convergence-edges/issue-log.json"
+    ],
+    "inputHash": "83d27b66159f6a194362bea4e747bcc523f2b7f293c0fea5a22891b5c282a6a0",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "specs/329-review-convergence-edges/flow.json",
+    "specs/329-review-convergence-edges/issue-log.json"
+  ],
+  "inputHash": "83d27b66159f6a194362bea4e747bcc523f2b7f293c0fea5a22891b5c282a6a0",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:26:18.087Z",
+  "finishedAt": "2026-07-24T23:26:18.087Z",
+  "rawResponse": "### 1. Bound Review History Growth\n**File:** `specs/329-review-convergence-edges/flow.json`\n**Requirement:** R7\n**Issue:** `reviewConvergence.records[*].evidenceHistory` and `reviewConvergence.records[*].handoffFindings` can grow with every review attempt, and this file already shows large repeated histories. This risks violating `bounded-resource-usage` because persisted review state has no visible max count or compaction policy.\n**Suggestion:** Persist only the latest finalized evidence plus a bounded recent history, or move full history to append-only artifacts referenced by digest while keeping `flow.json` capped to a documented maximum.\n\n### 2. Deduplicate Recovery Baselines\n**File:** `specs/329-review-convergence-edges/flow.json`\n**Requirement:** R3\n**Issue:** `reviewRecoveryBaselines` contains repeated entries with identical `kind`, `phase`, `canonicalPhase`, `fingerprint`, and `trigger`, differing only by `createdAt`. This duplicates state and makes recovery reasoning noisier.\n**Suggestion:** Store one baseline per `(kind, canonicalPhase, fingerprint.hash, trigger)` and track repeated observations as a bounded `observedAt` array or a `count`.\n\n### 3. Normalize Repeated Finding Handoff Metadata\n**File:** `specs/329-review-convergence-edges/flow.json`\n**Requirement:** R6\n**Issue:** Every `handoffFindings` item repeats the same `phase`, `taskId`, `treeSha`, `provenance`, `canonicalEvidenceRef`, `evidenceDigest`, `reviewDisposition`, and `finalDispositionOwner` already present on the parent convergence record.\n**Suggestion:** Keep shared handoff metadata on the parent record and store only finding-specific fields in each item: `findingId`, `summary`, `fingerprint`, `evidenceRefs`, and `sourceStep`.\n\n### 4. Compact Duplicate Final Regression Fingerprints\n**File:** `specs/329-review-convergence-edges/issue-log.json`\n**Requirement:** R7\n**Issue:** `changedFileFingerprints` repeats identical path/fingerprint pairs, for example duplicated `draft-review-questions.json`, `draft.json`, and `spec.json` entries. This inflates artifacts and weakens scanability.\n**Suggestion:** Deduplicate `changedFileFingerprints` by `(path, fingerprint)` before writing the issue-log entry.\n\n### 5. Bound Large Failure Evidence Lists\n**File:** `specs/329-review-convergence-edges/issue-log.json`\n**Requirement:** R7\n**Issue:** Final-regression entries embed very large `changedFileFingerprints` arrays. Without a max size, future large flows can keep expanding this artifact and violate `bounded-resource-usage`.\n**Suggestion:** Add an explicit cap and truncation marker, such as `changedFileFingerprintsTruncated: true`, while preserving a digest or external artifact reference for the full list.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound Review History Growth",
+        "body": "**File:** `specs/329-review-convergence-edges/flow.json`\n**Requirement:** R7\n**Issue:** `reviewConvergence.records[*].evidenceHistory` and `reviewConvergence.records[*].handoffFindings` can grow with every review attempt, and this file already shows large repeated histories. This risks violating `bounded-resource-usage` because persisted review state has no visible max count or compaction policy.\n**Suggestion:** Persist only the latest finalized evidence plus a bounded recent history, or move full history to append-only artifacts referenced by digest while keeping `flow.json` capped to a documented maximum.",
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Deduplicate Recovery Baselines",
+        "body": "**File:** `specs/329-review-convergence-edges/flow.json`\n**Requirement:** R3\n**Issue:** `reviewRecoveryBaselines` contains repeated entries with identical `kind`, `phase`, `canonicalPhase`, `fingerprint`, and `trigger`, differing only by `createdAt`. This duplicates state and makes recovery reasoning noisier.\n**Suggestion:** Store one baseline per `(kind, canonicalPhase, fingerprint.hash, trigger)` and track repeated observations as a bounded `observedAt` array or a `count`.",
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Normalize Repeated Finding Handoff Metadata",
+        "body": "**File:** `specs/329-review-convergence-edges/flow.json`\n**Requirement:** R6\n**Issue:** Every `handoffFindings` item repeats the same `phase`, `taskId`, `treeSha`, `provenance`, `canonicalEvidenceRef`, `evidenceDigest`, `reviewDisposition`, and `finalDispositionOwner` already present on the parent convergence record.\n**Suggestion:** Keep shared handoff metadata on the parent record and store only finding-specific fields in each item: `findingId`, `summary`, `fingerprint`, `evidenceRefs`, and `sourceStep`.",
+        "file": "specs/329-review-convergence-edges/flow.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Compact Duplicate Final Regression Fingerprints",
+        "body": "**File:** `specs/329-review-convergence-edges/issue-log.json`\n**Requirement:** R7\n**Issue:** `changedFileFingerprints` repeats identical path/fingerprint pairs, for example duplicated `draft-review-questions.json`, `draft.json`, and `spec.json` entries. This inflates artifacts and weakens scanability.\n**Suggestion:** Deduplicate `changedFileFingerprints` by `(path, fingerprint)` before writing the issue-log entry.",
+        "file": "specs/329-review-convergence-edges/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Bound Large Failure Evidence Lists",
+        "body": "**File:** `specs/329-review-convergence-edges/issue-log.json`\n**Requirement:** R7\n**Issue:** Final-regression entries embed very large `changedFileFingerprints` arrays. Without a max size, future large flows can keep expanding this artifact and violate `bounded-resource-usage`.\n**Suggestion:** Add an explicit cap and truncation marker, such as `changedFileFingerprintsTruncated: true`, while preserving a digest or external artifact reference for the full list.",
+        "file": "specs/329-review-convergence-edges/issue-log.json",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

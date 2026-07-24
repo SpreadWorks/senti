@@ -696,6 +696,70 @@ function replaceTargetRecord(flowState, target, record) {
   flowState.reviewConvergence = { version: 1, records: nextRecords };
 }
 
+export class ReviewToolingRecoveryMutation {
+  constructor(input = {}) {
+    this.phase = requireString(input.phase, "phase");
+    this.taskId = requireNullableTaskId(input.taskId);
+    this.previousTreeSha = requireTreeSha(input.previousTreeSha);
+    this.nextTreeSha = requireTreeSha(input.nextTreeSha);
+    this.expectedRunId = requireString(input.expectedRunId, "expectedRunId");
+    this.expectedSpec = requireString(input.expectedSpec, "expectedSpec");
+    this.expectedHasIssue = Object.hasOwn(input, "expectedIssue");
+    this.expectedIssue = input.expectedIssue;
+    Object.freeze(this);
+  }
+
+  apply(flowState) {
+    requireObject(flowState, "flow state");
+    if (
+      flowState.runId !== this.expectedRunId
+      || flowState.spec !== this.expectedSpec
+      || Object.hasOwn(flowState, "issue") !== this.expectedHasIssue
+      || (this.expectedHasIssue && flowState.issue !== this.expectedIssue)
+    ) {
+      throw new Error("review tooling recovery target guard mismatch");
+    }
+    if (this.previousTreeSha === this.nextTreeSha) {
+      throw new Error("review tooling recovery requires a changed tree identity");
+    }
+
+    const target = {
+      phase: this.phase,
+      taskId: this.taskId,
+      treeSha: this.previousTreeSha,
+    };
+    const records = convergenceRecords(flowState);
+    const index = records.findIndex((record) => targetMatches(record, target));
+    if (index === -1) {
+      throw new Error("review tooling recovery previous target no longer exists");
+    }
+    const current = storedConvergenceState(records[index]);
+    if (current.toolingMaxAttempts !== REVIEW_TOOLING_MAX_ATTEMPTS) {
+      throw new Error(`review tooling recovery requires toolingMaxAttempts=${REVIEW_TOOLING_MAX_ATTEMPTS}`);
+    }
+    if (current.toolingAttempts !== current.toolingMaxAttempts) {
+      throw new Error("review tooling recovery requires an exhausted tooling attempt");
+    }
+
+    const recovered = new ReviewConvergenceState({
+      ...current.toJSON(),
+      treeSha: this.nextTreeSha,
+      toolingAttempts: 0,
+    });
+    const nextRecords = records.map((record) => structuredClone(record));
+    nextRecords[index] = {
+      ...structuredClone(records[index]),
+      ...recovered.toJSON(),
+    };
+    flowState.reviewConvergence = {
+      ...structuredClone(flowState.reviewConvergence),
+      version: 1,
+      records: nextRecords,
+    };
+    return recovered;
+  }
+}
+
 export function buildReviewHandoffFindings(evidence, { sourceStep = null } = {}) {
   if (!(evidence instanceof ReviewEvidence)) throw new Error("ReviewEvidence is required");
   if (evidence.disposition.value === "PASS") return [];

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T15:21:48.860Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "task-review-recovery-scope-dropped",
+      "title": "Task-scoped review recovery ignores taskId",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/set-retry.js",
+      "requirementId": "R4",
+      "issue": "`reviewToolingRecoveryMutation()` filters convergence records with `(record.taskId ?? null) === null` and constructs `ReviewToolingRecoveryMutation` with `taskId: null`. A tooling-exhausted task review record is therefore not recovered by the public retry path, even though R4 requires the target guard, including `taskId`, to be preserved during the single CAS recovery mutation.",
+      "suggestion": "In `reviewToolingRecoveryMutation()`, resolve the active review target taskId from the retry input/context and match/pass that taskId into `ReviewToolingRecoveryMutation` instead of hard-coding `null`; keep flow-level phases explicitly null and add/retain assertions for task-scoped changed-tree recovery preserving the taskId guard.",
+      "disposition": "must-fix",
+      "rationale": "R4 is a mandatory requirement and explicitly includes `taskId` in the preserved guard. The current implementation only handles flow-scoped records, so task-scoped exhausted review recovery cannot satisfy the required atomic recovery contract.",
+      "findingId": "a74374c17ea95529e85d2d78bc8774bbf31ae85ee11342c543f6cfae94cdc6d7",
+      "fingerprint": "a74374c17ea95529e85d2d78bc8774bbf31ae85ee11342c543f6cfae94cdc6d7",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "da583312835ca5a2eec0b896f26d6dcecda87f4d3859b79bd8813c77251cb61a",
+  "runId": "a7aadb80-78ec-419a-b196-41365664b797",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/329-review-convergence-edges/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/329-review-convergence-edges/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "dc78163bca2458e79d1aa15c7af11dc15d39a3feacff77132fa9665a8cd3a1f0"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "a74374c17ea95529e85d2d78bc8774bbf31ae85ee11342c543f6cfae94cdc6d7",
+      "findingId": "a74374c17ea95529e85d2d78bc8774bbf31ae85ee11342c543f6cfae94cdc6d7",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Task-scoped review recovery ignores taskId",
+      "body": "`reviewToolingRecoveryMutation()` filters convergence records with `(record.taskId ?? null) === null` and constructs `ReviewToolingRecoveryMutation` with `taskId: null`. A tooling-exhausted task review record is therefore not recovered by the public retry path, even though R4 requires the target guard, including `taskId`, to be preserved during the single CAS recovery mutation.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "a74374c17ea95529e85d2d78bc8774bbf31ae85ee11342c543f6cfae94cdc6d7",
+      "disposition": "must-fix",
+      "rationale": "R4 is a mandatory requirement and explicitly includes `taskId` in the preserved guard. The current implementation only handles flow-scoped records, so task-scoped exhausted review recovery cannot satisfy the required atomic recovery contract.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    }
+  ]
+}

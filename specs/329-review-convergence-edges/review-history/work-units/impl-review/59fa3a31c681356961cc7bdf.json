@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+      "specs/329-review-convergence-edges/review-history/draft-questions-attempt-002.json"
+    ],
+    "inputHash": "93e074054199d0f6f2ab989f99d84fa8992c04c3a0d2a87fc2e37606aa6700dd",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+    "specs/329-review-convergence-edges/review-history/draft-questions-attempt-002.json"
+  ],
+  "inputHash": "93e074054199d0f6f2ab989f99d84fa8992c04c3a0d2a87fc2e37606aa6700dd",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T15:56:47.610Z",
+  "finishedAt": "2026-07-24T15:56:47.610Z",
+  "rawResponse": "### 1. Normalize duplicated finding payloads\n**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** The same repair target data is duplicated under both `repairTargets[0]` and `findings[0]`, but the `findings[0]` object omits `target` and `evidence` while attempt 002 includes them. This makes the review-history format inconsistent across attempts.  \n**Suggestion:** Add `target: \"qa[]\"` and `evidence: \"qa[] is empty before any answer exists\"` to `findings[0]`, or remove duplicated fields from both files and keep the canonical detail only in `repairTargets`.\n\n### 2. Fix inconsistent severity/verdict wording\n**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R2  \n**Issue:** `summary` says `0 blocking`, but `findings[0].severity` is `\"blocking\"`. The same finding is classified as a repair target, so this creates conflicting state inside the artifact.  \n**Suggestion:** Change `findings[0].severity` to `\"non-blocking\"` to match attempt 002 and the advisory summary, or update the summary/verdict if this finding is intended to be blocking.\n\n### 3. Avoid storing identical generated history snapshots\n**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-002.json`  \n**Requirement:** R3  \n**Issue:** Attempt 002 largely repeats attempt 001 with only timestamp, attempt number, ID, and minor schema differences changed. Keeping near-identical generated artifacts increases review noise and makes real changes harder to identify.  \n**Suggestion:** If both attempts are required, keep them schema-identical and ensure the delta is intentional. If only the latest attempt matters, remove the superseded attempt artifact from the change set.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize duplicated finding payloads",
+        "body": "**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** The same repair target data is duplicated under both `repairTargets[0]` and `findings[0]`, but the `findings[0]` object omits `target` and `evidence` while attempt 002 includes them. This makes the review-history format inconsistent across attempts.  \n**Suggestion:** Add `target: \"qa[]\"` and `evidence: \"qa[] is empty before any answer exists\"` to `findings[0]`, or remove duplicated fields from both files and keep the canonical detail only in `repairTargets`.",
+        "file": "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Fix inconsistent severity/verdict wording",
+        "body": "**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R2  \n**Issue:** `summary` says `0 blocking`, but `findings[0].severity` is `\"blocking\"`. The same finding is classified as a repair target, so this creates conflicting state inside the artifact.  \n**Suggestion:** Change `findings[0].severity` to `\"non-blocking\"` to match attempt 002 and the advisory summary, or update the summary/verdict if this finding is intended to be blocking.",
+        "file": "specs/329-review-convergence-edges/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Avoid storing identical generated history snapshots",
+        "body": "**File:** `specs/329-review-convergence-edges/review-history/draft-questions-attempt-002.json`  \n**Requirement:** R3  \n**Issue:** Attempt 002 largely repeats attempt 001 with only timestamp, attempt number, ID, and minor schema differences changed. Keeping near-identical generated artifacts increases review noise and makes real changes harder to identify.  \n**Suggestion:** If both attempts are required, keep them schema-identical and ensure the delta is intentional. If only the latest attempt matters, remove the superseded attempt artifact from the change set.",
+        "file": "specs/329-review-convergence-edges/review-history/draft-questions-attempt-002.json",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

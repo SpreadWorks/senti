@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "runId": "a7aadb80-78ec-419a-b196-41365664b797",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-24T14:27:00.058Z",
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "Requirement uses the subjective phrase \"妥当な期待値\" without stating verifiable conditions for which test expectations are considered valid and must not be changed.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "Requirement uses the subjective phrase \"妥当な期待値\" without stating verifiable conditions for which test expectations are considered valid and must not be changed.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "findingId": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "fingerprint": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "disposition": "must-fix",
+      "rationale": "Requirement uses the subjective phrase \"妥当な期待値\" without stating verifiable conditions for which test expectations are considered valid and must not be changed.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-24T14:21:59.141Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Requirement depends on \"妥当な期待値\" without measurable criteria, so two independent reviewers may not agree on whether a test expectation is valid.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "Requirement depends on \"妥当な期待値\" without measurable criteria, so two independent reviewers may not agree on whether a test expectation is valid.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "fingerprint": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "disposition": "must-fix",
+      "rationale": "Requirement depends on \"妥当な期待値\" without measurable criteria, so two independent reviewers may not agree on whether a test expectation is valid.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-24T14:21:59.141Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "Requirement says not to \"acceptance policyを全面再設計\" without defining verifiable conditions for what counts as a full redesign.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.out[3]"
+          },
+          "observed": "Requirement says not to \"acceptance policyを全面再設計\" without defining verifiable conditions for what counts as a full redesign.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "findingId": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "fingerprint": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "disposition": "must-fix",
+      "rationale": "Requirement says not to \"acceptance policyを全面再設計\" without defining verifiable conditions for what counts as a full redesign.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-24T14:21:59.141Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Requirement depends on the subjective scope boundary \"全面再設計\" without measurable criteria, so two independent reviewers may not agree on whether an implementation violates it.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.out[3]"
+          },
+          "observed": "Requirement depends on the subjective scope boundary \"全面再設計\" without measurable criteria, so two independent reviewers may not agree on whether an implementation violates it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "fingerprint": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "disposition": "must-fix",
+      "rationale": "Requirement depends on the subjective scope boundary \"全面再設計\" without measurable criteria, so two independent reviewers may not agree on whether an implementation violates it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-24T14:21:59.141Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "draft.json",
+        "locator": "decisionMap.resolvedByProjectRules[2]"
+      },
+      "observed": "Requirement uses the subjective phrase \"妥当な期待値\" without stating verifiable conditions for which test expectations are considered valid and must not be changed.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ],
+      "result": "fail",
+      "guardrail_id": "unambiguous-requirements",
+      "category": "guardrail",
+      "findingId": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "fingerprint": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "disposition": "must-fix",
+      "rationale": "Requirement uses the subjective phrase \"妥当な期待値\" without stating verifiable conditions for which test expectations are considered valid and must not be changed.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-24T14:27:00.058Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "draft.json",
+        "locator": "decisionMap.resolvedByProjectRules[2]"
+      },
+      "observed": "Requirement depends on \"妥当な期待値\" without measurable criteria, so two independent reviewers may not agree on whether a test expectation is valid.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "fingerprint": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "disposition": "must-fix",
+      "rationale": "Requirement depends on \"妥当な期待値\" without measurable criteria, so two independent reviewers may not agree on whether a test expectation is valid.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-24T14:27:00.058Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "draft.json",
+        "locator": "scopeVerification.out[3]"
+      },
+      "observed": "Requirement says not to \"acceptance policyを全面再設計\" without defining verifiable conditions for what counts as a full redesign.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ],
+      "result": "fail",
+      "guardrail_id": "unambiguous-requirements",
+      "category": "guardrail",
+      "findingId": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "fingerprint": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "disposition": "must-fix",
+      "rationale": "Requirement says not to \"acceptance policyを全面再設計\" without defining verifiable conditions for what counts as a full redesign.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-24T14:27:00.058Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "draft.json",
+        "locator": "scopeVerification.out[3]"
+      },
+      "observed": "Requirement depends on the subjective scope boundary \"全面再設計\" without measurable criteria, so two independent reviewers may not agree on whether an implementation violates it.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "fingerprint": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "disposition": "must-fix",
+      "rationale": "Requirement depends on the subjective scope boundary \"全面再設計\" without measurable criteria, so two independent reviewers may not agree on whether an implementation violates it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-24T14:27:00.058Z",
+      "repeatCount": 1
+    }
+  ]
+}

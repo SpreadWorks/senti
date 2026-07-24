@@ -1,0 +1,363 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/329-review-convergence-edges/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "test_name": "R1: same-target findings retain title and issue in distinct canonical identities",
+        "command": "node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 161
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "test_name": "R2: reparsing and reordering preserve identity while exact duplicates are rejected",
+        "command": "node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 161
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js",
+        "test_name": "R3: same-tree recovery is rejected without changing convergence state",
+        "command": "node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 161
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js",
+        "test_name": "R4: changed-tree recovery resets tooling state once and preserves target guards",
+        "command": "node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 161
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/329-review-convergence-edges/tests/review-completion-scope.test.js",
+        "test_name": "R5: flow-level test post-hook ignores a residual task cursor",
+        "command": "node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 161
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/329-review-convergence-edges/tests/review-completion-scope.test.js",
+        "test_name": "R6: task-level post-hook retains its task without changing flow lifecycle state",
+        "command": "node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 161
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js",
+        "test_name": "R7: recovery preserves configured limits and the prior tooling outcome provenance",
+        "command": "node --test specs/329-review-convergence-edges/tests/changed-tree-recovery.test.js specs/329-review-convergence-edges/tests/final-regression-stale-evidence.test.js specs/329-review-convergence-edges/tests/gate-lifecycle-artifact-filtering.test.js specs/329-review-convergence-edges/tests/review-completion-scope.test.js specs/329-review-convergence-edges/tests/test-review-finding-identity.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 161
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/commands/review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/acceptance-review-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/finding-disposition-policy.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/review-convergence.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-final-regression.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-gate.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-retry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/final-regression.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/gate-diff-compaction.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/run-review-advisory.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js",
+        "fingerprint": "df9ab67ea851b34c911a36e7622858be18159118a0c6bd55a16ed1bb619c9b7d"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/acceptance-review-artifacts.js",
+        "fingerprint": "f37b2b12c22bcc4371a16a2eb30c0b297c51df8c40b43521a6703734b9c0e376"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/finding-disposition-policy.js",
+        "fingerprint": "10dcb7f2cf224c52e36db0b2b7dd9495251add04e68af11c4e59ff447a6178f4"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "1a35eb96cf3b5e9fb493205a0fa05e7198923da1c43740aea53d1e340abde256"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-convergence.js",
+        "fingerprint": "c7c412bdbb05ed2f990e2b8039b7feb593a350fd380c8dae2507d8e76c7d49df"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-final-regression.js",
+        "fingerprint": "4ee83ef0c8663461ca5fe2c032784b022c862989fd454c9e5453e54345478414"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "e5a71f5896e916012704b397ccbf961e23781329413ab4e57cd97afd3d0bcd55"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js",
+        "fingerprint": "0ab108f885160f87132322a92d4e79db004134e3dcfc74f468f44f01944a4b4b"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-retry.js",
+        "fingerprint": "8e5692df54a3fb4a1e3aeb504ec896cc0472786925d99c4e7632a7d2e986cc31"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "fingerprint": "269dfccae538feac8e66a761aa4c41d36786db234cc584dfe0c658566212a988"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "28ea6b80ed25cf63b507be802cb229a327aca4abe6d18cd6d419ccc0d319094b"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+        "fingerprint": "1492b9844ca87e595a1027200092953521f4be5a0a7a59fcba33a961c4d63219"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression.test.js",
+        "fingerprint": "e227b34ca3aae74e9aa90f8a7b8cc67b5b27c4e1e1403e64a42c2794da776d37"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-diff-compaction.test.js",
+        "fingerprint": "24fad60d62841457377c7d085860ef9f4cb568e049666ae1de27befde7569fc9"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "fingerprint": "816ec807961075766ab2bbc960fca054964b45ef4cdbb08b487b783aed1627f6"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "fingerprint": "4f36514f31e6a4c1c2a0c34dd38d5f2ae0ec106a1e9f83b66ae6397115fedaa4"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/run-review-advisory.test.js",
+        "fingerprint": "4c544b6e10ca4e93afdd6ff7590f824f3ffd8aaf7055c5bce3c0e63ef9a7bea7"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "fingerprint": "fc4a350834711504ec5ac8e1caae2ebb58d2b5b4e03bd3c4af51e7cbf7969fb7"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js",
+        "fingerprint": "df9ab67ea851b34c911a36e7622858be18159118a0c6bd55a16ed1bb619c9b7d"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/acceptance-review-artifacts.js",
+        "fingerprint": "f37b2b12c22bcc4371a16a2eb30c0b297c51df8c40b43521a6703734b9c0e376"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/finding-disposition-policy.js",
+        "fingerprint": "10dcb7f2cf224c52e36db0b2b7dd9495251add04e68af11c4e59ff447a6178f4"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "1a35eb96cf3b5e9fb493205a0fa05e7198923da1c43740aea53d1e340abde256"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-convergence.js",
+        "fingerprint": "c7c412bdbb05ed2f990e2b8039b7feb593a350fd380c8dae2507d8e76c7d49df"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-final-regression.js",
+        "fingerprint": "4ee83ef0c8663461ca5fe2c032784b022c862989fd454c9e5453e54345478414"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "e5a71f5896e916012704b397ccbf961e23781329413ab4e57cd97afd3d0bcd55"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js",
+        "fingerprint": "0ab108f885160f87132322a92d4e79db004134e3dcfc74f468f44f01944a4b4b"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-retry.js",
+        "fingerprint": "8e5692df54a3fb4a1e3aeb504ec896cc0472786925d99c4e7632a7d2e986cc31"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "fingerprint": "269dfccae538feac8e66a761aa4c41d36786db234cc584dfe0c658566212a988"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "28ea6b80ed25cf63b507be802cb229a327aca4abe6d18cd6d419ccc0d319094b"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+        "fingerprint": "1492b9844ca87e595a1027200092953521f4be5a0a7a59fcba33a961c4d63219"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression.test.js",
+        "fingerprint": "e227b34ca3aae74e9aa90f8a7b8cc67b5b27c4e1e1403e64a42c2794da776d37"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-diff-compaction.test.js",
+        "fingerprint": "24fad60d62841457377c7d085860ef9f4cb568e049666ae1de27befde7569fc9"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "fingerprint": "816ec807961075766ab2bbc960fca054964b45ef4cdbb08b487b783aed1627f6"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "fingerprint": "4f36514f31e6a4c1c2a0c34dd38d5f2ae0ec106a1e9f83b66ae6397115fedaa4"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/run-review-advisory.test.js",
+        "fingerprint": "4c544b6e10ca4e93afdd6ff7590f824f3ffd8aaf7055c5bce3c0e63ef9a7bea7"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "fingerprint": "fc4a350834711504ec5ac8e1caae2ebb58d2b5b4e03bd3c4af51e7cbf7969fb7"
+      }
+    ]
+  },
+  "repairFingerprint": "acf9e7702cc2106a54250d667543feaa426b229fed79d3653e392d95ffc61bd5"
+}
