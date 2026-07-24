@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "a58dcbe8-4749-4134-975f-f8a13d22cf9f",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-24T05:03:54.163Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "impact-on-existing-features",
+      "result": "fail",
+      "reason": "The spec does not list the change's impact on existing features and does not explicitly state that no existing features are affected.",
+      "category": "code-quality",
+      "title": "Impact on Existing Features",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "document"
+          },
+          "observed": "The spec does not list the change's impact on existing features and does not explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        }
+      ],
+      "findingId": "232f221695a18a60bd189956b6f34451582201c1dfdf207156d5f5970b1f64c7",
+      "fingerprint": "232f221695a18a60bd189956b6f34451582201c1dfdf207156d5f5970b1f64c7",
+      "disposition": "must-fix",
+      "rationale": "The spec does not list the change's impact on existing features and does not explicitly state that no existing features are affected.",
+      "requirementId": null,
+      "guardrailId": "impact-on-existing-features",
+      "reportedAt": "2026-07-24T05:03:54.163Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The test strategy lists focused and shared unit/regression tests, but does not require new spec-local behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "The test strategy lists focused and shared unit/regression tests, but does not require new spec-local behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "findingId": "8f494674a0f65fc9835edc3c6fabd28a9998001fc21b8de52017da527bf71aff",
+      "fingerprint": "8f494674a0f65fc9835edc3c6fabd28a9998001fc21b8de52017da527bf71aff",
+      "disposition": "must-fix",
+      "rationale": "The test strategy lists focused and shared unit/regression tests, but does not require new spec-local behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+      "requirementId": null,
+      "guardrailId": "spec-test-coverage",
+      "reportedAt": "2026-07-24T05:03:54.163Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "impact-on-existing-features",
+      "where": {
+        "file": "spec.json",
+        "locator": "document"
+      },
+      "observed": "The spec does not list the change's impact on existing features and does not explicitly state that no existing features are affected.",
+      "severity": "blocking",
+      "refs": [
+        "impact-on-existing-features"
+      ],
+      "result": "fail",
+      "guardrail_id": "impact-on-existing-features",
+      "category": "guardrail",
+      "findingId": "38dd07c9243ad94d23c5f58b24bdb82f05310d7ed2963684f672d9a2af4f6e53",
+      "fingerprint": "38dd07c9243ad94d23c5f58b24bdb82f05310d7ed2963684f672d9a2af4f6e53",
+      "disposition": "must-fix",
+      "rationale": "The spec does not list the change's impact on existing features and does not explicitly state that no existing features are affected.",
+      "requirementId": null,
+      "guardrailId": "impact-on-existing-features",
+      "reportedAt": "2026-07-24T05:03:54.163Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[0].test_strategy"
+      },
+      "observed": "The test strategy lists focused and shared unit/regression tests, but does not require new spec-local behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ],
+      "result": "fail",
+      "guardrail_id": "spec-test-coverage",
+      "category": "guardrail",
+      "findingId": "b88a19fbc15c9d7b478af0f7ff278493f5fa55dd50bcab029f9cc0d26fb599b2",
+      "fingerprint": "b88a19fbc15c9d7b478af0f7ff278493f5fa55dd50bcab029f9cc0d26fb599b2",
+      "disposition": "must-fix",
+      "rationale": "The test strategy lists focused and shared unit/regression tests, but does not require new spec-local behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+      "requirementId": null,
+      "guardrailId": "spec-test-coverage",
+      "reportedAt": "2026-07-24T05:03:54.163Z",
+      "repeatCount": 1
+    }
+  ]
+}

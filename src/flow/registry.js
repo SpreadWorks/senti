@@ -1005,7 +1005,7 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: senti flow set acceptance-decision --choice <choice>",
         "",
-        "Resolve a notVerifiable acceptance-review verdict with an explicit user choice.",
+        "Resolve a notVerifiable requirement or unresolved deferred-finding risk with an explicit user choice.",
         "Choices: accept_risk_and_continue, abort",
         "No choice is inferred from autoApprove or an omitted --choice option.",
       ].join("\n"),
@@ -1082,7 +1082,13 @@ export const FLOW_COMMANDS = {
         "  --skip-guardrail              Skip AI guardrail compliance check",
       ].join("\n"),
       async post(ctx, result) {
-        if (ctx.terminalGateRevalidation === true) return;
+        if (
+          ctx.terminalGateRevalidation === true
+          || (
+            result?.result === "recovered"
+            && result?.artifacts?.evidenceRefresh?.recovered === true
+          )
+        ) return;
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "gate:post",
           command: "run-gate",
@@ -1129,6 +1135,10 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
       async post(ctx, result) {
         assertDraftReviewRegistryHookBoundary();
+        if (
+          result?.result === "recovered"
+          && result?.artifacts?.evidenceRefresh?.recovered === true
+        ) return;
         try {
           await applyLifecycleActionsFromRegistry(ctx, {
             event: "review:post",

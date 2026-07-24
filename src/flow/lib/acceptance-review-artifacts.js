@@ -29,6 +29,7 @@ import {
   readRejectedImplReviewTriage,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
+import { StaleTestEvidenceRefresh } from "./stale-test-evidence-refresh.js";
 import {
   validateScenarioValidityResult,
   validateTestExecuteResultV2,
@@ -51,6 +52,7 @@ const REQUIRED_MECHANICAL_ARTIFACTS = Object.freeze([
 ]);
 const FINGERPRINTED_INPUT_ARTIFACTS = Object.freeze(REQUIRED_MECHANICAL_ARTIFACTS.slice(1));
 const MAX_ACCEPTANCE_RAW_EVIDENCE_BYTES = 20 * 1024 * 1024;
+const REPAIR_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
@@ -136,6 +138,52 @@ export class MechanicalBlocker {
 
   toJSON() {
     return { blockerId: this.blockerId, kind: this.kind, summary: this.summary };
+  }
+}
+
+class AcceptanceEvidenceRefresh {
+  constructor({ fingerprint, artifacts, blockers, deferredFindings }) {
+    this.currentFingerprint = fingerprint.hash;
+    this.staleArtifacts = Object.freeze(FINGERPRINTED_INPUT_ARTIFACTS
+      .filter((file) => {
+        const previous = artifacts[file]?.repairFingerprint;
+        return typeof previous === "string"
+          && REPAIR_FINGERPRINT_PATTERN.test(previous)
+          && previous !== this.currentFingerprint;
+      }));
+    this.previousFingerprint = this.staleArtifacts.length > 0
+      ? artifacts[this.staleArtifacts[0]].repairFingerprint
+      : null;
+    this.required = blockers.length > 0
+      && this.staleArtifacts.length > 0
+      && blockers.every((blocker) => this.supports(blocker, deferredFindings));
+    Object.freeze(this);
+  }
+
+  supports(blocker, deferredFindings) {
+    if (blocker.kind === "invalid_schema") {
+      return this.staleArtifacts.some((file) => (
+        blocker.summary === `Required artifact is invalid: ${file}.`
+      ));
+    }
+    if (blocker.kind !== "missing_deferred_source") return false;
+    return deferredFindings.some((finding) => (
+      this.staleArtifacts.includes(finding.sourceArtifact)
+      && blocker.summary === `Deferred source evidence is missing: ${finding.sourceArtifact}#${finding.sourceFindingId}.`
+    ));
+  }
+
+  recover({ specDir, flowManager, acceptancePath }) {
+    if (!this.required) return null;
+    return new StaleTestEvidenceRefresh({
+      previousFingerprint: this.previousFingerprint,
+      currentFingerprint: this.currentFingerprint,
+    }).recover({
+      specDir,
+      flowManager,
+      reason: "acceptance review detected stale fingerprint evidence",
+      additionalArtifacts: [path.basename(acceptancePath)],
+    });
   }
 }
 
@@ -475,10 +523,15 @@ function deferredFindingBlockers(deferredFindings) {
 }
 
 export function deriveAcceptanceReviewVerdict(artifact = {}) {
-  if ((artifact.mechanicalBlockers || []).length > 0 || (artifact.hardBlockers || []).length > 0) return "blocked";
+  if ((artifact.mechanicalBlockers || []).length > 0) return "blocked";
   const judgments = artifact.requirementJudgments || [];
   if (judgments.some((judgment) => judgment.status === "notMet")) return "repair_required";
-  if (judgments.some((judgment) => judgment.status === "notVerifiable")) return "user_decision_required";
+  if (
+    judgments.some((judgment) => judgment.status === "notVerifiable")
+    || (artifact.hardBlockers || []).length > 0
+  ) {
+    return "user_decision_required";
+  }
   return "pass";
 }
 
@@ -507,10 +560,9 @@ export function validateAcceptanceReviewArtifact(artifact, { requirementIds = nu
 }
 
 function validateDeferredFindingCoverage(specDir, deferredFindings, flowState = null) {
-  const expected = [
-    ...readFlowFindingsArtifact(specDir, { flowState }).entries.map((entry) => entry.findingId),
-    ...reviewHandoffFindings(flowState).map((entry) => entry.findingId),
-  ];
+  const expected = new DeferredFindingSources(specDir, flowState)
+    .entries
+    .map((entry) => entry.findingId);
   const actual = deferredFindings.map((entry) => entry.findingId);
   if (new Set(actual).size !== actual.length) throw new Error("duplicate deferred finding classification");
   for (const findingId of expected) {
@@ -583,11 +635,51 @@ function reviewHandoffFindings(flowState) {
   ));
 }
 
+class ResolvedDeferredFindingSource {
+  constructor(finding, canonicalHandoff = null) {
+    this.findingId = finding.findingId;
+    this.sourceStep = finding.sourceStep;
+    this.sourceArtifact = canonicalHandoff?.sourceArtifact || finding.sourceArtifact;
+    this.sourceFindingId = canonicalHandoff?.sourceFindingId || finding.sourceFindingId;
+    this.fingerprint = finding.fingerprint;
+    Object.freeze(this);
+  }
+}
+
+class DeferredFindingSources {
+  constructor(specDir, flowState = null) {
+    const reviewHandoffs = reviewHandoffFindings(flowState);
+    const canonicalHandoffs = new Map(reviewHandoffs.map((entry) => [
+      `${entry.sourceStep}:${entry.handoffFinding.fingerprint}`,
+      entry,
+    ]));
+    this.flowFindings = Object.freeze(
+      readFlowFindingsArtifact(specDir, { flowState }).entries.map((entry) => (
+        new ResolvedDeferredFindingSource(
+          entry,
+          canonicalHandoffs.get(`${entry.sourceStep}:${entry.fingerprint}`) || null,
+        )
+      )),
+    );
+    const deferredFingerprints = new Set(
+      this.flowFindings.map((entry) => entry.fingerprint),
+    );
+    this.reviewHandoffs = Object.freeze(
+      reviewHandoffs
+        .filter((entry) => !deferredFingerprints.has(entry.handoffFinding.fingerprint)),
+    );
+    Object.freeze(this);
+  }
+
+  get entries() {
+    return [...this.flowFindings, ...this.reviewHandoffs];
+  }
+}
+
 function buildDeferredFindingsFromEvidence(specDir, flowState = null) {
   const evidence = dispositionEvidence(specDir);
-  const flowFindingEntries = readFlowFindingsArtifact(specDir, { flowState }).entries;
-  const deferredFingerprints = new Set(flowFindingEntries.map((entry) => entry.fingerprint));
-  const deferred = flowFindingEntries.map((entry) => {
+  const sources = new DeferredFindingSources(specDir, flowState);
+  const deferred = sources.flowFindings.map((entry) => {
     const decision = evidence.get(entry.findingId);
     return new DeferredAcceptanceFinding({
       findingId: entry.findingId,
@@ -598,9 +690,7 @@ function buildDeferredFindingsFromEvidence(specDir, flowState = null) {
       evidenceRefs: decision?.evidenceRefs || [],
     }).toJSON();
   });
-  const reviewHandoffs = reviewHandoffFindings(flowState)
-    .filter((entry) => !deferredFingerprints.has(entry.handoffFinding.fingerprint))
-    .map((entry) => {
+  const reviewHandoffs = sources.reviewHandoffs.map((entry) => {
     const decision = evidence.get(entry.findingId);
     return new DeferredAcceptanceFinding({
       findingId: entry.findingId,
@@ -631,6 +721,10 @@ function inspectDeferredSources(specDir, deferredFindings, flowState) {
   const sourceCache = new Map();
   const canonicalCache = new Map();
   const reviewHandoffs = new Map(reviewHandoffFindings(flowState).map((entry) => [entry.findingId, entry]));
+  const canonicalRecords = new Map(latestReviewConvergenceRecords(flowState).map((record) => [
+    record.canonicalEvidenceRef,
+    record,
+  ]));
   const addMissing = (finding) => blockers.push(new MechanicalBlocker({
     blockerId: `M-deferred-${blockers.length + 1}`,
     kind: "missing_deferred_source",
@@ -652,17 +746,29 @@ function inspectDeferredSources(specDir, deferredFindings, flowState) {
         }
         sourceFinding = canonicalCache.get(record).findFinding(finding.sourceFindingId);
       } else {
-        if (!sourceCache.has(finding.sourceArtifact)) {
-          sourceCache.set(
-            finding.sourceArtifact,
-            readBoundedSourceArtifact(specDir, finding.sourceArtifact),
+        const canonicalRecord = canonicalRecords.get(finding.sourceArtifact);
+        if (canonicalRecord) {
+          if (!canonicalCache.has(canonicalRecord)) {
+            canonicalCache.set(
+              canonicalRecord,
+              new CanonicalReviewEvidenceProjection({ specDir, record: canonicalRecord }),
+            );
+          }
+          sourceFinding = canonicalCache.get(canonicalRecord)
+            .findFinding(finding.sourceFindingId);
+        } else {
+          if (!sourceCache.has(finding.sourceArtifact)) {
+            sourceCache.set(
+              finding.sourceArtifact,
+              readBoundedSourceArtifact(specDir, finding.sourceArtifact),
+            );
+          }
+          sourceFinding = findSourceFinding(
+            sourceCache.get(finding.sourceArtifact),
+            finding.sourceStep,
+            finding.sourceFindingId,
           );
         }
-        sourceFinding = findSourceFinding(
-          sourceCache.get(finding.sourceArtifact),
-          finding.sourceStep,
-          finding.sourceFindingId,
-        );
       }
     } catch (_) {
       sourceFinding = null;
@@ -922,6 +1028,21 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
   });
   const deferredFindings = buildDeferredFindingsFromEvidence(specDir, state);
   const deferredSources = inspectDeferredSources(specDir, deferredFindings, state);
+  const mechanicalBlockers = [
+    ...mechanical.blockers,
+    ...deferredSources.blockers,
+    ...(typeof state.request === "string" && state.request.trim() !== "" ? [] : [new MechanicalBlocker({
+      blockerId: "M-request",
+      kind: "missing_request",
+      summary: "The original flow request is missing.",
+    }).toJSON()]),
+  ];
+  const evidenceRefresh = new AcceptanceEvidenceRefresh({
+    fingerprint,
+    artifacts: mechanical.artifacts,
+    blockers: mechanicalBlockers,
+    deferredFindings,
+  });
   const repairPath = path.join(specDir, "impl-repair.json");
   const implReview = mechanical.artifacts["impl-review.json"];
   const rejectedReviewTriage = !fs.existsSync(repairPath) && implReview?.verdict === "REJECTED"
@@ -951,16 +1072,9 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
       deferredFindings,
       deferredFindingEvidence: deferredSources.evidence,
     },
-    mechanicalBlockers: [
-      ...mechanical.blockers,
-      ...deferredSources.blockers,
-      ...(typeof state.request === "string" && state.request.trim() !== "" ? [] : [new MechanicalBlocker({
-        blockerId: "M-request",
-        kind: "missing_request",
-        summary: "The original flow request is missing.",
-      }).toJSON()]),
-    ],
+    mechanicalBlockers,
     deferredFindings,
+    evidenceRefresh,
   };
 }
 
@@ -1021,7 +1135,12 @@ function acceptanceArtifactPath(state) {
   return path.posix.join(path.posix.dirname(state.spec.split(path.sep).join("/")), ACCEPTANCE_REVIEW_ARTIFACT_FILE);
 }
 
-export function applyAcceptanceReviewResult({ root, flowManager, artifact }) {
+export function applyAcceptanceReviewResult({
+  root,
+  flowManager,
+  artifact,
+  evidenceRefresh = null,
+}) {
   const state = flowManager.load();
   if (!state?.spec) throw new Error("active flow spec is required");
   ensureRepairFingerprintContract({ root, state, flowManager });
@@ -1039,6 +1158,22 @@ export function applyAcceptanceReviewResult({ root, flowManager, artifact }) {
     flowState: state,
   });
   const next = written.artifact;
+  const refreshResult = evidenceRefresh instanceof AcceptanceEvidenceRefresh
+    ? evidenceRefresh.recover({
+        specDir,
+        flowManager,
+        acceptancePath: written.path,
+      })
+    : null;
+  if (refreshResult) {
+    return {
+      verdict: next.verdict,
+      artifactPath: acceptanceArtifactPath(state),
+      artifact: next,
+      path: written.path,
+      evidenceRefresh: refreshResult.toJSON(),
+    };
+  }
   if (next.verdict === "repair_required") {
     const findings = next.requirementJudgments
       .filter((judgment) => judgment.status === "notMet")
@@ -1088,7 +1223,7 @@ export function applyAcceptanceReviewResult({ root, flowManager, artifact }) {
 function appendRiskDecisionIssue(root, state) {
   appendIssueLogEntry(root, state.spec, {
     step: "acceptance-decision",
-    reason: "User explicitly selected accept_risk_and_continue for notVerifiable acceptance evidence.",
+    reason: "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
     trigger: "flow set acceptance-decision",
     resolution: "continue to final-regression with accepted risk",
     taskId: null,

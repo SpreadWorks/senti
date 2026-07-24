@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "d5c41bbe29a44fe042fd6f40",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-5ad0b87bc2675ba8",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".codex/rules/default.rules",
+      "specs/331-draft-repair-target-advisory/flow.json",
+      "specs/331-draft-repair-target-advisory/spec.json",
+      "src/flow/commands/review.js",
+      "src/flow/lib/gate-recovery-display.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/stale-test-evidence-refresh.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "5ad0b87bc2675ba803df13e6d7767eb48e2408f26f6db796def7a245d18446d8",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d5c41bbe29a44fe042fd6f40"
+  },
+  "targetFiles": [
+    ".codex/rules/default.rules",
+    "specs/331-draft-repair-target-advisory/flow.json",
+    "specs/331-draft-repair-target-advisory/spec.json",
+    "src/flow/commands/review.js",
+    "src/flow/lib/gate-recovery-display.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/stale-test-evidence-refresh.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "5ad0b87bc2675ba803df13e6d7767eb48e2408f26f6db796def7a245d18446d8",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:16:07.189Z",
+  "finishedAt": "2026-07-24T10:16:07.189Z",
+  "rawResponse": "### 1. Consolidate stale test evidence recovery logic\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R8\n**Issue:** Stale test evidence validation and recovery appears to be introduced in both `run-gate.js` and `run-review.js`, with similar loading, mismatch detection, recovery routing, and fingerprint checks. This creates cross-file duplication and risks behavior drift between gate and review flows.\n**Suggestion:** Extract a shared stale-test-evidence validation/recovery helper, likely near `src/flow/lib/stale-test-evidence-refresh.js`, and parameterize the flow-specific labels, artifact metadata, and return formatting.\n\n### 2. Normalize evidence-refresh result naming\n**File:** `src/flow/lib/run-review.js`\n**Requirement:** R8\n**Issue:** The same recovery concept is named differently across files: `evidenceRefresh` in `run-review.js`, `StaleIntegrationTestEvidence` in `run-gate.js`, and checkpoint recovery metadata in `registry.js`. The names mix artifact metadata, command result, and control-flow result semantics.\n**Suggestion:** Use one cross-file naming convention, such as `artifactCheckResult` for command-level early returns and `evidenceRefresh` only for the nested artifact metadata.\n\n### 3. Share evidence-refresh recovery detection\n**File:** `src/flow/registry.js`\n**Requirement:** R8\n**Issue:** `run-gate` and `run-review` post hooks duplicate the same nested recovered-result check for `result?.result === \"recovered\"` and `result?.artifacts?.evidenceRefresh?.recovered === true`.\n**Suggestion:** Add a local helper such as `isEvidenceRefreshRecovery(result)` and reuse it in both hook branches.\n\n### 4. Centralize draft repair-target phase policy\n**File:** `src/flow/lib/run-review.js`\n**Requirement:** R1\n**Issue:** Draft repair-target phase handling appears in production code and tests as repeated literal phase pairs: `draft-questions` / `draft-coverage`, plus matching artifact-name branches in tests and repeated wording in specs. This spreads one domain policy across files.\n**Suggestion:** Introduce a named helper or constant for the phase set, such as `isDraftRepairTargetPhase(phase)` and shared phase cases for tests, then reference that policy consistently in code and specs.\n\n### 5. Align advisory evidence phase helpers with phase-parameterized tests\n**File:** `specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js`\n**Requirement:** R2\n**Issue:** Spec-local tests include a generic `advisoryEvidence()` helper fixed to `draft-questions`, while unit tests cover both `draft-questions` and `draft-coverage` with phase-specific artifact names. The helper interface is inconsistent with the broader phase-parameterized behavior.\n**Suggestion:** Make advisory evidence helpers accept `phase` explicitly, or rename fixed-phase helpers to make their scope clear.\n\n### 6. Standardize deterministic advisory fallback ID construction\n**File:** `src/flow/lib/run-review.js`\n**Requirement:** R7\n**Issue:** Deterministic advisory fallback IDs are asserted as repeated literals in both spec-local and unit tests, while production generation is hidden inside `canonicalFindingList`. This creates cross-file coupling to an implicit string format.\n**Suggestion:** Extract a named production helper like `fallbackFindingIdFor({ phase, bucket, index })` and mirror expected IDs in tests through a small helper rather than repeating string literals.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate stale test evidence recovery logic",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R8\n**Issue:** Stale test evidence validation and recovery appears to be introduced in both `run-gate.js` and `run-review.js`, with similar loading, mismatch detection, recovery routing, and fingerprint checks. This creates cross-file duplication and risks behavior drift between gate and review flows.\n**Suggestion:** Extract a shared stale-test-evidence validation/recovery helper, likely near `src/flow/lib/stale-test-evidence-refresh.js`, and parameterize the flow-specific labels, artifact metadata, and return formatting.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Normalize evidence-refresh result naming",
+        "body": "**File:** `src/flow/lib/run-review.js`\n**Requirement:** R8\n**Issue:** The same recovery concept is named differently across files: `evidenceRefresh` in `run-review.js`, `StaleIntegrationTestEvidence` in `run-gate.js`, and checkpoint recovery metadata in `registry.js`. The names mix artifact metadata, command result, and control-flow result semantics.\n**Suggestion:** Use one cross-file naming convention, such as `artifactCheckResult` for command-level early returns and `evidenceRefresh` only for the nested artifact metadata.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Share evidence-refresh recovery detection",
+        "body": "**File:** `src/flow/registry.js`\n**Requirement:** R8\n**Issue:** `run-gate` and `run-review` post hooks duplicate the same nested recovered-result check for `result?.result === \"recovered\"` and `result?.artifacts?.evidenceRefresh?.recovered === true`.\n**Suggestion:** Add a local helper such as `isEvidenceRefreshRecovery(result)` and reuse it in both hook branches.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Centralize draft repair-target phase policy",
+        "body": "**File:** `src/flow/lib/run-review.js`\n**Requirement:** R1\n**Issue:** Draft repair-target phase handling appears in production code and tests as repeated literal phase pairs: `draft-questions` / `draft-coverage`, plus matching artifact-name branches in tests and repeated wording in specs. This spreads one domain policy across files.\n**Suggestion:** Introduce a named helper or constant for the phase set, such as `isDraftRepairTargetPhase(phase)` and shared phase cases for tests, then reference that policy consistently in code and specs.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Align advisory evidence phase helpers with phase-parameterized tests",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js`\n**Requirement:** R2\n**Issue:** Spec-local tests include a generic `advisoryEvidence()` helper fixed to `draft-questions`, while unit tests cover both `draft-questions` and `draft-coverage` with phase-specific artifact names. The helper interface is inconsistent with the broader phase-parameterized behavior.\n**Suggestion:** Make advisory evidence helpers accept `phase` explicitly, or rename fixed-phase helpers to make their scope clear.",
+        "file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "6. Standardize deterministic advisory fallback ID construction",
+        "body": "**File:** `src/flow/lib/run-review.js`\n**Requirement:** R7\n**Issue:** Deterministic advisory fallback IDs are asserted as repeated literals in both spec-local and unit tests, while production generation is hidden inside `canonicalFindingList`. This creates cross-file coupling to an implicit string format.\n**Suggestion:** Extract a named production helper like `fallbackFindingIdFor({ phase, bucket, index })` and mirror expected IDs in tests through a small helper rather than repeating string literals.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

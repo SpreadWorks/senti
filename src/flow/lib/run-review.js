@@ -69,6 +69,7 @@ import {
   ReviewEvidenceStore,
   resolveCurrentReviewTreeSha as resolveReviewTargetTreeSha,
 } from "./review-evidence-store.js";
+import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
@@ -848,9 +849,11 @@ function canonicalProviderVerdict(value) {
   return value;
 }
 
-function canonicalFinding(input, artifactName) {
+const DRAFT_REPAIR_TARGET_PHASES = new Set(["draft-questions", "draft-coverage"]);
+
+function canonicalFinding(input, artifactName, fallbackFindingId = "review-finding") {
   const findingId = String(
-    input.findingId || input.id || input.proposalId || input.findingKey || "review-finding",
+    input.findingId || input.id || input.proposalId || input.findingKey || fallbackFindingId,
   ).trim();
   const summary = String(
     input.summary || input.title || input.issue || input.improvement || input.rationale || "Review finding.",
@@ -866,7 +869,7 @@ function canonicalFinding(input, artifactName) {
   };
 }
 
-function reviewArtifactFindingLists(artifact) {
+export function reviewArtifactFindingLists(artifact, phase) {
   const blocking = [
     artifact.blockingFindings,
     artifact.blocking,
@@ -881,7 +884,36 @@ function reviewArtifactFindingLists(artifact) {
     artifact.nonBlockingImprovements,
     artifact.improvements,
   ].find(Array.isArray) || [];
-  return { blocking, advisory };
+  const repairTargets = DRAFT_REPAIR_TARGET_PHASES.has(phase) && Array.isArray(artifact.repairTargets)
+    ? artifact.repairTargets
+    : [];
+  return { blocking, advisory: [...advisory, ...repairTargets] };
+}
+
+function canonicalFindingList(findings, { phase, bucket, artifactName }) {
+  return findings.map((finding, index) => canonicalFinding(
+    finding,
+    artifactName,
+    DRAFT_REPAIR_TARGET_PHASES.has(phase)
+      ? `${phase}-${bucket}-${String(index + 1).padStart(3, "0")}`
+      : "review-finding",
+  ));
+}
+
+export function canonicalReviewArtifactFindings(artifact, phase, artifactName) {
+  const { blocking, advisory } = reviewArtifactFindingLists(artifact, phase);
+  return {
+    blockingFindings: canonicalFindingList(blocking, {
+      phase,
+      bucket: "blocking",
+      artifactName,
+    }),
+    advisoryFindings: canonicalFindingList(advisory, {
+      phase,
+      bucket: "advisory",
+      artifactName,
+    }),
+  };
 }
 
 function canonicalArtifactName(phase) {
@@ -1135,7 +1167,7 @@ function persistCanonicalReviewArtifact(
   }
   const bytes = fs.readFileSync(artifactPath);
   const artifact = JSON.parse(bytes.toString("utf8"));
-  const { blocking, advisory } = reviewArtifactFindingLists(artifact);
+  const canonicalFindings = canonicalReviewArtifactFindings(artifact, phase, artifactName);
   const verdict = canonicalProviderVerdict(artifact.verdict || result.artifacts.verdict);
   const capturedAt = artifact.generatedAt
     || ctx.flowState.startedAt
@@ -1147,8 +1179,7 @@ function persistCanonicalReviewArtifact(
     treeSha,
     providerResult: {
       verdict,
-      blockingFindings: blocking.map((finding) => canonicalFinding(finding, artifactName)),
-      advisoryFindings: advisory.map((finding) => canonicalFinding(finding, artifactName)),
+      ...canonicalFindings,
       provenance: {
         provider: "senti-review",
         invocationId: crypto.createHash("sha256").update(bytes).digest("hex"),
@@ -1644,6 +1675,42 @@ export class ReviewExecutionPipeline {
   }
 }
 
+export function checkImplReviewTestArtifacts({ specDir, fingerprint, flowManager }) {
+  const artifactNames = ["test-execute-result.json", "test-result-review.json"];
+  const artifacts = new Map();
+  for (const file of artifactNames) {
+    const artifactPath = path.join(specDir, file);
+    if (!fs.existsSync(artifactPath)) throw new Error(`${file} is required before impl-review`);
+    artifacts.set(file, JSON.parse(fs.readFileSync(artifactPath, "utf8")));
+  }
+  const mismatch = StaleTestEvidenceMismatch.detect({
+    artifacts,
+    currentFingerprint: fingerprint.hash,
+  });
+  if (mismatch) {
+    const refresh = mismatch.recover({
+      specDir,
+      flowManager,
+      reason: "implementation review detected stale fingerprint evidence",
+    });
+    return {
+      result: "recovered",
+      changed: [...refresh.invalidatedArtifacts],
+      artifacts: {
+        phase: IMPL_REVIEW_PHASE,
+        staleArtifacts: [...mismatch.artifactNames],
+        evidenceRefresh: refresh.toJSON(),
+      },
+      next: refresh.activeStep,
+      output: "Implementation review rewound stale test evidence to test-execute.",
+    };
+  }
+  for (const [file, artifact] of artifacts) {
+    assertRepairFingerprint({ artifact, fingerprint, label: file });
+  }
+  return null;
+}
+
 export class RunReviewCommand extends FlowCommand {
   constructor({
     finalizeResult = finalizeReviewCommandResult,
@@ -1734,15 +1801,12 @@ export class RunReviewCommand extends FlowCommand {
       if (!taskReviewSpec) {
         const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
         const fingerprint = buildRepairFingerprint({ root, specPath: ctx.flowState.spec, state: ctx.flowState });
-        for (const file of ["test-execute-result.json", "test-result-review.json"]) {
-          const artifactPath = path.join(specDir, file);
-          if (!fs.existsSync(artifactPath)) throw new Error(`${file} is required before impl-review`);
-          assertRepairFingerprint({
-            artifact: JSON.parse(fs.readFileSync(artifactPath, "utf8")),
-            fingerprint,
-            label: file,
-          });
-        }
+        const evidenceRefresh = checkImplReviewTestArtifacts({
+          specDir,
+          fingerprint,
+          flowManager: ctx.flowManager,
+        });
+        if (evidenceRefresh) return evidenceRefresh;
       }
     }
 

@@ -185,6 +185,12 @@ function attachLatestStepAttempt(result, state, target) {
     stepId: target.stepId,
   });
   if (!attempt) return;
+  const targetSteps = target.scope === "task"
+    ? state.tasks.find((task) => task.id === target.taskId)?.steps
+    : state.steps;
+  const targetStep = flattenSteps(targetSteps || [])
+    .find((step) => step.id === target.stepId);
+  if (targetStep?.startedAt && attempt.recordedAt < targetStep.startedAt) return;
   result.stepAttempt = attempt.toJSON();
   result.stepOutcome = attempt.outcome.toJSON();
   if (attempt.outcome instanceof ExternalBlockedOutcome || attempt.outcome instanceof AwaitingDecisionOutcome) {

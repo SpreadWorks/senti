@@ -251,6 +251,64 @@ describe("typed step outcomes", () => {
       removeTmpDir(root);
     }
   });
+
+  it("does not halt a reactivated step on a stopped outcome from its previous activation", async () => {
+    const root = createTmpDir("superseded-stop-next-action-");
+    try {
+      const steps = buildInitialSteps();
+      const leaves = flattenSteps(steps);
+      const reviewIndex = leaves.findIndex((step) => step.id === "spec-review");
+      leaves.forEach((step, index) => {
+        step.status = index < reviewIndex ? "done" : "pending";
+      });
+      const reviewStep = findStepById(steps, "spec-review");
+      reviewStep.status = "in_progress";
+      reviewStep.startedAt = "2026-07-24T10:00:00.000Z";
+      const blocked = new StepAttempt({
+        runId: "run-reactivated-419",
+        stepId: "spec-review",
+        attempt: 1,
+        outcome: new ExternalBlockedOutcome({
+          reason: "provider_failure",
+          resumeInstruction: "Retry after the provider recovers.",
+        }),
+        recordedAt: "2026-07-24T09:00:00.000Z",
+      });
+      const recovery = new StepAttempt({
+        runId: "run-reactivated-419",
+        stepId: "spec-repair",
+        attempt: 1,
+        outcome: new DecisionOutcome({
+          decision: "PASS",
+          nextAction: "spec-review",
+        }),
+        recordedAt: "2026-07-24T09:59:00.000Z",
+      });
+      const flowState = {
+        runId: "run-reactivated-419",
+        spec: "specs/419-reactivated/spec.json",
+        steps,
+        tasks: [],
+        currentTaskId: null,
+        metrics: [],
+        stepAttempts: [blocked.toJSON(), recovery.toJSON()],
+      };
+      writeJson(root, flowState.spec, { requirements: [] });
+
+      const result = await new GetNextActionCommand().execute({
+        root,
+        flowState,
+        flowManager: { mutate() { throw new Error("active target must not be promoted"); } },
+      });
+
+      assert.equal(result.halt, undefined);
+      assert.equal(result.stepAttempt, undefined);
+      assert.equal(result.stepOutcome, undefined);
+      assert.equal(result.lastStepOutcome.kind, "decision");
+    } finally {
+      removeTmpDir(root);
+    }
+  });
 });
 
 describe("typed final-regression recovery policies", () => {

@@ -1,0 +1,84 @@
+[senti] spec-local tests start
+command: node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js
+process.kind: passed
+process.command: node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 1877
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 193.976605
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R1: draft-questions repairTargets-only records canonical advisory findings
+ok 1 - R1: draft-questions repairTargets-only records canonical advisory findings
+  ---
+  duration_ms: 5.049026
+  type: 'test'
+  ...
+# Subtest: R2: draft-coverage repairTargets-only uses the canonical advisory contract
+ok 2 - R2: draft-coverage repairTargets-only uses the canonical advisory contract
+  ---
+  duration_ms: 0.394042
+  type: 'test'
+  ...
+# Subtest: R3: advisory findings and repair targets remain advisory without blocking findings
+ok 3 - R3: advisory findings and repair targets remain advisory without blocking findings
+  ---
+  duration_ms: 0.766444
+  type: 'test'
+  ...
+# Subtest: R4: repair target metadata remains in history and the raw triage source
+ok 4 - R4: repair target metadata remains in history and the raw triage source
+  ---
+  duration_ms: 2.570733
+  type: 'test'
+  ...
+# Subtest: R5: empty draft buckets remain PASS with zero canonical findings
+ok 5 - R5: empty draft buckets remain PASS with zero canonical findings
+  ---
+  duration_ms: 1.360007
+  type: 'test'
+  ...
+# Subtest: R6: invalid PASS, ADVISORY, and REJECTED combinations fail closed
+ok 6 - R6: invalid PASS, ADVISORY, and REJECTED combinations fail closed
+  ---
+  duration_ms: 1.379447
+  type: 'test'
+  ...
+# Subtest: R7: fallback IDs stay unique while duplicate content and evidence remain rejected
+ok 7 - R7: fallback IDs stay unique while duplicate content and evidence remain rejected
+  ---
+  duration_ms: 2.127811
+  type: 'test'
+  ...
+# Subtest: R8: checkpoint-shaped evidence records once and advances to triage without review AI
+ok 8 - R8: checkpoint-shaped evidence records once and advances to triage without review AI
+  ---
+  duration_ms: 5.086746
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 193.976605
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] spec-local tests end

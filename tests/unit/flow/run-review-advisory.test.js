@@ -7,6 +7,7 @@ import {
   parseImplReviewOutput,
   parseSpecReviewOutput,
   parseTestReviewOutput,
+  checkImplReviewTestArtifacts,
   RunReviewCommand,
   runCmdWithRetry,
   updateReviewRetryCounter,
@@ -470,6 +471,71 @@ describe("impl review structured verdict routing", () => {
       { stepId: "impl-review", status: "done" },
       { stepId: "impl-triage", status: "in_progress" },
     ]);
+  });
+
+  it("rewinds stale test evidence before starting implementation review", () => {
+    const root = createTmpDir("run-review-stale-evidence-");
+    const specDir = path.join(root, "specs", "demo");
+    const previousFingerprint = "a".repeat(64);
+    const currentFingerprint = "b".repeat(64);
+    const flowState = {
+      steps: [
+        { id: "test-execute", status: "done" },
+        { id: "test-result-review", status: "done" },
+        { id: "impl-review", status: "in_progress" },
+        { id: "impl-gate", status: "pending" },
+      ],
+    };
+    try {
+      fs.mkdirSync(specDir, { recursive: true });
+      for (const file of ["test-execute-result.json", "test-result-review.json"]) {
+        fs.writeFileSync(path.join(specDir, file), `${JSON.stringify({
+          repairFingerprint: previousFingerprint,
+        })}\n`);
+      }
+      const result = checkImplReviewTestArtifacts({
+        specDir,
+        fingerprint: { hash: currentFingerprint },
+        flowManager: {
+          mutate(mutator) {
+            mutator(flowState);
+          },
+        },
+      });
+
+      assert.equal(result.result, "recovered");
+      assert.equal(result.next, "test-execute");
+      assert.equal(result.artifacts.evidenceRefresh.recovered, true);
+      assert.deepEqual(result.artifacts.staleArtifacts, [
+        "test-execute-result.json",
+        "test-result-review.json",
+      ]);
+      assert.equal(flowState.steps[0].status, "in_progress");
+      assert.equal(flowState.steps[1].status, "pending");
+      assert.equal(flowState.steps[2].status, "pending");
+      assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);
+      assert.equal(fs.existsSync(path.join(specDir, "test-result-review.json")), false);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  it("skips the normal review post-hook after stale evidence recovery", async () => {
+    let loaded = false;
+    await FLOW_COMMANDS.run.review.post({
+      flowManager: {
+        load() {
+          loaded = true;
+          throw new Error("normal review lifecycle must not run");
+        },
+      },
+    }, {
+      result: "recovered",
+      artifacts: {
+        evidenceRefresh: { recovered: true },
+      },
+    });
+    assert.equal(loaded, false);
   });
 });
 

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/stale-test-evidence-refresh.js",
+      "src/flow/prompts/impl/acceptance-decision.md"
+    ],
+    "inputHash": "21bdc79346a743f78209460ac79e1a2cf8acaa7fe9d24d57dc9ff1ca9523f11b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "src/flow/lib/stale-test-evidence-refresh.js",
+    "src/flow/prompts/impl/acceptance-decision.md"
+  ],
+  "inputHash": "21bdc79346a743f78209460ac79e1a2cf8acaa7fe9d24d57dc9ff1ca9523f11b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:52:32.756Z",
+  "finishedAt": "2026-07-24T10:52:32.756Z",
+  "rawResponse": "### 1. Extract duplicate fingerprint mismatch validation\n**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R1  \n**Issue:** `StaleTestEvidenceMismatch` and `StaleTestEvidenceRefresh` both validate `previousFingerprint`, `currentFingerprint`, and require them to differ with identical logic.  \n**Suggestion:** Extract a small helper such as `requireFingerprintMismatch({ previousFingerprint, currentFingerprint })` that returns normalized values. This reduces duplication and keeps the invariant in one place.\n\n### 2. Add explicit bounds for artifact processing\n**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R8  \n**Issue:** `StaleTestEvidenceMismatch.detect()` iterates over all `artifacts`, and `recover()` maps all `additionalArtifacts` without an explicit upper bound. This conflicts with the `bounded-resource-usage` guardrail for bulk processing.  \n**Suggestion:** Define local maximums, for example `MAX_STALE_ARTIFACTS` and `MAX_ADDITIONAL_ARTIFACTS`, validate input sizes before processing, and throw a clear error if the bound is exceeded.\n\n### 3. Rename `AdditionalArtifactDeletion` for intent clarity\n**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R2  \n**Issue:** `AdditionalArtifactDeletion` describes the operation but not the domain role. It is specifically a recovery cleanup artifact, not a general deletion abstraction.  \n**Suggestion:** Rename it to something more contextual, such as `RecoveryArtifactDeletion` or `AdditionalRecoveryArtifact`, so readers can understand why the file is being removed.\n\n### 4. Avoid creating deletion objects before core invalidation succeeds\n**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R5  \n**Issue:** `additionalArtifactDeletions` are constructed before `invalidateRepairEvidence()` runs, even though they are only used afterward. If invalidation throws, that work was unnecessary.  \n**Suggestion:** Move construction of `additionalArtifactDeletions` after `invalidateRepairEvidence()` succeeds, or process `additionalArtifacts` directly in the deletion loop. This slightly simplifies control flow and avoids premature work.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract duplicate fingerprint mismatch validation",
+        "body": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R1  \n**Issue:** `StaleTestEvidenceMismatch` and `StaleTestEvidenceRefresh` both validate `previousFingerprint`, `currentFingerprint`, and require them to differ with identical logic.  \n**Suggestion:** Extract a small helper such as `requireFingerprintMismatch({ previousFingerprint, currentFingerprint })` that returns normalized values. This reduces duplication and keeps the invariant in one place.",
+        "file": "src/flow/lib/stale-test-evidence-refresh.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Add explicit bounds for artifact processing",
+        "body": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R8  \n**Issue:** `StaleTestEvidenceMismatch.detect()` iterates over all `artifacts`, and `recover()` maps all `additionalArtifacts` without an explicit upper bound. This conflicts with the `bounded-resource-usage` guardrail for bulk processing.  \n**Suggestion:** Define local maximums, for example `MAX_STALE_ARTIFACTS` and `MAX_ADDITIONAL_ARTIFACTS`, validate input sizes before processing, and throw a clear error if the bound is exceeded.",
+        "file": "src/flow/lib/stale-test-evidence-refresh.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Rename `AdditionalArtifactDeletion` for intent clarity",
+        "body": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R2  \n**Issue:** `AdditionalArtifactDeletion` describes the operation but not the domain role. It is specifically a recovery cleanup artifact, not a general deletion abstraction.  \n**Suggestion:** Rename it to something more contextual, such as `RecoveryArtifactDeletion` or `AdditionalRecoveryArtifact`, so readers can understand why the file is being removed.",
+        "file": "src/flow/lib/stale-test-evidence-refresh.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Avoid creating deletion objects before core invalidation succeeds",
+        "body": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R5  \n**Issue:** `additionalArtifactDeletions` are constructed before `invalidateRepairEvidence()` runs, even though they are only used afterward. If invalidation throws, that work was unnecessary.  \n**Suggestion:** Move construction of `additionalArtifactDeletions` after `invalidateRepairEvidence()` succeeds, or process `additionalArtifacts` directly in the deletion loop. This slightly simplifies control flow and avoids premature work.",
+        "file": "src/flow/lib/stale-test-evidence-refresh.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

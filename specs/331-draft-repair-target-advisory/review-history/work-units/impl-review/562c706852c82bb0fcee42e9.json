@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/stale-test-evidence-refresh.test.js"
+    ],
+    "inputHash": "25a498986146003e69f1c90430d2b267238e1c7703105205c3d6f193abf08058",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/stale-test-evidence-refresh.test.js"
+  ],
+  "inputHash": "25a498986146003e69f1c90430d2b267238e1c7703105205c3d6f193abf08058",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:53:07.035Z",
+  "finishedAt": "2026-07-24T10:53:07.035Z",
+  "rawResponse": "### 1. Extract Stale Artifact Filenames\n**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R1  \n**Issue:** The stale artifact filenames are duplicated between the file creation loop, the expected `staleArtifacts` assertion, and the `existsSync` cleanup assertions. This makes the test more brittle if the artifact set changes.  \n**Suggestion:** Define a local `const staleArtifactFiles = [...]` and reuse it for writing, asserting, and existence checks.\n\n### 2. Split Absolute And Traversal Path Cases\n**File:** `tests/unit/flow/stale-test-evidence-refresh.test.js`  \n**Requirement:** R1  \n**Issue:** The loop tests two distinct validation behaviors, path traversal and absolute outside path, but both failures are reported under the same assertion location and use the same `additionalArtifacts[0]` index.  \n**Suggestion:** Use `test()`/`subtest()` cases or an array of named cases so failures identify whether the broken behavior is traversal rejection or absolute-path rejection.\n\n### 3. Prefer Descriptive Test Fixture Names\n**File:** `tests/unit/flow/stale-test-evidence-refresh.test.js`  \n**Requirement:** R2  \n**Issue:** The module-level variable `tmp` is terse and less descriptive than the rest of the test naming.  \n**Suggestion:** Rename it to `tmpDir` to match its role and align with helper names like `createTmpDir` and `removeTmpDir`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Stale Artifact Filenames",
+        "body": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R1  \n**Issue:** The stale artifact filenames are duplicated between the file creation loop, the expected `staleArtifacts` assertion, and the `existsSync` cleanup assertions. This makes the test more brittle if the artifact set changes.  \n**Suggestion:** Define a local `const staleArtifactFiles = [...]` and reuse it for writing, asserting, and existence checks.",
+        "file": "tests/unit/flow/run-review-advisory.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Split Absolute And Traversal Path Cases",
+        "body": "**File:** `tests/unit/flow/stale-test-evidence-refresh.test.js`  \n**Requirement:** R1  \n**Issue:** The loop tests two distinct validation behaviors, path traversal and absolute outside path, but both failures are reported under the same assertion location and use the same `additionalArtifacts[0]` index.  \n**Suggestion:** Use `test()`/`subtest()` cases or an array of named cases so failures identify whether the broken behavior is traversal rejection or absolute-path rejection.",
+        "file": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Prefer Descriptive Test Fixture Names",
+        "body": "**File:** `tests/unit/flow/stale-test-evidence-refresh.test.js`  \n**Requirement:** R2  \n**Issue:** The module-level variable `tmp` is terse and less descriptive than the rest of the test naming.  \n**Suggestion:** Rename it to `tmpDir` to match its role and align with helper names like `createTmpDir` and `removeTmpDir`.",
+        "file": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

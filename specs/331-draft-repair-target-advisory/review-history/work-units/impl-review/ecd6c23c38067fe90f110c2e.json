@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "ecd6c23c38067fe90f110c2e",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-83273e4c43bf7b81",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".codex/rules/default.rules",
+      "specs/331-draft-repair-target-advisory/flow.json",
+      "specs/331-draft-repair-target-advisory/spec.json",
+      "src/flow/commands/review.js",
+      "src/flow/lib/gate-recovery-display.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/stale-test-evidence-refresh.js",
+      "src/flow/prompts/impl/acceptance-review.md",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/step-outcome.test.js"
+    ],
+    "inputHash": "83273e4c43bf7b81d6fbb88f739460cbd49c1276bc03f26177c58f6d144a5408",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "ecd6c23c38067fe90f110c2e"
+  },
+  "targetFiles": [
+    ".codex/rules/default.rules",
+    "specs/331-draft-repair-target-advisory/flow.json",
+    "specs/331-draft-repair-target-advisory/spec.json",
+    "src/flow/commands/review.js",
+    "src/flow/lib/gate-recovery-display.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/stale-test-evidence-refresh.js",
+    "src/flow/prompts/impl/acceptance-review.md",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/step-outcome.test.js"
+  ],
+  "inputHash": "83273e4c43bf7b81d6fbb88f739460cbd49c1276bc03f26177c58f6d144a5408",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:53:35.870Z",
+  "finishedAt": "2026-07-24T10:53:35.870Z",
+  "rawResponse": "I’ll treat this as a synthesis pass over the supplied per-file proposals, not a fresh file-by-file review. I’m looking for issues that only become visible because the same concepts were introduced or named differently across multiple files.### 1. Normalize stale evidence refresh naming\n**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R8  \n**Issue:** Related concepts are named inconsistently across files: `StaleTestEvidenceRefresh`, `AcceptanceEvidenceRefresh`, `StaleIntegrationTestEvidence`, and variables like `evidenceRefresh` that sometimes mean metadata and sometimes a full command result. This makes the stale-evidence recovery interface harder to follow across `run-gate.js`, `run-review.js`, `run-acceptance-review.js`, and artifact helpers.  \n**Suggestion:** Establish one naming convention: use `*EvidenceRefresh` only for refresh metadata, `*EvidenceRecoveryResult` for command-level early-return objects, and phase-specific prefixes only when behavior actually differs.\n\n### 2. Extract shared stale test evidence validation flow\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** `run-gate.js` and `run-review.js` appear to introduce parallel stale test evidence validation and recovery flows with similar fingerprint checks, stale artifact detection, recovery, and result routing. This is duplicate cross-file behavior and increases the risk that future changes fix one command but not the other.  \n**Suggestion:** Move the common stale-test-evidence check into a shared helper module, parameterized by phase, artifact labels, recovery messages, and returned metadata shape.\n\n### 3. Use a canonical draft repair-target phase helper\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** Draft repair-target phases are represented in several forms across implementation, tests, and specs: repeated `draft-questions` / `draft-coverage` pairs, inline phase-to-artifact ternaries, and direct `DRAFT_REPAIR_TARGET_PHASES.has(phase)` checks. This spreads one domain rule across files.  \n**Suggestion:** Introduce a canonical helper such as `isDraftRepairTargetPhase(phase)` plus a phase-to-artifact map, then reuse it in production code and tests instead of repeating the phase pair or inline ternaries.\n\n### 4. Standardize step identifier format across flow artifacts\n**File:** `specs/331-draft-repair-target-advisory/issue-log.json`  \n**Requirement:** R7  \n**Issue:** Step identifiers mix dotted and hyphenated formats across persisted artifacts, such as `task.impl`, `task-impl`, `task-review`, `spec-gate`, and `retry-recovery`. This inconsistency affects correlation with `flow.json`, test fixtures, retry metrics, and recovery logs.  \n**Suggestion:** Pick one canonical step-id format, preferably the hyphenated format already used by most flow steps, and migrate persisted/test references to that format.\n\n### 5. Consolidate repeated repair evidence metadata\n**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R3  \n**Issue:** Evidence identity and repair metadata are repeated across `flow.json`, `issue-log.json`, and related tests: phase, task id, tree SHA, provenance, evidence refs, repair file lists, and fingerprint fields recur with slight local variations. This creates cross-file drift risk for evidence correlation.  \n**Suggestion:** Store shared evidence identity once per record or repair batch, and have findings/tests reference that canonical identity instead of duplicating the same metadata blocks.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize stale evidence refresh naming",
+        "body": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R8  \n**Issue:** Related concepts are named inconsistently across files: `StaleTestEvidenceRefresh`, `AcceptanceEvidenceRefresh`, `StaleIntegrationTestEvidence`, and variables like `evidenceRefresh` that sometimes mean metadata and sometimes a full command result. This makes the stale-evidence recovery interface harder to follow across `run-gate.js`, `run-review.js`, `run-acceptance-review.js`, and artifact helpers.  \n**Suggestion:** Establish one naming convention: use `*EvidenceRefresh` only for refresh metadata, `*EvidenceRecoveryResult` for command-level early-return objects, and phase-specific prefixes only when behavior actually differs.",
+        "file": "src/flow/lib/stale-test-evidence-refresh.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Extract shared stale test evidence validation flow",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** `run-gate.js` and `run-review.js` appear to introduce parallel stale test evidence validation and recovery flows with similar fingerprint checks, stale artifact detection, recovery, and result routing. This is duplicate cross-file behavior and increases the risk that future changes fix one command but not the other.  \n**Suggestion:** Move the common stale-test-evidence check into a shared helper module, parameterized by phase, artifact labels, recovery messages, and returned metadata shape.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Use a canonical draft repair-target phase helper",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** Draft repair-target phases are represented in several forms across implementation, tests, and specs: repeated `draft-questions` / `draft-coverage` pairs, inline phase-to-artifact ternaries, and direct `DRAFT_REPAIR_TARGET_PHASES.has(phase)` checks. This spreads one domain rule across files.  \n**Suggestion:** Introduce a canonical helper such as `isDraftRepairTargetPhase(phase)` plus a phase-to-artifact map, then reuse it in production code and tests instead of repeating the phase pair or inline ternaries.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Standardize step identifier format across flow artifacts",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/issue-log.json`  \n**Requirement:** R7  \n**Issue:** Step identifiers mix dotted and hyphenated formats across persisted artifacts, such as `task.impl`, `task-impl`, `task-review`, `spec-gate`, and `retry-recovery`. This inconsistency affects correlation with `flow.json`, test fixtures, retry metrics, and recovery logs.  \n**Suggestion:** Pick one canonical step-id format, preferably the hyphenated format already used by most flow steps, and migrate persisted/test references to that format.",
+        "file": "specs/331-draft-repair-target-advisory/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Consolidate repeated repair evidence metadata",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R3  \n**Issue:** Evidence identity and repair metadata are repeated across `flow.json`, `issue-log.json`, and related tests: phase, task id, tree SHA, provenance, evidence refs, repair file lists, and fingerprint fields recur with slight local variations. This creates cross-file drift risk for evidence correlation.  \n**Suggestion:** Store shared evidence identity once per record or repair batch, and have findings/tests reference that canonical identity instead of duplicating the same metadata blocks.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

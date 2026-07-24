@@ -374,10 +374,16 @@ function buildReviewAcknowledgedRationale(root, flow, guardrails) {
  * @param {{limit?: number}} [options]
  * @returns {{ title: string, body: string, file: string|null }[]}
  */
+function stripProposalPreamble(text) {
+  const proposalStart = text.indexOf("### ");
+  return proposalStart >= 0 ? text.slice(proposalStart) : text;
+}
+
 function parseProposals(text, options = {}) {
   const limit = Number.isInteger(options.limit) && options.limit >= 0 ? options.limit : Infinity;
   const proposals = [];
-  const parts = text.split(/^### /m).filter(Boolean);
+  const proposalText = stripProposalPreamble(text);
+  const parts = proposalText.split(/^### /m).filter(Boolean);
   for (const part of parts) {
     if (proposals.length >= limit) break;
     const nlIdx = part.indexOf("\n");
@@ -1468,9 +1474,10 @@ function hashLoopReviewInput(input) {
 function providerOutputInvalid(result) {
   if (typeof result !== "string" || result.trim() === "") return "parser_failure";
   if (result.includes("NO_PROPOSALS")) return null;
-  if (result.trim().startsWith("{")) {
+  const proposalText = stripProposalPreamble(result);
+  if (proposalText.trim().startsWith("{")) {
     try {
-      const parsed = JSON.parse(result);
+      const parsed = JSON.parse(proposalText);
       if (!Array.isArray(parsed.proposals)) return "schema_failure";
       if (parsed.proposals.some((item) => typeof item?.title !== "string" || !item.title || typeof item?.file !== "string")) {
         return "schema_failure";
@@ -1479,7 +1486,7 @@ function providerOutputInvalid(result) {
       return "parser_failure";
     }
   }
-  if (!/^### /m.test(result)) return "parser_failure";
+  if (!/^### /m.test(proposalText)) return "parser_failure";
   return null;
 }
 

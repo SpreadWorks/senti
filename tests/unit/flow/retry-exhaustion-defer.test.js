@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -10,13 +11,16 @@ import { runImplReview } from "../../../src/flow/commands/review.js";
 import {
   checkRetryBelowMax as checkGateRetryBelowMax,
   classifyGateRetryExhaustionSource,
+  checkIntegrationTestArtifacts,
   resolveRetryMax,
   updateGateRetryCounter,
 } from "../../../src/flow/lib/run-gate.js";
 import SetIssueLogCommand from "../../../src/flow/lib/set-issue-log.js";
 import {
+  applyAcceptanceReviewResult,
   artifactFromAcceptanceJudgments,
   buildAcceptanceReviewContext,
+  deriveAcceptanceReviewVerdict,
   writeAcceptanceReviewArtifact,
 } from "../../../src/flow/lib/acceptance-review-artifacts.js";
 import {
@@ -29,17 +33,22 @@ import {
   buildRepairFingerprint,
   writeRepairEvidenceArtifact,
 } from "../../../src/flow/lib/impl-repair-artifacts.js";
-import { readFlowFindingsArtifact } from "../../../src/flow/lib/flow-findings.js";
+import {
+  readFlowFindingsArtifact,
+  writeFlowFindingsArtifact,
+} from "../../../src/flow/lib/flow-findings.js";
 import {
   applyReviewEvidenceTransition,
   ReviewDisposition,
   ReviewEvidence,
 } from "../../../src/flow/lib/review-convergence.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import {
   makeDefaultTask,
   makeFlowState,
   moveFlowToStep,
 } from "../../helpers/flow-setup.js";
+import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 
 let tmp;
@@ -815,6 +824,245 @@ test("acceptance-review resolves still-open findings after mechanical source ver
   assert.equal(artifact.verdict, "pass");
   assert.equal(artifact.deferredFindings[0].finalDisposition, "fixed");
   assert.deepEqual(artifact.hardBlockers, []);
+});
+
+test("unresolved deferred findings route to acceptance decision without masking mechanical blockers", () => {
+  const unresolved = {
+    hardBlockers: [{ findingId: "deferred-1", kind: "unresolved_deferred_finding" }],
+    requirementJudgments: [{ requirementId: "R1", status: "met" }],
+  };
+
+  assert.equal(deriveAcceptanceReviewVerdict({
+    ...unresolved,
+    mechanicalBlockers: [],
+  }), "user_decision_required");
+  assert.equal(deriveAcceptanceReviewVerdict({
+    ...unresolved,
+    mechanicalBlockers: [{ blockerId: "M-1", kind: "missing_artifact" }],
+  }), "blocked");
+});
+
+test("acceptance-review deduplicates flow findings and review handoffs by fingerprint", () => {
+  const fixture = prepareSpecRoot();
+  const fingerprint = prepareAcceptanceEvidence(fixture);
+  const duplicateFinding = {
+    findingId: "task-duplicate",
+    summary: "Deferred task review finding",
+    fingerprint: SEMANTIC_FINDING_FINGERPRINT,
+    evidenceRefs: ["impl-review.json#task-duplicate"],
+  };
+  const uniqueFinding = {
+    findingId: "task-unique",
+    summary: "Distinct task review finding",
+    fingerprint: "b".repeat(64),
+    evidenceRefs: ["impl-review.json#task-unique"],
+  };
+  const evidence = new ReviewEvidence({
+    phase: "impl",
+    taskId: "T-1",
+    treeSha: "1".repeat(40),
+    provenance: {
+      provider: "fixture-provider",
+      invocationId: "acceptance-deferred-dedup",
+      capturedAt: "2026-07-24T00:00:00.000Z",
+    },
+    disposition: new ReviewDisposition({
+      value: "REJECTED",
+      blockingFindings: [duplicateFinding, uniqueFinding],
+    }),
+  });
+  const canonicalEvidenceRef = `review-evidence/${evidence.identity.evidenceDigest}.json`;
+  writeFile(fixture.specDir, canonicalEvidenceRef, evidence.canonicalText);
+  const state = {
+    spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
+    request: "Verify canonical deferred-finding deduplication.",
+  };
+  applyReviewEvidenceTransition(state, evidence, { configuredSemanticMaxAttempts: 4 });
+  writeFlowFindingsArtifact(fixture.specDir, {
+    entries: [{
+      findingId: "DF-1",
+      sourceStep: "task-review",
+      sourceArtifact: "impl-review.json",
+      sourceFindingId: duplicateFinding.findingId,
+      runId: state.runId,
+      fingerprint: duplicateFinding.fingerprint,
+      disposition: "deferred",
+      rationale: "The task review finding reached its semantic retry bound.",
+      retryExhausted: true,
+      attempts: 4,
+      round: 4,
+      completionKind: "deferred",
+      finalDisposition: "still_open",
+    }],
+  });
+  const diff = [
+    "diff --git a/src/demo.js b/src/demo.js",
+    "--- a/src/demo.js",
+    "+++ b/src/demo.js",
+    "@@ -1 +1 @@",
+    "-export const demo = false;",
+    "+export const demo = true;",
+    "",
+  ].join("\n");
+  const context = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
+  const uniqueHandoffId = `RF-${evidence.identity.evidenceDigest.slice(0, 12)}-${uniqueFinding.findingId}`;
+  assert.deepEqual(
+    context.deferredFindings.map((finding) => finding.findingId),
+    ["DF-1", uniqueHandoffId],
+  );
+  assert.equal(context.deferredFindings[0].sourceArtifact, canonicalEvidenceRef);
+  assert.equal(context.mechanicalBlockers.length, 0);
+  const artifact = artifactFromAcceptanceJudgments({
+    context,
+    requirementJudgments: [{
+      requirementId: "R1",
+      status: "met",
+      requestRefs: ["flow.request"],
+      requirementRefs: ["spec.json#R1"],
+      diffRefs: ["diff:src/demo.js"],
+      repairRefs: ["acceptance:no-repair"],
+      testRefs: ["test-execute-result.json#R1"],
+      missingEvidence: [],
+    }],
+    deferredFindingDispositions: context.deferredFindings.map((finding) => ({
+      findingId: finding.findingId,
+      finalDisposition: "fixed",
+      evidenceRefs: [`${finding.sourceArtifact}#${finding.sourceFindingId}`],
+    })),
+  });
+
+  writeAcceptanceReviewArtifact({
+    specDir: fixture.specDir,
+    artifact,
+    requirementIds: ["R1"],
+    fingerprint,
+    flowState: state,
+  });
+  assert.equal(artifact.deferredFindings.length, 2);
+});
+
+test("acceptance-review rewinds stale fingerprint evidence to test execution", () => {
+  const fixture = prepareSpecRoot();
+  const previousFingerprint = prepareAcceptanceEvidence(fixture);
+  writeFile(fixture.root, "src/demo.js", "export const demo = 'acceptance-repaired';\n");
+  const state = flowStateAt("acceptance-review", {
+    spec: fixture.specPath,
+    runId: null,
+    request: "Verify repaired acceptance behavior.",
+  });
+  const context = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state,
+    diff: [
+      "diff --git a/src/demo.js b/src/demo.js",
+      "--- a/src/demo.js",
+      "+++ b/src/demo.js",
+      "@@ -1 +1 @@",
+      "-export const demo = false;",
+      "+export const demo = 'acceptance-repaired';",
+      "",
+    ].join("\n"),
+  });
+  const artifact = artifactFromAcceptanceJudgments({
+    context,
+    requirementJudgments: [],
+  });
+  assert.equal(artifact.verdict, "blocked");
+  assert.notEqual(artifact.repairFingerprint, previousFingerprint.hash);
+
+  const flowManager = {
+    load() {
+      return state;
+    },
+    mutate(mutator) {
+      mutator(state);
+      return state;
+    },
+  };
+  const result = applyAcceptanceReviewResult({
+    root: fixture.root,
+    flowManager,
+    artifact,
+    evidenceRefresh: context.evidenceRefresh,
+  });
+
+  assert.equal(result.evidenceRefresh.recovered, true);
+  assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
+  assert.equal(findStepById(state.steps, "acceptance-review").status, "pending");
+  for (const relativePath of [
+    "test-execute-result.json",
+    "test-result-review.json",
+    "impl-review.json",
+    "impl-gate-result.json",
+    "retro.json",
+    "acceptance-review.json",
+  ]) {
+    assert.equal(fs.existsSync(path.join(fixture.specDir, relativePath)), false, relativePath);
+  }
+  assert.equal(fs.existsSync(path.join(fixture.specDir, "scenario-validity-result.json")), true);
+});
+
+test("integration gate rewinds stale fingerprint evidence before semantic evaluation", () => {
+  const fixture = prepareSpecRoot();
+  initGitRepo(fixture.root);
+  writeJson(fixture.specDir, "file-map.json", { R1: ["src/demo.js"] });
+  commitAll(fixture.root, "Create repository fixture");
+  prepareAcceptanceEvidence(fixture);
+  commitAll(fixture.root, "Create integration gate fixture");
+  const repairedSource = "export const demo = 'gate-repaired';\n";
+  writeFile(fixture.root, "src/demo.js", repairedSource);
+  const testResultPath = path.join(fixture.specDir, "test-execute-result.json");
+  const testResult = JSON.parse(fs.readFileSync(testResultPath, "utf8"));
+  const changedFile = {
+    status: "modified",
+    path: "src/demo.js",
+    fingerprint: crypto.createHash("sha256").update(repairedSource).digest("hex"),
+  };
+  testResult.regression = {
+    required: false,
+    result: "skipped",
+    mode: "none",
+    category: "full-regression-deferred",
+    reason: "full project regression deferred to final-regression",
+    classified_paths: [{ path: "src/demo.js", category: "full-regression-deferred" }],
+    changed_files: [changedFile],
+    trigger_relevant_changed_files: [changedFile],
+  };
+  fs.writeFileSync(testResultPath, `${JSON.stringify(testResult, null, 2)}\n`);
+  const state = flowStateAt("impl-gate", {
+    spec: fixture.specPath,
+    runId: null,
+    request: "Verify repaired integration gate behavior.",
+  });
+  const staleEvidence = checkIntegrationTestArtifacts(
+    fixture.root,
+    state,
+    "integration",
+    "integration",
+  );
+  const flowManager = {
+    mutate(mutator) {
+      mutator(state);
+      return state;
+    },
+  };
+  assert.equal(typeof staleEvidence?.recover, "function", JSON.stringify(staleEvidence));
+  const ctx = { flowManager };
+  const result = staleEvidence.recover(ctx, {
+    level: "integration",
+    phase: "integration",
+    specDir: fixture.specDir,
+  });
+
+  assert.equal(ctx.gateEvidenceRefresh, true);
+  assert.equal(result.result, "recovered");
+  assert.equal(result.next, "test-execute");
+  assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
+  assert.equal(findStepById(state.steps, "impl-gate").status, "pending");
+  assert.equal(fs.existsSync(path.join(fixture.specDir, "test-execute-result.json")), false);
+  assert.equal(fs.existsSync(path.join(fixture.specDir, "test-result-review.json")), false);
 });
 
 test("acceptance-review repairs only omitted deferred disposition coverage", () => {

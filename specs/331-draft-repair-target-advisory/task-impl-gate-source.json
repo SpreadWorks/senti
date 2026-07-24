@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "a58dcbe8-4749-4134-975f-f8a13d22cf9f",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-24T07:09:53.736Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added implementation flow state leaves the task test-execute step pending, so the diff does not show implemented code has passed project test execution required for readiness.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/flow.json",
+            "locator": "steps[1].children[id=test-execute].status"
+          },
+          "observed": "The added implementation flow state leaves the task test-execute step pending, so the diff does not show implemented code has passed project test execution required for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added implementation flow state leaves the task test-execute step pending, so the diff does not show implemented code has passed project test execution required for readiness.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T07:00:39.825Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added implementation flow state leaves the mandatory final-regression step pending, so the diff does not show that all project tests pass for readiness.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/flow.json",
+            "locator": "steps[1].children[id=final-regression].status"
+          },
+          "observed": "The added implementation flow state leaves the mandatory final-regression step pending, so the diff does not show that all project tests pass for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The added implementation flow state leaves the mandatory final-regression step pending, so the diff does not show that all project tests pass for readiness.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T07:00:39.825Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "locator": "steps[1].children[id=test-execute].status"
+      },
+      "observed": "The added implementation flow state leaves the task test-execute step pending, so the diff does not show implemented code has passed project test execution required for readiness.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added implementation flow state leaves the task test-execute step pending, so the diff does not show implemented code has passed project test execution required for readiness.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T07:09:53.736Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "locator": "steps[1].children[id=final-regression].status"
+      },
+      "observed": "The added implementation flow state leaves the mandatory final-regression step pending, so the diff does not show that all project tests pass for readiness.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The added implementation flow state leaves the mandatory final-regression step pending, so the diff does not show that all project tests pass for readiness.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T07:09:53.736Z",
+      "repeatCount": 1
+    }
+  ]
+}

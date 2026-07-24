@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "4e8d970752833aba4492c238",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-321daa398dc06c5c",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".codex/rules/default.rules",
+      "specs/331-draft-repair-target-advisory/flow.json",
+      "specs/331-draft-repair-target-advisory/spec.json",
+      "src/flow/commands/review.js",
+      "src/flow/lib/gate-recovery-display.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/stale-test-evidence-refresh.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "321daa398dc06c5c84a93d736aa6faf1a11feb117b0259778173e674083ad5be",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "4e8d970752833aba4492c238"
+  },
+  "targetFiles": [
+    ".codex/rules/default.rules",
+    "specs/331-draft-repair-target-advisory/flow.json",
+    "specs/331-draft-repair-target-advisory/spec.json",
+    "src/flow/commands/review.js",
+    "src/flow/lib/gate-recovery-display.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/stale-test-evidence-refresh.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "321daa398dc06c5c84a93d736aa6faf1a11feb117b0259778173e674083ad5be",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:21:58.128Z",
+  "finishedAt": "2026-07-24T10:21:58.128Z",
+  "rawResponse": "### 1. Consolidate stale evidence refresh logic\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** Stale test evidence recovery logic appears across `run-gate.js`, `run-review.js`, `stale-test-evidence-refresh.js`, and related registry hooks with repeated detection, artifact handling, and recovery-result checks. This creates cross-file drift risk in how stale evidence is detected and reported.  \n**Suggestion:** Move shared stale evidence recovery predicates and artifact-check orchestration into a single helper module, then parameterize caller-specific labels, phases, and returned artifact metadata.\n\n### 2. Normalize draft repair-target phase handling\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** The draft repair-target phase set is repeated conceptually across implementation, tests, and spec text as `draft-questions` / `draft-coverage`, with inline set checks and ternary artifact mappings. This makes phase additions or renames error-prone across files.  \n**Suggestion:** Introduce a canonical helper or mapping such as `isDraftRepairTargetPhase()` and `draftRepairTargetArtifactForPhase()`, and reuse it in production code and tests.\n\n### 3. Align evidence refresh result naming\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R8  \n**Issue:** Similar recovery concepts use different names across files: `evidenceRefresh`, `staleEvidenceResult`, `artifactCheckResult`, and registry-level recovered checks. Some variables hold full command results while others hold only refresh metadata.  \n**Suggestion:** Standardize naming around the actual interface, for example `artifactCheckResult` for command-level early returns and `evidenceRefresh` only for nested refresh metadata.\n\n### 4. Deduplicate advisory recording test fixtures\n**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R1  \n**Issue:** Multiple test files introduce repeated fixture patterns for draft advisory evidence, phase-to-artifact naming, canonical disposition setup, and recorded advisory assertions. The same behavior is being described with different local helpers or inline setup.  \n**Suggestion:** Extract shared test helpers for draft phase cases, advisory evidence construction, and completed advisory recording assertions, then reuse them across the draft repair-target tests.\n\n### 5. Make repair-target terminology consistent\n**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R4  \n**Issue:** The reviewed files refer to the same concept using `repairTarget`, `repair_target`, `classification`, `category`, and `repairTargets`. It is unclear which field is canonical and which names are test conveniences.  \n**Suggestion:** Pick one canonical domain term for the persisted contract, then align fixture names, helper names, and assertions to distinguish collection names from serialized field values.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate stale evidence refresh logic",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** Stale test evidence recovery logic appears across `run-gate.js`, `run-review.js`, `stale-test-evidence-refresh.js`, and related registry hooks with repeated detection, artifact handling, and recovery-result checks. This creates cross-file drift risk in how stale evidence is detected and reported.  \n**Suggestion:** Move shared stale evidence recovery predicates and artifact-check orchestration into a single helper module, then parameterize caller-specific labels, phases, and returned artifact metadata.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Normalize draft repair-target phase handling",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** The draft repair-target phase set is repeated conceptually across implementation, tests, and spec text as `draft-questions` / `draft-coverage`, with inline set checks and ternary artifact mappings. This makes phase additions or renames error-prone across files.  \n**Suggestion:** Introduce a canonical helper or mapping such as `isDraftRepairTargetPhase()` and `draftRepairTargetArtifactForPhase()`, and reuse it in production code and tests.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Align evidence refresh result naming",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R8  \n**Issue:** Similar recovery concepts use different names across files: `evidenceRefresh`, `staleEvidenceResult`, `artifactCheckResult`, and registry-level recovered checks. Some variables hold full command results while others hold only refresh metadata.  \n**Suggestion:** Standardize naming around the actual interface, for example `artifactCheckResult` for command-level early returns and `evidenceRefresh` only for nested refresh metadata.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Deduplicate advisory recording test fixtures",
+        "body": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R1  \n**Issue:** Multiple test files introduce repeated fixture patterns for draft advisory evidence, phase-to-artifact naming, canonical disposition setup, and recorded advisory assertions. The same behavior is being described with different local helpers or inline setup.  \n**Suggestion:** Extract shared test helpers for draft phase cases, advisory evidence construction, and completed advisory recording assertions, then reuse them across the draft repair-target tests.",
+        "file": "tests/unit/flow/commands/review.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Make repair-target terminology consistent",
+        "body": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R4  \n**Issue:** The reviewed files refer to the same concept using `repairTarget`, `repair_target`, `classification`, `category`, and `repairTargets`. It is unclear which field is canonical and which names are test conveniences.  \n**Suggestion:** Pick one canonical domain term for the persisted contract, then align fixture names, helper names, and assertions to distinguish collection names from serialized field values.",
+        "file": "tests/unit/flow/commands/review.test.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

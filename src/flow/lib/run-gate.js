@@ -108,6 +108,7 @@ import {
 } from "./impl-repair-artifacts.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import { GateMutationOwner } from "./gate-mutation-owner.js";
+import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 
 export { resolveGateStepId };
 
@@ -177,6 +178,34 @@ export const PHASE_TO_LEVEL = Object.freeze({
   "integration": "integration",
 });
 
+class StaleIntegrationTestEvidence {
+  constructor(mismatch) {
+    this.mismatch = mismatch;
+    this.artifactNames = mismatch.artifactNames;
+    Object.freeze(this);
+  }
+
+  recover(ctx, { level, phase, specDir }) {
+    const refresh = this.mismatch.recover({
+      specDir,
+      flowManager: ctx.flowManager,
+      reason: "integration gate detected stale fingerprint evidence",
+    });
+    ctx.gateEvidenceRefresh = true;
+    return {
+      result: "recovered",
+      changed: [...refresh.invalidatedArtifacts],
+      artifacts: {
+        level,
+        phase,
+        staleArtifacts: [...this.artifactNames],
+        evidenceRefresh: refresh.toJSON(),
+      },
+      next: refresh.activeStep,
+    };
+  }
+}
+
 /**
  * spec 251 R17 and spec 258: precheck for integration gate. Verifies the
  * full trust-input set produced by test-execute / test-result-review before
@@ -184,7 +213,7 @@ export const PHASE_TO_LEVEL = Object.freeze({
  * placeholder-permission.json before any detected placeholder artifact can be
  * tolerated.
  */
-function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
+export function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
   const specPath = state.spec;
   const specDir = path.dirname(path.resolve(root, specPath));
   const result = validateIntegrationArtifactTrust({
@@ -201,10 +230,20 @@ function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
     ], { phase, level, spec: specPath });
   }
   const fingerprint = buildRepairFingerprint({ root, specPath, state });
+  const artifacts = new Map();
   for (const file of ["test-execute-result.json", "test-result-review.json"]) {
     const artifactPath = path.join(specDir, file);
+    const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+    artifacts.set(file, artifact);
+  }
+  const mismatch = StaleTestEvidenceMismatch.detect({
+    artifacts,
+    currentFingerprint: fingerprint.hash,
+  });
+  if (mismatch) return new StaleIntegrationTestEvidence(mismatch);
+  for (const [file, artifact] of artifacts) {
     assertRepairFingerprint({
-      artifact: JSON.parse(fs.readFileSync(artifactPath, "utf8")),
+      artifact,
       fingerprint,
       label: file,
     });
@@ -5005,6 +5044,13 @@ export class RunGateCommand extends FlowCommand {
     // retry budget consumption, since the failure is structural.
     if (phase === "integration") {
       const integrationCheck = checkIntegrationTestArtifacts(root, state, level, phase, ctx.config || {});
+      if (integrationCheck instanceof StaleIntegrationTestEvidence) {
+        return integrationCheck.recover(ctx, {
+          level,
+          phase,
+          specDir: path.dirname(path.resolve(root, state.spec)),
+        });
+      }
       if (integrationCheck) return finish(integrationCheck);
       const findingReadiness = reviewFindingGateFailure({
         root,

@@ -1,0 +1,119 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/331-draft-repair-target-advisory/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "test_name": "R1: draft-questions repairTargets-only records canonical advisory findings",
+        "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 186
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "test_name": "R2: draft-coverage repairTargets-only uses the canonical advisory contract",
+        "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 186
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "test_name": "R3: advisory findings and repair targets remain advisory without blocking findings",
+        "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 186
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "test_name": "R4: repair target metadata remains in history and the raw triage source",
+        "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 186
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "test_name": "R5: empty draft buckets remain PASS with zero canonical findings",
+        "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 186
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "test_name": "R6: invalid PASS, ADVISORY, and REJECTED combinations fail closed",
+        "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 186
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "test_name": "R7: fallback IDs stay unique while duplicate content and evidence remain rejected",
+        "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 186
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "test_name": "R8: checkpoint-shaped evidence records once and advances to triage without review AI",
+        "command": "node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 186
+        }
+      }
+    }
+  ]
+}

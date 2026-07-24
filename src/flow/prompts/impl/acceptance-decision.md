@@ -1,3 +1,3 @@
-   - This step exists only for `notVerifiable` requirement judgments.
+   - This step exists for `notVerifiable` requirement judgments or unresolved deferred-finding risk.
    - `accept_risk_and_continue` and `abort` require an explicit user choice. Never infer either choice from `autoApprove`, a default, or missing input.
    - Record the decision with `senti flow set acceptance-decision --choice <accept_risk_and_continue|abort>`.

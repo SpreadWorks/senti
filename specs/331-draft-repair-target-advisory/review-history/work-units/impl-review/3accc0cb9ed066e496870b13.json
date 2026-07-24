@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "3accc0cb9ed066e496870b13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-957ae775f11a4471",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".codex/rules/default.rules",
+      "specs/331-draft-repair-target-advisory/flow.json",
+      "specs/331-draft-repair-target-advisory/spec.json",
+      "src/flow/commands/review.js",
+      "src/flow/lib/gate-recovery-display.js",
+      "src/flow/lib/run-acceptance-review.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/gate-phase-inference.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js"
+    ],
+    "inputHash": "957ae775f11a44715e052d849da4c2f97997a60e11ef866a5b867844fb1ca8dc",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "3accc0cb9ed066e496870b13"
+  },
+  "targetFiles": [
+    ".codex/rules/default.rules",
+    "specs/331-draft-repair-target-advisory/flow.json",
+    "specs/331-draft-repair-target-advisory/spec.json",
+    "src/flow/commands/review.js",
+    "src/flow/lib/gate-recovery-display.js",
+    "src/flow/lib/run-acceptance-review.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/gate-phase-inference.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js"
+  ],
+  "inputHash": "957ae775f11a44715e052d849da4c2f97997a60e11ef866a5b867844fb1ca8dc",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:08:03.913Z",
+  "finishedAt": "2026-07-24T10:08:03.913Z",
+  "rawResponse": "### 1. Centralize Stale Evidence Refresh Result Handling\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** Stale evidence recovery behavior is now spread across `run-gate.js`, `run-review.js`, `run-acceptance-review.js`, `stale-test-evidence-refresh.js`, and registry post hooks. Multiple files shape or inspect the same recovered evidence-refresh result, which risks interface drift.\n**Suggestion:** Introduce one shared helper/module for stale evidence refresh results, including result construction and predicate checks such as `isRecoveredEvidenceRefreshResult(result)`. Use it from gate, review, acceptance-review, and registry code.\n\n### 2. Normalize Lifecycle-Skip Test Naming\n**File:** `tests/unit/flow/gate-phase-inference.test.js`\n**Requirement:** R3\n**Issue:** Multiple tests use a generic variable name like `loaded` while asserting that the normal lifecycle was skipped after recovery. The same naming issue appears in both gate and review recovery tests.\n**Suggestion:** Rename these consistently across files to something intent-specific, such as `normalLifecycleLoaded` or `normalLifecycleLoadCalled`.\n\n### 3. Extract Shared Stale Artifact Test Helpers\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`\n**Requirement:** R3\n**Issue:** Stale artifact fixture setup and absence assertions are repeated across recovery-oriented tests, including `retry-exhaustion-defer.test.js` and `run-review-advisory.test.js`.\n**Suggestion:** Add local or shared test helpers for stale artifact filenames, fixture creation, and absence assertions, then reuse them across stale evidence recovery tests.\n\n### 4. Align Draft Phase Artifact Mapping Across Tests\n**File:** `tests/unit/flow/commands/review.test.js`\n**Requirement:** R1\n**Issue:** Draft phase handling is represented in several places with repeated `draft-questions` / `draft-coverage` conditionals, literals, and helper names. This creates a cross-file maintenance risk if phase-to-artifact mapping changes.\n**Suggestion:** Define a canonical draft phase artifact map or helper and reuse it in tests and fixture builders that need to resolve phase-specific artifact names.\n\n### 5. Consolidate Evidence Identity Modeling\n**File:** `specs/331-draft-repair-target-advisory/flow.json`\n**Requirement:** R3\n**Issue:** Evidence identity fields such as `phase`, `taskId`, `treeSha`, `provider`, timestamps, and digests are duplicated across flow records, issue-log repair references, and test fixture helpers. This increases the chance that committed artifacts and tests encode subtly different identity shapes.\n**Suggestion:** Store evidence identity once per logical record and reference it by ID or digest where possible. Mirror that model in test fixture helpers so tests construct the same canonical identity shape as persisted flow artifacts.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Stale Evidence Refresh Result Handling",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** Stale evidence recovery behavior is now spread across `run-gate.js`, `run-review.js`, `run-acceptance-review.js`, `stale-test-evidence-refresh.js`, and registry post hooks. Multiple files shape or inspect the same recovered evidence-refresh result, which risks interface drift.\n**Suggestion:** Introduce one shared helper/module for stale evidence refresh results, including result construction and predicate checks such as `isRecoveredEvidenceRefreshResult(result)`. Use it from gate, review, acceptance-review, and registry code.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Normalize Lifecycle-Skip Test Naming",
+        "body": "**File:** `tests/unit/flow/gate-phase-inference.test.js`\n**Requirement:** R3\n**Issue:** Multiple tests use a generic variable name like `loaded` while asserting that the normal lifecycle was skipped after recovery. The same naming issue appears in both gate and review recovery tests.\n**Suggestion:** Rename these consistently across files to something intent-specific, such as `normalLifecycleLoaded` or `normalLifecycleLoadCalled`.",
+        "file": "tests/unit/flow/gate-phase-inference.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Extract Shared Stale Artifact Test Helpers",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`\n**Requirement:** R3\n**Issue:** Stale artifact fixture setup and absence assertions are repeated across recovery-oriented tests, including `retry-exhaustion-defer.test.js` and `run-review-advisory.test.js`.\n**Suggestion:** Add local or shared test helpers for stale artifact filenames, fixture creation, and absence assertions, then reuse them across stale evidence recovery tests.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Align Draft Phase Artifact Mapping Across Tests",
+        "body": "**File:** `tests/unit/flow/commands/review.test.js`\n**Requirement:** R1\n**Issue:** Draft phase handling is represented in several places with repeated `draft-questions` / `draft-coverage` conditionals, literals, and helper names. This creates a cross-file maintenance risk if phase-to-artifact mapping changes.\n**Suggestion:** Define a canonical draft phase artifact map or helper and reuse it in tests and fixture builders that need to resolve phase-specific artifact names.",
+        "file": "tests/unit/flow/commands/review.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Consolidate Evidence Identity Modeling",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`\n**Requirement:** R3\n**Issue:** Evidence identity fields such as `phase`, `taskId`, `treeSha`, `provider`, timestamps, and digests are duplicated across flow records, issue-log repair references, and test fixture helpers. This increases the chance that committed artifacts and tests encode subtly different identity shapes.\n**Suggestion:** Store evidence identity once per logical record and reference it by ID or digest where possible. Mirror that model in test fixture helpers so tests construct the same canonical identity shape as persisted flow artifacts.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

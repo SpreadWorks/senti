@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-review.js"
+    ],
+    "inputHash": "751d4e2e18be7434cc686f18cb74d90ff2a558e17921677dd42b9e4d95e5ce36",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-review.js"
+  ],
+  "inputHash": "751d4e2e18be7434cc686f18cb74d90ff2a558e17921677dd42b9e4d95e5ce36",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:14:30.712Z",
+  "finishedAt": "2026-07-24T10:14:30.712Z",
+  "rawResponse": "### 1. Extract Shared Test Evidence Validation\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** `checkIntegrationTestArtifacts` now duplicates the same stale test evidence loading, mismatch detection, recovery, and fingerprint assertion flow added in `run-review.js`. The only meaningful differences are error/result wording and returned artifact metadata.  \n**Suggestion:** Introduce a small shared helper in one of the touched files, or move the repeated logic behind a local helper shape reused by both call sites in this change set. Parameterize artifact names, stale-reason text, phase/level metadata, and recovery output text.\n\n### 2. Avoid Exposing A Single-Use Internal Class\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** `StaleIntegrationTestEvidence` is only used as a private control-flow wrapper so `RunGateCommand` can detect it via `instanceof`. This adds a new class for one branch and makes `checkIntegrationTestArtifacts` return mixed result types.  \n**Suggestion:** Return a plain gate result directly from `checkIntegrationTestArtifacts`, or return a dedicated local result object with an explicit method-free shape such as `{ staleEvidenceRecovery: ... }`. This would simplify the call site and avoid class-based control flow for a single internal case.\n\n### 3. Rename `evidenceRefresh` For Result Semantics\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R8  \n**Issue:** In `RunReviewCommand`, the variable `evidenceRefresh` holds the full command result returned by `checkImplReviewTestArtifacts`, not just refresh metadata. The name understates that returning it exits the command.  \n**Suggestion:** Rename it to `testArtifactGateResult`, `staleEvidenceResult`, or `artifactCheckResult` so the early return reads as command-level control flow.\n\n### 4. Replace Phase Set With Predicate Helper\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** `DRAFT_REPAIR_TARGET_PHASES.has(phase)` appears in multiple places and encodes a domain rule: only draft repair-target phases merge `repairTargets` into advisory findings and receive deterministic fallback IDs.  \n**Suggestion:** Add a small helper such as `isDraftRepairTargetPhase(phase)` and use it in `reviewArtifactFindingLists` and `canonicalFindingList`. This makes the policy name explicit and reduces repeated set checks.\n\n### 5. Clarify `canonicalFindingList` Fallback Scope\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** `canonicalFindingList` generates deterministic fallback IDs for every finding in draft repair-target phases, including existing advisory/blocking lists, not only `repairTargets`. That may be correct, but the helper name and implementation do not make the behavior obvious.  \n**Suggestion:** Either rename the helper or split fallback ID construction into a named function like `fallbackFindingIdFor({ phase, bucket, index })`. This makes the R7 uniqueness behavior easier to audit and avoids hiding the policy inside a map callback.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Shared Test Evidence Validation",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** `checkIntegrationTestArtifacts` now duplicates the same stale test evidence loading, mismatch detection, recovery, and fingerprint assertion flow added in `run-review.js`. The only meaningful differences are error/result wording and returned artifact metadata.  \n**Suggestion:** Introduce a small shared helper in one of the touched files, or move the repeated logic behind a local helper shape reused by both call sites in this change set. Parameterize artifact names, stale-reason text, phase/level metadata, and recovery output text.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Avoid Exposing A Single-Use Internal Class",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** `StaleIntegrationTestEvidence` is only used as a private control-flow wrapper so `RunGateCommand` can detect it via `instanceof`. This adds a new class for one branch and makes `checkIntegrationTestArtifacts` return mixed result types.  \n**Suggestion:** Return a plain gate result directly from `checkIntegrationTestArtifacts`, or return a dedicated local result object with an explicit method-free shape such as `{ staleEvidenceRecovery: ... }`. This would simplify the call site and avoid class-based control flow for a single internal case.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Rename `evidenceRefresh` For Result Semantics",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R8  \n**Issue:** In `RunReviewCommand`, the variable `evidenceRefresh` holds the full command result returned by `checkImplReviewTestArtifacts`, not just refresh metadata. The name understates that returning it exits the command.  \n**Suggestion:** Rename it to `testArtifactGateResult`, `staleEvidenceResult`, or `artifactCheckResult` so the early return reads as command-level control flow.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Replace Phase Set With Predicate Helper",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** `DRAFT_REPAIR_TARGET_PHASES.has(phase)` appears in multiple places and encodes a domain rule: only draft repair-target phases merge `repairTargets` into advisory findings and receive deterministic fallback IDs.  \n**Suggestion:** Add a small helper such as `isDraftRepairTargetPhase(phase)` and use it in `reviewArtifactFindingLists` and `canonicalFindingList`. This makes the policy name explicit and reduces repeated set checks.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Clarify `canonicalFindingList` Fallback Scope",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** `canonicalFindingList` generates deterministic fallback IDs for every finding in draft repair-target phases, including existing advisory/blocking lists, not only `repairTargets`. That may be correct, but the helper name and implementation do not make the behavior obvious.  \n**Suggestion:** Either rename the helper or split fallback ID construction into a named function like `fallbackFindingIdFor({ phase, bucket, index })`. This makes the R7 uniqueness behavior easier to audit and avoids hiding the policy inside a map callback.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

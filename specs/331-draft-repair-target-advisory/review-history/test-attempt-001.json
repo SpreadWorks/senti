@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T06:40:24.696Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/331-draft-repair-target-advisory/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 Does Not Cover Result Recording Completion",
+      "target": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js: R1 test",
+      "findingId": "b5786b44d86c22925a2223f0760f3f6ff66912d09cada66c865e3276be973a11",
+      "fingerprint": "b5786b44d86c22925a2223f0760f3f6ff66912d09cada66c865e3276be973a11",
+      "disposition": "must-fix",
+      "rationale": "R1 explicitly requires both canonical advisory recording and completed result_recording, but the executable test only covers canonicalization.",
+      "issue": "The R1 test only constructs canonical findings through ReviewDisposition and asserts advisory ID/count. It does not exercise the result_recording path or assert that result_recording completes for a draft-questions repairTargets-only artifact.",
+      "requiredChange": "Add a spec-local assertion path for R1 that records the draft-questions repairTargets-only artifact through the result_recording mechanism and verifies completion.",
+      "whyBlocking": "R1 explicitly requires both canonical advisory recording and completed result_recording, but the executable test only covers canonicalization.",
+      "origin": "R1",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 Preservation Is Only Counted, Not Verified",
+      "target": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js: R3 test",
+      "findingId": "f15648a7fbe0798f9367dbb1d0450d70f04846ea3cdef91bc3e719b80fa1f82e",
+      "fingerprint": "f15648a7fbe0798f9367dbb1d0450d70f04846ea3cdef91bc3e719b80fa1f82e",
+      "disposition": "must-fix",
+      "rationale": "An implementation could drop or rewrite the actual advisory input content while preserving only count and IDs, and this test would still pass without validating the required preservation behavior.",
+      "issue": "The R3 test asserts no blocking findings, total advisory count, and fallback IDs, but it does not assert that the advisoryFindings and repairTargets input content is preserved in the canonical advisory findings.",
+      "requiredChange": "Assert the canonical advisory findings retain the input advisory and repair-target content needed by the contract, such as title, target/evidence/rationale where present, and category/classification semantics.",
+      "whyBlocking": "An implementation could drop or rewrite the actual advisory input content while preserving only count and IDs, and this test would still pass without validating the required preservation behavior.",
+      "origin": "R3",
+      "failureKind": "static_antipattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/331-draft-repair-target-advisory/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "85660343c9bbd6168548ba21a0b8605fb1687520dffe7cda1b0756ad947b1287"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "b5786b44d86c22925a2223f0760f3f6ff66912d09cada66c865e3276be973a11",
+      "findingId": "b5786b44d86c22925a2223f0760f3f6ff66912d09cada66c865e3276be973a11",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 Does Not Cover Result Recording Completion",
+      "body": "The R1 test only constructs canonical findings through ReviewDisposition and asserts advisory ID/count. It does not exercise the result_recording path or assert that result_recording completes for a draft-questions repairTargets-only artifact.",
+      "category": "unknown",
+      "fingerprint": "b5786b44d86c22925a2223f0760f3f6ff66912d09cada66c865e3276be973a11",
+      "disposition": "must-fix",
+      "rationale": "R1 explicitly requires both canonical advisory recording and completed result_recording, but the executable test only covers canonicalization."
+    },
+    {
+      "id": "f15648a7fbe0798f9367dbb1d0450d70f04846ea3cdef91bc3e719b80fa1f82e",
+      "findingId": "f15648a7fbe0798f9367dbb1d0450d70f04846ea3cdef91bc3e719b80fa1f82e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 Preservation Is Only Counted, Not Verified",
+      "body": "The R3 test asserts no blocking findings, total advisory count, and fallback IDs, but it does not assert that the advisoryFindings and repairTargets input content is preserved in the canonical advisory findings.",
+      "category": "unknown",
+      "fingerprint": "f15648a7fbe0798f9367dbb1d0450d70f04846ea3cdef91bc3e719b80fa1f82e",
+      "disposition": "must-fix",
+      "rationale": "An implementation could drop or rewrite the actual advisory input content while preserving only count and IDs, and this test would still pass without validating the required preservation behavior."
+    }
+  ]
+}

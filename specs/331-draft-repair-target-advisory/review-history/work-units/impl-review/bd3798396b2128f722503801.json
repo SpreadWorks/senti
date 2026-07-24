@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/gate-recovery-display.js",
+      "src/flow/lib/get-next-action.js"
+    ],
+    "inputHash": "78029084f503ebbde638995c7e399c819473772bdcd907b2488a8be6ef76f2d3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "src/flow/lib/gate-recovery-display.js",
+    "src/flow/lib/get-next-action.js"
+  ],
+  "inputHash": "78029084f503ebbde638995c7e399c819473772bdcd907b2488a8be6ef76f2d3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:14:09.857Z",
+  "finishedAt": "2026-07-24T10:14:09.857Z",
+  "rawResponse": "I’ll review only the two touched files in the supplied diff and keep the proposals constrained to code quality and the specified guardrail.### 1. Extract shared display phase construction\n**File:** `src/flow/lib/gate-recovery-display.js`  \n**Requirement:** R4  \n**Issue:** The active-phase path and configured-phase loop both repeat the same `countGateRetry` / `resolveRecoveryMaxAttempts` / `new GateRecoveryDisplayPhase` construction.  \n**Suggestion:** Add a small local helper such as `createGateRecoveryDisplayPhase({ root, flowState, phase, maxAttempts })` and use it in both branches. This keeps the ordering change clear while avoiding duplicated recovery-display logic.\n\n### 2. Avoid recursive flattening for a single step lookup\n**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R8  \n**Issue:** `attachLatestStepAttempt` now calls `flattenSteps(targetSteps || [])` just to find one step. If step trees can grow deeply or broadly, this adds recursive bulk traversal in a path that only needs one item, and it has no explicit traversal bound.  \n**Suggestion:** Replace the flatten-then-find pattern with a bounded or short-circuiting step lookup helper in this file, for example `findStepById(steps, stepId)`, ideally with an explicit max depth/count if the project has no existing bound for step trees. This also better satisfies the bounded-resource-usage guardrail.\n\n### 3. Clarify scoped step naming\n**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R3  \n**Issue:** `targetSteps` is slightly ambiguous because it means “the step collection for the target scope,” not necessarily the target step itself. The next variable is `targetStep`, which makes the distinction easy to miss.  \n**Suggestion:** Rename `targetSteps` to `scopedSteps` or `stepScopeSteps` so the code reads more clearly:\n\n```js\nconst scopedSteps = target.scope === \"task\"\n  ? state.tasks.find((task) => task.id === target.taskId)?.steps\n  : state.steps;\n```",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract shared display phase construction",
+        "body": "**File:** `src/flow/lib/gate-recovery-display.js`  \n**Requirement:** R4  \n**Issue:** The active-phase path and configured-phase loop both repeat the same `countGateRetry` / `resolveRecoveryMaxAttempts` / `new GateRecoveryDisplayPhase` construction.  \n**Suggestion:** Add a small local helper such as `createGateRecoveryDisplayPhase({ root, flowState, phase, maxAttempts })` and use it in both branches. This keeps the ordering change clear while avoiding duplicated recovery-display logic.",
+        "file": "src/flow/lib/gate-recovery-display.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Avoid recursive flattening for a single step lookup",
+        "body": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R8  \n**Issue:** `attachLatestStepAttempt` now calls `flattenSteps(targetSteps || [])` just to find one step. If step trees can grow deeply or broadly, this adds recursive bulk traversal in a path that only needs one item, and it has no explicit traversal bound.  \n**Suggestion:** Replace the flatten-then-find pattern with a bounded or short-circuiting step lookup helper in this file, for example `findStepById(steps, stepId)`, ideally with an explicit max depth/count if the project has no existing bound for step trees. This also better satisfies the bounded-resource-usage guardrail.",
+        "file": "src/flow/lib/get-next-action.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Clarify scoped step naming",
+        "body": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R3  \n**Issue:** `targetSteps` is slightly ambiguous because it means “the step collection for the target scope,” not necessarily the target step itself. The next variable is `targetStep`, which makes the distinction easy to miss.  \n**Suggestion:** Rename `targetSteps` to `scopedSteps` or `stepScopeSteps` so the code reads more clearly:\n\n```js\nconst scopedSteps = target.scope === \"task\"\n  ? state.tasks.find((task) => task.id === target.taskId)?.steps\n  : state.steps;\n```",
+        "file": "src/flow/lib/get-next-action.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

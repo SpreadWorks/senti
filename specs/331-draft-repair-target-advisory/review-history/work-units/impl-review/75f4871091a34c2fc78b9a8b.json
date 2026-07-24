@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/331-draft-repair-target-advisory/flow.json",
+      "specs/331-draft-repair-target-advisory/issue-log.json"
+    ],
+    "inputHash": "5ba450c4f92900befa697cb31de2860a0dad99814c76ba3121303a80b2de7cea",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "specs/331-draft-repair-target-advisory/flow.json",
+    "specs/331-draft-repair-target-advisory/issue-log.json"
+  ],
+  "inputHash": "5ba450c4f92900befa697cb31de2860a0dad99814c76ba3121303a80b2de7cea",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:50:50.001Z",
+  "finishedAt": "2026-07-24T10:50:50.001Z",
+  "rawResponse": "### 1. Trim Volatile Runtime State From Flow Snapshot\n**File:** `specs/331-draft-repair-target-advisory/flow.json`\n**Requirement:** R8\n**Issue:** The new flow snapshot commits extensive transient runtime data: agent metrics, timestamps, runtime logs, retry baselines, step attempts, and large review convergence histories. This makes the file noisy, hard to review, and likely to churn on every flow command.\n**Suggestion:** Persist only the canonical flow state needed to resume or audit the spec, and move volatile execution traces to generated runtime artifacts or omit them from committed state.\n\n### 2. Add Explicit Bounds To Append-Only Flow Collections\n**File:** `specs/331-draft-repair-target-advisory/flow.json`\n**Requirement:** R6\n**Issue:** Arrays such as `metrics`, `reviewConvergence.records`, `stepAttempts`, and `reviewRecoveryBaselines` appear append-only and can grow without a visible cap. This violates the bounded-resource-usage guardrail because repeated review or gate retries can produce unbounded JSON growth.\n**Suggestion:** Enforce maximum retained entries per collection, or compact older entries into summaries while preserving the latest canonical evidence and decision state.\n\n### 3. Deduplicate Repeated Evidence Identity Blocks\n**File:** `specs/331-draft-repair-target-advisory/flow.json`\n**Requirement:** R3\n**Issue:** Many `handoffFindings` repeat the same `phase`, `taskId`, `treeSha`, `provenance`, `canonicalEvidenceRef`, `evidenceDigest`, `reviewDisposition`, and `finalDispositionOwner` fields. This creates large duplication and increases the risk of inconsistent edits.\n**Suggestion:** Store shared evidence metadata once at the record level and keep each finding focused on finding-specific fields such as `findingId`, `summary`, `fingerprint`, and `evidenceRefs`.\n\n### 4. Normalize Step Identifier Naming\n**File:** `specs/331-draft-repair-target-advisory/issue-log.json`\n**Requirement:** R7\n**Issue:** Step names mix formats such as `task.impl`, `task-impl`, `task-review`, `spec-gate`, and `retry-recovery`. The inconsistent naming makes filtering and correlation with `flow.json` harder.\n**Suggestion:** Use one canonical step-id format matching `flow.json`, preferably hyphenated IDs, and migrate `task.impl` to `task-impl`.\n\n### 5. Factor Repeated Issue Log Repair Metadata\n**File:** `specs/331-draft-repair-target-advisory/issue-log.json`\n**Requirement:** R4\n**Issue:** Multiple entries repeat nearly identical `repairRef.files` arrays and similar repair descriptions for the same touched files, especially around review-test repairs.\n**Suggestion:** Group related repair entries under a shared repair batch identifier or normalize repeated file references into a single local repair reference object reused by entries.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Trim Volatile Runtime State From Flow Snapshot",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`\n**Requirement:** R8\n**Issue:** The new flow snapshot commits extensive transient runtime data: agent metrics, timestamps, runtime logs, retry baselines, step attempts, and large review convergence histories. This makes the file noisy, hard to review, and likely to churn on every flow command.\n**Suggestion:** Persist only the canonical flow state needed to resume or audit the spec, and move volatile execution traces to generated runtime artifacts or omit them from committed state.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Add Explicit Bounds To Append-Only Flow Collections",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`\n**Requirement:** R6\n**Issue:** Arrays such as `metrics`, `reviewConvergence.records`, `stepAttempts`, and `reviewRecoveryBaselines` appear append-only and can grow without a visible cap. This violates the bounded-resource-usage guardrail because repeated review or gate retries can produce unbounded JSON growth.\n**Suggestion:** Enforce maximum retained entries per collection, or compact older entries into summaries while preserving the latest canonical evidence and decision state.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Deduplicate Repeated Evidence Identity Blocks",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`\n**Requirement:** R3\n**Issue:** Many `handoffFindings` repeat the same `phase`, `taskId`, `treeSha`, `provenance`, `canonicalEvidenceRef`, `evidenceDigest`, `reviewDisposition`, and `finalDispositionOwner` fields. This creates large duplication and increases the risk of inconsistent edits.\n**Suggestion:** Store shared evidence metadata once at the record level and keep each finding focused on finding-specific fields such as `findingId`, `summary`, `fingerprint`, and `evidenceRefs`.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Normalize Step Identifier Naming",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/issue-log.json`\n**Requirement:** R7\n**Issue:** Step names mix formats such as `task.impl`, `task-impl`, `task-review`, `spec-gate`, and `retry-recovery`. The inconsistent naming makes filtering and correlation with `flow.json` harder.\n**Suggestion:** Use one canonical step-id format matching `flow.json`, preferably hyphenated IDs, and migrate `task.impl` to `task-impl`.",
+        "file": "specs/331-draft-repair-target-advisory/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Factor Repeated Issue Log Repair Metadata",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/issue-log.json`\n**Requirement:** R4\n**Issue:** Multiple entries repeat nearly identical `repairRef.files` arrays and similar repair descriptions for the same touched files, especially around review-test repairs.\n**Suggestion:** Group related repair entries under a shared repair batch identifier or normalize repeated file references into a single local repair reference object reused by entries.",
+        "file": "specs/331-draft-repair-target-advisory/issue-log.json",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

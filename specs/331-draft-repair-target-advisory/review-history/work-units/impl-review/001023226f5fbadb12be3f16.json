@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "001023226f5fbadb12be3f16",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-9bbb7b8c73d819b0",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/331-draft-repair-target-advisory/draft.json",
+      "specs/331-draft-repair-target-advisory/flow.json",
+      "specs/331-draft-repair-target-advisory/issue.md",
+      "specs/331-draft-repair-target-advisory/plugin-artifacts/workflow/prepare.json",
+      "specs/331-draft-repair-target-advisory/spec.json",
+      "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-acceptance-review.js",
+      "src/flow/lib/run-review.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "9bbb7b8c73d819b005bc2e097002c8a1e66dcce2316c0ca62fc52db21616bc6b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "001023226f5fbadb12be3f16"
+  },
+  "targetFiles": [
+    "specs/331-draft-repair-target-advisory/draft.json",
+    "specs/331-draft-repair-target-advisory/flow.json",
+    "specs/331-draft-repair-target-advisory/issue.md",
+    "specs/331-draft-repair-target-advisory/plugin-artifacts/workflow/prepare.json",
+    "specs/331-draft-repair-target-advisory/spec.json",
+    "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-acceptance-review.js",
+    "src/flow/lib/run-review.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "9bbb7b8c73d819b005bc2e097002c8a1e66dcce2316c0ca62fc52db21616bc6b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T09:00:29.636Z",
+  "finishedAt": "2026-07-24T09:00:29.636Z",
+  "rawResponse": "### 1. Centralize draft repair target phase/artifact naming\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** Draft phase concepts are repeated with slightly different names across spec files and tests: `draft-questions`, `draft-coverage`, `draft-review-questions.json`, behavior names like checkpoint fixture, and helper names such as `recordCanonicalDraftEvidence`. This creates cross-file drift risk between implementation, test fixtures, and spec language.  \n**Suggestion:** Introduce shared constants/helpers for draft repair target phases and artifact names in the production module where appropriate, and mirror those names in tests/spec wording. Prefer behavior-based fixture names such as `single-pass repairTargets checkpoint fixture`.\n\n### 2. Keep repair targets distinct until canonicalization\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R3  \n**Issue:** `repairTargets` are reportedly folded into `advisory` in `reviewArtifactFindingLists()`, while specs and tests describe repair targets as a distinct draft advisory source. This interface mismatch can hide whether advisory findings came from native advisory output or repair target conversion.  \n**Suggestion:** Return `{ blocking, advisory, repairTargets }` from extraction helpers and merge only at the canonical recording boundary, with tests asserting the distinction is preserved until that point.\n\n### 3. Use one lifecycle model for status and history\n**File:** `specs/331-draft-repair-target-advisory/spec.json`  \n**Requirement:** R6  \n**Issue:** Multiple files show lifecycle ambiguity: `spec.json` has done requirements with pending tasks, while `flow.json` has pending steps with completed runtime logs. These files expose inconsistent meanings for current status versus historical attempts.  \n**Suggestion:** Define one cross-file convention: current lifecycle status lives in `status`, while prior executions live in explicit history fields such as `attemptHistory` or `runtimeHistory`.\n\n### 4. Apply bounded-resource policy consistently\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** Several files independently raise missing bounds for evidence arrays, checkpoint fixtures, review findings, deferred sources, and accumulated flow history. The same bounded-resource concern appears across spec, flow state, production code, and tests without a single shared policy.  \n**Suggestion:** Add explicit limits in production code for finding/source materialization and fixture replay, then document those same limits in `spec.json` and `issue.md`. Tests should use the named limits rather than inline unbounded fixtures.\n\n### 5. Normalize persisted review proposal summaries\n**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R5  \n**Issue:** Review summaries contain local numbering and even captured reviewer narration, while the provider contract requires structured proposal fields and stable requirement IDs. This creates inconsistent proposal identity across `flow.json`, review summaries, and implementation review output.  \n**Suggestion:** Persist normalized proposal data: title without numbering, body without process chatter, stable `findingId`, and explicit `Requirement`. Treat numbering as render-time presentation only.\n\n### 6. Deduplicate evidence identity fields across artifacts\n**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R4  \n**Issue:** Evidence identity fields are repeated in `flow.json`, while related source/recovery code also reconstructs summaries and deferred source material across artifacts. This duplicates provenance ownership across persisted state and production logic.  \n**Suggestion:** Store shared provenance fields once at the review record/evidence level, and let findings reference that record. In code, use helper builders for shared blocker/evidence identity strings instead of reconstructing them inline.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize draft repair target phase/artifact naming",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** Draft phase concepts are repeated with slightly different names across spec files and tests: `draft-questions`, `draft-coverage`, `draft-review-questions.json`, behavior names like checkpoint fixture, and helper names such as `recordCanonicalDraftEvidence`. This creates cross-file drift risk between implementation, test fixtures, and spec language.  \n**Suggestion:** Introduce shared constants/helpers for draft repair target phases and artifact names in the production module where appropriate, and mirror those names in tests/spec wording. Prefer behavior-based fixture names such as `single-pass repairTargets checkpoint fixture`.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Keep repair targets distinct until canonicalization",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R3  \n**Issue:** `repairTargets` are reportedly folded into `advisory` in `reviewArtifactFindingLists()`, while specs and tests describe repair targets as a distinct draft advisory source. This interface mismatch can hide whether advisory findings came from native advisory output or repair target conversion.  \n**Suggestion:** Return `{ blocking, advisory, repairTargets }` from extraction helpers and merge only at the canonical recording boundary, with tests asserting the distinction is preserved until that point.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Use one lifecycle model for status and history",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/spec.json`  \n**Requirement:** R6  \n**Issue:** Multiple files show lifecycle ambiguity: `spec.json` has done requirements with pending tasks, while `flow.json` has pending steps with completed runtime logs. These files expose inconsistent meanings for current status versus historical attempts.  \n**Suggestion:** Define one cross-file convention: current lifecycle status lives in `status`, while prior executions live in explicit history fields such as `attemptHistory` or `runtimeHistory`.",
+        "file": "specs/331-draft-repair-target-advisory/spec.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Apply bounded-resource policy consistently",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** Several files independently raise missing bounds for evidence arrays, checkpoint fixtures, review findings, deferred sources, and accumulated flow history. The same bounded-resource concern appears across spec, flow state, production code, and tests without a single shared policy.  \n**Suggestion:** Add explicit limits in production code for finding/source materialization and fixture replay, then document those same limits in `spec.json` and `issue.md`. Tests should use the named limits rather than inline unbounded fixtures.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "5. Normalize persisted review proposal summaries",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R5  \n**Issue:** Review summaries contain local numbering and even captured reviewer narration, while the provider contract requires structured proposal fields and stable requirement IDs. This creates inconsistent proposal identity across `flow.json`, review summaries, and implementation review output.  \n**Suggestion:** Persist normalized proposal data: title without numbering, body without process chatter, stable `findingId`, and explicit `Requirement`. Treat numbering as render-time presentation only.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "6. Deduplicate evidence identity fields across artifacts",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R4  \n**Issue:** Evidence identity fields are repeated in `flow.json`, while related source/recovery code also reconstructs summaries and deferred source material across artifacts. This duplicates provenance ownership across persisted state and production logic.  \n**Suggestion:** Store shared provenance fields once at the review record/evidence level, and let findings reference that record. In code, use helper builders for shared blocker/evidence identity strings instead of reconstructing them inline.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

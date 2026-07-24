@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-acceptance-review.js"
+    ],
+    "inputHash": "00f8ddf07974fcf1ff93706411b0f59ac2b0d9bb4965e32c442990342ec507d5",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-acceptance-review.js"
+  ],
+  "inputHash": "00f8ddf07974fcf1ff93706411b0f59ac2b0d9bb4965e32c442990342ec507d5",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:52:14.231Z",
+  "finishedAt": "2026-07-24T10:52:14.231Z",
+  "rawResponse": "I’ll review only the two diffed files and check whether the new helper and acceptance-routing changes introduce quality issues or guardrail concerns.The provided paths are not directly present under the current `.tmp` root, so I’m locating the checked-out source before assessing the diff context.### 1. Normalize Evidence Refresh Before Routing\n**File:** `src/flow/lib/run-acceptance-review.js`  \n**Requirement:** R4  \n**Issue:** `result.evidenceRefresh` is normalized to `null` in the returned payload, but the `next` routing condition uses the raw value. This duplicates the same concept in two forms and makes future edits easier to get subtly wrong.  \n**Suggestion:** Assign `const evidenceRefresh = result.evidenceRefresh || null;` before the return and use that variable for both `evidenceRefresh` and `next`.\n\n### 2. Extract Acceptance Next-Step Selection\n**File:** `src/flow/lib/run-acceptance-review.js`  \n**Requirement:** R4  \n**Issue:** The `next` value now combines evidence-refresh routing and verdict routing in a nested ternary. As more routing cases are added, this becomes harder to scan and easier to mis-edit.  \n**Suggestion:** Extract the routing into a small helper such as `nextAcceptanceStep(result)` or compute it in a named local variable before returning.\n\n### 3. Use a More General Fingerprint Helper Name\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `invalidationFingerprint()` describes where the helper is currently used, not what it does. The function actually normalizes either a hash string or a fingerprint-like value into a fingerprint object.  \n**Suggestion:** Rename it to something behavior-oriented like `normalizeFingerprint()` or `coerceFingerprint()` so the name remains accurate if reused outside invalidation planning.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Evidence Refresh Before Routing",
+        "body": "**File:** `src/flow/lib/run-acceptance-review.js`  \n**Requirement:** R4  \n**Issue:** `result.evidenceRefresh` is normalized to `null` in the returned payload, but the `next` routing condition uses the raw value. This duplicates the same concept in two forms and makes future edits easier to get subtly wrong.  \n**Suggestion:** Assign `const evidenceRefresh = result.evidenceRefresh || null;` before the return and use that variable for both `evidenceRefresh` and `next`.",
+        "file": "src/flow/lib/run-acceptance-review.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Extract Acceptance Next-Step Selection",
+        "body": "**File:** `src/flow/lib/run-acceptance-review.js`  \n**Requirement:** R4  \n**Issue:** The `next` value now combines evidence-refresh routing and verdict routing in a nested ternary. As more routing cases are added, this becomes harder to scan and easier to mis-edit.  \n**Suggestion:** Extract the routing into a small helper such as `nextAcceptanceStep(result)` or compute it in a named local variable before returning.",
+        "file": "src/flow/lib/run-acceptance-review.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Use a More General Fingerprint Helper Name",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `invalidationFingerprint()` describes where the helper is currently used, not what it does. The function actually normalizes either a hash string or a fingerprint-like value into a fingerprint object.  \n**Suggestion:** Rename it to something behavior-oriented like `normalizeFingerprint()` or `coerceFingerprint()` so the name remains accurate if reused outside invalidation planning.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

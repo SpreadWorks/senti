@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "72485e5ba7d3fb9d0d85f8d0e4b1463441ccde1acd8431b14c9a47c1dc1d2c2d",
+      "runId": "a58dcbe8-4749-4134-975f-f8a13d22cf9f",
+      "fingerprint": "72485e5ba7d3fb9d0d85f8d0e4b1463441ccde1acd8431b14c9a47c1dc1d2c2d",
+      "disposition": "deferred",
+      "rationale": "R8 is mandatory: an Issue #453 checkpoint-shaped repair-target artifact must be processed once and advance through canonical recording to triage without invoking review AI. The touched test now asserts the generated helper artifact has verdict=ADVISORY, but that narrows the fixture away from the checkpoint shape documented in the issue and leaves the real production replay path unable to honor disposition-only evidence.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "impl-gate",
+      "sourceArtifact": "task-impl-gate-source.json",
+      "sourceFindingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "runId": "a58dcbe8-4749-4134-975f-f8a13d22cf9f",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "deferred",
+      "rationale": "The added implementation flow state leaves the task test-execute step pending, so the diff does not show implemented code has passed project test execution required for readiness.",
+      "retryExhausted": true,
+      "attempts": 5,
+      "round": 5,
+      "completionKind": "deferred",
+      "finalDisposition": "false_positive"
+    }
+  ]
+}

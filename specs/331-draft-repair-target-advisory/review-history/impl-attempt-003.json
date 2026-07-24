@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T06:57:36.657Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "canonical-recording-ignores-disposition-field",
+      "title": "Canonical recording still ignores checkpoint disposition",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-review.js",
+      "requirementId": "R8",
+      "issue": "persistCanonicalReviewArtifact still resolves the canonical verdict with artifact.verdict || result.artifacts.verdict. The Issue #453-shaped evidence described by the spec and exercised by the repaired test can expose disposition=ADVISORY instead of verdict=ADVISORY, so the production result_recording path can still miss the raw checkpoint disposition and fail to prove that this artifact is processed once into triage without review AI.",
+      "suggestion": "Update persistCanonicalReviewArtifact to resolve the verdict with the same contract as the checkpoint replay helper, for example canonicalProviderVerdict(artifact.verdict || artifact.disposition || result.artifacts.verdict), and keep the R8 test asserting the disposition-only fixture records through canonical ReviewDisposition and the production review hook.",
+      "disposition": "must-fix",
+      "rationale": "R8 is a mandatory requirement: an Issue #453 checkpoint-shaped repair-target artifact must be processed once and advance through canonical recording to triage without invoking review AI. The implementation fixed the test helper to accept artifact.disposition, but the production canonical recording code still does not, leaving the required real replay path uncovered and potentially broken.",
+      "findingId": "72485e5ba7d3fb9d0d85f8d0e4b1463441ccde1acd8431b14c9a47c1dc1d2c2d",
+      "fingerprint": "72485e5ba7d3fb9d0d85f8d0e4b1463441ccde1acd8431b14c9a47c1dc1d2c2d",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "68c9bbe6fbe662f750c926946230e1450b7ab29ecb6e96c5343702e349aeb6f0",
+  "runId": "a58dcbe8-4749-4134-975f-f8a13d22cf9f",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/331-draft-repair-target-advisory/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/331-draft-repair-target-advisory/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "50ef647c1118706ef3016d4f826a51a4af90a2efb10927c8b0307f69eae97458"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "72485e5ba7d3fb9d0d85f8d0e4b1463441ccde1acd8431b14c9a47c1dc1d2c2d",
+      "findingId": "72485e5ba7d3fb9d0d85f8d0e4b1463441ccde1acd8431b14c9a47c1dc1d2c2d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Canonical recording still ignores checkpoint disposition",
+      "body": "persistCanonicalReviewArtifact still resolves the canonical verdict with artifact.verdict || result.artifacts.verdict. The Issue #453-shaped evidence described by the spec and exercised by the repaired test can expose disposition=ADVISORY instead of verdict=ADVISORY, so the production result_recording path can still miss the raw checkpoint disposition and fail to prove that this artifact is processed once into triage without review AI.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "72485e5ba7d3fb9d0d85f8d0e4b1463441ccde1acd8431b14c9a47c1dc1d2c2d",
+      "disposition": "must-fix",
+      "rationale": "R8 is a mandatory requirement: an Issue #453 checkpoint-shaped repair-target artifact must be processed once and advance through canonical recording to triage without invoking review AI. The implementation fixed the test helper to accept artifact.disposition, but the production canonical recording code still does not, leaving the required real replay path uncovered and potentially broken.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    }
+  ]
+}

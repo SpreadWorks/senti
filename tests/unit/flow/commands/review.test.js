@@ -12,6 +12,15 @@ import { ProviderRegistry } from "../../../../src/lib/provider.js";
 import { Logger } from "../../../../src/lib/log.js";
 import { FLOW_COMMANDS } from "../../../../src/flow/registry.js";
 import {
+  canonicalReviewArtifactFindings,
+  reviewArtifactFindingLists,
+} from "../../../../src/flow/lib/run-review.js";
+import {
+  applyReviewEvidenceTransition,
+  ReviewDisposition,
+  ReviewEvidence,
+} from "../../../../src/flow/lib/review-convergence.js";
+import {
   parseProposals,
   buildDraftReviewPrompt,
   buildSpecSummaryMarkdown,
@@ -41,8 +50,10 @@ import {
   assertTestReviewPromptWithinLimit,
   runTestReviewWithDependencies,
   runActiveImplReviewWithDependencies,
+  runLoopReviewWithDependencies,
   resolveMergeBase,
   loopProposalsToImplReviewJson,
+  parseImplLoopProposals,
   buildDraftReviewArtifact,
   writeReviewAttemptHistory,
 } from "../../../../src/flow/commands/review.js";
@@ -105,6 +116,148 @@ class DraftRepairTargetCheckpoint {
     };
   }
 }
+
+function recordCanonicalDraftEvidence({
+  artifact,
+  phase,
+  artifactName,
+  invocationId,
+}) {
+  const canonical = canonicalReviewArtifactFindings(artifact, phase, artifactName);
+  const disposition = new ReviewDisposition({
+    value: artifact.verdict,
+    ...canonical,
+  });
+  const evidence = new ReviewEvidence({
+    phase,
+    taskId: null,
+    treeSha: "1".repeat(40),
+    provenance: {
+      provider: "issue-454-fixture",
+      invocationId,
+      capturedAt: "2026-07-24T00:00:00.000Z",
+    },
+    disposition,
+  });
+  const flowState = {};
+  const convergence = applyReviewEvidenceTransition(flowState, evidence, {
+    configuredSemanticMaxAttempts: 4,
+  });
+  return { canonical, convergence, disposition, flowState };
+}
+
+describe("draft repair target canonical classification", () => {
+  const repairTarget = Object.freeze({
+    title: "Empty initial QA list",
+    target: "qa[]",
+    rationale: "Initial QA list is empty before answer collection",
+    evidence: "qa[] is empty before any answer exists",
+    classification: "repair_target",
+  });
+
+  for (const phase of ["draft-questions", "draft-coverage"]) {
+    it(`records ${phase} repairTargets-only as completed advisory evidence`, () => {
+      const artifact = {
+        verdict: "ADVISORY",
+        blockingFindings: [],
+        advisoryFindings: [],
+        repairTargets: [repairTarget],
+      };
+      const result = reviewArtifactFindingLists(artifact, phase);
+      const recorded = recordCanonicalDraftEvidence({
+        artifact,
+        phase,
+        artifactName: phase === "draft-coverage"
+          ? "draft-review-coverage.json"
+          : "draft-review-questions.json",
+        invocationId: `${phase}-result-recording`,
+      });
+
+      assert.deepEqual(result.blocking, []);
+      assert.deepEqual(result.advisory, [repairTarget]);
+      assert.equal(recorded.disposition.value, "ADVISORY");
+      assert.equal(recorded.disposition.advisoryFindings.length, 1);
+      assert.equal(recorded.convergence.finalizedEvidenceAvailable, true);
+      assert.equal(recorded.flowState.reviewConvergence.records.length, 1);
+    });
+  }
+
+  it("preserves advisory findings and repair targets without creating blocking findings", () => {
+    const advisoryFinding = {
+      title: "Optional wording improvement",
+      classification: "advisory",
+    };
+    const result = reviewArtifactFindingLists({
+      blockingFindings: [],
+      advisoryFindings: [advisoryFinding],
+      repairTargets: [repairTarget],
+    }, "draft-questions");
+
+    assert.deepEqual(result.blocking, []);
+    assert.deepEqual(result.advisory, [advisoryFinding, repairTarget]);
+  });
+
+  it("keeps an empty draft review empty for PASS", () => {
+    const result = reviewArtifactFindingLists({
+      blockingFindings: [],
+      advisoryFindings: [],
+      repairTargets: [],
+    }, "draft-questions");
+
+    assert.deepEqual(result, { blocking: [], advisory: [] });
+  });
+
+  it("does not reclassify blocking findings", () => {
+    const blockingFinding = {
+      title: "Missing required decision",
+      classification: "blocking",
+    };
+    const result = reviewArtifactFindingLists({
+      blockingFindings: [blockingFinding],
+      advisoryFindings: [],
+      repairTargets: [repairTarget],
+    }, "draft-coverage");
+
+    assert.deepEqual(result.blocking, [blockingFinding]);
+    assert.deepEqual(result.advisory, [repairTarget]);
+  });
+
+  it("records multiple repair targets with unique fallback IDs and rejects true duplicates", () => {
+    const secondRepairTarget = {
+      ...repairTarget,
+      title: "Question contains an embedded rationale",
+      target: "q2",
+      evidence: "q2 contains answer text",
+    };
+    const canonical = canonicalReviewArtifactFindings({
+      blockingFindings: [],
+      advisoryFindings: [],
+      repairTargets: [repairTarget, secondRepairTarget],
+    }, "draft-questions", "draft-review-questions.json");
+
+    assert.deepEqual(
+      canonical.advisoryFindings.map((finding) => finding.findingId),
+      ["draft-questions-advisory-001", "draft-questions-advisory-002"],
+    );
+    assert.equal(new ReviewDisposition({
+      value: "ADVISORY",
+      ...canonical,
+    }).advisoryFindings.length, 2);
+
+    const duplicateCanonical = canonicalReviewArtifactFindings({
+      blockingFindings: [],
+      advisoryFindings: [],
+      repairTargets: [repairTarget, repairTarget],
+    }, "draft-questions", "draft-review-questions.json");
+    assert.throws(
+      () => new ReviewDisposition({
+        value: "ADVISORY",
+        ...duplicateCanonical,
+      }),
+      /duplicate fingerprint/,
+    );
+  });
+});
 
 describe("FLOW_STEPS includes impl-review", () => {
   it("has impl-review between implement and finalize-commit", () => {
@@ -183,9 +336,19 @@ describe("draft repair target checkpoint replay", () => {
       });
       const recordedArtifact = JSON.parse(fs.readFileSync(written.latestPath, "utf8"));
       const historyArtifact = JSON.parse(fs.readFileSync(written.historyJsonPath, "utf8"));
+      const recorded = recordCanonicalDraftEvidence({
+        artifact: recordedArtifact,
+        phase: "draft-questions",
+        artifactName: "draft-review-questions.json",
+        invocationId: "checkpoint-result-recording",
+      });
 
+      assert.equal(recordedArtifact.verdict, checkpoint.disposition);
       assert.equal(recordedArtifact.disposition, "ADVISORY");
       assert.equal(historyArtifact.findings.length, 1);
+      assert.equal(recorded.disposition.value, "ADVISORY");
+      assert.equal(recorded.disposition.advisoryFindings.length, 1);
+      assert.equal(recorded.convergence.finalizedEvidenceAvailable, true);
       assert.deepEqual(historyArtifact.findings[0], {
         id: "draft-questions-001-non-blocking-001",
         findingId: "draft-questions-001-non-blocking-001",
@@ -612,6 +775,35 @@ describe("parseProposals extracts file from **File:** marker (spec 201 R-P1/R-P3
     const proposals = parseProposals(text);
     assert.equal(proposals.length, 1);
     assert.equal(proposals[0].file, null);
+  });
+
+  it("ignores provider preamble attached before the first proposal heading", async () => {
+    const rawResponse = [
+      "I’ll inspect the touched test file first.The path is unavailable under the agent work directory.### 1. Extract the Active Spec Path",
+      "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`",
+      "**Requirement:** R1",
+      "**Issue:** The test repeats the same spec path.",
+      "**Suggestion:** Extract and reuse a local specPath constant.",
+    ].join("\n");
+    const requirementIds = new Set(["R1"]);
+    const result = await runLoopReviewWithDependencies({
+      groups: [{
+        files: ["tests/unit/flow/retry-recovery-convergence.test.js"],
+        representative: "tests/unit/flow/retry-recovery-convergence.test.js",
+        diff: "+ test",
+      }],
+      buildChunkInput: () => "review input",
+      reviewChunk: async () => rawResponse,
+      crossCheck: async () => "NO_PROPOSALS",
+      parseReviewProposals: (text) => parseImplLoopProposals(text, { requirementIds }),
+      validateProviderOutput: true,
+      requirementIds,
+    });
+
+    assert.equal(result.toolingOutcome, undefined);
+    assert.equal(result.proposals.length, 1);
+    assert.equal(result.proposals[0].title, "1. Extract the Active Spec Path");
+    assert.equal(result.proposals[0].requirementId, "R1");
   });
 });
 

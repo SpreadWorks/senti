@@ -1,0 +1,1250 @@
+{
+  "entries": [
+    {
+      "step": "draft-questions-review",
+      "reason": "run review に非対応の --run-id を付与したため、処理開始前に ARGS_ERROR になった",
+      "trigger": "guard付与時の positional runId と expect guard の混同",
+      "resolution": "非対応の --run-id を除き、expect-run-id・expect-issue・expect-spec のみで正しい公開構文を一度実行する",
+      "guardrailCandidate": "target-sensitive command ごとの対応引数を next-action instruction に従って検証する",
+      "taskId": null,
+      "timestamp": "2026-07-24T00:39:48.885Z",
+      "issueLogId": "issue-log-64f795a5-a4ca-44d4-a8fd-7d3bb0604f43"
+    },
+    {
+      "step": "draft-questions-review",
+      "reason": "provider失敗後の同一run-reviewがtooling outcome/StepAttempt記録後も古いpromotion revisionへfall-throughしてFLOW_STATE_ATOMIC_STALEになる",
+      "trigger": "sequence 18でprovider responseChars=0のsubprocess failure",
+      "resolution": "製品コードは直さず公開retry_reviewを残り1回だけ使用し、再発時はblocker停止",
+      "guardrailCandidate": "subprocess failure記録後はpromotion/finalizeへ進まず単一のterminal outcomeでreturnする",
+      "taskId": null,
+      "timestamp": "2026-07-24T00:44:48.022Z",
+      "issueLogId": "issue-log-e3106aa9-b240-4add-a693-a73e3461731f"
+    },
+    {
+      "step": "draft-questions-review",
+      "reason": "Draft canonical recording ignored repairTargets even though the raw artifact verdict was ADVISORY",
+      "trigger": "Issue 454 checkpoint replay and the live result_recording failure reproduced the missing advisory finding",
+      "resolution": "Included draft-questions and draft-coverage repairTargets once in canonical advisory inputs and added focused matrix coverage",
+      "guardrailCandidate": "Canonical disposition inputs must include every raw bucket that contributes to the producer verdict",
+      "taskId": null,
+      "timestamp": "2026-07-24T04:31:37.911Z",
+      "issueLogId": "issue-log-10d57d9f-bc59-4de9-a6e4-20ab4430f4ad"
+    },
+    {
+      "step": "draft-questions-review",
+      "reason": "Multiple draft repair targets shared the fallback findingId review-finding during canonical recording",
+      "trigger": "The repaired live review reached result_recording with six repairTargets and failed duplicate findingId validation",
+      "resolution": "Assigned phase and bucket scoped fallback IDs to draft canonical findings while preserving duplicate fingerprint rejection",
+      "guardrailCandidate": "Canonical fallback identifiers must be deterministic and unique within an artifact without weakening content duplicate checks",
+      "taskId": null,
+      "timestamp": "2026-07-24T04:56:06.786Z",
+      "issueLogId": "issue-log-2371f67d-037c-4ea3-acaa-8ecc5a961368"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec does not list the change's impact on existing features and does not explicitly state that no existing features are affected.; The test strategy lists focused and shared unit/regression tests, but does not require new spec-local behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T05:03:54.215Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "document"
+          },
+          "observed": "The spec does not list the change's impact on existing features and does not explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "The test strategy lists focused and shared unit/regression tests, but does not require new spec-local behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not list the change's impact on existing features and does not explicitly state that no existing features are affected."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The test strategy lists focused and shared unit/regression tests, but does not require new spec-local behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file."
+        }
+      ],
+      "issueLogId": "issue-log-d5b7c6be-f75e-4201-b666-6f9d945a93d8"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate required an explicit existing-feature impact statement and spec-local requirement-header test coverage",
+      "trigger": "The first Issue 454 spec gate emitted impact-on-existing-features and spec-test-coverage observations",
+      "resolution": "Added the bounded draft-only impact statement and required a specs/331 test file covering R1 through R8",
+      "guardrailCandidate": "Every behavior-changing spec must state affected existing paths and name at least one requirement-header spec-local test",
+      "taskId": null,
+      "timestamp": "2026-07-24T05:04:17.474Z",
+      "issueLogId": "issue-log-aac74648-1d96-48f0-86e7-984670ebfc1e"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Blocked because the active feature branch already contains implementation-target changes before the plan-phase validity check, including the user-authorized Issue #454 fix required to unblock this flow and unrelated pre-existing branch changes. Per user scope, no unrelated source files will be changed or removed.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T05:53:00.171Z",
+      "issueLogId": "issue-log-3319a759-2e63-4b4d-8352-aefcbe7fe8cf"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static review REJECTED the spec-local tests: R1 stopped at canonical disposition instead of asserting completed result recording, and R3 asserted only counts/IDs instead of preserving the original advisory and repair-target content. Fix is limited to the Issue #454 spec-local test.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T06:41:08.129Z",
+      "issueLogId": "issue-log-2bb6cb7f-c215-4825-b9be-ffdd66b981af"
+    },
+    {
+      "step": "task.impl",
+      "reason": "The first overview contribution command used object entries, but the production schema requires string entries for modules, data_flow, and decisions. No product or flow state was changed; retrying with the required string-array shape.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T06:52:05.437Z",
+      "issueLogId": "issue-log-7a91b842-5f37-452b-a0dc-51e317f124a4"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added the required R1 through R8 spec-local test to the task-visible Git index so task-scoped review includes its deterministic no-AI coverage.",
+      "normalizedFindingId": "e1d2a6f37289df834e8c8189c7e16af5f18eab3f09a74b8d0b1862d69cde9cf3",
+      "repairRef": {
+        "files": [
+          "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T06:55:47.636Z",
+      "issueLogId": "issue-log-21256cfe-7d12-4674-9d7b-4ab3c0a3c42d"
+    },
+    {
+      "step": "task-review",
+      "reason": "Extended the existing checkpoint replay fixture through canonical ReviewDisposition and applyReviewEvidenceTransition, asserting finalized ADVISORY evidence before the production triage hook.",
+      "normalizedFindingId": "07f2b29cd15ba74282b5d7736497f0e7fc55200dad344eed00aae7b5b4323d9c",
+      "repairRef": {
+        "files": [
+          "tests/unit/flow/commands/review.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T06:55:48.403Z",
+      "issueLogId": "issue-log-f0700bcd-8f1a-423f-ad52-d18de31e526b"
+    },
+    {
+      "step": "task-review",
+      "reason": "Extended both draft phase cases through canonical ReviewDisposition and applyReviewEvidenceTransition and asserted finalized result recording.",
+      "normalizedFindingId": "52cba48c5ee1353db259a018a3e88de5dc880cb9f410ce0f6bdd33e6f680e77a",
+      "repairRef": {
+        "files": [
+          "tests/unit/flow/commands/review.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T06:55:49.176Z",
+      "issueLogId": "issue-log-e87e922d-7556-415a-95db-f6b2f402f064"
+    },
+    {
+      "step": "task-review",
+      "reason": "Aligned the checkpoint test helper with production verdict resolution by accepting artifact.verdict or artifact.disposition, so the Issue #453-shaped raw contract is exercised explicitly.",
+      "normalizedFindingId": "3018a796d2848a21f3077e533e58af6a1346d13154411cdc2d66e4741ab77c15",
+      "repairRef": {
+        "files": [
+          "tests/unit/flow/commands/review.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T06:57:05.846Z",
+      "issueLogId": "issue-log-08e968ef-951f-4fa4-8644-50cae00f2df7"
+    },
+    {
+      "step": "task-review",
+      "reason": "Kept production strict: DraftReviewArtifact.toJSON always supplies verdict and result.artifacts.verdict is the existing fallback. Added an explicit checkpoint assertion that the recorded artifact carries verdict=ADVISORY alongside disposition=ADVISORY; accepting disposition-only production artifacts would add out-of-scope compatibility behavior.",
+      "normalizedFindingId": "72485e5ba7d3fb9d0d85f8d0e4b1463441ccde1acd8431b14c9a47c1dc1d2c2d",
+      "repairRef": {
+        "files": [
+          "tests/unit/flow/commands/review.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T06:58:21.783Z",
+      "issueLogId": "issue-log-cca1e682-793d-4a79-bac6-89d0432335ef"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "must-fix finding e1d2a6f37289df834e8c8189c7e16af5f18eab3f09a74b8d0b1862d69cde9cf3 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T06:59:11.240Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding e1d2a6f37289df834e8c8189c7e16af5f18eab3f09a74b8d0b1862d69cde9cf3 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-bc2b2ec1-b0b0-45ea-ae1c-308fb01ab7b3"
+    },
+    {
+      "step": "task-review",
+      "reason": "Materialized the spec-local test after the finding by adding an explicit assertion that the persisted raw checkpoint verdict equals the produced ADVISORY verdict.",
+      "normalizedFindingId": "e1d2a6f37289df834e8c8189c7e16af5f18eab3f09a74b8d0b1862d69cde9cf3",
+      "repairRef": {
+        "files": [
+          "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T06:59:53.077Z",
+      "issueLogId": "issue-log-0ac0094f-94ec-4dfa-88e0-6e21ea3f0be5"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: materialized the missing task-review repair reference after the finding",
+      "resolution": "Added an R8 raw verdict assertion to the spec-local test and re-registered the exact finding ID with that post-finding file reference, satisfying the process-evidence-missing observation.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T07:00:06.400Z",
+      "issueLogId": "issue-log-2d17f2fc-620c-4e83-a402-89d4d2c94094"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added constraint defers full regression until after focused verification and independent review, which conflicts with the requirement that all project tests MUST pass for readiness.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T07:00:39.984Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/spec.json",
+            "locator": "constraints[5]"
+          },
+          "observed": "The added constraint defers full regression until after focused verification and independent review, which conflicts with the requirement that all project tests MUST pass for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added constraint defers full regression until after focused verification and independent review, which conflicts with the requirement that all project tests MUST pass for readiness."
+        }
+      ],
+      "issueLogId": "issue-log-b0d2a7fb-8ee0-45eb-95bb-44cb20aab78d"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: clarified mandatory full-regression completion",
+      "resolution": "Updated the constraint and T-1 test strategy to state that final-regression runs once after independent review and that every project test must pass, while preserving the required single-execution-point ordering.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T07:01:27.037Z",
+      "issueLogId": "issue-log-b539997a-77fb-45ce-a7e8-07873bb91c7b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The implementation diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T07:02:06.144Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/flow.json",
+            "locator": "steps[1].children[id=final-regression].status"
+          },
+          "observed": "The implementation diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The implementation diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness."
+        }
+      ],
+      "issueLogId": "issue-log-e0f3d806-7edf-45d7-b260-7764af2a8ff5"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: clarified project-test-integrity lifecycle ownership",
+      "resolution": "Recorded that task-gate precedes spec-level test execution and that mandatory final-regression still requires every project test to pass before finalize; no step was skipped or marked complete early.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T07:02:43.344Z",
+      "issueLogId": "issue-log-49c1410a-c6c0-42d0-a37b-2dd9fde26487"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T07:03:16.524Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/flow.json",
+            "locator": "steps[1].children[id=final-regression].status"
+          },
+          "observed": "The diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness."
+        }
+      ],
+      "issueLogId": "issue-log-8e20b125-3721-4226-a48e-1e4c9d4b3123"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added explicit project-test-integrity phase constraint",
+      "resolution": "The constraint now names project-test-integrity and forbids treating final-regression as complete at task-gate while requiring all project tests to pass before finalize, matching the lifecycle definition.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T07:03:49.849Z",
+      "issueLogId": "issue-log-9c5d52a6-fed9-4af3-9c96-4d48b85f4e11"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The implementation diff leaves the task test-execute step pending, so the content does not show implemented code has passed the project test execution required for readiness.; The implementation diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T07:04:26.928Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/flow.json",
+            "locator": "steps[1].children[id=test-execute].status"
+          },
+          "observed": "The implementation diff leaves the task test-execute step pending, so the content does not show implemented code has passed the project test execution required for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/flow.json",
+            "locator": "steps[1].children[id=final-regression].status"
+          },
+          "observed": "The implementation diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The implementation diff leaves the task test-execute step pending, so the content does not show implemented code has passed the project test execution required for readiness."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The implementation diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness."
+        }
+      ],
+      "issueLogId": "issue-log-22098a90-ce6d-4467-8c8b-969ba6d017f2"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: expanded project-test-integrity ordering to test-execute and final-regression",
+      "resolution": "The explicit constraint now states that task-gate precedes both mandatory test steps, forbids early completion, and requires focused verification plus all-project regression PASS in definition order before finalize.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T07:04:53.741Z",
+      "issueLogId": "issue-log-e0500fbb-9f83-40b5-b1b5-9df1486cde79"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff leaves the task test-execute step pending, so the content does not show implemented code has passed project test execution required for readiness.; The diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T07:05:31.745Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/flow.json",
+            "locator": "steps[1].children[id=test-execute].status"
+          },
+          "observed": "The diff leaves the task test-execute step pending, so the content does not show implemented code has passed project test execution required for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/331-draft-repair-target-advisory/flow.json",
+            "locator": "steps[1].children[id=final-regression].status"
+          },
+          "observed": "The diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The diff leaves the task test-execute step pending, so the content does not show implemented code has passed project test execution required for readiness."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The diff leaves the mandatory final-regression step pending, so the content does not show that all project tests pass for readiness."
+        }
+      ],
+      "issueLogId": "issue-log-66af7f7b-6d17-4fbb-b0a4-cb55bda9d4ce"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "task-gate precedes spec-level test-execute and final-regression; the explicit project-test-integrity constraint preserves both mandatory downstream checks before finalize without falsely marking them complete",
+      "normalizedFindingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "repairRef": {
+        "files": [
+          "specs/331-draft-repair-target-advisory/spec.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T07:06:53.300Z",
+      "issueLogId": "issue-log-77ef3038-ac71-413c-a001-644e1f2bc505"
+    },
+    {
+      "step": "task-impl",
+      "reason": "clarified that acceptance-review owns final disposition after task-gate retry exhaustion while focused verification and final-regression remain mandatory downstream checks",
+      "normalizedFindingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "repairRef": {
+        "files": [
+          "specs/331-draft-repair-target-advisory/spec.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T07:08:57.073Z",
+      "issueLogId": "issue-log-657aefc0-1ecb-4769-b7b1-2108dddf1065"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-f5ad5248-b720-474a-a61f-9291b5a91cb6",
+      "id": "recovery-f5ad5248-b720-474a-a61f-9291b5a91cb6",
+      "kind": "gate",
+      "phase": "task-impl",
+      "canonicalPhase": "task-impl",
+      "reason": "Added matching task-impl repair evidence and clarified acceptance ownership of the exhausted semantic finding without completing downstream test steps early.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "2796464189ca024fb532b845ca1c869b7b724c2999b9e3e842e1cdcca0064650",
+        "currentHash": "ceedacce9caca6b584ebe259e1a431b0338b1ff45390b943ced391bfb6f80d9a",
+        "changedPaths": [
+          "specs/331-draft-repair-target-advisory/spec.json",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate task-impl --reason \"Added matching task-impl repair evidence and clarified acceptance ownership of the exhausted semantic finding without completing downstream test steps early.\" --yes",
+      "createdAt": "2026-07-24T07:09:11.087Z",
+      "timestamp": "2026-07-24T07:09:11.087Z",
+      "issueLogId": "recovery-f5ad5248-b720-474a-a61f-9291b5a91cb6"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added matching task-impl repair evidence and acceptance-review ownership clarification",
+      "resolution": "The exhausted semantic project-test-integrity finding now has post-finding material evidence in the canonical task-gate scope; downstream test-execute and final-regression remain pending by lifecycle design and mandatory before finalize.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T07:09:27.934Z",
+      "issueLogId": "issue-log-c95b8b9f-1bfb-441f-89d8-34b0a9829619"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "blocked: deferred-finding coverage uses inconsistent deduplication sets",
+      "resolution": "buildDeferredFindingsFromEvidence omits review handoffs whose fingerprint already exists in flow-findings.json, but validateDeferredFindingCoverage still requires both the DF entry and the omitted RF handoff id; no official flow command can normalize this pre-artifact state, and out-of-scope product changes are prohibited",
+      "taskId": null,
+      "timestamp": "2026-07-24T07:20:41.122Z",
+      "issueLogId": "issue-log-dc6763b2-90b3-4fca-a876-9480a6b54cfe"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "fixed inconsistent deferred-finding deduplication between acceptance input construction and artifact validation",
+      "trigger": "acceptance-review failed before artifact persistence with missing deferred finding classification for a review handoff already represented by flow-findings.json",
+      "resolution": "introduced one DeferredFindingSources authority that filters review handoffs by existing flow-finding fingerprints and is reused by both context construction and coverage validation",
+      "guardrailCandidate": "derive generated evidence and its validator expectation from one canonical source collection",
+      "taskId": null,
+      "timestamp": "2026-07-24T08:26:23.410Z",
+      "issueLogId": "issue-log-95f8d6de-819a-4398-9002-3f57ae1a10d2"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "test-execute-result.json repairFingerprint mismatch: expected 331c721625c208d1237c4094828b2e0c3aa36bb10f07d6a28f4578460430d96e, got 366179e0b129be042b6544d55fec8c701b5fe6757e2f9862a144514c1f3bf60a",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-24T09:03:19.543Z",
+      "issueLogId": "issue-log-24d8a2bd-8fbf-4556-b37e-d5b27f011af3"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T09:03:19.632Z",
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-7c4f1b26-2138-4e24-9201-26d741a580c4"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: select the active gate phase and rewind stale pre-gate test evidence",
+      "trigger": "integration gate retry exposed stale task-phase recovery and a pre-artifact fingerprint mismatch",
+      "resolution": "The gate recovery display now follows the active integration step, and the integration prerequisite rewinds mismatched evidence to test-execute before semantic evaluation.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T09:17:27.317Z",
+      "issueLogId": "issue-log-f148f1b9-be99-4694-b00a-39d0b4921f02"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fixed loop review parser rejection of valid proposals preceded by provider commentary",
+      "trigger": "the reviewer returned five valid Markdown proposals, while one cached work-unit response prefixed tool commentary directly before the first heading and exhausted the tooling retry budget",
+      "resolution": "strip text before the first proposal heading once and use the same normalized content for work-unit validation and proposal parsing; added an exact preamble regression",
+      "guardrailCandidate": "provider response validation and parsing must consume the same normalized response body",
+      "taskId": null,
+      "timestamp": "2026-07-24T09:57:20.153Z",
+      "issueLogId": "issue-log-7fdae620-d0f8-4fc9-98e3-72e26bd3617f"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fixed implementation review prerequisite dead-end on stale test evidence",
+      "trigger": "the parser repair commit changed the repair fingerprint, and impl-review rejected the old test-execute evidence before the reviewer could run",
+      "resolution": "reused the shared stale test evidence mismatch and refresh types to invalidate old evidence, reset downstream leaves, and return test-execute without running the normal review post-hook",
+      "guardrailCandidate": "every downstream consumer of fingerprinted test evidence must return through the single test-execute refresh point when source inputs change",
+      "taskId": null,
+      "timestamp": "2026-07-24T10:04:01.911Z",
+      "issueLogId": "issue-log-a96dc698-d1f5-4b3e-bb46-8518bf879d79"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fixed stale stopped outcome blocking a reactivated gate step",
+      "trigger": "test evidence refresh reactivated impl-gate after successful test and review attempts, but next-action still halted on the previous gate activation's external-blocked outcome",
+      "resolution": "next-action now applies a step outcome only when it was recorded during the target step's current activation; historical attempts remain preserved for audit",
+      "guardrailCandidate": "reactivated steps must not inherit terminal control outcomes from an earlier activation",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/get-next-action.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T10:11:29.266Z",
+      "issueLogId": "issue-log-3840a690-e77f-40ef-8004-f33241556918"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R1] requires draft-questions repairTargets-only artifacts to be recorded once as canonical advisory findings and complete result_recording, and the mapped core change in src/flow/lib/run-review.js does add draft repairTargets to advisory canonical findings with deterministic fallback IDs. However the authoritative task scope says to change only src/flow/lib/run-review.js canonical promotion and tests, while keeping review-convergence/history unchanged, and the out-of-scope context excludes retry/counter/general recovery, provider/prompt/sandbox/permission, and active flow lifecycle changes [TASK:T-1] [OUT:2] [OUT:3] [OUT:4]. The diff also changes acceptance-review recovery, gate recovery, get-next-action lifecycle behavior, impl-repair invalidation, run-acceptance-review, stale-test-evidence-refresh, and .codex permission rules, which contradicts those scope constraints [EVIDENCE:R1].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T10:18:22.675Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "[REQ:R1] requires draft-questions repairTargets-only artifacts to be recorded once as canonical advisory findings and complete result_recording, and the mapped core change in src/flow/lib/run-review.js does add draft repairTargets to advisory canonical findings with deterministic fallback IDs. However the authoritative task scope says to change only src/flow/lib/run-review.js canonical promotion and tests, while keeping review-convergence/history unchanged, and the out-of-scope context excludes retry/counter/general recovery, provider/prompt/sandbox/permission, and active flow lifecycle changes [TASK:T-1] [OUT:2] [OUT:3] [OUT:4]. The diff also changes acceptance-review recovery, gate recovery, get-next-action lifecycle behavior, impl-repair invalidation, run-acceptance-review, stale-test-evidence-refresh, and .codex permission rules, which contradicts those scope constraints [EVIDENCE:R1].",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R3",
+        "R5",
+        "R7",
+        "R4",
+        "R6",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "[REQ:R1] requires draft-questions repairTargets-only artifacts to be recorded once as canonical advisory findings and complete result_recording, and the mapped core change in src/flow/lib/run-review.js does add draft repairTargets to advisory canonical findings with deterministic fallback IDs. However the authoritative task scope says to change only src/flow/lib/run-review.js canonical promotion and tests, while keeping review-convergence/history unchanged, and the out-of-scope context excludes retry/counter/general recovery, provider/prompt/sandbox/permission, and active flow lifecycle changes [TASK:T-1] [OUT:2] [OUT:3] [OUT:4]. The diff also changes acceptance-review recovery, gate recovery, get-next-action lifecycle behavior, impl-repair invalidation, run-acceptance-review, stale-test-evidence-refresh, and .codex permission rules, which contradicts those scope constraints [EVIDENCE:R1]."
+        }
+      ],
+      "issueLogId": "issue-log-f705d748-0983-4316-9684-f51924a8bb38"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: recorded the user-authorized active-run blocker repair exception in the specification",
+      "trigger": "integration gate passed R2 through R8 but rejected R1 because the original feature scope excluded recovery and lifecycle changes made only to unblock this guarded flow",
+      "resolution": "scope.in and the task implementation notes now enumerate the exact blocker classes allowed by the user's direct instruction, retain the ban on unrelated fixes, and identify the separately requested Codex rule as execution-environment configuration rather than Issue #454 product behavior",
+      "guardrailCandidate": "when a user authorizes a narrow execution exception after spec approval, persist that authority before integration gate evaluation",
+      "repairRef": {
+        "commit": "541c7385"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T10:20:17.151Z",
+      "issueLogId": "issue-log-26cc664b-35a7-4359-99a5-231477ba1248"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "fixed deferred review source resolution after phase artifact replacement",
+      "trigger": "acceptance review could not verify a task-review finding because flow-findings.json retained impl-review.json while flow state preserved the matching canonical review-evidence digest",
+      "resolution": "deferred flow findings now inherit the matching task-review canonical handoff source by source step and fingerprint, and acceptance validates that canonical evidence against the convergence record before using it",
+      "guardrailCandidate": "retry-exhausted review findings must bind acceptance to immutable canonical evidence rather than a replaceable phase artifact alias",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T10:25:53.868Z",
+      "issueLogId": "issue-log-5cad6403-0903-4635-9c80-c33439e43522"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "fix: validate additional artifact paths before stale evidence deletion",
+      "resolution": "Reject absolute and traversal paths before invalidating artifacts or mutating flow state, so additional artifact cleanup cannot escape the spec directory.",
+      "taskId": null,
+      "timestamp": "2026-07-24T10:36:35.628Z",
+      "issueLogId": "issue-log-0f0e47c6-05aa-436d-9f28-6cab45f12981"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "fix: route unresolved deferred findings to acceptance decision",
+      "resolution": "Keep mechanical evidence failures blocked, but route semantic still_open or blocking dispositions to the explicit approval-required acceptance-decision step instead of dead-ending on acceptance-review.",
+      "taskId": null,
+      "timestamp": "2026-07-24T10:49:15.703Z",
+      "issueLogId": "issue-log-ca370feb-9b20-457f-b7ea-12a2c17dbfe9"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "failureCategory": "existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".codex/rules/default.rules",
+          "fingerprint": "a734a06477e751e6047eaa695715b3951aea57ba8a0398ddec120d2ebd6f807c"
+        },
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "e7aabba89b7923f2d4452d58da57fae403370ae6a1a13cd403cb0d0e7a3a1804"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/.retry-recovery.transaction.json",
+          "fingerprint": "cd882bbd0e249af22cf074165bc26a186bde8c17df33cfedc9fc3385af0d8e38"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/acceptance-review.json",
+          "fingerprint": "f9ffdefbe934b3f85dd9a806f5436ccb153ab99d353a2919f38cf442f094fad1"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/draft-coverage-repair.json",
+          "fingerprint": "25d81d3f5b5794723da6357900e75bc0aee393c5aaa0eacdd86bea5dc46ad202"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/draft-coverage-triage.json",
+          "fingerprint": "e0a139a02fef285e566602e439febb938a4022f83bc4deaa01c6f2a2635f16a3"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/draft-questions-repair.json",
+          "fingerprint": "6b7656f0dfec2471731c20cdad81a992230b12ed364420cce52c375438a4c1e4"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/draft-questions-triage.json",
+          "fingerprint": "45c725258247fe4a579c8794ff9b4cd3e001b347912d2373a78d07962993ecec"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/draft-review-coverage.json",
+          "fingerprint": "d1238270f2dde84e6809f774cce3383030b5222846ca9be3382740f8ea287ac2"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/draft-review-questions.json",
+          "fingerprint": "89e34fc34c8ea2a922608ecbfabf498574068398e682f32fe840fad37494a42a"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/draft.json",
+          "fingerprint": "d472274a8b6d9bc0d2c0e884074657a27bb8b4cc99e4a21685eb2016ca4111c3"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/draft.json",
+          "fingerprint": "d472274a8b6d9bc0d2c0e884074657a27bb8b4cc99e4a21685eb2016ca4111c3"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/file-map.json",
+          "fingerprint": "021572bb4f7b3e6d9fc9cf75c8a3b58a38a3b55a41e5e128f260e64ef9e40187"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/flow-findings.json",
+          "fingerprint": "acc123170d7f894350a2816f90743bf3c88c295d63ecabd931da631266778266"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/impl-gate-result.json",
+          "fingerprint": "52a0242635806daadfa8bd946f583f7a84215472cdf982c7bdda048d98393153"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/impl-review.json",
+          "fingerprint": "d8d85cc9ff4282d4a0d3f0fa3cf439369d7c596f9cefa7ce40571c3a02087966"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/impl-triage.json",
+          "fingerprint": "10bbf10e79d8f68429993e41bceb90e6daa935caed6511a1e15544ffb2f9298e"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/issue.md",
+          "fingerprint": "08d3e3748f9e267b664d533cdbd413ffc44ea73899c9d3ec3f5ef8712b05fa47"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "46c15797c7750c810db18c87ab16b99f80aafd020c24fe4ea44927bbc527187f"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/repair-fingerprint.json",
+          "fingerprint": "42e3ea95a6c62d782192aecd06e77233a530739d8d2a7d94511f92242f0154e2"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/retro.json",
+          "fingerprint": "9682e0ef336c763ea77090475d97e2bf7ac6be10c7f642677285465c5f850538"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/retry-recovery.json",
+          "fingerprint": "e8d9daa1e2bb4697912e4282a33a151d3afb5dc8e36428c211cf23cd3e353ab3"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/128c485c9947352420876683175158775fe7995482b867bf25c8d85403c6ae0d.json",
+          "fingerprint": "39fa4d48e391cf085beb17cfb8673d19b605588a9d51bc9307b5ec9d38a0b30b"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/1cc2bae638b213a1ac43272e2fdaa0ad6810ece9a9e95aacbde6d6c801352359.json",
+          "fingerprint": "45a4a4d3e15e541dd2fabbc02ea3dea3885c9d029a1c3a2f8214594e733641a4"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/22098013585366116923e716a04f6bcb82d178c0acf854117a1259cd834b999e.json",
+          "fingerprint": "c5141a263e08738e645da1de07cf7939f88ee1a0fe41eaa5a4f2d0b001d55c61"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/23038368e485fe23709c9159b4943f0e58bd327dc78a6252a5c7e43df427091e.json",
+          "fingerprint": "4ee7dca0bc4700cfb8d0a3ac8fe4a50d72ce8045760191ff383f111f58467663"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/51357db6b5e8698a0950815a4aa163792ecf406af1002fdd7c5b9894ba832f0a.json",
+          "fingerprint": "91c23a88cf91dcb51b7a33bc1983a9e58c7da8b90e848669e9fc67d1132bce2b"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/525d577f2f58acee10a89943a06c81d2b9ad983f5c6b834b9638e8c587b5133c.json",
+          "fingerprint": "8d60d686dccf283b660531bd8b08f104e64e0f24bf61efe918ba45377ccdeace"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/6554dc233b571eb018cb52c1f750446e178c8b0df69856db696025703fda9e50.json",
+          "fingerprint": "6c6a87ae32e67e960fd8678cf8c99ade3f4f1de3860275363facfbe1f56b4bd5"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/72e0a11410626031851bdb9c35116f47c6299c959e6dd2197d0388f0e4ede47b.json",
+          "fingerprint": "ed57eec249ef28e91896ca7dc08d6659beaba9b75061a06dbbf85eeedb2f8d4d"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/7de9001d7c285f1d32661a1131f6b03f53a90940151ffc3dba8b3b2dab6e416e.json",
+          "fingerprint": "727915691b28c4579baa1e419f715ea5a5c4ec1c2a5cfc857c825eb374175878"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/88e8708d8ed6268649605856cbf39f4358f5e12a8e26fd98daed67d48c4141be.json",
+          "fingerprint": "aae023a29c769abf6416551eadd7b15f98871676563c074e1910eb38772b0a36"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/8be7ab9d82982c82fbf2c57bbf30e4def1d1ee30f92e076570bcef89265596c5.json",
+          "fingerprint": "18af48e4176ff5d61303ca566357ab7926bb06c37278795367a5392c595c213d"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/9fff79cacaaeb62266a063dbdd13dce81f1b6872b4631abc1ea05e4db6390868.json",
+          "fingerprint": "3a2fc9fefd2c4a8ad3706d91ac137def4d50549eac6a656a61418cbf61295f09"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/afb1b8543846a9f4e002c61343b238ef96c51f421b2e26b147725e5e14cfa690.json",
+          "fingerprint": "196bc7418fc0b443bbc851d9cbb396faa5a7d6d34fb00851ec22a72d709b094c"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/b93d4a3e40b9f5186735ee1d90d561b369b383464d08990bbfbba33132109dcc.json",
+          "fingerprint": "d74cd3a8addbc3ccdc6aa761a9f46f9bbccca6fee7950879e419c74c64c76062"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/bafde89dfaa4832c8b756a6424d7b19b61cc3aac7bd06108ad3cee7d80f841fc.json",
+          "fingerprint": "eaaaa077ea73d90d598b444b4d8182b4eea6e8469ea4ec668a3b60068af24cc3"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/cc78c55c0231f4e81bdeb1282c70eb4a8b968d41b71f2bce32834145cad2dd42.json",
+          "fingerprint": "4c4a8f6419b2f0907335bb10e09e03faa6e6b07d75885274290082e0b0b35a1a"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-evidence/d20e51e863d173577264ccc5d5a085b9584e1beb4cca4f768ca77c5f9ca70b63.json",
+          "fingerprint": "fa5b7b05a0272a309e6947863411e4cdbd3a8ba73714b1fa0b1f2cf4486855d6"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "46ddb8a9a78518b293ec22a57c0fccbfc5b752b9394ee9e3cc233c13a9e6ada2"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "ee08a041155ceefca115b6f51e2975565ca2965d23e73a2b3d248f0bc84a7731"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/draft-questions-attempt-002.json",
+          "fingerprint": "09f611167fa2adf9dd565dccbc1da52d09d9d627d0c37741ca330c5511c4582f"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/draft-questions-attempt-003.json",
+          "fingerprint": "364d80886f6ae58c6eefd710fecdeb3e8b1caa9fe33e69d77604da30a05878ba"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/draft-questions-attempt-004.json",
+          "fingerprint": "dc6e1d9ce8c4e987197b0350233be8f8194c59b25b40dd45246629e2dfd671ed"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-001.json",
+          "fingerprint": "9476316f67fc30230d3fb251aa26e8f54637b864e07c05d27a984602d0a3e288"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-001.md",
+          "fingerprint": "89454f679f9743fdc537631a7f7edeca21f967461a2afdac3feaf3c49bce7157"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-002.json",
+          "fingerprint": "5a4796ea11a8858134215393d37aff47fe440e5c37169fcc0f39314cf26dd904"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-002.md",
+          "fingerprint": "4468711957e4d97b77ade6ff56c73b661d07ca899ce8d8aa945506797b492097"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-003.json",
+          "fingerprint": "9cfc12595daa22c4f8b9d97b842683daff026a0b80efe62d3a998d22dc1669be"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-003.md",
+          "fingerprint": "0452a14c69a8d4334094aafd20fb545074da288ebcdd94ad14baa090e91e0c6b"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-004.json",
+          "fingerprint": "3cc5789a5df180ccdd0ec103cb31d1c4873356e3346591dd9e785bf44c01c147"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-004.md",
+          "fingerprint": "3e72f6be1b2b4303034a0486cd364391f86c8e114d6e3c9c30cbb086fa8feba3"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-005.json",
+          "fingerprint": "870dcc0b53006fb01b09d995a2039d5e2883610bba56df2d43ee48c07432a806"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-005.md",
+          "fingerprint": "ce1fece259a8261f5bb54fdfb237b3e76602a3c15ff4721bc562a4568d48154d"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-006.json",
+          "fingerprint": "04463ada8cca5b902b07106127d35e116bf940d8365973bfb089a2acefd4a09f"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-006.md",
+          "fingerprint": "a7c3e22f2aabb3736df59d133bc34b706d92f86eaea393497b8a9d80e855ee3a"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-007.json",
+          "fingerprint": "4316d994771e8c8d28171893d28dcaf48f36383991a5f5409261a04ddd54e96b"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-007.md",
+          "fingerprint": "0d040eabd3654802aad377eda817f763e4690627fe0824e55365968a797da6d4"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-008.json",
+          "fingerprint": "dbb89c2a4cc4c46b19ee928a9ff6efc843c16957a771a42bd396243ee787e92d"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-008.md",
+          "fingerprint": "1dff9e371175f80bb6150114f1331adf943d199c264f103ad9a44293a00c53d9"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-009.json",
+          "fingerprint": "bcd69df726e0d8d867b06708d2d3511f02d81dcaac438cfc04a7fb468a28a677"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-009.md",
+          "fingerprint": "bb4c6b3cdbfdef01ace0c35a88734d2512a7fc9a3025f9fe9d5adffddb4644af"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-010.json",
+          "fingerprint": "a3abdf941c51f7dbc45d68f6816715266f5985962ca3f9645bcc8a253cf37b20"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-010.md",
+          "fingerprint": "59ba06f0c63814ad5befc1facb7393429a0c07fe47113ccb4edf1aa3338e35d9"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-011.json",
+          "fingerprint": "9246737f5180557508ec59d972a155f4681368d5611385e2216a5a7dfb047b8c"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-011.md",
+          "fingerprint": "dd5065d3daa0c7f7efc70f07b0ce780f5626c8d83d4ea1bfbe64fc58f1558b05"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-012.json",
+          "fingerprint": "507efd82a7eaba8c92122584eb15b7ce9ea1d35e68b9cee2b2dacf766c806a23"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/impl-attempt-012.md",
+          "fingerprint": "b39bbd4e7e10188221332e627d8aa30ea5df4162622debbc55af8c61f67da319"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/spec-attempt-001.json",
+          "fingerprint": "9be4f1118d8a06325ed23bed73f1f8afecc809ed7ea85d3777e699e47d6f629a"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/test-attempt-001.json",
+          "fingerprint": "f6dc627468622d58f9156f2c36a9ed9dec8955a034b65dbceeb076c4e902acfe"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/test-attempt-001.md",
+          "fingerprint": "8521373c5871350fcb24adc6fce8985906b5ca8e92a3513e1dd884501129c5c4"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/test-attempt-002.json",
+          "fingerprint": "da08ea492c6081de0256da634d3d4c3843343025734f53fd3fe937900994d7c2"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/test-attempt-002.md",
+          "fingerprint": "28e6bb5a5653541f962e30f8a684cccdce0ecedc16a4070ab28a3f8e7506d9c0"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/001023226f5fbadb12be3f16.json",
+          "fingerprint": "fe7b522eb7a3d3d20ef9d5041097f3babc0a1dd7c13020eb40cd833413008c4d"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "d10db32c3f8e3eea9afac06850b3839b26e407e1b772ecf4e8e2ec5f3a880856"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "7d3f0ab2ed738c2ac1facb86135660f209d9232d2a60f5ca29cfb910a24c74ee"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "81cc8a0b6145b4ea82fe5ed633f64df98aa669782584649240b720e31dc017f9"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "0a4754376bef089bdb5ee53969f42fdaacb1b495eb5a5ae49c5fba6ee7e23965"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/3accc0cb9ed066e496870b13.json",
+          "fingerprint": "11e601f4e5c3cf49d927e83bb6fb34a2e7b6c7eb19649759c8ab2506d0a848df"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "37f6c9830ec633d673573ecf12cbc6cc6496acc11a8fe77293bee5ad6e8d67e9"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/4e8d970752833aba4492c238.json",
+          "fingerprint": "309760a9139b78472babff0e85c7835288eaebee58a13bc83bf606f8b2f6e8db"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "742c9d260f9876af3dc11450b76a6c75efef9af2dbbc3f74378353d203b2e35f"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "d087f3ab987ef69294125d9d180696e8e8b9fb98a6b2a1f64c692ff410ac1bae"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "91c6b21ef7a4f27d5d56c036e1e652698c9748e6572ffaa3e1c288bcf8d1a5e3"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "e122f1c7adf6f5ee31151fd5bf6ea46d1a0d0db9ebffe7a5da6d4e79f912e1d4"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "704be5858b7e500f2a01742644aec3d90ca01e8feab26bb3cccb24834ba1b0eb"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/80ce6520242c8e08522c31ec.json",
+          "fingerprint": "b3f60d45b8faaee2360ab45768d6c6bf6ecba6959766b1597cacb76a7d40b0ef"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/9a23372434d0409dcebfaf23.json",
+          "fingerprint": "691538ec35d06482ecae46652fc6e33bee77506a4f25c7054ab642f25f5638dd"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "cd8391d13633eaafff8b1eb7eaaada058d2e5ee2359e549364bc15415ced47e1"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "41f391a56014f349bde1f4e1936dd351c57c53a4f9feaea68f69e8f298038bbb"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/d5c41bbe29a44fe042fd6f40.json",
+          "fingerprint": "c9a233ab91359be8d1aca78be418da469120af23c759f9702ac1110242959634"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "5e5af6cfbd98cd5d2b6ce74a87bb97ea8868acff2e870ceea2150944ee254822"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "3c39d4e899e08fa76ad5b69d41aad3da04cbea455402f83d3e2eeaf52de04540"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/e7a61afa7245ba6003e2eccf.json",
+          "fingerprint": "5ce74a963ad5ea389176f4a95b4ae0917129ce0415e183d738d826dbcbcc7afb"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review-history/work-units/impl-review/ecd6c23c38067fe90f110c2e.json",
+          "fingerprint": "e581edcbdf2a326e92042f5a9a3026168f7dfdc330f88f4be673acc8a0ae48ec"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/review.md",
+          "fingerprint": "b39bbd4e7e10188221332e627d8aa30ea5df4162622debbc55af8c61f67da319"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/scenario-validity-result.json",
+          "fingerprint": "4b7d960252ae8558af2009a9fc6d7c7196ddb90bb5cf626a29ccf7adc1e3cce1"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/spec-gate-source.json",
+          "fingerprint": "ae72de5a3f4f6149c792c3be98693c9c66827ddebfe9351f2ed00e1295253ad2"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/spec-review.json",
+          "fingerprint": "a6bfb99f5e5c78a9984958953fe73606445a7a5504259f7106e2d0dbc22448f2"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/spec.json",
+          "fingerprint": "5cf29708d0af91c98249510e4f4297bbe41dc35ff3197e34591203b2111777bc"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/spec.md",
+          "fingerprint": "c6b6f311974b5d09416cb495b13d33b2ab081a9b3ecf274f4f33daa33fec72cd"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/task-impl-gate-source.json",
+          "fingerprint": "fcbef8efb9b526a1a0acd8643161ca32d521d7bb424eba4843b2789cc93873b7"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/tasks/T-1.md",
+          "fingerprint": "afa4be7d62a053d97957e21a59ee92a9bd8269c4fbe5e4afe3b769aa1106770b"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/test-coverage.json",
+          "fingerprint": "6ebfa4fbbc2e64ca5bc6291277b44ad5e448b8f24c1fcbdbc03987a4a7e198de"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/test-execute-result.json",
+          "fingerprint": "5a65f08fb9851353abe57095ab37f05d3c4ef743f36f80739ae03f8cf25d668f"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/test-result-review.json",
+          "fingerprint": "e29355cdd2a9ab11dde58765433445999ece42112a034a28233ea40b65eaadc7"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/test-result-review.md",
+          "fingerprint": "f39c9cfba727fbf36b837597446f14627833e09d6190fc550a345aa2e8056630"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/test-review.json",
+          "fingerprint": "5889041f6cd82f204f18a320a308156d0b438f6f75705eaa44801b006b6e45f0"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/test-review.md",
+          "fingerprint": "28e6bb5a5653541f962e30f8a684cccdce0ecedc16a4070ab28a3f8e7506d9c0"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/tests/.raw/scenario-validity.log",
+          "fingerprint": "dfc382ecd4950928d2a643357b08ef210a0030c54989041ecbec3716a46d6d2a"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/tests/.raw/test-execution.log",
+          "fingerprint": "69aafa5e10f0585ed9b811ca1c7bffc7c5eeb57622b44099f96b42f0a24df368"
+        },
+        {
+          "path": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+          "fingerprint": "857b8b034c57c80b03593e3d6fdf920753797c8c5e01a65f3db4178e7de4b6e2"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "2d752c5e386cd5852b52cfa7023f1794d1304525907d9119470452c9f3f07eac"
+        },
+        {
+          "path": "src/flow/lib/acceptance-review-artifacts.js",
+          "fingerprint": "60f761f34a56128cbd93ca2cdce9a66dfc7eb9766fdcac4172c522ea4dc4e837"
+        },
+        {
+          "path": "src/flow/lib/gate-recovery-display.js",
+          "fingerprint": "5a1a381b459d1f55196a8b748e0e319544adef0c26f5638fd54337f8f0ace3cd"
+        },
+        {
+          "path": "src/flow/lib/get-next-action.js",
+          "fingerprint": "8775c3ffe1d6c5db0e8ec03828c83b80852785da751dcc0f81eb6f500b511095"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "65f273f0082be649f2938278fd43ea5f4ff8608428c8db8af1ce0460dc2bba53"
+        },
+        {
+          "path": "src/flow/lib/run-acceptance-review.js",
+          "fingerprint": "74a3a628fa34a9cc15f72460950965504d576e1f5bf7eb61e6bcb19848f665a6"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "4304b05d68cfa8ba92918daa5c00669a226e371604fa6e6dc99f3b42eec41f93"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "fingerprint": "8906b6f3a6cfb18449cc9f8ef30d8e9613a52a0c89b1e2c573466f738c197d92"
+        },
+        {
+          "path": "src/flow/lib/stale-test-evidence-refresh.js",
+          "fingerprint": "cd30d778c73f91edf2b0c7ec3ec53478b52c8db3cc7114a531894bec3cc1f12f"
+        },
+        {
+          "path": "src/flow/prompts/impl/acceptance-decision.md",
+          "fingerprint": "3a97d995f75b879ff10084be10d590d0a18000d4ff5e851b0cff387e83dc17b9"
+        },
+        {
+          "path": "src/flow/prompts/impl/acceptance-review.md",
+          "fingerprint": "e9e3a8d5b9f8262b0a82b8a79d3d29d9988a6708a60ed078334502fb221e4b98"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "b5f7d5a1e7f1cfc1adf6c9a647ddf6cceb2430e39f8fc9627af918a8f52e0abd"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "31522f6b045e12f5e0ede3b12b33c28ea11f0f04935f6c6ebbed85236609b287"
+        },
+        {
+          "path": "tests/unit/flow/gate-phase-inference.test.js",
+          "fingerprint": "f48b87f7bb9ef04fe5dc4d6bd70ffbbc4159618cf015216255bfcd28cb9db0b5"
+        },
+        {
+          "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+          "fingerprint": "2eb21a65100693b17567d34e5bcfb8fe4bf8e55751092f1c7774745ce4789d16"
+        },
+        {
+          "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+          "fingerprint": "b078b409614d0f8e19d34d127d6378e2220b2e6b2ebb3fb27025b761de88d7e5"
+        },
+        {
+          "path": "tests/unit/flow/run-review-advisory.test.js",
+          "fingerprint": "f7c3bee0d95280a0b8fca1ee6d1f618b8026613517375101139a94fc498854e4"
+        },
+        {
+          "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+          "fingerprint": "12a5acf2ca5a30091ada476d6ac194c2b43b731bddbd830268b5db3c26ee0120"
+        },
+        {
+          "path": "tests/unit/flow/step-outcome.test.js",
+          "fingerprint": "fa24552579db318b89e509e08855879c93009ec9e3698dc939fc5106e124ff1a"
+        }
+      ],
+      "rawOutputPath": "specs/331-draft-repair-target-advisory/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-24T13:39:59.276Z",
+      "issueLogId": "issue-log-48d8cd7c-3d9d-45dc-b530-7d6db7e95343"
+    }
+  ]
+}

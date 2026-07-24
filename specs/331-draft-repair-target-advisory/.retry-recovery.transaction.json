@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "transaction": {
+    "grantId": "recovery-8bc983dd-3339-4d4e-a519-63e57db2f493",
+    "status": "rejected",
+    "fingerprint": "301ca7f8bd0c1e494ed6d83240750ce1bf858e51bf379187dfb9badba197a7b6",
+    "expectedFlowRevision": "30e7c92079713a76ff1fa2ebc6f457a96c8911714d75dd8f7e64b8abcbee89b2",
+    "request": {
+      "runId": "a58dcbe8-4749-4134-975f-f8a13d22cf9f",
+      "spec": "specs/331-draft-repair-target-advisory/spec.json",
+      "hasIssue": true,
+      "issue": 454,
+      "kind": "gate",
+      "phase": "task-impl",
+      "canonicalPhase": "task-impl",
+      "reason": "Acceptance blocker repair changed deferred-finding deduplication and stale-evidence recovery behavior.",
+      "attempts": 5,
+      "maxAttempts": 5,
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "2796464189ca024fb532b845ca1c869b7b724c2999b9e3e842e1cdcca0064650",
+        "currentHash": "cb35d8b8bbbf470f298998e86d8ddd0b196dceefddbadbb4642cd81137997358",
+        "changedPaths": [
+          "specs/331-draft-repair-target-advisory/spec.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      }
+    },
+    "grant": null,
+    "rejection": {
+      "code": "STALE_RECOVERY_TARGET",
+      "message": "retry recovery target is no longer active: gate/task-impl"
+    },
+    "createdAt": "2026-07-24T09:00:51.001Z",
+    "updatedAt": "2026-07-24T09:00:51.057Z"
+  }
+}

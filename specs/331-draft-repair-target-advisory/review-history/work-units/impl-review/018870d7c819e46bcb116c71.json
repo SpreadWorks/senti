@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/commands/review.js",
+      "src/flow/lib/acceptance-review-artifacts.js"
+    ],
+    "inputHash": "8a51e51cb5dd1bed0fa9994452022cf326611a19dc8771d522c38cf9c307f16a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "src/flow/commands/review.js",
+    "src/flow/lib/acceptance-review-artifacts.js"
+  ],
+  "inputHash": "8a51e51cb5dd1bed0fa9994452022cf326611a19dc8771d522c38cf9c307f16a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:51:33.494Z",
+  "finishedAt": "2026-07-24T10:51:33.494Z",
+  "rawResponse": "### 1. Bound Accepted Preamble Size Before Proposal Parsing\n**File:** `src/flow/commands/review.js`  \n**Requirement:** R4  \n**Issue:** `stripProposalPreamble()` scans and slices arbitrary provider output before validation. Because provider output can include a large preamble, this adds an unbounded scan path contrary to the bounded-resource-usage guardrail.  \n**Suggestion:** Add an explicit maximum preamble size, for example reject or return the original text when `\"### \"` is not found within the existing provider-output size budget. Prefer a named constant such as `MAX_REVIEW_PROPOSAL_PREAMBLE_BYTES` and use it in both `parseProposals()` and `providerOutputInvalid()`.\n\n### 2. Avoid Recomputing Review Handoff Findings\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `DeferredFindingSources` calls `reviewHandoffFindings(flowState)` internally, while `inspectDeferredSources()` separately calls `reviewHandoffFindings(flowState)` and `latestReviewConvergenceRecords(flowState)`. This repeats traversal of the same review state and makes canonical/deferred-source resolution harder to reason about.  \n**Suggestion:** Reuse a single source object or pass precomputed handoffs into the helper. For example, let `DeferredFindingSources` expose `reviewHandoffsByFindingId` or accept `reviewHandoffs` in its constructor so `buildDeferredFindingsFromEvidence()`, `validateDeferredFindingCoverage()`, and `inspectDeferredSources()` share the same resolved source set.\n\n### 3. Extract Canonical Evidence Projection Cache Lookup\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `inspectDeferredSources()` now has two similar `canonicalCache` lookup paths: one for `reviewHandoffs` and one for `canonicalRecords`. Both create `CanonicalReviewEvidenceProjection` lazily and then call `findFinding()`. The duplicated cache mechanics increase the chance that future canonical-source fixes update only one branch.  \n**Suggestion:** Extract a local helper such as `findCanonicalSourceFinding(record, sourceFindingId)` that handles cache initialization and lookup. Then both branches can call that helper and keep only their source-resolution differences inline.\n\n### 4. Rename AcceptanceEvidenceRefresh Fields for Clarity\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `AcceptanceEvidenceRefresh` stores `currentFingerprint` from `fingerprint.hash`, but `previousFingerprint` is inferred from the first stale artifact. The names read as generic fingerprints, while this logic specifically compares repair fingerprints across acceptance-input artifacts.  \n**Suggestion:** Rename fields to `currentRepairFingerprint`, `previousRepairFingerprint`, and `staleFingerprintArtifacts`. This makes the class intent clearer and reduces ambiguity with deferred finding fingerprints used nearby.\n\n### 5. Preserve Hard Blocker Semantics With a Named Verdict Check\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `deriveAcceptanceReviewVerdict()` now treats `hardBlockers` as `user_decision_required` instead of `blocked`, but that behavior is embedded in a compound condition with `notVerifiable` judgments. The distinction between mechanical blockers, unmet requirements, unverifiable requirements, and hard blockers is important but not self-documenting.  \n**Suggestion:** Extract small named predicates such as `hasMechanicalBlockers()`, `hasUnmetRequirements()`, and `hasUnresolvedAcceptanceRisk()`. This keeps the changed hard-blocker behavior explicit and reduces the chance of future edits accidentally moving hard blockers back into the blocked path.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound Accepted Preamble Size Before Proposal Parsing",
+        "body": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R4  \n**Issue:** `stripProposalPreamble()` scans and slices arbitrary provider output before validation. Because provider output can include a large preamble, this adds an unbounded scan path contrary to the bounded-resource-usage guardrail.  \n**Suggestion:** Add an explicit maximum preamble size, for example reject or return the original text when `\"### \"` is not found within the existing provider-output size budget. Prefer a named constant such as `MAX_REVIEW_PROPOSAL_PREAMBLE_BYTES` and use it in both `parseProposals()` and `providerOutputInvalid()`.",
+        "file": "src/flow/commands/review.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Avoid Recomputing Review Handoff Findings",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `DeferredFindingSources` calls `reviewHandoffFindings(flowState)` internally, while `inspectDeferredSources()` separately calls `reviewHandoffFindings(flowState)` and `latestReviewConvergenceRecords(flowState)`. This repeats traversal of the same review state and makes canonical/deferred-source resolution harder to reason about.  \n**Suggestion:** Reuse a single source object or pass precomputed handoffs into the helper. For example, let `DeferredFindingSources` expose `reviewHandoffsByFindingId` or accept `reviewHandoffs` in its constructor so `buildDeferredFindingsFromEvidence()`, `validateDeferredFindingCoverage()`, and `inspectDeferredSources()` share the same resolved source set.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Extract Canonical Evidence Projection Cache Lookup",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `inspectDeferredSources()` now has two similar `canonicalCache` lookup paths: one for `reviewHandoffs` and one for `canonicalRecords`. Both create `CanonicalReviewEvidenceProjection` lazily and then call `findFinding()`. The duplicated cache mechanics increase the chance that future canonical-source fixes update only one branch.  \n**Suggestion:** Extract a local helper such as `findCanonicalSourceFinding(record, sourceFindingId)` that handles cache initialization and lookup. Then both branches can call that helper and keep only their source-resolution differences inline.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Rename AcceptanceEvidenceRefresh Fields for Clarity",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `AcceptanceEvidenceRefresh` stores `currentFingerprint` from `fingerprint.hash`, but `previousFingerprint` is inferred from the first stale artifact. The names read as generic fingerprints, while this logic specifically compares repair fingerprints across acceptance-input artifacts.  \n**Suggestion:** Rename fields to `currentRepairFingerprint`, `previousRepairFingerprint`, and `staleFingerprintArtifacts`. This makes the class intent clearer and reduces ambiguity with deferred finding fingerprints used nearby.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "5. Preserve Hard Blocker Semantics With a Named Verdict Check",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `deriveAcceptanceReviewVerdict()` now treats `hardBlockers` as `user_decision_required` instead of `blocked`, but that behavior is embedded in a compound condition with `notVerifiable` judgments. The distinction between mechanical blockers, unmet requirements, unverifiable requirements, and hard blockers is important but not self-documenting.  \n**Suggestion:** Extract small named predicates such as `hasMechanicalBlockers()`, `hasUnmetRequirements()`, and `hasUnresolvedAcceptanceRisk()`. This keeps the changed hard-blocker behavior explicit and reduces the chance of future edits accidentally moving hard blockers back into the blocked path.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

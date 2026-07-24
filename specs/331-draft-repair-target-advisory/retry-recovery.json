@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-f5ad5248-b720-474a-a61f-9291b5a91cb6",
+      "kind": "gate",
+      "phase": "task-impl",
+      "canonicalPhase": "task-impl",
+      "reason": "Added matching task-impl repair evidence and clarified acceptance ownership of the exhausted semantic finding without completing downstream test steps early.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "2796464189ca024fb532b845ca1c869b7b724c2999b9e3e842e1cdcca0064650",
+        "currentHash": "ceedacce9caca6b584ebe259e1a431b0338b1ff45390b943ced391bfb6f80d9a",
+        "changedPaths": [
+          "specs/331-draft-repair-target-advisory/spec.json",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate task-impl --reason \"Added matching task-impl repair evidence and clarified acceptance ownership of the exhausted semantic finding without completing downstream test steps early.\" --yes",
+      "createdAt": "2026-07-24T07:09:11.087Z"
+    }
+  ]
+}

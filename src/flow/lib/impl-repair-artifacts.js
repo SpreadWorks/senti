@@ -667,9 +667,14 @@ function evidencePreviousFingerprint(artifact, fallback) {
     : fallback.hash;
 }
 
+function invalidationFingerprint(value, field) {
+  if (typeof value === "string") return { hash: requireHash(value, field) };
+  return fingerprintFrom(value, field);
+}
+
 function planRepairInvalidation({ specDir, currentFingerprint, previousFingerprint, reason }) {
-  const current = fingerprintFrom(currentFingerprint, "currentFingerprint");
-  const previous = fingerprintFrom(previousFingerprint, "previousFingerprint");
+  const current = invalidationFingerprint(currentFingerprint, "currentFingerprint");
+  const previous = invalidationFingerprint(previousFingerprint, "previousFingerprint");
   const invalidations = [];
   const planPath = (relPath, recordReason, priorHash) => {
     const full = path.join(specDir, relPath);

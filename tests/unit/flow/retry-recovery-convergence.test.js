@@ -127,6 +127,33 @@ describe("retry recovery authority convergence", () => {
     for (const root of roots.splice(0)) removeTmpDir(root);
   });
 
+  it("uses the active flow gate phase instead of an exhausted task phase", () => {
+    const root = createTmpDir("retry-convergence-active-gate-");
+    roots.push(root);
+    fs.mkdirSync(path.join(root, "specs", "active-gate"), { recursive: true });
+    fs.writeFileSync(path.join(root, "specs", "active-gate", "spec.json"), "{}\n");
+    const flowState = makeFlowState({
+      spec: "specs/active-gate/spec.json",
+      metrics: Array.from({ length: 5 }, () => ({
+        phase: "task-impl",
+        counter: "gateRetry",
+        delta: 1,
+      })),
+    });
+    setOnlyInProgress(flowState, "impl-gate");
+
+    const display = resolveGateRecoveryDisplayPhase({
+      root,
+      flowState,
+      stepId: "impl-gate",
+      maxAttempts: 5,
+    });
+
+    assert.equal(display.phase, "integration");
+    assert.equal(display.attempts, 0);
+    assert.equal(display.max, 5);
+  });
+
   for (const scenario of ["flow-payload", "flow-duplicate", "public-payload", "issue-payload"]) {
     it(`rejects ${scenario} before any mutation`, () => {
       const root = createTmpDir(`retry-convergence-${scenario}-`);

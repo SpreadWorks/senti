@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/331-draft-repair-target-advisory/spec.json",
+      "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js"
+    ],
+    "inputHash": "2cd7328f3514f3aff7b9c3990890a3eed5fbfb545af2112e46ddec78a0c6880f",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/331-draft-repair-target-advisory/spec.json",
+    "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js"
+  ],
+  "inputHash": "2cd7328f3514f3aff7b9c3990890a3eed5fbfb545af2112e46ddec78a0c6880f",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:21:41.548Z",
+  "finishedAt": "2026-07-24T10:21:41.548Z",
+  "rawResponse": "### 1. Avoid Phase Default Masking\n**File:** `specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R2  \n**Issue:** `DraftReviewFixture` maps every phase except `\"draft-coverage\"` to `\"draft-review-questions.json\"`, which can silently hide misspelled or unsupported phases in tests.  \n**Suggestion:** Replace the ternary with an explicit phase-to-artifact map and throw for unknown phases.\n\n### 2. Parameterize Review Evidence Phase\n**File:** `specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R7  \n**Issue:** `advisoryEvidence()` hardcodes `phase: \"draft-questions\"`, even though the fixture supports both `draft-questions` and `draft-coverage`. This makes evidence identity less reusable and can obscure phase-specific duplicate behavior.  \n**Suggestion:** Accept `phase` as an argument, defaulting to `\"draft-questions\"`, and pass the fixture phase where relevant.\n\n### 3. Extract Canonical Disposition Setup\n**File:** `specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R6  \n**Issue:** Several tests repeat the pattern of building a fixture, canonicalizing findings, and creating `ReviewDisposition`. The duplication makes invariant-focused tests harder to scan.  \n**Suggestion:** Add a small helper such as `draftDisposition({ phase, verdict, blockingFindings, advisoryFindings, repairTargets })` and use it in R1/R2/R5/R6/R7 cases.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid Phase Default Masking",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R2  \n**Issue:** `DraftReviewFixture` maps every phase except `\"draft-coverage\"` to `\"draft-review-questions.json\"`, which can silently hide misspelled or unsupported phases in tests.  \n**Suggestion:** Replace the ternary with an explicit phase-to-artifact map and throw for unknown phases.",
+        "file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Parameterize Review Evidence Phase",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R7  \n**Issue:** `advisoryEvidence()` hardcodes `phase: \"draft-questions\"`, even though the fixture supports both `draft-questions` and `draft-coverage`. This makes evidence identity less reusable and can obscure phase-specific duplicate behavior.  \n**Suggestion:** Accept `phase` as an argument, defaulting to `\"draft-questions\"`, and pass the fixture phase where relevant.",
+        "file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Extract Canonical Disposition Setup",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js`  \n**Requirement:** R6  \n**Issue:** Several tests repeat the pattern of building a fixture, canonicalizing findings, and creating `ReviewDisposition`. The duplication makes invariant-focused tests harder to scan.  \n**Suggestion:** Add a small helper such as `draftDisposition({ phase, verdict, blockingFindings, advisoryFindings, repairTargets })` and use it in R1/R2/R5/R6/R7 cases.",
+        "file": "specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

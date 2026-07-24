@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "9a23372434d0409dcebfaf23",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-41414770badc0a24",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".codex/rules/default.rules",
+      "specs/331-draft-repair-target-advisory/flow.json",
+      "specs/331-draft-repair-target-advisory/spec.json",
+      "src/flow/commands/review.js",
+      "src/flow/lib/gate-recovery-display.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/stale-test-evidence-refresh.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "41414770badc0a244f96686df1b3b4b5d6c002cdfcd6ba5b7462601e6c178850",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "9a23372434d0409dcebfaf23"
+  },
+  "targetFiles": [
+    ".codex/rules/default.rules",
+    "specs/331-draft-repair-target-advisory/flow.json",
+    "specs/331-draft-repair-target-advisory/spec.json",
+    "src/flow/commands/review.js",
+    "src/flow/lib/gate-recovery-display.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/stale-test-evidence-refresh.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "41414770badc0a244f96686df1b3b4b5d6c002cdfcd6ba5b7462601e6c178850",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:28:52.878Z",
+  "finishedAt": "2026-07-24T10:28:52.878Z",
+  "rawResponse": "### 1. Standardize Step ID Format Across Runtime State And Logs\n**File:** `specs/331-draft-repair-target-advisory/issue-log.json`  \n**Requirement:** R1  \n**Issue:** Step names are reported as inconsistent in `issue-log.json` (`task.impl`, `task-impl`, `task-review`, `impl-gate`) while other proposals refer to canonical step IDs from `flow.json.steps`. This is a cross-file correlation problem because runtime state, issue logs, and recovery displays depend on matching step identity.  \n**Suggestion:** Use the canonical `flow.json.steps` IDs everywhere, and add a small normalization/assertion boundary where issue-log entries are created so dotted aliases cannot be written.\n\n### 2. Centralize Stale Evidence Recovery Logic\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** Multiple summaries identify near-duplicate stale evidence refresh/recovery behavior across `run-gate.js`, `run-review.js`, `stale-test-evidence-refresh.js`, and `registry.js`. The duplicated checks include artifact loading, mismatch detection, recovery result shaping, fingerprint handling, and post-hook recovery detection.  \n**Suggestion:** Extract a shared stale evidence recovery helper that owns the common artifact validation, fingerprint comparison, recovery result shape, and `isEvidenceRefreshRecovery(result)` predicate. Keep only command-specific labels and return metadata at the call sites.\n\n### 3. Normalize Draft Repair Target Phase Policy\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** Draft repair-target phase handling appears in several places with slightly different forms: `DRAFT_REPAIR_TARGET_PHASES.has(phase)` in production code, hardcoded `draft-questions` evidence in test fixtures, phase-to-artifact ternaries in tests, and repeated phase pair wording in the spec draft. This makes the target phase contract easy to drift across code, tests, and spec data.  \n**Suggestion:** Introduce a named helper or canonical map for draft repair-target phases and their artifacts, such as `isDraftRepairTargetPhase(phase)` plus a `DraftReviewArtifactMap`. Reuse it in production code and test fixtures, and reference the same concept in the spec text.\n\n### 4. Bound Runtime And Artifact Collections Consistently\n**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R1  \n**Issue:** Several files introduce or persist unbounded collections: `flow.json` runtime history, deferred source aggregation in `acceptance-review-artifacts.js`, recursive step flattening in `get-next-action.js`, and additional artifact deletion in `stale-test-evidence-refresh.js`. The same bounded-resource requirement is being handled inconsistently across state, traversal, and filesystem cleanup paths.  \n**Suggestion:** Define shared caps for flow history, deferred source entries, step traversal, and additional artifacts. Enforce those limits at write/aggregation boundaries and fail with a clear mechanical blocker when exceeded.\n\n### 5. Use One Canonical Evidence Metadata Location\n**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R1  \n**Issue:** Evidence identity and recovery metadata are duplicated across `flow.json.reviewConvergence.records[].handoffFindings[]`, parent convergence records, and `issue-log.json`. Related production proposals also mention canonical projection caching and advisory evidence phase handling, so evidence identity is currently spread across multiple layers.  \n**Suggestion:** Store shared evidence identity once on the parent canonical record and let findings/logs reference it by ID or digest. Keep finding-specific data local, and make projection helpers read from that canonical location.\n\n### 6. Align Repair Target Terminology In Code And Tests\n**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R4  \n**Issue:** The summaries mention `repairTarget`, `classification: \"repair_target\"`, `category=repair_target`, `repairTargets`, and draft repair-target phases. Across tests and production review code, it is unclear which term is the external contract and which is an internal classification.  \n**Suggestion:** Pick canonical names for the concept, for example `repairTargets` for the list and `classification: \"repair_target\"` for the finding field. Rename fixtures and assertions so they explicitly protect the same contract used by production code.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize Step ID Format Across Runtime State And Logs",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/issue-log.json`  \n**Requirement:** R1  \n**Issue:** Step names are reported as inconsistent in `issue-log.json` (`task.impl`, `task-impl`, `task-review`, `impl-gate`) while other proposals refer to canonical step IDs from `flow.json.steps`. This is a cross-file correlation problem because runtime state, issue logs, and recovery displays depend on matching step identity.  \n**Suggestion:** Use the canonical `flow.json.steps` IDs everywhere, and add a small normalization/assertion boundary where issue-log entries are created so dotted aliases cannot be written.",
+        "file": "specs/331-draft-repair-target-advisory/issue-log.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Centralize Stale Evidence Recovery Logic",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R8  \n**Issue:** Multiple summaries identify near-duplicate stale evidence refresh/recovery behavior across `run-gate.js`, `run-review.js`, `stale-test-evidence-refresh.js`, and `registry.js`. The duplicated checks include artifact loading, mismatch detection, recovery result shaping, fingerprint handling, and post-hook recovery detection.  \n**Suggestion:** Extract a shared stale evidence recovery helper that owns the common artifact validation, fingerprint comparison, recovery result shape, and `isEvidenceRefreshRecovery(result)` predicate. Keep only command-specific labels and return metadata at the call sites.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Normalize Draft Repair Target Phase Policy",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R7  \n**Issue:** Draft repair-target phase handling appears in several places with slightly different forms: `DRAFT_REPAIR_TARGET_PHASES.has(phase)` in production code, hardcoded `draft-questions` evidence in test fixtures, phase-to-artifact ternaries in tests, and repeated phase pair wording in the spec draft. This makes the target phase contract easy to drift across code, tests, and spec data.  \n**Suggestion:** Introduce a named helper or canonical map for draft repair-target phases and their artifacts, such as `isDraftRepairTargetPhase(phase)` plus a `DraftReviewArtifactMap`. Reuse it in production code and test fixtures, and reference the same concept in the spec text.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Bound Runtime And Artifact Collections Consistently",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R1  \n**Issue:** Several files introduce or persist unbounded collections: `flow.json` runtime history, deferred source aggregation in `acceptance-review-artifacts.js`, recursive step flattening in `get-next-action.js`, and additional artifact deletion in `stale-test-evidence-refresh.js`. The same bounded-resource requirement is being handled inconsistently across state, traversal, and filesystem cleanup paths.  \n**Suggestion:** Define shared caps for flow history, deferred source entries, step traversal, and additional artifacts. Enforce those limits at write/aggregation boundaries and fail with a clear mechanical blocker when exceeded.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Use One Canonical Evidence Metadata Location",
+        "body": "**File:** `specs/331-draft-repair-target-advisory/flow.json`  \n**Requirement:** R1  \n**Issue:** Evidence identity and recovery metadata are duplicated across `flow.json.reviewConvergence.records[].handoffFindings[]`, parent convergence records, and `issue-log.json`. Related production proposals also mention canonical projection caching and advisory evidence phase handling, so evidence identity is currently spread across multiple layers.  \n**Suggestion:** Store shared evidence identity once on the parent canonical record and let findings/logs reference it by ID or digest. Keep finding-specific data local, and make projection helpers read from that canonical location.",
+        "file": "specs/331-draft-repair-target-advisory/flow.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "6. Align Repair Target Terminology In Code And Tests",
+        "body": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R4  \n**Issue:** The summaries mention `repairTarget`, `classification: \"repair_target\"`, `category=repair_target`, `repairTargets`, and draft repair-target phases. Across tests and production review code, it is unclear which term is the external contract and which is an internal classification.  \n**Suggestion:** Pick canonical names for the concept, for example `repairTargets` for the list and `classification: \"repair_target\"` for the finding field. Rename fixtures and assertions so they explicitly protect the same contract used by production code.",
+        "file": "tests/unit/flow/commands/review.test.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

@@ -188,6 +188,7 @@ export function buildAcceptancePrompt(context) {
       "Emit exactly one deferredFindingDispositions[] entry for every deferred finding whose finalDisposition is still_open or blocking; omit findings that already have a resolved finalDisposition.",
       "Classify each deferred finding as fixed, not_needed, false_positive, pre_existing, still_open, or blocking.",
       "Every deferred disposition must cite its exact sourceRef from deferredFindingEvidence; additional refs must come from the current diff, repair evidence, or test evidence.",
+      "A still_open or blocking deferred disposition is an unresolved acceptance risk and routes to explicit acceptance-decision; it is not a mechanical evidence blocker.",
     ].join("\n"))
     .setJsonSchema(ACCEPTANCE_RESPONSE_SCHEMA)
     .setFmtFallback(`Return only JSON matching this schema:\n${JSON.stringify(ACCEPTANCE_RESPONSE_SCHEMA)}`)
@@ -440,6 +441,7 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
       root: ctx.root,
       flowManager: ctx.flowManager,
       artifact,
+      evidenceRefresh: context.evidenceRefresh,
     });
     return {
       result: "ok",
@@ -450,7 +452,10 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
       deferredFindings: result.artifact.deferredFindings,
       mechanicalBlockers: result.artifact.mechanicalBlockers,
       hardBlockers: result.artifact.hardBlockers,
-      next: result.verdict === "pass"
+      evidenceRefresh: result.evidenceRefresh || null,
+      next: result.evidenceRefresh
+        ? result.evidenceRefresh.activeStep
+        : result.verdict === "pass"
         ? "final-regression"
         : result.verdict === "repair_required"
           ? "impl-triage"

@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed embedded recommendations, rationales, and answer choices from all six draft questions.",
+  "items": [
+    {
+      "title": "1. q1 includes answer/rationale/options",
+      "target": "q1",
+      "rationale": "Kept only the goal-boundary question text.",
+      "evidence": "draft.json qa[0].question now contains only the self-contained question.",
+      "changedFieldPaths": ["qa[0].question"]
+    },
+    {
+      "title": "2. q2 includes answer/rationale/options",
+      "target": "q2",
+      "rationale": "Kept only the phase and disposition contract question text.",
+      "evidence": "draft.json qa[1].question now contains only the self-contained question.",
+      "changedFieldPaths": ["qa[1].question"]
+    },
+    {
+      "title": "3. q3 includes answer/rationale/options",
+      "target": "q3",
+      "rationale": "Kept only the repair-target preservation question text.",
+      "evidence": "draft.json qa[2].question now contains only the self-contained question.",
+      "changedFieldPaths": ["qa[2].question"]
+    },
+    {
+      "title": "4. q4 includes answer/rationale/options",
+      "target": "q4",
+      "rationale": "Kept only the convergence-invariant question text.",
+      "evidence": "draft.json qa[3].question now contains only the self-contained question.",
+      "changedFieldPaths": ["qa[3].question"]
+    },
+    {
+      "title": "5. q5 includes answer/rationale/options",
+      "target": "q5",
+      "rationale": "Kept only the duplicate and out-of-scope boundary question text.",
+      "evidence": "draft.json qa[4].question now contains only the self-contained question.",
+      "changedFieldPaths": ["qa[4].question"]
+    },
+    {
+      "title": "6. q6 includes answer/rationale/options",
+      "target": "q6",
+      "rationale": "Kept only the focused verification boundary question text.",
+      "evidence": "draft.json qa[5].question now contains only the self-contained question.",
+      "changedFieldPaths": ["qa[5].question"]
+    }
+  ]
+}

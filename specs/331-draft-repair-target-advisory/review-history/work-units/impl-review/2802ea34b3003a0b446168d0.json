@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js"
+    ],
+    "inputHash": "b92e52e3f924fa5f09958211ea1684d27aafed4421d11089d1218c557bce6b75",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js"
+  ],
+  "inputHash": "b92e52e3f924fa5f09958211ea1684d27aafed4421d11089d1218c557bce6b75",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T10:53:06.952Z",
+  "finishedAt": "2026-07-24T10:53:06.952Z",
+  "rawResponse": "### 1. Extract stale-evidence rewind fixture/assertion helpers\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The two new stale fingerprint tests repeat the same setup pattern: prepare fixture, mutate `src/demo.js`, create a flow state, invoke recovery, assert rewind statuses, and assert evidence artifacts were removed. This makes future changes to rewind behavior harder to update consistently.  \n**Suggestion:** Add small local helpers such as `assertStepRewound(state, fromStep, toStep)` and `assertArtifactsRemoved(specDir, paths)`, and reuse them in both `\"acceptance-review rewinds...\"` and `\"integration gate rewinds...\"`.\n\n### 2. Replace hard-coded artifact removal list with named constant\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The acceptance rewind test embeds a long inline array of artifact filenames. This obscures the behavioral distinction between artifacts that should be removed and artifacts that should remain.  \n**Suggestion:** Define local constants like `ACCEPTANCE_REWIND_REMOVED_ARTIFACTS` and `ACCEPTANCE_REWIND_PRESERVED_ARTIFACTS`, then assert against those. This improves naming and makes the intent clearer.\n\n### 3. Extract repeated in-memory flow manager test double\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The new tests define similar ad hoc `flowManager` objects with `load()` and/or `mutate()` methods. The shape is repeated and slightly inconsistent between tests.  \n**Suggestion:** Add a local helper such as `makeMutableFlowManager(state, { includeLoad = false } = {})` or simply always include both `load` and `mutate`. This removes duplication and makes the test double consistent.\n\n### 4. Use a helper for SHA-256 file fingerprint construction\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The integration gate test manually constructs a changed-file object and computes the SHA-256 fingerprint inline. That mixes fixture mechanics with the behavior under test.  \n**Suggestion:** Extract a helper like `changedFileFingerprint(path, contents)` returning `{ status: \"modified\", path, fingerprint }`. The test body can then focus on stale evidence recovery behavior.\n\n### 5. Name retry metric fixture construction\n**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R7  \n**Issue:** `Array.from({ length: 5 }, () => ({ phase: \"task-impl\", counter: \"gateRetry\", delta: 1 }))` is technically clear but semantically dense. The purpose is “five exhausted task implementation gate retries,” not generic array construction.  \n**Suggestion:** Extract a local helper or variable, for example `const exhaustedTaskImplGateRetries = retryMetrics(\"task-impl\", \"gateRetry\", 5);`, to make the scenario intent explicit.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract stale-evidence rewind fixture/assertion helpers",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The two new stale fingerprint tests repeat the same setup pattern: prepare fixture, mutate `src/demo.js`, create a flow state, invoke recovery, assert rewind statuses, and assert evidence artifacts were removed. This makes future changes to rewind behavior harder to update consistently.  \n**Suggestion:** Add small local helpers such as `assertStepRewound(state, fromStep, toStep)` and `assertArtifactsRemoved(specDir, paths)`, and reuse them in both `\"acceptance-review rewinds...\"` and `\"integration gate rewinds...\"`.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Replace hard-coded artifact removal list with named constant",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The acceptance rewind test embeds a long inline array of artifact filenames. This obscures the behavioral distinction between artifacts that should be removed and artifacts that should remain.  \n**Suggestion:** Define local constants like `ACCEPTANCE_REWIND_REMOVED_ARTIFACTS` and `ACCEPTANCE_REWIND_PRESERVED_ARTIFACTS`, then assert against those. This improves naming and makes the intent clearer.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Extract repeated in-memory flow manager test double",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The new tests define similar ad hoc `flowManager` objects with `load()` and/or `mutate()` methods. The shape is repeated and slightly inconsistent between tests.  \n**Suggestion:** Add a local helper such as `makeMutableFlowManager(state, { includeLoad = false } = {})` or simply always include both `load` and `mutate`. This removes duplication and makes the test double consistent.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Use a helper for SHA-256 file fingerprint construction",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The integration gate test manually constructs a changed-file object and computes the SHA-256 fingerprint inline. That mixes fixture mechanics with the behavior under test.  \n**Suggestion:** Extract a helper like `changedFileFingerprint(path, contents)` returning `{ status: \"modified\", path, fingerprint }`. The test body can then focus on stale evidence recovery behavior.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Name retry metric fixture construction",
+        "body": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R7  \n**Issue:** `Array.from({ length: 5 }, () => ({ phase: \"task-impl\", counter: \"gateRetry\", delta: 1 }))` is technically clear but semantically dense. The purpose is “five exhausted task implementation gate retries,” not generic array construction.  \n**Suggestion:** Extract a local helper or variable, for example `const exhaustedTaskImplGateRetries = retryMetrics(\"task-impl\", \"gateRetry\", 5);`, to make the scenario intent explicit.",
+        "file": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

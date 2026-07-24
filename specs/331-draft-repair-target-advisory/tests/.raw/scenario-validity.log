@@ -1,0 +1,186 @@
+[senti] scenario-validity tests start
+command: node --test specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js
+[senti] scenario-validity file start command=node specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js
+TAP version 13
+# Subtest: R1: draft-questions repairTargets-only records canonical advisory findings
+not ok 1 - R1: draft-questions repairTargets-only records canonical advisory findings
+  ---
+  duration_ms: 1.71529
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:90:1'
+  failureType: 'testCodeFailure'
+  error: 'canonicalReviewArtifactFindings is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    DraftReviewFixture.canonicalFindings (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:61:12)
+    DraftReviewFixture.disposition (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:71:15)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:92:31)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: draft-coverage repairTargets-only uses the canonical advisory contract
+not ok 2 - R2: draft-coverage repairTargets-only uses the canonical advisory contract
+  ---
+  duration_ms: 0.322721
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:113:1'
+  failureType: 'testCodeFailure'
+  error: 'canonicalReviewArtifactFindings is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    DraftReviewFixture.canonicalFindings (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:61:12)
+    DraftReviewFixture.disposition (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:71:15)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:118:31)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R3: advisory findings and repair targets remain advisory without blocking findings
+not ok 3 - R3: advisory findings and repair targets remain advisory without blocking findings
+  ---
+  duration_ms: 0.371922
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:129:1'
+  failureType: 'testCodeFailure'
+  error: 'reviewArtifactFindingLists is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:139:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: repair target metadata remains in history and the raw triage source
+not ok 4 - R4: repair target metadata remains in history and the raw triage source
+  ---
+  duration_ms: 2.959375
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:152:1'
+  failureType: 'testCodeFailure'
+  error: 'canonicalReviewArtifactFindings is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    DraftReviewFixture.canonicalFindings (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:61:12)
+    DraftReviewFixture.disposition (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:71:15)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:189:6)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: empty draft buckets remain PASS with zero canonical findings
+not ok 5 - R5: empty draft buckets remain PASS with zero canonical findings
+  ---
+  duration_ms: 1.246606
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:193:1'
+  failureType: 'testCodeFailure'
+  error: 'canonicalReviewArtifactFindings is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    DraftReviewFixture.canonicalFindings (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:61:12)
+    DraftReviewFixture.disposition (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:71:15)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:195:59)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: invalid PASS, ADVISORY, and REJECTED combinations fail closed
+not ok 6 - R6: invalid PASS, ADVISORY, and REJECTED combinations fail closed
+  ---
+  duration_ms: 0.611483
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:201:1'
+  failureType: 'testCodeFailure'
+  error: 'canonicalReviewArtifactFindings is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    DraftReviewFixture.canonicalFindings (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:61:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:203:29)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: fallback IDs stay unique while duplicate content and evidence remain rejected
+not ok 7 - R7: fallback IDs stay unique while duplicate content and evidence remain rejected
+  ---
+  duration_ms: 0.476843
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:236:1'
+  failureType: 'testCodeFailure'
+  error: 'canonicalReviewArtifactFindings is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    DraftReviewFixture.canonicalFindings (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:61:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:246:36)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R8: checkpoint-shaped evidence records once and advances to triage without review AI
+not ok 8 - R8: checkpoint-shaped evidence records once and advances to triage without review AI
+  ---
+  duration_ms: 2.803695
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:286:1'
+  failureType: 'testCodeFailure'
+  error: 'canonicalReviewArtifactFindings is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-331-draft-repair-target-advisory/.tmp/scenario-baseline.MIgRV4/repo/specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js:343:23)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 0
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 28.42763
+Command failed: node specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: draft-questions repairTargets-only records canonical advisory findings
+[senti] requirement R2 observed: R2: draft-coverage repairTargets-only uses the canonical advisory contract
+[senti] requirement R3 observed: R3: advisory findings and repair targets remain advisory without blocking findings
+[senti] requirement R4 observed: R4: repair target metadata remains in history and the raw triage source
+[senti] requirement R5 observed: R5: empty draft buckets remain PASS with zero canonical findings
+[senti] requirement R6 observed: R6: invalid PASS, ADVISORY, and REJECTED combinations fail closed
+[senti] requirement R7 observed: R7: fallback IDs stay unique while duplicate content and evidence remain rejected
+[senti] requirement R8 observed: R8: checkpoint-shaped evidence records once and advances to triage without review AI
+[senti] scenario-validity tests end

@@ -326,6 +326,25 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
     assert.deepEqual(updates, []);
     assert.equal(flowState.steps[2].status, "in_progress");
   });
+
+  it("skips the normal gate post-hook after stale evidence recovery", async () => {
+    let loaded = false;
+    await FLOW_COMMANDS.run.gate.post({
+      terminalGateRevalidation: false,
+      flowManager: {
+        load() {
+          loaded = true;
+          throw new Error("normal gate lifecycle must not run");
+        },
+      },
+    }, {
+      result: "recovered",
+      artifacts: {
+        evidenceRefresh: { recovered: true },
+      },
+    });
+    assert.equal(loaded, false);
+  });
 });
 
 // -----------------------------------------------------------------------------

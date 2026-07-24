@@ -1,0 +1,129 @@
+{
+  "devType": "bugfix",
+  "goal": "draft-questions と draft-coverage の review が repairTargets を返したとき、raw ADVISORY と矛盾しない canonical advisory finding として一度だけ記録し、既存の disposition invariant、triage 伝播、重複禁止を維持したまま flow を進行可能にする。",
+  "analysis": {
+    "problem": "draft review の raw artifact は repairTargets があると ADVISORY になる一方、canonical finding への正規化が同じ repair target を blocking として扱うと、ADVISORY に advisory finding がなく blocking finding がある不正な組み合わせになる。この producer-side の分類不整合によって result_recording が fail closed し、review 自体の再実行を許さない既存契約の下で flow が停止する。",
+    "proposedApproach": "draft-questions と draft-coverage の producer-side canonical recording だけを対象に、repairTargets を non-blocking の canonical finding として正規化する。repair_target category、target、evidence、rationale と triage 経路を保持し、review-convergence の PASS・ADVISORY・REJECTED invariant、同一 artifact および同一 phase・tree・evidence の重複禁止は変更しない。",
+    "validation": "draft-questions と draft-coverage について empty、repairTargets-only、advisoryFindings と repairTargets の混在、invalid blocking の focused matrix を検証する。既存 review-convergence test で PASS・ADVISORY・REJECTED の不正な組み合わせが引き続き拒否されることを確認し、Issue #453 checkpoint と同形の artifact を review AI なしで一度だけ producer から canonical recording へ通し、repair_target category と triage への進行を確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "[must] Issue #454 の raw draft review artifact は repairTargets が 1 件以上あると ADVISORY になり、すべての bucket が空なら PASS になる。",
+      "[must] canonical ADVISORY は advisory finding を 1 件以上持ち、blocking finding を持たない既存 invariant に従う。",
+      "[must] canonical REJECTED は blocking finding を 1 件以上持ち、canonical PASS は finding を持たない既存 invariant に従う。",
+      "[must] 対象 phase は draft-questions と draft-coverage の2つで、repair target は canonical recording 後も category=repair_target と triage 経路を保持する。",
+      "[must] 同一 artifact の再登録と、同一 phase・tree・evidence に対する review 再実行は禁止されたまま維持する。",
+      "[must] Issue #453 checkpoint と同形の fixture は review AI を再実行せず、一度だけ producer から canonical recording と triage へ通す。"
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "[must] 外部依存を追加せず Node.js 組み込みモジュールだけを使用する。",
+      "[must] review-convergence の意味ある disposition と finding invariant は既存の専用 class が所有する設計を維持する。",
+      "[must] src 以下へ Issue #453 または Issue #454 に固有の checkpoint 値、run ID、branch、provider、sandbox 情報を埋め込まない。",
+      "[must] テストを通すための assertion 削減、skip、allowlist、validation 緩和を行わない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "[must] producer-side 正規化を所有する既存 function と focused test case の具体的な配置は、既存 module 境界に沿って spec で確定する。",
+      "[must] positive・negative matrix の各入力 artifact と期待 canonical record、triage transition の対応は spec で検証可能な要件へ展開する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] src/flow/commands/review.js における draft-questions と draft-coverage の repairTargets producer-side canonical normalization。",
+      "[must] repairTargets-only と advisoryFindings + repairTargets を blocking finding なしの ADVISORY として一度だけ記録する契約。",
+      "[must] repair target の category=repair_target、target、evidence、rationale と triage 伝播の維持。",
+      "[must] empty buckets の PASS と、PASS・ADVISORY・REJECTED の既存 fail-closed disposition invariant の維持。",
+      "[must] 同一 artifact の再登録と同一 phase・tree・evidence の review 再実行禁止の維持。",
+      "[must] focused matrix、既存 review-convergence negative matrix、Issue #453 checkpoint-shaped fixture の review AI なしの一回処理。"
+    ],
+    "out": [
+      "[must] Issue #453 の Acceptance Criteria 自体の実装または checkpoint worktree・artifact・flow state の変更。",
+      "[must] review retry 上限、counter reset、一般的 recovery または duplicate review permission の変更。",
+      "[must] provider、prompt、sandbox、OS permission、autoApprove の変更。",
+      "[must] active flow の pause、park、checkpoint lifecycle 機能の変更。",
+      "[must] flow state、review artifact、gate artifact の手作業による書き換え。"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] draft-questions と draft-coverage の raw artifact の PASS・ADVISORY・REJECTED 判定は維持し、repairTargets の canonical severity だけを raw ADVISORY と整合させる。",
+    "[must] src/flow/lib/review-convergence.js の ADVISORY、PASS、REJECTED validation は緩和せず、invalid artifact を引き続き fail closed にする。",
+    "[must] canonical review history の repair target は category=repair_target、target、evidence、rationale を保持し、既存 triage hook が同じ一回の記録を消費する。",
+    "[must] 同一 artifact と同一 phase・tree・evidence の duplicate protection、semantic review attempt、tooling limit の既存動作を変更しない。",
+    "[must] 公開 CLI、provider invocation、prompt、sandbox、permission、flow lifecycle の user-visible behavior を変更しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] 目的を、draft-questions と draft-coverage の repairTargets を raw ADVISORY と整合する canonical advisory finding として一度だけ記録し、triage へ進めることに限定しますか。",
+      "answer": "[must] はい。draft-questions と draft-coverage の repairTargets を一度だけ canonical advisory finding として記録し、triage へ進める範囲に限定する。",
+      "evidence": "Issue #454 AC1、AC2、AC8 と、ユーザーの Issue #454 を直接修正する明示指示。",
+      "why": "[must] 停止原因を解消する最小範囲であり、Issue #453 の機能実装へ拡張しないため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "[must] repairTargets-only と advisoryFindings + repairTargets の両方を blocking finding なしの ADVISORY とし、すべての bucket が空なら PASS とする対象を draft-questions と draft-coverage に限定しますか。",
+      "answer": "[must] はい。対象は draft-questions と draft-coverage に限定し、repairTargets-only と advisoryFindings + repairTargets は ADVISORY、empty は PASS とする。",
+      "evidence": "Issue #454 AC1、AC2、AC3、AC5。",
+      "why": "[must] raw artifact の verdict と canonical disposition を同じ契約へ揃えるため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "[must] canonical recording と triage へ repair target の category=repair_target、target、evidence、rationale を保持しますか。",
+      "answer": "[must] はい。category=repair_target、target、evidence、rationale を canonical history と triage へ保持する。",
+      "evidence": "Issue #454 AC4 と checkpoint evidence の consumer contract。",
+      "why": "[must] repair target の意味と修正対象を triage まで失わないため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "[must] review-convergence の既存 invariant を変更せず、ADVISORY + blockingFindings、PASS + finding、REJECTED without blockingFindings を引き続き拒否しますか。",
+      "answer": "[must] はい。ADVISORY、PASS、REJECTED の既存 fail-closed invariant は変更しない。",
+      "evidence": "Issue #454 AC6 と src/flow/lib/review-convergence.js の既存 validation。",
+      "why": "[must] producer 側の不整合だけを直し、canonical validation を緩和しないため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "[must] 同一 artifact の再登録と同一 phase・tree・evidence の review 再実行を引き続き禁止し、retry、counter、provider、prompt、sandbox、permission、pause・checkpoint lifecycle を変更対象から除外しますか。",
+      "answer": "[must] はい。duplicate protection を維持し、retry、counter、provider、prompt、sandbox、permission、pause・checkpoint lifecycle は変更しない。",
+      "evidence": "Issue #454 AC7、Out of Scope、ユーザーのスコープ外へ手を付けない明示指示。",
+      "why": "[must] 今回の停止原因と無関係な回復・実行契約へ変更を広げないため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "[must] focused verification を draft-questions・draft-coverage × empty・repairTargets-only・advisory+repair・invalid blocking、既存 disposition negative matrix、Issue #453 checkpoint-shaped fixture の review AI なしの一回処理に限定しますか。",
+      "answer": "[must] はい。focused matrix、既存 disposition negative matrix、Issue #453 checkpoint-shaped fixture の一回処理に限定する。",
+      "evidence": "Issue #454 Focused Verification と AC1〜AC8。",
+      "why": "[must] 修正対象の positive、negative、再現 fixture を過不足なく検証するため。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-24T04:59:23.796Z",
+    "notes": "Issue #454 の明示された scope と out-of-scope に限定して承認。"
+  }
+}
