@@ -1120,7 +1120,12 @@ describe("public stale test evidence recovery", () => {
     recorder.assert("bounded-public-contract", () => {
       assert.ok(entry);
       assert.deepEqual(entry.args.flags, ["--expect-no-issue"]);
-      assert.deepEqual(entry.args.options, ["--expect-issue", "--expect-spec", "--expect-run-id"]);
+      assert.deepEqual(entry.args.options, [
+        "--agent-work-dir",
+        "--expect-issue",
+        "--expect-spec",
+        "--expect-run-id",
+      ]);
       assert.match(entry.help, /Usage: senti flow run rewind-test-evidence/);
       assert.match(entry.help, /exact runId, spec, and Issue identity guards are required/);
       assert.match(entry.help, /no step, fingerprint, or allowlist input/);

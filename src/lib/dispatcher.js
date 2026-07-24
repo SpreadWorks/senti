@@ -158,15 +158,24 @@ function runtimeLogStepId(entry, hookCtx, result) {
   return null;
 }
 
-async function persistFinalizeCleanupPostReturnMetadata({ envelopeKey, hookCtx, metadata }) {
+async function persistFinalizeCleanupPostReturnMetadata({
+  envelopeKey,
+  hookCtx,
+  metadata,
+  commandModule,
+}) {
   if (envelopeKey !== "finalize-cleanup" || !metadata || !hookCtx?.flowManager || !hookCtx?.specId) return;
   const state = hookCtx.flowState || hookCtx.flowManager.loadReadOnly(hookCtx.specId);
   if (!state?.worktree) return;
   const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(state);
   if (!mainRepoPath) return;
-  const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
+  const recordFinalizeCleanupPostCommandMetadata = commandModule?.recordFinalizeCleanupPostCommandMetadata;
+  if (typeof recordFinalizeCleanupPostCommandMetadata !== "function") {
+    throw new Error("finalize-cleanup command module has no post-command metadata recorder");
+  }
+  const mainFlowManager = hookCtx.flowManager.forRoot(mainRepoPath);
   recordFinalizeCleanupPostCommandMetadata({
-    flowManager: hookCtx.flowManager,
+    flowManager: mainFlowManager,
     specId: hookCtx.specId,
     runtimeLog: metadata.toStepMetadata(),
   });
@@ -531,7 +540,12 @@ export async function dispatch({
       setExit(1);
     }
     closeRuntimeLog();
-    await persistFinalizeCleanupPostReturnMetadata({ envelopeKey, hookCtx, metadata: closedRuntimeLogMetadata });
+    await persistFinalizeCleanupPostReturnMetadata({
+      envelopeKey,
+      hookCtx,
+      metadata: closedRuntimeLogMetadata,
+      commandModule: mod,
+    });
     persistRuntimeLogMetadata(result);
     if (restoreStreams) restoreStreams();
     return;
@@ -547,7 +561,12 @@ export async function dispatch({
   }
   await emitFailure({ err: caught, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit, runtimeLogMetadata: runtimeLog?.metadata });
   closeRuntimeLog();
-  await persistFinalizeCleanupPostReturnMetadata({ envelopeKey, hookCtx, metadata: closedRuntimeLogMetadata });
+  await persistFinalizeCleanupPostReturnMetadata({
+    envelopeKey,
+    hookCtx,
+    metadata: closedRuntimeLogMetadata,
+    commandModule: mod,
+  });
   persistRuntimeLogMetadata(null);
   if (restoreStreams) restoreStreams();
 }

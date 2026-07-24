@@ -604,6 +604,66 @@ describe("dispatcher (unified runner)", () => {
       }
     });
 
+    it("persists cleanup runtime metadata through the loaded command module and main flow authority", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-cleanup-metadata-"));
+      try {
+        const agentWorkDir = path.join(tmp, ".agent-work");
+        container.register("paths", { root: tmp, agentWorkDir });
+
+        class Cmd extends Command {
+          static outputMode = "envelope";
+          execute() {
+            return { status: "done" };
+          }
+        }
+
+        const mainFlowManager = { authority: "main" };
+        const worktreeFlowManager = {
+          resolveWorktreePaths() {
+            return { mainRepoPath: tmp };
+          },
+          forRoot(root) {
+            assert.equal(root, tmp);
+            return mainFlowManager;
+          },
+        };
+        let recorded = null;
+        const entry = {
+          command: async () => ({
+            default: Cmd,
+            recordFinalizeCleanupPostCommandMetadata(input) {
+              recorded = input;
+            },
+          }),
+          args: { options: [] },
+          requiresFlow: false,
+          runtimeLog: { stepMetadata: false },
+        };
+        const out = [];
+        await dispatch({
+          container,
+          entry,
+          argv: [],
+          envelopeType: "run",
+          envelopeKey: "finalize-cleanup",
+          runtimeLog: true,
+          stdout: (s) => out.push(s),
+          buildHookCtx: () => ({
+            specId: "demo-flow",
+            flowState: { runId: "run-demo", worktree: true },
+            flowManager: worktreeFlowManager,
+          }),
+        });
+
+        assert.equal(JSON.parse(out.join("")).ok, true);
+        assert.equal(recorded.flowManager, mainFlowManager);
+        assert.equal(recorded.specId, "demo-flow");
+        assert.equal(recorded.runtimeLog.runId, "run-demo");
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
     it("raw mode lets the command write stdout itself", async () => {
       class Cmd extends Command {
         static outputMode = "raw";

@@ -1032,14 +1032,15 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-rewind-test-evidence.js"),
       args: {
         flags: FLOW_TARGET_GUARD_FLAGS,
-        options: FLOW_TARGET_GUARD_OPTIONS,
+        options: FLOW_RUN_OPTIONS,
       },
       help: [
-        `Usage: senti flow run rewind-test-evidence ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senti flow run rewind-test-evidence [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Recover a flow-level impl-gate blocked only by stale test evidence after a materialized implementation repair; exact runId, spec, and Issue identity guards are required, with no step, fingerprint, or allowlist input.",
         "",
         "Options:",
+        "  --agent-work-dir <path>  Set the agent/tmp/log base directory for this invocation.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
@@ -1322,12 +1323,9 @@ export const FLOW_COMMANDS = {
           command: finalizeCommand("cleanup"),
         });
       },
-      async post(ctx, result) {
-        await applyLifecycleActionsFromRegistry(ctx, {
-          event: "finalize:post",
-          command: finalizeCommand("cleanup"),
-        }, result);
-      },
+      // The command body completes the cleanup step, outbox, and durable final
+      // commit before deleting its worktree. A dispatcher post hook would run
+      // after that deletion and cannot safely load worktree-owned modules.
       async onError(ctx, err) {
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "finalize:onError",
