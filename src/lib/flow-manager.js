@@ -12,89 +12,16 @@
 
 import fs from "fs";
 import path from "path";
-import { runGit } from "./git-helpers.js";
 import { sentiDir } from "./config.js";
 import { FlowStore } from "./flow-store.js";
 import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
-import { SCAN_FLOWS_LIMIT, PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
-import { flowStatePath } from "./flow-state-atomic-writer.js";
+import { PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
 import { FlowTargetExpectation } from "./flow-target-guard.js";
 import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 import { WorktreeFlowBindingStore } from "./worktree-flow-binding.js";
 import { RepositoryFlowOperationLock } from "./repository-maintenance-lock.js";
-
-export class FlowScanEntry {
-  constructor({ specId, mode, state, location }) {
-    this.specId = specId;
-    this.mode = mode ?? null;
-    this.state = state ?? null;
-    this.location = location;
-    Object.freeze(this);
-  }
-}
-
-export class FlowScanResult {
-  constructor({ entries, truncated, limit }) {
-    this.entries = entries;
-    this.truncated = Boolean(truncated);
-    this.limit = limit;
-    Object.freeze(this.entries);
-    Object.freeze(this);
-  }
-
-  toDiscoveryJSON() {
-    return {
-      limit: this.limit,
-      truncated: this.truncated,
-      count: this.entries.length,
-    };
-  }
-}
-
-export class RecoveryFlowCandidate {
-  constructor({ specId, state, mode, flowState, location, executionRoot }) {
-    this.specId = specId;
-    this.state = state;
-    this.mode = mode ?? null;
-    this.flowState = flowState ?? null;
-    this.location = location;
-    this.runId = this.flowState?.runId || null;
-    this.executionRoot = executionRoot || null;
-    Object.freeze(this);
-  }
-
-  get continuable() {
-    return (
-      (this.state === "active" || this.state === "orphan-worktree")
-      && Boolean(this.runId)
-      && Boolean(this.executionRoot)
-    );
-  }
-
-  get blockReason() {
-    if (this.continuable) return null;
-    if (this.state === "finalized") return "finalized";
-    if (!this.runId) return "missing-runId";
-    if (!this.executionRoot) return "missing-execution-root";
-    return this.state;
-  }
-
-  toJSON() {
-    return {
-      specId: this.specId,
-      state: this.state,
-      mode: this.mode,
-      runId: this.runId,
-      location: this.location,
-      executionRoot: this.executionRoot,
-      worktreePath: this.state === "orphan-worktree" || this.mode === "worktree" ? this.executionRoot : null,
-      continuable: this.continuable,
-      blockReason: this.blockReason,
-    };
-  }
-}
 
 export class ResolvedFlowTarget {
   constructor({ state, specId = null, worktreePath = null, authorityRoot, preparing = false }) {
@@ -293,16 +220,6 @@ class ActiveFlowMismatchError extends Error {
     this.code = "ACTIVE_FLOW_MISMATCH";
     this.data = data;
   }
-}
-
-function recoveryCandidateRank(candidate) {
-  if (candidate.state === "active") return 50;
-  if (candidate.continuable) return 45;
-  if (candidate.state === "finalized") return 40;
-  if (candidate.state === "orphan-worktree") return 30;
-  if (candidate.state === "stale") return 20;
-  if (candidate.state === "branch-only") return 10;
-  return 0;
 }
 
 function isManagedFlowWorktree(root, mainRoot, inWorktree) {
@@ -744,187 +661,8 @@ export class FlowManager {
     return candidates;
   }
 
-  // ── cross-cutting ───────────────────────────────────────────────────────────
-
   /**
-   * Scan all flow.json files across worktrees, branches, and local specs.
-   * @returns {Array<{specId: string, mode: string|null, state: object|null, location: string}>}
-   */
-  scanAllFlows() {
-    return this._scanAllFlowsResult().entries;
-  }
-
-  discoverRecoveryFlows() {
-    const scan = this._scanAllFlowsResult();
-    const activeSpecIds = new Set(this._activeFlows.load().map((entry) => entry.spec));
-    const candidates = this._dedupeRecoveryCandidates(
-      scan.entries.map((entry) => this._toRecoveryCandidate(entry, activeSpecIds)),
-    );
-    return {
-      discovery: scan.toDiscoveryJSON(),
-      candidates,
-    };
-  }
-
-  _scanAllFlowsResult() {
-    const mainRoot = this._mainRoot;
-    const results = [];
-    const seen = new Set();
-    let truncated = false;
-
-    const specsDir = path.join(mainRoot, "specs");
-    if (fs.existsSync(specsDir)) {
-      for (const entry of fs.readdirSync(specsDir, { withFileTypes: true })) {
-        if (!entry.isDirectory() || !/^\d{3}-/.test(entry.name)) continue;
-        if (results.length >= SCAN_FLOWS_LIMIT) { truncated = true; break; }
-        const fp = flowStatePath(mainRoot, entry.name);
-        if (fs.existsSync(fp)) {
-          const state = JSON.parse(fs.readFileSync(fp, "utf8"));
-          const mode = state.worktree ? "worktree" : (state.featureBranch && state.featureBranch !== state.baseBranch) ? "branch" : "local";
-          results.push(new FlowScanEntry({ specId: entry.name, mode, state, location: mainRoot }));
-        } else {
-          results.push(new FlowScanEntry({ specId: entry.name, mode: null, state: null, location: mainRoot }));
-        }
-        seen.add(entry.name);
-      }
-    }
-
-    if (!truncated) {
-      const wtRes = runGit(["-C", mainRoot, "worktree", "list", "--porcelain"]);
-      if (wtRes.ok) {
-        const output = wtRes.stdout;
-        let wtPath = null;
-        outer: for (const line of output.split("\n")) {
-          if (line.startsWith("worktree ")) {
-            wtPath = line.slice("worktree ".length);
-          } else if (line === "" && wtPath && wtPath !== mainRoot) {
-            const wtSpecs = path.join(wtPath, "specs");
-            if (fs.existsSync(wtSpecs)) {
-              for (const entry of fs.readdirSync(wtSpecs, { withFileTypes: true })) {
-                if (!entry.isDirectory()) continue;
-                if (results.length >= SCAN_FLOWS_LIMIT) { truncated = true; break outer; }
-                const fp = flowStatePath(wtPath, entry.name);
-                if (fs.existsSync(fp)) {
-                  const state = JSON.parse(fs.readFileSync(fp, "utf8"));
-                  results.push(new FlowScanEntry({ specId: entry.name, mode: "worktree", state, location: wtPath }));
-                  seen.add(entry.name);
-                }
-              }
-            }
-            wtPath = null;
-          }
-        }
-      }
-    }
-
-    if (!truncated) {
-      const branchRes = runGit(["-C", mainRoot, "branch", "--list", "feature/*"]);
-      if (branchRes.ok) {
-        for (const line of branchRes.stdout.split("\n")) {
-          const branch = line.replace(/^[*+ ]+/, "").trim();
-          if (!branch) continue;
-          const specId = branch.replace("feature/", "");
-          if (seen.has(specId)) continue;
-          if (results.length >= SCAN_FLOWS_LIMIT) { truncated = true; break; }
-          const showRes = runGit(
-            ["-C", mainRoot, "show", `${branch}:specs/${specId}/flow.json`],
-          );
-          if (showRes.ok) {
-            try {
-              const state = JSON.parse(showRes.stdout);
-              results.push(new FlowScanEntry({ specId, mode: "branch", state, location: `branch:${branch}` }));
-              seen.add(specId);
-            } catch (e) {
-              process.stderr.write(`[senti] scanAllFlows: invalid JSON in ${branch}:specs/${specId}/flow.json: ${e.message}\n`);
-            }
-          }
-        }
-      }
-    }
-
-    if (truncated) {
-      process.stderr.write(`[senti] scanAllFlows: truncated at ${SCAN_FLOWS_LIMIT} entries\n`);
-    }
-
-    return new FlowScanResult({ entries: results, truncated, limit: SCAN_FLOWS_LIMIT });
-  }
-
-  _dedupeRecoveryCandidates(candidates) {
-    const deduped = [];
-    const indexBySpec = new Map();
-    for (const candidate of candidates) {
-      const existingIndex = indexBySpec.get(candidate.specId);
-      if (existingIndex == null) {
-        indexBySpec.set(candidate.specId, deduped.length);
-        deduped.push(candidate);
-        continue;
-      }
-      if (recoveryCandidateRank(candidate) > recoveryCandidateRank(deduped[existingIndex])) {
-        deduped[existingIndex] = candidate;
-      }
-    }
-    return deduped;
-  }
-
-  _toRecoveryCandidate(entry, activeSpecIds) {
-    const candidateState = this._recoveryStateFor(entry, activeSpecIds);
-    return new RecoveryFlowCandidate({
-      specId: entry.specId,
-      state: candidateState,
-      mode: entry.mode,
-      flowState: entry.state,
-      location: entry.location,
-      executionRoot: this._recoveryExecutionRootFor(entry, candidateState),
-    });
-  }
-
-  _recoveryStateFor(entry, activeSpecIds) {
-    if (entry.state?.finalizedAt) return "finalized";
-    if (activeSpecIds.has(entry.specId)) return "active";
-    if (entry.mode === "worktree" && entry.location !== this._mainRoot) return "orphan-worktree";
-    if (String(entry.location).startsWith("branch:")) return "branch-only";
-    return "stale";
-  }
-
-  _recoveryExecutionRootFor(entry, candidateState) {
-    if (candidateState === "active") {
-      try {
-        const resolved = this._loadActiveFlowState(entry.specId);
-        return resolved?.worktreePath || this._mainRoot;
-      } catch {
-        return null;
-      }
-    }
-    if (candidateState === "orphan-worktree" && fs.existsSync(entry.location)) {
-      try {
-        const manager = this.forRoot(entry.location, { specId: entry.specId });
-        if (manager.usesWorktreeFlowBinding()) {
-          const identity = manager.resolveWorktreeBinding();
-          if (identity.specId !== entry.specId) return null;
-          identity.assertFlowState(manager.load(entry.specId));
-        } else {
-          const state = manager.load(entry.specId);
-          if (
-            !state
-            || specIdFromPath(state.spec) !== entry.specId
-            || state.runId !== entry.state?.runId
-          ) return null;
-        }
-        return entry.location;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Resolve the active flow for normal flow execution.
-   *
-   * This intentionally does not call scanAllFlows(). Branch/worktree discovery
-   * is a recovery concern owned by resume-like commands; normal status,
-   * next-action, and run commands must not be pulled toward stale branch or
-   * orphan worktree flow.json files.
+   * Resolve a registered active flow for normal flow execution and resume.
    *
    * @param {object|null} flowState - pre-loaded flow state (may be null)
    * @param {object} [opts]

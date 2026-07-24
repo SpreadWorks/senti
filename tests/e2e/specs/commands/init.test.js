@@ -230,7 +230,7 @@ describe("spec init CLI", () => {
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });
   });
 
-  it("resumes an orphan flow from a generic linked worktree without binding fallback", () => {
+  it("does not resume an unregistered flow from a generic linked worktree", () => {
     tmp = createTmpDir();
     initProject(tmp);
     const wtPath = join(tmp, "orphan-wt");
@@ -247,14 +247,19 @@ describe("spec init CLI", () => {
     }));
     fs.rmSync(join(tmp, ".senti", ".active-flow"), { force: true });
 
-    const resumed = JSON.parse(execFileSync("node", [
-      CMD, "flow", "resume", "--spec", prepared.data.spec.split("/")[1],
-    ], {
-      encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
-    }));
-    assert.equal(resumed.ok, true);
-    assert.equal(fs.realpathSync(resumed.data.selected.executionRoot), fs.realpathSync(wtPath));
+    try {
+      execFileSync("node", [
+        CMD, "flow", "resume", "--spec", prepared.data.spec.split("/")[1],
+      ], {
+        encoding: "utf8",
+        env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      });
+      assert.fail("unregistered worktree flow must not resume");
+    } catch (error) {
+      const resumed = JSON.parse(error.stdout);
+      assert.equal(resumed.ok, false);
+      assert.equal(resumed.errors[0].code, "FLOW_TARGET_NOT_FOUND");
+    }
 
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });
   });

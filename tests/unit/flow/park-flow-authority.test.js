@@ -310,8 +310,6 @@ describe("managed worktree flow park authority", () => {
     assert.deepEqual(flowSnapshot(flow), before);
 
     new ActiveFlowRegistry({ mainRoot: root }).remove(flow.specId);
-    flow.manager.discoverRecoveryFlows = () => { throw new Error("discovery must not run"); };
-    flow.manager._scanAllFlowsResult = () => { throw new Error("scan must not run"); };
     const originalReaddir = fs.readdirSync;
     fs.readdirSync = () => { throw new Error("directory enumeration must not run"); };
     try {

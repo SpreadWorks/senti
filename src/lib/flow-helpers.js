@@ -21,7 +21,6 @@ import { flattenSteps } from "../flow/lib/step-tree.js";
 export const ACTIVE_FLOW_FILE = ".active-flow";
 export const PREPARING_PREFIX = ".active-flow.";
 export const PREPARING_SCAN_LIMIT = 100;
-export const SCAN_FLOWS_LIMIT = 200;
 
 /** Spec-Driven Development workflow step IDs in order (flow level). Derived from definition. */
 export const FLOW_STEPS = collectFlowLeafIds();

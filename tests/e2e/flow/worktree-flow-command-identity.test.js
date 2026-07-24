@@ -342,8 +342,38 @@ describe("worktree command identity", () => {
     );
 
     const resumed = expectSuccess(runFlow(root, ["resume", "--spec", flow.specId]));
-    assert.equal(resumed.selected.runId, flow.runId);
-    assert.equal(fs.realpathSync(resumed.selected.executionRoot), fs.realpathSync(flow.worktreePath));
+    assert.equal(resumed.runId, flow.runId);
+    assert.equal(fs.realpathSync(resumed.worktreePath), fs.realpathSync(flow.worktreePath));
+    assert.equal(resumed.recoveryCandidates, undefined);
+  });
+
+  it("selects one registered active flow by spec", () => {
+    const root = createProject();
+    const first = prepareWorktree(root, { issue: 440, title: "resume-first" });
+    const second = prepareWorktree(root, { issue: 441, title: "resume-second" });
+
+    const ambiguous = runFlow(root, ["resume"]);
+    assert.notEqual(ambiguous.status, 0);
+    assert.match(ambiguous.envelope?.errors?.[0]?.messages?.[0], /multiple active flows/);
+
+    for (const flow of [first, second]) {
+      const resumed = expectSuccess(runFlow(root, ["resume", "--spec", flow.specId]));
+      assert.equal(resumed.activeFlow, flow.specId);
+      assert.equal(resumed.runId, flow.runId);
+      assert.equal(fs.realpathSync(resumed.worktreePath), fs.realpathSync(flow.worktreePath));
+    }
+  });
+
+  it("does not resume an unregistered worktree flow", () => {
+    const root = createProject();
+    const flow = prepareWorktree(root, { issue: 440, title: "resume-active-only" });
+    fs.rmSync(path.join(root, ".senti", ".active-flow"));
+
+    const resumed = runFlow(root, ["resume", "--spec", flow.specId]);
+
+    assert.notEqual(resumed.status, 0);
+    assert.equal(resumed.envelope?.errors?.[0]?.code, "FLOW_TARGET_NOT_FOUND");
+    assert.equal(resumed.envelope?.data?.expectedSpec, flow.specId);
   });
 
   it("validates positional and expected status run IDs independently", () => {
