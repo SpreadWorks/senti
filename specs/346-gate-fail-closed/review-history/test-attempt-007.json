@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T15:04:29.594Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/346-gate-fail-closed/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Required schema-validation failure path has no spec-local coverage",
+      "target": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+      "findingId": "7bb717a8c29cb0f389963369935634d5565992c06f9918da466917340074cbfc",
+      "fingerprint": "7bb717a8c29cb0f389963369935634d5565992c06f9918da466917340074cbfc",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R2 covered, but one acceptance requirement category has no corresponding executable test coverage.",
+      "issue": "R2 requires fail-closed behavior for every required agent evaluation, guardrail evaluation, and schema validation. The test covers required-agent and required-guardrail unavailable/invalid-output/schema cases, but it does not exercise a standalone required schema-validation failure path or assert that such a failure blocks gate completion and approval.",
+      "requiredChange": "Add a spec-local R2 case that drives the production gate through a required schema-validation failure and asserts a non-PASS result, typed failure code, gateDone false, and approval false.",
+      "whyBlocking": "The coverage artifact marks R2 covered, but one acceptance requirement category has no corresponding executable test coverage.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/346-gate-fail-closed/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "26888275307717c7ac5d31f9f43430a54020f9d786377139884bfbe5b6a3b7a7"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "7bb717a8c29cb0f389963369935634d5565992c06f9918da466917340074cbfc",
+      "findingId": "7bb717a8c29cb0f389963369935634d5565992c06f9918da466917340074cbfc",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Required schema-validation failure path has no spec-local coverage",
+      "body": "R2 requires fail-closed behavior for every required agent evaluation, guardrail evaluation, and schema validation. The test covers required-agent and required-guardrail unavailable/invalid-output/schema cases, but it does not exercise a standalone required schema-validation failure path or assert that such a failure blocks gate completion and approval.",
+      "category": "unknown",
+      "fingerprint": "7bb717a8c29cb0f389963369935634d5565992c06f9918da466917340074cbfc",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R2 covered, but one acceptance requirement category has no corresponding executable test coverage."
+    }
+  ]
+}

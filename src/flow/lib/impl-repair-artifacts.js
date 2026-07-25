@@ -1380,6 +1380,13 @@ export function completeTestEvidenceRefresh({
   }
 }
 
+/**
+ * Record a material repair that is already covered by current evidence.
+ *
+ * This closes the ledger gap that can remain when a gate repair is followed
+ * by fresh test, review, and gate artifacts before acceptance starts. Unlike
+ * a test-evidence refresh, it must not invalidate those current artifacts.
+ */
 export function completeLateAppliedFindingRepair({
   root,
   state,

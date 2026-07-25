@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "82017d1fd7f1861646caf711",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-075d1908cd161243",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/346-gate-fail-closed/file-map.json",
+      "specs/346-gate-fail-closed/spec.json",
+      "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/run-complete-task.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/set-review-evidence.js",
+      "src/flow/registry.js",
+      "src/lib/presets.js"
+    ],
+    "inputHash": "075d1908cd161243a03f697f6c05e89e3feb32e951e50ebd5ad140d23f03cf38",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "82017d1fd7f1861646caf711"
+  },
+  "targetFiles": [
+    "specs/346-gate-fail-closed/file-map.json",
+    "specs/346-gate-fail-closed/spec.json",
+    "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/run-complete-task.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/set-review-evidence.js",
+    "src/flow/registry.js",
+    "src/lib/presets.js"
+  ],
+  "inputHash": "075d1908cd161243a03f697f6c05e89e3feb32e951e50ebd5ad140d23f03cf38",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:58:22.221Z",
+  "finishedAt": "2026-07-25T16:58:22.221Z",
+  "rawResponse": "### 1. Centralize target-state validation across review evidence paths\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** Multiple files introduce overlapping target identity validation for `phase`, `taskId`, `treeSha`, and `targetStateDigest`: `run-review.js`, `set-review-evidence.js`, and `review-evidence-store.js`. The summaries show slightly different behavior, including mutation during persistence, strict recovery validation, and asymmetric digest validation. This creates a cross-file interface inconsistency for what “matches target state” means.  \n**Suggestion:** Add one shared validation helper, for example `assertReviewArtifactMatchesTarget(artifact, target, options)`, and use it from recovery, persistence, and evidence-store validation. Make null versus missing `targetStateDigest` explicit.\n\n### 2. Deduplicate required-gate failure construction\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** Required gate failure metadata is constructed in several places and is also asserted through repeated patterns in `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`. This increases the chance that failure code, failure kind, warnings, or CLI rejection behavior drift between implementation and tests.  \n**Suggestion:** Route all required-evaluation failures through a single helper such as `requiredEvaluationFailure()`, and expose stable failure codes/messages that tests assert against.\n\n### 3. Align retry-bound representation between spec files\n**File:** `specs/346-gate-fail-closed/issue.md`  \n**Requirement:** R2  \n**Issue:** `issue.md` reportedly mentions a semantic retry budget without a concrete bound, while `spec.json` contains prose for “configured maximum of five semantic gate retries.” That creates a cross-file requirement inconsistency: one spec artifact is underspecified while another defines the bound informally.  \n**Suggestion:** Make the retry limit explicit in both spec artifacts, ideally with `spec.json` containing a structured value such as `\"semantic_gate_retry_limit\": 5` and `issue.md` referencing the same named limit.\n\n### 4. Avoid two canonical spec sources\n**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The summaries indicate `spec.md` duplicates much of `spec.json`, while `issue.md` also carries contract language. With retry bounds and status already differing across files, the spec set has multiple places for authoritative requirement text to drift.  \n**Suggestion:** Declare `spec.json` as canonical and generate or summarize `spec.md` from it, or add an explicit synchronization rule so requirements, acceptance criteria, task status, and retry limits stay aligned.\n\n### 5. Normalize public CLI option parsing and rejection naming\n**File:** `src/lib/dispatcher.js`  \n**Requirement:** R5  \n**Issue:** `dispatcher.js` adds `--option=value` parsing while `run-gate.js` separately rejects public bypass options and tests repeat rejection cases for both split and equals forms. The parsing and rejection responsibilities are spread across files with inconsistent helper naming.  \n**Suggestion:** Centralize equals-option parsing in `dispatcher.js`, and rename `parsePublicGateArguments()` in `run-gate.js` to an assertion-style helper such as `assertPublicGateArgumentsAllowed(argv)` so CLI parsing versus command-specific rejection are clearly separated.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize target-state validation across review evidence paths",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** Multiple files introduce overlapping target identity validation for `phase`, `taskId`, `treeSha`, and `targetStateDigest`: `run-review.js`, `set-review-evidence.js`, and `review-evidence-store.js`. The summaries show slightly different behavior, including mutation during persistence, strict recovery validation, and asymmetric digest validation. This creates a cross-file interface inconsistency for what “matches target state” means.  \n**Suggestion:** Add one shared validation helper, for example `assertReviewArtifactMatchesTarget(artifact, target, options)`, and use it from recovery, persistence, and evidence-store validation. Make null versus missing `targetStateDigest` explicit.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Deduplicate required-gate failure construction",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** Required gate failure metadata is constructed in several places and is also asserted through repeated patterns in `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`. This increases the chance that failure code, failure kind, warnings, or CLI rejection behavior drift between implementation and tests.  \n**Suggestion:** Route all required-evaluation failures through a single helper such as `requiredEvaluationFailure()`, and expose stable failure codes/messages that tests assert against.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Align retry-bound representation between spec files",
+        "body": "**File:** `specs/346-gate-fail-closed/issue.md`  \n**Requirement:** R2  \n**Issue:** `issue.md` reportedly mentions a semantic retry budget without a concrete bound, while `spec.json` contains prose for “configured maximum of five semantic gate retries.” That creates a cross-file requirement inconsistency: one spec artifact is underspecified while another defines the bound informally.  \n**Suggestion:** Make the retry limit explicit in both spec artifacts, ideally with `spec.json` containing a structured value such as `\"semantic_gate_retry_limit\": 5` and `issue.md` referencing the same named limit.",
+        "file": "specs/346-gate-fail-closed/issue.md",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Avoid two canonical spec sources",
+        "body": "**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The summaries indicate `spec.md` duplicates much of `spec.json`, while `issue.md` also carries contract language. With retry bounds and status already differing across files, the spec set has multiple places for authoritative requirement text to drift.  \n**Suggestion:** Declare `spec.json` as canonical and generate or summarize `spec.md` from it, or add an explicit synchronization rule so requirements, acceptance criteria, task status, and retry limits stay aligned.",
+        "file": "specs/346-gate-fail-closed/spec.md",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Normalize public CLI option parsing and rejection naming",
+        "body": "**File:** `src/lib/dispatcher.js`  \n**Requirement:** R5  \n**Issue:** `dispatcher.js` adds `--option=value` parsing while `run-gate.js` separately rejects public bypass options and tests repeat rejection cases for both split and equals forms. The parsing and rejection responsibilities are spread across files with inconsistent helper naming.  \n**Suggestion:** Centralize equals-option parsing in `dispatcher.js`, and rename `parsePublicGateArguments()` in `run-gate.js` to an assertion-style helper such as `assertPublicGateArgumentsAllowed(argv)` so CLI parsing versus command-specific rejection are clearly separated.",
+        "file": "src/lib/dispatcher.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

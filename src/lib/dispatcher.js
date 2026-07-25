@@ -53,6 +53,13 @@ function splitArgsBySpec(argv, flagSet, optionSet, optionalOptionSet) {
       nonPositional.push(argv[++i]);
       continue;
     }
+    const equalsOption = [...optionSet].find((option) => a.startsWith(`${option}=`));
+    if (equalsOption) {
+      const value = a.slice(equalsOption.length + 1);
+      if (!value) throw new Error(`Missing value for option: ${equalsOption}`);
+      nonPositional.push(equalsOption, value);
+      continue;
+    }
     if (optionalOptionSet.has(a)) {
       nonPositional.push(a);
       const value = argv[i + 1];

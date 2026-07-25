@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:57:28.841Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/346-gate-fail-closed/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 coverage misses required-agent failure modes",
+      "target": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js R2 test",
+      "findingId": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "fingerprint": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for several required-agent fail-closed cases.",
+      "issue": "The R2 test covers an unset required agent and an agent spawn failure, but it does not cover required-agent evaluation failure, invalid output, or schema failure. The requirement explicitly applies each failure class to every required agent evaluation as well as guardrail evaluation and schema validation.",
+      "requiredChange": "Add spec-local assertions for requiredAgent evaluation failure, invalid output, and schema failure producing blocking non-PASS outcomes without gateDone or approval advancement.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for several required-agent fail-closed cases.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 stale-artifact rejection is not actually exercised for tree or state",
+      "target": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js R6 test",
+      "findingId": "234d8b0f29d394982277e1e866583392f422752bb08c44c3470ce6f5fb03033e",
+      "fingerprint": "234d8b0f29d394982277e1e866583392f422752bb08c44c3470ce6f5fb03033e",
+      "disposition": "must-fix",
+      "rationale": "The test has a static anti-pattern that can pass without exercising production behavior required by R6.",
+      "issue": "The providerArtifact only includes phase/verdict/findings/finalized, so it carries no treeSha, taskId, or targetStateDigest to compare against the current state. The stale tree and stale target-state cases therefore cannot validate the required behavior of rejecting artifacts whose tree or target state does not match.",
+      "requiredChange": "Construct the finalized provider artifact with matching treeSha, taskId:null, and targetStateDigest, then assert recovery rejects artifacts whose embedded treeSha or targetStateDigest differs from the current state.",
+      "whyBlocking": "The test has a static anti-pattern that can pass without exercising production behavior required by R6.",
+      "origin": "R6",
+      "failureKind": "non_exercising_test"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/346-gate-fail-closed/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "909f4f0b1adb24c661d7adfb3b21bec13f3730e3c73d8065ba533ceca0c031d2"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "findingId": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R2 coverage misses required-agent failure modes",
+      "body": "The R2 test covers an unset required agent and an agent spawn failure, but it does not cover required-agent evaluation failure, invalid output, or schema failure. The requirement explicitly applies each failure class to every required agent evaluation as well as guardrail evaluation and schema validation.",
+      "category": "unknown",
+      "fingerprint": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for several required-agent fail-closed cases."
+    },
+    {
+      "id": "234d8b0f29d394982277e1e866583392f422752bb08c44c3470ce6f5fb03033e",
+      "findingId": "234d8b0f29d394982277e1e866583392f422752bb08c44c3470ce6f5fb03033e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R6 stale-artifact rejection is not actually exercised for tree or state",
+      "body": "The providerArtifact only includes phase/verdict/findings/finalized, so it carries no treeSha, taskId, or targetStateDigest to compare against the current state. The stale tree and stale target-state cases therefore cannot validate the required behavior of rejecting artifacts whose tree or target state does not match.",
+      "category": "unknown",
+      "fingerprint": "234d8b0f29d394982277e1e866583392f422752bb08c44c3470ce6f5fb03033e",
+      "disposition": "must-fix",
+      "rationale": "The test has a static anti-pattern that can pass without exercising production behavior required by R6."
+    }
+  ]
+}

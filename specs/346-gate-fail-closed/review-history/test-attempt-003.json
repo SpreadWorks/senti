@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:58:25.053Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/346-gate-fail-closed/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Unset required guardrail path is not covered",
+      "target": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js R2 test",
+      "findingId": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "fingerprint": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "disposition": "must-fix",
+      "rationale": "This is an acceptance requirement with no corresponding spec-local test coverage for one of the required evaluation classes.",
+      "issue": "R2 requires unset configuration for every required guardrail evaluation to produce a blocking non-PASS outcome, but the unavailable-evaluation matrix only covers `requiredAgent: null`; it does not cover an unset required guardrail configuration.",
+      "requiredChange": "Add a spec-local R2 case for an unset required guardrail configuration and assert it fails, does not mark the gate done, and does not advance approval.",
+      "whyBlocking": "This is an acceptance requirement with no corresponding spec-local test coverage for one of the required evaluation classes.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Flow evidence recovery does not test non-null target rejection",
+      "target": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js R6 test",
+      "findingId": "b15fb50b424eb41742bbc7b5ed9ebfc0c161e99905e8e0552e31dda44ea4c083",
+      "fingerprint": "b15fb50b424eb41742bbc7b5ed9ebfc0c161e99905e8e0552e31dda44ea4c083",
+      "disposition": "must-fix",
+      "rationale": "The null task target constraint is part of the acceptance requirement and currently lacks executable coverage.",
+      "issue": "R6 requires recovered canonical evidence to be for the current phase with a null task target, but the stale-artifact rejection loop only checks phase, tree, and target state digest mismatches. It does not prove that an artifact with a non-null `taskId` is rejected when the current state target is null.",
+      "requiredChange": "Add an R6 stale-artifact assertion where `providerArtifact.taskId` is non-null while `state.taskId` is null, and assert recovery rejects it without invoking the provider.",
+      "whyBlocking": "The null task target constraint is part of the acceptance requirement and currently lacks executable coverage.",
+      "origin": "R6",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/346-gate-fail-closed/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "ef4d87bb48925ee66726a5d9bfc4cc3b66f6f6e5dced62e8d249783a1b72b611"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "findingId": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Unset required guardrail path is not covered",
+      "body": "R2 requires unset configuration for every required guardrail evaluation to produce a blocking non-PASS outcome, but the unavailable-evaluation matrix only covers `requiredAgent: null`; it does not cover an unset required guardrail configuration.",
+      "category": "unknown",
+      "fingerprint": "b0f034b081ff2ed1653a9919c26c85aa9e3ecbe8a9a352310714b083e010de2d",
+      "disposition": "must-fix",
+      "rationale": "This is an acceptance requirement with no corresponding spec-local test coverage for one of the required evaluation classes."
+    },
+    {
+      "id": "b15fb50b424eb41742bbc7b5ed9ebfc0c161e99905e8e0552e31dda44ea4c083",
+      "findingId": "b15fb50b424eb41742bbc7b5ed9ebfc0c161e99905e8e0552e31dda44ea4c083",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Flow evidence recovery does not test non-null target rejection",
+      "body": "R6 requires recovered canonical evidence to be for the current phase with a null task target, but the stale-artifact rejection loop only checks phase, tree, and target state digest mismatches. It does not prove that an artifact with a non-null `taskId` is rejected when the current state target is null.",
+      "category": "unknown",
+      "fingerprint": "b15fb50b424eb41742bbc7b5ed9ebfc0c161e99905e8e0552e31dda44ea4c083",
+      "disposition": "must-fix",
+      "rationale": "The null task target constraint is part of the acceptance requirement and currently lacks executable coverage."
+    }
+  ]
+}

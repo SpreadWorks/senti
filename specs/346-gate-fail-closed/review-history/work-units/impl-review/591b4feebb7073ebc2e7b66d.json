@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-complete-task.js",
+      "src/flow/lib/run-gate.js"
+    ],
+    "inputHash": "50020f53f785f2ed2f9ea0410c6fcd1e91eeb26b8cc23010dcf85ab715e16858",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-complete-task.js",
+    "src/flow/lib/run-gate.js"
+  ],
+  "inputHash": "50020f53f785f2ed2f9ea0410c6fcd1e91eeb26b8cc23010dcf85ab715e16858",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:54:15.544Z",
+  "finishedAt": "2026-07-25T16:54:15.544Z",
+  "rawResponse": "I’ll review the touched files only and focus on maintainability proposals, plus the bounded-resource guardrail. I’ll inspect the surrounding code so the suggestions are grounded in existing patterns rather than just the excerpt.The working directory is the change sandbox, but the repository files are not at the relative paths from there. I’m going to locate the checkout shape first, then read only the diff files.The sandbox contains generated review artifacts rather than the source tree at its top level. I’ll inspect the parent worktree metadata and use the diff text plus any accessible source copy if present.I found the actual source one directory up. Now I’m checking the modified regions against adjacent helpers to avoid suggesting duplicate abstractions that already exist nearby.### 1. Centralize Required-Evaluation Failure Construction\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** `checkGuardrail()` now builds the same failure object shape in multiple places: `requiredGuardrailFailure()`, the agent-unset branch, and the evaluation catch block. This duplicates `passed: false`, `evaluations: []`, and failure metadata wiring.  \n**Suggestion:** Use `requiredGuardrailFailure()` for every required-evaluation failure path, or rename it to a broader `requiredEvaluationFailure()` and route guardrail, agent, output, and schema failures through it.\n\n### 2. Extract Failure Classification Logic\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** Spawn/schema/output classification is repeated inline with string/regex checks in both guardrail loading and agent evaluation handling. This makes failure-kind/code consistency easier to drift over time.  \n**Suggestion:** Extract small helpers such as `isSpawnFailure(error)` and `classifyRequiredEvaluationError(error)`, returning `{ failureKind, failureCode, failureReason }`.\n\n### 3. Remove Dead Return Value From Argument Parser\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** `parsePublicGateArguments()` always returns `{}`, but callers only use it for its throwing behavior. The return value suggests parsed data exists when it does not.  \n**Suggestion:** Make the function return `undefined`, or rename it to `assertPublicGateArgumentsAllowed(argv)` to match its actual purpose.\n\n### 4. Deduplicate Public Bypass Error Metadata\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** The bypass error code and message are duplicated in `parsePublicGateArguments()` and `RunGateCommand.run()`.  \n**Suggestion:** Introduce constants or a helper like `requiredEvaluationBypassEnvelope()` so the public CLI rejection path uses one source of truth for code/message.\n\n### 5. Reuse Prerequisite Failure Formatting\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R1  \n**Issue:** The preset-chain prerequisite failure is built manually inside `runGateFlow()`, while required-evaluation failures now have a dedicated helper path. This creates another one-off failure-artifact mutation site.  \n**Suggestion:** Add a focused helper, for example `gatePrerequisiteFail(level, phase, targetPath, code, message)`, that wraps `gateFail()` and sets `artifacts.failureKind`, `artifacts.failureCode`, and warnings consistently.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Required-Evaluation Failure Construction",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** `checkGuardrail()` now builds the same failure object shape in multiple places: `requiredGuardrailFailure()`, the agent-unset branch, and the evaluation catch block. This duplicates `passed: false`, `evaluations: []`, and failure metadata wiring.  \n**Suggestion:** Use `requiredGuardrailFailure()` for every required-evaluation failure path, or rename it to a broader `requiredEvaluationFailure()` and route guardrail, agent, output, and schema failures through it.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Extract Failure Classification Logic",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** Spawn/schema/output classification is repeated inline with string/regex checks in both guardrail loading and agent evaluation handling. This makes failure-kind/code consistency easier to drift over time.  \n**Suggestion:** Extract small helpers such as `isSpawnFailure(error)` and `classifyRequiredEvaluationError(error)`, returning `{ failureKind, failureCode, failureReason }`.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Remove Dead Return Value From Argument Parser",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** `parsePublicGateArguments()` always returns `{}`, but callers only use it for its throwing behavior. The return value suggests parsed data exists when it does not.  \n**Suggestion:** Make the function return `undefined`, or rename it to `assertPublicGateArgumentsAllowed(argv)` to match its actual purpose.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Deduplicate Public Bypass Error Metadata",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** The bypass error code and message are duplicated in `parsePublicGateArguments()` and `RunGateCommand.run()`.  \n**Suggestion:** Introduce constants or a helper like `requiredEvaluationBypassEnvelope()` so the public CLI rejection path uses one source of truth for code/message.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Reuse Prerequisite Failure Formatting",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R1  \n**Issue:** The preset-chain prerequisite failure is built manually inside `runGateFlow()`, while required-evaluation failures now have a dedicated helper path. This creates another one-off failure-artifact mutation site.  \n**Suggestion:** Add a focused helper, for example `gatePrerequisiteFail(level, phase, targetPath, code, message)`, that wraps `gateFail()` and sets `artifacts.failureKind`, `artifacts.failureCode`, and warnings consistently.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

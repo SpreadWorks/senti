@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+      "tests/unit/specs/commands/gate.test.js"
+    ],
+    "inputHash": "7188a93ecfaade714938473c2c08de7fde7a7344a3d6da005ca1bff9801ac387",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+    "tests/unit/specs/commands/gate.test.js"
+  ],
+  "inputHash": "7188a93ecfaade714938473c2c08de7fde7a7344a3d6da005ca1bff9801ac387",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T17:14:10.564Z",
+  "finishedAt": "2026-07-25T17:14:10.564Z",
+  "rawResponse": "### 1. Extract Stub Agent Config Helper\n**File:** `tests/unit/specs/commands/gate.test.js`  \n**Requirement:** R1  \n**Issue:** The newly added stub agent configuration is duplicated across touched test files, including the inline `process.execPath` provider and escaped JSON output script.  \n**Suggestion:** Add a small local helper or constant such as `stubAgentConfig()` / `STUB_AGENT_CONFIG` and reuse it when writing `.senti/config.json`.\n\n### 2. Simplify Stub Agent Output Script\n**File:** `tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js`  \n**Requirement:** R1  \n**Issue:** The stub provider script embeds escaped JSON inside a string, which is noisy and easy to break when edited.  \n**Suggestion:** Replace the escaped literal with a clearer script, for example `process.stdout.write(JSON.stringify({ observations: [] }))`, or define the script as a named constant.\n\n### 3. Clarify Test Name\n**File:** `tests/unit/specs/commands/gate.test.js`  \n**Requirement:** R2  \n**Issue:** The renamed test title says “required evaluation,” which is less specific than the behavior under test. It no longer references `--skip-guardrail`, but it also obscures that this is about guardrail/agent evaluation fail-closed behavior.  \n**Suggestion:** Rename it to something more explicit, such as `phase=spec returns mechanical failures before required guardrail evaluation (R5)`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Stub Agent Config Helper",
+        "body": "**File:** `tests/unit/specs/commands/gate.test.js`  \n**Requirement:** R1  \n**Issue:** The newly added stub agent configuration is duplicated across touched test files, including the inline `process.execPath` provider and escaped JSON output script.  \n**Suggestion:** Add a small local helper or constant such as `stubAgentConfig()` / `STUB_AGENT_CONFIG` and reuse it when writing `.senti/config.json`.",
+        "file": "tests/unit/specs/commands/gate.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Simplify Stub Agent Output Script",
+        "body": "**File:** `tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js`  \n**Requirement:** R1  \n**Issue:** The stub provider script embeds escaped JSON inside a string, which is noisy and easy to break when edited.  \n**Suggestion:** Replace the escaped literal with a clearer script, for example `process.stdout.write(JSON.stringify({ observations: [] }))`, or define the script as a named constant.",
+        "file": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Clarify Test Name",
+        "body": "**File:** `tests/unit/specs/commands/gate.test.js`  \n**Requirement:** R2  \n**Issue:** The renamed test title says “required evaluation,” which is less specific than the behavior under test. It no longer references `--skip-guardrail`, but it also obscures that this is about guardrail/agent evaluation fail-closed behavior.  \n**Suggestion:** Rename it to something more explicit, such as `phase=spec returns mechanical failures before required guardrail evaluation (R5)`.",
+        "file": "tests/unit/specs/commands/gate.test.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

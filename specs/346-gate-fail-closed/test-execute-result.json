@@ -1,0 +1,350 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/346-gate-fail-closed/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R1: validates the complete preset chain once before semantic evaluation",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R2: blocks every unavailable required evaluation through the production gate",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R3: persists typed failure artifacts and semantic evidence",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R4: preserves configured PASS and FAIL evaluations and registry transitions",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R5: rejects public CLI evaluation-bypass controls while test fixtures remain internal",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R6: recovers a finalized flow-level artifact without another provider call and rejects stale targets",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/review-convergence.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/review-evidence-store.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-complete-task.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-gate.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-start-task.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-review-evidence.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-step.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/dispatcher.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/presets.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/flow/gate-impl-integration.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/helpers/stub-agent.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/specs/commands/gate.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/specs/commands/guardrail.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "111eb416c0144e1312cef42c36e6bdf5a368fab8ca0c318b20cb6668a085511d"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-convergence.js",
+        "fingerprint": "437780e6c7ad9cc96f318440adb5a923192d8c5357b839fcc636f681143ccffa"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-evidence-store.js",
+        "fingerprint": "e642f5bd75ec6dd7ebcdf3541738ca6da24176d45577cc60f379fca9737bd956"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-complete-task.js",
+        "fingerprint": "dee01a96858011b8f3533abaaa0e4376c1f4befc7a0fd5d11eb6f1c8b1949e88"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "5dba8b1649e2e2db4d9dc534853fab928c9ae2af538716766e573887cd16e4a5"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js",
+        "fingerprint": "00e1c0312b848943947d0efcacdde140398106389ab5fc3e1fe9c4cdcf5627ed"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-start-task.js",
+        "fingerprint": "bd59543c0cf11f2f96f6c8a8dbb53f4ba84df3de56cb713545b113a3f15e9e1d"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-review-evidence.js",
+        "fingerprint": "8229634b9294f39a040151e2e59b31efec86d9d61b88e2edfe9cea422f8ffc2c"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js",
+        "fingerprint": "ebd7526323409c7a0fa1b285b504ad2c72b8306396cef45fac24cfcede15aaa4"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "dab2ac4550fc0ccf490dbc236e8bc7acfdb5a99a3dd79afd195e86a2f0211d47"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/dispatcher.js",
+        "fingerprint": "8d2ef5f9a5cd85a96604a6db1362917b2b01a8e6096b51687109cb6078cfeeb3"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/presets.js",
+        "fingerprint": "1bca72fb2a5bfb99145bd9738c738c2131597d83196feb6daf98a178b6088c59"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "fingerprint": "5a4da50b3ee720a6ed70cedf4fc85058df7516e3bf0f13c7c1be0ad45dce8702"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/gate-impl-integration.test.js",
+        "fingerprint": "42a66d4de4c20d3ad862cacc11842bfec3881f2fa4831d022cf196be53f3feff"
+      },
+      {
+        "status": "modified",
+        "path": "tests/helpers/stub-agent.js",
+        "fingerprint": "29235d9fd602ef4b008b15ec8d6cf18e444ebd4dbceaf4f4ed233a22df93b982"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+        "fingerprint": "710b7c4589820231ef955046814e54d96915f7b071cd2a00cc4c1b40150f285a"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/specs/commands/gate.test.js",
+        "fingerprint": "3b759331ba23ade33adf75bffc53c6951746a578e69789b5bae278826319d126"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/specs/commands/guardrail.test.js",
+        "fingerprint": "e96bebf6d5816ab07220696b91feb05486661af959b2b91b3295a1323c43336d"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "111eb416c0144e1312cef42c36e6bdf5a368fab8ca0c318b20cb6668a085511d"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-convergence.js",
+        "fingerprint": "437780e6c7ad9cc96f318440adb5a923192d8c5357b839fcc636f681143ccffa"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-evidence-store.js",
+        "fingerprint": "e642f5bd75ec6dd7ebcdf3541738ca6da24176d45577cc60f379fca9737bd956"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-complete-task.js",
+        "fingerprint": "dee01a96858011b8f3533abaaa0e4376c1f4befc7a0fd5d11eb6f1c8b1949e88"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "5dba8b1649e2e2db4d9dc534853fab928c9ae2af538716766e573887cd16e4a5"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js",
+        "fingerprint": "00e1c0312b848943947d0efcacdde140398106389ab5fc3e1fe9c4cdcf5627ed"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-start-task.js",
+        "fingerprint": "bd59543c0cf11f2f96f6c8a8dbb53f4ba84df3de56cb713545b113a3f15e9e1d"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-review-evidence.js",
+        "fingerprint": "8229634b9294f39a040151e2e59b31efec86d9d61b88e2edfe9cea422f8ffc2c"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js",
+        "fingerprint": "ebd7526323409c7a0fa1b285b504ad2c72b8306396cef45fac24cfcede15aaa4"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "dab2ac4550fc0ccf490dbc236e8bc7acfdb5a99a3dd79afd195e86a2f0211d47"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/dispatcher.js",
+        "fingerprint": "8d2ef5f9a5cd85a96604a6db1362917b2b01a8e6096b51687109cb6078cfeeb3"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/presets.js",
+        "fingerprint": "1bca72fb2a5bfb99145bd9738c738c2131597d83196feb6daf98a178b6088c59"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "fingerprint": "5a4da50b3ee720a6ed70cedf4fc85058df7516e3bf0f13c7c1be0ad45dce8702"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/gate-impl-integration.test.js",
+        "fingerprint": "42a66d4de4c20d3ad862cacc11842bfec3881f2fa4831d022cf196be53f3feff"
+      },
+      {
+        "status": "modified",
+        "path": "tests/helpers/stub-agent.js",
+        "fingerprint": "29235d9fd602ef4b008b15ec8d6cf18e444ebd4dbceaf4f4ed233a22df93b982"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+        "fingerprint": "710b7c4589820231ef955046814e54d96915f7b071cd2a00cc4c1b40150f285a"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/specs/commands/gate.test.js",
+        "fingerprint": "3b759331ba23ade33adf75bffc53c6951746a578e69789b5bae278826319d126"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/specs/commands/guardrail.test.js",
+        "fingerprint": "e96bebf6d5816ab07220696b91feb05486661af959b2b91b3295a1323c43336d"
+      }
+    ]
+  },
+  "repairFingerprint": "7f5b4ab7409ec473903f717352c5345be750e4f5818374cca212ab723bbe5dd8"
+}

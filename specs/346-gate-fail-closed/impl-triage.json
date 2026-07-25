@@ -1,0 +1,446 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "7f5b4ab7409ec473903f717352c5345be750e4f5818374cca212ab723bbe5dd8",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-25T17:14:44.952Z",
+  "items": [
+    {
+      "findingId": "963f103f6abd86fa6c8e81e3ee8aad508e6686bebe3ecb33ca6101cda0827d0b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/issue.md`  \n**Requirement:** R2  \n**Issue:** The spec mentions a “semantic retry budget” but does not define an explicit upper bound. This leaves retry behavior underspecified and conflicts with `bounded-resource-usage`, which requires retries to have explicit count bounds.  \n**Suggestion:** Add a concrete maximum retry count, or reference an existing named constant/configuration that enforces the limit, in the Expected Contract or Acceptance Criteria.",
+      "evidenceRefs": [
+        "impl-review.json#963f103f6abd86fa6c8e81e3ee8aad508e6686bebe3ecb33ca6101cda0827d0b"
+      ]
+    },
+    {
+      "findingId": "5398ce3936628375652342949e711db3f2a731f165ddd6adc6502f9fd4744f75",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/issue.md`  \n**Requirement:** R1  \n**Issue:** The file has no trailing newline, which is inconsistent with normal repository text-file formatting and can create noisy diffs later.  \n**Suggestion:** Add a final newline at EOF.",
+      "evidenceRefs": [
+        "impl-review.json#5398ce3936628375652342949e711db3f2a731f165ddd6adc6502f9fd4744f75"
+      ]
+    },
+    {
+      "findingId": "ce90a2f000ed6613331bca33a1111cd210f159bea4aaac4d94bdbd9b37727f34",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/spec.json`  \n**Requirement:** R2  \n**Issue:** All requirements are marked `\"status\": \"done\"`, but every task remains `\"status\": \"pending\"`. That makes the spec internally inconsistent and weakens downstream automation that may rely on task state.  \n**Suggestion:** Either mark completed tasks as `\"done\"` or keep requirements non-done until their implementation tasks are complete.",
+      "evidenceRefs": [
+        "impl-review.json#ce90a2f000ed6613331bca33a1111cd210f159bea4aaac4d94bdbd9b37727f34"
+      ]
+    },
+    {
+      "findingId": "0799d53179d52abec074dee76b81c584d6748f7ad983dc69268abd02ff25cefb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/spec.json`  \n**Requirement:** R1  \n**Issue:** The semantic retry bound appears as prose: “configured maximum of five semantic gate retries.” If implementation or tests consume this requirement, the bound is not mechanically discoverable.  \n**Suggestion:** Add a structured field such as `\"semantic_gate_retry_limit\": 5` or include the value in a dedicated constraint object, while keeping the prose for readability.",
+      "evidenceRefs": [
+        "impl-review.json#0799d53179d52abec074dee76b81c584d6748f7ad983dc69268abd02ff25cefb"
+      ]
+    },
+    {
+      "findingId": "55df722a7830586705e59d9c319660d45557455caf9742d830d4712d3390453f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R1  \n**Issue:** `Clarifications (Q&A)`, `Implementation Targets`, and `Open Questions` contain only empty placeholders, which add noise and can be mistaken for incomplete spec work.  \n**Suggestion:** Remove these sections when they have no content, or replace them with explicit `None` entries if the spec format requires the headings.",
+      "evidenceRefs": [
+        "impl-review.json#55df722a7830586705e59d9c319660d45557455caf9742d830d4712d3390453f"
+      ]
+    },
+    {
+      "findingId": "7b005856a597b36c9903be7cad0e82b269e50951102b81d3e5356ef6ebe877c0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The markdown file duplicates much of `spec.json` verbatim: goal, background, scope, constraints, overview, requirements, acceptance criteria, tasks, and approval metadata. This creates two sources that can drift.  \n**Suggestion:** Treat one file as canonical. If both formats are required, generate `spec.md` from `spec.json` or add a short note identifying which file is authoritative.",
+      "evidenceRefs": [
+        "impl-review.json#7b005856a597b36c9903be7cad0e82b269e50951102b81d3e5356ef6ebe877c0"
+      ]
+    },
+    {
+      "findingId": "689a9ad43a08e8ca9a46929f6196596565723dbef4767b333f938ea5581a230d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R5  \n**Issue:** The R5 test repeats three near-identical `assert.throws(() => execFileSync(...), matcher)` blocks for rejected public CLI options. This makes future CLI-bypass cases more verbose and easier to update inconsistently.  \n**Suggestion:** Add a small helper such as `assertCliRejects(args, pattern)` and reuse it for `--skip-guardrail`, `--test-fixture required-agent-pass`, and `--test-fixture=required-agent-pass`.",
+      "evidenceRefs": [
+        "impl-review.json#689a9ad43a08e8ca9a46929f6196596565723dbef4767b333f938ea5581a230d"
+      ]
+    },
+    {
+      "findingId": "ed27782760efb85261bfc22a87eab6c6b4698c167546e2bf9b2fd0112d70c545",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R1  \n**Issue:** Several tests duplicate temporary root creation, `.senti` directory creation, config writing, and cleanup. The setup varies only by config content and prefix.  \n**Suggestion:** Introduce a helper like `withTempSentiRoot(prefix, config, fn)` that creates the root, writes `.senti/config.json`, runs the callback, and always removes the directory.",
+      "evidenceRefs": [
+        "impl-review.json#ed27782760efb85261bfc22a87eab6c6b4698c167546e2bf9b2fd0112d70c545"
+      ]
+    },
+    {
+      "findingId": "66448b27e5e526a08e6aa5370c17a29b6b68c9304f92a617257a5cc45d92d8a4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `executeProductionGate` mixes scenario normalization, fixture agent behavior, guardrail loading behavior, filesystem setup, and the actual `runGateFlow` invocation. That makes individual failure-mode tests harder to read and extend.  \n**Suggestion:** Extract helpers such as `createScenarioAgent(scenario, guardrail)` and `createGuardrailPromptOptions(scenario, guardrail)` so `executeProductionGate` reads as setup plus one production gate call.",
+      "evidenceRefs": [
+        "impl-review.json#66448b27e5e526a08e6aa5370c17a29b6b68c9304f92a617257a5cc45d92d8a4"
+      ]
+    },
+    {
+      "findingId": "1d25bf84a0708db4dbf55603cefa08df90f70f342508c115c5b9849c41134a51",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** `configuredEvaluation` can come from either `requiredAgent.output` or `requiredGuardrail.output`, but it is only consumed by the fake agent’s `call()` method. The name obscures that this is the agent’s mock response source.  \n**Suggestion:** Rename it to something more specific, such as `agentEvaluationOutput` or `mockAgentOutput`, and keep guardrail-loading scenarios separate from agent-output scenarios.",
+      "evidenceRefs": [
+        "impl-review.json#1d25bf84a0708db4dbf55603cefa08df90f70f342508c115c5b9849c41134a51"
+      ]
+    },
+    {
+      "findingId": "0f3d5a4b5b199792a2f1317616bf29221f22a48ecb9826f34e1d59c947e825ff",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** In the R2 scenario loop, `assert.equal(result.result, \"fail\", scenario.expected)` already proves the result is not `\"pass\"`, so `assert.notEqual(result.result, \"pass\")` is redundant.  \n**Suggestion:** Delete the redundant assertion to keep the test focused on the required blocking failure code.",
+      "evidenceRefs": [
+        "impl-review.json#0f3d5a4b5b199792a2f1317616bf29221f22a48ecb9826f34e1d59c947e825ff"
+      ]
+    },
+    {
+      "findingId": "377f338cbdaa523a5ff8e8800a7c42384c7acb681d862bc4159e09afae753f8d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** `canonicalEvidenceDocument` uses `...(targetStateDigest && { targetStateDigest })`, which drops falsy values. While a SHA-256 digest should be truthy, this makes the serialization rule less explicit and inconsistent with the constructor, which normalizes absent values to `null`.  \n**Suggestion:** Use a nullish check instead: `...(targetStateDigest != null && { targetStateDigest })`. This makes the intent clear: include the digest when supplied, omit it only when absent.",
+      "evidenceRefs": [
+        "impl-review.json#377f338cbdaa523a5ff8e8800a7c42384c7acb681d862bc4159e09afae753f8d"
+      ]
+    },
+    {
+      "findingId": "3643882e62646783ff242a6c72a0da404db4a7c5e7632321a5c69479b60f13f3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R6  \n**Issue:** `validateTarget` only checks `targetStateDigest` when the expected value is non-null. That means a caller passing `null` will accept evidence that contains a non-null `targetStateDigest`, even though R6 says artifacts whose target state does not match must be rejected.  \n**Suggestion:** Compare normalized values directly when the argument is provided, or distinguish “not supplied” from “expected null”. For example, avoid the default `targetStateDigest = null` and validate when the property exists in the target object:\n```js\nif (Object.hasOwn(target, \"targetStateDigest\") &&\n    this.evidence.targetStateDigest !== target.targetStateDigest) {\n  throw new Error(\"review evidence state digest target mismatch\");\n}\n```",
+      "evidenceRefs": [
+        "impl-review.json#3643882e62646783ff242a6c72a0da404db4a7c5e7632321a5c69479b60f13f3"
+      ]
+    },
+    {
+      "findingId": "a44f41635a84aff5595c9aae710ef23c2baf51153799ed38d786b31d20719220",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R6  \n**Issue:** `validateTarget` checks `phase`, `taskId`, and `treeSha` via `this.phase`, `this.taskId`, and `this.treeSha`, but checks the new digest via `this.evidence.targetStateDigest`. This inconsistency makes the target identity fields harder to scan and easier to misuse later.  \n**Suggestion:** Add a `targetStateDigest` getter to `ReviewEvidenceInput` if the class already exposes the other target fields that way, then validate with `this.targetStateDigest`. This keeps the design pattern consistent across all target fields.",
+      "evidenceRefs": [
+        "impl-review.json#a44f41635a84aff5595c9aae710ef23c2baf51153799ed38d786b31d20719220"
+      ]
+    },
+    {
+      "findingId": "a815a8aca3018d580536f5507e89c48bbe4a08665426fa97ea42097217161bbb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** `checkGuardrail()` now builds the same failure object shape in multiple places: `requiredGuardrailFailure()`, the agent-unset branch, and the evaluation catch block. This duplicates `passed: false`, `evaluations: []`, and failure metadata wiring.  \n**Suggestion:** Use `requiredGuardrailFailure()` for every required-evaluation failure path, or rename it to a broader `requiredEvaluationFailure()` and route guardrail, agent, output, and schema failures through it.",
+      "evidenceRefs": [
+        "impl-review.json#a815a8aca3018d580536f5507e89c48bbe4a08665426fa97ea42097217161bbb"
+      ]
+    },
+    {
+      "findingId": "4a457b6f57221d31cfb1ae8fb81b40e61c80238c017651c86cd245d0ffd174ad",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** Spawn/schema/output classification is repeated inline with string/regex checks in both guardrail loading and agent evaluation handling. This makes failure-kind/code consistency easier to drift over time.  \n**Suggestion:** Extract small helpers such as `isSpawnFailure(error)` and `classifyRequiredEvaluationError(error)`, returning `{ failureKind, failureCode, failureReason }`.",
+      "evidenceRefs": [
+        "impl-review.json#4a457b6f57221d31cfb1ae8fb81b40e61c80238c017651c86cd245d0ffd174ad"
+      ]
+    },
+    {
+      "findingId": "7e9c243b0d7f06b903a4dfa45913456461800da3d5ac08c181b4d33188c01d18",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** `parsePublicGateArguments()` always returns `{}`, but callers only use it for its throwing behavior. The return value suggests parsed data exists when it does not.  \n**Suggestion:** Make the function return `undefined`, or rename it to `assertPublicGateArgumentsAllowed(argv)` to match its actual purpose.",
+      "evidenceRefs": [
+        "impl-review.json#7e9c243b0d7f06b903a4dfa45913456461800da3d5ac08c181b4d33188c01d18"
+      ]
+    },
+    {
+      "findingId": "9c2f8bc3b4b20fe8e222b5009cf336e5d1dbbb82df4635299b7c76cd82cc35ea",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** The bypass error code and message are duplicated in `parsePublicGateArguments()` and `RunGateCommand.run()`.  \n**Suggestion:** Introduce constants or a helper like `requiredEvaluationBypassEnvelope()` so the public CLI rejection path uses one source of truth for code/message.",
+      "evidenceRefs": [
+        "impl-review.json#9c2f8bc3b4b20fe8e222b5009cf336e5d1dbbb82df4635299b7c76cd82cc35ea"
+      ]
+    },
+    {
+      "findingId": "fca9fff9baa5d50a835774cbeaa8de502158f505ea5a21051220d00857b518c7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R1  \n**Issue:** The preset-chain prerequisite failure is built manually inside `runGateFlow()`, while required-evaluation failures now have a dedicated helper path. This creates another one-off failure-artifact mutation site.  \n**Suggestion:** Add a focused helper, for example `gatePrerequisiteFail(level, phase, targetPath, code, message)`, that wraps `gateFail()` and sets `artifacts.failureKind`, `artifacts.failureCode`, and warnings consistently.",
+      "evidenceRefs": [
+        "impl-review.json#fca9fff9baa5d50a835774cbeaa8de502158f505ea5a21051220d00857b518c7"
+      ]
+    },
+    {
+      "findingId": "decfc6b4cd58eca73a1f4e28017f5bf40025b7e800f467cee66acb4cb782669b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** The new recovery path and `persistCanonicalReviewArtifact` now both validate or stamp `phase`, `taskId`, `treeSha`, and `targetStateDigest`, but the logic is split and slightly different. Recovery rejects missing or mismatched target metadata, while persistence mutates missing fields into the artifact.  \n**Suggestion:** Add a shared helper such as `assertReviewArtifactMatchesTarget(artifact, expected, { allowMissing })` and use it in both paths. This removes duplicate target-field handling and makes the R6 fail-closed behavior easier to audit.",
+      "evidenceRefs": [
+        "impl-review.json#decfc6b4cd58eca73a1f4e28017f5bf40025b7e800f467cee66acb4cb782669b"
+      ]
+    },
+    {
+      "findingId": "61ff45e5189945188e39c46b3d328734de234f4520d11a3a783be2357b1c0f10",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** `persistCanonicalReviewArtifact` rewrites the provider artifact with target fields when they are missing. That makes finalized artifact validation less explicit and creates a second representation of provider output on disk.  \n**Suggestion:** Keep provider artifacts immutable after provider completion. Validate existing target fields, then apply normalized target metadata only to the canonical evidence object. If missing fields are acceptable for older artifacts, handle that through an explicit compatibility branch rather than rewriting the artifact file.",
+      "evidenceRefs": [
+        "impl-review.json#61ff45e5189945188e39c46b3d328734de234f4520d11a3a783be2357b1c0f10"
+      ]
+    },
+    {
+      "findingId": "6b71cd171f3a61976811ffcf41f469a0ea445a48b4906a9427c587915c8deb73",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** `recoverFinalizedFlowReviewPostHookFailure` assumes `recoverFinalizedFlowReviewEvidence` always calls `canonicalEvidenceStore.register`. If that contract changes or recovery short-circuits, `registration.convergenceState` will throw a vague `TypeError`.  \n**Suggestion:** Add an explicit post-call assertion, for example throwing `REVIEW_EVIDENCE_RECOVERY_FAILED` when `registration` is still unset. This makes the recovery path fail clearly without obscuring the artifact validation result.",
+      "evidenceRefs": [
+        "impl-review.json#6b71cd171f3a61976811ffcf41f469a0ea445a48b4906a9427c587915c8deb73"
+      ]
+    },
+    {
+      "findingId": "84313190bf143934381b73ff97b0c071160939a943c0552342c28ca734d97d7c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** The lock-conflict check is embedded as an inline regex in `recoverFinalizedFlowReviewPostHookFailure`, which makes the recovery trigger hard to reuse or test independently.  \n**Suggestion:** Move it to a small helper such as `isPostHookLockConflict(error)`. That keeps the recovery function focused on artifact validation and evidence registration, and gives one place to adjust lock-error matching.",
+      "evidenceRefs": [
+        "impl-review.json#84313190bf143934381b73ff97b0c071160939a943c0552342c28ca734d97d7c"
+      ]
+    },
+    {
+      "findingId": "87bb98dd795928a2067cd822efe0222657e4d3abdd55e8dc2e18f4f6a36ba601",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R6  \n**Issue:** `FinalizedFlowReviewArtifact.toRegistration()` is not used by the added recovery path. The actual registration passes `artifact.evidence` directly to `canonicalEvidenceStore.register()`, so this method appears to be dead code and adds a second representation of the same identity fields.  \n**Suggestion:** Remove `toRegistration()` unless a caller in this change set needs it. If a registration payload is needed later, construct it at the call site or expose a clearly named helper only when used.",
+      "evidenceRefs": [
+        "impl-review.json#87bb98dd795928a2067cd822efe0222657e4d3abdd55e8dc2e18f4f6a36ba601"
+      ]
+    },
+    {
+      "findingId": "fdc5f04fab57720cdd3b984157a70bb1e275673a78eaa094e9962f861e290ae9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R6  \n**Issue:** `FinalizedFlowReviewArtifact` stores `phase`, `taskId`, `treeSha`, and `targetStateDigest` only to immediately duplicate them into `ReviewEvidence`. This makes the adapter heavier than necessary and creates two places that must remain consistent.  \n**Suggestion:** Replace the class with a smaller helper such as `buildRecoveredFinalizedFlowReviewEvidence(providerArtifact, state)` that validates the artifact and returns a `ReviewEvidence` instance directly. Then `recoverFinalizedFlowReviewEvidence()` can register that returned evidence.",
+      "evidenceRefs": [
+        "impl-review.json#fdc5f04fab57720cdd3b984157a70bb1e275673a78eaa094e9962f861e290ae9"
+      ]
+    },
+    {
+      "findingId": "5b60ebc88131da67966b1319b2ac301c56238777298b5046929902cc4bebdf1f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R6  \n**Issue:** The constructor mixes validation, provenance fallback, disposition creation, evidence construction, and object freezing. This makes the R6 rejection rules harder to scan and maintain.  \n**Suggestion:** Extract the phase/tree/task/state checks into a focused helper, for example `assertFinalizedFlowArtifactMatchesState(providerArtifact, state)`. Keep evidence construction separate so the “reject artifacts whose phase, tree, or target state does not match” behavior is explicit.",
+      "evidenceRefs": [
+        "impl-review.json#5b60ebc88131da67966b1319b2ac301c56238777298b5046929902cc4bebdf1f"
+      ]
+    },
+    {
+      "findingId": "f53c9155aa01fc10a2c2b3edaa62433b752d453f9cde46aeb492acbae9e3423e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R6  \n**Issue:** The parameter name `canonicalEvidenceStore` differs from the imported `ReviewEvidenceStore` naming style and from the domain phrase “review evidence.” It is clear enough locally, but slightly generic in a file that may handle multiple evidence-like concepts.  \n**Suggestion:** Rename the parameter to `reviewEvidenceStore` or `canonicalReviewEvidenceStore` to match the surrounding domain and make the required `.register()` dependency clearer.",
+      "evidenceRefs": [
+        "impl-review.json#f53c9155aa01fc10a2c2b3edaa62433b752d453f9cde46aeb492acbae9e3423e"
+      ]
+    },
+    {
+      "findingId": "1f252c9b9e49c36d4e5bb0ade9ac9a8a9f611c7cb59b662c2582821bf7545f18",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** The `run.gate` post-hook `catch` block now mixes persistence failure handling, finalized artifact recovery, lifecycle replay, and error selection inline. This makes the R6 recovery path harder to audit.  \n**Suggestion:** Move this block into a small helper such as `handleGatePostHookFailure(ctx, result, error)`, returning a boolean for recovered vs rethrow. Keep the `post` hook focused on orchestration.",
+      "evidenceRefs": [
+        "impl-review.json#1f252c9b9e49c36d4e5bb0ade9ac9a8a9f611c7cb59b662c2582821bf7545f18"
+      ]
+    },
+    {
+      "findingId": "493299e57311082c5378616e841eb574d5ebef9a188a72fbb406a3ec7c060884",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/dispatcher.js`  \n**Requirement:** R5  \n**Issue:** `splitArgsBySpec` now runs `[...optionSet].find(...)` for every argument. That repeatedly allocates an array and scans all options.  \n**Suggestion:** Precompute `const options = [...optionSet];` once near the start of `splitArgsBySpec`, then use `options.find(...)`.",
+      "evidenceRefs": [
+        "impl-review.json#493299e57311082c5378616e841eb574d5ebef9a188a72fbb406a3ec7c060884"
+      ]
+    },
+    {
+      "findingId": "3cb6e09864d925c2f5bd9a2dbfc3df0b9e25b9d892bae072fa6d551179af1f4a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/dispatcher.js`  \n**Requirement:** R5  \n**Issue:** Required options now support `--option=value`, but the parsing is embedded inline and separate from the existing option handling path. This increases the chance of future drift between `--option value` and `--option=value`.  \n**Suggestion:** Extract a helper like `parseEqualsOption(arg, optionSet)` and route the result through the same validation/push behavior used by normal options. This keeps option parsing behavior consistent.",
+      "evidenceRefs": [
+        "impl-review.json#3cb6e09864d925c2f5bd9a2dbfc3df0b9e25b9d892bae072fa6d551179af1f4a"
+      ]
+    },
+    {
+      "findingId": "a15c7a5550c392655911e58fd2a6191150ae437a814f7968f651e372fa63ce3d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/presets.js`  \n**Requirement:** R1  \n**Issue:** `validateConfiguredPresetChains()` documents that it may return `null` when no config exists, but immediately reads `config.type`. If `loadConfig(projectRoot)` can return `null`, this throws instead of returning the documented value.  \n**Suggestion:** Change the guard to handle a missing config explicitly:\n\n```js\nif (!config?.type) return config;\n```",
+      "evidenceRefs": [
+        "impl-review.json#a15c7a5550c392655911e58fd2a6191150ae437a814f7968f651e372fa63ce3d"
+      ]
+    },
+    {
+      "findingId": "10900ffe89bed50ed9ba47bf633fc60dc2e824c1bd7cc8bbdddccf2984de05ad",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/presets.js`  \n**Requirement:** R1  \n**Issue:** `validateConfiguredPresetChains()` returns the loaded config, but its name only describes validation. That makes the API slightly surprising because callers may depend on both behaviors.  \n**Suggestion:** Rename it to something that reflects both actions, such as `loadAndValidateConfiguredPresetChains()`, or split it into a pure validator and let callers load config separately if that better matches existing patterns.",
+      "evidenceRefs": [
+        "impl-review.json#10900ffe89bed50ed9ba47bf633fc60dc2e824c1bd7cc8bbdddccf2984de05ad"
+      ]
+    },
+    {
+      "findingId": "ad4147075f7933ce3eef130571c04467270670994ab06b095b686d72b217329f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R1  \n**Issue:** The test repeats `runEnvelope(tmp, [\"flow\", \"run\", \"gate\", \"--phase\", ...])` several times. The recent removal of `--skip-guardrail` had to be applied in multiple places, which is a small duplication hazard.  \n**Suggestion:** Add a local helper such as `runGate(tmp, phase)` inside the test file and use it for `task-impl` and `integration` gate runs. This keeps future CLI argument changes localized.",
+      "evidenceRefs": [
+        "impl-review.json#ad4147075f7933ce3eef130571c04467270670994ab06b095b686d72b217329f"
+      ]
+    },
+    {
+      "findingId": "1565093d758dd8859d49b4f1aa092dcf00e49efb02b344280541f7c3b29fc1da",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/e2e/flow/gate-impl-integration.test.js`  \n**Requirement:** R2  \n**Issue:** The string `\"## Guardrail Articles\"` is used as an implicit protocol marker inside the test setup. The same marker is also embedded in `tests/helpers/stub-agent.js`, making future prompt-format changes easy to miss.  \n**Suggestion:** Define a named constant such as `GUARDRAIL_PROMPT_MARKER` in `tests/helpers/stub-agent.js` and export it for tests to use, or centralize the guardrail fallback case in a helper like `defaultGuardrailPassResponseCase()`.",
+      "evidenceRefs": [
+        "impl-review.json#1565093d758dd8859d49b4f1aa092dcf00e49efb02b344280541f7c3b29fc1da"
+      ]
+    },
+    {
+      "findingId": "0a39bbe4f1341e7c907e7e44c19adb2dcf93f5efeb3630365089a549c95949dd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/e2e/flow/gate-impl-integration.test.js`  \n**Requirement:** R3  \n**Issue:** One call changed from `runGate(tmp, [\"--skip-guardrail\"], \"integration\")` to `runGate(tmp, [], \"integration\")`, while other no-extra-argument cases use `runGate(tmp)`. Passing an explicit empty array adds noise and makes the call pattern less consistent.  \n**Suggestion:** If `runGate` supports an omitted second parameter when mode is supplied, call it with a clearer options object or add a small wrapper such as `runIntegrationGate(tmp)`. If positional arguments must remain, consider defaulting `args = []` and `mode = undefined` through an object parameter to avoid placeholder arrays.",
+      "evidenceRefs": [
+        "impl-review.json#0a39bbe4f1341e7c907e7e44c19adb2dcf93f5efeb3630365089a549c95949dd"
+      ]
+    },
+    {
+      "findingId": "107f2f1fd3bbae0b4e2f1737d5f2c2a2c62a92a4cf35b87d1decf9b9ec4ceede",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/helpers/stub-agent.js`  \n**Requirement:** R1  \n**Issue:** `writeCapturingGateStubAgentScript` duplicates prompt classification and response dispatch behavior that now also exists in `writePromptDispatchStubAgentScript`. This creates two ways to route responses by prompt content.  \n**Suggestion:** Implement `writeCapturingGateStubAgentScript` as a thin wrapper around `writePromptDispatchStubAgentScript`, adding capture behavior only for the non-guardrail prompt, or extend the dispatch helper with an optional `captureWhen` predicate/marker. This keeps guardrail routing behavior in one place.",
+      "evidenceRefs": [
+        "impl-review.json#107f2f1fd3bbae0b4e2f1737d5f2c2a2c62a92a4cf35b87d1decf9b9ec4ceede"
+      ]
+    },
+    {
+      "findingId": "4d9aae0c1e7f405ce003f96e88576517b50491ddee749af7fac81a25d0521143",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/helpers/stub-agent.js`  \n**Requirement:** R4  \n**Issue:** `requirementResponse` in `writeCapturingGateStubAgentScript` is accurate but slightly ambiguous because the helper routes between requirement and guardrail schemas.  \n**Suggestion:** Rename it to `requirementJsonResponse` or `primaryEvaluationResponse` to make it clear the value is emitted only for the non-guardrail evaluation prompt.",
+      "evidenceRefs": [
+        "impl-review.json#4d9aae0c1e7f405ce003f96e88576517b50491ddee749af7fac81a25d0521143"
+      ]
+    },
+    {
+      "findingId": "9a856bdf6d88307c48f6edf94a786892b93372fbde106046ded9b8e43d342441",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js`  \n**Requirement:** R1  \n**Issue:** The stub provider script embeds escaped JSON inside a string, which is noisy and easy to break when edited.  \n**Suggestion:** Replace the escaped literal with a clearer script, for example `process.stdout.write(JSON.stringify({ observations: [] }))`, or define the script as a named constant.",
+      "evidenceRefs": [
+        "impl-review.json#9a856bdf6d88307c48f6edf94a786892b93372fbde106046ded9b8e43d342441"
+      ]
+    },
+    {
+      "findingId": "2d45de3ae697eff3378bcb97eb91c9a4fc9fda1751b89972e4dbbf62aedd3667",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/specs/commands/gate.test.js`  \n**Requirement:** R1  \n**Issue:** The newly added stub agent configuration is duplicated across touched test files, including the inline `process.execPath` provider and escaped JSON output script.  \n**Suggestion:** Add a small local helper or constant such as `stubAgentConfig()` / `STUB_AGENT_CONFIG` and reuse it when writing `.senti/config.json`.",
+      "evidenceRefs": [
+        "impl-review.json#2d45de3ae697eff3378bcb97eb91c9a4fc9fda1751b89972e4dbbf62aedd3667"
+      ]
+    },
+    {
+      "findingId": "c01be0513de6ece15bbcb9d5ceed785d8ca6c5747de10e39c6907d9fd87e2c8e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/specs/commands/gate.test.js`  \n**Requirement:** R2  \n**Issue:** The renamed test title says “required evaluation,” which is less specific than the behavior under test. It no longer references `--skip-guardrail`, but it also obscures that this is about guardrail/agent evaluation fail-closed behavior.  \n**Suggestion:** Rename it to something more explicit, such as `phase=spec returns mechanical failures before required guardrail evaluation (R5)`.",
+      "evidenceRefs": [
+        "impl-review.json#c01be0513de6ece15bbcb9d5ceed785d8ca6c5747de10e39c6907d9fd87e2c8e"
+      ]
+    },
+    {
+      "findingId": "9fca48dbee0e67ef57f50d29e6ef3074761c866e022e14861c7f674d9f284cb1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/specs/commands/guardrail.test.js`  \n**Requirement:** R1  \n**Issue:** `parseGateResult` does more than parse: it asserts the command failed and that `envelope.ok === false`. The name is too broad and hides the test expectation.  \n**Suggestion:** Rename it to something like `parseFailedGateEnvelope(result)` so callers clearly communicate that a non-zero exit and failed envelope are expected.",
+      "evidenceRefs": [
+        "impl-review.json#9fca48dbee0e67ef57f50d29e6ef3074761c866e022e14861c7f674d9f284cb1"
+      ]
+    },
+    {
+      "findingId": "1e0fe7f9362b3c097c8989869c689473da8082475b97ae45c55f7cdc1982c579",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/specs/commands/guardrail.test.js`  \n**Requirement:** R1  \n**Issue:** The two fail-closed tests repeat the same execution and assertion, differing only in fixture setup and test title.  \n**Suggestion:** Convert them to a small table-driven loop, e.g. cases for “no guardrail file” and “configured guardrails”, each asserting `GATE_REQUIRED_AGENT_UNSET`. This keeps the behavioral distinction while reducing duplicated assertion code.",
+      "evidenceRefs": [
+        "impl-review.json#1e0fe7f9362b3c097c8989869c689473da8082475b97ae45c55f7cdc1982c579"
+      ]
+    },
+    {
+      "findingId": "5a56d16b57a6b8d74f22109afd82e117c6dd84459c53f19a36a40b5e9d4754ca",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/helpers/stub-agent.js`  \n**Requirement:** R2  \n**Issue:** The guardrail prompt marker string `\"## Guardrail Articles\"` is referenced across test helper logic and integration test setup, creating an implicit cross-file protocol that can drift if prompt formatting changes.  \n**Suggestion:** Export a shared `GUARDRAIL_PROMPT_MARKER` or a helper such as `defaultGuardrailPassResponseCase()` from `tests/helpers/stub-agent.js`, and have the integration tests consume that instead of repeating the marker.",
+      "evidenceRefs": [
+        "impl-review.json#5a56d16b57a6b8d74f22109afd82e117c6dd84459c53f19a36a40b5e9d4754ca"
+      ]
+    },
+    {
+      "findingId": "f62db6aaa1d5c5192e4ec8cc87796fafb96b8554f988b91bdb9fbf0b3a1485bc",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/helpers/stub-agent.js`  \n**Requirement:** R1  \n**Issue:** Multiple test files introduce inline stub agent config using `process.execPath` and small JSON-emitting scripts. This duplicates provider setup across unit and e2e tests and makes future agent contract changes harder to apply consistently.  \n**Suggestion:** Add a shared helper such as `stubAgentConfig(output)` or `writeStubAgentConfig(root, output)` in the test helpers, then reuse it from the touched gate, guardrail, and task-decomp tests.",
+      "evidenceRefs": [
+        "impl-review.json#f62db6aaa1d5c5192e4ec8cc87796fafb96b8554f988b91bdb9fbf0b3a1485bc"
+      ]
+    },
+    {
+      "findingId": "15196f778d8fa2c5cb82109657b2ea0f711a372c950f8f7c7fa7f9fc8ef4d230",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** Target identity validation is split across `run-review.js`, `set-review-evidence.js`, and `review-evidence-store.js`, with slightly different behavior around missing fields, mutation, and `targetStateDigest` matching. That creates an interface inconsistency for what “artifact matches target” means.  \n**Suggestion:** Introduce one shared validator for review artifact target fields, including `phase`, `taskId`, `treeSha`, and `targetStateDigest`, and use it from recovery, persistence, and evidence-store validation paths.",
+      "evidenceRefs": [
+        "impl-review.json#15196f778d8fa2c5cb82109657b2ea0f711a372c950f8f7c7fa7f9fc8ef4d230"
+      ]
+    },
+    {
+      "findingId": "a97037ee72bd1da782d6aa5015975ebf2b85966208da9fe5185b1e1c15c1621d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R6  \n**Issue:** Review evidence target fields are exposed inconsistently: existing fields use class accessors, while `targetStateDigest` is accessed through `this.evidence.targetStateDigest`. This naming/access pattern differs across files that now treat the digest as part of the same target identity.  \n**Suggestion:** Add a `targetStateDigest` accessor to the evidence wrapper and use that consistently anywhere target identity fields are read or validated.",
+      "evidenceRefs": [
+        "impl-review.json#a97037ee72bd1da782d6aa5015975ebf2b85966208da9fe5185b1e1c15c1621d"
+      ]
+    },
+    {
+      "findingId": "d8d8eff47d0a625cd661accb336a192c39f0e376b04e1f655df6fe023bd81f40",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** Public bypass rejection metadata and required-evaluation failure shapes are now duplicated between CLI argument parsing, command execution, and gate failure construction. This can cause cross-file or cross-path drift in failure codes and messages.  \n**Suggestion:** Centralize the failure code/message envelope and route all required-evaluation bypass or fail-closed paths through a shared helper or constants.",
+      "evidenceRefs": [
+        "impl-review.json#d8d8eff47d0a625cd661accb336a192c39f0e376b04e1f655df6fe023bd81f40"
+      ]
+    },
+    {
+      "findingId": "a458c8062f211dade935e710a5538db9b068e5e0a394c57664ebbac51516956d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The markdown spec and `spec.json` duplicate much of the same requirement, task, and acceptance-criteria content. This creates two authoritative-looking files that can diverge, especially around retry bounds and status.  \n**Suggestion:** Make either `spec.json` or `spec.md` canonical. If both are required, generate one from the other or add an explicit authority note and synchronization rule.",
+      "evidenceRefs": [
+        "impl-review.json#a458c8062f211dade935e710a5538db9b068e5e0a394c57664ebbac51516956d"
+      ]
+    }
+  ]
+}

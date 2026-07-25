@@ -1,0 +1,93 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/346-gate-fail-closed/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R1: reports a missing preset as one typed prerequisite failure before evaluation",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 208
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R2: makes every unavailable required evaluation a blocking non-PASS outcome",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 208
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R3: exposes a distinct machine-readable failure classification",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 208
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R4: retains configured schema-conforming PASS and FAIL evaluation semantics",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 208
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R5: keeps test evaluation controls out of production command arguments",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 208
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "test_name": "R6: canonicalizes only a matching finalized flow-level review artifact",
+        "command": "node --test specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 208
+        }
+      }
+    }
+  ]
+}

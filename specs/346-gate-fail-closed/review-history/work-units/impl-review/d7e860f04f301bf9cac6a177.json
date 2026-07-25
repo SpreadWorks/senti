@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/run-start-task.js"
+    ],
+    "inputHash": "e1f5b195be2206b11526cfe887d1bb252b9975be76b9b76f7232f12d2fab00d0",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/run-start-task.js"
+  ],
+  "inputHash": "e1f5b195be2206b11526cfe887d1bb252b9975be76b9b76f7232f12d2fab00d0",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:54:37.134Z",
+  "finishedAt": "2026-07-25T16:54:37.134Z",
+  "rawResponse": "### 1. Extract Review Target Validation\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** The new recovery path and `persistCanonicalReviewArtifact` now both validate or stamp `phase`, `taskId`, `treeSha`, and `targetStateDigest`, but the logic is split and slightly different. Recovery rejects missing or mismatched target metadata, while persistence mutates missing fields into the artifact.  \n**Suggestion:** Add a shared helper such as `assertReviewArtifactMatchesTarget(artifact, expected, { allowMissing })` and use it in both paths. This removes duplicate target-field handling and makes the R6 fail-closed behavior easier to audit.\n\n### 2. Avoid Silent Mutation Of Finalized Provider Artifacts\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** `persistCanonicalReviewArtifact` rewrites the provider artifact with target fields when they are missing. That makes finalized artifact validation less explicit and creates a second representation of provider output on disk.  \n**Suggestion:** Keep provider artifacts immutable after provider completion. Validate existing target fields, then apply normalized target metadata only to the canonical evidence object. If missing fields are acceptable for older artifacts, handle that through an explicit compatibility branch rather than rewriting the artifact file.\n\n### 3. Guard Missing Recovery Registration\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** `recoverFinalizedFlowReviewPostHookFailure` assumes `recoverFinalizedFlowReviewEvidence` always calls `canonicalEvidenceStore.register`. If that contract changes or recovery short-circuits, `registration.convergenceState` will throw a vague `TypeError`.  \n**Suggestion:** Add an explicit post-call assertion, for example throwing `REVIEW_EVIDENCE_RECOVERY_FAILED` when `registration` is still unset. This makes the recovery path fail clearly without obscuring the artifact validation result.\n\n### 4. Extract Lock Conflict Detection\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** The lock-conflict check is embedded as an inline regex in `recoverFinalizedFlowReviewPostHookFailure`, which makes the recovery trigger hard to reuse or test independently.  \n**Suggestion:** Move it to a small helper such as `isPostHookLockConflict(error)`. That keeps the recovery function focused on artifact validation and evidence registration, and gives one place to adjust lock-error matching.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Review Target Validation",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** The new recovery path and `persistCanonicalReviewArtifact` now both validate or stamp `phase`, `taskId`, `treeSha`, and `targetStateDigest`, but the logic is split and slightly different. Recovery rejects missing or mismatched target metadata, while persistence mutates missing fields into the artifact.  \n**Suggestion:** Add a shared helper such as `assertReviewArtifactMatchesTarget(artifact, expected, { allowMissing })` and use it in both paths. This removes duplicate target-field handling and makes the R6 fail-closed behavior easier to audit.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Avoid Silent Mutation Of Finalized Provider Artifacts",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** `persistCanonicalReviewArtifact` rewrites the provider artifact with target fields when they are missing. That makes finalized artifact validation less explicit and creates a second representation of provider output on disk.  \n**Suggestion:** Keep provider artifacts immutable after provider completion. Validate existing target fields, then apply normalized target metadata only to the canonical evidence object. If missing fields are acceptable for older artifacts, handle that through an explicit compatibility branch rather than rewriting the artifact file.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Guard Missing Recovery Registration",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** `recoverFinalizedFlowReviewPostHookFailure` assumes `recoverFinalizedFlowReviewEvidence` always calls `canonicalEvidenceStore.register`. If that contract changes or recovery short-circuits, `registration.convergenceState` will throw a vague `TypeError`.  \n**Suggestion:** Add an explicit post-call assertion, for example throwing `REVIEW_EVIDENCE_RECOVERY_FAILED` when `registration` is still unset. This makes the recovery path fail clearly without obscuring the artifact validation result.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Extract Lock Conflict Detection",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R6  \n**Issue:** The lock-conflict check is embedded as an inline regex in `recoverFinalizedFlowReviewPostHookFailure`, which makes the recovery trigger hard to reuse or test independently.  \n**Suggestion:** Move it to a small helper such as `isPostHookLockConflict(error)`. That keeps the recovery function focused on artifact validation and evidence registration, and gives one place to adjust lock-error matching.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

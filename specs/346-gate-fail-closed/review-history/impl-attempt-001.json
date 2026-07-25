@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:08:01.974Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "test-fixture-does-not-exercise-production-prerequisite",
+      "title": "Missing preset test bypasses production path",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+      "requirementId": "R1",
+      "issue": "The new R1 test calls executeRequiredGateScenario with a synthetic presetChain, but the production implementation in runGateFlow validates only loadConfig(root).type. The added test therefore does not prove that a missing preset in the real config is diagnosed before semantic evaluation, which is the task's required behavior.",
+      "suggestion": "Change the R1 test to create a temporary project config whose type references a missing preset and invoke the actual gate/runGateFlow path, then assert the typed prerequisite failure and zero semantic evaluation calls through the production boundary.",
+      "disposition": "must-fix",
+      "rationale": "The task explicitly requires missing preset diagnosis before evaluation and unit/CLI coverage for missing preset and retry invariants. A test fixture that is not connected to the new production prerequisite check leaves that mandatory acceptance behavior unverified.",
+      "findingId": "d1ec286513d8c73492c0a519bd5f43d901bad5cf801e516666c9eb0335bcaa49",
+      "fingerprint": "d1ec286513d8c73492c0a519bd5f43d901bad5cf801e516666c9eb0335bcaa49",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "missing-cli-coverage-for-preset-prerequisite",
+      "title": "No CLI coverage for missing preset prerequisite",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+      "requirementId": "R1",
+      "issue": "The task's Test Strategy calls for CLI cases for missing preset and retry invariants, but the added CLI assertion only covers forbidden test-fixture routing. There is no CLI test showing that a real missing preset fails closed with GATE_PRESET_NOT_FOUND before semantic retries.",
+      "suggestion": "Add a CLI test that runs the gate against a temporary config with a missing preset/type and asserts failure output contains GATE_PRESET_NOT_FOUND and does not consume or increment semantic retry evidence.",
+      "disposition": "must-fix",
+      "rationale": "The CLI missing-preset case is a mandatory test strategy item for this task, and the current touched test file does not cover it.",
+      "findingId": "3c42e1170555d1cbbc50a525c2e9590dabb4b727557ed2ee6dcf87c88cc03c50",
+      "fingerprint": "3c42e1170555d1cbbc50a525c2e9590dabb4b727557ed2ee6dcf87c88cc03c50",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "d29aa91d035b8978e0bf10504029d6d8f57295a35cd605ef80ea45e5dd779187",
+  "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/346-gate-fail-closed/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/346-gate-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "88bd3f3babdb9ea1b6728da66e4adcd312fb9600bc4413321d944c04257a7bee"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "d1ec286513d8c73492c0a519bd5f43d901bad5cf801e516666c9eb0335bcaa49",
+      "findingId": "d1ec286513d8c73492c0a519bd5f43d901bad5cf801e516666c9eb0335bcaa49",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing preset test bypasses production path",
+      "body": "The new R1 test calls executeRequiredGateScenario with a synthetic presetChain, but the production implementation in runGateFlow validates only loadConfig(root).type. The added test therefore does not prove that a missing preset in the real config is diagnosed before semantic evaluation, which is the task's required behavior.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "d1ec286513d8c73492c0a519bd5f43d901bad5cf801e516666c9eb0335bcaa49",
+      "disposition": "must-fix",
+      "rationale": "The task explicitly requires missing preset diagnosis before evaluation and unit/CLI coverage for missing preset and retry invariants. A test fixture that is not connected to the new production prerequisite check leaves that mandatory acceptance behavior unverified.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    },
+    {
+      "id": "3c42e1170555d1cbbc50a525c2e9590dabb4b727557ed2ee6dcf87c88cc03c50",
+      "findingId": "3c42e1170555d1cbbc50a525c2e9590dabb4b727557ed2ee6dcf87c88cc03c50",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "No CLI coverage for missing preset prerequisite",
+      "body": "The task's Test Strategy calls for CLI cases for missing preset and retry invariants, but the added CLI assertion only covers forbidden test-fixture routing. There is no CLI test showing that a real missing preset fails closed with GATE_PRESET_NOT_FOUND before semantic retries.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "3c42e1170555d1cbbc50a525c2e9590dabb4b727557ed2ee6dcf87c88cc03c50",
+      "disposition": "must-fix",
+      "rationale": "The CLI missing-preset case is a mandatory test strategy item for this task, and the current touched test file does not cover it.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

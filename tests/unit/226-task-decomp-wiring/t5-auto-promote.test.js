@@ -171,6 +171,15 @@ describe("T-5: auto-promote function and callers", () => {
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
+      agent: {
+        default: "stub",
+        providers: {
+          stub: {
+            command: process.execPath,
+            args: ["-e", "process.stdout.write('{\"observations\":[]}')"],
+          },
+        },
+      },
     }));
     fs.writeFileSync(path.join(tmp, "src/value.js"), "export const value = 1;\n");
     fs.writeFileSync(path.join(specDir, "tasks/T-1.md"), "# T-1\n\nImplement the value change.\n");
@@ -241,7 +250,6 @@ describe("T-5: auto-promote function and callers", () => {
       cli,
       "flow", "run", "gate",
       "--phase", "task-impl",
-      "--skip-guardrail",
     ], {
       cwd: tmp,
       encoding: "utf8",

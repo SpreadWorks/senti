@@ -1,0 +1,79 @@
+{
+  "devType": "bugfix",
+  "goal": "[must] flow gate の前提検証と必須評価を fail-closed に統一し、評価が未実行・実行不能・不正の場合に PASS / done へ進む経路をなくす。",
+  "analysis": {
+    "problem": "現在の gate 実装には、guardrail が存在しない、guardrail 評価が null を返す、agent 解決または実行ができないなどの条件で、必須の semantic evaluation が完了していないにもかかわらず gatePass へ正規化され得る経路がある。また preset 解決失敗は gate 実行前の一意な前提条件エラーではなく、評価中の重複 warning として扱われ得る。これにより production gate の PASS / done が評価済みという意味を失う。",
+    "proposedApproach": "[must] preset chain を semantic context 解決より先に一度だけ検証し、欠落を typed prerequisite failure として返す。必須 agent、guardrail、schema の未設定・実行失敗・不正出力・検証失敗は semantic finding と区別した blocking outcome とし、正常に完了した評価だけが既存の PASS / FAIL 判定へ到達できるようにする。public CLI から production 用評価を bypass する経路は残さず、fixture は production route から到達できない test harness に閉じ込める。",
+    "validation": "[must] missing preset、agent 未設定、spawn failure、guardrail failure、invalid output、schema failure の各 case で、出力と artifact から failure 種別を機械判別でき、gate が PASS / done と次段階 approval に進まないことを検証する。正常な agent PASS / FAIL と foreign / optional policy の既存契約、missing preset warning の invocation 内一回性も回帰テストで確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "[must] Issue #465 は semantic evaluation を実行できない状態で PASS / done へ進む複数の経路を fail-closed にすることを要求している。",
+      "[must] src/flow/lib/run-gate.js の runGateFlow は skipGuardrail と checkGuardrail の null 結果を gatePass に接続し、diff-based gate も guardrail 結果がない場合に gatePass へ接続している。",
+      "[must] src/flow/lib/run-gate.js は agent 未設定時に例外を投げ、gate lifecycle は failure の型と retry 消費を区別する必要がある。",
+      "[must] guardrail 読み込み時に unresolved preset の warning が出る既存挙動が観測され、Issue #465 の duplicate warning evidence と一致する。",
+      "[must] Issue #465 は必須評価の未実行・実行不能・不正時に PASS / done を禁止し、正常な PASS / FAIL と foreign / optional policy を維持する範囲を明示している。"
+    ],
+    "decisionPoints": [
+      "[must] prerequisite failure、agent failure、guardrail failure、schema failure、semantic finding を別の機械判別可能な outcome として保持する。",
+      "[must] gate の成功・失敗 artifact は `artifacts.failureKind` と `artifacts.failureCode` を、CLI failure envelope は `errors[0].code` を使用して failure 種別を示す。semantic finding では既存の `artifacts.evaluations` と `artifacts.reasons` を保持する。",
+      "[must] typed prerequisite failure は semantic retry budget を消費しない。",
+      "[must] production CLI では必須 guardrail / evaluation の bypass を許可しない。",
+      "[must] valid configuration と completed evaluation に対する既存 PASS / FAIL、foreign / optional policy の意味論を維持する。",
+      "[must] 既存 public behavior の inventory: `senti flow run gate` は正常な evaluation で `data.result=pass|fail` を返し、各 `*-gate-result.json` は result、evaluations、reasons を保持し、registry の PASS post-hook は approval など次 step への transition を実行する。agent profile と preset chain configuration は入力として維持する。",
+      "[must] retained behavior mapping: 正常な PASS / FAIL、artifact の result/evaluations/reasons、PASS post-hook transition、agent/preset configuration は既存 RunGateCommand と registry owner に残す。failure classification は RunGateCommand の prerequisite / evaluation boundary が `failureKind` と `failureCode` を所有し、error envelope は flow command layer が `errors[0].code` を所有する。",
+      "[must] intentional removal: unresolved preset の invocation 内重複 warning と、production public CLI から必須評価を bypass する経路は削除する。代わりに一度だけ typed prerequisite failure を返し、test-only fixture は production route から到達不能な harness に限定する。",
+      "[must] finalized flow-level review artifact が provider 実行後に post-hook lock 競合で未登録となった場合、同一 tree の artifact を canonical evidence へ変換・登録できる recovery path を提供し、taskId を要求しない。"
+    ],
+    "resolvedByProjectRules": [
+      "[must] 外部依存を追加せず Node.js 組み込みモジュールだけを使用する。",
+      "[must] テストを通す目的でテスト assertion を弱めず、プロダクトコードで契約を修正する。",
+      "[must] prerequisite または evaluation failure の分類・artifact 構築が production call site に 2 箇所以上ある場合は、両 call site が同じ helper を呼ぶように抽出する。1 箇所だけなら inline のままにする。",
+      "[must] src/ にプロジェクト固有の fixture や設定を入れず、test harness を production route から分離する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": []
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] src/flow/lib/run-gate.js と gate prerequisite / preset resolution の呼び出し境界を fail-closed にする。",
+      "[must] run-gate unit tests で missing preset、agent 未設定、agent spawn failure、guardrail failure、invalid output、schema failure が `result=pass` にならず `failureKind` / `failureCode` を記録することを確認し、CLI tests で missing preset が一度だけ typed prerequisite failure となり semantic retry を消費しないこと、valid agent PASS / FAIL と foreign / optional policy が不変なこと、PASS post-hook だけが次 step へ進めることを確認する。",
+      "[must] missing preset を gate evaluation 前に一度だけ typed prerequisite failure として報告する。",
+      "[must] `senti flow run gate` の正常な `data.result=pass|fail`、`*-gate-result.json` の result/evaluations/reasons、registry の PASS post-hook transition、agent profile と preset chain configuration を inventory として検証する。",
+      "[must] retained public surfaces は既存 owner に残し、failure classification は `artifacts.failureKind` / `artifacts.failureCode` と `errors[0].code` で検証する。"
+      ,"[must] flow-level spec review の PASS artifact を post-hook lock failure 後に登録する recovery path と、その unit regression test を追加する。"
+    ],
+    "out": [
+      "[must] 正常系の semantic decision logic 自体は変更しない。",
+      "[must] foreign / optional policy の既存意味論を拡張しない。",
+      "[must] production CLI で評価 bypass を可能にする公開オプションや互換経路を追加しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] valid configuration の既存 agent PASS / FAIL 契約は維持する。",
+    "[must] evaluation が失敗した gate は approval を含む次段階へ進まなくなる。",
+    "[must] missing preset の診断は warning の重複出力から、一意な typed prerequisite failure に変わる。",
+    "[must] flow artifact と出力の consumer は `artifacts.failureKind`、`artifacts.failureCode`、`errors[0].code` を使い prerequisite / agent execution / guardrail / schema / semantic finding を区別できる。",
+    "[must] normal gate result artifact の result/evaluations/reasons と PASS post-hook transition は維持し、unresolved preset warning の重複出力と production CLI evaluation bypass は廃止する。"
+    ,"[must] flow-level review の existing PASS artifact は、post-hook lock 競合後も再度 provider を呼ばず canonical evidence として登録できる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] Issue #465 の範囲どおり、必須評価が未実行・実行不能・不正な場合は PASS / done に進ませず、正常な PASS / FAIL と foreign / optional policy を維持することを確認しますか？",
+      "answer": "[must] 確認する。必須 agent evaluation、guardrail evaluation、schema validation の未実行・実行不能・失敗では PASS / done と次段階 approval を禁止し、valid configuration の既存 PASS / FAIL と foreign / optional policy は維持する。",
+      "evidence": "Issue #465 の Expected Contract は required evaluation の未実行・失敗時の PASS fallback 禁止、normal agent PASS / FAIL と foreign / optional policy の維持を明示し、Acceptance Criteria 2 と 3 が state transition と正常系互換を検証対象にしている。",
+      "why": "[must] production gate の PASS は全必須評価が完了した意味を持つ必要があり、failure を semantic finding と混同せずに block することで、既存の正常判定と policy 契約を変えずに安全性を回復できる。",
+      "considered": "任意の failure を warning または PASS に正規化する案は Issue #465 の fail-closed 契約と evidence に反するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T14:08:30.000Z",
+    "notes": "Issue #465 defines the required fail-closed outcomes and no unresolved user decisions remain after draft refinement."
+  }
+}

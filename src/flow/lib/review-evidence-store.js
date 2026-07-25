@@ -87,6 +87,7 @@ export class ReviewEvidenceInput {
         phase: this.phase,
         taskId: this.taskId,
         treeSha: this.treeSha,
+        targetStateDigest: document.targetStateDigest,
         provenance: this.provenance,
         disposition: this.disposition,
       });
@@ -140,13 +141,16 @@ export class ReviewEvidenceInput {
     return new ReviewEvidenceInput(document);
   }
 
-  validateTarget({ phase, taskId = null, treeSha } = {}) {
+  validateTarget({ phase, taskId = null, treeSha, targetStateDigest = null } = {}) {
     if (this.phase !== phase) throw new Error(`review evidence phase target mismatch: ${this.phase} != ${phase}`);
     if (this.taskId !== (taskId ?? null)) {
       throw new Error(`review evidence task target mismatch: ${this.taskId} != ${taskId ?? null}`);
     }
     if (this.treeSha !== treeSha) {
       throw new Error(`review evidence tree target mismatch: ${this.treeSha} != ${treeSha}`);
+    }
+    if (targetStateDigest != null && this.evidence.targetStateDigest !== targetStateDigest) {
+      throw new Error("review evidence state digest target mismatch");
     }
     return this;
   }

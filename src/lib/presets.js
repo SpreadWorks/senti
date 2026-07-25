@@ -11,6 +11,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { loadConfig } from "./config.js";
 import { createLogger } from "./progress.js";
 import { loadPluginRegistry, PluginManifest } from "./plugin-registry.js";
 
@@ -193,6 +194,19 @@ export function resolveMultiChains(types, projectRoot, opts = {}) {
   const chains = unique.map((t) => resolveChain(t, projectRoot, opts));
 
   return dedupeParentChains(chains);
+}
+
+/**
+ * Resolve every preset chain configured by a project without applying the
+ * tolerant fallback used by presentation-oriented preset consumers.
+ *
+ * @returns {object|null} the project config, or null when no config exists
+ */
+export function validateConfiguredPresetChains(projectRoot) {
+  const config = loadConfig(projectRoot);
+  if (!config.type) return config;
+  resolveMultiChains(config.type, projectRoot);
+  return config;
 }
 
 export function resolvePresetCandidateChains(types, candidates, opts = {}) {

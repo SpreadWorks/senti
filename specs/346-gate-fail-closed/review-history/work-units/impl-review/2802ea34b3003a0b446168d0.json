@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/e2e/flow/gate-impl-integration.test.js",
+      "tests/helpers/stub-agent.js"
+    ],
+    "inputHash": "755656d23c484e851080e8a704d4ee24b07628a6b7b5a3e0f419874f33b65ae2",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "tests/e2e/flow/gate-impl-integration.test.js",
+    "tests/helpers/stub-agent.js"
+  ],
+  "inputHash": "755656d23c484e851080e8a704d4ee24b07628a6b7b5a3e0f419874f33b65ae2",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T17:13:53.455Z",
+  "finishedAt": "2026-07-25T17:13:53.455Z",
+  "rawResponse": "### 1. Avoid Duplicating Guardrail Stub Logic\n**File:** `tests/helpers/stub-agent.js`  \n**Requirement:** R1  \n**Issue:** `writeCapturingGateStubAgentScript` duplicates prompt classification and response dispatch behavior that now also exists in `writePromptDispatchStubAgentScript`. This creates two ways to route responses by prompt content.  \n**Suggestion:** Implement `writeCapturingGateStubAgentScript` as a thin wrapper around `writePromptDispatchStubAgentScript`, adding capture behavior only for the non-guardrail prompt, or extend the dispatch helper with an optional `captureWhen` predicate/marker. This keeps guardrail routing behavior in one place.\n\n### 2. Replace Inline Guardrail Marker String With A Named Constant\n**File:** `tests/e2e/flow/gate-impl-integration.test.js`  \n**Requirement:** R2  \n**Issue:** The string `\"## Guardrail Articles\"` is used as an implicit protocol marker inside the test setup. The same marker is also embedded in `tests/helpers/stub-agent.js`, making future prompt-format changes easy to miss.  \n**Suggestion:** Define a named constant such as `GUARDRAIL_PROMPT_MARKER` in `tests/helpers/stub-agent.js` and export it for tests to use, or centralize the guardrail fallback case in a helper like `defaultGuardrailPassResponseCase()`.\n\n### 3. Simplify Empty Argument Passing\n**File:** `tests/e2e/flow/gate-impl-integration.test.js`  \n**Requirement:** R3  \n**Issue:** One call changed from `runGate(tmp, [\"--skip-guardrail\"], \"integration\")` to `runGate(tmp, [], \"integration\")`, while other no-extra-argument cases use `runGate(tmp)`. Passing an explicit empty array adds noise and makes the call pattern less consistent.  \n**Suggestion:** If `runGate` supports an omitted second parameter when mode is supplied, call it with a clearer options object or add a small wrapper such as `runIntegrationGate(tmp)`. If positional arguments must remain, consider defaulting `args = []` and `mode = undefined` through an object parameter to avoid placeholder arrays.\n\n### 4. Rename Requirement Response Parameter For Schema Clarity\n**File:** `tests/helpers/stub-agent.js`  \n**Requirement:** R4  \n**Issue:** `requirementResponse` in `writeCapturingGateStubAgentScript` is accurate but slightly ambiguous because the helper routes between requirement and guardrail schemas.  \n**Suggestion:** Rename it to `requirementJsonResponse` or `primaryEvaluationResponse` to make it clear the value is emitted only for the non-guardrail evaluation prompt.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid Duplicating Guardrail Stub Logic",
+        "body": "**File:** `tests/helpers/stub-agent.js`  \n**Requirement:** R1  \n**Issue:** `writeCapturingGateStubAgentScript` duplicates prompt classification and response dispatch behavior that now also exists in `writePromptDispatchStubAgentScript`. This creates two ways to route responses by prompt content.  \n**Suggestion:** Implement `writeCapturingGateStubAgentScript` as a thin wrapper around `writePromptDispatchStubAgentScript`, adding capture behavior only for the non-guardrail prompt, or extend the dispatch helper with an optional `captureWhen` predicate/marker. This keeps guardrail routing behavior in one place.",
+        "file": "tests/helpers/stub-agent.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Replace Inline Guardrail Marker String With A Named Constant",
+        "body": "**File:** `tests/e2e/flow/gate-impl-integration.test.js`  \n**Requirement:** R2  \n**Issue:** The string `\"## Guardrail Articles\"` is used as an implicit protocol marker inside the test setup. The same marker is also embedded in `tests/helpers/stub-agent.js`, making future prompt-format changes easy to miss.  \n**Suggestion:** Define a named constant such as `GUARDRAIL_PROMPT_MARKER` in `tests/helpers/stub-agent.js` and export it for tests to use, or centralize the guardrail fallback case in a helper like `defaultGuardrailPassResponseCase()`.",
+        "file": "tests/e2e/flow/gate-impl-integration.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Simplify Empty Argument Passing",
+        "body": "**File:** `tests/e2e/flow/gate-impl-integration.test.js`  \n**Requirement:** R3  \n**Issue:** One call changed from `runGate(tmp, [\"--skip-guardrail\"], \"integration\")` to `runGate(tmp, [], \"integration\")`, while other no-extra-argument cases use `runGate(tmp)`. Passing an explicit empty array adds noise and makes the call pattern less consistent.  \n**Suggestion:** If `runGate` supports an omitted second parameter when mode is supplied, call it with a clearer options object or add a small wrapper such as `runIntegrationGate(tmp)`. If positional arguments must remain, consider defaulting `args = []` and `mode = undefined` through an object parameter to avoid placeholder arrays.",
+        "file": "tests/e2e/flow/gate-impl-integration.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Rename Requirement Response Parameter For Schema Clarity",
+        "body": "**File:** `tests/helpers/stub-agent.js`  \n**Requirement:** R4  \n**Issue:** `requirementResponse` in `writeCapturingGateStubAgentScript` is accurate but slightly ambiguous because the helper routes between requirement and guardrail schemas.  \n**Suggestion:** Rename it to `requirementJsonResponse` or `primaryEvaluationResponse` to make it clear the value is emitted only for the non-guardrail evaluation prompt.",
+        "file": "tests/helpers/stub-agent.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

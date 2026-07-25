@@ -26,6 +26,7 @@ const execFileAsync = promisify(execFile);
 import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
+import { validateConfiguredPresetChains } from "../../lib/presets.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import {
   enumerateUsableRequirementIds,
@@ -113,6 +114,22 @@ import { flattenSteps } from "./step-tree.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 
 export { resolveGateStepId };
+
+/**
+ * Parse the small, security-sensitive subset of gate arguments whose only
+ * purpose is to detect and reject public evaluation-bypass attempts.
+ */
+export function parsePublicGateArguments(argv) {
+  const args = Array.isArray(argv) ? argv : [];
+  for (const arg of args) {
+    if (arg === "--skip-required-evaluation" || arg === "--skip-guardrail") {
+      const error = new Error("required gate evaluations cannot be bypassed from the public CLI");
+      error.code = "GATE_REQUIRED_EVALUATION_BYPASS_FORBIDDEN";
+      throw error;
+    }
+  }
+  return {};
+}
 
 export async function completeGateArtifactBeforeSemanticEvaluation({
   completeArtifact,
@@ -1899,9 +1916,36 @@ async function callGateAgent(agent, built, attempt) {
   };
 }
 
+function requiredGuardrailFailure(failureKind, failureCode, failureReason) {
+  return {
+    passed: false,
+    evaluations: [],
+    failureKind,
+    failureCode,
+    failureReason,
+  };
+}
+
 async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds, options = {}) {
-  const guardrails = loadMergedGuardrails(root);
-  if (guardrails.length === 0) return null;
+  const loadGuardrails = options.loadGuardrails || loadMergedGuardrails;
+  let guardrails;
+  try {
+    guardrails = loadGuardrails(root);
+  } catch (error) {
+    const spawn = error?.code === "ENOENT" || /spawn|executable|not found/i.test(error?.message || "");
+    return requiredGuardrailFailure(
+      spawn ? "guardrail-spawn" : "guardrail-evaluation",
+      spawn ? "GATE_REQUIRED_GUARDRAIL_SPAWN" : "GATE_REQUIRED_GUARDRAIL",
+      error.message,
+    );
+  }
+  if (!guardrails || guardrails.length === 0) {
+    return requiredGuardrailFailure(
+      "guardrail-unset",
+      "GATE_REQUIRED_GUARDRAIL_UNSET",
+      "required gate guardrail evaluation is not configured",
+    );
+  }
 
   const filtered = filterByPhase(guardrails, phase);
   if (filtered.length === 0) return { passed: true, evaluations: [] };
@@ -1910,8 +1954,16 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
     ? previouslyPassedIds.filter((id) => filteredIds.has(id))
     : previouslyPassedIds;
 
-  const agent = container.get("agent");
-  if (!agent.resolve("flow.spec.gate")) return null;
+  const agent = options.agent || container.get("agent");
+  if (!agent.resolve("flow.spec.gate")) {
+    return {
+      passed: false,
+      evaluations: [],
+      failureKind: "agent-unset",
+      failureCode: "GATE_REQUIRED_AGENT_UNSET",
+      failureReason: "required gate evaluation agent is not configured",
+    };
+  }
 
   const pb = buildGuardrailArticleEvalPrompt(
     targetText,
@@ -1925,11 +1977,31 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
 
   const built = pb.build();
   const knownIds = filtered.map((g) => g.id);
-  const { observations: parsed } = await evaluateGuardrailObservationsWithRetry({
-    knownIds,
-    phase,
-    callAgent: (attempt) => callGateAgent(agent, built, attempt),
-  });
+  let parsed;
+  try {
+    ({ observations: parsed } = await evaluateGuardrailObservationsWithRetry({
+      knownIds,
+      phase,
+      callAgent: (attempt) => callGateAgent(agent, built, attempt),
+    }));
+  } catch (error) {
+    const sourceError = error instanceof GateOutputProtocolFailure ? error.cause : error;
+    const schema = error instanceof EvaluationSchemaError
+      || (error instanceof GateOutputProtocolFailure
+        && error.data?.failureMode === "schema_validation_failure");
+    const spawn = sourceError?.code === "ENOENT" || /spawn|executable|not found/i.test(sourceError?.message || "");
+    const output = schema || (error instanceof GateOutputProtocolFailure
+      && error.data?.failureMode === "parse_failure");
+    return {
+      passed: false,
+      evaluations: [],
+      failureKind: output ? (schema ? "schema" : "output") : (spawn ? "agent-spawn" : "agent-evaluation"),
+      failureCode: output
+        ? (schema ? "GATE_REQUIRED_SCHEMA" : "GATE_REQUIRED_OUTPUT")
+        : (spawn ? "GATE_REQUIRED_AGENT_SPAWN" : "GATE_REQUIRED_AGENT_EVALUATION"),
+      failureReason: error.message,
+    };
+  }
   const byId = new Map(filtered.map((g) => [g.id, g]));
   if (parsed.length === 0) {
     return { passed: true, evaluations: buildPassEvaluationsForObservedGuardrails(filtered) };
@@ -4599,6 +4671,13 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
   };
 }
 
+function gateRequiredEvaluationFail(level, phase, targetPath, result) {
+  const failure = gateFail(level, phase, targetPath, [], [result.failureReason]);
+  failure.artifacts.failureKind = result.failureKind;
+  failure.artifacts.failureCode = result.failureCode;
+  return failure;
+}
+
 function persistIntegrationGateResult({ root, state, result }) {
   if (!result || typeof result !== "object" || result.ok === false) return result;
   if (result?.artifacts?.deferred === true) return result;
@@ -4685,17 +4764,27 @@ function persistIntegrationGateResult({ root, state, result }) {
  * @param {Object} [args.ctx] - optional context for retry guards (spec 228)
  * @param {Object} [args.guardrailPromptOptions] - optional guardrail prompt context
  */
-async function runGateFlow(args) {
+export async function runGateFlow(args) {
   const {
     root, config, level, phase,
     targetPath, targetText, textCheck, checkerRole, skipGuardrail,
-    ctx, guardrailPromptOptions = {},
+    ctx, guardrailPromptOptions = {}, checkGuardrailFn = checkGuardrail,
   } = args;
   const priorMemoryMarkdown = ctx?.flowState?.spec
     ? buildGateImplPriorMemoryPrompt({ root, flowState: ctx.flowState, phase })
     : "";
 
   validateLevelPhase(level, phase);
+
+  try {
+    validateConfiguredPresetChains(root);
+  } catch (error) {
+    const failure = gateFail(level, phase, targetPath, [], [error.message]);
+    failure.artifacts.failureKind = "prerequisite";
+    failure.artifacts.failureCode = "GATE_PRESET_NOT_FOUND";
+    failure.artifacts.warnings = [error.message];
+    return failure;
+  }
 
   const issues = textCheck();
   if (issues.length > 0) {
@@ -4730,7 +4819,7 @@ async function runGateFlow(args) {
     }
   }
 
-  const result = await checkGuardrail(
+  const result = await checkGuardrailFn(
     root,
     targetText,
     phase,
@@ -4743,6 +4832,10 @@ async function runGateFlow(args) {
   );
   if (!result) {
     return gatePass(level, phase, targetPath, []);
+  }
+
+  if (result.failureCode) {
+    return gateRequiredEvaluationFail(level, phase, targetPath, result);
   }
 
   let evaluations = result.evaluations;
@@ -4921,6 +5014,37 @@ export function resolveEffectiveGatePhase(ctx, inferredResolution = null) {
 }
 
 export class RunGateCommand extends FlowCommand {
+  constructor() {
+    super({ requiresFlow: false });
+  }
+
+  async run(container, input = {}) {
+    if (input.skipGuardrail || input.skipRequiredEvaluation) {
+      return Envelope.fail(
+        "run",
+        "gate",
+        "GATE_REQUIRED_EVALUATION_BYPASS_FORBIDDEN",
+        "required gate evaluations cannot be bypassed from the public CLI",
+      );
+    }
+    try {
+      parsePublicGateArguments(input._rawArgs);
+    } catch (error) {
+      return Envelope.fail("run", "gate", error.code, error.message);
+    }
+    const result = await super.run(container, input);
+    if (result?.result === "fail" && typeof result.artifacts?.failureCode === "string") {
+      return Envelope.fail(
+        "run",
+        "gate",
+        result.artifacts.failureCode,
+        result.artifacts.reasons?.map((reason) => reason.detail || reason) || "required gate evaluation failed",
+        { artifacts: result.artifacts },
+      );
+    }
+    return result;
+  }
+
   async execute(ctx) {
     const { root } = ctx;
     const inferPhase = ctx.phase == null || ctx.phase === "";
@@ -5446,6 +5570,9 @@ export class RunGateCommand extends FlowCommand {
     );
     if (!grResult) {
       return finish(gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings));
+    }
+    if (grResult.failureCode) {
+      return finish(gateRequiredEvaluationFail(level, phase, specPath, grResult));
     }
     const combined = [...reqEvaluations, ...grResult.evaluations];
     if (!grResult.passed) {

@@ -70,6 +70,7 @@ import {
   ReviewEvidenceStore,
   resolveCurrentReviewTreeSha as resolveReviewTargetTreeSha,
 } from "./review-evidence-store.js";
+import { recoverFinalizedFlowReviewEvidence } from "./set-review-evidence.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 
 const IMPL_REVIEW_PHASE = "impl";
@@ -1140,6 +1141,65 @@ export function persistReviewPostHookToolingFailure(ctx, result, error) {
   return { outcome, state };
 }
 
+/**
+ * Reuse a finalized flow-level PASS artifact after a post-hook lock conflict.
+ * The review provider has already completed, so recovery must register that
+ * immutable artifact rather than invoke the provider a second time.
+ */
+export function recoverFinalizedFlowReviewPostHookFailure(ctx, result, error) {
+  if (!/lock|busy|atomic stale/i.test(String(error?.message || error))) return null;
+  const phase = reviewPhaseKeyForCtx(ctx, result?.artifacts?.phase || ctx.phase);
+  if (result?.artifacts?.taskId != null || !ctx?.flowManager || !ctx?.flowState?.spec) return null;
+  const artifactPath = result?.changed?.find((entry) => entry.endsWith(canonicalArtifactName(phase)));
+  if (!artifactPath || !fs.existsSync(path.resolve(ctx.root, artifactPath))) return null;
+  const source = JSON.parse(fs.readFileSync(path.resolve(ctx.root, artifactPath), "utf8"));
+  if (source.verdict !== "PASS") return null;
+
+  const treeSha = resolveCurrentReviewTreeSha(ctx);
+  const targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx);
+  if (
+    source.phase !== phase
+    || source.taskId !== null
+    || source.treeSha !== treeSha
+    || source.targetStateDigest !== targetStateDigest
+  ) {
+    throw Object.assign(new Error("finalized review artifact does not match the current review target"), {
+      code: "STALE_REVIEW_TARGET",
+    });
+  }
+  const state = { phase, taskId: null, treeSha, targetStateDigest };
+  const registrar = new ReviewEvidenceRegistrar({
+    store: new ReviewEvidenceStore({ root: ctx.root, specDir: path.dirname(path.resolve(ctx.root, ctx.flowState.spec)) }),
+  });
+  let registration;
+  recoverFinalizedFlowReviewEvidence({
+    providerArtifact: {
+      ...source,
+      finalized: true,
+      findings: source.blockingFindings || [],
+    },
+    state,
+    canonicalEvidenceStore: {
+      register(evidence) {
+        ctx.flowManager.mutate((flowState) => {
+          registration = registrar.register({
+            flowState,
+            evidence,
+            expectedRevision: flowState,
+            configuredSemanticMaxAttempts: resolveReviewRetryMax({ flowState }, phase),
+            targetStateDigest,
+          });
+          registration.applyTo(flowState);
+        }, { expectedOriginal: ctx.flowManager.load() });
+      },
+    },
+  });
+  result.artifacts ||= {};
+  result.artifacts.recoveredFinalizedEvidence = true;
+  result.artifacts.evidenceDigest = registration.convergenceState.evidence.evidenceId;
+  return registration;
+}
+
 export class ReviewExecutionGuard {
   constructor({ flowManager, boundaries } = {}) {
     if (!flowManager) throw new Error("flowManager is required");
@@ -1270,14 +1330,23 @@ function persistCanonicalReviewArtifact(
     error.code = "REVIEW_EVIDENCE_ARTIFACT_MISSING";
     throw error;
   }
-  const bytes = fs.readFileSync(artifactPath);
-  const artifact = JSON.parse(bytes.toString("utf8"));
+  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+  const taskId = result.artifacts.taskId ?? null;
+  for (const [field, value] of Object.entries({ phase, taskId, treeSha, targetStateDigest: repairFingerprint })) {
+    if (Object.hasOwn(artifact, field) && artifact[field] !== value) {
+      const error = new Error(`finalized review artifact ${field} does not match the current review target`);
+      error.code = "STALE_REVIEW_TARGET";
+      throw error;
+    }
+    artifact[field] = value;
+  }
+  const bytes = Buffer.from(`${JSON.stringify(artifact, null, 2)}\n`, "utf8");
+  fs.writeFileSync(artifactPath, bytes);
   const canonicalFindings = canonicalReviewArtifactFindings(artifact, phase, artifactName);
   const verdict = canonicalProviderVerdict(artifact.verdict || result.artifacts.verdict);
   const capturedAt = artifact.generatedAt
     || ctx.flowState.startedAt
     || new Date(0).toISOString();
-  const taskId = result.artifacts.taskId ?? null;
   const normalized = normalizeReviewExecution({
     phase,
     taskId,

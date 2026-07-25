@@ -19,8 +19,8 @@ import { spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll, checkoutNewBranch } from "../../helpers/git-repo.js";
 import {
-  writeStubAgentScript,
-  writeCapturingStubAgentScript,
+  writeCapturingGateStubAgentScript,
+  writePromptDispatchStubAgentScript,
   stubAgentConfig,
   defaultPassResponse,
 } from "../../helpers/stub-agent.js";
@@ -95,8 +95,10 @@ function setupFixture(tmp, {
 } = {}) {
   // Stub AI provider
   const stubPath = capturePromptPath
-    ? writeCapturingStubAgentScript(tmp, ".stub-agent.js", capturePromptPath, stubResponse)
-    : writeStubAgentScript(tmp, ".stub-agent.js", stubResponse);
+    ? writeCapturingGateStubAgentScript(tmp, ".stub-agent.js", capturePromptPath, stubResponse)
+    : writePromptDispatchStubAgentScript(tmp, ".stub-agent.js", [
+      { includes: "## Guardrail Articles", response: JSON.stringify({ observations: [] }) },
+    ], stubResponse);
   writeJson(tmp, ".senti/config.json", {
     lang: "ja",
     type: "base",
@@ -236,7 +238,7 @@ describe("gate-impl integration (spec 202)", () => {
     ].join("\n");
     setupFixture(tmp, { initialTest: BASE_TEST, modifiedTest: modified });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.ok, true);
@@ -248,7 +250,7 @@ describe("gate-impl integration (spec 202)", () => {
     const modifiedTest = BASE_TEST.replace("assert(1 === 1)", "assert(2 === 2)");
     setupFixture(tmp, { initialTest: BASE_TEST, modifiedTest });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.equal(res.status, 0, `test-file edit should not cause mechanical FAIL. stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.data.result, "pass", "gate should PASS despite test file edits");
@@ -263,7 +265,7 @@ describe("gate-impl integration (spec 202)", () => {
       seedIssueLog: true,
     });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.notEqual(res.status, 0, `expected non-zero exit, got ${res.status}`);
     const out = (res.stdout || "") + (res.stderr || "");
     assert.match(out, /gate retry limit exhausted/, "expected retry limit message");
@@ -283,7 +285,7 @@ describe("gate-impl integration (spec 202)", () => {
     ].join("\n");
     setupFixture(tmp, { initialTest: BASE_TEST, modifiedTest: modified, gateRetry: 2 });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.equal(res.status, 0, `stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.data.result, "pass");
@@ -294,7 +296,7 @@ describe("gate-impl integration (spec 202)", () => {
     tmp = createTmpDir();
     setupFixture(tmp, { initialTest: BASE_TEST, modifiedTest: BASE_TEST, gateRetry: 0 });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.equal(res.status, 0, `stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.data.result, "pass", "identical test file should not trigger mechanical FAIL");
@@ -344,7 +346,7 @@ describe("gate-impl integration (spec 202)", () => {
       }),
     });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.equal(res.status, 0, `stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.data.result, "pass");
@@ -365,7 +367,7 @@ describe("gate-impl integration (spec 202)", () => {
       stubResponse: buildPassResponseJson("R1"),
     });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.equal(res.status, 0, `stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.data.result, "pass");
@@ -401,7 +403,7 @@ describe("gate-impl integration (spec 202)", () => {
         stubResponse,
       });
 
-      const res = runGate(tmp, ["--skip-guardrail"]);
+      const res = runGate(tmp);
       if (expectPass) {
         assert.equal(res.status, 0, `stderr=${res.stderr}`);
         const env = parseEnvelope(res.stdout);
@@ -423,7 +425,7 @@ describe("gate-impl integration (spec 202)", () => {
       stubResponse: buildPassResponseJson("REQ-FALLBACK"),
     });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.equal(res.status, 1, `stdout=${res.stdout}\nstderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.ok, false);
@@ -462,7 +464,7 @@ describe("gate-impl integration (spec 202)", () => {
       integrationTrustRequirementIds: ["R1", "R2"],
     });
 
-    const res = runGate(tmp, ["--skip-guardrail"], "integration");
+    const res = runGate(tmp, [], "integration");
     const runtimeLogPath = path.join(tmp, ".tmp/logs", `${SPEC_ID}.log`);
     const runtimeLog = fs.existsSync(runtimeLogPath) ? fs.readFileSync(runtimeLogPath, "utf8") : "(missing)";
     assert.equal(res.status, 0, `stdout=${res.stdout}\nstderr=${res.stderr}\nruntimeLog=${runtimeLog}`);

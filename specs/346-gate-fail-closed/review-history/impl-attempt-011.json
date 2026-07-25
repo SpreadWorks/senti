@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:33:52.834Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "r6-task-mismatch-test-assertion-rejects-valid-error",
+      "title": "R6 stale task assertion fails on the implemented rejection",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+      "requirementId": "R6",
+      "issue": "The R6 test includes a stale artifact with `taskId: \"T-1\"`, but the `assert.throws` matcher only accepts messages matching `/phase|tree|state/i`. The implementation rejects that artifact with `provider artifact task target does not match flow-level state`, so the test fails even though the task mismatch is rejected.",
+      "suggestion": "Update the R6 mismatch assertion in `gate-fail-closed.test.js` to accept task-target mismatch errors, for example `/phase|task|tree|state/i`, or split the taskId mismatch into its own assertion that checks for the task-target rejection.",
+      "disposition": "must-fix",
+      "rationale": "R6 requires flow-level recovery to register only taskId-null artifacts and reject mismatched targets. A failing R6 coverage test blocks validation of the mandatory recovery behavior, and the failure is caused by the test matcher excluding the expected task mismatch rejection.",
+      "findingId": "9eb4cb93a0759d8bc652f0e340f1d85601fb10f83d9b12077acf23dfb54f2698",
+      "fingerprint": "9eb4cb93a0759d8bc652f0e340f1d85601fb10f83d9b12077acf23dfb54f2698",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "c523abad87c8e05c59e66dd9125a6ae4fcd0493e82c3738006fce2b742ab2d97",
+  "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+  "planRewindAt": null,
+  "taskId": "T-4",
+  "target": "specs/346-gate-fail-closed/tasks/T-4.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/346-gate-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "ad9dd099f6742163978d2c34a6bced1f8c000a3aec865d0f0a68602090105fc3"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 11,
+  "findings": [
+    {
+      "id": "9eb4cb93a0759d8bc652f0e340f1d85601fb10f83d9b12077acf23dfb54f2698",
+      "findingId": "9eb4cb93a0759d8bc652f0e340f1d85601fb10f83d9b12077acf23dfb54f2698",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 11,
+      "severity": "blocking",
+      "title": "R6 stale task assertion fails on the implemented rejection",
+      "body": "The R6 test includes a stale artifact with `taskId: \"T-1\"`, but the `assert.throws` matcher only accepts messages matching `/phase|tree|state/i`. The implementation rejects that artifact with `provider artifact task target does not match flow-level state`, so the test fails even though the task mismatch is rejected.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "9eb4cb93a0759d8bc652f0e340f1d85601fb10f83d9b12077acf23dfb54f2698",
+      "disposition": "must-fix",
+      "rationale": "R6 requires flow-level recovery to register only taskId-null artifacts and reject mismatched targets. A failing R6 coverage test blocks validation of the mandatory recovery behavior, and the failure is caused by the test matcher excluding the expected task mismatch rejection.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

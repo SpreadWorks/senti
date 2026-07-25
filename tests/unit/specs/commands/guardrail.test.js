@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
-import { execFileSync } from "child_process";
+import { spawnSync } from "child_process";
 import { setupFlowAtStep } from "../../../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 
@@ -69,7 +69,7 @@ describe("gate guardrail integration", () => {
     // uses `setupFlow` which leaves every step pending), the gate command
     // errors out unless --phase is passed. The helper centralizes the flag so
     // callers cannot accidentally pass a conflicting --phase via extraArgs.
-    return execFileSync("node", [
+    return spawnSync("node", [
       SENTI, "flow", "run", "gate",
       "--phase", phase,
       "--spec", join(dir, "spec.json"),
@@ -80,13 +80,20 @@ describe("gate guardrail integration", () => {
     });
   }
 
-  it("warns when guardrail.json is absent", () => {
+  function parseGateResult(result) {
+    assert.notEqual(result.status, 0, result.stderr || result.stdout);
+    const envelope = JSON.parse(result.stdout);
+    assert.equal(envelope.ok, false);
+    return envelope;
+  }
+
+  it("fails closed when no evaluation agent is configured", () => {
     createGateFixture();
-    const envelope = JSON.parse(runGate(tmp));
-    assert.equal(envelope.ok, true);
+    const envelope = parseGateResult(runGate(tmp));
+    assert.equal(envelope.data.artifacts.failureCode, "GATE_REQUIRED_AGENT_UNSET");
   });
 
-  it("passes with guardrail.json present (no agent = skip AI check with warn)", () => {
+  it("fails closed with configured guardrails but no evaluation agent", () => {
     createGateFixture({
       guardrails: [
         {
@@ -97,11 +104,11 @@ describe("gate guardrail integration", () => {
         },
       ],
     });
-    const envelope = JSON.parse(runGate(tmp));
-    assert.equal(envelope.ok, true);
+    const envelope = parseGateResult(runGate(tmp));
+    assert.equal(envelope.data.artifacts.failureCode, "GATE_REQUIRED_AGENT_UNSET");
   });
 
-  it("skips AI check with --skip-guardrail", () => {
+  it("rejects --skip-guardrail as a public CLI option", () => {
     createGateFixture({
       config: {
         lang: "en", type: "base",
@@ -117,8 +124,9 @@ describe("gate guardrail integration", () => {
         },
       ],
     });
-    const envelope = JSON.parse(runGate(tmp, { extraArgs: ["--skip-guardrail"] }));
-    assert.equal(envelope.ok, true);
+    const result = runGate(tmp, { extraArgs: ["--skip-guardrail"] });
+    assert.notEqual(result.status, 0);
+    assert.match(`${result.stdout}\n${result.stderr}`, /unknown option.*--skip-guardrail/i);
   });
 });
 

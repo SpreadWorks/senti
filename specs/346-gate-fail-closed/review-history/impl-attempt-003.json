@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:14:05.554Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "guardrail-output-failure-misclassified",
+      "title": "Guardrail output failures are collapsed into generic guardrail failures",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R2",
+      "issue": "In `checkGuardrail`, every exception from `evaluateGuardrailObservationsWithRetry` that is not an `EvaluationSchemaError` is returned as `failureCode: \"GATE_REQUIRED_GUARDRAIL\"`. That collapses malformed or unparsable required guardrail output into a provider/evaluation failure, even though R2 requires each required-evaluation failure mode to be non-PASS and machine-readable with its own classification. The added spec-local test expects `GATE_REQUIRED_OUTPUT` for `requiredGuardrail: { output: \"not-json\" }`, but this production path cannot emit that code from the catch branch.",
+      "suggestion": "Update the `checkGuardrail` catch classification to distinguish output parsing/shape failures from guardrail invocation failures, for example by checking the concrete error type/code emitted for non-JSON output and returning `failureCode: \"GATE_REQUIRED_OUTPUT\"` while reserving `GATE_REQUIRED_GUARDRAIL` for provider invocation/evaluation errors.",
+      "disposition": "must-fix",
+      "rationale": "This is tied directly to the mandatory T-2 acceptance criterion that all R2 failure modes are blocking and machine-readable. Misclassifying a required output failure prevents policy consumers from resolving the required R2 failure mode correctly.",
+      "findingId": "b875ed54c2585b2f7220ca2f1ef6cf86d9428dcc741db83c3cb563a87940398d",
+      "fingerprint": "b875ed54c2585b2f7220ca2f1ef6cf86d9428dcc741db83c3cb563a87940398d",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "0a139b85bce899fb4e5e327478ef544f749496d10f56ea4f1471d0ffcaf84364",
+  "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/346-gate-fail-closed/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/346-gate-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "4fd018245b496647f785dfb9dcec82845d3bd605c181875dec727601c2d4df47"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "b875ed54c2585b2f7220ca2f1ef6cf86d9428dcc741db83c3cb563a87940398d",
+      "findingId": "b875ed54c2585b2f7220ca2f1ef6cf86d9428dcc741db83c3cb563a87940398d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Guardrail output failures are collapsed into generic guardrail failures",
+      "body": "In `checkGuardrail`, every exception from `evaluateGuardrailObservationsWithRetry` that is not an `EvaluationSchemaError` is returned as `failureCode: \"GATE_REQUIRED_GUARDRAIL\"`. That collapses malformed or unparsable required guardrail output into a provider/evaluation failure, even though R2 requires each required-evaluation failure mode to be non-PASS and machine-readable with its own classification. The added spec-local test expects `GATE_REQUIRED_OUTPUT` for `requiredGuardrail: { output: \"not-json\" }`, but this production path cannot emit that code from the catch branch.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "b875ed54c2585b2f7220ca2f1ef6cf86d9428dcc741db83c3cb563a87940398d",
+      "disposition": "must-fix",
+      "rationale": "This is tied directly to the mandatory T-2 acceptance criterion that all R2 failure modes are blocking and machine-readable. Misclassifying a required output failure prevents policy consumers from resolving the required R2 failure mode correctly.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

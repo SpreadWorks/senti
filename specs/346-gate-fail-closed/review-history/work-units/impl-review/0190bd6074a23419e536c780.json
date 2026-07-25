@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "0190bd6074a23419e536c780",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-28809ee73c05bd98",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/346-gate-fail-closed/file-map.json",
+      "specs/346-gate-fail-closed/spec.json",
+      "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-start-task.js",
+      "src/flow/lib/set-step.js",
+      "src/lib/dispatcher.js"
+    ],
+    "inputHash": "28809ee73c05bd98748f2a7557e1834cc4d2a61b019f98d2f67530318c9ce203",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0190bd6074a23419e536c780"
+  },
+  "targetFiles": [
+    "specs/346-gate-fail-closed/file-map.json",
+    "specs/346-gate-fail-closed/spec.json",
+    "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-start-task.js",
+    "src/flow/lib/set-step.js",
+    "src/lib/dispatcher.js"
+  ],
+  "inputHash": "28809ee73c05bd98748f2a7557e1834cc4d2a61b019f98d2f67530318c9ce203",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:30:37.384Z",
+  "finishedAt": "2026-07-25T16:30:37.384Z",
+  "rawResponse": "### 1. Public gate bypass flag is exposed and rejected across layers\n**File:** `src/flow/registry.js`  \n**Requirement:** R5  \n**Issue:** `src/flow/registry.js` reportedly exposes `--skip-required-evaluation` on the public `flow run gate` command, while `src/flow/lib/run-gate.js` treats public bypass/test-fixture controls as forbidden. That creates an interface inconsistency: help/registry suggests the flag exists, but command execution should fail closed.  \n**Suggestion:** Remove `--skip-required-evaluation` from the public registry flags and keep bypass controls only in isolated test/fixture paths.\n\n### 2. Target resolution ownership is duplicated\n**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R5  \n**Issue:** `SetStepCommand` sets `explicitTargetResolution: true` in its constructor, while `src/flow/registry.js` also configures the same behavior for `flow set step`. This duplicates routing configuration across command and registry layers.  \n**Suggestion:** Keep `explicitTargetResolution` in one place, preferably the registry if that matches the surrounding command pattern.\n\n### 3. Spec content has two canonical-looking sources\n**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The summaries indicate `spec.md` duplicates much of `spec.json`, while `spec.json` also carries statuses and structured requirement data. This cross-file duplication can drift, especially around requirement/task status and retry-limit wording.  \n**Suggestion:** Make `spec.json` canonical and generate `spec.md`, or add an explicit note in `spec.md` identifying the authoritative source.\n\n### 4. Recovered evidence registration contract is unclear across files\n**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R6  \n**Issue:** `set-review-evidence.js` has a `toRegistration()` adapter, but the recovery path appears to register `artifact.evidence` directly, while `run-review.js` handles recovery results and artifact mutation. This creates multiple apparent contracts for the same recovered evidence boundary.  \n**Suggestion:** Remove the unused adapter or make recovery return a single explicit registration object consumed by `run-review.js`.\n\n### 5. Gate execution helper naming blurs production versus injected test flow\n**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** The test helper `executeProductionGate` directly invokes `runGate.runGateFlow` with injected test doubles, while production public routing is handled through `src/flow/lib/run-gate.js` and `src/flow/registry.js`. The name suggests parity with the public production CLI interface when it is actually a lower-level injected flow.  \n**Suggestion:** Rename it to reflect the boundary, such as `runGateFlowWithRequiredEvaluationScenario` or `runRequiredEvaluationScenario`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Public gate bypass flag is exposed and rejected across layers",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R5  \n**Issue:** `src/flow/registry.js` reportedly exposes `--skip-required-evaluation` on the public `flow run gate` command, while `src/flow/lib/run-gate.js` treats public bypass/test-fixture controls as forbidden. That creates an interface inconsistency: help/registry suggests the flag exists, but command execution should fail closed.  \n**Suggestion:** Remove `--skip-required-evaluation` from the public registry flags and keep bypass controls only in isolated test/fixture paths.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Target resolution ownership is duplicated",
+        "body": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R5  \n**Issue:** `SetStepCommand` sets `explicitTargetResolution: true` in its constructor, while `src/flow/registry.js` also configures the same behavior for `flow set step`. This duplicates routing configuration across command and registry layers.  \n**Suggestion:** Keep `explicitTargetResolution` in one place, preferably the registry if that matches the surrounding command pattern.",
+        "file": "src/flow/lib/set-step.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Spec content has two canonical-looking sources",
+        "body": "**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The summaries indicate `spec.md` duplicates much of `spec.json`, while `spec.json` also carries statuses and structured requirement data. This cross-file duplication can drift, especially around requirement/task status and retry-limit wording.  \n**Suggestion:** Make `spec.json` canonical and generate `spec.md`, or add an explicit note in `spec.md` identifying the authoritative source.",
+        "file": "specs/346-gate-fail-closed/spec.md",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Recovered evidence registration contract is unclear across files",
+        "body": "**File:** `src/flow/lib/set-review-evidence.js`  \n**Requirement:** R6  \n**Issue:** `set-review-evidence.js` has a `toRegistration()` adapter, but the recovery path appears to register `artifact.evidence` directly, while `run-review.js` handles recovery results and artifact mutation. This creates multiple apparent contracts for the same recovered evidence boundary.  \n**Suggestion:** Remove the unused adapter or make recovery return a single explicit registration object consumed by `run-review.js`.",
+        "file": "src/flow/lib/set-review-evidence.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Gate execution helper naming blurs production versus injected test flow",
+        "body": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** The test helper `executeProductionGate` directly invokes `runGate.runGateFlow` with injected test doubles, while production public routing is handled through `src/flow/lib/run-gate.js` and `src/flow/registry.js`. The name suggests parity with the public production CLI interface when it is actually a lower-level injected flow.  \n**Suggestion:** Rename it to reflect the boundary, such as `runGateFlowWithRequiredEvaluationScenario` or `runRequiredEvaluationScenario`.",
+        "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

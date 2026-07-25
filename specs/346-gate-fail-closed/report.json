@@ -1,0 +1,2475 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/346-gate-fail-closed/file-map.json           |  32 +++\n specs/346-gate-fail-closed/issue.md                | 100 +++++++\n specs/346-gate-fail-closed/spec.json               | 237 +++++++++++++++++\n specs/346-gate-fail-closed/spec.md                 | 106 ++++++++\n specs/346-gate-fail-closed/tasks/T-1.md            |  19 ++\n specs/346-gate-fail-closed/tasks/T-2.md            |  19 ++\n specs/346-gate-fail-closed/tasks/T-3.md            |  20 ++\n specs/346-gate-fail-closed/tasks/T-4.md            |  20 ++\n .../tests/gate-fail-closed.test.js                 | 289 +++++++++++++++++++++\n src/flow/lib/review-convergence.js                 |   6 +-\n src/flow/lib/review-evidence-store.js              |   6 +-\n src/flow/lib/run-complete-task.js                  |   4 +\n src/flow/lib/run-gate.js                           | 151 ++++++++++-\n src/flow/lib/run-review.js                         |  75 +++++-\n src/flow/lib/run-start-task.js                     |   4 +\n src/flow/lib/set-review-evidence.js                |  63 +++++\n src/flow/lib/set-step.js                           |   4 +\n src/flow/registry.js                               |  31 ++-\n src/lib/dispatcher.js                              |   7 +\n src/lib/presets.js                                 |  14 +\n tests/e2e/231-task-e2e-full-lifecycle.test.js      |   7 +-\n tests/e2e/flow/gate-impl-integration.test.js       |  30 ++-\n tests/helpers/stub-agent.js                        |  21 ++\n .../226-task-decomp-wiring/t5-auto-promote.test.js |  10 +-\n tests/unit/specs/commands/gate.test.js             |  15 +-\n tests/unit/specs/commands/guardrail.test.js        |  30 ++-\n 26 files changed, 1265 insertions(+), 55 deletions(-)",
+      "commits": [
+        "Update gate test fixtures for required evaluations",
+        "Require review evidence state digest",
+        "Consolidate required guardrail validation",
+        "Hide gate bypass controls from public CLI",
+        "Map review recovery integration",
+        "Validate recovered review artifact targets",
+        "Assert typed gate error envelopes",
+        "Recover finalized review evidence",
+        "Keep flow evidence out of implementation diff",
+        "Centralize guardrail failure results",
+        "Fail closed gate evaluations"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Validate the full preset chain once before semantic context resolution. A missing preset returns a typed prerequisite failure before evaluation, emits no repeated warning in the same invocation, and leaves the configured maximum of five semantic gate retries unchanged.",
+          "status": "done",
+          "note": "R1: validates the complete preset chain once before semantic evaluation"
+        },
+        {
+          "desc": "For every required agent evaluation, guardrail evaluation, and schema validation, unset configuration, spawn failure, evaluation failure, invalid output, or schema failure produces a blocking non-PASS outcome. No such outcome may mark a gate done or advance approval.",
+          "status": "done",
+          "note": "R2: blocks every unavailable required evaluation through the production gate"
+        },
+        {
+          "desc": "Persist mechanically distinguishable failure classification: gate artifacts use artifacts.failureKind and artifacts.failureCode; flow error envelopes use errors[0].code. Semantic findings retain artifacts.evaluations and artifacts.reasons.",
+          "status": "done",
+          "note": "R3: persists typed failure artifacts and semantic evidence"
+        },
+        {
+          "desc": "When configured required agents return schema-conforming PASS or FAIL evaluations, retain their current result semantics, foreign/optional policies, normal gate result/evaluations/reasons artifacts, and PASS registry transitions.",
+          "status": "done",
+          "note": "R4: preserves configured PASS and FAIL evaluations and registry transitions"
+        },
+        {
+          "desc": "Production public CLI routes cannot bypass required evaluations. Any fixture or evaluation substitute used by tests is isolated from production routing.",
+          "status": "done",
+          "note": "R5: rejects public CLI evaluation-bypass controls while test fixtures remain internal"
+        },
+        {
+          "desc": "When a finalized flow-level review provider artifact remains after post-hook lock failure, register it as canonical evidence for the current phase, null task target, current tree, and current state fingerprint without invoking the provider again. Reject artifacts whose phase, tree, or target state does not match.",
+          "status": "done",
+          "note": "R6: recovers a finalized flow-level artifact without another provider call and rejects stale targets"
+        }
+      ]
+    },
+    "upgrade": {
+      "result": "success-updated",
+      "summary": {
+        "skills": {
+          "updated": 0,
+          "unchanged": 6,
+          "removed": 0
+        },
+        "presets": {
+          "copied": 2
+        },
+        "agentFiles": {
+          "updated": 0,
+          "unchanged": 2,
+          "missing": 0
+        },
+        "plugins": {
+          "changed": true
+        },
+        "config": {
+          "changed": false
+        },
+        "rename": {
+          "changed": 0
+        }
+      },
+      "rawLogPath": "tests/.raw/upgrade.log"
+    },
+    "issueLog": {
+      "count": 77,
+      "fullLogPath": "specs/346-gate-fail-closed/issue-log.json",
+      "importantTotal": 40,
+      "importantShown": 10,
+      "importantOmitted": 30,
+      "recentOtherTotal": 37,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 32,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The requirement says consumers can distinguish failure types using `failureKind などの型情報`, but `など` leaves the required type fields open-ended; specify the exact artifact/output fields that must carry the distinction.; The draft changes ex...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate found an ambiguous failure metadata requirement and missing migration parity inventory and ownership mapping.",
+          "resolution": "Specify the exact artifact and output fields, then inventory each retained public behavior with its owner and verification."
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "Spec review produced a PASS artifact but its post-hook could not persist the result because another flow held the repository operation lock.",
+          "resolution": "Register the finalized PASS review artifact through the guarded review-evidence command after the lock is released."
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "The authorized flow-runtime recovery could not reopen the draft because another active process held the repository operation lock.",
+          "resolution": "Wait for the lock owner to complete, then reopen the draft to add the recovery requirement and task."
+        },
+        {
+          "classification": "important",
+          "step": "draft",
+          "reason": "reopen-draft triggered: pre-implementation plan draft regression; stale planning artifacts retained — The user authorized a flow-runtime repair so finalized flow-level spec review artifacts can be registered after a post-hook lock confli...",
+          "resolution": "draft step set to in_progress; reset plan steps: draft, draft-questions-review, draft-questions-triage, draft-questions-repair, draft-refine, draft-coverage-review, draft-coverage-triage, draft-coverage-repair, draft-gate, spec, spec-rev..."
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate found the two deferredToSpec entries too open-ended to verify independently.",
+          "resolution": "Remove the unresolved deferrals because the concrete failure and contract decisions are already specified elsewhere in the draft."
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Uses the vague adjective \"valid\" in \"A PASS gate result proves every required prerequisite and evaluation completed successfully\" without defining verifiable validity conditions.; Uses the vague adjective \"valid\" in \"The flow registry ad...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "approval",
+          "reason": "Approval persistence was blocked by an active repository flow lock; no approval state changed.",
+          "resolution": "Re-read next-action and retry after lock owner finishes."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "The diff adds preset-chain prerequisite derivation in the gate runner by loading config and resolving preset chains from `config.type`, while the existing config and preset owner modules are only imported and remain unchanged.; The diff ...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Classified exhausted malformed guardrail output as GATE_REQUIRED_OUTPUT while keeping invocation failures as GATE_REQUIRED_GUARDRAIL.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: regenerated upgrade-result after the R4/R6 source changes invalidated upgrade evidence.",
+          "resolution": "The refreshed artifact now matches the current upgrade-required paths."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: regenerated upgrade evidence after the source changes.",
+          "resolution": "The integration-gate prerequisite artifact now matches the current implementation."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: regenerated upgrade evidence after test evidence regeneration.",
+          "resolution": "The required upgrade artifact is recreated after the test step that invalidates it."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "[REQ:R5] requires production public CLI routes to be unable to bypass required evaluations and any test fixture/evaluation substitute to be isolated from production routing. The diff contradicts this by adding `--skip-guardrail` and new ...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: removed public gate bypass and fixture parsing routes.",
+          "resolution": "Production CLI now rejects those options during argument parsing; only internal dependency injection remains for tests."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 40
+    },
+    "tokenMetrics": {
+      "input": 3034137,
+      "output": 90424,
+      "cacheRead": 2061952,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 125,
+      "durationMs": 2617228,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 13747
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 8024
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 72347
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 197620
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 41342
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 179988
+        },
+        {
+          "phase": "implement",
+          "durationMs": 280160
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 1023239
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 472711
+        },
+        {
+          "phase": "acceptance-review",
+          "durationMs": 328050
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/346-gate-fail-closed/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/review-convergence.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/review-evidence-store.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-complete-task.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-start-task.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-review-evidence.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/presets.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/helpers/stub-agent.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/specs/commands/gate.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/specs/commands/guardrail.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "111eb416c0144e1312cef42c36e6bdf5a368fab8ca0c318b20cb6668a085511d"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "437780e6c7ad9cc96f318440adb5a923192d8c5357b839fcc636f681143ccffa"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-evidence-store.js",
+            "fingerprint": "e642f5bd75ec6dd7ebcdf3541738ca6da24176d45577cc60f379fca9737bd956"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-complete-task.js",
+            "fingerprint": "dee01a96858011b8f3533abaaa0e4376c1f4befc7a0fd5d11eb6f1c8b1949e88"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "5dba8b1649e2e2db4d9dc534853fab928c9ae2af538716766e573887cd16e4a5"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "00e1c0312b848943947d0efcacdde140398106389ab5fc3e1fe9c4cdcf5627ed"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-start-task.js",
+            "fingerprint": "bd59543c0cf11f2f96f6c8a8dbb53f4ba84df3de56cb713545b113a3f15e9e1d"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-review-evidence.js",
+            "fingerprint": "8229634b9294f39a040151e2e59b31efec86d9d61b88e2edfe9cea422f8ffc2c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "ebd7526323409c7a0fa1b285b504ad2c72b8306396cef45fac24cfcede15aaa4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "dab2ac4550fc0ccf490dbc236e8bc7acfdb5a99a3dd79afd195e86a2f0211d47"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "8d2ef5f9a5cd85a96604a6db1362917b2b01a8e6096b51687109cb6078cfeeb3"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js",
+            "fingerprint": "1bca72fb2a5bfb99145bd9738c738c2131597d83196feb6daf98a178b6088c59"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "fingerprint": "5a4da50b3ee720a6ed70cedf4fc85058df7516e3bf0f13c7c1be0ad45dce8702"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "fingerprint": "42a66d4de4c20d3ad862cacc11842bfec3881f2fa4831d022cf196be53f3feff"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/stub-agent.js",
+            "fingerprint": "29235d9fd602ef4b008b15ec8d6cf18e444ebd4dbceaf4f4ed233a22df93b982"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+            "fingerprint": "710b7c4589820231ef955046814e54d96915f7b071cd2a00cc4c1b40150f285a"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/gate.test.js",
+            "fingerprint": "3b759331ba23ade33adf75bffc53c6951746a578e69789b5bae278826319d126"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/guardrail.test.js",
+            "fingerprint": "e96bebf6d5816ab07220696b91feb05486661af959b2b91b3295a1323c43336d"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "111eb416c0144e1312cef42c36e6bdf5a368fab8ca0c318b20cb6668a085511d"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "437780e6c7ad9cc96f318440adb5a923192d8c5357b839fcc636f681143ccffa"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-evidence-store.js",
+            "fingerprint": "e642f5bd75ec6dd7ebcdf3541738ca6da24176d45577cc60f379fca9737bd956"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-complete-task.js",
+            "fingerprint": "dee01a96858011b8f3533abaaa0e4376c1f4befc7a0fd5d11eb6f1c8b1949e88"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "5dba8b1649e2e2db4d9dc534853fab928c9ae2af538716766e573887cd16e4a5"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "00e1c0312b848943947d0efcacdde140398106389ab5fc3e1fe9c4cdcf5627ed"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-start-task.js",
+            "fingerprint": "bd59543c0cf11f2f96f6c8a8dbb53f4ba84df3de56cb713545b113a3f15e9e1d"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-review-evidence.js",
+            "fingerprint": "8229634b9294f39a040151e2e59b31efec86d9d61b88e2edfe9cea422f8ffc2c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "ebd7526323409c7a0fa1b285b504ad2c72b8306396cef45fac24cfcede15aaa4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "dab2ac4550fc0ccf490dbc236e8bc7acfdb5a99a3dd79afd195e86a2f0211d47"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "8d2ef5f9a5cd85a96604a6db1362917b2b01a8e6096b51687109cb6078cfeeb3"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js",
+            "fingerprint": "1bca72fb2a5bfb99145bd9738c738c2131597d83196feb6daf98a178b6088c59"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "fingerprint": "5a4da50b3ee720a6ed70cedf4fc85058df7516e3bf0f13c7c1be0ad45dce8702"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "fingerprint": "42a66d4de4c20d3ad862cacc11842bfec3881f2fa4831d022cf196be53f3feff"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/stub-agent.js",
+            "fingerprint": "29235d9fd602ef4b008b15ec8d6cf18e444ebd4dbceaf4f4ed233a22df93b982"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+            "fingerprint": "710b7c4589820231ef955046814e54d96915f7b071cd2a00cc4c1b40150f285a"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/gate.test.js",
+            "fingerprint": "3b759331ba23ade33adf75bffc53c6951746a578e69789b5bae278826319d126"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/guardrail.test.js",
+            "fingerprint": "e96bebf6d5816ab07220696b91feb05486661af959b2b91b3295a1323c43336d"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "unattributed_existing_failure",
+        "failureCategory": "existing_failure",
+        "failureNature": "assertion",
+        "skipKind": null,
+        "rawOutputPath": "specs/346-gate-fail-closed/tests/.raw/final-regression-attempt-002.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 1,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 1,
+        "failureSummary": "not ok 3 - recovers a mechanically blocked gate when an applied finding lacks repair evidence\n      ---\n      duration_ms: 18.739977\n      type: 'test'\n      location: '/home/nakano/workspace/senti/.senti/worktree/feature-346-gate-fail-closed/tests/unit/flow/set-step-impl-repair.test.js:166:3'\n      failureType: 'testCodeFailure'\n      error: |-\n        Expected values to be strictly equal:",
+        "currentDiffRelationship": "non-current-diff",
+        "changedFiles": [
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/.retry-recovery.transaction.json",
+            "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/acceptance-review.json",
+            "fingerprint": "baacaf77471d4a7caa17c35e4b7cdca43b9d5f3b85417634571ea2033e8dfbdf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/draft-coverage-repair.json",
+            "fingerprint": "da70897233cbbb78eaf78fd5a049504c74f89c5263e005ccf974d18d3e59e757"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/draft-coverage-triage.json",
+            "fingerprint": "fcc71be3ff6297f52d7143a6f49956452518fc0804abd8af3417d5cc0227574b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/draft-gate-source.json",
+            "fingerprint": "87cb07c7a3911d1d523024a471add68df1f513ed3f3e4a69e5a673f412f8324a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/draft-questions-repair.json",
+            "fingerprint": "6744eeab512fff3d88a528e934405a02239754d5dd9fe378e10c052a81513af5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/draft-questions-triage.json",
+            "fingerprint": "9ea18f90fa762e63949658e93a6f288015ceac67c2fad10c7ce191ff1c45d9f0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/draft-review-coverage.json",
+            "fingerprint": "9fcfdb519325342d417812510de76921b8bd05edf49e7e473fcbb431bd7cc015"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/draft-review-questions.json",
+            "fingerprint": "9e8dfa86423dac5013a50c280836820b32e22c21001c30982edec1e4e1b1e815"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/draft.json",
+            "fingerprint": "ead089a23c37d66f51b29f493fc9186558a8c8460d4e20e87cb5dcc75345fc61"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/file-map.json",
+            "fingerprint": "feae2078069fa5c81f54fd30d1cc76095268b600a50f2064125a5db3aaa0b87f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/flow-findings.json",
+            "fingerprint": "c577d68fb270f8faaacdef0dea5ea5d4941c19b54716248a207931754b86581e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/gate-impl-memory.json",
+            "fingerprint": "e697399f45e69117a335e37ce21335250fdbd22a7f04cfa8af17df285c1d98b6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/impl-gate-result.json",
+            "fingerprint": "3510ceb8bb4856b4c0037618be1176c27af32d70fda42ed42fe1727764d7b965"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/impl-repair.json",
+            "fingerprint": "89945f6ac09c046a6bd9b01de69d73491e6767383b656f90d98d5ca98b937143"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/impl-review.json",
+            "fingerprint": "a16e077f06a663a945cde687fda1f818659ce533d8dd28d4cfa14e7c0d0c2048"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/impl-triage.json",
+            "fingerprint": "75204b3cba10a8655e16c02f61c2ba6cd184b3c2f0edbd8e7d9c89c04c77f081"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/issue.md",
+            "fingerprint": "a04589a6b544af19b97adaf43ad9273b492216f9553f10ac003c22e68a27e1d5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "a213dd3a860a8b57ec5bddc04e4efb4bf7395f2db02c30637a2f629601d34218"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-001.json",
+            "fingerprint": "d3767add861c10555b7acee9efd59a1ed4c2e61f37ecb7d8683fe288bfffcf6e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-002.json",
+            "fingerprint": "44e5e4ed5ed868492bce62d3f7025355fbe5c57630ced4d696f1115e73e19f0e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-003.json",
+            "fingerprint": "b69fb2c1e87f921579c16fd27f1c631e313df145c7362c7157ad2bc16593edbe"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-004.json",
+            "fingerprint": "d0e0d173f1aad79b28a8cf3361199e567ccce7e67ce2f6401dcc54cbc246f76d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-005.json",
+            "fingerprint": "8dbc605d20855651b06abc24bcca8c2f8853b655e3a7a1010dc0438c0b7eb999"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-006.json",
+            "fingerprint": "3c3626dee5e177fe0a921bb8a9a1a15713621cafab248115ac2d7c35646765d0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-007.json",
+            "fingerprint": "f4b5593b4d224959619a1bdb094257254943278ebadf0f46a1872b34865fbe0a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-008.json",
+            "fingerprint": "14b953b0cbe697b26c4d0f16360ec47bfaf4edb57821d3558002f5685f1d90b3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-009.json",
+            "fingerprint": "f09730e4f0127a97cdb8219ca1874921097c41682730a7abf2939c5ae5c0e54d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-010.json",
+            "fingerprint": "d8d55785a634d2516e18b3a7e7692747f9fbaada6f6bbe80ee00ee7e712724d5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-011.json",
+            "fingerprint": "38892339a206733ac40c02781785e78901fa33d0c88f38e08bde2b4f02960cc1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/repair-fingerprint.json",
+            "fingerprint": "a05600cefad55bcfbfb3c132c699d46227d008ae7a23f3976350af78e56eea15"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/retro.json",
+            "fingerprint": "f02677d94de193459c18883fffeb8e4216a0656f9d0cb49b9559bdfbf65eeb0d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/retry-recovery.json",
+            "fingerprint": "b45d37c6086aee6713e49968082654561d81a314643bd0a2c38713284847c91c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/037f071c4bec6c33548aa0b175eb7c9d8263791a1dd9fd707584bab527457fd8.json",
+            "fingerprint": "e0dff847ffb07591e5bd1acbca4b267ae36a51d2f95bb319fee3a907dd161f3d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/0456da509867d044910b887e614670193d5e4016894fba96b3e4663eb316c2c8.json",
+            "fingerprint": "744876b685ebfbe231418c98cb3ba37070aaefce7d2d6edf1acba4340bbdd434"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/04d25057f50bbccbf29058685826583566979fe2d1d431e9145a24d2f3a61d70.json",
+            "fingerprint": "27e2a52c12b17debb81fd989455858cb01ee373cb82365a532004671af0833fb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/05d0c586f54e1d1ed71ac5f08798336cc3ca7c4fdd2b98ed9e63253f100d510d.json",
+            "fingerprint": "239d8c6e8ed8c3282b19ea29718d3cf252f851c0403e72831e7e0b1cc1fc5a79"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/06bf0885c5ea3009df3d36e046e47784f944650b50b6e38d83f5a93fe924b69d.json",
+            "fingerprint": "db5f7436db3468f8c059116f40ee56d8061bb223ee010c2b82e360271b578013"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/0e01042c0ffd1d549e36e4d679c33a8b5599f5c7b6d711a9ea7cc75da008b364.json",
+            "fingerprint": "76845e5e64abb7fb6d33cde9bc584fa6f3a870f13416a913d0756cd792a5c3d0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/10b07a722d366e72d934cef7b3060f4436fb7bc8d0457db33de9a3ced6b948c2.json",
+            "fingerprint": "d81db7da2f768d59ed71cc3b162809343f210a72764a93ffbaee5069c6e5e5b7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/11b2d4f686d5e8f680d44b1b69b4d1f53352c7b859b7bd28220eea1141061bd1.json",
+            "fingerprint": "4006fb272ae8164591b21abea2c04e6493acadc92207b86a1c6d408e8194a774"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/216e6bedbb8c84267e64d5ab73d55fcd40b16807ef767c3c9df20b6428a7d654.json",
+            "fingerprint": "43077079979f25955fa610df6edfd45ad3f14588f65f1268a8c98cb031302b91"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/27a8949f9c7a15b7025f2ee894ad0b42034abeb2e7eadf1572f402e05a6937c5.json",
+            "fingerprint": "84fd791d25f809b6e948acc972a19e810349a7acccc147a007f937aece269981"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/29bded05c9a48b8ca47cfdfb72bb9eed9a9d76063286fcfb7f29679c9021e02f.json",
+            "fingerprint": "c4a61eb24ae2b2dfdb7c7f2878c81e546711c21e21c8b49a5fc4b3f447928523"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/2e0f3c8c43c4eee12cf2d9d90c289cc9a5e45420e823560869b1a5a44af75237.json",
+            "fingerprint": "06c44171d2da94c3c7a691aff51c7d9fa104459672b906533b611376f30963da"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/35c0021298c320213a75af8f89f11724918dfc6f0c5b09d40098fb4c68971346.json",
+            "fingerprint": "1fda414e4dd8d0e6a183ef00555ffbf62c8d3b0f213b6a4d7a133551c420fdb0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/5fc41f8ef2fda61c60f4fa90140087c5be17dcbdfc6d92d995e1d990e4a13117.json",
+            "fingerprint": "585c95f23c7ad8f2199ef137e65297853ef5f3959e100d2923a09cfb9e553ee4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/6444db91bca3b9cf65031dbc96fc6142bf19ff6b366ff722fbb4c505d9cb10bd.json",
+            "fingerprint": "01492f6fbf45260126945e6a299035f206f85c26ae0ec6c6982534ca316d7df6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/67e1abf3e624a21e55111a769eb14b4de7bbbef4750aa5ce292683f745c7029d.json",
+            "fingerprint": "e14eb6cff47e853de62e9180b145d2283eb3af2e5f21d4becbe4a08213f31cfd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/6b8a27144409a3b2d2d1653d04270000b5057fe22e04ab47c6c76d24bfe3d415.json",
+            "fingerprint": "eb5e98494228db3dc2889e5dfea6799abf4dbae0bf3ca5bce9076bd0d76d4d5b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/6bb6cbf861d868b2eed2c7941ed3b65e44bb59c54ca4065134897355ed4a13a4.json",
+            "fingerprint": "282827c6aa999bc6403b5840da32019b5601f49d8398b6407ae2b5ff0d82b63d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/7fcde07196d02a094f4dfe2116b504ab4d2ca8e61f11907dc643333897db04cb.json",
+            "fingerprint": "bd23d1733eb3bcbf7b367ebe52a937e0735753e5a3aab5b46129618c2e0cb07f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/86c82d22ea9cbeae3a1a06a36780e3de46c06d8252e0d656a57327f7af497888.json",
+            "fingerprint": "d654e384a7f1f0b899d2537f494ba869346e11b5d35f39711880e819cc14c4c5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/8fda19b1e9c40517a2d1c3770beee04ecdfb1e4f6396467318ee56e2933e24c1.json",
+            "fingerprint": "3e1f705ac3e7f850eb34c24a610754c5b608c2610c3f645ce520738fae2d10f1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/93e1750cc4482c7e103761fbda1f4a15fe6e73626b15b967d9cf8d3fbe689b82.json",
+            "fingerprint": "23629c75d38ebff390b11c9358d1ca137c4803f043c15aabdb1761949a7e4e82"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/995c213a3e702259a87078706e537f97a57717fe5593529ab6db5b7ce82435b4.json",
+            "fingerprint": "2c5ff54a22c52ac417e3d4b525446d3c94924955b11accd594db6f40f890cc2b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/9d26b9c93adc928dfd8b8baa77e30f5085b5bee57ce920bf44f79ce0016f9714.json",
+            "fingerprint": "46b102de496a6e70e1d9e8257f3c1dd9b194d167cb04ce6e5391a2063b736d59"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/a6e7ebad4f10ca2e84a1df3af72166c8767843c4a367abee89291e3b25c2e7e0.json",
+            "fingerprint": "a97b09240ddb4fe761a9f661d8f79c6ba5fc01e1906da9c6580d51443303d4b7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/ab21103f7da162ced266f35d1b569b7953d2543fae9e12f78077a242c2ab681a.json",
+            "fingerprint": "6f052a9590a7c158260c189c1da131d4c35d8ab484da91c1b92064457f8a9442"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/ab21b088a277c1d6a78b7441a52e959e8162227950d1ae0d0f62d7b6f8cf3d3f.json",
+            "fingerprint": "ef1eec145721527d356e69c0feff30f00d9a375fe7867b8e5735ed3d2236e45e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/b1db81f1bc805cdc2c76f3c16d75bae024c65cb9b0b25882d75a7a6ce7ad2856.json",
+            "fingerprint": "eee1d706f999e095288b2cbb9e2a042109ce368602f37832baf7cbd14291f243"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/b2c6bdb23999dbbf9e83a74b94bb103b11ba9f787689a27f4d2efd0471dc754c.json",
+            "fingerprint": "b39bddd61ba52c269e684d907664d83e77c81e635def4fa5f5e16ee6e1506427"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/bbaa15e638f31442eadd5655eb42aa763a04d63bba7cab0c40ba8c695c128e40.json",
+            "fingerprint": "c355ed9dd99670e7359034901d36023faa9b8557224dbfa853125a119d92d8c0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/c0ef92872ca74c248bf6fdb46ec6d5a55fd5a5f9990eab0d58b6fb7009fbe663.json",
+            "fingerprint": "67128d0caf13aad994f99732fcd74cb1ef0ead83770c96e37f06f22ea3d72af6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/c4b3fe344be6bf52fd5e3883c49658fde69f35423b63e1d1c9d2b045e91b4e7a.json",
+            "fingerprint": "e0675b14db15d4bcd2eacfaebd20da3334962528e2dd607e613eeb9d89d1436a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/cbff3ed87e634d8d297f9d3c49e1c692447402aeb16c471b5bc5807667683668.json",
+            "fingerprint": "ea0c0bd62b851be3511fa3108fb934d7d02628ced7d9c28139c988047388cf75"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/e732e3c7d1ddd55de98eb828d13bb99b38a7bda45223086ab8ded137d4908863.json",
+            "fingerprint": "0908907179dfc39f7874fa95da958f4294d0656c9ce635f35c072d4f0163c7b2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/f3e655bfa168c157b1541c4224d1b86fcd361d08dca1595569e7990bb269b773.json",
+            "fingerprint": "35bf75224171892dde160ffc788661e5d80ff2f8aefcc6746c9e9824fef15421"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/fc26129883bc3ae503e4793f2019bb244bcd93a6e4a0907568285eb282c9effc.json",
+            "fingerprint": "fa6d306417624ce280570decf3771ce1e7f369e17e63f0743be7c6f914ba5ed2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/fc66cf1b7a656f0f78addbb959a533f80c535ee3cab4c25349717933658f3dbc.json",
+            "fingerprint": "142af22ca6ff1078bd2aaeb30eb7b430a37b8410a276ef79b7750048a31b8c6d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-evidence/fc7be35d3918ba8878075e0cfb7ecbf13d21eda5f0c7832e8d6843b5cd67714d.json",
+            "fingerprint": "5660bdf65f72fd32d5d071b0e38a6d422e5e5d5b3c423c9dcc5c419ff3877dc8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "a94f8adfcbfd605ab2b29dca7cf85aad23f055f047d258a76c3aaf58ee5b838b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-002.json",
+            "fingerprint": "9afcd93c5e8acd4be8330dfae246df159a828a5bdde010dad02e7659b7646132"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-003.json",
+            "fingerprint": "b2054a8e73ca47300285da0d72fdb9eef25e625540158345f45d14b376dd1f87"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "35a7c5ed92158111789f6152af8363c113e8e91785d66c1e9eb0781e00206c1f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/draft-questions-attempt-002.json",
+            "fingerprint": "5348d7602ad74c41db0f4cf66691812fdda3a44124cfb4bc2f43ad575fbac8d7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-001.json",
+            "fingerprint": "6742e6ac46f0cd41187cbb700b93f63b37017dc480d4a4881b1cd559fe0f3923"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-001.md",
+            "fingerprint": "1d882059eee05a4717c78b829f450ee27363ee8cbbb9ab7ff4b7f3efd2f3e00e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-002.json",
+            "fingerprint": "97d21e5fed44a5b57b56f7d5889a09472937cc4526202b9673470513f4bfe5db"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-003.json",
+            "fingerprint": "0241abcf73201357d99431a28490d8b95fb6fe026f38133377647d8e79dbd04b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-003.md",
+            "fingerprint": "9a8359ceb70df2045c15b09cfdc11c5dfb7bc1e4bee221a693a618618e76aa90"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-004.json",
+            "fingerprint": "cc9c465c5a578f24ef93b84a19dc6f1a3da78d144d680fc88e04d4c115b62a00"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-004.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-005.json",
+            "fingerprint": "c90c6710d4a5ca8ea5488dba75ec459e1e566fb97e6a2801125a68a94b1a175c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-005.md",
+            "fingerprint": "e9d9ac120765fcc6e5bb1792e17ba161ef4f16d5e4f8188e093c93a9000ba2c9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-006.json",
+            "fingerprint": "354d92390ae1a372d42e673a9fcd1221c8fc0532d3589105ef684112c102c663"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-006.md",
+            "fingerprint": "1286d72b178c6984c6c9eba4cc359b84f547e38098b22ca30c1d85e2bc89f22b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-007.json",
+            "fingerprint": "12ff669488301f9069239ddbcc10d6b28e7eea50d5921e1d8bb98ef122ac61dc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-007.md",
+            "fingerprint": "58a4dee95b647f1e4c43f9649691223fff5899d2e414ae155f1558e05c59e037"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-008.json",
+            "fingerprint": "e9332dba4883ad9fae838d0b24675ba7fb42745058f37307b99e9160d0bff517"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-008.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-009.json",
+            "fingerprint": "4256c89aa65042df3dc24371ad8898eaf108151785592bf64cf439b7a1180f35"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-009.md",
+            "fingerprint": "0429ef18d6260e6c8b8b2d2523d051e04cf49e761945ceea51772402bd19b7ee"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-010.json",
+            "fingerprint": "f05618be5a8d52480b4dccf6b2194855ed01e59f120f0bd3fd8f63f844001fdb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-010.md",
+            "fingerprint": "2261a66b24bc714e92753aeaa43f226fcc44fd245e65fd221a56b70e4f81dbbf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-011.json",
+            "fingerprint": "aecab4852e00d2e7d54229c065be7013b176d0add113f442ccb3eb5a258cd30e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-011.md",
+            "fingerprint": "2cf174f9976076d064b589efbd9003ea63bc15f06767aee878ddb8bebc42f005"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-012.json",
+            "fingerprint": "5faf57184da19917bb5c2366619e34d9c792cc2be0e93f403f85a8c906900e40"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-012.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-013.json",
+            "fingerprint": "7e19b6b3f2583edb8894eae5a87ff8909c2ab603cc68fe587a1ae289e75fe26a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-013.md",
+            "fingerprint": "ba42a1ecb84409b07f429c5c13e0351ed746759545bbada74981014d134e8751"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-014.json",
+            "fingerprint": "98830f5002a592cf0a50cb770309e9d89a919510a570b3435c54397512e650a6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-014.md",
+            "fingerprint": "182dfe43f5bbec660d33f8811e31cc8f8e4f5d81d6233bf74ce92079f173f2e4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-015.json",
+            "fingerprint": "ff1d12f7b882e464ecb0c1223d8b5c3d44995ea9db5b30b1f1f9b8d7a4a9119d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-015.md",
+            "fingerprint": "f1275fa14eac5994edf63f395dc2a0984cc75e897bb6b65a843b06e55deb0d8b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-016.json",
+            "fingerprint": "8fe37b87fba362d11d766bb3f1c41510a42ca294a92a24a854d3aa7671a03c68"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-016.md",
+            "fingerprint": "16fb925e607806601515b224a325afb115856bc979808e0ffbc8d92c59fca65d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-017.json",
+            "fingerprint": "cd37925541c8914d8d568968ba77dfc9040e0e6919be12a0a343f8c37c4994ff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-017.md",
+            "fingerprint": "08c4e4ec0088effd5371b09332793a4408c8dd07950ff12b22d66371de1bb3e2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-018.json",
+            "fingerprint": "f03afbd46e234d4da4763be60fd7c51d403163ce40f4b3e909967e599a460c57"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-018.md",
+            "fingerprint": "8ea1771ec11885eac6117a536f9e272a1749729a3e6ab42d278cf2d17546c820"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-019.json",
+            "fingerprint": "901ea2bba26f3a612fc45882a36e62ef84ae4ee8664bdd2c91d87ccee1db427a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-019.md",
+            "fingerprint": "cd3db63a87f10bf15029ceeee1cc6374de7cbed1179613549ccf6e305ab67521"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-020.json",
+            "fingerprint": "41bf3346cb252f507d9bdff369208431881f7bbb4ef21008e74628ef4f59d5f5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-020.md",
+            "fingerprint": "4f4bd79e58fce03e533287a029bd68c0601b0694e844ddb42a585bc47a3482e0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-021.json",
+            "fingerprint": "5b792778b36ef1f0d198028384426614e3d48393be3ec2450c4a9706e68423fb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-021.md",
+            "fingerprint": "3b477c26f14b021132b3b4b480b83e87db13b2186d427c086755a117632e88b6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-022.json",
+            "fingerprint": "f5b07e45e514976f58b9d18d06cf75c8b8001207863582d153dd22ffbc327c22"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-022.md",
+            "fingerprint": "1d5f3705679d85f5974dbe6394d9328f46ac72a4b54007764dffff046a8158b3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-023.json",
+            "fingerprint": "82d9fee0aad2c6221d329a89592afff669285e2edfd1e3aa4ded05f0321c8f9e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-023.md",
+            "fingerprint": "165eeecd6082a1fcb7c6a808c6983c10e8c01ede7004d05c06a46664dd285af3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/spec-attempt-001.json",
+            "fingerprint": "4f9a436594c5f7bd22aeb5be20edc4f94006848c5e2fbc1b0f3b380da8121c90"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/spec-attempt-002.json",
+            "fingerprint": "59b75f43ab2948b9daa23278f58e079e181c7d1e8e2611dd4c789fd209532142"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-001.json",
+            "fingerprint": "a3258184ee6f1e8239b6e902379f773661baab6d082cd2813fd4443aace0ba6c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-001.md",
+            "fingerprint": "0c1e1bc435bd851de3c9c17058705578c7874b5bdd24497fe6c07b37d6e43c84"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-002.json",
+            "fingerprint": "d9fcbb0fb8dd16bdf877f55aa960c882a2aed81cca5cac92f4be606bccf96eca"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-002.md",
+            "fingerprint": "d603317abc670386fb88dd36e7a77b7cc215af6bf6d015bd5730671b66f44661"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-003.json",
+            "fingerprint": "d4ffb17acca5d6c74719b2e30c3a743faf5bb2ba32451fc7c526689037cb30c4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-003.md",
+            "fingerprint": "cf104b854f7a5897b36a30e53e19332fd13e55ef689161a1a29f7e001f2b8bda"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-004.json",
+            "fingerprint": "05d5c7598f7f3ebb1a377a34f666a8f9cf2a7043149f4be96c8ac93e1be6b642"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-004.md",
+            "fingerprint": "d4bfce8ba89cbcc19470c9b44fa52388783b70426b2147fc55c6cab566c75dbf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-005.json",
+            "fingerprint": "ba482f43b065ae42e2735f189b4321f0d893c33b7842a0f90a6d548bc972ef9c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-005.md",
+            "fingerprint": "6b4d5704140e97367613a01148252f226c69cdad0f46e0608a5963e767867756"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-006.json",
+            "fingerprint": "cbc2910337df9a1842985627d4eece557e78c843dfda2cdc30a7da9133f690ee"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-006.md",
+            "fingerprint": "6c828a7516eb8e7d3300a67c39be951a6fe1d35c399ac1f5893b57db74e42ae3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-007.json",
+            "fingerprint": "16eea96361e7e4bf54e4f5d4cb78da6ab59f4ebdd6122309962b67418ee6b376"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-007.md",
+            "fingerprint": "0912eba4a815a95a76fcf57e9d05fb65f1c5fe19115e787d3e28b1f46c4aae48"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-008.json",
+            "fingerprint": "08fa50d82eb39667bbfa5ae592655fa2f0d6acc57ca7c55a005ff0887621f4a3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-008.md",
+            "fingerprint": "79d73454b975acea478dbb9f829ca348ebf3144be5b194f5da34857bde874d2e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-009.json",
+            "fingerprint": "6f3830f54829e4ae676b14be6a937449aeda3b1eeae135a190fe6c83a8fb4f0c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-009.md",
+            "fingerprint": "f5364cd608a23b4744cf488385725b3eb169e0045184f3498092435209437200"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "81bf0bb345f890bd93b1731300be9b5f62bf7974dc0b69b51885ed258c8fcd27"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0190bd6074a23419e536c780.json",
+            "fingerprint": "b447801d7bdd736e5ac1d2194f67f5563a5c569869414c409ab4384a8cc61289"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0a3eb3364c0701025f9931fa.json",
+            "fingerprint": "c0282a20120fe32602e92f362a21f981c119349c16453f0b1a116701a58af2a8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "0248f86f4b01c2d47cd1b61872641083270cf81faa87ccf9facd9d561fc559f7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+            "fingerprint": "ad9afef3ad8305c524ec424ed329d7aa421d44e1066366e8aa36fa908cdd1a76"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "5fdca6c88a8bf1257f5ff6bfbfc5e723193f3d2c5badb114f25eacefc38c2687"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "b99da70fd4bff711713f769be812406eef6f037f900f27d0318b1295419d34af"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "7aa4e21fcef0473cec40a81f2c0a57985c58d298c5fba5b73865166ae1624443"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "c37903c3bb005e77c42a8718b6da82e51306887444b9917ab8fce9139f2f29b7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "20ae5563aa3164450c4db8c25e9dd8e678a2c0739ab85286c9497d0436300530"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "d913f0a754ee4bb541879aea0cdf5a1b5eed1be9ae5319ad7982937279a856a6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "38317b9931a0602d3887b17745347bbd4bfe78ece0437049c3482be0dafa767d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "7a5a50befc2330c6a5cc060c0189768c00b7d301192a46eb4fa9dfc22988d124"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/7a1f6ff2c619415572ac010e.json",
+            "fingerprint": "412f7ae7e1280d1f36e63d09af9b0f0c3f673e451015f4b8e44304dbb5e8e521"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/82017d1fd7f1861646caf711.json",
+            "fingerprint": "80ecc090913e2a3ce4f3e7d63dee742308ab3c19db8915d9cf85bd15dd78d9e5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "a8733a70d5cf21590c8602aa22a92c25024792b51e009bb85ca010417c61ef5d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "2b5e17442f3b65d7aec93120d3510e1a70134a96d4581339f7b43f1728b09001"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c04a7dd95a5753538b520116.json",
+            "fingerprint": "3271c2e6687bd1b4b80cca21755f4e682097e6a231fb34002601f2fcb130b5e0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "84a420542f4ed1097439f11eef81b595d04cab4f35fbbf3b52b4b0831dee71ff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c653570c990504839493744c.json",
+            "fingerprint": "f2a97b8484770809a050cc90df5f53ee045f02fbde4c0a0a2c55037468f55e31"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "eabe1b51d684ee4ef7da684a54918def2d68cea6c17e5fb133723cbbac337c06"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "0250c81763db81ccfa07b494f607d73d78a8c865009dd911b08b790a73fec72f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/e63421196dcedf8f7450c14c.json",
+            "fingerprint": "a2348205b32d1f68caefd9e314025ab0216757596fa75517ba6cf25a7a95f284"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/review.md",
+            "fingerprint": "165eeecd6082a1fcb7c6a808c6983c10e8c01ede7004d05c06a46664dd285af3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/scenario-validity-result.json",
+            "fingerprint": "7255c6ece7d5523d148372db7c472bdb160569d79073e67cb40e3baf74cd1d4e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/spec-gate-source.json",
+            "fingerprint": "56a08b65f758a38ae1faab0cd8738f85bb579d029b5902ed832c9069bcd764e7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/spec-review.json",
+            "fingerprint": "4b731a7458d43fcfcec4180f4335411354029756d19adc08de7457a4079e67be"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/spec.json",
+            "fingerprint": "eeb16f4c2c86a9aec4018cf53e5ec7ac1b28f0d0654b6e578682aa15f0d3b24e"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/spec.md",
+            "fingerprint": "a1622dea5cd730cb9223abfb75817a5741e62187073ed95156073b6ee7cabb8a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/task-impl-gate-source.json",
+            "fingerprint": "caffb865237e2c37fe0431e48903c92960883c98aa276c7223518f734cf6a7fb"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/tasks/T-1.md",
+            "fingerprint": "57c5030bf37f511dadb0c5cc03e2e4955ea9136564b304791e23cdeead83acf6"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/tasks/T-2.md",
+            "fingerprint": "2dbf591e02e68ecad7382f5e66303235d9430ef0cfe0645dd334a32c6d04cc18"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/tasks/T-3.md",
+            "fingerprint": "9ceaf73bc90d0ea042887674a5b705013179f621fd043788af341e129d6ac60b"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/tasks/T-4.md",
+            "fingerprint": "9a221e3b88f56d5e5635d022cf5ffb047a0ec6dcb081316db26b6eee2f863d48"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/test-coverage.json",
+            "fingerprint": "f15fb1d152d268c3e3f1c7b62ce313a875ceeab48ad378371885c94f04aec554"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/test-execute-result.json",
+            "fingerprint": "8ef065b868642d093a97c79fbde7ac203529a67fedf430a53a54c33cd6e0c659"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/test-result-review.json",
+            "fingerprint": "9ada4caada2cc0fea341531eeea9eeac51fbd0c7959807433b172a26c9527784"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/test-result-review.md",
+            "fingerprint": "d0572d896f23e8925d427a166fe6d43ff7b2cbddcd98810f10007196ba2a9330"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/test-review.json",
+            "fingerprint": "8a05932cc2a1f0006a0eccb056bdeff1cbd933519e38ad46193622bab0e7e379"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/test-review.md",
+            "fingerprint": "f5364cd608a23b4744cf488385725b3eb169e0045184f3498092435209437200"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/tests/.raw/scenario-validity.log",
+            "fingerprint": "a844db4ca056508fdf501488c35da3783c842a77bdab5b9e680c92e9d4357977"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/tests/.raw/test-execution.log",
+            "fingerprint": "cffae20468a71d715a89f67cb75ade4b84fc2d5f37f62d032cab965a382a0590"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/tests/.raw/upgrade.log",
+            "fingerprint": "b04f78edff7b397a4b7fbadc33923f1ae84c09c65afb1a053e9bc338f26d3c30"
+          },
+          {
+            "status": "added",
+            "path": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+            "fingerprint": "c545d525990a59cbb2957419c2335ac8d7f141628fdbde0a582892395f9b47d8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/346-gate-fail-closed/upgrade-result.json",
+            "fingerprint": "d24ab00cdd8a31c0e51e557da2f8b84524475092e66ac83b021f6f6a17857d97"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "111eb416c0144e1312cef42c36e6bdf5a368fab8ca0c318b20cb6668a085511d"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "437780e6c7ad9cc96f318440adb5a923192d8c5357b839fcc636f681143ccffa"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-evidence-store.js",
+            "fingerprint": "e642f5bd75ec6dd7ebcdf3541738ca6da24176d45577cc60f379fca9737bd956"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-complete-task.js",
+            "fingerprint": "dee01a96858011b8f3533abaaa0e4376c1f4befc7a0fd5d11eb6f1c8b1949e88"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "5dba8b1649e2e2db4d9dc534853fab928c9ae2af538716766e573887cd16e4a5"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "00e1c0312b848943947d0efcacdde140398106389ab5fc3e1fe9c4cdcf5627ed"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-start-task.js",
+            "fingerprint": "bd59543c0cf11f2f96f6c8a8dbb53f4ba84df3de56cb713545b113a3f15e9e1d"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-review-evidence.js",
+            "fingerprint": "8229634b9294f39a040151e2e59b31efec86d9d61b88e2edfe9cea422f8ffc2c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "ebd7526323409c7a0fa1b285b504ad2c72b8306396cef45fac24cfcede15aaa4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "dab2ac4550fc0ccf490dbc236e8bc7acfdb5a99a3dd79afd195e86a2f0211d47"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "8d2ef5f9a5cd85a96604a6db1362917b2b01a8e6096b51687109cb6078cfeeb3"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js",
+            "fingerprint": "1bca72fb2a5bfb99145bd9738c738c2131597d83196feb6daf98a178b6088c59"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "fingerprint": "5a4da50b3ee720a6ed70cedf4fc85058df7516e3bf0f13c7c1be0ad45dce8702"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "fingerprint": "42a66d4de4c20d3ad862cacc11842bfec3881f2fa4831d022cf196be53f3feff"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/stub-agent.js",
+            "fingerprint": "29235d9fd602ef4b008b15ec8d6cf18e444ebd4dbceaf4f4ed233a22df93b982"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+            "fingerprint": "710b7c4589820231ef955046814e54d96915f7b071cd2a00cc4c1b40150f285a"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/gate.test.js",
+            "fingerprint": "3b759331ba23ade33adf75bffc53c6951746a578e69789b5bae278826319d126"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/guardrail.test.js",
+            "fingerprint": "e96bebf6d5816ab07220696b91feb05486661af959b2b91b3295a1323c43336d"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": "specs/346-gate-fail-closed/.retry-recovery.transaction.json",
+            "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/acceptance-review.json",
+            "fingerprint": "baacaf77471d4a7caa17c35e4b7cdca43b9d5f3b85417634571ea2033e8dfbdf"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/draft-coverage-repair.json",
+            "fingerprint": "da70897233cbbb78eaf78fd5a049504c74f89c5263e005ccf974d18d3e59e757"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/draft-coverage-triage.json",
+            "fingerprint": "fcc71be3ff6297f52d7143a6f49956452518fc0804abd8af3417d5cc0227574b"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/draft-gate-source.json",
+            "fingerprint": "87cb07c7a3911d1d523024a471add68df1f513ed3f3e4a69e5a673f412f8324a"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/draft-questions-repair.json",
+            "fingerprint": "6744eeab512fff3d88a528e934405a02239754d5dd9fe378e10c052a81513af5"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/draft-questions-triage.json",
+            "fingerprint": "9ea18f90fa762e63949658e93a6f288015ceac67c2fad10c7ce191ff1c45d9f0"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/draft-review-coverage.json",
+            "fingerprint": "9fcfdb519325342d417812510de76921b8bd05edf49e7e473fcbb431bd7cc015"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/draft-review-questions.json",
+            "fingerprint": "9e8dfa86423dac5013a50c280836820b32e22c21001c30982edec1e4e1b1e815"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/draft.json",
+            "fingerprint": "ead089a23c37d66f51b29f493fc9186558a8c8460d4e20e87cb5dcc75345fc61"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/file-map.json",
+            "fingerprint": "feae2078069fa5c81f54fd30d1cc76095268b600a50f2064125a5db3aaa0b87f"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/flow-findings.json",
+            "fingerprint": "c577d68fb270f8faaacdef0dea5ea5d4941c19b54716248a207931754b86581e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/gate-impl-memory.json",
+            "fingerprint": "e697399f45e69117a335e37ce21335250fdbd22a7f04cfa8af17df285c1d98b6"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/impl-gate-result.json",
+            "fingerprint": "3510ceb8bb4856b4c0037618be1176c27af32d70fda42ed42fe1727764d7b965"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/impl-repair.json",
+            "fingerprint": "89945f6ac09c046a6bd9b01de69d73491e6767383b656f90d98d5ca98b937143"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/impl-review.json",
+            "fingerprint": "a16e077f06a663a945cde687fda1f818659ce533d8dd28d4cfa14e7c0d0c2048"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/impl-triage.json",
+            "fingerprint": "75204b3cba10a8655e16c02f61c2ba6cd184b3c2f0edbd8e7d9c89c04c77f081"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/issue.md",
+            "fingerprint": "a04589a6b544af19b97adaf43ad9273b492216f9553f10ac003c22e68a27e1d5"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "a213dd3a860a8b57ec5bddc04e4efb4bf7395f2db02c30637a2f629601d34218"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-001.json",
+            "fingerprint": "d3767add861c10555b7acee9efd59a1ed4c2e61f37ecb7d8683fe288bfffcf6e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-002.json",
+            "fingerprint": "44e5e4ed5ed868492bce62d3f7025355fbe5c57630ced4d696f1115e73e19f0e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-003.json",
+            "fingerprint": "b69fb2c1e87f921579c16fd27f1c631e313df145c7362c7157ad2bc16593edbe"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-004.json",
+            "fingerprint": "d0e0d173f1aad79b28a8cf3361199e567ccce7e67ce2f6401dcc54cbc246f76d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-005.json",
+            "fingerprint": "8dbc605d20855651b06abc24bcca8c2f8853b655e3a7a1010dc0438c0b7eb999"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-006.json",
+            "fingerprint": "3c3626dee5e177fe0a921bb8a9a1a15713621cafab248115ac2d7c35646765d0"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-007.json",
+            "fingerprint": "f4b5593b4d224959619a1bdb094257254943278ebadf0f46a1872b34865fbe0a"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-008.json",
+            "fingerprint": "14b953b0cbe697b26c4d0f16360ec47bfaf4edb57821d3558002f5685f1d90b3"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-009.json",
+            "fingerprint": "f09730e4f0127a97cdb8219ca1874921097c41682730a7abf2939c5ae5c0e54d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-010.json",
+            "fingerprint": "d8d55785a634d2516e18b3a7e7692747f9fbaada6f6bbe80ee00ee7e712724d5"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-deltas/repair-011.json",
+            "fingerprint": "38892339a206733ac40c02781785e78901fa33d0c88f38e08bde2b4f02960cc1"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/repair-fingerprint.json",
+            "fingerprint": "a05600cefad55bcfbfb3c132c699d46227d008ae7a23f3976350af78e56eea15"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/retro.json",
+            "fingerprint": "f02677d94de193459c18883fffeb8e4216a0656f9d0cb49b9559bdfbf65eeb0d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/retry-recovery.json",
+            "fingerprint": "b45d37c6086aee6713e49968082654561d81a314643bd0a2c38713284847c91c"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/037f071c4bec6c33548aa0b175eb7c9d8263791a1dd9fd707584bab527457fd8.json",
+            "fingerprint": "e0dff847ffb07591e5bd1acbca4b267ae36a51d2f95bb319fee3a907dd161f3d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/0456da509867d044910b887e614670193d5e4016894fba96b3e4663eb316c2c8.json",
+            "fingerprint": "744876b685ebfbe231418c98cb3ba37070aaefce7d2d6edf1acba4340bbdd434"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/04d25057f50bbccbf29058685826583566979fe2d1d431e9145a24d2f3a61d70.json",
+            "fingerprint": "27e2a52c12b17debb81fd989455858cb01ee373cb82365a532004671af0833fb"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/05d0c586f54e1d1ed71ac5f08798336cc3ca7c4fdd2b98ed9e63253f100d510d.json",
+            "fingerprint": "239d8c6e8ed8c3282b19ea29718d3cf252f851c0403e72831e7e0b1cc1fc5a79"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/06bf0885c5ea3009df3d36e046e47784f944650b50b6e38d83f5a93fe924b69d.json",
+            "fingerprint": "db5f7436db3468f8c059116f40ee56d8061bb223ee010c2b82e360271b578013"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/0e01042c0ffd1d549e36e4d679c33a8b5599f5c7b6d711a9ea7cc75da008b364.json",
+            "fingerprint": "76845e5e64abb7fb6d33cde9bc584fa6f3a870f13416a913d0756cd792a5c3d0"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/10b07a722d366e72d934cef7b3060f4436fb7bc8d0457db33de9a3ced6b948c2.json",
+            "fingerprint": "d81db7da2f768d59ed71cc3b162809343f210a72764a93ffbaee5069c6e5e5b7"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/11b2d4f686d5e8f680d44b1b69b4d1f53352c7b859b7bd28220eea1141061bd1.json",
+            "fingerprint": "4006fb272ae8164591b21abea2c04e6493acadc92207b86a1c6d408e8194a774"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/216e6bedbb8c84267e64d5ab73d55fcd40b16807ef767c3c9df20b6428a7d654.json",
+            "fingerprint": "43077079979f25955fa610df6edfd45ad3f14588f65f1268a8c98cb031302b91"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/27a8949f9c7a15b7025f2ee894ad0b42034abeb2e7eadf1572f402e05a6937c5.json",
+            "fingerprint": "84fd791d25f809b6e948acc972a19e810349a7acccc147a007f937aece269981"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/29bded05c9a48b8ca47cfdfb72bb9eed9a9d76063286fcfb7f29679c9021e02f.json",
+            "fingerprint": "c4a61eb24ae2b2dfdb7c7f2878c81e546711c21e21c8b49a5fc4b3f447928523"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/2e0f3c8c43c4eee12cf2d9d90c289cc9a5e45420e823560869b1a5a44af75237.json",
+            "fingerprint": "06c44171d2da94c3c7a691aff51c7d9fa104459672b906533b611376f30963da"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/35c0021298c320213a75af8f89f11724918dfc6f0c5b09d40098fb4c68971346.json",
+            "fingerprint": "1fda414e4dd8d0e6a183ef00555ffbf62c8d3b0f213b6a4d7a133551c420fdb0"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/5fc41f8ef2fda61c60f4fa90140087c5be17dcbdfc6d92d995e1d990e4a13117.json",
+            "fingerprint": "585c95f23c7ad8f2199ef137e65297853ef5f3959e100d2923a09cfb9e553ee4"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/6444db91bca3b9cf65031dbc96fc6142bf19ff6b366ff722fbb4c505d9cb10bd.json",
+            "fingerprint": "01492f6fbf45260126945e6a299035f206f85c26ae0ec6c6982534ca316d7df6"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/67e1abf3e624a21e55111a769eb14b4de7bbbef4750aa5ce292683f745c7029d.json",
+            "fingerprint": "e14eb6cff47e853de62e9180b145d2283eb3af2e5f21d4becbe4a08213f31cfd"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/6b8a27144409a3b2d2d1653d04270000b5057fe22e04ab47c6c76d24bfe3d415.json",
+            "fingerprint": "eb5e98494228db3dc2889e5dfea6799abf4dbae0bf3ca5bce9076bd0d76d4d5b"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/6bb6cbf861d868b2eed2c7941ed3b65e44bb59c54ca4065134897355ed4a13a4.json",
+            "fingerprint": "282827c6aa999bc6403b5840da32019b5601f49d8398b6407ae2b5ff0d82b63d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/7fcde07196d02a094f4dfe2116b504ab4d2ca8e61f11907dc643333897db04cb.json",
+            "fingerprint": "bd23d1733eb3bcbf7b367ebe52a937e0735753e5a3aab5b46129618c2e0cb07f"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/86c82d22ea9cbeae3a1a06a36780e3de46c06d8252e0d656a57327f7af497888.json",
+            "fingerprint": "d654e384a7f1f0b899d2537f494ba869346e11b5d35f39711880e819cc14c4c5"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/8fda19b1e9c40517a2d1c3770beee04ecdfb1e4f6396467318ee56e2933e24c1.json",
+            "fingerprint": "3e1f705ac3e7f850eb34c24a610754c5b608c2610c3f645ce520738fae2d10f1"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/93e1750cc4482c7e103761fbda1f4a15fe6e73626b15b967d9cf8d3fbe689b82.json",
+            "fingerprint": "23629c75d38ebff390b11c9358d1ca137c4803f043c15aabdb1761949a7e4e82"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/995c213a3e702259a87078706e537f97a57717fe5593529ab6db5b7ce82435b4.json",
+            "fingerprint": "2c5ff54a22c52ac417e3d4b525446d3c94924955b11accd594db6f40f890cc2b"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/9d26b9c93adc928dfd8b8baa77e30f5085b5bee57ce920bf44f79ce0016f9714.json",
+            "fingerprint": "46b102de496a6e70e1d9e8257f3c1dd9b194d167cb04ce6e5391a2063b736d59"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/a6e7ebad4f10ca2e84a1df3af72166c8767843c4a367abee89291e3b25c2e7e0.json",
+            "fingerprint": "a97b09240ddb4fe761a9f661d8f79c6ba5fc01e1906da9c6580d51443303d4b7"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/ab21103f7da162ced266f35d1b569b7953d2543fae9e12f78077a242c2ab681a.json",
+            "fingerprint": "6f052a9590a7c158260c189c1da131d4c35d8ab484da91c1b92064457f8a9442"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/ab21b088a277c1d6a78b7441a52e959e8162227950d1ae0d0f62d7b6f8cf3d3f.json",
+            "fingerprint": "ef1eec145721527d356e69c0feff30f00d9a375fe7867b8e5735ed3d2236e45e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/b1db81f1bc805cdc2c76f3c16d75bae024c65cb9b0b25882d75a7a6ce7ad2856.json",
+            "fingerprint": "eee1d706f999e095288b2cbb9e2a042109ce368602f37832baf7cbd14291f243"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/b2c6bdb23999dbbf9e83a74b94bb103b11ba9f787689a27f4d2efd0471dc754c.json",
+            "fingerprint": "b39bddd61ba52c269e684d907664d83e77c81e635def4fa5f5e16ee6e1506427"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/bbaa15e638f31442eadd5655eb42aa763a04d63bba7cab0c40ba8c695c128e40.json",
+            "fingerprint": "c355ed9dd99670e7359034901d36023faa9b8557224dbfa853125a119d92d8c0"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/c0ef92872ca74c248bf6fdb46ec6d5a55fd5a5f9990eab0d58b6fb7009fbe663.json",
+            "fingerprint": "67128d0caf13aad994f99732fcd74cb1ef0ead83770c96e37f06f22ea3d72af6"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/c4b3fe344be6bf52fd5e3883c49658fde69f35423b63e1d1c9d2b045e91b4e7a.json",
+            "fingerprint": "e0675b14db15d4bcd2eacfaebd20da3334962528e2dd607e613eeb9d89d1436a"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/cbff3ed87e634d8d297f9d3c49e1c692447402aeb16c471b5bc5807667683668.json",
+            "fingerprint": "ea0c0bd62b851be3511fa3108fb934d7d02628ced7d9c28139c988047388cf75"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/e732e3c7d1ddd55de98eb828d13bb99b38a7bda45223086ab8ded137d4908863.json",
+            "fingerprint": "0908907179dfc39f7874fa95da958f4294d0656c9ce635f35c072d4f0163c7b2"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/f3e655bfa168c157b1541c4224d1b86fcd361d08dca1595569e7990bb269b773.json",
+            "fingerprint": "35bf75224171892dde160ffc788661e5d80ff2f8aefcc6746c9e9824fef15421"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/fc26129883bc3ae503e4793f2019bb244bcd93a6e4a0907568285eb282c9effc.json",
+            "fingerprint": "fa6d306417624ce280570decf3771ce1e7f369e17e63f0743be7c6f914ba5ed2"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/fc66cf1b7a656f0f78addbb959a533f80c535ee3cab4c25349717933658f3dbc.json",
+            "fingerprint": "142af22ca6ff1078bd2aaeb30eb7b430a37b8410a276ef79b7750048a31b8c6d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-evidence/fc7be35d3918ba8878075e0cfb7ecbf13d21eda5f0c7832e8d6843b5cd67714d.json",
+            "fingerprint": "5660bdf65f72fd32d5d071b0e38a6d422e5e5d5b3c423c9dcc5c419ff3877dc8"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "a94f8adfcbfd605ab2b29dca7cf85aad23f055f047d258a76c3aaf58ee5b838b"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-002.json",
+            "fingerprint": "9afcd93c5e8acd4be8330dfae246df159a828a5bdde010dad02e7659b7646132"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-003.json",
+            "fingerprint": "b2054a8e73ca47300285da0d72fdb9eef25e625540158345f45d14b376dd1f87"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "35a7c5ed92158111789f6152af8363c113e8e91785d66c1e9eb0781e00206c1f"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/draft-questions-attempt-002.json",
+            "fingerprint": "5348d7602ad74c41db0f4cf66691812fdda3a44124cfb4bc2f43ad575fbac8d7"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-001.json",
+            "fingerprint": "6742e6ac46f0cd41187cbb700b93f63b37017dc480d4a4881b1cd559fe0f3923"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-001.md",
+            "fingerprint": "1d882059eee05a4717c78b829f450ee27363ee8cbbb9ab7ff4b7f3efd2f3e00e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-002.json",
+            "fingerprint": "97d21e5fed44a5b57b56f7d5889a09472937cc4526202b9673470513f4bfe5db"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-003.json",
+            "fingerprint": "0241abcf73201357d99431a28490d8b95fb6fe026f38133377647d8e79dbd04b"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-003.md",
+            "fingerprint": "9a8359ceb70df2045c15b09cfdc11c5dfb7bc1e4bee221a693a618618e76aa90"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-004.json",
+            "fingerprint": "cc9c465c5a578f24ef93b84a19dc6f1a3da78d144d680fc88e04d4c115b62a00"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-004.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-005.json",
+            "fingerprint": "c90c6710d4a5ca8ea5488dba75ec459e1e566fb97e6a2801125a68a94b1a175c"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-005.md",
+            "fingerprint": "e9d9ac120765fcc6e5bb1792e17ba161ef4f16d5e4f8188e093c93a9000ba2c9"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-006.json",
+            "fingerprint": "354d92390ae1a372d42e673a9fcd1221c8fc0532d3589105ef684112c102c663"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-006.md",
+            "fingerprint": "1286d72b178c6984c6c9eba4cc359b84f547e38098b22ca30c1d85e2bc89f22b"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-007.json",
+            "fingerprint": "12ff669488301f9069239ddbcc10d6b28e7eea50d5921e1d8bb98ef122ac61dc"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-007.md",
+            "fingerprint": "58a4dee95b647f1e4c43f9649691223fff5899d2e414ae155f1558e05c59e037"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-008.json",
+            "fingerprint": "e9332dba4883ad9fae838d0b24675ba7fb42745058f37307b99e9160d0bff517"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-008.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-009.json",
+            "fingerprint": "4256c89aa65042df3dc24371ad8898eaf108151785592bf64cf439b7a1180f35"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-009.md",
+            "fingerprint": "0429ef18d6260e6c8b8b2d2523d051e04cf49e761945ceea51772402bd19b7ee"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-010.json",
+            "fingerprint": "f05618be5a8d52480b4dccf6b2194855ed01e59f120f0bd3fd8f63f844001fdb"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-010.md",
+            "fingerprint": "2261a66b24bc714e92753aeaa43f226fcc44fd245e65fd221a56b70e4f81dbbf"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-011.json",
+            "fingerprint": "aecab4852e00d2e7d54229c065be7013b176d0add113f442ccb3eb5a258cd30e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-011.md",
+            "fingerprint": "2cf174f9976076d064b589efbd9003ea63bc15f06767aee878ddb8bebc42f005"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-012.json",
+            "fingerprint": "5faf57184da19917bb5c2366619e34d9c792cc2be0e93f403f85a8c906900e40"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-012.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-013.json",
+            "fingerprint": "7e19b6b3f2583edb8894eae5a87ff8909c2ab603cc68fe587a1ae289e75fe26a"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-013.md",
+            "fingerprint": "ba42a1ecb84409b07f429c5c13e0351ed746759545bbada74981014d134e8751"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-014.json",
+            "fingerprint": "98830f5002a592cf0a50cb770309e9d89a919510a570b3435c54397512e650a6"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-014.md",
+            "fingerprint": "182dfe43f5bbec660d33f8811e31cc8f8e4f5d81d6233bf74ce92079f173f2e4"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-015.json",
+            "fingerprint": "ff1d12f7b882e464ecb0c1223d8b5c3d44995ea9db5b30b1f1f9b8d7a4a9119d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-015.md",
+            "fingerprint": "f1275fa14eac5994edf63f395dc2a0984cc75e897bb6b65a843b06e55deb0d8b"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-016.json",
+            "fingerprint": "8fe37b87fba362d11d766bb3f1c41510a42ca294a92a24a854d3aa7671a03c68"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-016.md",
+            "fingerprint": "16fb925e607806601515b224a325afb115856bc979808e0ffbc8d92c59fca65d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-017.json",
+            "fingerprint": "cd37925541c8914d8d568968ba77dfc9040e0e6919be12a0a343f8c37c4994ff"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-017.md",
+            "fingerprint": "08c4e4ec0088effd5371b09332793a4408c8dd07950ff12b22d66371de1bb3e2"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-018.json",
+            "fingerprint": "f03afbd46e234d4da4763be60fd7c51d403163ce40f4b3e909967e599a460c57"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-018.md",
+            "fingerprint": "8ea1771ec11885eac6117a536f9e272a1749729a3e6ab42d278cf2d17546c820"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-019.json",
+            "fingerprint": "901ea2bba26f3a612fc45882a36e62ef84ae4ee8664bdd2c91d87ccee1db427a"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-019.md",
+            "fingerprint": "cd3db63a87f10bf15029ceeee1cc6374de7cbed1179613549ccf6e305ab67521"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-020.json",
+            "fingerprint": "41bf3346cb252f507d9bdff369208431881f7bbb4ef21008e74628ef4f59d5f5"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-020.md",
+            "fingerprint": "4f4bd79e58fce03e533287a029bd68c0601b0694e844ddb42a585bc47a3482e0"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-021.json",
+            "fingerprint": "5b792778b36ef1f0d198028384426614e3d48393be3ec2450c4a9706e68423fb"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-021.md",
+            "fingerprint": "3b477c26f14b021132b3b4b480b83e87db13b2186d427c086755a117632e88b6"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-022.json",
+            "fingerprint": "f5b07e45e514976f58b9d18d06cf75c8b8001207863582d153dd22ffbc327c22"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-022.md",
+            "fingerprint": "1d5f3705679d85f5974dbe6394d9328f46ac72a4b54007764dffff046a8158b3"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-023.json",
+            "fingerprint": "82d9fee0aad2c6221d329a89592afff669285e2edfd1e3aa4ded05f0321c8f9e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/impl-attempt-023.md",
+            "fingerprint": "165eeecd6082a1fcb7c6a808c6983c10e8c01ede7004d05c06a46664dd285af3"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/spec-attempt-001.json",
+            "fingerprint": "4f9a436594c5f7bd22aeb5be20edc4f94006848c5e2fbc1b0f3b380da8121c90"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/spec-attempt-002.json",
+            "fingerprint": "59b75f43ab2948b9daa23278f58e079e181c7d1e8e2611dd4c789fd209532142"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-001.json",
+            "fingerprint": "a3258184ee6f1e8239b6e902379f773661baab6d082cd2813fd4443aace0ba6c"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-001.md",
+            "fingerprint": "0c1e1bc435bd851de3c9c17058705578c7874b5bdd24497fe6c07b37d6e43c84"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-002.json",
+            "fingerprint": "d9fcbb0fb8dd16bdf877f55aa960c882a2aed81cca5cac92f4be606bccf96eca"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-002.md",
+            "fingerprint": "d603317abc670386fb88dd36e7a77b7cc215af6bf6d015bd5730671b66f44661"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-003.json",
+            "fingerprint": "d4ffb17acca5d6c74719b2e30c3a743faf5bb2ba32451fc7c526689037cb30c4"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-003.md",
+            "fingerprint": "cf104b854f7a5897b36a30e53e19332fd13e55ef689161a1a29f7e001f2b8bda"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-004.json",
+            "fingerprint": "05d5c7598f7f3ebb1a377a34f666a8f9cf2a7043149f4be96c8ac93e1be6b642"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-004.md",
+            "fingerprint": "d4bfce8ba89cbcc19470c9b44fa52388783b70426b2147fc55c6cab566c75dbf"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-005.json",
+            "fingerprint": "ba482f43b065ae42e2735f189b4321f0d893c33b7842a0f90a6d548bc972ef9c"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-005.md",
+            "fingerprint": "6b4d5704140e97367613a01148252f226c69cdad0f46e0608a5963e767867756"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-006.json",
+            "fingerprint": "cbc2910337df9a1842985627d4eece557e78c843dfda2cdc30a7da9133f690ee"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-006.md",
+            "fingerprint": "6c828a7516eb8e7d3300a67c39be951a6fe1d35c399ac1f5893b57db74e42ae3"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-007.json",
+            "fingerprint": "16eea96361e7e4bf54e4f5d4cb78da6ab59f4ebdd6122309962b67418ee6b376"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-007.md",
+            "fingerprint": "0912eba4a815a95a76fcf57e9d05fb65f1c5fe19115e787d3e28b1f46c4aae48"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-008.json",
+            "fingerprint": "08fa50d82eb39667bbfa5ae592655fa2f0d6acc57ca7c55a005ff0887621f4a3"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-008.md",
+            "fingerprint": "79d73454b975acea478dbb9f829ca348ebf3144be5b194f5da34857bde874d2e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-009.json",
+            "fingerprint": "6f3830f54829e4ae676b14be6a937449aeda3b1eeae135a190fe6c83a8fb4f0c"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/test-attempt-009.md",
+            "fingerprint": "f5364cd608a23b4744cf488385725b3eb169e0045184f3498092435209437200"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "81bf0bb345f890bd93b1731300be9b5f62bf7974dc0b69b51885ed258c8fcd27"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0190bd6074a23419e536c780.json",
+            "fingerprint": "b447801d7bdd736e5ac1d2194f67f5563a5c569869414c409ab4384a8cc61289"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0a3eb3364c0701025f9931fa.json",
+            "fingerprint": "c0282a20120fe32602e92f362a21f981c119349c16453f0b1a116701a58af2a8"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "0248f86f4b01c2d47cd1b61872641083270cf81faa87ccf9facd9d561fc559f7"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+            "fingerprint": "ad9afef3ad8305c524ec424ed329d7aa421d44e1066366e8aa36fa908cdd1a76"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "5fdca6c88a8bf1257f5ff6bfbfc5e723193f3d2c5badb114f25eacefc38c2687"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "b99da70fd4bff711713f769be812406eef6f037f900f27d0318b1295419d34af"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "7aa4e21fcef0473cec40a81f2c0a57985c58d298c5fba5b73865166ae1624443"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "c37903c3bb005e77c42a8718b6da82e51306887444b9917ab8fce9139f2f29b7"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "20ae5563aa3164450c4db8c25e9dd8e678a2c0739ab85286c9497d0436300530"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "d913f0a754ee4bb541879aea0cdf5a1b5eed1be9ae5319ad7982937279a856a6"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "38317b9931a0602d3887b17745347bbd4bfe78ece0437049c3482be0dafa767d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "7a5a50befc2330c6a5cc060c0189768c00b7d301192a46eb4fa9dfc22988d124"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/7a1f6ff2c619415572ac010e.json",
+            "fingerprint": "412f7ae7e1280d1f36e63d09af9b0f0c3f673e451015f4b8e44304dbb5e8e521"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/82017d1fd7f1861646caf711.json",
+            "fingerprint": "80ecc090913e2a3ce4f3e7d63dee742308ab3c19db8915d9cf85bd15dd78d9e5"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "a8733a70d5cf21590c8602aa22a92c25024792b51e009bb85ca010417c61ef5d"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "2b5e17442f3b65d7aec93120d3510e1a70134a96d4581339f7b43f1728b09001"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c04a7dd95a5753538b520116.json",
+            "fingerprint": "3271c2e6687bd1b4b80cca21755f4e682097e6a231fb34002601f2fcb130b5e0"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "84a420542f4ed1097439f11eef81b595d04cab4f35fbbf3b52b4b0831dee71ff"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c653570c990504839493744c.json",
+            "fingerprint": "f2a97b8484770809a050cc90df5f53ee045f02fbde4c0a0a2c55037468f55e31"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "eabe1b51d684ee4ef7da684a54918def2d68cea6c17e5fb133723cbbac337c06"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "0250c81763db81ccfa07b494f607d73d78a8c865009dd911b08b790a73fec72f"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/e63421196dcedf8f7450c14c.json",
+            "fingerprint": "a2348205b32d1f68caefd9e314025ab0216757596fa75517ba6cf25a7a95f284"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/review.md",
+            "fingerprint": "165eeecd6082a1fcb7c6a808c6983c10e8c01ede7004d05c06a46664dd285af3"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/scenario-validity-result.json",
+            "fingerprint": "7255c6ece7d5523d148372db7c472bdb160569d79073e67cb40e3baf74cd1d4e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/spec-gate-source.json",
+            "fingerprint": "56a08b65f758a38ae1faab0cd8738f85bb579d029b5902ed832c9069bcd764e7"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/spec-review.json",
+            "fingerprint": "4b731a7458d43fcfcec4180f4335411354029756d19adc08de7457a4079e67be"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/spec.json",
+            "fingerprint": "eeb16f4c2c86a9aec4018cf53e5ec7ac1b28f0d0654b6e578682aa15f0d3b24e"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/spec.md",
+            "fingerprint": "a1622dea5cd730cb9223abfb75817a5741e62187073ed95156073b6ee7cabb8a"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/task-impl-gate-source.json",
+            "fingerprint": "caffb865237e2c37fe0431e48903c92960883c98aa276c7223518f734cf6a7fb"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/tasks/T-1.md",
+            "fingerprint": "57c5030bf37f511dadb0c5cc03e2e4955ea9136564b304791e23cdeead83acf6"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/tasks/T-2.md",
+            "fingerprint": "2dbf591e02e68ecad7382f5e66303235d9430ef0cfe0645dd334a32c6d04cc18"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/tasks/T-3.md",
+            "fingerprint": "9ceaf73bc90d0ea042887674a5b705013179f621fd043788af341e129d6ac60b"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/tasks/T-4.md",
+            "fingerprint": "9a221e3b88f56d5e5635d022cf5ffb047a0ec6dcb081316db26b6eee2f863d48"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/test-coverage.json",
+            "fingerprint": "f15fb1d152d268c3e3f1c7b62ce313a875ceeab48ad378371885c94f04aec554"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/test-execute-result.json",
+            "fingerprint": "8ef065b868642d093a97c79fbde7ac203529a67fedf430a53a54c33cd6e0c659"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/test-result-review.json",
+            "fingerprint": "9ada4caada2cc0fea341531eeea9eeac51fbd0c7959807433b172a26c9527784"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/test-result-review.md",
+            "fingerprint": "d0572d896f23e8925d427a166fe6d43ff7b2cbddcd98810f10007196ba2a9330"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/test-review.json",
+            "fingerprint": "8a05932cc2a1f0006a0eccb056bdeff1cbd933519e38ad46193622bab0e7e379"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/test-review.md",
+            "fingerprint": "f5364cd608a23b4744cf488385725b3eb169e0045184f3498092435209437200"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/tests/.raw/scenario-validity.log",
+            "fingerprint": "a844db4ca056508fdf501488c35da3783c842a77bdab5b9e680c92e9d4357977"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/tests/.raw/test-execution.log",
+            "fingerprint": "cffae20468a71d715a89f67cb75ade4b84fc2d5f37f62d032cab965a382a0590"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/tests/.raw/upgrade.log",
+            "fingerprint": "b04f78edff7b397a4b7fbadc33923f1ae84c09c65afb1a053e9bc338f26d3c30"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+            "fingerprint": "c545d525990a59cbb2957419c2335ac8d7f141628fdbde0a582892395f9b47d8"
+          },
+          {
+            "path": "specs/346-gate-fail-closed/upgrade-result.json",
+            "fingerprint": "d24ab00cdd8a31c0e51e557da2f8b84524475092e66ac83b021f6f6a17857d97"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "111eb416c0144e1312cef42c36e6bdf5a368fab8ca0c318b20cb6668a085511d"
+          },
+          {
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "437780e6c7ad9cc96f318440adb5a923192d8c5357b839fcc636f681143ccffa"
+          },
+          {
+            "path": "src/flow/lib/review-evidence-store.js",
+            "fingerprint": "e642f5bd75ec6dd7ebcdf3541738ca6da24176d45577cc60f379fca9737bd956"
+          },
+          {
+            "path": "src/flow/lib/run-complete-task.js",
+            "fingerprint": "dee01a96858011b8f3533abaaa0e4376c1f4befc7a0fd5d11eb6f1c8b1949e88"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "5dba8b1649e2e2db4d9dc534853fab928c9ae2af538716766e573887cd16e4a5"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "00e1c0312b848943947d0efcacdde140398106389ab5fc3e1fe9c4cdcf5627ed"
+          },
+          {
+            "path": "src/flow/lib/run-start-task.js",
+            "fingerprint": "bd59543c0cf11f2f96f6c8a8dbb53f4ba84df3de56cb713545b113a3f15e9e1d"
+          },
+          {
+            "path": "src/flow/lib/set-review-evidence.js",
+            "fingerprint": "8229634b9294f39a040151e2e59b31efec86d9d61b88e2edfe9cea422f8ffc2c"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "ebd7526323409c7a0fa1b285b504ad2c72b8306396cef45fac24cfcede15aaa4"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "fingerprint": "dab2ac4550fc0ccf490dbc236e8bc7acfdb5a99a3dd79afd195e86a2f0211d47"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "8d2ef5f9a5cd85a96604a6db1362917b2b01a8e6096b51687109cb6078cfeeb3"
+          },
+          {
+            "path": "src/lib/presets.js",
+            "fingerprint": "1bca72fb2a5bfb99145bd9738c738c2131597d83196feb6daf98a178b6088c59"
+          },
+          {
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "fingerprint": "5a4da50b3ee720a6ed70cedf4fc85058df7516e3bf0f13c7c1be0ad45dce8702"
+          },
+          {
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "fingerprint": "42a66d4de4c20d3ad862cacc11842bfec3881f2fa4831d022cf196be53f3feff"
+          },
+          {
+            "path": "tests/helpers/stub-agent.js",
+            "fingerprint": "29235d9fd602ef4b008b15ec8d6cf18e444ebd4dbceaf4f4ed233a22df93b982"
+          },
+          {
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+            "fingerprint": "710b7c4589820231ef955046814e54d96915f7b071cd2a00cc4c1b40150f285a"
+          },
+          {
+            "path": "tests/unit/specs/commands/gate.test.js",
+            "fingerprint": "3b759331ba23ade33adf75bffc53c6951746a578e69789b5bae278826319d126"
+          },
+          {
+            "path": "tests/unit/specs/commands/guardrail.test.js",
+            "fingerprint": "e96bebf6d5816ab07220696b91feb05486661af959b2b91b3295a1323c43336d"
+          }
+        ],
+        "fixAttempts": 1,
+        "selectedAction": "record-and-proceed",
+        "remainingRisk": "final-regression remains failed; category=existing_failure",
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": "record-and-proceed",
+        "recordAndProceed": {
+          "eligible": true,
+          "validated": true,
+          "evidence": "autoApprove selected record-and-proceed for existing_failure"
+        },
+        "humanSummary": "result=fail failureCategory=existing_failure failureKind=unattributed_existing_failure raw_output=specs/346-gate-fail-closed/tests/.raw/final-regression-attempt-002.log fixAttempts=1 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=existing_failure"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-2",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-3",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-4",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 4,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Update gate test fixtures for required evaluations\n    Require review evidence state digest\n    Consolidate required guardrail validation\n    Hide gate bypass controls from public CLI\n    Map review recovery integration\n    Validate recovered review artifact targets\n    Assert typed gate error envelopes\n    Recover finalized review evidence\n    Keep flow evidence out of implementation diff\n    Centralize guardrail failure results\n    Fail closed gate evaluations\n    26 files changed, 1265 insertions(+), 55 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 40\n    agent calls ................. 125\n    input tokens ................ 3,034,137\n    output tokens ............... 90,424\n    cache-read tokens ........... 2,061,952\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2617.2s\n      draft-questions-review .... 13.7s\n      draft-coverage-review ..... 8.0s\n      draft-gate ................ 72.3s\n      spec-review ............... 197.6s\n      spec-gate ................. 41.3s\n      test-review ............... 180.0s\n      implement ................. 280.2s\n      impl-review ............... 1023.2s\n      impl-gate ................. 472.7s\n      acceptance-review ......... 328.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/346-gate-fail-closed/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=unattributed_existing_failure failureCategory=existing_failure raw_output=specs/346-gate-fail-closed/tests/.raw/final-regression-attempt-002.log fixAttempts=1 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=existing_failure\n\n  Tasks (4/4)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n    T-3 status=done impl=missing test=available review=done gate=done\n    T-4 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (77 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/346-gate-fail-closed/issue-log.json\n\n    Important (10 of 40)\n    - [draft-gate] The requirement says consumers can distinguish failure types using `failureKind などの型情報`, but `など` leaves the required type fields open-ended; specify the exact artifact/output fields that must carry the distinction.; The draft changes ex...\n    - [draft-gate] Draft gate found an ambiguous failure metadata requirement and missing migration parity inventory and ownership mapping.\n    - [spec-review] Spec review produced a PASS artifact but its post-hook could not persist the result because another flow held the repository operation lock.\n    - [spec-review] The authorized flow-runtime recovery could not reopen the draft because another active process held the repository operation lock.\n    - [draft] reopen-draft triggered: pre-implementation plan draft regression; stale planning artifacts retained — The user authorized a flow-runtime repair so finalized flow-level spec review artifacts can be registered after a post-hook lock confli...\n    - [draft-gate] Draft gate found the two deferredToSpec entries too open-ended to verify independently.\n    - [spec-gate] Uses the vague adjective \"valid\" in \"A PASS gate result proves every required prerequisite and evaluation completed successfully\" without defining verifiable validity conditions.; Uses the vague adjective \"valid\" in \"The flow registry ad...\n    - [approval] Approval persistence was blocked by an active repository flow lock; no approval state changed.\n    - [impl-gate] The diff adds preset-chain prerequisite derivation in the gate runner by loading config and resolving preset chains from `config.type`, while the existing config and preset owner modules are only imported and remain unchanged.; The diff ...\n    - [task-review] Classified exhausted malformed guardrail output as GATE_REQUIRED_OUTPUT while keeping invocation failures as GATE_REQUIRED_GUARDRAIL.\n    ... 30 important issue-log entries omitted\n\n    Recent Other (5 of 37)\n    - [impl-gate] fix: regenerated upgrade-result after the R4/R6 source changes invalidated upgrade evidence.\n    - [impl-gate] fix: regenerated upgrade evidence after the source changes.\n    - [impl-gate] fix: regenerated upgrade evidence after test evidence regeneration.\n    - [spec-gate] [REQ:R5] requires production public CLI routes to be unable to bypass required evaluations and any test fixture/evaluation substitute to be isolated from production routing. The diff contradicts this by adding `--skip-guardrail` and new ...\n    - [impl-gate] fix: removed public gate bypass and fixture parsing routes.\n    ... 32 other issue-log entries omitted"
+}

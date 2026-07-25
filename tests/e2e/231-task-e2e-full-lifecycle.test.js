@@ -128,6 +128,7 @@ function setupFixture(tmp) {
     [
       { includes: "if (!left || !right) return 0;", response: FAIL_REVIEW },
       { includes: "guardrail_id MUST be one of the requirement ids", response: PASS_GATE },
+      { includes: "## Guardrail Articles", response: JSON.stringify({ observations: [] }) },
       { includes: "semantic acceptance reviewer", response: PASS_ACCEPTANCE },
     ],
     PASS_REVIEW,
@@ -339,7 +340,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     assert.equal(passedTaskReview.data.artifacts.verdict, "PASS");
     assertNext(tmp, "task-gate", "T-1");
 
-    runEnvelope(tmp, ["flow", "run", "gate", "--phase", "task-impl", "--skip-guardrail"]);
+    runEnvelope(tmp, ["flow", "run", "gate", "--phase", "task-impl"]);
     assertNext(tmp, "implement", null);
     runEnvelope(tmp, ["flow", "set", "step", "implement", "done"]);
     assertNext(tmp, "test-execute", null);
@@ -371,7 +372,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     ].join("\n"));
     const recoveredGate = runEnvelope(
       tmp,
-      ["flow", "run", "gate", "--phase", "integration", "--skip-guardrail"],
+      ["flow", "run", "gate", "--phase", "integration"],
     );
     assert.equal(recoveredGate.data.result, "recovered");
     assert.equal(recoveredGate.data.next, "test-execute");
@@ -385,7 +386,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     const regeneratedReview = runEnvelope(tmp, ["flow", "run", "review"]);
     assert.equal(regeneratedReview.data.artifacts.verdict, "PASS");
     assertNext(tmp, "impl-gate", null);
-    runEnvelope(tmp, ["flow", "run", "gate", "--phase", "integration", "--skip-guardrail"]);
+    runEnvelope(tmp, ["flow", "run", "gate", "--phase", "integration"]);
     assertNext(tmp, "retro", null);
     runEnvelope(tmp, ["flow", "run", "retro"]);
     assertNext(tmp, "acceptance-review", null);

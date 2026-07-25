@@ -444,6 +444,10 @@ export async function preValidateImplementStepCompletion({ root, state, requeste
 }
 
 export default class SetStepCommand extends FlowCommand {
+  constructor() {
+    super({ explicitTargetResolution: true });
+  }
+
   async execute(ctx) {
     const { id, status } = ctx;
 

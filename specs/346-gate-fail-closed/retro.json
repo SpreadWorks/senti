@@ -1,0 +1,50 @@
+{
+  "spec": "specs/346-gate-fail-closed/spec.json",
+  "date": "2026-07-25T17:15:35.701Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Validate the full preset chain once before semantic context resolution. A missing preset returns a typed prerequisite failure before evaluation, emits no repeated warning in the same invocation, and leaves the configured maximum of five semantic gate retries unchanged.",
+      "status": "done",
+      "note": "R1: validates the complete preset chain once before semantic evaluation"
+    },
+    {
+      "desc": "For every required agent evaluation, guardrail evaluation, and schema validation, unset configuration, spawn failure, evaluation failure, invalid output, or schema failure produces a blocking non-PASS outcome. No such outcome may mark a gate done or advance approval.",
+      "status": "done",
+      "note": "R2: blocks every unavailable required evaluation through the production gate"
+    },
+    {
+      "desc": "Persist mechanically distinguishable failure classification: gate artifacts use artifacts.failureKind and artifacts.failureCode; flow error envelopes use errors[0].code. Semantic findings retain artifacts.evaluations and artifacts.reasons.",
+      "status": "done",
+      "note": "R3: persists typed failure artifacts and semantic evidence"
+    },
+    {
+      "desc": "When configured required agents return schema-conforming PASS or FAIL evaluations, retain their current result semantics, foreign/optional policies, normal gate result/evaluations/reasons artifacts, and PASS registry transitions.",
+      "status": "done",
+      "note": "R4: preserves configured PASS and FAIL evaluations and registry transitions"
+    },
+    {
+      "desc": "Production public CLI routes cannot bypass required evaluations. Any fixture or evaluation substitute used by tests is isolated from production routing.",
+      "status": "done",
+      "note": "R5: rejects public CLI evaluation-bypass controls while test fixtures remain internal"
+    },
+    {
+      "desc": "When a finalized flow-level review provider artifact remains after post-hook lock failure, register it as canonical evidence for the current phase, null task target, current tree, and current state fingerprint without invoking the provider again. Reject artifacts whose phase, tree, or target state does not match.",
+      "status": "done",
+      "note": "R6: recovers a finalized flow-level artifact without another provider call and rejects stale targets"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "7f5b4ab7409ec473903f717352c5345be750e4f5818374cca212ab723bbe5dd8"
+}

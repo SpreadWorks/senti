@@ -298,12 +298,13 @@ export class ReviewTargetState {
   }
 }
 
-function canonicalEvidenceDocument({ phase, taskId, treeSha, provenance, disposition }) {
+function canonicalEvidenceDocument({ phase, taskId, treeSha, targetStateDigest, provenance, disposition }) {
   return {
     version: REVIEW_EVIDENCE_VERSION,
     phase,
     taskId,
     treeSha,
+    ...(targetStateDigest && { targetStateDigest }),
     provenance: provenance.toJSON(),
     disposition: disposition.value,
     blockingFindings: disposition.blockingFindings.map((finding) => finding.toJSON()),
@@ -325,6 +326,9 @@ export class ReviewEvidence {
     this.phase = requireString(input.phase, "phase");
     this.taskId = requireNullableTaskId(input.taskId);
     this.treeSha = requireTreeSha(input.treeSha);
+    this.targetStateDigest = input.targetStateDigest == null
+      ? null
+      : requireSha256(input.targetStateDigest, "targetStateDigest");
     this.provenance = input.provenance instanceof ReviewProvenance
       ? input.provenance
       : new ReviewProvenance(input.provenance);

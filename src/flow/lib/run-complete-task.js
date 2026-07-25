@@ -15,6 +15,10 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { promoteNextPending } from "../../lib/flow-helpers.js";
 
 export class RunCompleteTaskCommand extends FlowCommand {
+  constructor() {
+    super({ explicitTargetResolution: true });
+  }
+
   async execute(ctx) {
     const { root } = ctx;
     const fm = ctx.flowManager || new FlowManager({ root, mainRoot: root, inWorktree: false });

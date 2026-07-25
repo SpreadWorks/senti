@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-25b9ca7d-c869-4488-afb2-df3e06d6515d",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Centralized the fail-closed guardrail failure result and verified the spec-local suite.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "a3123f752eabf76dc544712b5bc9248573d6b49dad96ffe0ee65612be0f2f151",
+        "currentHash": "34f63de6e671003ca04958d5d8984016d2caf491ea48be14926fb20c214a838b",
+        "changedPaths": [
+          "specs/346-gate-fail-closed/spec.json",
+          "src/flow/lib/run-complete-task.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-start-task.js",
+          "src/flow/lib/set-review-evidence.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/registry.js",
+          "src/lib/dispatcher.js",
+          "src/lib/presets.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Centralized the fail-closed guardrail failure result and verified the spec-local suite.\" --yes",
+      "createdAt": "2026-07-25T15:59:41.379Z"
+    },
+    {
+      "id": "recovery-a9ffcc0e-18e3-42a7-a25e-134148e6c115",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "R5 public bypass removal and guardrail validation consolidation are committed; test and upgrade evidence were regenerated.",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "ea8d5d589b4b64d37bf7c324f4e494089a8dc8387f3244b7ff7e7b54fd9ac7a4",
+        "currentHash": "d8030d187a15bc9f80797edf712ea74e6f7fae72c4015adbe8c9183e92b75b4d",
+        "changedPaths": [
+          "specs/346-gate-fail-closed/file-map.json",
+          "specs/346-gate-fail-closed/test-execute-result.json",
+          "specs/346-gate-fail-closed/test-result-review.json",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/review-evidence-store.js",
+          "src/flow/lib/run-complete-task.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/run-start-task.js",
+          "src/flow/lib/set-review-evidence.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/registry.js",
+          "src/lib/dispatcher.js",
+          "src/lib/presets.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"R5 public bypass removal and guardrail validation consolidation are committed; test and upgrade evidence were regenerated.\" --yes",
+      "createdAt": "2026-07-25T16:46:37.306Z"
+    }
+  ]
+}

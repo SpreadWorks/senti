@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:31:06.183Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "r6-bypasses-review-evidence-validation",
+      "title": "Recovered artifacts bypass canonical ReviewEvidence validation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/set-review-evidence.js",
+      "requirementId": "R6",
+      "issue": "`recoverFinalizedFlowReviewEvidence` registers a hand-built object containing only `phase`, `taskId`, `treeSha`, and `targetStateDigest`. It never routes the finalized provider artifact through the existing review-evidence boundary that creates canonical identity/validation, and it drops the provider artifact fields such as `verdict`, `findings`, and any evidence identity before calling `canonicalEvidenceStore.register`. This contradicts the T-4 implementation note to retain canonical ReviewEvidence validation and identity generation.",
+      "suggestion": "Change `recoverFinalizedFlowReviewEvidence` to adapt the finalized provider artifact into the same canonical ReviewEvidence/registration path used by normal `set-review-evidence` success handling, preserving validated PASS artifact fields and generated identity while still avoiding a provider rerun.",
+      "disposition": "must-fix",
+      "rationale": "R6 is specifically about recovering finalized flow-level review evidence, and the task notes make canonical ReviewEvidence validation and identity generation mandatory for that path. Registering a reduced ad hoc object can accept artifacts the canonical path would reject or store evidence without the required identity, so this is a blocking acceptance gap.",
+      "findingId": "19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a",
+      "fingerprint": "19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "bcb54da9833f10454023d9f5c9bf053cd3bb3e985bd14af7e2009832a9406f58",
+  "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+  "planRewindAt": null,
+  "taskId": "T-4",
+  "target": "specs/346-gate-fail-closed/tasks/T-4.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/346-gate-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "152527db104b43927c77b4befb2a7ae23bf29e84034f77afe0522715b467f217"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a",
+      "findingId": "19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "Recovered artifacts bypass canonical ReviewEvidence validation",
+      "body": "`recoverFinalizedFlowReviewEvidence` registers a hand-built object containing only `phase`, `taskId`, `treeSha`, and `targetStateDigest`. It never routes the finalized provider artifact through the existing review-evidence boundary that creates canonical identity/validation, and it drops the provider artifact fields such as `verdict`, `findings`, and any evidence identity before calling `canonicalEvidenceStore.register`. This contradicts the T-4 implementation note to retain canonical ReviewEvidence validation and identity generation.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a",
+      "disposition": "must-fix",
+      "rationale": "R6 is specifically about recovering finalized flow-level review evidence, and the task notes make canonical ReviewEvidence validation and identity generation mandatory for that path. Registering a reduced ad hoc object can accept artifacts the canonical path would reject or store evidence without the required identity, so this is a blocking acceptance gap.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

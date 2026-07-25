@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/346-gate-fail-closed/spec.json",
+      "specs/346-gate-fail-closed/spec.md"
+    ],
+    "inputHash": "c3808045cdbda3358aaa22d9b5c9896f39ede6186a9c1c07fabac52a02d49528",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "specs/346-gate-fail-closed/spec.json",
+    "specs/346-gate-fail-closed/spec.md"
+  ],
+  "inputHash": "c3808045cdbda3358aaa22d9b5c9896f39ede6186a9c1c07fabac52a02d49528",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:28:21.671Z",
+  "finishedAt": "2026-07-25T16:28:21.672Z",
+  "rawResponse": "### 1. Remove Empty Placeholder Sections\n**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R1  \n**Issue:** `Clarifications (Q&A)`, `Implementation Targets`, and `Open Questions` contain only empty placeholders, which add noise and can be mistaken for incomplete spec work.  \n**Suggestion:** Remove these sections when they have no content, or replace them with explicit `None` entries if the spec format requires the headings.\n\n### 2. Align Task Status With Requirement Status\n**File:** `specs/346-gate-fail-closed/spec.json`  \n**Requirement:** R2  \n**Issue:** All requirements are marked `\"status\": \"done\"`, but every task remains `\"status\": \"pending\"`. That makes the spec internally inconsistent and weakens downstream automation that may rely on task state.  \n**Suggestion:** Either mark completed tasks as `\"done\"` or keep requirements non-done until their implementation tasks are complete.\n\n### 3. Avoid Duplicated Spec Content Across Markdown And JSON\n**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The markdown file duplicates much of `spec.json` verbatim: goal, background, scope, constraints, overview, requirements, acceptance criteria, tasks, and approval metadata. This creates two sources that can drift.  \n**Suggestion:** Treat one file as canonical. If both formats are required, generate `spec.md` from `spec.json` or add a short note identifying which file is authoritative.\n\n### 4. Make The Bounded Retry Limit Easier To Maintain\n**File:** `specs/346-gate-fail-closed/spec.json`  \n**Requirement:** R1  \n**Issue:** The semantic retry bound appears as prose: “configured maximum of five semantic gate retries.” If implementation or tests consume this requirement, the bound is not mechanically discoverable.  \n**Suggestion:** Add a structured field such as `\"semantic_gate_retry_limit\": 5` or include the value in a dedicated constraint object, while keeping the prose for readability.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Empty Placeholder Sections",
+        "body": "**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R1  \n**Issue:** `Clarifications (Q&A)`, `Implementation Targets`, and `Open Questions` contain only empty placeholders, which add noise and can be mistaken for incomplete spec work.  \n**Suggestion:** Remove these sections when they have no content, or replace them with explicit `None` entries if the spec format requires the headings.",
+        "file": "specs/346-gate-fail-closed/spec.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Align Task Status With Requirement Status",
+        "body": "**File:** `specs/346-gate-fail-closed/spec.json`  \n**Requirement:** R2  \n**Issue:** All requirements are marked `\"status\": \"done\"`, but every task remains `\"status\": \"pending\"`. That makes the spec internally inconsistent and weakens downstream automation that may rely on task state.  \n**Suggestion:** Either mark completed tasks as `\"done\"` or keep requirements non-done until their implementation tasks are complete.",
+        "file": "specs/346-gate-fail-closed/spec.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Avoid Duplicated Spec Content Across Markdown And JSON",
+        "body": "**File:** `specs/346-gate-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The markdown file duplicates much of `spec.json` verbatim: goal, background, scope, constraints, overview, requirements, acceptance criteria, tasks, and approval metadata. This creates two sources that can drift.  \n**Suggestion:** Treat one file as canonical. If both formats are required, generate `spec.md` from `spec.json` or add a short note identifying which file is authoritative.",
+        "file": "specs/346-gate-fail-closed/spec.md",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Make The Bounded Retry Limit Easier To Maintain",
+        "body": "**File:** `specs/346-gate-fail-closed/spec.json`  \n**Requirement:** R1  \n**Issue:** The semantic retry bound appears as prose: “configured maximum of five semantic gate retries.” If implementation or tests consume this requirement, the bound is not mechanically discoverable.  \n**Suggestion:** Add a structured field such as `\"semantic_gate_retry_limit\": 5` or include the value in a dedicated constraint object, while keeping the prose for readability.",
+        "file": "specs/346-gate-fail-closed/spec.json",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

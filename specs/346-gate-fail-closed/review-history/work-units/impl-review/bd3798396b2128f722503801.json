@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/review-evidence-store.js"
+    ],
+    "inputHash": "42556e5dce4a939a3f1f0335f78961381ac5a68526315e98f3cbebf3656ae18d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/review-evidence-store.js"
+  ],
+  "inputHash": "42556e5dce4a939a3f1f0335f78961381ac5a68526315e98f3cbebf3656ae18d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:58:05.187Z",
+  "finishedAt": "2026-07-25T16:58:05.187Z",
+  "rawResponse": "### 1. Preserve explicit empty/null handling for target state digest\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** `canonicalEvidenceDocument` uses `...(targetStateDigest && { targetStateDigest })`, which drops falsy values. While a SHA-256 digest should be truthy, this makes the serialization rule less explicit and inconsistent with the constructor, which normalizes absent values to `null`.  \n**Suggestion:** Use a nullish check instead: `...(targetStateDigest != null && { targetStateDigest })`. This makes the intent clear: include the digest when supplied, omit it only when absent.\n\n### 2. Make target state validation symmetric\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R6  \n**Issue:** `validateTarget` only checks `targetStateDigest` when the expected value is non-null. That means a caller passing `null` will accept evidence that contains a non-null `targetStateDigest`, even though R6 says artifacts whose target state does not match must be rejected.  \n**Suggestion:** Compare normalized values directly when the argument is provided, or distinguish “not supplied” from “expected null”. For example, avoid the default `targetStateDigest = null` and validate when the property exists in the target object:\n```js\nif (Object.hasOwn(target, \"targetStateDigest\") &&\n    this.evidence.targetStateDigest !== target.targetStateDigest) {\n  throw new Error(\"review evidence state digest target mismatch\");\n}\n```\n\n### 3. Avoid indirect access to evidence target fields\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R6  \n**Issue:** `validateTarget` checks `phase`, `taskId`, and `treeSha` via `this.phase`, `this.taskId`, and `this.treeSha`, but checks the new digest via `this.evidence.targetStateDigest`. This inconsistency makes the target identity fields harder to scan and easier to misuse later.  \n**Suggestion:** Add a `targetStateDigest` getter to `ReviewEvidenceInput` if the class already exposes the other target fields that way, then validate with `this.targetStateDigest`. This keeps the design pattern consistent across all target fields.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Preserve explicit empty/null handling for target state digest",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** `canonicalEvidenceDocument` uses `...(targetStateDigest && { targetStateDigest })`, which drops falsy values. While a SHA-256 digest should be truthy, this makes the serialization rule less explicit and inconsistent with the constructor, which normalizes absent values to `null`.  \n**Suggestion:** Use a nullish check instead: `...(targetStateDigest != null && { targetStateDigest })`. This makes the intent clear: include the digest when supplied, omit it only when absent.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Make target state validation symmetric",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R6  \n**Issue:** `validateTarget` only checks `targetStateDigest` when the expected value is non-null. That means a caller passing `null` will accept evidence that contains a non-null `targetStateDigest`, even though R6 says artifacts whose target state does not match must be rejected.  \n**Suggestion:** Compare normalized values directly when the argument is provided, or distinguish “not supplied” from “expected null”. For example, avoid the default `targetStateDigest = null` and validate when the property exists in the target object:\n```js\nif (Object.hasOwn(target, \"targetStateDigest\") &&\n    this.evidence.targetStateDigest !== target.targetStateDigest) {\n  throw new Error(\"review evidence state digest target mismatch\");\n}\n```",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Avoid indirect access to evidence target fields",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R6  \n**Issue:** `validateTarget` checks `phase`, `taskId`, and `treeSha` via `this.phase`, `this.taskId`, and `this.treeSha`, but checks the new digest via `this.evidence.targetStateDigest`. This inconsistency makes the target identity fields harder to scan and easier to misuse later.  \n**Suggestion:** Add a `targetStateDigest` getter to `ReviewEvidenceInput` if the class already exposes the other target fields that way, then validate with `this.targetStateDigest`. This keeps the design pattern consistent across all target fields.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

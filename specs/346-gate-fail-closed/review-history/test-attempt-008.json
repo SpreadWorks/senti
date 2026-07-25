@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T15:05:33.617Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/346-gate-fail-closed/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 production-route coverage can pass without exercising the CLI route",
+      "target": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js:91",
+      "findingId": "7a36de58a4d498ad44b782c6796ce8a7b76e0a318287dab0953f6fdf4002dcec",
+      "fingerprint": "7a36de58a4d498ad44b782c6796ce8a7b76e0a318287dab0953f6fdf4002dcec",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires production public CLI routes cannot bypass required evaluations; the current coverage can pass without exercising that production behavior.",
+      "issue": "The R5 test only verifies argument parsing rejects two explicit bypass/test-fixture flags and that an internal fixture factory marks fixtures as test-only. It does not execute any production public CLI route or assert that the normal route invokes required evaluations, so an implementation could pass while the CLI still bypasses required evaluations by default.",
+      "requiredChange": "Add a spec-local test that invokes the production public CLI routing entrypoint for a normal gate invocation and asserts required evaluation is reached and cannot be replaced by the test fixture path.",
+      "whyBlocking": "R5 explicitly requires production public CLI routes cannot bypass required evaluations; the current coverage can pass without exercising that production behavior.",
+      "origin": "R5",
+      "failureKind": "missing-production-behavior-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/346-gate-fail-closed/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "afd6e46b6fd89bd301340e93bfbf3a45e503023c75f85b78cc8c680b2544e01f"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "7a36de58a4d498ad44b782c6796ce8a7b76e0a318287dab0953f6fdf4002dcec",
+      "findingId": "7a36de58a4d498ad44b782c6796ce8a7b76e0a318287dab0953f6fdf4002dcec",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "R5 production-route coverage can pass without exercising the CLI route",
+      "body": "The R5 test only verifies argument parsing rejects two explicit bypass/test-fixture flags and that an internal fixture factory marks fixtures as test-only. It does not execute any production public CLI route or assert that the normal route invokes required evaluations, so an implementation could pass while the CLI still bypasses required evaluations by default.",
+      "category": "unknown",
+      "fingerprint": "7a36de58a4d498ad44b782c6796ce8a7b76e0a318287dab0953f6fdf4002dcec",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires production public CLI routes cannot bypass required evaluations; the current coverage can pass without exercising that production behavior."
+    }
+  ]
+}

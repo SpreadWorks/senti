@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:55:28.419Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "empty-guardrail-config-passes",
+      "title": "Empty guardrail configuration still passes",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R2",
+      "issue": "`checkGuardrail()` still returns `null` when `loadGuardrails(root)` returns an empty array, and both gate paths treat `null` as a clean pass. That leaves a required guardrail evaluation unavailable but non-blocking whenever the configured guardrail set is empty.",
+      "suggestion": "In `checkGuardrail()`, treat an empty required guardrail list as a typed failure, for example `failureKind: \"guardrail-unset\"` and `failureCode: \"GATE_REQUIRED_GUARDRAIL_UNSET\"`, instead of returning `null`. Update the R2 test matrix to cover `requiredGuardrail: []` or an equivalent empty configured guardrail source.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires unavailable required evaluations to fail closed. An empty configured guardrail set means no required guardrail evaluation can run, yet the current branch returns `null`, which `runGateFlow()` and `RunGateCommand.execute()` convert to pass behavior.",
+      "findingId": "c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99",
+      "fingerprint": "c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "4590229a872638173f89404234318b7b0eac4400ef2f190b48f8d4b61d291be3",
+  "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/346-gate-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "f659e3a7e9c24b48459011148e61717a93f439d4c1bb231305f3853b64088b39"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 16,
+  "findings": [
+    {
+      "id": "c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99",
+      "findingId": "c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 16,
+      "severity": "blocking",
+      "title": "Empty guardrail configuration still passes",
+      "body": "`checkGuardrail()` still returns `null` when `loadGuardrails(root)` returns an empty array, and both gate paths treat `null` as a clean pass. That leaves a required guardrail evaluation unavailable but non-blocking whenever the configured guardrail set is empty.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99",
+      "disposition": "must-fix",
+      "rationale": "R2 requires unavailable required evaluations to fail closed. An empty configured guardrail set means no required guardrail evaluation can run, yet the current branch returns `null`, which `runGateFlow()` and `RunGateCommand.execute()` convert to pass behavior.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

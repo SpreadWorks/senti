@@ -246,6 +246,7 @@ function tryAppendIssueLog(fn) {
 }
 
 function gateRuntimeLogStepId(ctx) {
+  if (!ctx.flowState) return null;
   const phase = ctx.phase || resolveGatePhaseFromState(ctx.flowState)?.phase;
   return resolveScopedGateStepId(ctx.flowState, phase);
 }
@@ -853,6 +854,7 @@ export const FLOW_COMMANDS = {
   set: {
     step: {
       helpKey: "flow.set.step",
+      explicitTargetResolution: true,
       runtimeLog: { stepId: (ctx) => ctx.id },
       command: () => import("./lib/set-step.js"),
       args: { positional: ["id", "status"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
@@ -1048,9 +1050,11 @@ export const FLOW_COMMANDS = {
     },
     gate: {
       helpKey: "flow.run.gate",
+      requiresFlow: false,
       responsibilities: DRAFT_REVIEW_GATE_RESPONSIBILITIES,
       runtimeLog: { stepId: gateRuntimeLogStepId },
       async pre(ctx) {
+        if (!ctx.flowState) return;
         // When --phase is omitted, phase resolution and stale-step recovery
         // happen inside RunGateCommand.execute (which has exclusive ownership
         // over flow state mutations for the duration of the gate). The
@@ -1070,7 +1074,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-gate.js"),
       args: {
         options: ["--spec", "--phase", ...FLOW_RUN_OPTIONS],
-        flags: withTargetGuardFlags(["--skip-guardrail"]),
+        flags: FLOW_TARGET_GUARD_FLAGS,
       },
       help: [
         "Usage: senti flow run gate [options]",
@@ -1082,9 +1086,10 @@ export const FLOW_COMMANDS = {
         "  --spec <path>                 Path to spec (directory / spec.json / legacy spec.md; auto-resolved from flow.json)",
         `  --phase <${VALID_GATE_PHASES.join("|")}>  Gate phase (default: auto-resolve from in-progress step)`,
         "  --agent-work-dir <path>       Per-invocation agent/tmp base directory",
-        "  --skip-guardrail              Skip AI guardrail compliance check",
+        "  Required evaluations cannot be bypassed from the public CLI.",
       ].join("\n"),
       async post(ctx, result) {
+        if (!ctx.flowState) return;
         if (
           ctx.terminalGateRevalidation === true
           || (
@@ -1152,8 +1157,24 @@ export const FLOW_COMMANDS = {
           }, result);
         } catch (error) {
           const reviewMod = await import("./lib/run-review.js");
-          reviewMod.persistReviewPostHookToolingFailure(ctx, result, error);
-          throw error;
+          let persistenceFailure = null;
+          try {
+            reviewMod.persistReviewPostHookToolingFailure(ctx, result, error);
+          } catch (failure) {
+            persistenceFailure = failure;
+          }
+          const recovery = reviewMod.recoverFinalizedFlowReviewPostHookFailure(ctx, result, error);
+          if (recovery) {
+            await applyLifecycleActionsFromRegistry(ctx, {
+              event: "review:post",
+              command: "run-review",
+              phase: ctx.phase,
+              currentStepId: activeImplReviewStepId(ctx.flowState),
+              dryRun: ctx.dryRun,
+            }, result);
+            return;
+          }
+          throw persistenceFailure || error;
         }
       },
     },
@@ -1383,6 +1404,7 @@ export const FLOW_COMMANDS = {
     },
     "start-task": {
       helpKey: "flow.run.start-task",
+      explicitTargetResolution: true,
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-start-task.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: ["--task-id", ...FLOW_RUN_OPTIONS] },
@@ -1396,6 +1418,7 @@ export const FLOW_COMMANDS = {
     },
     "complete-task": {
       helpKey: "flow.run.complete-task",
+      explicitTargetResolution: true,
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-complete-task.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: ["--task-id", ...FLOW_RUN_OPTIONS] },

@@ -14,6 +14,10 @@ import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 
 export class RunStartTaskCommand extends FlowCommand {
+  constructor() {
+    super({ explicitTargetResolution: true });
+  }
+
   async execute(ctx) {
     const taskId = typeof ctx.taskId === "string" && ctx.taskId.trim()
       ? ctx.taskId.trim()

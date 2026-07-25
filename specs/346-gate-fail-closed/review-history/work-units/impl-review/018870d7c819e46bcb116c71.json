@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+      "src/flow/lib/impl-repair-artifacts.js"
+    ],
+    "inputHash": "6d273a269b291928632b29b2533df300dc07025687e02f3f74d2dcf70415a91d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+    "src/flow/lib/impl-repair-artifacts.js"
+  ],
+  "inputHash": "6d273a269b291928632b29b2533df300dc07025687e02f3f74d2dcf70415a91d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:57:49.689Z",
+  "finishedAt": "2026-07-25T16:57:49.689Z",
+  "rawResponse": "### 1. Extract CLI Rejection Assertion Helper\n**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R5  \n**Issue:** The R5 test repeats three near-identical `assert.throws(() => execFileSync(...), matcher)` blocks for rejected public CLI options. This makes future CLI-bypass cases more verbose and easier to update inconsistently.  \n**Suggestion:** Add a small helper such as `assertCliRejects(args, pattern)` and reuse it for `--skip-guardrail`, `--test-fixture required-agent-pass`, and `--test-fixture=required-agent-pass`.\n\n### 2. Extract Temporary Senti Root Setup\n**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R1  \n**Issue:** Several tests duplicate temporary root creation, `.senti` directory creation, config writing, and cleanup. The setup varies only by config content and prefix.  \n**Suggestion:** Introduce a helper like `withTempSentiRoot(prefix, config, fn)` that creates the root, writes `.senti/config.json`, runs the callback, and always removes the directory.\n\n### 3. Split Scenario Normalization From Execution\n**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `executeProductionGate` mixes scenario normalization, fixture agent behavior, guardrail loading behavior, filesystem setup, and the actual `runGateFlow` invocation. That makes individual failure-mode tests harder to read and extend.  \n**Suggestion:** Extract helpers such as `createScenarioAgent(scenario, guardrail)` and `createGuardrailPromptOptions(scenario, guardrail)` so `executeProductionGate` reads as setup plus one production gate call.\n\n### 4. Rename `configuredEvaluation`\n**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** `configuredEvaluation` can come from either `requiredAgent.output` or `requiredGuardrail.output`, but it is only consumed by the fake agent’s `call()` method. The name obscures that this is the agent’s mock response source.  \n**Suggestion:** Rename it to something more specific, such as `agentEvaluationOutput` or `mockAgentOutput`, and keep guardrail-loading scenarios separate from agent-output scenarios.\n\n### 5. Remove Redundant Assertion\n**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** In the R2 scenario loop, `assert.equal(result.result, \"fail\", scenario.expected)` already proves the result is not `\"pass\"`, so `assert.notEqual(result.result, \"pass\")` is redundant.  \n**Suggestion:** Delete the redundant assertion to keep the test focused on the required blocking failure code.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract CLI Rejection Assertion Helper",
+        "body": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R5  \n**Issue:** The R5 test repeats three near-identical `assert.throws(() => execFileSync(...), matcher)` blocks for rejected public CLI options. This makes future CLI-bypass cases more verbose and easier to update inconsistently.  \n**Suggestion:** Add a small helper such as `assertCliRejects(args, pattern)` and reuse it for `--skip-guardrail`, `--test-fixture required-agent-pass`, and `--test-fixture=required-agent-pass`.",
+        "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Extract Temporary Senti Root Setup",
+        "body": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R1  \n**Issue:** Several tests duplicate temporary root creation, `.senti` directory creation, config writing, and cleanup. The setup varies only by config content and prefix.  \n**Suggestion:** Introduce a helper like `withTempSentiRoot(prefix, config, fn)` that creates the root, writes `.senti/config.json`, runs the callback, and always removes the directory.",
+        "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Split Scenario Normalization From Execution",
+        "body": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `executeProductionGate` mixes scenario normalization, fixture agent behavior, guardrail loading behavior, filesystem setup, and the actual `runGateFlow` invocation. That makes individual failure-mode tests harder to read and extend.  \n**Suggestion:** Extract helpers such as `createScenarioAgent(scenario, guardrail)` and `createGuardrailPromptOptions(scenario, guardrail)` so `executeProductionGate` reads as setup plus one production gate call.",
+        "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Rename `configuredEvaluation`",
+        "body": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** `configuredEvaluation` can come from either `requiredAgent.output` or `requiredGuardrail.output`, but it is only consumed by the fake agent’s `call()` method. The name obscures that this is the agent’s mock response source.  \n**Suggestion:** Rename it to something more specific, such as `agentEvaluationOutput` or `mockAgentOutput`, and keep guardrail-loading scenarios separate from agent-output scenarios.",
+        "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Remove Redundant Assertion",
+        "body": "**File:** `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** In the R2 scenario loop, `assert.equal(result.result, \"fail\", scenario.expected)` already proves the result is not `\"pass\"`, so `assert.notEqual(result.result, \"pass\")` is redundant.  \n**Suggestion:** Delete the redundant assertion to keep the test focused on the required blocking failure code.",
+        "file": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

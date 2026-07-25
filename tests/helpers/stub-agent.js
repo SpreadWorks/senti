@@ -43,6 +43,27 @@ export function writeCapturingStubAgentScript(dir, relPath, capturePath, jsonRes
 }
 
 /**
+ * Write a prompt-routing stub that records only the primary evaluation prompt.
+ * Gate tests issue a required guardrail evaluation after the requirement
+ * evaluation; that secondary prompt uses a different output schema.
+ */
+export function writeCapturingGateStubAgentScript(dir, relPath, capturePath, requirementResponse) {
+  const scriptPath = join(dir, relPath);
+  const body = [
+    "#!/usr/bin/env node",
+    "const fs = require('fs');",
+    "const prompt = process.argv.slice(2).join('\\n');",
+    "const guardrailPrompt = prompt.includes('## Guardrail Articles');",
+    `if (!guardrailPrompt) fs.writeFileSync(${JSON.stringify(capturePath)}, prompt);`,
+    `process.stdout.write(guardrailPrompt ? ${JSON.stringify('{"observations":[]}')} : ${JSON.stringify(requirementResponse)});`,
+    "",
+  ].join("\n");
+  writeFileSync(scriptPath, body);
+  chmodSync(scriptPath, 0o755);
+  return scriptPath;
+}
+
+/**
  * Write a deterministic stub that selects a response from prompt markers.
  * Cases are checked in order; the fallback is emitted when none match.
  */

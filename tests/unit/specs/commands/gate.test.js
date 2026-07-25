@@ -20,6 +20,15 @@ function initGateProject(tmp, { specId = "001-test" } = {}) {
   writeJson(tmp, ".senti/config.json", {
     lang: "en", type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
+    agent: {
+      default: "stub",
+      providers: {
+        stub: {
+          command: process.execPath,
+          args: ["-e", "process.stdout.write('{\"observations\":[]}')"],
+        },
+      },
+    },
   });
 }
 
@@ -427,14 +436,13 @@ describe("gate CLI", () => {
       "flow", "run", "gate",
       "--phase", "spec",
       "--spec", join(specDir, "spec.md"),
-      "--skip-guardrail",
     ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.result, "pass");
   });
 
-  it("phase=spec returns mechanical failures before --skip-guardrail can pass (R5)", () => {
+  it("phase=spec returns mechanical failures before required evaluation (R5)", () => {
     tmp = createTmpDir();
     initGateProject(tmp);
     const specDir = join(tmp, "specs", "001-test");
@@ -462,7 +470,6 @@ describe("gate CLI", () => {
     const envelope = runBlockedGate(tmp, [
       "--phase", "spec",
       "--spec", join(specDir, "spec.md"),
-      "--skip-guardrail",
     ]);
 
     assert.equal(envelope.data.result, "fail");
@@ -502,7 +509,6 @@ describe("gate CLI", () => {
     const envelope = runBlockedGate(tmp, [
       "--phase", "spec",
       "--spec", join(specDir, "spec.json"),
-      "--skip-guardrail",
     ]);
     assert.equal(envelope.data.result, "fail");
     assert.ok(
@@ -533,7 +539,6 @@ describe("gate CLI", () => {
     const envelope = runBlockedGate(tmp, [
       "--phase", "spec",
       "--spec", join(specDir, "spec.json"),
-      "--skip-guardrail",
     ]);
     assert.equal(envelope.data.result, "fail");
     assert.ok(

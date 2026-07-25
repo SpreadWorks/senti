@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/specs/commands/guardrail.test.js"
+    ],
+    "inputHash": "2ee2083f2c21f75dcb21c21afe1bd7bfc58885b1a70613e45f39bff4430e8859",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "tests/unit/specs/commands/guardrail.test.js"
+  ],
+  "inputHash": "2ee2083f2c21f75dcb21c21afe1bd7bfc58885b1a70613e45f39bff4430e8859",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T17:14:23.037Z",
+  "finishedAt": "2026-07-25T17:14:23.037Z",
+  "rawResponse": "### 1. Rename failure-specific parser\n**File:** `tests/unit/specs/commands/guardrail.test.js`  \n**Requirement:** R1  \n**Issue:** `parseGateResult` does more than parse: it asserts the command failed and that `envelope.ok === false`. The name is too broad and hides the test expectation.  \n**Suggestion:** Rename it to something like `parseFailedGateEnvelope(result)` so callers clearly communicate that a non-zero exit and failed envelope are expected.\n\n### 2. Table-drive duplicate fail-closed tests\n**File:** `tests/unit/specs/commands/guardrail.test.js`  \n**Requirement:** R1  \n**Issue:** The two fail-closed tests repeat the same execution and assertion, differing only in fixture setup and test title.  \n**Suggestion:** Convert them to a small table-driven loop, e.g. cases for “no guardrail file” and “configured guardrails”, each asserting `GATE_REQUIRED_AGENT_UNSET`. This keeps the behavioral distinction while reducing duplicated assertion code.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Rename failure-specific parser",
+        "body": "**File:** `tests/unit/specs/commands/guardrail.test.js`  \n**Requirement:** R1  \n**Issue:** `parseGateResult` does more than parse: it asserts the command failed and that `envelope.ok === false`. The name is too broad and hides the test expectation.  \n**Suggestion:** Rename it to something like `parseFailedGateEnvelope(result)` so callers clearly communicate that a non-zero exit and failed envelope are expected.",
+        "file": "tests/unit/specs/commands/guardrail.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Table-drive duplicate fail-closed tests",
+        "body": "**File:** `tests/unit/specs/commands/guardrail.test.js`  \n**Requirement:** R1  \n**Issue:** The two fail-closed tests repeat the same execution and assertion, differing only in fixture setup and test title.  \n**Suggestion:** Convert them to a small table-driven loop, e.g. cases for “no guardrail file” and “configured guardrails”, each asserting `GATE_REQUIRED_AGENT_UNSET`. This keeps the behavioral distinction while reducing duplicated assertion code.",
+        "file": "tests/unit/specs/commands/guardrail.test.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

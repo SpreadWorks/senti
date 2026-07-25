@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "impl-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99",
+      "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+      "fingerprint": "c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99",
+      "disposition": "deferred",
+      "rationale": "R2 requires unavailable required evaluations to fail closed. An empty configured guardrail set means no required guardrail evaluation can run, yet the current branch returns `null`, which `runGateFlow()` and `RunGateCommand.execute()` convert to pass behavior.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    }
+  ]
+}

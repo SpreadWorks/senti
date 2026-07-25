@@ -1,0 +1,3292 @@
+{
+  "entries": [
+    {
+      "step": "draft-coverage-review",
+      "reason": "Draft coverage review could not acquire the repository flow operation lock held by another active process.",
+      "trigger": "senti flow run review returned REPOSITORY_FLOW_OPERATION_BUSY for lock owner pid 2436210.",
+      "resolution": "Wait for the lock owner to complete, then rerun the guarded draft coverage review once.",
+      "guardrailCandidate": "Treat a repository operation lock conflict as an external blocker; do not retry concurrently.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:07:45.921Z",
+      "issueLogId": "issue-log-90af6c9f-043e-44d0-aabc-c0b3ff77e524"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement says consumers can distinguish failure types using `failureKind などの型情報`, but `など` leaves the required type fields open-ended; specify the exact artifact/output fields that must carry the distinction.; The draft changes existing gate behavior but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.; The draft does not map each retained public behavior to its new owner or state an explicit removal decision for behavior that will no longer be retained.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:08:45.098Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "impactOnExisting[3]"
+          },
+          "observed": "The requirement says consumers can distinguish failure types using `failureKind などの型情報`, but `など` leaves the required type fields open-ended; specify the exact artifact/output fields that must carry the distinction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "spec.json"
+          },
+          "observed": "The draft changes existing gate behavior but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "spec.json"
+          },
+          "observed": "The draft does not map each retained public behavior to its new owner or state an explicit removal decision for behavior that will no longer be retained.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says consumers can distinguish failure types using `failureKind などの型情報`, but `など` leaves the required type fields open-ended; specify the exact artifact/output fields that must carry the distinction."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft changes existing gate behavior but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft does not map each retained public behavior to its new owner or state an explicit removal decision for behavior that will no longer be retained."
+        }
+      ],
+      "issueLogId": "issue-log-2635ad6f-c5d2-4e74-b807-f23cb30251f4"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found an ambiguous failure metadata requirement and missing migration parity inventory and ownership mapping.",
+      "trigger": "Draft gate returned complete-context and migration-parity blocking observations.",
+      "resolution": "Specify the exact artifact and output fields, then inventory each retained public behavior with its owner and verification.",
+      "guardrailCandidate": "When changing gate outcome behavior, define exact machine fields and migration parity before gate review.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:08:52.232Z",
+      "issueLogId": "issue-log-8d7e808a-4719-4aba-920e-70360ed85c44"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement says to follow the existing shared-code policy and \"helper を検討する\" when the same pattern appears multiple times, but it does not state a verifiable condition for when the implementation satisfies that requirement.; Requirement uses \"related unit / CLI tests\" without identifying which test surfaces or acceptance checks are required, so independent reviewers may disagree on whether enough related tests were added.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:09:52.523Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "Requirement says to follow the existing shared-code policy and \"helper を検討する\" when the same pattern appears multiple times, but it does not state a verifiable condition for when the implementation satisfies that requirement.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in[1]"
+          },
+          "observed": "Requirement uses \"related unit / CLI tests\" without identifying which test surfaces or acceptance checks are required, so independent reviewers may disagree on whether enough related tests were added.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement says to follow the existing shared-code policy and \"helper を検討する\" when the same pattern appears multiple times, but it does not state a verifiable condition for when the implementation satisfies that requirement."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses \"related unit / CLI tests\" without identifying which test surfaces or acceptance checks are required, so independent reviewers may disagree on whether enough related tests were added."
+        }
+      ],
+      "issueLogId": "issue-log-ed97ed79-03a1-44d5-a156-45bd70e9ef81"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found vague shared-helper and test-surface requirements after the migration parity repair.",
+      "trigger": "Draft gate returned complete-context observations for decisionMap.resolvedByProjectRules[2] and scopeVerification.in[1].",
+      "resolution": "State the two-occurrence helper extraction rule and enumerate the required unit and CLI verification scenarios.",
+      "guardrailCandidate": "Draft requirements for refactoring and tests must define measurable extraction and verification conditions.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:09:58.428Z",
+      "issueLogId": "issue-log-40b5f5e0-6b50-4adb-99a6-7eae32591288"
+    },
+    {
+      "step": "spec",
+      "reason": "Spec completion state update could not acquire the repository flow operation lock held by another active process.",
+      "trigger": "senti flow set step spec done returned REPOSITORY_FLOW_OPERATION_BUSY for lock owner pid 2443557.",
+      "resolution": "Wait for the lock owner to complete, then repeat the guarded spec completion update.",
+      "guardrailCandidate": "Treat repository operation lock conflicts as external serialization, never concurrent state updates.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:11:36.935Z",
+      "issueLogId": "issue-log-fa19c3b3-989a-4de9-b6d9-3fea8952a032"
+    },
+    {
+      "step": "spec-review",
+      "reason": "Spec review could not start because the flow state changed after promotion planning.",
+      "trigger": "senti flow run review returned FLOW_STATE_ATOMIC_STALE.",
+      "resolution": "Re-read guarded next-action and run the currently selected action after state stabilization.",
+      "guardrailCandidate": "On atomic state staleness, refresh dispatcher state before retrying a flow command.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:12:05.159Z",
+      "issueLogId": "issue-log-01f55c13-f885-4317-bda7-5eadfe0ebe58"
+    },
+    {
+      "step": "spec-review",
+      "reason": "Spec review produced a PASS artifact but its post-hook could not persist the result because another flow held the repository operation lock.",
+      "trigger": "Spec review exited with lock owner pid 2468824 active after writing spec-review.json.",
+      "resolution": "Register the finalized PASS review artifact through the guarded review-evidence command after the lock is released.",
+      "guardrailCandidate": "When review persistence is lock-blocked after artifact creation, register the immutable artifact instead of rerunning the AI review.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:34:45.120Z",
+      "issueLogId": "issue-log-aa5f4ac9-54da-462b-a2cf-98f3b1271c97"
+    },
+    {
+      "step": "spec-review",
+      "reason": "The authorized flow-runtime recovery could not reopen the draft because another active process held the repository operation lock.",
+      "trigger": "senti flow run reopen-draft returned REPOSITORY_FLOW_OPERATION_BUSY for lock owner pid 2541713.",
+      "resolution": "Wait for the lock owner to complete, then reopen the draft to add the recovery requirement and task.",
+      "guardrailCandidate": "Serialize flow recovery mutations through the repository operation lock.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:36:51.052Z",
+      "issueLogId": "issue-log-88f0bc2c-a674-45a0-8420-7325a70e087b"
+    },
+    {
+      "step": "draft",
+      "reason": "reopen-draft triggered: pre-implementation plan draft regression; stale planning artifacts retained — The user authorized a flow-runtime repair so finalized flow-level spec review artifacts can be registered after a post-hook lock conflict; the spec needs this recovery contract and task.",
+      "trigger": "user invoked senti flow reopen-draft before implementation task execution",
+      "resolution": "draft step set to in_progress; reset plan steps: draft, draft-questions-review, draft-questions-triage, draft-questions-repair, draft-refine, draft-coverage-review, draft-coverage-triage, draft-coverage-repair, draft-gate, spec, spec-review, spec-triage, spec-repair, spec-gate, approval, test, test-review; stale artifacts retained: spec.json, spec.md, spec-triage.json, spec-repair.json, draft.json, draft-review-questions.json, draft-questions-triage.json, draft-questions-repair.json, draft-review-coverage.json, draft-coverage-triage.json, draft-coverage-repair.json, issue.md, test.md",
+      "timestamp": "2026-07-25T14:37:02.769Z",
+      "issueLogId": "issue-log-88c42105-d0b6-4b87-a1ea-8baa427508c4"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses unresolved deferral language: “具体的な class / field ... source 全体の call boundary から確定する,” so two reviewers could not determine the exact implementation target from this draft.; Requirement defers deciding the concrete owner and public CLI contract details to later source inspection, so it is not specific enough for independent reviewers to agree on satisfaction.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:41:04.754Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "Requirement uses unresolved deferral language: “具体的な class / field ... source 全体の call boundary から確定する,” so two reviewers could not determine the exact implementation target from this draft.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.deferredToSpec[1]"
+          },
+          "observed": "Requirement defers deciding the concrete owner and public CLI contract details to later source inspection, so it is not specific enough for independent reviewers to agree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses unresolved deferral language: “具体的な class / field ... source 全体の call boundary から確定する,” so two reviewers could not determine the exact implementation target from this draft."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement defers deciding the concrete owner and public CLI contract details to later source inspection, so it is not specific enough for independent reviewers to agree on satisfaction."
+        }
+      ],
+      "issueLogId": "issue-log-c7956067-338b-4e6c-9056-4fba292d9a91"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found the two deferredToSpec entries too open-ended to verify independently.",
+      "trigger": "Draft gate returned complete-context observations for decisionMap.deferredToSpec.",
+      "resolution": "Remove the unresolved deferrals because the concrete failure and contract decisions are already specified elsewhere in the draft.",
+      "guardrailCandidate": "Do not retain implementation-target decisions as unresolved draft deferrals when the acceptance contract is already known.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:41:12.111Z",
+      "issueLogId": "issue-log-86f12576-2d47-4d1b-846a-b72ce583f17c"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Uses the vague adjective \"valid\" in \"A PASS gate result proves every required prerequisite and evaluation completed successfully\" without defining verifiable validity conditions.; Uses the vague adjective \"valid\" in \"The flow registry advances the next step only from a valid PASS gate result\" without defining verifiable validity conditions.; Uses the vague phrase \"valid configured agent PASS/FAIL behavior\" without stating verifiable conditions for which configured agent behavior must be retained.; Uses the vague phrase \"Valid normal PASS and FAIL cases\" without stating verifiable conditions for which PASS and FAIL cases qualify.; Uses the vague phrase \"valid gate behavior\" without stating verifiable conditions for which gate behavior must be preserved.; References semantic retry budget consumption but does not state an explicit upper bound for retry count.; References semantic retry consumption but does not state an explicit upper bound for retry count.; The spec does not list the change impact on existing features or explicitly state that no existing features are affected.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:46:35.296Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "design_principles[0]"
+          },
+          "observed": "Uses the vague adjective \"valid\" in \"A PASS gate result proves every required prerequisite and evaluation completed successfully\" without defining verifiable validity conditions.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.modules[3].text"
+          },
+          "observed": "Uses the vague adjective \"valid\" in \"The flow registry advances the next step only from a valid PASS gate result\" without defining verifiable validity conditions.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[3].desc"
+          },
+          "observed": "Uses the vague phrase \"valid configured agent PASS/FAIL behavior\" without stating verifiable conditions for which configured agent behavior must be retained.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[3]"
+          },
+          "observed": "Uses the vague phrase \"Valid normal PASS and FAIL cases\" without stating verifiable conditions for which PASS and FAIL cases qualify.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[2].goal"
+          },
+          "observed": "Uses the vague phrase \"valid gate behavior\" without stating verifiable conditions for which gate behavior must be preserved.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "References semantic retry budget consumption but does not state an explicit upper bound for retry count.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].goal"
+          },
+          "observed": "References semantic retry consumption but does not state an explicit upper bound for retry count.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec does not list the change impact on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Uses the vague adjective \"valid\" in \"A PASS gate result proves every required prerequisite and evaluation completed successfully\" without defining verifiable validity conditions."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Uses the vague adjective \"valid\" in \"The flow registry advances the next step only from a valid PASS gate result\" without defining verifiable validity conditions."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Uses the vague phrase \"valid configured agent PASS/FAIL behavior\" without stating verifiable conditions for which configured agent behavior must be retained."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Uses the vague phrase \"Valid normal PASS and FAIL cases\" without stating verifiable conditions for which PASS and FAIL cases qualify."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Uses the vague phrase \"valid gate behavior\" without stating verifiable conditions for which gate behavior must be preserved."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "References semantic retry budget consumption but does not state an explicit upper bound for retry count."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "References semantic retry consumption but does not state an explicit upper bound for retry count."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not list the change impact on existing features or explicitly state that no existing features are affected."
+        }
+      ],
+      "issueLogId": "issue-log-955a4ec1-b910-4c26-9e67-fb7cbc3b1fdb"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found vague valid-behavior language, missing explicit retry bound, and missing existing-feature impact.",
+      "trigger": "Spec gate returned unambiguous-requirements, bounded-resource-usage, and impact-on-existing-features observations.",
+      "resolution": "Replace every valid phrase with observable conditions, state the configured retry cap, and record the retained public-surface impact.",
+      "guardrailCandidate": "Specify normal-path behavior, retry bounds, and existing-surface impact in every gate-related spec.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:46:45.710Z",
+      "issueLogId": "issue-log-b47ea49b-e5f9-4439-b95d-8f4f1cb52a47"
+    },
+    {
+      "step": "approval",
+      "reason": "Approval persistence was blocked by an active repository flow lock; no approval state changed.",
+      "trigger": "senti flow set approval returned REPOSITORY_FLOW_OPERATION_BUSY for active owner pid 2585046.",
+      "resolution": "Re-read next-action and retry after lock owner finishes.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:49:58.397Z",
+      "issueLogId": "issue-log-fdbfccbe-d046-4f24-9a35-6c7649c4005e"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review command returned without an envelope and left an unterminated runtime-log entry; no test-review verdict or lifecycle transition was persisted.",
+      "trigger": "senti flow run review --phase test sequence 85 has no end record and no provider process remains.",
+      "resolution": "Re-read next-action; retry the unchanged review command only because no semantic verdict was produced.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T14:54:48.180Z",
+      "issueLogId": "issue-log-51e0b516-cc27-464d-ae91-955df79925c8"
+    },
+    {
+      "step": "task-review",
+      "reason": "Replaced synthetic R1 scenario with runGateFlow invocation against a temporary missing-preset project config and asserted semantic evaluation is never entered.",
+      "normalizedFindingId": "d1ec286513d8c73492c0a519bd5f43d901bad5cf801e516666c9eb0335bcaa49",
+      "repairRef": {
+        "files": [
+          "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T15:09:04.038Z",
+      "issueLogId": "issue-log-c93655f8-24d1-4203-bbc1-cf49ba3dd10e"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added public CLI coverage using a temporary missing-preset config and task-spec target, asserting GATE_PRESET_NOT_FOUND before retry output.",
+      "normalizedFindingId": "3c42e1170555d1cbbc50a525c2e9590dabb4b727557ed2ee6dcf87c88cc03c50",
+      "repairRef": {
+        "files": [
+          "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T15:09:12.626Z",
+      "issueLogId": "issue-log-90b31789-6e06-46fc-ad71-72406690dd1f"
+    },
+    {
+      "step": "impl-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds preset-chain prerequisite derivation in the gate runner by loading config and resolving preset chains from `config.type`, while the existing config and preset owner modules are only imported and remain unchanged.; The diff adds a new exported `GatePrerequisiteFailure` class with a single production construction path and no demonstrated shared behavior, invariant, or ownership boundary beyond wrapping fields and converting itself to a gate result.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T15:10:04.909Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "code-placement",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "validateGatePresetPrerequisite"
+          },
+          "observed": "The diff adds preset-chain prerequisite derivation in the gate runner by loading config and resolving preset chains from `config.type`, while the existing config and preset owner modules are only imported and remain unchanged.",
+          "severity": "blocking",
+          "refs": [
+            "code-placement"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "GatePrerequisiteFailure"
+          },
+          "observed": "The diff adds a new exported `GatePrerequisiteFailure` class with a single production construction path and no demonstrated shared behavior, invariant, or ownership boundary beyond wrapping fields and converting itself to a gate result.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "code-placement",
+          "reason": "The diff adds preset-chain prerequisite derivation in the gate runner by loading config and resolving preset chains from `config.type`, while the existing config and preset owner modules are only imported and remain unchanged."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a new exported `GatePrerequisiteFailure` class with a single production construction path and no demonstrated shared behavior, invariant, or ownership boundary beyond wrapping fields and converting itself to a gate result."
+        }
+      ],
+      "issueLogId": "issue-log-19ae42e6-aa89-4108-90a2-6514498c2b44"
+    },
+    {
+      "step": "task-review",
+      "reason": "Classified exhausted malformed guardrail output as GATE_REQUIRED_OUTPUT while keeping invocation failures as GATE_REQUIRED_GUARDRAIL.",
+      "normalizedFindingId": "b875ed54c2585b2f7220ca2f1ef6cf86d9428dcc741db83c3cb563a87940398d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T15:14:33.178Z",
+      "issueLogId": "issue-log-cd8165d3-a95b-4660-9f3f-802d13803abc"
+    },
+    {
+      "step": "impl-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds `validateGatePresetPrerequisite` as a single-caller helper used only by `runGateFlow`; it only wraps `validateConfiguredPresetChains(root)` in a try/catch and converts the result to `null` or `error.message`, adding indirection without shared behavior, an invariant, or an ownership boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T15:15:26.046Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "validateGatePresetPrerequisite"
+          },
+          "observed": "The diff adds `validateGatePresetPrerequisite` as a single-caller helper used only by `runGateFlow`; it only wraps `validateConfiguredPresetChains(root)` in a try/catch and converts the result to `null` or `error.message`, adding indirection without shared behavior, an invariant, or an ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds `validateGatePresetPrerequisite` as a single-caller helper used only by `runGateFlow`; it only wraps `validateConfiguredPresetChains(root)` in a try/catch and converts the result to `null` or `error.message`, adding indirection without shared behavior, an invariant, or an ownership boundary."
+        }
+      ],
+      "issueLogId": "issue-log-e218fa7f-f2d4-47dd-bb45-d56b99939fdf"
+    },
+    {
+      "step": "impl-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds `gatePrerequisiteFail` as a helper with a single production caller in `runGateFlow`; it only wraps `gateFail` and assigns prerequisite failure artifact fields, adding indirection without shared behavior, an invariant, or an ownership boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T15:16:04.678Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "gatePrerequisiteFail"
+          },
+          "observed": "The diff adds `gatePrerequisiteFail` as a helper with a single production caller in `runGateFlow`; it only wraps `gateFail` and assigns prerequisite failure artifact fields, adding indirection without shared behavior, an invariant, or an ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds `gatePrerequisiteFail` as a helper with a single production caller in `runGateFlow`; it only wraps `gateFail` and assigns prerequisite failure artifact fields, adding indirection without shared behavior, an invariant, or an ownership boundary."
+        }
+      ],
+      "issueLogId": "issue-log-bbe461f3-0927-4d51-b348-46333d095f04"
+    },
+    {
+      "step": "impl-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added catch block returns null for `ERR_MISSING_FILE` without logging or re-throwing the caught error, silently discarding that error path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T15:17:43.916Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/lib/presets.js",
+            "locator": "validateConfiguredPresetChains"
+          },
+          "observed": "The added catch block returns null for `ERR_MISSING_FILE` without logging or re-throwing the caught error, silently discarding that error path.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added catch block returns null for `ERR_MISSING_FILE` without logging or re-throwing the caught error, silently discarding that error path."
+        }
+      ],
+      "issueLogId": "issue-log-98a411c7-9602-47f1-93ed-c2e58feb705b"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: removed the missing-config fallback from configured preset validation",
+      "resolution": "A missing config is a prerequisite failure for gate evaluation; propagating it preserves fail-closed behavior and no longer silently discards the error.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T15:18:10.605Z",
+      "issueLogId": "issue-log-edfed38d-a78e-4114-bb03-01e806b489c3"
+    },
+    {
+      "step": "implement",
+      "reason": "discovered: start-task and complete-task do not resolve an explicitly targeted worktree flow before requiring flow state",
+      "resolution": "Use the existing explicit target-resolution path for these recovery commands so a guarded task cursor update operates on the bound worktree flow.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T15:21:13.541Z",
+      "issueLogId": "issue-log-c564bda6-f1fa-4130-8877-6aeab939a06b"
+    },
+    {
+      "step": "task-review",
+      "reason": "fix: reject --test-fixture=<value> and preserve equals-form option parsing for typed public-route rejection",
+      "resolution": "Both supported CLI spellings now reach RunGateCommand's public-route rejection before gate evaluation.",
+      "normalizedFindingId": "test-fixture-public-parser-gap",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T15:25:19.069Z",
+      "issueLogId": "issue-log-673fb32c-3ce1-4f78-8bec-4ed89392e2f7"
+    },
+    {
+      "step": "task-review",
+      "reason": "fix: added the test-only required gate scenario adapter that exercises typed required failures and retained PASS/FAIL evaluation semantics",
+      "resolution": "Spec-local R2-R4 scenarios now invoke an exported internal adapter with gate-shaped results while public CLI routes remain unable to select fixtures.",
+      "normalizedFindingId": "missing-required-gate-scenario-helper",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T15:26:51.248Z",
+      "issueLogId": "issue-log-c3dbe81e-aec0-4f98-9106-f04baa6931f9"
+    },
+    {
+      "step": "task-review",
+      "reason": "fix: reject parsed public skipGuardrail and skipRequiredEvaluation fields before any gate execution",
+      "resolution": "The public command contract now rejects bypass flags independently of raw argv preservation, while internal direct execute tests remain isolated from CLI routing.",
+      "normalizedFindingId": "skip-guardrail-public-bypass",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T15:27:37.586Z",
+      "issueLogId": "issue-log-40b8ff90-94e2-4299-a87f-756b8809fae1"
+    },
+    {
+      "step": "impl-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "must-fix finding 3485ded1a348439eba446958a03bcd0c79f294cd045a81edda365102dfae5c8a is missing matching repair evidence; must-fix finding 988fd90fe113a9b2f84aeeff87837f2a5b558e6eaee5cfb21ba2b40e734de6dd is missing matching repair evidence; must-fix finding 56cc62a6b22378a294e2bf04cc5616eb6fc431da53efefe7735948233ded787d is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T15:28:09.775Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 3485ded1a348439eba446958a03bcd0c79f294cd045a81edda365102dfae5c8a is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 988fd90fe113a9b2f84aeeff87837f2a5b558e6eaee5cfb21ba2b40e734de6dd is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 56cc62a6b22378a294e2bf04cc5616eb6fc431da53efefe7735948233ded787d is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-5ef489af-76e2-4052-96c3-4b41bb679347"
+    },
+    {
+      "step": "task-review",
+      "reason": "repair evidence: public fixture equals-syntax rejection",
+      "resolution": "The public CLI now rejects both separated and equals-form fixture controls before gate evaluation.",
+      "normalizedFindingId": "3485ded1a348439eba446958a03bcd0c79f294cd045a81edda365102dfae5c8a",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T15:28:30.216Z",
+      "issueLogId": "issue-log-a75c8e68-a323-4bd3-821f-0ac49cc2165e"
+    },
+    {
+      "step": "task-review",
+      "reason": "repair evidence: internal required gate scenario adapter",
+      "resolution": "The spec-local R2-R4 scenarios now have an isolated adapter that returns typed gate outcomes without adding a public evaluation route.",
+      "normalizedFindingId": "988fd90fe113a9b2f84aeeff87837f2a5b558e6eaee5cfb21ba2b40e734de6dd",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T15:28:36.726Z",
+      "issueLogId": "issue-log-86cf4350-e7d8-41b9-8c53-46b02cc6cdbd"
+    },
+    {
+      "step": "task-review",
+      "reason": "repair evidence: parsed public bypass rejection",
+      "resolution": "Parsed public skip flags are rejected before runGateFlow can select its internal skip path.",
+      "normalizedFindingId": "56cc62a6b22378a294e2bf04cc5616eb6fc431da53efefe7735948233ded787d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T15:28:42.679Z",
+      "issueLogId": "issue-log-f11f43eb-7856-498a-b5c6-b4694ea1a60d"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: recorded exact review finding fingerprints and repair references required by the task gate",
+      "resolution": "The gate can now match each must-fix review finding to its task-scoped repair evidence.",
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T15:28:49.735Z",
+      "issueLogId": "issue-log-696dce5a-3dbc-4902-a7bc-b0ee946bafad"
+    },
+    {
+      "step": "task-review",
+      "reason": "fix: construct canonical ReviewEvidence and generated identity before recovery registration",
+      "resolution": "Recovery now preserves the canonical evidence validation boundary while still registering the finalized artifact without provider invocation.",
+      "normalizedFindingId": "19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/set-review-evidence.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-25T15:31:56.334Z",
+      "issueLogId": "issue-log-e714d5c2-4016-4779-b1c1-cae18d346ea3"
+    },
+    {
+      "step": "task-review",
+      "reason": "fix: register the validated canonical ReviewEvidence object rather than a reduced projection",
+      "resolution": "Recovered evidence now retains disposition, provenance, findings, and generated canonical identity at registration.",
+      "normalizedFindingId": "r6-bypasses-review-evidence-validation",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/set-review-evidence.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-25T15:33:00.314Z",
+      "issueLogId": "issue-log-2b4b89b8-ad45-4010-8785-2b7ada421cd6"
+    },
+    {
+      "step": "task-review",
+      "reason": "fix: accept the required task-target mismatch rejection in the R6 test",
+      "resolution": "The test now validates all R6 stale target dimensions, including non-null task IDs.",
+      "normalizedFindingId": "r6-task-mismatch-test-assertion-rejects-valid-error",
+      "repairRef": {
+        "files": [
+          "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-25T15:34:18.947Z",
+      "issueLogId": "issue-log-18ec5821-283f-4f00-905a-6caac1a6d1f7"
+    },
+    {
+      "step": "impl-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "must-fix finding 19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a is missing matching repair evidence; must-fix finding 9eb4cb93a0759d8bc652f0e340f1d85601fb10f83d9b12077acf23dfb54f2698 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T15:34:53.024Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 9eb4cb93a0759d8bc652f0e340f1d85601fb10f83d9b12077acf23dfb54f2698 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-307a566f-c181-4fc9-932d-4e8c3adb7b2e"
+    },
+    {
+      "step": "task-review",
+      "reason": "repair evidence: canonical ReviewEvidence recovery registration",
+      "resolution": "Recovered artifacts are validated and registered as canonical ReviewEvidence.",
+      "normalizedFindingId": "19ea73c878c219ab6d3bf6f11d64e51100de2dccf1766606b8b28a0fedaea41a",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/set-review-evidence.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-25T15:35:00.076Z",
+      "issueLogId": "issue-log-c20a2880-1b01-4b62-8c7e-2ebd43a1f13a"
+    },
+    {
+      "step": "task-review",
+      "reason": "repair evidence: R6 task-target mismatch assertion",
+      "resolution": "The R6 test now accepts and verifies the required task target rejection.",
+      "normalizedFindingId": "9eb4cb93a0759d8bc652f0e340f1d85601fb10f83d9b12077acf23dfb54f2698",
+      "repairRef": {
+        "files": [
+          "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-25T15:35:07.024Z",
+      "issueLogId": "issue-log-fa1d49d5-00c4-4357-9e38-05ea3ef6697d"
+    },
+    {
+      "step": "impl-review",
+      "reason": "repair in progress: isolate test fixture helpers from public gate exports",
+      "resolution": "Fixture controls will remain unavailable from production routing.",
+      "normalizedFindingId": "9d79835e9bba845882abcab7d2afcdb9b53c9e3a7d18fe3789c9607adc87569d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:38:50.868Z",
+      "issueLogId": "issue-log-2f7e8942-695d-46e8-aa4d-4f9b546934aa"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fix: classify production required-agent spawn and evaluation failures with typed codes",
+      "resolution": "The real guardrail path now emits agent-specific codes for unavailable spawn/evaluation failures.",
+      "normalizedFindingId": "eb9ce2a2888aeb99d3d05162ca492db6171b018d076a61ee1788315fdca1c4d1",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:39:40.170Z",
+      "issueLogId": "issue-log-9f4a42da-8e8b-4e43-8e26-23d27a94b780"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 9d79835e9bba845882abcab7d2afcdb9b53c9e3a7d18fe3789c9607adc87569d, eb9ce2a2888aeb99d3d05162ca492db6171b018d076a61ee1788315fdca1c4d1.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-001; 2 changed path(s), delta repair-deltas/repair-001.json.",
+      "normalizedFindingId": "9d79835e9bba845882abcab7d2afcdb9b53c9e3a7d18fe3789c9607adc87569d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:40:13.090Z",
+      "issueLogId": "impl-repair:repair-001:9d79835e9bba845882abcab7d2afcdb9b53c9e3a7d18fe3789c9607adc87569d"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 9d79835e9bba845882abcab7d2afcdb9b53c9e3a7d18fe3789c9607adc87569d, eb9ce2a2888aeb99d3d05162ca492db6171b018d076a61ee1788315fdca1c4d1.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-001; 2 changed path(s), delta repair-deltas/repair-001.json.",
+      "normalizedFindingId": "eb9ce2a2888aeb99d3d05162ca492db6171b018d076a61ee1788315fdca1c4d1",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:40:13.090Z",
+      "issueLogId": "impl-repair:repair-001:eb9ce2a2888aeb99d3d05162ca492db6171b018d076a61ee1788315fdca1c4d1"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings f9a479a6c51de440333d0efea02802fbf1bff99e5260438442225f247e8e5e25, 52097039413fb6863c621767420011453b6b3bb16aaa51713cda8c85ebbbd92b, 31d7c26253c33258b85682f981d995abb7fa46f7f975c6a780a19c7ea099e3a8, 42665a603e998d9b8bb0d96b3a7f98061973e121a4d06334e26c0e8ced2b99fc.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-002; 3 changed path(s), delta repair-deltas/repair-002.json.",
+      "normalizedFindingId": "f9a479a6c51de440333d0efea02802fbf1bff99e5260438442225f247e8e5e25",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:47:07.529Z",
+      "issueLogId": "impl-repair:repair-002:f9a479a6c51de440333d0efea02802fbf1bff99e5260438442225f247e8e5e25"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings f9a479a6c51de440333d0efea02802fbf1bff99e5260438442225f247e8e5e25, 52097039413fb6863c621767420011453b6b3bb16aaa51713cda8c85ebbbd92b, 31d7c26253c33258b85682f981d995abb7fa46f7f975c6a780a19c7ea099e3a8, 42665a603e998d9b8bb0d96b3a7f98061973e121a4d06334e26c0e8ced2b99fc.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-002; 3 changed path(s), delta repair-deltas/repair-002.json.",
+      "normalizedFindingId": "52097039413fb6863c621767420011453b6b3bb16aaa51713cda8c85ebbbd92b",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:47:07.529Z",
+      "issueLogId": "impl-repair:repair-002:52097039413fb6863c621767420011453b6b3bb16aaa51713cda8c85ebbbd92b"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings f9a479a6c51de440333d0efea02802fbf1bff99e5260438442225f247e8e5e25, 52097039413fb6863c621767420011453b6b3bb16aaa51713cda8c85ebbbd92b, 31d7c26253c33258b85682f981d995abb7fa46f7f975c6a780a19c7ea099e3a8, 42665a603e998d9b8bb0d96b3a7f98061973e121a4d06334e26c0e8ced2b99fc.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-002; 3 changed path(s), delta repair-deltas/repair-002.json.",
+      "normalizedFindingId": "31d7c26253c33258b85682f981d995abb7fa46f7f975c6a780a19c7ea099e3a8",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:47:07.529Z",
+      "issueLogId": "impl-repair:repair-002:31d7c26253c33258b85682f981d995abb7fa46f7f975c6a780a19c7ea099e3a8"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings f9a479a6c51de440333d0efea02802fbf1bff99e5260438442225f247e8e5e25, 52097039413fb6863c621767420011453b6b3bb16aaa51713cda8c85ebbbd92b, 31d7c26253c33258b85682f981d995abb7fa46f7f975c6a780a19c7ea099e3a8, 42665a603e998d9b8bb0d96b3a7f98061973e121a4d06334e26c0e8ced2b99fc.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-002; 3 changed path(s), delta repair-deltas/repair-002.json.",
+      "normalizedFindingId": "42665a603e998d9b8bb0d96b3a7f98061973e121a4d06334e26c0e8ced2b99fc",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:47:07.529Z",
+      "issueLogId": "impl-repair:repair-002:42665a603e998d9b8bb0d96b3a7f98061973e121a4d06334e26c0e8ced2b99fc"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings b20d41a1b865342aceceb67d47ba0e21278fc5953f5759ab7ae2f60df1eea3ca, 0fd248883298ae84707bc1182a4102cb7947e04c45c2930ae9eb486bdf032316.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 2 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "b20d41a1b865342aceceb67d47ba0e21278fc5953f5759ab7ae2f60df1eea3ca",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:54:21.641Z",
+      "issueLogId": "impl-repair:repair-003:b20d41a1b865342aceceb67d47ba0e21278fc5953f5759ab7ae2f60df1eea3ca"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings b20d41a1b865342aceceb67d47ba0e21278fc5953f5759ab7ae2f60df1eea3ca, 0fd248883298ae84707bc1182a4102cb7947e04c45c2930ae9eb486bdf032316.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 2 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "0fd248883298ae84707bc1182a4102cb7947e04c45c2930ae9eb486bdf032316",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:54:21.641Z",
+      "issueLogId": "impl-repair:repair-003:0fd248883298ae84707bc1182a4102cb7947e04c45c2930ae9eb486bdf032316"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-004; 2 changed path(s), delta repair-deltas/repair-004.json.",
+      "normalizedFindingId": "c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:56:31.746Z",
+      "issueLogId": "impl-repair:repair-004:c5164d83818cde64653de8bada440b282da5b9fe5a974d4a4c55b2153fe06b99"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-25b9ca7d-c869-4488-afb2-df3e06d6515d",
+      "id": "recovery-25b9ca7d-c869-4488-afb2-df3e06d6515d",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Centralized the fail-closed guardrail failure result and verified the spec-local suite.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "a3123f752eabf76dc544712b5bc9248573d6b49dad96ffe0ee65612be0f2f151",
+        "currentHash": "34f63de6e671003ca04958d5d8984016d2caf491ea48be14926fb20c214a838b",
+        "changedPaths": [
+          "specs/346-gate-fail-closed/spec.json",
+          "src/flow/lib/run-complete-task.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-start-task.js",
+          "src/flow/lib/set-review-evidence.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/registry.js",
+          "src/lib/dispatcher.js",
+          "src/lib/presets.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Centralized the fail-closed guardrail failure result and verified the spec-local suite.\" --yes",
+      "createdAt": "2026-07-25T15:59:41.379Z",
+      "timestamp": "2026-07-25T15:59:41.379Z",
+      "issueLogId": "recovery-25b9ca7d-c869-4488-afb2-df3e06d6515d"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: upgrade-result.json missing",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:06:20.795Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: upgrade-result.json missing",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-21269483-8c8f-4e38-aad7-9667a7e98137"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: ran senti upgrade to generate the required upgrade-result artifact.",
+      "resolution": "The artifact records the upgrade verification for changed preset-resolution sources.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:07:10.181Z",
+      "issueLogId": "issue-log-4ffca8f0-ade3-4558-b308-52b5d674b906"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R4] requires retaining configured-agent PASS/FAIL semantics, foreign/optional policies, normal gate result/evaluations/reasons artifacts, and PASS registry transitions. The mapped implementation evidence shows PASS/FAIL result and artifact handling in run-gate plus a spec test asserting PASS and FAIL evaluations, but it omits evidence for foreign/optional policy preservation and does not exercise or show PASS registry transition behavior through the registry/post-hook path. [TASK:T-3] explicitly requires foreign/optional contracts and PASS post-hook transition preservation; [OUT:2] requires foreign or optional policy semantics; [EVIDENCE:R4] and [FILE-MAP:R4:1] only show assertions on pass/fail result/evaluations/reasons, while [FILE-MAP:R4:2] shows no registry-transition verification.; [REQ:R6] requires recovered canonical evidence to be registered for the current state fingerprint as well as phase, null task target, and current tree. [EVIDENCE:R6] validates `providerArtifact.targetStateDigest` and stores it on the wrapper/`toRegistration()`, but the actual registration calls `canonicalEvidenceStore.register(artifact.evidence)` where `artifact.evidence` is constructed as `new ReviewEvidence({ phase, taskId, treeSha, provenance, disposition })` and omits `targetStateDigest`; the R6 test also does not assert the registered canonical evidence carries the state fingerprint. Phase/tree/target mismatch rejection and no provider invocation are present, but the exact state-fingerprint registration field is omitted.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:09:09.170Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires retaining configured-agent PASS/FAIL semantics, foreign/optional policies, normal gate result/evaluations/reasons artifacts, and PASS registry transitions. The mapped implementation evidence shows PASS/FAIL result and artifact handling in run-gate plus a spec test asserting PASS and FAIL evaluations, but it omits evidence for foreign/optional policy preservation and does not exercise or show PASS registry transition behavior through the registry/post-hook path. [TASK:T-3] explicitly requires foreign/optional contracts and PASS post-hook transition preservation; [OUT:2] requires foreign or optional policy semantics; [EVIDENCE:R4] and [FILE-MAP:R4:1] only show assertions on pass/fail result/evaluations/reasons, while [FILE-MAP:R4:2] shows no registry-transition verification.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires recovered canonical evidence to be registered for the current state fingerprint as well as phase, null task target, and current tree. [EVIDENCE:R6] validates `providerArtifact.targetStateDigest` and stores it on the wrapper/`toRegistration()`, but the actual registration calls `canonicalEvidenceStore.register(artifact.evidence)` where `artifact.evidence` is constructed as `new ReviewEvidence({ phase, taskId, treeSha, provenance, disposition })` and omits `targetStateDigest`; the R6 test also does not assert the registered canonical evidence carries the state fingerprint. Phase/tree/target mismatch rejection and no provider invocation are present, but the exact state-fingerprint registration field is omitted.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires retaining configured-agent PASS/FAIL semantics, foreign/optional policies, normal gate result/evaluations/reasons artifacts, and PASS registry transitions. The mapped implementation evidence shows PASS/FAIL result and artifact handling in run-gate plus a spec test asserting PASS and FAIL evaluations, but it omits evidence for foreign/optional policy preservation and does not exercise or show PASS registry transition behavior through the registry/post-hook path. [TASK:T-3] explicitly requires foreign/optional contracts and PASS post-hook transition preservation; [OUT:2] requires foreign or optional policy semantics; [EVIDENCE:R4] and [FILE-MAP:R4:1] only show assertions on pass/fail result/evaluations/reasons, while [FILE-MAP:R4:2] shows no registry-transition verification."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires recovered canonical evidence to be registered for the current state fingerprint as well as phase, null task target, and current tree. [EVIDENCE:R6] validates `providerArtifact.targetStateDigest` and stores it on the wrapper/`toRegistration()`, but the actual registration calls `canonicalEvidenceStore.register(artifact.evidence)` where `artifact.evidence` is constructed as `new ReviewEvidence({ phase, taskId, treeSha, provenance, disposition })` and omits `targetStateDigest`; the R6 test also does not assert the registered canonical evidence carries the state fingerprint. Phase/tree/target mismatch rejection and no provider invocation are present, but the exact state-fingerprint registration field is omitted."
+        }
+      ],
+      "issueLogId": "issue-log-de75c41b-effc-49ab-8605-c38c82316f73"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added R4 foreign/optional and gate side-effect coverage, and persisted R6 target-state digest in canonical review evidence.",
+      "resolution": "The repaired production evidence now covers both gate observations without changing unrelated gate semantics.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:12:03.820Z",
+      "issueLogId": "issue-log-6f188565-0ea6-4279-8a8d-cf158de54a98"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: upgrade-result.json missing",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:15:31.654Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: upgrade-result.json missing",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-894769fd-767e-4a35-8c0e-1f1aaca069b9"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: regenerated upgrade-result after the R4/R6 source changes invalidated upgrade evidence.",
+      "resolution": "The refreshed artifact now matches the current upgrade-required paths.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:15:53.943Z",
+      "issueLogId": "issue-log-54479069-6d2c-4e2f-8e6d-2537fa630807"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f9a10-399c-7a51-a57f-99bc47f7ded2\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ran out of room in the model's context window. Start a new thread ",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-25T16:16:28.013Z",
+      "classification": "tooling_provider_failure",
+      "failureMode": "provider_failure",
+      "originalError": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f9a10-399c-7a51-a57f-99bc47f7ded2\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ran out of room in the model's context window. Start a new thread ",
+      "attemptCount": 1,
+      "attempts": [
+        {
+          "attempt": 1,
+          "repair": false,
+          "cacheOutcome": "provider_error",
+          "fresh": false,
+          "providerCalled": true,
+          "error": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f9a10-399c-7a51-a57f-99bc47f7ded2\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ran out of room in the model's context window. Start a new thread "
+        }
+      ],
+      "providerCalls": 1,
+      "freshRepairAttempts": 0,
+      "issueLogId": "issue-log-16128bd5-345b-4a3f-8a35-c6ddb03061e8"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f9a10-e195-74c1-9964-b3d5b06df6c9\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ran out of room in the model's context window. Start a new thread ",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-25T16:17:10.054Z",
+      "classification": "tooling_provider_failure",
+      "failureMode": "provider_failure",
+      "originalError": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f9a10-e195-74c1-9964-b3d5b06df6c9\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ran out of room in the model's context window. Start a new thread ",
+      "attemptCount": 1,
+      "attempts": [
+        {
+          "attempt": 1,
+          "repair": false,
+          "cacheOutcome": "provider_error",
+          "fresh": false,
+          "providerCalled": true,
+          "error": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f9a10-e195-74c1-9964-b3d5b06df6c9\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ran out of room in the model's context window. Start a new thread "
+        }
+      ],
+      "providerCalls": 1,
+      "freshRepairAttempts": 0,
+      "issueLogId": "issue-log-9fd63e32-4ad7-4fcb-a3e4-2e5177305279"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R1] requires the full preset chain to be validated once before semantic context resolution, missing presets to produce a typed prerequisite failure before evaluation, no repeated warning in the same invocation, and the five semantic gate retries to remain unchanged. The diff adds strict preset-chain validation via validateConfiguredPresetChains and returns artifacts.failureKind=\"prerequisite\" / artifacts.failureCode=\"GATE_PRESET_NOT_FOUND\" before guardrail evaluation in runGateFlow, with no retry-budget change shown [EVIDENCE:R1] [FILE-MAP:R1:1] [FILE-MAP:R1:2]. However, the authoritative acceptance context also requires unit/CLI/spec-local test coverage for R1-R5, including missing-preset behavior, and the mapped implementation evidence includes no corresponding test changes, so required verification coverage is omitted [AC:5].; [REQ:R3] requires mechanically distinguishable classification in both gate artifacts (`artifacts.failureKind` and `artifacts.failureCode`) and flow error envelopes (`errors[0].code`). [EVIDENCE:R3] adds artifact fields through `gateRequiredEvaluationFail(...)` and public CLI `Envelope.fail(...)` codes, but required evaluation failures returned from `runGateFlow`/diff-based gate are still normal gate failure artifacts, with no implementation evidence that corresponding flow error envelopes expose `errors[0].code` for prerequisite, agent, guardrail, schema, or output failures.; [REQ:R5] requires production public CLI routes not to bypass required evaluations and requires test fixtures/evaluation substitutes to be isolated from production routing; [CONSTRAINT:3] and [TASK:T-3] state test controls must be unreachable from public production CLI routes. The diff rejects bypass flags in RunGateCommand.run, but it also adds `--test-fixture` to the production `flow run gate` registry options and parses it in `parsePublicGateArguments`, making a test-fixture control part of the public production route rather than isolated from it. Sources: [FILE-MAP:R5:2] src/flow/lib/run-gate.js `parsePublicGateArguments`/`RunGateCommand.run`; [FILE-MAP:R5:3] src/flow/registry.js gate args adding `--test-fixture`; [FILE-MAP:R5:1] specs/346-gate-fail-closed/tests/gate-fail-closed.test.js R5 CLI tests.; [REQ:R6] requires recovery when a finalized flow-level provider artifact remains after post-hook lock failure, registering it as canonical evidence without invoking the provider and rejecting mismatched phase/tree/target state. The diff adds `recoverFinalizedFlowReviewEvidence` and validation in `src/flow/lib/set-review-evidence.js`, plus tests in `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`, but the mapped implementation evidence does not show any integration with the actual post-hook lock-failure recovery path. An exported helper alone does not implement the required changed behavior after post-hook persistence failure. Sources: [FILE-MAP:R6:1], [FILE-MAP:R6:2], [EVIDENCE:R6].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:21:35.576Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "[REQ:R1] requires the full preset chain to be validated once before semantic context resolution, missing presets to produce a typed prerequisite failure before evaluation, no repeated warning in the same invocation, and the five semantic gate retries to remain unchanged. The diff adds strict preset-chain validation via validateConfiguredPresetChains and returns artifacts.failureKind=\"prerequisite\" / artifacts.failureCode=\"GATE_PRESET_NOT_FOUND\" before guardrail evaluation in runGateFlow, with no retry-budget change shown [EVIDENCE:R1] [FILE-MAP:R1:1] [FILE-MAP:R1:2]. However, the authoritative acceptance context also requires unit/CLI/spec-local test coverage for R1-R5, including missing-preset behavior, and the mapped implementation evidence includes no corresponding test changes, so required verification coverage is omitted [AC:5].",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "[REQ:R3] requires mechanically distinguishable classification in both gate artifacts (`artifacts.failureKind` and `artifacts.failureCode`) and flow error envelopes (`errors[0].code`). [EVIDENCE:R3] adds artifact fields through `gateRequiredEvaluationFail(...)` and public CLI `Envelope.fail(...)` codes, but required evaluation failures returned from `runGateFlow`/diff-based gate are still normal gate failure artifacts, with no implementation evidence that corresponding flow error envelopes expose `errors[0].code` for prerequisite, agent, guardrail, schema, or output failures.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "[REQ:R5] requires production public CLI routes not to bypass required evaluations and requires test fixtures/evaluation substitutes to be isolated from production routing; [CONSTRAINT:3] and [TASK:T-3] state test controls must be unreachable from public production CLI routes. The diff rejects bypass flags in RunGateCommand.run, but it also adds `--test-fixture` to the production `flow run gate` registry options and parses it in `parsePublicGateArguments`, making a test-fixture control part of the public production route rather than isolated from it. Sources: [FILE-MAP:R5:2] src/flow/lib/run-gate.js `parsePublicGateArguments`/`RunGateCommand.run`; [FILE-MAP:R5:3] src/flow/registry.js gate args adding `--test-fixture`; [FILE-MAP:R5:1] specs/346-gate-fail-closed/tests/gate-fail-closed.test.js R5 CLI tests.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires recovery when a finalized flow-level provider artifact remains after post-hook lock failure, registering it as canonical evidence without invoking the provider and rejecting mismatched phase/tree/target state. The diff adds `recoverFinalizedFlowReviewEvidence` and validation in `src/flow/lib/set-review-evidence.js`, plus tests in `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`, but the mapped implementation evidence does not show any integration with the actual post-hook lock-failure recovery path. An exported helper alone does not implement the required changed behavior after post-hook persistence failure. Sources: [FILE-MAP:R6:1], [FILE-MAP:R6:2], [EVIDENCE:R6].",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "[REQ:R1] requires the full preset chain to be validated once before semantic context resolution, missing presets to produce a typed prerequisite failure before evaluation, no repeated warning in the same invocation, and the five semantic gate retries to remain unchanged. The diff adds strict preset-chain validation via validateConfiguredPresetChains and returns artifacts.failureKind=\"prerequisite\" / artifacts.failureCode=\"GATE_PRESET_NOT_FOUND\" before guardrail evaluation in runGateFlow, with no retry-budget change shown [EVIDENCE:R1] [FILE-MAP:R1:1] [FILE-MAP:R1:2]. However, the authoritative acceptance context also requires unit/CLI/spec-local test coverage for R1-R5, including missing-preset behavior, and the mapped implementation evidence includes no corresponding test changes, so required verification coverage is omitted [AC:5]."
+        },
+        {
+          "guardrail_id": "R3",
+          "reason": "[REQ:R3] requires mechanically distinguishable classification in both gate artifacts (`artifacts.failureKind` and `artifacts.failureCode`) and flow error envelopes (`errors[0].code`). [EVIDENCE:R3] adds artifact fields through `gateRequiredEvaluationFail(...)` and public CLI `Envelope.fail(...)` codes, but required evaluation failures returned from `runGateFlow`/diff-based gate are still normal gate failure artifacts, with no implementation evidence that corresponding flow error envelopes expose `errors[0].code` for prerequisite, agent, guardrail, schema, or output failures."
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "[REQ:R5] requires production public CLI routes not to bypass required evaluations and requires test fixtures/evaluation substitutes to be isolated from production routing; [CONSTRAINT:3] and [TASK:T-3] state test controls must be unreachable from public production CLI routes. The diff rejects bypass flags in RunGateCommand.run, but it also adds `--test-fixture` to the production `flow run gate` registry options and parses it in `parsePublicGateArguments`, making a test-fixture control part of the public production route rather than isolated from it. Sources: [FILE-MAP:R5:2] src/flow/lib/run-gate.js `parsePublicGateArguments`/`RunGateCommand.run`; [FILE-MAP:R5:3] src/flow/registry.js gate args adding `--test-fixture`; [FILE-MAP:R5:1] specs/346-gate-fail-closed/tests/gate-fail-closed.test.js R5 CLI tests."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires recovery when a finalized flow-level provider artifact remains after post-hook lock failure, registering it as canonical evidence without invoking the provider and rejecting mismatched phase/tree/target state. The diff adds `recoverFinalizedFlowReviewEvidence` and validation in `src/flow/lib/set-review-evidence.js`, plus tests in `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`, but the mapped implementation evidence does not show any integration with the actual post-hook lock-failure recovery path. An exported helper alone does not implement the required changed behavior after post-hook persistence failure. Sources: [FILE-MAP:R6:1], [FILE-MAP:R6:2], [EVIDENCE:R6]."
+        }
+      ],
+      "issueLogId": "issue-log-214530fd-0ef0-4744-b230-e5332f482420"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: mapped R1-R3 verification, removed fixture exposure from the public gate route, emitted typed flow error envelopes, and connected finalized review evidence recovery to post-hook lock failures.",
+      "resolution": "The implementation now covers each integration-gate observation with production behavior and spec-local verification.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:27:14.123Z",
+      "issueLogId": "issue-log-f092070e-df56-4e50-8363-577fe229fce2"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: upgrade-result.json missing",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:31:11.016Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: upgrade-result.json missing",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-e0fe0ab6-1bb6-4749-833b-ef8df0a8ab34"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: regenerated upgrade evidence after the source changes.",
+      "resolution": "The integration-gate prerequisite artifact now matches the current implementation.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:31:27.224Z",
+      "issueLogId": "issue-log-ca5fb8b8-bbb8-4bc3-bae8-5efa764acffb"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R6] requires recovering a finalized flow-level provider artifact as canonical evidence for the current phase, null task target, current tree, and current state fingerprint, and rejecting artifacts whose phase, tree, or target state does not match. The adapter in src/flow/lib/set-review-evidence.js validates these fields, but the production recovery path in src/flow/lib/run-review.js constructs providerArtifact by overwriting the artifact's treeSha and targetStateDigest with the current values before validation, so stale or missing tree/state fields from the provider artifact are not rejected. The diff also shows recoverFinalizedFlowReviewPostHookFailure exported but no integration call site that invokes it after persistReviewPostHookToolingFailure, so the post-hook lock failure recovery behavior is not evidenced. Source refs: [FILE-MAP:R6:2] src/flow/lib/set-review-evidence.js, [FILE-MAP:R6:3] src/flow/lib/run-review.js, [TASK:T-4].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:32:44.532Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires recovering a finalized flow-level provider artifact as canonical evidence for the current phase, null task target, current tree, and current state fingerprint, and rejecting artifacts whose phase, tree, or target state does not match. The adapter in src/flow/lib/set-review-evidence.js validates these fields, but the production recovery path in src/flow/lib/run-review.js constructs providerArtifact by overwriting the artifact's treeSha and targetStateDigest with the current values before validation, so stale or missing tree/state fields from the provider artifact are not rejected. The diff also shows recoverFinalizedFlowReviewPostHookFailure exported but no integration call site that invokes it after persistReviewPostHookToolingFailure, so the post-hook lock failure recovery behavior is not evidenced. Source refs: [FILE-MAP:R6:2] src/flow/lib/set-review-evidence.js, [FILE-MAP:R6:3] src/flow/lib/run-review.js, [TASK:T-4].",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires recovering a finalized flow-level provider artifact as canonical evidence for the current phase, null task target, current tree, and current state fingerprint, and rejecting artifacts whose phase, tree, or target state does not match. The adapter in src/flow/lib/set-review-evidence.js validates these fields, but the production recovery path in src/flow/lib/run-review.js constructs providerArtifact by overwriting the artifact's treeSha and targetStateDigest with the current values before validation, so stale or missing tree/state fields from the provider artifact are not rejected. The diff also shows recoverFinalizedFlowReviewPostHookFailure exported but no integration call site that invokes it after persistReviewPostHookToolingFailure, so the post-hook lock failure recovery behavior is not evidenced. Source refs: [FILE-MAP:R6:2] src/flow/lib/set-review-evidence.js, [FILE-MAP:R6:3] src/flow/lib/run-review.js, [TASK:T-4]."
+        }
+      ],
+      "issueLogId": "issue-log-ac4970fe-e6a5-42df-9ee4-75132e4cbf85"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "impl-gate escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R6 (jaccard=1.00): [REQ:R6] requires recovering a finalized flow-level provider artifact as canonical evidence for the current phase, null task target, current tree, and current state fingerprint, and rejecting artifacts whose phase, tree, or target state does not match. The adapter in src/flow/lib/set-review-evidence.js validates these fields, but the production recovery path in src/flow/lib/run-review.js constructs providerArtifact by overwriting the artifact's treeSha and targetStateDigest with the current values before validation, so stale or missing tree/state fields from the provider artifact are not rejected. The diff also shows recoverFinalizedFlowReviewPostHookFailure exported but no integration call site that invokes it after persistReviewPostHookToolingFailure, so the post-hook lock failure recovery behavior is not evidenced. Source refs: [FILE-MAP:R6:2] src/flow/lib/set-review-evidence.js, [FILE-MAP:R6:3] src/flow/lib/run-review.js, [TASK:T-4]. ↔ [REQ:R6] requires recovering a finalized flow-level provider artifact as canonical evidence for the current phase, null task target, current tree, and current state fingerprint, and rejecting artifacts whose phase, tree, or target state does not match. The adapter in src/flow/lib/set-review-evidence.js validates these fields, but the production recovery path in src/flow/lib/run-review.js constructs providerArtifact by overwriting the artifact's treeSha and targetStateDigest with the current values before validation, so stale or missing tree/state fields from the provider artifact are not rejected. The diff also shows recoverFinalizedFlowReviewPostHookFailure exported but no integration call site that invokes it after persistReviewPostHookToolingFailure, so the post-hook lock failure recovery behavior is not evidenced. Source refs: [FILE-MAP:R6:2] src/flow/lib/set-review-evidence.js, [FILE-MAP:R6:3] src/flow/lib/run-review.js, [TASK:T-4].\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-25T16:33:37.528Z",
+      "issueLogId": "issue-log-87240358-b290-41ce-99e1-d98d6e79033c"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: bound finalized review artifacts to their original phase, task, tree, and state digest before post-hook recovery, and run recovery after recording the post-hook failure.",
+      "resolution": "Recovery now rejects stale provider artifacts rather than replacing their target identity with current values.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:35:09.642Z",
+      "issueLogId": "issue-log-5ac69f4f-8d6b-4056-9a56-2a6c3de43e91"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: upgrade-result.json missing",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:37:04.512Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: upgrade-result.json missing",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-83f64c97-7f1a-4de8-80f4-b09f4d766483"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: regenerated upgrade evidence after test evidence regeneration.",
+      "resolution": "The required upgrade artifact is recreated after the test step that invalidates it.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:38:26.144Z",
+      "issueLogId": "issue-log-592ffd64-ef88-4bdb-bf47-33f6ff85b05d"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "impl-gate escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R6 (jaccard=0.54): [REQ:R6] requires that a finalized flow-level review provider artifact remaining after a post-hook lock failure is registered as canonical evidence without invoking the provider again, and mismatched phase/tree/target state is rejected. The diff adds validation/adapter code in [FILE-MAP:R6:3] src/flow/lib/run-review.js and [FILE-MAP:R6:4] src/flow/lib/set-review-evidence.js, plus targetStateDigest support in [FILE-MAP:R6:2] src/flow/lib/review-evidence-store.js, but the mapped implementation evidence does not show the recovery function being invoked from the actual post-hook lock-failure path; `persistReviewPostHookToolingFailure` remains followed by only a new exported helper, with no integration into the production failure handling path. Because [TASK:T-4] requires registration after post-hook persistence failure and [REQ:R6] requires changed behavior, an uncalled helper omits the required integration. Tests in [FILE-MAP:R6:1] only exercise the adapter directly, not the post-hook lock-failure recovery path. ↔ [REQ:R6] requires recovery when a finalized flow-level provider artifact remains after post-hook lock failure, registering it as canonical evidence without invoking the provider and rejecting mismatched phase/tree/target state. The diff adds `recoverFinalizedFlowReviewEvidence` and validation in `src/flow/lib/set-review-evidence.js`, plus tests in `specs/346-gate-fail-closed/tests/gate-fail-closed.test.js`, but the mapped implementation evidence does not show any integration with the actual post-hook lock-failure recovery path. An exported helper alone does not implement the required changed behavior after post-hook persistence failure. Sources: [FILE-MAP:R6:1], [FILE-MAP:R6:2], [EVIDENCE:R6].\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-25T16:38:57.486Z",
+      "issueLogId": "issue-log-42c7b479-565d-4f87-910f-a65b6d38d5e2"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: mapped the production review post-hook integration in R6.",
+      "resolution": "The gate now evaluates the registry post-hook that invokes finalized-evidence recovery, together with its recovery implementation.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:41:05.404Z",
+      "issueLogId": "issue-log-9dbc7f3e-7320-4dc4-92b9-5bcf972b09df"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R5] requires production public CLI routes to be unable to bypass required evaluations and any test fixture/evaluation substitute to be isolated from production routing. The diff contradicts this by adding `--skip-guardrail` and new `--skip-required-evaluation` as public gate flags in `src/flow/registry.js` (`flags: withTargetGuardFlags([\"--skip-guardrail\", \"--skip-required-evaluation\"])`) while merely rejecting them later in `RunGateCommand.run`; this exposes a new public evaluation-bypass option despite [OUT:3] excluding new public evaluation-bypass options and [CONSTRAINT:2] requiring production CLI paths not bypass required evaluations. The evidence also omits a real production-route fixture integration to isolate: `--test-fixture` is not registered in the public CLI args and tests only assert it is unknown, while `parsePublicGateArguments` parses it from raw args. This does not supply complete implementation evidence that any fixture/evaluation substitute used by tests is isolated from production routing. Sources: [REQ:R5], [OUT:3], [CONSTRAINT:2], [CONSTRAINT:3], [TASK:T-3], [FILE-MAP:R5:2], [FILE-MAP:R5:3].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:42:50.689Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "[REQ:R5] requires production public CLI routes to be unable to bypass required evaluations and any test fixture/evaluation substitute to be isolated from production routing. The diff contradicts this by adding `--skip-guardrail` and new `--skip-required-evaluation` as public gate flags in `src/flow/registry.js` (`flags: withTargetGuardFlags([\"--skip-guardrail\", \"--skip-required-evaluation\"])`) while merely rejecting them later in `RunGateCommand.run`; this exposes a new public evaluation-bypass option despite [OUT:3] excluding new public evaluation-bypass options and [CONSTRAINT:2] requiring production CLI paths not bypass required evaluations. The evidence also omits a real production-route fixture integration to isolate: `--test-fixture` is not registered in the public CLI args and tests only assert it is unknown, while `parsePublicGateArguments` parses it from raw args. This does not supply complete implementation evidence that any fixture/evaluation substitute used by tests is isolated from production routing. Sources: [REQ:R5], [OUT:3], [CONSTRAINT:2], [CONSTRAINT:3], [TASK:T-3], [FILE-MAP:R5:2], [FILE-MAP:R5:3].",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "[REQ:R5] requires production public CLI routes to be unable to bypass required evaluations and any test fixture/evaluation substitute to be isolated from production routing. The diff contradicts this by adding `--skip-guardrail` and new `--skip-required-evaluation` as public gate flags in `src/flow/registry.js` (`flags: withTargetGuardFlags([\"--skip-guardrail\", \"--skip-required-evaluation\"])`) while merely rejecting them later in `RunGateCommand.run`; this exposes a new public evaluation-bypass option despite [OUT:3] excluding new public evaluation-bypass options and [CONSTRAINT:2] requiring production CLI paths not bypass required evaluations. The evidence also omits a real production-route fixture integration to isolate: `--test-fixture` is not registered in the public CLI args and tests only assert it is unknown, while `parsePublicGateArguments` parses it from raw args. This does not supply complete implementation evidence that any fixture/evaluation substitute used by tests is isolated from production routing. Sources: [REQ:R5], [OUT:3], [CONSTRAINT:2], [CONSTRAINT:3], [TASK:T-3], [FILE-MAP:R5:2], [FILE-MAP:R5:3]."
+        }
+      ],
+      "issueLogId": "issue-log-0086cf62-ffc3-4c1d-a726-48994258f3e1"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed public gate bypass and fixture parsing routes.",
+      "resolution": "Production CLI now rejects those options during argument parsing; only internal dependency injection remains for tests.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:44:15.305Z",
+      "issueLogId": "issue-log-22054e4d-086a-4ad2-ade8-4e045924e4cc"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff introduces a guardrail-unset failure branch for a missing guardrail list, then repeats the same failure construction in the empty guardrail-list branch. The two changed production branches perform the same decision and transformation and could be collapsed into one condition without changing ownership.; The diff introduces a guardrail-unset failure branch for an empty guardrail list that duplicates the immediately preceding missing guardrail-list failure shape. The repeated production behavior could be represented by a single local condition.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:45:14.840Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "checkGuardrail: !guardrails branch"
+          },
+          "observed": "The diff introduces a guardrail-unset failure branch for a missing guardrail list, then repeats the same failure construction in the empty guardrail-list branch. The two changed production branches perform the same decision and transformation and could be collapsed into one condition without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "checkGuardrail: guardrails.length === 0 branch"
+          },
+          "observed": "The diff introduces a guardrail-unset failure branch for an empty guardrail list that duplicates the immediately preceding missing guardrail-list failure shape. The repeated production behavior could be represented by a single local condition.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R6",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff introduces a guardrail-unset failure branch for a missing guardrail list, then repeats the same failure construction in the empty guardrail-list branch. The two changed production branches perform the same decision and transformation and could be collapsed into one condition without changing ownership."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff introduces a guardrail-unset failure branch for an empty guardrail list that duplicates the immediately preceding missing guardrail-list failure shape. The repeated production behavior could be represented by a single local condition."
+        }
+      ],
+      "issueLogId": "issue-log-eabf9446-cb15-4c28-91fd-16c1d7b70e92"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: consolidated empty and missing guardrail-list handling.",
+      "resolution": "One required-guardrail failure branch now covers both absent and empty configuration without duplicated production logic.",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:45:53.460Z",
+      "issueLogId": "issue-log-37d6d5d4-1b19-4f28-847e-c91fdb7ef2c7"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-a9ffcc0e-18e3-42a7-a25e-134148e6c115",
+      "id": "recovery-a9ffcc0e-18e3-42a7-a25e-134148e6c115",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "R5 public bypass removal and guardrail validation consolidation are committed; test and upgrade evidence were regenerated.",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "ea8d5d589b4b64d37bf7c324f4e494089a8dc8387f3244b7ff7e7b54fd9ac7a4",
+        "currentHash": "d8030d187a15bc9f80797edf712ea74e6f7fae72c4015adbe8c9183e92b75b4d",
+        "changedPaths": [
+          "specs/346-gate-fail-closed/file-map.json",
+          "specs/346-gate-fail-closed/test-execute-result.json",
+          "specs/346-gate-fail-closed/test-result-review.json",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/review-evidence-store.js",
+          "src/flow/lib/run-complete-task.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/run-start-task.js",
+          "src/flow/lib/set-review-evidence.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/registry.js",
+          "src/lib/dispatcher.js",
+          "src/lib/presets.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"R5 public bypass removal and guardrail validation consolidation are committed; test and upgrade evidence were regenerated.\" --yes",
+      "createdAt": "2026-07-25T16:46:37.306Z",
+      "timestamp": "2026-07-25T16:46:37.306Z",
+      "issueLogId": "recovery-a9ffcc0e-18e3-42a7-a25e-134148e6c115"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "caused_by_current_change",
+      "failureCategory": "caused_by_current_change",
+      "reason": "final-regression failed: caused_by_current_change",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/346-gate-fail-closed/.retry-recovery.transaction.json",
+          "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/acceptance-review.json",
+          "fingerprint": "f391a6bb21459ceb85b40f30657aa676e82ae91091b9109f30bfcf1d79d877bb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-coverage-repair.json",
+          "fingerprint": "da70897233cbbb78eaf78fd5a049504c74f89c5263e005ccf974d18d3e59e757"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-coverage-triage.json",
+          "fingerprint": "fcc71be3ff6297f52d7143a6f49956452518fc0804abd8af3417d5cc0227574b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-gate-source.json",
+          "fingerprint": "87cb07c7a3911d1d523024a471add68df1f513ed3f3e4a69e5a673f412f8324a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-questions-repair.json",
+          "fingerprint": "6744eeab512fff3d88a528e934405a02239754d5dd9fe378e10c052a81513af5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-questions-triage.json",
+          "fingerprint": "9ea18f90fa762e63949658e93a6f288015ceac67c2fad10c7ce191ff1c45d9f0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-review-coverage.json",
+          "fingerprint": "9fcfdb519325342d417812510de76921b8bd05edf49e7e473fcbb431bd7cc015"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-review-questions.json",
+          "fingerprint": "9e8dfa86423dac5013a50c280836820b32e22c21001c30982edec1e4e1b1e815"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft.json",
+          "fingerprint": "ead089a23c37d66f51b29f493fc9186558a8c8460d4e20e87cb5dcc75345fc61"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/file-map.json",
+          "fingerprint": "feae2078069fa5c81f54fd30d1cc76095268b600a50f2064125a5db3aaa0b87f"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/flow-findings.json",
+          "fingerprint": "c577d68fb270f8faaacdef0dea5ea5d4941c19b54716248a207931754b86581e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/gate-impl-memory.json",
+          "fingerprint": "e697399f45e69117a335e37ce21335250fdbd22a7f04cfa8af17df285c1d98b6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/impl-gate-result.json",
+          "fingerprint": "bd104b0b4779243a8a5669a950427adeb9196c038b865d045474a922d80cb1b9"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/impl-repair.json",
+          "fingerprint": "fb8f1ca0d1113fb9529ea16858c5880fbb2daff929c7119b8388f1eac5e34981"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/impl-review.json",
+          "fingerprint": "dbfd157de3d1f614f6ec99a9e58f767a5aa6522110e36dda1f8ec78023eb6a34"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/impl-triage.json",
+          "fingerprint": "c50ccdecd44bb34c84b83d895e74e3176afa17578fbb021f18f3034fe0f54c24"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/issue.md",
+          "fingerprint": "a04589a6b544af19b97adaf43ad9273b492216f9553f10ac003c22e68a27e1d5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "a213dd3a860a8b57ec5bddc04e4efb4bf7395f2db02c30637a2f629601d34218"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-001.json",
+          "fingerprint": "d3767add861c10555b7acee9efd59a1ed4c2e61f37ecb7d8683fe288bfffcf6e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-002.json",
+          "fingerprint": "44e5e4ed5ed868492bce62d3f7025355fbe5c57630ced4d696f1115e73e19f0e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-003.json",
+          "fingerprint": "b69fb2c1e87f921579c16fd27f1c631e313df145c7362c7157ad2bc16593edbe"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-004.json",
+          "fingerprint": "d0e0d173f1aad79b28a8cf3361199e567ccce7e67ce2f6401dcc54cbc246f76d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-005.json",
+          "fingerprint": "8dbc605d20855651b06abc24bcca8c2f8853b655e3a7a1010dc0438c0b7eb999"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-006.json",
+          "fingerprint": "3c3626dee5e177fe0a921bb8a9a1a15713621cafab248115ac2d7c35646765d0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-007.json",
+          "fingerprint": "f4b5593b4d224959619a1bdb094257254943278ebadf0f46a1872b34865fbe0a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-008.json",
+          "fingerprint": "14b953b0cbe697b26c4d0f16360ec47bfaf4edb57821d3558002f5685f1d90b3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-009.json",
+          "fingerprint": "f09730e4f0127a97cdb8219ca1874921097c41682730a7abf2939c5ae5c0e54d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-010.json",
+          "fingerprint": "d8d55785a634d2516e18b3a7e7692747f9fbaada6f6bbe80ee00ee7e712724d5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-fingerprint.json",
+          "fingerprint": "830aeaf1a18d1f9947f5b075ae4bfcde2dc8e72fca10acb1ae5f1096d2e2c813"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/retro.json",
+          "fingerprint": "8b9ed045b952f4d7497f8799c2712c17833a47ada51c078567895d9c1b7aff43"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/retry-recovery.json",
+          "fingerprint": "b45d37c6086aee6713e49968082654561d81a314643bd0a2c38713284847c91c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/037f071c4bec6c33548aa0b175eb7c9d8263791a1dd9fd707584bab527457fd8.json",
+          "fingerprint": "e0dff847ffb07591e5bd1acbca4b267ae36a51d2f95bb319fee3a907dd161f3d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/0456da509867d044910b887e614670193d5e4016894fba96b3e4663eb316c2c8.json",
+          "fingerprint": "744876b685ebfbe231418c98cb3ba37070aaefce7d2d6edf1acba4340bbdd434"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/04d25057f50bbccbf29058685826583566979fe2d1d431e9145a24d2f3a61d70.json",
+          "fingerprint": "27e2a52c12b17debb81fd989455858cb01ee373cb82365a532004671af0833fb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/05d0c586f54e1d1ed71ac5f08798336cc3ca7c4fdd2b98ed9e63253f100d510d.json",
+          "fingerprint": "239d8c6e8ed8c3282b19ea29718d3cf252f851c0403e72831e7e0b1cc1fc5a79"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/06bf0885c5ea3009df3d36e046e47784f944650b50b6e38d83f5a93fe924b69d.json",
+          "fingerprint": "db5f7436db3468f8c059116f40ee56d8061bb223ee010c2b82e360271b578013"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/0e01042c0ffd1d549e36e4d679c33a8b5599f5c7b6d711a9ea7cc75da008b364.json",
+          "fingerprint": "76845e5e64abb7fb6d33cde9bc584fa6f3a870f13416a913d0756cd792a5c3d0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/10b07a722d366e72d934cef7b3060f4436fb7bc8d0457db33de9a3ced6b948c2.json",
+          "fingerprint": "d81db7da2f768d59ed71cc3b162809343f210a72764a93ffbaee5069c6e5e5b7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/11b2d4f686d5e8f680d44b1b69b4d1f53352c7b859b7bd28220eea1141061bd1.json",
+          "fingerprint": "4006fb272ae8164591b21abea2c04e6493acadc92207b86a1c6d408e8194a774"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/216e6bedbb8c84267e64d5ab73d55fcd40b16807ef767c3c9df20b6428a7d654.json",
+          "fingerprint": "43077079979f25955fa610df6edfd45ad3f14588f65f1268a8c98cb031302b91"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/27a8949f9c7a15b7025f2ee894ad0b42034abeb2e7eadf1572f402e05a6937c5.json",
+          "fingerprint": "84fd791d25f809b6e948acc972a19e810349a7acccc147a007f937aece269981"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/29bded05c9a48b8ca47cfdfb72bb9eed9a9d76063286fcfb7f29679c9021e02f.json",
+          "fingerprint": "c4a61eb24ae2b2dfdb7c7f2878c81e546711c21e21c8b49a5fc4b3f447928523"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/2e0f3c8c43c4eee12cf2d9d90c289cc9a5e45420e823560869b1a5a44af75237.json",
+          "fingerprint": "06c44171d2da94c3c7a691aff51c7d9fa104459672b906533b611376f30963da"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/35c0021298c320213a75af8f89f11724918dfc6f0c5b09d40098fb4c68971346.json",
+          "fingerprint": "1fda414e4dd8d0e6a183ef00555ffbf62c8d3b0f213b6a4d7a133551c420fdb0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/5fc41f8ef2fda61c60f4fa90140087c5be17dcbdfc6d92d995e1d990e4a13117.json",
+          "fingerprint": "585c95f23c7ad8f2199ef137e65297853ef5f3959e100d2923a09cfb9e553ee4"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/6444db91bca3b9cf65031dbc96fc6142bf19ff6b366ff722fbb4c505d9cb10bd.json",
+          "fingerprint": "01492f6fbf45260126945e6a299035f206f85c26ae0ec6c6982534ca316d7df6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/67e1abf3e624a21e55111a769eb14b4de7bbbef4750aa5ce292683f745c7029d.json",
+          "fingerprint": "e14eb6cff47e853de62e9180b145d2283eb3af2e5f21d4becbe4a08213f31cfd"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/6b8a27144409a3b2d2d1653d04270000b5057fe22e04ab47c6c76d24bfe3d415.json",
+          "fingerprint": "eb5e98494228db3dc2889e5dfea6799abf4dbae0bf3ca5bce9076bd0d76d4d5b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/6bb6cbf861d868b2eed2c7941ed3b65e44bb59c54ca4065134897355ed4a13a4.json",
+          "fingerprint": "282827c6aa999bc6403b5840da32019b5601f49d8398b6407ae2b5ff0d82b63d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/7fcde07196d02a094f4dfe2116b504ab4d2ca8e61f11907dc643333897db04cb.json",
+          "fingerprint": "bd23d1733eb3bcbf7b367ebe52a937e0735753e5a3aab5b46129618c2e0cb07f"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/86c82d22ea9cbeae3a1a06a36780e3de46c06d8252e0d656a57327f7af497888.json",
+          "fingerprint": "d654e384a7f1f0b899d2537f494ba869346e11b5d35f39711880e819cc14c4c5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/8fda19b1e9c40517a2d1c3770beee04ecdfb1e4f6396467318ee56e2933e24c1.json",
+          "fingerprint": "3e1f705ac3e7f850eb34c24a610754c5b608c2610c3f645ce520738fae2d10f1"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/93e1750cc4482c7e103761fbda1f4a15fe6e73626b15b967d9cf8d3fbe689b82.json",
+          "fingerprint": "23629c75d38ebff390b11c9358d1ca137c4803f043c15aabdb1761949a7e4e82"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/9d26b9c93adc928dfd8b8baa77e30f5085b5bee57ce920bf44f79ce0016f9714.json",
+          "fingerprint": "46b102de496a6e70e1d9e8257f3c1dd9b194d167cb04ce6e5391a2063b736d59"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/a6e7ebad4f10ca2e84a1df3af72166c8767843c4a367abee89291e3b25c2e7e0.json",
+          "fingerprint": "a97b09240ddb4fe761a9f661d8f79c6ba5fc01e1906da9c6580d51443303d4b7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/ab21103f7da162ced266f35d1b569b7953d2543fae9e12f78077a242c2ab681a.json",
+          "fingerprint": "6f052a9590a7c158260c189c1da131d4c35d8ab484da91c1b92064457f8a9442"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/ab21b088a277c1d6a78b7441a52e959e8162227950d1ae0d0f62d7b6f8cf3d3f.json",
+          "fingerprint": "ef1eec145721527d356e69c0feff30f00d9a375fe7867b8e5735ed3d2236e45e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/b1db81f1bc805cdc2c76f3c16d75bae024c65cb9b0b25882d75a7a6ce7ad2856.json",
+          "fingerprint": "eee1d706f999e095288b2cbb9e2a042109ce368602f37832baf7cbd14291f243"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/b2c6bdb23999dbbf9e83a74b94bb103b11ba9f787689a27f4d2efd0471dc754c.json",
+          "fingerprint": "b39bddd61ba52c269e684d907664d83e77c81e635def4fa5f5e16ee6e1506427"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/bbaa15e638f31442eadd5655eb42aa763a04d63bba7cab0c40ba8c695c128e40.json",
+          "fingerprint": "c355ed9dd99670e7359034901d36023faa9b8557224dbfa853125a119d92d8c0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/c0ef92872ca74c248bf6fdb46ec6d5a55fd5a5f9990eab0d58b6fb7009fbe663.json",
+          "fingerprint": "67128d0caf13aad994f99732fcd74cb1ef0ead83770c96e37f06f22ea3d72af6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/c4b3fe344be6bf52fd5e3883c49658fde69f35423b63e1d1c9d2b045e91b4e7a.json",
+          "fingerprint": "e0675b14db15d4bcd2eacfaebd20da3334962528e2dd607e613eeb9d89d1436a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/cbff3ed87e634d8d297f9d3c49e1c692447402aeb16c471b5bc5807667683668.json",
+          "fingerprint": "ea0c0bd62b851be3511fa3108fb934d7d02628ced7d9c28139c988047388cf75"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/e732e3c7d1ddd55de98eb828d13bb99b38a7bda45223086ab8ded137d4908863.json",
+          "fingerprint": "0908907179dfc39f7874fa95da958f4294d0656c9ce635f35c072d4f0163c7b2"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/f3e655bfa168c157b1541c4224d1b86fcd361d08dca1595569e7990bb269b773.json",
+          "fingerprint": "35bf75224171892dde160ffc788661e5d80ff2f8aefcc6746c9e9824fef15421"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/fc26129883bc3ae503e4793f2019bb244bcd93a6e4a0907568285eb282c9effc.json",
+          "fingerprint": "fa6d306417624ce280570decf3771ce1e7f369e17e63f0743be7c6f914ba5ed2"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/fc66cf1b7a656f0f78addbb959a533f80c535ee3cab4c25349717933658f3dbc.json",
+          "fingerprint": "142af22ca6ff1078bd2aaeb30eb7b430a37b8410a276ef79b7750048a31b8c6d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/fc7be35d3918ba8878075e0cfb7ecbf13d21eda5f0c7832e8d6843b5cd67714d.json",
+          "fingerprint": "5660bdf65f72fd32d5d071b0e38a6d422e5e5d5b3c423c9dcc5c419ff3877dc8"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "a94f8adfcbfd605ab2b29dca7cf85aad23f055f047d258a76c3aaf58ee5b838b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-002.json",
+          "fingerprint": "9afcd93c5e8acd4be8330dfae246df159a828a5bdde010dad02e7659b7646132"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-003.json",
+          "fingerprint": "b2054a8e73ca47300285da0d72fdb9eef25e625540158345f45d14b376dd1f87"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "35a7c5ed92158111789f6152af8363c113e8e91785d66c1e9eb0781e00206c1f"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-questions-attempt-002.json",
+          "fingerprint": "5348d7602ad74c41db0f4cf66691812fdda3a44124cfb4bc2f43ad575fbac8d7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-001.json",
+          "fingerprint": "6742e6ac46f0cd41187cbb700b93f63b37017dc480d4a4881b1cd559fe0f3923"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-001.md",
+          "fingerprint": "1d882059eee05a4717c78b829f450ee27363ee8cbbb9ab7ff4b7f3efd2f3e00e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-002.json",
+          "fingerprint": "97d21e5fed44a5b57b56f7d5889a09472937cc4526202b9673470513f4bfe5db"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-003.json",
+          "fingerprint": "0241abcf73201357d99431a28490d8b95fb6fe026f38133377647d8e79dbd04b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-003.md",
+          "fingerprint": "9a8359ceb70df2045c15b09cfdc11c5dfb7bc1e4bee221a693a618618e76aa90"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-004.json",
+          "fingerprint": "cc9c465c5a578f24ef93b84a19dc6f1a3da78d144d680fc88e04d4c115b62a00"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-004.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-005.json",
+          "fingerprint": "c90c6710d4a5ca8ea5488dba75ec459e1e566fb97e6a2801125a68a94b1a175c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-005.md",
+          "fingerprint": "e9d9ac120765fcc6e5bb1792e17ba161ef4f16d5e4f8188e093c93a9000ba2c9"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-006.json",
+          "fingerprint": "354d92390ae1a372d42e673a9fcd1221c8fc0532d3589105ef684112c102c663"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-006.md",
+          "fingerprint": "1286d72b178c6984c6c9eba4cc359b84f547e38098b22ca30c1d85e2bc89f22b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-007.json",
+          "fingerprint": "12ff669488301f9069239ddbcc10d6b28e7eea50d5921e1d8bb98ef122ac61dc"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-007.md",
+          "fingerprint": "58a4dee95b647f1e4c43f9649691223fff5899d2e414ae155f1558e05c59e037"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-008.json",
+          "fingerprint": "e9332dba4883ad9fae838d0b24675ba7fb42745058f37307b99e9160d0bff517"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-008.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-009.json",
+          "fingerprint": "4256c89aa65042df3dc24371ad8898eaf108151785592bf64cf439b7a1180f35"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-009.md",
+          "fingerprint": "0429ef18d6260e6c8b8b2d2523d051e04cf49e761945ceea51772402bd19b7ee"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-010.json",
+          "fingerprint": "f05618be5a8d52480b4dccf6b2194855ed01e59f120f0bd3fd8f63f844001fdb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-010.md",
+          "fingerprint": "2261a66b24bc714e92753aeaa43f226fcc44fd245e65fd221a56b70e4f81dbbf"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-011.json",
+          "fingerprint": "aecab4852e00d2e7d54229c065be7013b176d0add113f442ccb3eb5a258cd30e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-011.md",
+          "fingerprint": "2cf174f9976076d064b589efbd9003ea63bc15f06767aee878ddb8bebc42f005"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-012.json",
+          "fingerprint": "5faf57184da19917bb5c2366619e34d9c792cc2be0e93f403f85a8c906900e40"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-012.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-013.json",
+          "fingerprint": "7e19b6b3f2583edb8894eae5a87ff8909c2ab603cc68fe587a1ae289e75fe26a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-013.md",
+          "fingerprint": "ba42a1ecb84409b07f429c5c13e0351ed746759545bbada74981014d134e8751"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-014.json",
+          "fingerprint": "98830f5002a592cf0a50cb770309e9d89a919510a570b3435c54397512e650a6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-014.md",
+          "fingerprint": "182dfe43f5bbec660d33f8811e31cc8f8e4f5d81d6233bf74ce92079f173f2e4"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-015.json",
+          "fingerprint": "ff1d12f7b882e464ecb0c1223d8b5c3d44995ea9db5b30b1f1f9b8d7a4a9119d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-015.md",
+          "fingerprint": "f1275fa14eac5994edf63f395dc2a0984cc75e897bb6b65a843b06e55deb0d8b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-016.json",
+          "fingerprint": "8fe37b87fba362d11d766bb3f1c41510a42ca294a92a24a854d3aa7671a03c68"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-016.md",
+          "fingerprint": "16fb925e607806601515b224a325afb115856bc979808e0ffbc8d92c59fca65d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-017.json",
+          "fingerprint": "cd37925541c8914d8d568968ba77dfc9040e0e6919be12a0a343f8c37c4994ff"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-017.md",
+          "fingerprint": "08c4e4ec0088effd5371b09332793a4408c8dd07950ff12b22d66371de1bb3e2"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-018.json",
+          "fingerprint": "f03afbd46e234d4da4763be60fd7c51d403163ce40f4b3e909967e599a460c57"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-018.md",
+          "fingerprint": "8ea1771ec11885eac6117a536f9e272a1749729a3e6ab42d278cf2d17546c820"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-019.json",
+          "fingerprint": "901ea2bba26f3a612fc45882a36e62ef84ae4ee8664bdd2c91d87ccee1db427a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-019.md",
+          "fingerprint": "cd3db63a87f10bf15029ceeee1cc6374de7cbed1179613549ccf6e305ab67521"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-020.json",
+          "fingerprint": "41bf3346cb252f507d9bdff369208431881f7bbb4ef21008e74628ef4f59d5f5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-020.md",
+          "fingerprint": "4f4bd79e58fce03e533287a029bd68c0601b0694e844ddb42a585bc47a3482e0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-021.json",
+          "fingerprint": "5b792778b36ef1f0d198028384426614e3d48393be3ec2450c4a9706e68423fb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-021.md",
+          "fingerprint": "3b477c26f14b021132b3b4b480b83e87db13b2186d427c086755a117632e88b6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-022.json",
+          "fingerprint": "f5b07e45e514976f58b9d18d06cf75c8b8001207863582d153dd22ffbc327c22"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-022.md",
+          "fingerprint": "1d5f3705679d85f5974dbe6394d9328f46ac72a4b54007764dffff046a8158b3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/spec-attempt-001.json",
+          "fingerprint": "4f9a436594c5f7bd22aeb5be20edc4f94006848c5e2fbc1b0f3b380da8121c90"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/spec-attempt-002.json",
+          "fingerprint": "59b75f43ab2948b9daa23278f58e079e181c7d1e8e2611dd4c789fd209532142"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/spec-attempt-002.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-001.json",
+          "fingerprint": "a3258184ee6f1e8239b6e902379f773661baab6d082cd2813fd4443aace0ba6c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-001.md",
+          "fingerprint": "0c1e1bc435bd851de3c9c17058705578c7874b5bdd24497fe6c07b37d6e43c84"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-002.json",
+          "fingerprint": "d9fcbb0fb8dd16bdf877f55aa960c882a2aed81cca5cac92f4be606bccf96eca"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-002.md",
+          "fingerprint": "d603317abc670386fb88dd36e7a77b7cc215af6bf6d015bd5730671b66f44661"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-003.json",
+          "fingerprint": "d4ffb17acca5d6c74719b2e30c3a743faf5bb2ba32451fc7c526689037cb30c4"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-003.md",
+          "fingerprint": "cf104b854f7a5897b36a30e53e19332fd13e55ef689161a1a29f7e001f2b8bda"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-004.json",
+          "fingerprint": "05d5c7598f7f3ebb1a377a34f666a8f9cf2a7043149f4be96c8ac93e1be6b642"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-004.md",
+          "fingerprint": "d4bfce8ba89cbcc19470c9b44fa52388783b70426b2147fc55c6cab566c75dbf"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-005.json",
+          "fingerprint": "ba482f43b065ae42e2735f189b4321f0d893c33b7842a0f90a6d548bc972ef9c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-005.md",
+          "fingerprint": "6b4d5704140e97367613a01148252f226c69cdad0f46e0608a5963e767867756"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-006.json",
+          "fingerprint": "cbc2910337df9a1842985627d4eece557e78c843dfda2cdc30a7da9133f690ee"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-006.md",
+          "fingerprint": "6c828a7516eb8e7d3300a67c39be951a6fe1d35c399ac1f5893b57db74e42ae3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-007.json",
+          "fingerprint": "16eea96361e7e4bf54e4f5d4cb78da6ab59f4ebdd6122309962b67418ee6b376"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-007.md",
+          "fingerprint": "0912eba4a815a95a76fcf57e9d05fb65f1c5fe19115e787d3e28b1f46c4aae48"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-008.json",
+          "fingerprint": "08fa50d82eb39667bbfa5ae592655fa2f0d6acc57ca7c55a005ff0887621f4a3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-008.md",
+          "fingerprint": "79d73454b975acea478dbb9f829ca348ebf3144be5b194f5da34857bde874d2e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-009.json",
+          "fingerprint": "6f3830f54829e4ae676b14be6a937449aeda3b1eeae135a190fe6c83a8fb4f0c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-009.md",
+          "fingerprint": "f5364cd608a23b4744cf488385725b3eb169e0045184f3498092435209437200"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "81bf0bb345f890bd93b1731300be9b5f62bf7974dc0b69b51885ed258c8fcd27"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0190bd6074a23419e536c780.json",
+          "fingerprint": "b447801d7bdd736e5ac1d2194f67f5563a5c569869414c409ab4384a8cc61289"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0a3eb3364c0701025f9931fa.json",
+          "fingerprint": "c0282a20120fe32602e92f362a21f981c119349c16453f0b1a116701a58af2a8"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "0248f86f4b01c2d47cd1b61872641083270cf81faa87ccf9facd9d561fc559f7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+          "fingerprint": "ad9afef3ad8305c524ec424ed329d7aa421d44e1066366e8aa36fa908cdd1a76"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "5fdca6c88a8bf1257f5ff6bfbfc5e723193f3d2c5badb114f25eacefc38c2687"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "93e45d2da664166d9caf5305de6e56ab14fb0faf4fe7820adb0a801a42e4cc42"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "7aa4e21fcef0473cec40a81f2c0a57985c58d298c5fba5b73865166ae1624443"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "997ae16fe584c4fbf0a61e955a3c8262103007623986b13dc15e915a4d4bc4c1"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "20ae5563aa3164450c4db8c25e9dd8e678a2c0739ab85286c9497d0436300530"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "d913f0a754ee4bb541879aea0cdf5a1b5eed1be9ae5319ad7982937279a856a6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "38317b9931a0602d3887b17745347bbd4bfe78ece0437049c3482be0dafa767d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "7a5a50befc2330c6a5cc060c0189768c00b7d301192a46eb4fa9dfc22988d124"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/7a1f6ff2c619415572ac010e.json",
+          "fingerprint": "412f7ae7e1280d1f36e63d09af9b0f0c3f673e451015f4b8e44304dbb5e8e521"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/82017d1fd7f1861646caf711.json",
+          "fingerprint": "80ecc090913e2a3ce4f3e7d63dee742308ab3c19db8915d9cf85bd15dd78d9e5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+          "fingerprint": "a8733a70d5cf21590c8602aa22a92c25024792b51e009bb85ca010417c61ef5d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "2b5e17442f3b65d7aec93120d3510e1a70134a96d4581339f7b43f1728b09001"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c04a7dd95a5753538b520116.json",
+          "fingerprint": "3271c2e6687bd1b4b80cca21755f4e682097e6a231fb34002601f2fcb130b5e0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "e86ab935e7d35dd762366d43b740432035217945254c1ceb504ccdb151910357"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c653570c990504839493744c.json",
+          "fingerprint": "f2a97b8484770809a050cc90df5f53ee045f02fbde4c0a0a2c55037468f55e31"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "eabe1b51d684ee4ef7da684a54918def2d68cea6c17e5fb133723cbbac337c06"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "728da5d0c314fc5ca4cab4221897eb6973f40d73e0283383a3f62f610bedefcb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review.md",
+          "fingerprint": "1d5f3705679d85f5974dbe6394d9328f46ac72a4b54007764dffff046a8158b3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/scenario-validity-result.json",
+          "fingerprint": "7255c6ece7d5523d148372db7c472bdb160569d79073e67cb40e3baf74cd1d4e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec-gate-source.json",
+          "fingerprint": "56a08b65f758a38ae1faab0cd8738f85bb579d029b5902ed832c9069bcd764e7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec-review.json",
+          "fingerprint": "4b731a7458d43fcfcec4180f4335411354029756d19adc08de7457a4079e67be"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec.json",
+          "fingerprint": "eeb16f4c2c86a9aec4018cf53e5ec7ac1b28f0d0654b6e578682aa15f0d3b24e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec.md",
+          "fingerprint": "a1622dea5cd730cb9223abfb75817a5741e62187073ed95156073b6ee7cabb8a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/task-impl-gate-source.json",
+          "fingerprint": "caffb865237e2c37fe0431e48903c92960883c98aa276c7223518f734cf6a7fb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tasks/T-1.md",
+          "fingerprint": "57c5030bf37f511dadb0c5cc03e2e4955ea9136564b304791e23cdeead83acf6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tasks/T-2.md",
+          "fingerprint": "2dbf591e02e68ecad7382f5e66303235d9430ef0cfe0645dd334a32c6d04cc18"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tasks/T-3.md",
+          "fingerprint": "9ceaf73bc90d0ea042887674a5b705013179f621fd043788af341e129d6ac60b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tasks/T-4.md",
+          "fingerprint": "9a221e3b88f56d5e5635d022cf5ffb047a0ec6dcb081316db26b6eee2f863d48"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-coverage.json",
+          "fingerprint": "f15fb1d152d268c3e3f1c7b62ce313a875ceeab48ad378371885c94f04aec554"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-execute-result.json",
+          "fingerprint": "6de8f18c47253a5a524f50280f84d3530d8c2140329f2f79685dfd2e22804ada"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-result-review.json",
+          "fingerprint": "a98d90a05819c36b83f0d5b5bef09c71bd5f5192f9bb96814ab80828177ae8e5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-result-review.md",
+          "fingerprint": "d0572d896f23e8925d427a166fe6d43ff7b2cbddcd98810f10007196ba2a9330"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-review.json",
+          "fingerprint": "8a05932cc2a1f0006a0eccb056bdeff1cbd933519e38ad46193622bab0e7e379"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-review.md",
+          "fingerprint": "f5364cd608a23b4744cf488385725b3eb169e0045184f3498092435209437200"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tests/.raw/scenario-validity.log",
+          "fingerprint": "a844db4ca056508fdf501488c35da3783c842a77bdab5b9e680c92e9d4357977"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tests/.raw/test-execution.log",
+          "fingerprint": "413778479c365d7bae6b9bf32a6190a66e98f4da08eb3d9a2cc98946b8d9ea20"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tests/.raw/upgrade.log",
+          "fingerprint": "b04f78edff7b397a4b7fbadc33923f1ae84c09c65afb1a053e9bc338f26d3c30"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+          "fingerprint": "c545d525990a59cbb2957419c2335ac8d7f141628fdbde0a582892395f9b47d8"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/upgrade-result.json",
+          "fingerprint": "d24ab00cdd8a31c0e51e557da2f8b84524475092e66ac83b021f6f6a17857d97"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "111eb416c0144e1312cef42c36e6bdf5a368fab8ca0c318b20cb6668a085511d"
+        },
+        {
+          "path": "src/flow/lib/review-convergence.js",
+          "fingerprint": "437780e6c7ad9cc96f318440adb5a923192d8c5357b839fcc636f681143ccffa"
+        },
+        {
+          "path": "src/flow/lib/review-evidence-store.js",
+          "fingerprint": "e642f5bd75ec6dd7ebcdf3541738ca6da24176d45577cc60f379fca9737bd956"
+        },
+        {
+          "path": "src/flow/lib/run-complete-task.js",
+          "fingerprint": "dee01a96858011b8f3533abaaa0e4376c1f4befc7a0fd5d11eb6f1c8b1949e88"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "5dba8b1649e2e2db4d9dc534853fab928c9ae2af538716766e573887cd16e4a5"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "fingerprint": "00e1c0312b848943947d0efcacdde140398106389ab5fc3e1fe9c4cdcf5627ed"
+        },
+        {
+          "path": "src/flow/lib/run-start-task.js",
+          "fingerprint": "bd59543c0cf11f2f96f6c8a8dbb53f4ba84df3de56cb713545b113a3f15e9e1d"
+        },
+        {
+          "path": "src/flow/lib/set-review-evidence.js",
+          "fingerprint": "8229634b9294f39a040151e2e59b31efec86d9d61b88e2edfe9cea422f8ffc2c"
+        },
+        {
+          "path": "src/flow/lib/set-step.js",
+          "fingerprint": "ebd7526323409c7a0fa1b285b504ad2c72b8306396cef45fac24cfcede15aaa4"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "dab2ac4550fc0ccf490dbc236e8bc7acfdb5a99a3dd79afd195e86a2f0211d47"
+        },
+        {
+          "path": "src/lib/dispatcher.js",
+          "fingerprint": "8d2ef5f9a5cd85a96604a6db1362917b2b01a8e6096b51687109cb6078cfeeb3"
+        },
+        {
+          "path": "src/lib/presets.js",
+          "fingerprint": "1bca72fb2a5bfb99145bd9738c738c2131597d83196feb6daf98a178b6088c59"
+        }
+      ],
+      "rawOutputPath": "specs/346-gate-fail-closed/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": true,
+      "nextAction": "regression-repair",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-25T17:07:15.809Z",
+      "issueLogId": "issue-log-56ab5e2a-1609-48fe-8e26-83a288b1bd1f"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "failureCategory": "existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/346-gate-fail-closed/.retry-recovery.transaction.json",
+          "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/acceptance-review.json",
+          "fingerprint": "baacaf77471d4a7caa17c35e4b7cdca43b9d5f3b85417634571ea2033e8dfbdf"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-coverage-repair.json",
+          "fingerprint": "da70897233cbbb78eaf78fd5a049504c74f89c5263e005ccf974d18d3e59e757"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-coverage-triage.json",
+          "fingerprint": "fcc71be3ff6297f52d7143a6f49956452518fc0804abd8af3417d5cc0227574b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-gate-source.json",
+          "fingerprint": "87cb07c7a3911d1d523024a471add68df1f513ed3f3e4a69e5a673f412f8324a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-questions-repair.json",
+          "fingerprint": "6744eeab512fff3d88a528e934405a02239754d5dd9fe378e10c052a81513af5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-questions-triage.json",
+          "fingerprint": "9ea18f90fa762e63949658e93a6f288015ceac67c2fad10c7ce191ff1c45d9f0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-review-coverage.json",
+          "fingerprint": "9fcfdb519325342d417812510de76921b8bd05edf49e7e473fcbb431bd7cc015"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft-review-questions.json",
+          "fingerprint": "9e8dfa86423dac5013a50c280836820b32e22c21001c30982edec1e4e1b1e815"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/draft.json",
+          "fingerprint": "ead089a23c37d66f51b29f493fc9186558a8c8460d4e20e87cb5dcc75345fc61"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/file-map.json",
+          "fingerprint": "feae2078069fa5c81f54fd30d1cc76095268b600a50f2064125a5db3aaa0b87f"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/flow-findings.json",
+          "fingerprint": "c577d68fb270f8faaacdef0dea5ea5d4941c19b54716248a207931754b86581e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/gate-impl-memory.json",
+          "fingerprint": "e697399f45e69117a335e37ce21335250fdbd22a7f04cfa8af17df285c1d98b6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/impl-gate-result.json",
+          "fingerprint": "3510ceb8bb4856b4c0037618be1176c27af32d70fda42ed42fe1727764d7b965"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/impl-repair.json",
+          "fingerprint": "89945f6ac09c046a6bd9b01de69d73491e6767383b656f90d98d5ca98b937143"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/impl-review.json",
+          "fingerprint": "a16e077f06a663a945cde687fda1f818659ce533d8dd28d4cfa14e7c0d0c2048"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/impl-triage.json",
+          "fingerprint": "75204b3cba10a8655e16c02f61c2ba6cd184b3c2f0edbd8e7d9c89c04c77f081"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/issue.md",
+          "fingerprint": "a04589a6b544af19b97adaf43ad9273b492216f9553f10ac003c22e68a27e1d5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "a213dd3a860a8b57ec5bddc04e4efb4bf7395f2db02c30637a2f629601d34218"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-001.json",
+          "fingerprint": "d3767add861c10555b7acee9efd59a1ed4c2e61f37ecb7d8683fe288bfffcf6e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-002.json",
+          "fingerprint": "44e5e4ed5ed868492bce62d3f7025355fbe5c57630ced4d696f1115e73e19f0e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-003.json",
+          "fingerprint": "b69fb2c1e87f921579c16fd27f1c631e313df145c7362c7157ad2bc16593edbe"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-004.json",
+          "fingerprint": "d0e0d173f1aad79b28a8cf3361199e567ccce7e67ce2f6401dcc54cbc246f76d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-005.json",
+          "fingerprint": "8dbc605d20855651b06abc24bcca8c2f8853b655e3a7a1010dc0438c0b7eb999"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-006.json",
+          "fingerprint": "3c3626dee5e177fe0a921bb8a9a1a15713621cafab248115ac2d7c35646765d0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-007.json",
+          "fingerprint": "f4b5593b4d224959619a1bdb094257254943278ebadf0f46a1872b34865fbe0a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-008.json",
+          "fingerprint": "14b953b0cbe697b26c4d0f16360ec47bfaf4edb57821d3558002f5685f1d90b3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-009.json",
+          "fingerprint": "f09730e4f0127a97cdb8219ca1874921097c41682730a7abf2939c5ae5c0e54d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-010.json",
+          "fingerprint": "d8d55785a634d2516e18b3a7e7692747f9fbaada6f6bbe80ee00ee7e712724d5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-deltas/repair-011.json",
+          "fingerprint": "38892339a206733ac40c02781785e78901fa33d0c88f38e08bde2b4f02960cc1"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/repair-fingerprint.json",
+          "fingerprint": "a05600cefad55bcfbfb3c132c699d46227d008ae7a23f3976350af78e56eea15"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/retro.json",
+          "fingerprint": "f02677d94de193459c18883fffeb8e4216a0656f9d0cb49b9559bdfbf65eeb0d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/retry-recovery.json",
+          "fingerprint": "b45d37c6086aee6713e49968082654561d81a314643bd0a2c38713284847c91c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/037f071c4bec6c33548aa0b175eb7c9d8263791a1dd9fd707584bab527457fd8.json",
+          "fingerprint": "e0dff847ffb07591e5bd1acbca4b267ae36a51d2f95bb319fee3a907dd161f3d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/0456da509867d044910b887e614670193d5e4016894fba96b3e4663eb316c2c8.json",
+          "fingerprint": "744876b685ebfbe231418c98cb3ba37070aaefce7d2d6edf1acba4340bbdd434"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/04d25057f50bbccbf29058685826583566979fe2d1d431e9145a24d2f3a61d70.json",
+          "fingerprint": "27e2a52c12b17debb81fd989455858cb01ee373cb82365a532004671af0833fb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/05d0c586f54e1d1ed71ac5f08798336cc3ca7c4fdd2b98ed9e63253f100d510d.json",
+          "fingerprint": "239d8c6e8ed8c3282b19ea29718d3cf252f851c0403e72831e7e0b1cc1fc5a79"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/06bf0885c5ea3009df3d36e046e47784f944650b50b6e38d83f5a93fe924b69d.json",
+          "fingerprint": "db5f7436db3468f8c059116f40ee56d8061bb223ee010c2b82e360271b578013"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/0e01042c0ffd1d549e36e4d679c33a8b5599f5c7b6d711a9ea7cc75da008b364.json",
+          "fingerprint": "76845e5e64abb7fb6d33cde9bc584fa6f3a870f13416a913d0756cd792a5c3d0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/10b07a722d366e72d934cef7b3060f4436fb7bc8d0457db33de9a3ced6b948c2.json",
+          "fingerprint": "d81db7da2f768d59ed71cc3b162809343f210a72764a93ffbaee5069c6e5e5b7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/11b2d4f686d5e8f680d44b1b69b4d1f53352c7b859b7bd28220eea1141061bd1.json",
+          "fingerprint": "4006fb272ae8164591b21abea2c04e6493acadc92207b86a1c6d408e8194a774"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/216e6bedbb8c84267e64d5ab73d55fcd40b16807ef767c3c9df20b6428a7d654.json",
+          "fingerprint": "43077079979f25955fa610df6edfd45ad3f14588f65f1268a8c98cb031302b91"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/27a8949f9c7a15b7025f2ee894ad0b42034abeb2e7eadf1572f402e05a6937c5.json",
+          "fingerprint": "84fd791d25f809b6e948acc972a19e810349a7acccc147a007f937aece269981"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/29bded05c9a48b8ca47cfdfb72bb9eed9a9d76063286fcfb7f29679c9021e02f.json",
+          "fingerprint": "c4a61eb24ae2b2dfdb7c7f2878c81e546711c21e21c8b49a5fc4b3f447928523"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/2e0f3c8c43c4eee12cf2d9d90c289cc9a5e45420e823560869b1a5a44af75237.json",
+          "fingerprint": "06c44171d2da94c3c7a691aff51c7d9fa104459672b906533b611376f30963da"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/35c0021298c320213a75af8f89f11724918dfc6f0c5b09d40098fb4c68971346.json",
+          "fingerprint": "1fda414e4dd8d0e6a183ef00555ffbf62c8d3b0f213b6a4d7a133551c420fdb0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/5fc41f8ef2fda61c60f4fa90140087c5be17dcbdfc6d92d995e1d990e4a13117.json",
+          "fingerprint": "585c95f23c7ad8f2199ef137e65297853ef5f3959e100d2923a09cfb9e553ee4"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/6444db91bca3b9cf65031dbc96fc6142bf19ff6b366ff722fbb4c505d9cb10bd.json",
+          "fingerprint": "01492f6fbf45260126945e6a299035f206f85c26ae0ec6c6982534ca316d7df6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/67e1abf3e624a21e55111a769eb14b4de7bbbef4750aa5ce292683f745c7029d.json",
+          "fingerprint": "e14eb6cff47e853de62e9180b145d2283eb3af2e5f21d4becbe4a08213f31cfd"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/6b8a27144409a3b2d2d1653d04270000b5057fe22e04ab47c6c76d24bfe3d415.json",
+          "fingerprint": "eb5e98494228db3dc2889e5dfea6799abf4dbae0bf3ca5bce9076bd0d76d4d5b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/6bb6cbf861d868b2eed2c7941ed3b65e44bb59c54ca4065134897355ed4a13a4.json",
+          "fingerprint": "282827c6aa999bc6403b5840da32019b5601f49d8398b6407ae2b5ff0d82b63d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/7fcde07196d02a094f4dfe2116b504ab4d2ca8e61f11907dc643333897db04cb.json",
+          "fingerprint": "bd23d1733eb3bcbf7b367ebe52a937e0735753e5a3aab5b46129618c2e0cb07f"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/86c82d22ea9cbeae3a1a06a36780e3de46c06d8252e0d656a57327f7af497888.json",
+          "fingerprint": "d654e384a7f1f0b899d2537f494ba869346e11b5d35f39711880e819cc14c4c5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/8fda19b1e9c40517a2d1c3770beee04ecdfb1e4f6396467318ee56e2933e24c1.json",
+          "fingerprint": "3e1f705ac3e7f850eb34c24a610754c5b608c2610c3f645ce520738fae2d10f1"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/93e1750cc4482c7e103761fbda1f4a15fe6e73626b15b967d9cf8d3fbe689b82.json",
+          "fingerprint": "23629c75d38ebff390b11c9358d1ca137c4803f043c15aabdb1761949a7e4e82"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/995c213a3e702259a87078706e537f97a57717fe5593529ab6db5b7ce82435b4.json",
+          "fingerprint": "2c5ff54a22c52ac417e3d4b525446d3c94924955b11accd594db6f40f890cc2b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/9d26b9c93adc928dfd8b8baa77e30f5085b5bee57ce920bf44f79ce0016f9714.json",
+          "fingerprint": "46b102de496a6e70e1d9e8257f3c1dd9b194d167cb04ce6e5391a2063b736d59"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/a6e7ebad4f10ca2e84a1df3af72166c8767843c4a367abee89291e3b25c2e7e0.json",
+          "fingerprint": "a97b09240ddb4fe761a9f661d8f79c6ba5fc01e1906da9c6580d51443303d4b7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/ab21103f7da162ced266f35d1b569b7953d2543fae9e12f78077a242c2ab681a.json",
+          "fingerprint": "6f052a9590a7c158260c189c1da131d4c35d8ab484da91c1b92064457f8a9442"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/ab21b088a277c1d6a78b7441a52e959e8162227950d1ae0d0f62d7b6f8cf3d3f.json",
+          "fingerprint": "ef1eec145721527d356e69c0feff30f00d9a375fe7867b8e5735ed3d2236e45e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/b1db81f1bc805cdc2c76f3c16d75bae024c65cb9b0b25882d75a7a6ce7ad2856.json",
+          "fingerprint": "eee1d706f999e095288b2cbb9e2a042109ce368602f37832baf7cbd14291f243"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/b2c6bdb23999dbbf9e83a74b94bb103b11ba9f787689a27f4d2efd0471dc754c.json",
+          "fingerprint": "b39bddd61ba52c269e684d907664d83e77c81e635def4fa5f5e16ee6e1506427"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/bbaa15e638f31442eadd5655eb42aa763a04d63bba7cab0c40ba8c695c128e40.json",
+          "fingerprint": "c355ed9dd99670e7359034901d36023faa9b8557224dbfa853125a119d92d8c0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/c0ef92872ca74c248bf6fdb46ec6d5a55fd5a5f9990eab0d58b6fb7009fbe663.json",
+          "fingerprint": "67128d0caf13aad994f99732fcd74cb1ef0ead83770c96e37f06f22ea3d72af6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/c4b3fe344be6bf52fd5e3883c49658fde69f35423b63e1d1c9d2b045e91b4e7a.json",
+          "fingerprint": "e0675b14db15d4bcd2eacfaebd20da3334962528e2dd607e613eeb9d89d1436a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/cbff3ed87e634d8d297f9d3c49e1c692447402aeb16c471b5bc5807667683668.json",
+          "fingerprint": "ea0c0bd62b851be3511fa3108fb934d7d02628ced7d9c28139c988047388cf75"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/e732e3c7d1ddd55de98eb828d13bb99b38a7bda45223086ab8ded137d4908863.json",
+          "fingerprint": "0908907179dfc39f7874fa95da958f4294d0656c9ce635f35c072d4f0163c7b2"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/f3e655bfa168c157b1541c4224d1b86fcd361d08dca1595569e7990bb269b773.json",
+          "fingerprint": "35bf75224171892dde160ffc788661e5d80ff2f8aefcc6746c9e9824fef15421"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/fc26129883bc3ae503e4793f2019bb244bcd93a6e4a0907568285eb282c9effc.json",
+          "fingerprint": "fa6d306417624ce280570decf3771ce1e7f369e17e63f0743be7c6f914ba5ed2"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/fc66cf1b7a656f0f78addbb959a533f80c535ee3cab4c25349717933658f3dbc.json",
+          "fingerprint": "142af22ca6ff1078bd2aaeb30eb7b430a37b8410a276ef79b7750048a31b8c6d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-evidence/fc7be35d3918ba8878075e0cfb7ecbf13d21eda5f0c7832e8d6843b5cd67714d.json",
+          "fingerprint": "5660bdf65f72fd32d5d071b0e38a6d422e5e5d5b3c423c9dcc5c419ff3877dc8"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "a94f8adfcbfd605ab2b29dca7cf85aad23f055f047d258a76c3aaf58ee5b838b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-002.json",
+          "fingerprint": "9afcd93c5e8acd4be8330dfae246df159a828a5bdde010dad02e7659b7646132"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-coverage-attempt-003.json",
+          "fingerprint": "b2054a8e73ca47300285da0d72fdb9eef25e625540158345f45d14b376dd1f87"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "35a7c5ed92158111789f6152af8363c113e8e91785d66c1e9eb0781e00206c1f"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/draft-questions-attempt-002.json",
+          "fingerprint": "5348d7602ad74c41db0f4cf66691812fdda3a44124cfb4bc2f43ad575fbac8d7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-001.json",
+          "fingerprint": "6742e6ac46f0cd41187cbb700b93f63b37017dc480d4a4881b1cd559fe0f3923"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-001.md",
+          "fingerprint": "1d882059eee05a4717c78b829f450ee27363ee8cbbb9ab7ff4b7f3efd2f3e00e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-002.json",
+          "fingerprint": "97d21e5fed44a5b57b56f7d5889a09472937cc4526202b9673470513f4bfe5db"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-003.json",
+          "fingerprint": "0241abcf73201357d99431a28490d8b95fb6fe026f38133377647d8e79dbd04b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-003.md",
+          "fingerprint": "9a8359ceb70df2045c15b09cfdc11c5dfb7bc1e4bee221a693a618618e76aa90"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-004.json",
+          "fingerprint": "cc9c465c5a578f24ef93b84a19dc6f1a3da78d144d680fc88e04d4c115b62a00"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-004.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-005.json",
+          "fingerprint": "c90c6710d4a5ca8ea5488dba75ec459e1e566fb97e6a2801125a68a94b1a175c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-005.md",
+          "fingerprint": "e9d9ac120765fcc6e5bb1792e17ba161ef4f16d5e4f8188e093c93a9000ba2c9"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-006.json",
+          "fingerprint": "354d92390ae1a372d42e673a9fcd1221c8fc0532d3589105ef684112c102c663"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-006.md",
+          "fingerprint": "1286d72b178c6984c6c9eba4cc359b84f547e38098b22ca30c1d85e2bc89f22b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-007.json",
+          "fingerprint": "12ff669488301f9069239ddbcc10d6b28e7eea50d5921e1d8bb98ef122ac61dc"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-007.md",
+          "fingerprint": "58a4dee95b647f1e4c43f9649691223fff5899d2e414ae155f1558e05c59e037"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-008.json",
+          "fingerprint": "e9332dba4883ad9fae838d0b24675ba7fb42745058f37307b99e9160d0bff517"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-008.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-009.json",
+          "fingerprint": "4256c89aa65042df3dc24371ad8898eaf108151785592bf64cf439b7a1180f35"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-009.md",
+          "fingerprint": "0429ef18d6260e6c8b8b2d2523d051e04cf49e761945ceea51772402bd19b7ee"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-010.json",
+          "fingerprint": "f05618be5a8d52480b4dccf6b2194855ed01e59f120f0bd3fd8f63f844001fdb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-010.md",
+          "fingerprint": "2261a66b24bc714e92753aeaa43f226fcc44fd245e65fd221a56b70e4f81dbbf"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-011.json",
+          "fingerprint": "aecab4852e00d2e7d54229c065be7013b176d0add113f442ccb3eb5a258cd30e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-011.md",
+          "fingerprint": "2cf174f9976076d064b589efbd9003ea63bc15f06767aee878ddb8bebc42f005"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-012.json",
+          "fingerprint": "5faf57184da19917bb5c2366619e34d9c792cc2be0e93f403f85a8c906900e40"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-012.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-013.json",
+          "fingerprint": "7e19b6b3f2583edb8894eae5a87ff8909c2ab603cc68fe587a1ae289e75fe26a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-013.md",
+          "fingerprint": "ba42a1ecb84409b07f429c5c13e0351ed746759545bbada74981014d134e8751"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-014.json",
+          "fingerprint": "98830f5002a592cf0a50cb770309e9d89a919510a570b3435c54397512e650a6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-014.md",
+          "fingerprint": "182dfe43f5bbec660d33f8811e31cc8f8e4f5d81d6233bf74ce92079f173f2e4"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-015.json",
+          "fingerprint": "ff1d12f7b882e464ecb0c1223d8b5c3d44995ea9db5b30b1f1f9b8d7a4a9119d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-015.md",
+          "fingerprint": "f1275fa14eac5994edf63f395dc2a0984cc75e897bb6b65a843b06e55deb0d8b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-016.json",
+          "fingerprint": "8fe37b87fba362d11d766bb3f1c41510a42ca294a92a24a854d3aa7671a03c68"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-016.md",
+          "fingerprint": "16fb925e607806601515b224a325afb115856bc979808e0ffbc8d92c59fca65d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-017.json",
+          "fingerprint": "cd37925541c8914d8d568968ba77dfc9040e0e6919be12a0a343f8c37c4994ff"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-017.md",
+          "fingerprint": "08c4e4ec0088effd5371b09332793a4408c8dd07950ff12b22d66371de1bb3e2"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-018.json",
+          "fingerprint": "f03afbd46e234d4da4763be60fd7c51d403163ce40f4b3e909967e599a460c57"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-018.md",
+          "fingerprint": "8ea1771ec11885eac6117a536f9e272a1749729a3e6ab42d278cf2d17546c820"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-019.json",
+          "fingerprint": "901ea2bba26f3a612fc45882a36e62ef84ae4ee8664bdd2c91d87ccee1db427a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-019.md",
+          "fingerprint": "cd3db63a87f10bf15029ceeee1cc6374de7cbed1179613549ccf6e305ab67521"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-020.json",
+          "fingerprint": "41bf3346cb252f507d9bdff369208431881f7bbb4ef21008e74628ef4f59d5f5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-020.md",
+          "fingerprint": "4f4bd79e58fce03e533287a029bd68c0601b0694e844ddb42a585bc47a3482e0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-021.json",
+          "fingerprint": "5b792778b36ef1f0d198028384426614e3d48393be3ec2450c4a9706e68423fb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-021.md",
+          "fingerprint": "3b477c26f14b021132b3b4b480b83e87db13b2186d427c086755a117632e88b6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-022.json",
+          "fingerprint": "f5b07e45e514976f58b9d18d06cf75c8b8001207863582d153dd22ffbc327c22"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-022.md",
+          "fingerprint": "1d5f3705679d85f5974dbe6394d9328f46ac72a4b54007764dffff046a8158b3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-023.json",
+          "fingerprint": "82d9fee0aad2c6221d329a89592afff669285e2edfd1e3aa4ded05f0321c8f9e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/impl-attempt-023.md",
+          "fingerprint": "165eeecd6082a1fcb7c6a808c6983c10e8c01ede7004d05c06a46664dd285af3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/spec-attempt-001.json",
+          "fingerprint": "4f9a436594c5f7bd22aeb5be20edc4f94006848c5e2fbc1b0f3b380da8121c90"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/spec-attempt-002.json",
+          "fingerprint": "59b75f43ab2948b9daa23278f58e079e181c7d1e8e2611dd4c789fd209532142"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/spec-attempt-002.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-001.json",
+          "fingerprint": "a3258184ee6f1e8239b6e902379f773661baab6d082cd2813fd4443aace0ba6c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-001.md",
+          "fingerprint": "0c1e1bc435bd851de3c9c17058705578c7874b5bdd24497fe6c07b37d6e43c84"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-002.json",
+          "fingerprint": "d9fcbb0fb8dd16bdf877f55aa960c882a2aed81cca5cac92f4be606bccf96eca"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-002.md",
+          "fingerprint": "d603317abc670386fb88dd36e7a77b7cc215af6bf6d015bd5730671b66f44661"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-003.json",
+          "fingerprint": "d4ffb17acca5d6c74719b2e30c3a743faf5bb2ba32451fc7c526689037cb30c4"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-003.md",
+          "fingerprint": "cf104b854f7a5897b36a30e53e19332fd13e55ef689161a1a29f7e001f2b8bda"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-004.json",
+          "fingerprint": "05d5c7598f7f3ebb1a377a34f666a8f9cf2a7043149f4be96c8ac93e1be6b642"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-004.md",
+          "fingerprint": "d4bfce8ba89cbcc19470c9b44fa52388783b70426b2147fc55c6cab566c75dbf"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-005.json",
+          "fingerprint": "ba482f43b065ae42e2735f189b4321f0d893c33b7842a0f90a6d548bc972ef9c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-005.md",
+          "fingerprint": "6b4d5704140e97367613a01148252f226c69cdad0f46e0608a5963e767867756"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-006.json",
+          "fingerprint": "cbc2910337df9a1842985627d4eece557e78c843dfda2cdc30a7da9133f690ee"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-006.md",
+          "fingerprint": "6c828a7516eb8e7d3300a67c39be951a6fe1d35c399ac1f5893b57db74e42ae3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-007.json",
+          "fingerprint": "16eea96361e7e4bf54e4f5d4cb78da6ab59f4ebdd6122309962b67418ee6b376"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-007.md",
+          "fingerprint": "0912eba4a815a95a76fcf57e9d05fb65f1c5fe19115e787d3e28b1f46c4aae48"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-008.json",
+          "fingerprint": "08fa50d82eb39667bbfa5ae592655fa2f0d6acc57ca7c55a005ff0887621f4a3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-008.md",
+          "fingerprint": "79d73454b975acea478dbb9f829ca348ebf3144be5b194f5da34857bde874d2e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-009.json",
+          "fingerprint": "6f3830f54829e4ae676b14be6a937449aeda3b1eeae135a190fe6c83a8fb4f0c"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/test-attempt-009.md",
+          "fingerprint": "f5364cd608a23b4744cf488385725b3eb169e0045184f3498092435209437200"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "81bf0bb345f890bd93b1731300be9b5f62bf7974dc0b69b51885ed258c8fcd27"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0190bd6074a23419e536c780.json",
+          "fingerprint": "b447801d7bdd736e5ac1d2194f67f5563a5c569869414c409ab4384a8cc61289"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0a3eb3364c0701025f9931fa.json",
+          "fingerprint": "c0282a20120fe32602e92f362a21f981c119349c16453f0b1a116701a58af2a8"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "0248f86f4b01c2d47cd1b61872641083270cf81faa87ccf9facd9d561fc559f7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+          "fingerprint": "ad9afef3ad8305c524ec424ed329d7aa421d44e1066366e8aa36fa908cdd1a76"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "5fdca6c88a8bf1257f5ff6bfbfc5e723193f3d2c5badb114f25eacefc38c2687"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "b99da70fd4bff711713f769be812406eef6f037f900f27d0318b1295419d34af"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "7aa4e21fcef0473cec40a81f2c0a57985c58d298c5fba5b73865166ae1624443"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "c37903c3bb005e77c42a8718b6da82e51306887444b9917ab8fce9139f2f29b7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "20ae5563aa3164450c4db8c25e9dd8e678a2c0739ab85286c9497d0436300530"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "d913f0a754ee4bb541879aea0cdf5a1b5eed1be9ae5319ad7982937279a856a6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "38317b9931a0602d3887b17745347bbd4bfe78ece0437049c3482be0dafa767d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "7a5a50befc2330c6a5cc060c0189768c00b7d301192a46eb4fa9dfc22988d124"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/7a1f6ff2c619415572ac010e.json",
+          "fingerprint": "412f7ae7e1280d1f36e63d09af9b0f0c3f673e451015f4b8e44304dbb5e8e521"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/82017d1fd7f1861646caf711.json",
+          "fingerprint": "80ecc090913e2a3ce4f3e7d63dee742308ab3c19db8915d9cf85bd15dd78d9e5"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+          "fingerprint": "a8733a70d5cf21590c8602aa22a92c25024792b51e009bb85ca010417c61ef5d"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "2b5e17442f3b65d7aec93120d3510e1a70134a96d4581339f7b43f1728b09001"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c04a7dd95a5753538b520116.json",
+          "fingerprint": "3271c2e6687bd1b4b80cca21755f4e682097e6a231fb34002601f2fcb130b5e0"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "84a420542f4ed1097439f11eef81b595d04cab4f35fbbf3b52b4b0831dee71ff"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/c653570c990504839493744c.json",
+          "fingerprint": "f2a97b8484770809a050cc90df5f53ee045f02fbde4c0a0a2c55037468f55e31"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "eabe1b51d684ee4ef7da684a54918def2d68cea6c17e5fb133723cbbac337c06"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "0250c81763db81ccfa07b494f607d73d78a8c865009dd911b08b790a73fec72f"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review-history/work-units/impl-review/e63421196dcedf8f7450c14c.json",
+          "fingerprint": "a2348205b32d1f68caefd9e314025ab0216757596fa75517ba6cf25a7a95f284"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/review.md",
+          "fingerprint": "165eeecd6082a1fcb7c6a808c6983c10e8c01ede7004d05c06a46664dd285af3"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/scenario-validity-result.json",
+          "fingerprint": "7255c6ece7d5523d148372db7c472bdb160569d79073e67cb40e3baf74cd1d4e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec-gate-source.json",
+          "fingerprint": "56a08b65f758a38ae1faab0cd8738f85bb579d029b5902ed832c9069bcd764e7"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec-review.json",
+          "fingerprint": "4b731a7458d43fcfcec4180f4335411354029756d19adc08de7457a4079e67be"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec.json",
+          "fingerprint": "eeb16f4c2c86a9aec4018cf53e5ec7ac1b28f0d0654b6e578682aa15f0d3b24e"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/spec.md",
+          "fingerprint": "a1622dea5cd730cb9223abfb75817a5741e62187073ed95156073b6ee7cabb8a"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/task-impl-gate-source.json",
+          "fingerprint": "caffb865237e2c37fe0431e48903c92960883c98aa276c7223518f734cf6a7fb"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tasks/T-1.md",
+          "fingerprint": "57c5030bf37f511dadb0c5cc03e2e4955ea9136564b304791e23cdeead83acf6"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tasks/T-2.md",
+          "fingerprint": "2dbf591e02e68ecad7382f5e66303235d9430ef0cfe0645dd334a32c6d04cc18"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tasks/T-3.md",
+          "fingerprint": "9ceaf73bc90d0ea042887674a5b705013179f621fd043788af341e129d6ac60b"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tasks/T-4.md",
+          "fingerprint": "9a221e3b88f56d5e5635d022cf5ffb047a0ec6dcb081316db26b6eee2f863d48"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-coverage.json",
+          "fingerprint": "f15fb1d152d268c3e3f1c7b62ce313a875ceeab48ad378371885c94f04aec554"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-execute-result.json",
+          "fingerprint": "8ef065b868642d093a97c79fbde7ac203529a67fedf430a53a54c33cd6e0c659"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-result-review.json",
+          "fingerprint": "9ada4caada2cc0fea341531eeea9eeac51fbd0c7959807433b172a26c9527784"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-result-review.md",
+          "fingerprint": "d0572d896f23e8925d427a166fe6d43ff7b2cbddcd98810f10007196ba2a9330"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-review.json",
+          "fingerprint": "8a05932cc2a1f0006a0eccb056bdeff1cbd933519e38ad46193622bab0e7e379"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/test-review.md",
+          "fingerprint": "f5364cd608a23b4744cf488385725b3eb169e0045184f3498092435209437200"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tests/.raw/scenario-validity.log",
+          "fingerprint": "a844db4ca056508fdf501488c35da3783c842a77bdab5b9e680c92e9d4357977"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tests/.raw/test-execution.log",
+          "fingerprint": "cffae20468a71d715a89f67cb75ade4b84fc2d5f37f62d032cab965a382a0590"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tests/.raw/upgrade.log",
+          "fingerprint": "b04f78edff7b397a4b7fbadc33923f1ae84c09c65afb1a053e9bc338f26d3c30"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/tests/gate-fail-closed.test.js",
+          "fingerprint": "c545d525990a59cbb2957419c2335ac8d7f141628fdbde0a582892395f9b47d8"
+        },
+        {
+          "path": "specs/346-gate-fail-closed/upgrade-result.json",
+          "fingerprint": "d24ab00cdd8a31c0e51e557da2f8b84524475092e66ac83b021f6f6a17857d97"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "111eb416c0144e1312cef42c36e6bdf5a368fab8ca0c318b20cb6668a085511d"
+        },
+        {
+          "path": "src/flow/lib/review-convergence.js",
+          "fingerprint": "437780e6c7ad9cc96f318440adb5a923192d8c5357b839fcc636f681143ccffa"
+        },
+        {
+          "path": "src/flow/lib/review-evidence-store.js",
+          "fingerprint": "e642f5bd75ec6dd7ebcdf3541738ca6da24176d45577cc60f379fca9737bd956"
+        },
+        {
+          "path": "src/flow/lib/run-complete-task.js",
+          "fingerprint": "dee01a96858011b8f3533abaaa0e4376c1f4befc7a0fd5d11eb6f1c8b1949e88"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "5dba8b1649e2e2db4d9dc534853fab928c9ae2af538716766e573887cd16e4a5"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "fingerprint": "00e1c0312b848943947d0efcacdde140398106389ab5fc3e1fe9c4cdcf5627ed"
+        },
+        {
+          "path": "src/flow/lib/run-start-task.js",
+          "fingerprint": "bd59543c0cf11f2f96f6c8a8dbb53f4ba84df3de56cb713545b113a3f15e9e1d"
+        },
+        {
+          "path": "src/flow/lib/set-review-evidence.js",
+          "fingerprint": "8229634b9294f39a040151e2e59b31efec86d9d61b88e2edfe9cea422f8ffc2c"
+        },
+        {
+          "path": "src/flow/lib/set-step.js",
+          "fingerprint": "ebd7526323409c7a0fa1b285b504ad2c72b8306396cef45fac24cfcede15aaa4"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "dab2ac4550fc0ccf490dbc236e8bc7acfdb5a99a3dd79afd195e86a2f0211d47"
+        },
+        {
+          "path": "src/lib/dispatcher.js",
+          "fingerprint": "8d2ef5f9a5cd85a96604a6db1362917b2b01a8e6096b51687109cb6078cfeeb3"
+        },
+        {
+          "path": "src/lib/presets.js",
+          "fingerprint": "1bca72fb2a5bfb99145bd9738c738c2131597d83196feb6daf98a178b6088c59"
+        },
+        {
+          "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+          "fingerprint": "5a4da50b3ee720a6ed70cedf4fc85058df7516e3bf0f13c7c1be0ad45dce8702"
+        },
+        {
+          "path": "tests/e2e/flow/gate-impl-integration.test.js",
+          "fingerprint": "42a66d4de4c20d3ad862cacc11842bfec3881f2fa4831d022cf196be53f3feff"
+        },
+        {
+          "path": "tests/helpers/stub-agent.js",
+          "fingerprint": "29235d9fd602ef4b008b15ec8d6cf18e444ebd4dbceaf4f4ed233a22df93b982"
+        },
+        {
+          "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+          "fingerprint": "710b7c4589820231ef955046814e54d96915f7b071cd2a00cc4c1b40150f285a"
+        },
+        {
+          "path": "tests/unit/specs/commands/gate.test.js",
+          "fingerprint": "3b759331ba23ade33adf75bffc53c6951746a578e69789b5bae278826319d126"
+        },
+        {
+          "path": "tests/unit/specs/commands/guardrail.test.js",
+          "fingerprint": "e96bebf6d5816ab07220696b91feb05486661af959b2b91b3295a1323c43336d"
+        }
+      ],
+      "rawOutputPath": "specs/346-gate-fail-closed/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "report",
+      "nextRecommendedAction": "record-and-proceed",
+      "timestamp": "2026-07-25T17:25:10.560Z",
+      "issueLogId": "issue-log-9b86962c-eb77-44e5-954d-cc43025b7ac5"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in src/flow/lib/review-convergence.js. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.",
+      "timestamp": "2026-07-25T17:26:45.523Z",
+      "issueLogId": "issue-log-12785e54-6f29-4df4-8d2d-0d10ac248a90"
+    }
+  ]
+}
