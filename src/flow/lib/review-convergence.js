@@ -228,6 +228,76 @@ export class ReviewEvidenceIdentity {
   }
 }
 
+export class ReviewRecoveryIdentity {
+  constructor({ treeSha, targetStateDigest = null } = {}) {
+    this.treeSha = requireTreeSha(treeSha);
+    this.targetStateDigest = targetStateDigest == null
+      ? null
+      : requireSha256(targetStateDigest, "targetStateDigest");
+    Object.freeze(this);
+  }
+
+  changedFrom(previous) {
+    if (!(previous instanceof ReviewRecoveryIdentity)) {
+      throw new Error("previous review recovery identity must be a ReviewRecoveryIdentity");
+    }
+    return this.treeSha !== previous.treeSha
+      || (
+        this.targetStateDigest != null
+        && previous.targetStateDigest != null
+        && this.targetStateDigest !== previous.targetStateDigest
+      );
+  }
+}
+
+export class ReviewTargetState {
+  constructor({ digest, entries } = {}) {
+    this.digest = requireSha256(digest, "review target state digest");
+    if (!Array.isArray(entries)) throw new Error("review target state entries must be an array");
+    const paths = new Set();
+    this.entries = freezeArray(entries.map((entry, index) => {
+      const path = requireString(entry?.path, `review target state entries[${index}].path`);
+      if (paths.has(path)) throw new Error(`review target state entries contain duplicate path: ${path}`);
+      paths.add(path);
+      return Object.freeze({
+        path,
+        contentHash: requireSha256(entry?.contentHash, `review target state entries[${index}].contentHash`),
+        mode: requireString(entry?.mode, `review target state entries[${index}].mode`),
+      });
+    }).sort((left, right) => left.path.localeCompare(right.path)));
+    Object.freeze(this);
+  }
+
+  static fromRepairFingerprint(fingerprint) {
+    return new ReviewTargetState({
+      digest: fingerprint?.hash,
+      entries: fingerprint?.entries,
+    });
+  }
+
+  hasChangedEntryWithin(next, matchesPath) {
+    if (!(next instanceof ReviewTargetState)) throw new Error("next review target state must be a ReviewTargetState");
+    if (typeof matchesPath !== "function") throw new Error("review target-state path matcher is required");
+    const nextByPath = new Map(next.entries.map((entry) => [entry.path, entry]));
+    const previousByPath = new Map(this.entries.map((entry) => [entry.path, entry]));
+    return this.entries.some((entry) => {
+      const nextEntry = nextByPath.get(entry.path);
+      return matchesPath(entry.path) && (
+        nextEntry == null
+        || nextEntry.contentHash !== entry.contentHash
+        || nextEntry.mode !== entry.mode
+      );
+    }) || next.entries.some((entry) => matchesPath(entry.path) && !previousByPath.has(entry.path));
+  }
+
+  toJSON() {
+    return {
+      digest: this.digest,
+      entries: this.entries.map((entry) => ({ ...entry })),
+    };
+  }
+}
+
 function canonicalEvidenceDocument({ phase, taskId, treeSha, provenance, disposition }) {
   return {
     version: REVIEW_EVIDENCE_VERSION,
@@ -700,8 +770,25 @@ class ReviewRecoveryMutation {
   constructor(input = {}) {
     this.phase = requireString(input.phase, "phase");
     this.taskId = requireNullableTaskId(input.taskId);
-    this.previousTreeSha = requireTreeSha(input.previousTreeSha);
-    this.nextTreeSha = requireTreeSha(input.nextTreeSha);
+    this.previousIdentity = new ReviewRecoveryIdentity({
+      treeSha: input.previousTreeSha,
+      targetStateDigest: input.previousTargetStateDigest,
+    });
+    this.nextIdentity = new ReviewRecoveryIdentity({
+      treeSha: input.nextTreeSha,
+      targetStateDigest: input.nextTargetStateDigest,
+    });
+    this.nextTargetState = input.nextTargetState == null
+      ? null
+      : new ReviewTargetState(input.nextTargetState);
+    if (
+      this.nextTargetState != null
+      && this.nextIdentity.targetStateDigest !== this.nextTargetState.digest
+    ) {
+      throw new Error("review recovery next target state does not match its identity");
+    }
+    this.previousTreeSha = this.previousIdentity.treeSha;
+    this.nextTreeSha = this.nextIdentity.treeSha;
     this.expectedRunId = requireString(input.expectedRunId, "expectedRunId");
     this.expectedSpec = requireString(input.expectedSpec, "expectedSpec");
     this.expectedHasIssue = Object.hasOwn(input, "expectedIssue");
@@ -718,8 +805,8 @@ class ReviewRecoveryMutation {
     ) {
       throw new Error("review tooling recovery target guard mismatch");
     }
-    if (this.previousTreeSha === this.nextTreeSha) {
-      throw new Error("review tooling recovery requires a changed tree identity");
+    if (!this.nextIdentity.changedFrom(this.previousIdentity)) {
+      throw new Error("review recovery requires a changed tree or target-state identity");
     }
 
     const target = {
@@ -732,6 +819,12 @@ class ReviewRecoveryMutation {
     if (index === -1) {
       throw new Error("review recovery previous target no longer exists");
     }
+    if (
+      this.previousIdentity.targetStateDigest != null
+      && records[index].targetStateDigest !== this.previousIdentity.targetStateDigest
+    ) {
+      throw new Error("review recovery target-state identity no longer matches");
+    }
     const current = storedConvergenceState(records[index]);
     return { records, index, current };
   }
@@ -741,6 +834,10 @@ class ReviewRecoveryMutation {
     nextRecords[index] = {
       ...structuredClone(records[index]),
       ...recovered.toJSON(),
+      ...(this.nextIdentity.targetStateDigest != null && {
+        targetStateDigest: this.nextIdentity.targetStateDigest,
+      }),
+      ...(this.nextTargetState != null && { targetState: this.nextTargetState.toJSON() }),
     };
     flowState.reviewConvergence = {
       ...structuredClone(flowState.reviewConvergence),
@@ -855,7 +952,7 @@ function nextEvidenceHistory(record, evidence) {
 export function applyReviewEvidenceTransition(
   flowState,
   evidence,
-  { configuredSemanticMaxAttempts = null, provider = null, targetStateDigest = null } = {},
+  { configuredSemanticMaxAttempts = null, provider = null, targetStateDigest = null, targetState = null } = {},
 ) {
   if (!(evidence instanceof ReviewEvidence)) throw new Error("evidence must be ReviewEvidence");
   const target = {
@@ -867,6 +964,10 @@ export function applyReviewEvidenceTransition(
   const normalizedTargetStateDigest = targetStateDigest == null
     ? null
     : requireSha256(targetStateDigest, "targetStateDigest");
+  const normalizedTargetState = targetState == null ? null : new ReviewTargetState(targetState);
+  if (normalizedTargetState && normalizedTargetState.digest !== normalizedTargetStateDigest) {
+    throw new Error("review target state digest does not match targetStateDigest");
+  }
   if (records.some((entry) => evidenceDigests(entry).has(evidence.identity.evidenceDigest))) {
     const error = new Error("duplicate review evidence identity");
     error.code = "REVIEW_DUPLICATE_IDENTITY";
@@ -929,6 +1030,7 @@ export function applyReviewEvidenceTransition(
     evidenceHistory: nextEvidenceHistory(existingRecord, evidence),
     canonicalEvidenceRef: `review-evidence/${evidence.identity.evidenceDigest}.json`,
     ...(normalizedTargetStateDigest && { targetStateDigest: normalizedTargetStateDigest }),
+    ...(normalizedTargetState && { targetState: normalizedTargetState.toJSON() }),
   });
   return persisted;
 }
@@ -1063,6 +1165,7 @@ export class ReviewConvergenceStore {
     evidence,
     provider = null,
     targetStateDigest = null,
+    targetState = null,
     expectedOriginal = null,
   } = {}) {
     if (!(evidence instanceof ReviewEvidence)) throw new Error("evidence must be ReviewEvidence");
@@ -1071,6 +1174,7 @@ export class ReviewConvergenceStore {
       persisted = applyReviewEvidenceTransition(flowState, evidence, {
         provider,
         targetStateDigest,
+        targetState,
       });
     }, expectedOriginal == null ? {} : { expectedOriginal });
     return persisted;

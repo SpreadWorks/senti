@@ -13,6 +13,7 @@ import {
   resolveRecoveryMaxAttempts,
 } from "../../../src/flow/lib/retry-recovery.js";
 import {
+  ReviewRecoveryIdentity,
   ReviewSemanticRecoveryMutation,
   ReviewToolingRecoveryMutation,
 } from "../../../src/flow/lib/review-convergence.js";
@@ -348,6 +349,59 @@ describe("retry recovery authority convergence", () => {
     assert.deepEqual(recovered.handoffFindings, []);
     assert.equal(recovered.blocker, null);
     assert.equal(recovered.toolingOutcome, null);
+  });
+
+  it("permits semantic retry recovery for a changed target-state identity on the same tree", () => {
+    const treeSha = "4".repeat(40);
+    const previousTargetStateDigest = "5".repeat(64);
+    const nextTargetStateDigest = "6".repeat(64);
+    const spec = "specs/review-target-state/spec.json";
+    const state = makeFlowState({
+      spec,
+      runId: "run-review-target-state",
+      reviewConvergence: {
+        version: 1,
+        records: [{
+          phase: "spec",
+          taskId: null,
+          treeSha,
+          semanticAttempts: 1,
+          semanticMaxAttempts: 1,
+          toolingAttempts: 0,
+          toolingMaxAttempts: 1,
+          evidence: { evidenceId: "7".repeat(64), disposition: "REJECTED" },
+          finalizedEvidenceAvailable: true,
+          handoffFindings: [],
+          blocker: null,
+          toolingOutcome: null,
+          targetStateDigest: previousTargetStateDigest,
+        }],
+      },
+    });
+
+    assert.equal(
+      new ReviewRecoveryIdentity({ treeSha, targetStateDigest: nextTargetStateDigest }).changedFrom(
+        new ReviewRecoveryIdentity({ treeSha, targetStateDigest: previousTargetStateDigest }),
+      ),
+      true,
+    );
+
+    new ReviewSemanticRecoveryMutation({
+      phase: "spec",
+      taskId: null,
+      previousTreeSha: treeSha,
+      nextTreeSha: treeSha,
+      previousTargetStateDigest,
+      nextTargetStateDigest,
+      expectedRunId: state.runId,
+      expectedSpec: spec,
+    }).apply(state);
+
+    const recovered = state.reviewConvergence.records[0];
+    assert.equal(recovered.treeSha, treeSha);
+    assert.equal(recovered.targetStateDigest, nextTargetStateDigest);
+    assert.equal(recovered.semanticAttempts, 0);
+    assert.equal(recovered.finalizedEvidenceAvailable, false);
   });
 
   for (const scenario of ["flow-payload", "flow-duplicate", "public-payload", "issue-payload"]) {

@@ -267,6 +267,7 @@ export class ReviewEvidenceRegistrar {
     expectedRevision = flowState,
     configuredSemanticMaxAttempts = 1,
     targetStateDigest = null,
+    targetState = null,
   } = {}) {
     if (!sameRevision(flowState, expectedRevision)) {
       throw reviewEvidenceError("REVIEW_STATE_REVISION_MISMATCH", "expected flow-state revision does not match");
@@ -276,6 +277,7 @@ export class ReviewEvidenceRegistrar {
     const convergenceState = applyReviewEvidenceTransition(nextState, evidence, {
       configuredSemanticMaxAttempts,
       targetStateDigest,
+      targetState,
     });
     const evidenceWrite = this.store.write(evidence);
     return new ReviewEvidenceRegistration({ nextState, evidenceWrite, convergenceState });

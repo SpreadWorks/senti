@@ -59,6 +59,7 @@ import {
   ReviewDisposition,
   ReviewEvidence,
   ReviewEvidenceReference,
+  ReviewTargetState,
   ReviewToolingOutcome,
   buildReviewHandoffFindings,
   nextReviewToolingOutcome,
@@ -1295,6 +1296,14 @@ function persistCanonicalReviewArtifact(
   const registrar = new ReviewEvidenceRegistrar({
     store: new ReviewEvidenceStore({ root: ctx.root, specDir }),
   });
+  const targetState = ReviewTargetState.fromRepairFingerprint(buildRepairFingerprint({
+    root: ctx.root,
+    specPath: ctx.flowState.spec,
+    state: ctx.flowState,
+  }));
+  if (targetState.digest !== repairFingerprint) {
+    throw new Error("review target state changed before canonical evidence registration");
+  }
   let registration;
   ctx.flowManager.mutate((flowState) => {
     assertCurrentReviewTarget(ctx, treeSha, repairFingerprint);
@@ -1304,6 +1313,7 @@ function persistCanonicalReviewArtifact(
       expectedRevision: flowState,
       configuredSemanticMaxAttempts: normalized.semanticMaxAttempts,
       targetStateDigest: repairFingerprint,
+      targetState,
     });
     registration.applyTo(flowState);
   }, expectedOriginal == null ? {} : { expectedOriginal });

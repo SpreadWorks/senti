@@ -13,8 +13,9 @@ import { countGateRetry, resolveRetryMax } from "./run-gate.js";
 import { countReviewRetry, resolveReviewRetryMax } from "./run-review.js";
 import { flattenSteps } from "./step-tree.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
-import { ReviewSemanticRecoveryMutation } from "./review-convergence.js";
+import { ReviewRecoveryIdentity, ReviewSemanticRecoveryMutation, ReviewTargetState } from "./review-convergence.js";
 import { resolveImplReviewScope } from "./task-scope.js";
+import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
 import {
   RetryRecoveryInput,
   RetryRecoveryGrantError,
@@ -83,9 +84,46 @@ function latestReviewConvergenceRecord(flowState, phase, taskId) {
   return matching[matching.length - 1] ?? null;
 }
 
-function unchangedReviewConvergenceTarget(ctx, phase, taskId) {
+function currentReviewTargetState(ctx) {
+  return ReviewTargetState.fromRepairFingerprint(buildRepairFingerprint({
+    root: ctx.root,
+    specPath: ctx.flowState.spec,
+    state: ctx.flowState,
+  }));
+}
+
+function currentReviewRecoveryIdentity(ctx, targetState) {
+  return new ReviewRecoveryIdentity({
+    treeSha: resolveCurrentReviewTreeSha(ctx.root),
+    targetStateDigest: targetState.digest,
+  });
+}
+
+function reviewTargetPathMatcher(flowState, phase) {
+  if (phase === "impl") return () => true;
+  const specPath = String(flowState.spec).replaceAll("\\", "/");
+  const specDir = specPath.slice(0, specPath.lastIndexOf("/"));
+  if (phase === "test") {
+    return (candidate) => candidate === specPath || candidate.startsWith(`${specDir}/tests/`);
+  }
+  return (candidate) => candidate.startsWith(`${specDir}/`);
+}
+
+function unchangedReviewConvergenceTarget(ctx, phase, taskId, currentIdentity, currentTargetState) {
   const current = latestReviewConvergenceRecord(ctx.flowState, phase, taskId);
-  return current?.treeSha === resolveCurrentReviewTreeSha(ctx.root);
+  if (!current) return false;
+  const previousIdentity = new ReviewRecoveryIdentity({
+    treeSha: current.treeSha,
+    targetStateDigest: current.targetStateDigest,
+  });
+  if (!currentIdentity.changedFrom(previousIdentity)) return true;
+  if (currentIdentity.treeSha !== previousIdentity.treeSha) return false;
+  if (!current.targetState) return true;
+  const previousTargetState = new ReviewTargetState(current.targetState);
+  return !previousTargetState.hasChangedEntryWithin(
+    currentTargetState,
+    reviewTargetPathMatcher(ctx.flowState, phase),
+  );
 }
 
 export default class SetRetryCommand extends FlowCommand {
@@ -107,9 +145,19 @@ export default class SetRetryCommand extends FlowCommand {
       ? reviewRecoveryTaskId(ctx.flowState, normalizedReviewPhase)
       : null;
     const resetPhases = kind === "review" ? resolveReviewResetPhases(ctx, phase) : [phase];
+    const currentTargetState = kind === "review" ? currentReviewTargetState(ctx) : null;
+    const currentIdentity = kind === "review"
+      ? currentReviewRecoveryIdentity(ctx, currentTargetState)
+      : null;
     if (
       kind === "review"
-      && unchangedReviewConvergenceTarget(ctx, normalizedReviewPhase, reviewTaskId)
+      && unchangedReviewConvergenceTarget(
+        ctx,
+        normalizedReviewPhase,
+        reviewTaskId,
+        currentIdentity,
+        currentTargetState,
+      )
     ) {
       return Envelope.fail(
         "set",
@@ -156,7 +204,10 @@ export default class SetRetryCommand extends FlowCommand {
               phase: p,
               taskId: reviewTaskId,
               previousTreeSha: reviewRecord.treeSha,
-              nextTreeSha: resolveCurrentReviewTreeSha(ctx.root),
+              nextTreeSha: currentIdentity.treeSha,
+              previousTargetStateDigest: reviewRecord.targetStateDigest,
+              nextTargetStateDigest: currentIdentity.targetStateDigest,
+              nextTargetState: currentTargetState.toJSON(),
               expectedRunId: ctx.flowState.runId,
               expectedSpec: ctx.flowState.spec,
               ...(Object.hasOwn(ctx.flowState, "issue") && {

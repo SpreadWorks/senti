@@ -4,6 +4,7 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { findActiveNode, resolveMaxAttempts } from "../definition.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
+import { ReviewTargetState } from "./review-convergence.js";
 import {
   ReviewEvidenceInput,
   ReviewEvidenceRegistrar,
@@ -60,11 +61,13 @@ export default class SetReviewEvidenceCommand extends FlowCommand {
         inputPath: ctx.file,
       });
       target = currentReviewTarget(ctx.flowState, resolveCurrentReviewTreeSha(ctx.root));
-      target.targetStateDigest = buildRepairFingerprint({
+      const fingerprint = buildRepairFingerprint({
         root: ctx.root,
         specPath: ctx.flowState.spec,
         state: ctx.flowState,
-      }).hash;
+      });
+      target.targetStateDigest = fingerprint.hash;
+      target.targetState = ReviewTargetState.fromRepairFingerprint(fingerprint);
       input.validateTarget(target);
     } catch (error) {
       if (!error.code && /tree target mismatch/.test(error.message)) {
@@ -85,6 +88,7 @@ export default class SetReviewEvidenceCommand extends FlowCommand {
         expectedRevision: flowState,
         configuredSemanticMaxAttempts: target.semanticMaxAttempts,
         targetStateDigest: target.targetStateDigest,
+        targetState: target.targetState,
       });
       registration.applyTo(flowState);
     }, {
