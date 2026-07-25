@@ -465,8 +465,9 @@
             },
             {
               "id": "finalize-cleanup",
-              "status": "in_progress",
-              "startedAt": "2026-07-25T00:46:21.443Z"
+              "status": "done",
+              "startedAt": "2026-07-25T00:46:21.443Z",
+              "finishedAt": "2026-07-25T00:46:40.268Z"
             }
           ]
         }
@@ -2250,10 +2251,33 @@
       "taskId": null,
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
-      "status": "pending",
+      "status": "done",
       "attempt": 1,
       "startedAt": "2026-07-25T00:46:36.453Z",
-      "updatedAt": "2026-07-25T00:46:37.136Z"
+      "updatedAt": "2026-07-25T00:46:40.362Z",
+      "result": {
+        "status": "done",
+        "pluginHooks": [
+          {
+            "pluginId": "workflow",
+            "command": "finalize-cleanup",
+            "hook": "post",
+            "data": {
+              "skipped": true,
+              "reason": "retro extraction is available via `senti workflow retro <specid>`"
+            }
+          }
+        ],
+        "followUps": [],
+        "retainedCleanupMetadata": {
+          "surfaces": [
+            "agent-metrics",
+            "notes",
+            "plugin-artifact",
+            "plugin-hook-output"
+          ]
+        }
+      }
     }
   ],
   "issue": 457,
