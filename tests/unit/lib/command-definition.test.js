@@ -53,6 +53,13 @@ describe("CommandDefinition registry", () => {
     assert.match(definition.help, /Usage: senti flow run gate/);
     assert.equal(definition.metadata(["flow", "run"]).name, "flow run gate");
   });
+
+  it("renders the complete canonical help for flow leaf commands", () => {
+    const definition = coreCommandRegistry.find(["flow", "resume"]);
+    assert.equal(definition.help, FLOW_COMMANDS.resume.help);
+    assert.equal(definition.metadata(["flow"]).help, FLOW_COMMANDS.resume.help);
+    assert.match(definition.help, /no discovery/i);
+  });
 });
 
 describe("plugin command registration", () => {

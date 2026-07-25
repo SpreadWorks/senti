@@ -31,6 +31,7 @@ export class HelpCommandView {
     this.section = metadata.section || "";
     this.summary = localized.summary;
     this.usage = localized.usage;
+    this.help = localized.help;
     this.args = metadata.args || {};
     this.options = Array.isArray(metadata.options) ? metadata.options : [];
     this.experimental = Boolean(metadata.experimental);
@@ -157,6 +158,7 @@ function metadataFromEntry(name, entry, parent = null, inheritedSection = null) 
     section: entry?.section || inheritedSection || (parent ? titleCase(parent) : titleCase(name)),
     summary: entry?.summary || entry?.desc || fullName,
     usage: entry?.help?.split(/\r?\n/, 1)[0] || `Usage: senti ${fullName}`,
+    help: entry?.help || "",
     args: entry?.args || {},
     options: entry?.args?.flags || [],
     experimental: Boolean(entry?.experimental),
@@ -221,6 +223,7 @@ function renderTopLevel(model, plugins, lang) {
 }
 
 function renderCommand(command) {
+  if (command.help && command.subcommands.length === 0) return command.help;
   const lines = [command.usage, ""];
   if (command.summary) lines.push(command.summary);
   if (command.experimental) lines.push("", "Experimental: true");

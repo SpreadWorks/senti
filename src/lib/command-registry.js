@@ -15,6 +15,7 @@ export class CommandHelpMetadata {
     section = "",
     summary = "",
     usage = "",
+    help = "",
     args = {},
     options = [],
     experimental = false,
@@ -30,6 +31,7 @@ export class CommandHelpMetadata {
     this.section = section;
     this.summary = summary;
     this.usage = usage || `Usage: senti ${name}`;
+    this.help = help;
     this.args = args && typeof args === "object" ? args : {};
     this.options = Array.isArray(options) ? options : [];
     this.experimental = Boolean(experimental);
@@ -148,11 +150,13 @@ export class CommandDefinition {
     this.helpConfig = Object.freeze({ ...(typeof help === "string" ? {} : help) });
     this.help = typeof help === "string"
       ? help
-      : helpText({
-          usage: help.usage || `Usage: senti ${name}`,
-          summary: help.summary || "",
-          options: help.options || [],
-        });
+      : typeof help.text === "string"
+        ? help.text
+        : helpText({
+            usage: help.usage || `Usage: senti ${name}`,
+            summary: help.summary || "",
+            options: help.options || [],
+          });
     this.entrypoint = entrypoint instanceof CommandEntrypoint
       ? entrypoint
       : entrypoint
@@ -186,6 +190,7 @@ export class CommandDefinition {
       section: this.helpConfig.section || "",
       summary: this.helpConfig.summary || "",
       usage: this.helpConfig.usage || this.help.split(/\r?\n/, 1)[0],
+      help: this.help,
       args: this.args || {},
       options: this.helpConfig.options || [],
       experimental: Boolean(this.helpConfig.experimental),
@@ -337,6 +342,7 @@ function flowDefinition(name, entry) {
         usage: String(help || "").split(/\r?\n/, 1)[0] || `Usage: senti flow ${name}`,
         options: flowOptions(help),
         localeKey: entry.helpKey ? `ui:${entry.helpKey}` : null,
+        text: help,
       },
       dispatch: { ...dispatch, help },
     });
