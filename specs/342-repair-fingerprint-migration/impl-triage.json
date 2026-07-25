@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 2,
+    "hash": "a46e8bf07ff09fab856a2a82657437d8fba2c86fe90f2e161386efb0b559c3d1",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-25T08:58:45.227Z",
+  "items": [
+    {
+      "findingId": "bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce",
+      "sourceStep": "impl-review",
+      "decision": "apply",
+      "rationale": "In that test, build the legacy manifest with a v2 hash, for example by omitting `hash` when constructing `LegacyRepairFingerprintManifest` or by computing the legacy hash from `legacyCanonicalParts()` before writing `repair-fingerprint.json`.",
+      "evidenceRefs": [
+        "impl-review.json#bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce"
+      ]
+    }
+  ]
+}

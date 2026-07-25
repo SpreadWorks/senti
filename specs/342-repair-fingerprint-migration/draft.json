@@ -1,0 +1,70 @@
+{
+  "devType": "bugfix",
+  "goal": "既存の active flow が、canonical hash 入力変更前に生成した repair fingerprint version 2 artifact を version 3 manifest と migration record に置換し、integration gate が test-execute を in_progress にした recovered 結果を返すようにする。",
+  "analysis": {
+    "problem": "repair fingerprint の canonical input から statuses と indexOid を除外したにもかかわらず format version が 2 のままである。そのため旧実装が生成した version 2 manifest は新しい RepairFingerprintManifest の hash 検証で停止し、repairBaseline が存在する active flow は ensureRepairFingerprintContract() の既存 legacy migration 条件を通らない。",
+    "proposedApproach": "canonical input 変更を format version 3 として記録し、読取可能な旧 version 2 manifest を version 3 manifest へ rematerialize する。migration record には runId、specPath、sourceVersion、targetVersion、invalidated artifact paths、reset step を保存し、migration が完了しない場合は既存 manifest と downstream evidence を削除しない。完了時は flow state を guarded recovery と同じ test-execute in_progress 状態へ遷移させる。",
+    "validation": "旧 canonical rules で hash 済みの version 2 manifest を持つ active flow を fixture で再現し、migration 後の manifest が version 3 と current hash で読めること、migration record が runId・specPath・sourceVersion・targetVersion・invalidated artifact paths・reset step を持つこと、integration gate が recovered 結果と test-execute in_progress を返すことを検証する。現行 version 3 manifest と既存 stale-evidence recovery の動作も回帰させない。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: REPAIR_STATE_VERSION は 2 で、CanonicalRepairEntry.canonicalParts() は path、oldPath、mode、contentHash のみを hash 入力にする。旧 version 2 artifact は statuses と indexOid を含む canonical input で hash 済みである。",
+      "must: RepairFingerprintManifest は入力 hash と current canonical state の hash が異なると例外にする。readRepairFingerprintManifest() はこの constructor を通すため、旧 artifact は下流 evidence recovery 前に読取で停止する。",
+      "must: ensureRepairFingerprintContract() は repairBaseline が存在し migration file がない場合に未移行として返るため、baseline を持つ active flow は旧 v2 artifact の rematerialization 経路を持たない。",
+      "must: 既存 migration は flow manager mutation、artifact invalidation、issue log、lock、atomic JSON write を使用し、test-execute から finalize-cleanup までを再実行対象にする。"
+    ],
+    "decisionPoints": [
+      "must: canonical input を変更した manifest は version を 3 にし、version 2 artifact は migration input として識別する。",
+      "must: 読取可能な旧 version 2 artifact を version 3 manifest に rematerialize し、migration record に runId、specPath、sourceVersion、targetVersion、invalidated artifact paths、reset step を保存する。",
+      "must: migration 成功時は手編集・手削除を要求せず、guarded flow state transition で test-execute へ戻す。",
+      "should: current format artifact と破損・未対応 artifact を区別し、未対応 artifact は fail closed にする。"
+    ],
+    "resolvedByProjectRules": [
+      "must: migration は Node.js built-in modules と既存の atomicWriteJson、RepairRunLock、FlowManager mutation のパターンを用いる。",
+      "must: 変更する値の構造は専用 class の invariant で表し、object-literal による型もどきを導入しない。",
+      "must: migration / integration gate regression はプロダクトコードで直し、テストを通すだけの fixture 改変にしない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "should: repair-state-identity が version 2 legacy canonical hash の検証と version 3 manifest の value class を担当し、impl-repair-artifacts が migration record の保存、evidence invalidation、test-execute への flow transition を担当する。",
+      "should: integration gate が migration 結果を recovered として返す既存 stale-evidence recovery とどう接続するかを task level で定める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: repair-state-identity の format version と旧 version 2 manifest の read/migration 支援。",
+      "must: impl-repair-artifacts の guarded migration、version 3 manifest rematerialization、runId・specPath・version・invalidated paths・reset step を持つ migration record、test-execute 復帰。",
+      "must: repair state migration と integration gate recovery の回帰テスト。"
+    ],
+    "out": [
+      "must: hash mismatch artifact の手編集または手削除を利用者に要求する回避策。",
+      "must: version 2 以外の過去形式を新たに互換対象へ広げること。",
+      "must: repair fingerprint と無関係な flow lifecycle、artifact schema、docs 生成の変更。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: current repair fingerprint manifest の hash contract は新 format version へ移行する。current format で生成された manifest は従来どおり読取・比較できる。",
+    "must: integration gate は旧 version 2 artifact を hash mismatch の即時停止として扱わず、migration と stale downstream evidence の invalidation 後に test-execute を再実行させる。",
+    "must: repair baseline の pinning と既存 legacy migration は保持し、baseline authority が競合する場合は fail closed を維持する。",
+    "should: issue-log と migration artifact は migration reason、sourceVersion、targetVersion、invalidated artifact paths、reset step を保存する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: 旧 canonical hash 規則で生成された version 2 の repair fingerprint（flow の変更状態と evidence を結ぶ SHA-256 識別子）を持つ active flow は、migration record に runId・specPath・sourceVersion・targetVersion・invalidated artifact paths・reset step を保存した後、artifact の手編集・手削除なしで test-execute へ戻ることを受け入れ条件としますか？",
+      "answer": "must: 旧 version 2 artifact を読取可能な場合は version 3 manifest に自動移行し、migration record に runId・specPath・sourceVersion・targetVersion・invalidated artifact paths・reset step を保存する。手編集・手削除を要求せず guarded recovery により test-execute を in_progress に戻す。",
+      "evidence": "Issue #464 の Expected Behavior は、旧 version 2 artifact の atomic・auditable rematerialization と、手編集・削除なしで guarded command により test-execute へ戻ることを明示している。",
+      "why": "must: これは既存 active flow を停止させず、旧 evidence を信頼したまま先へ進めないための移行境界であり、Issue が直接定義した受け入れ条件である。",
+      "considered": "hash mismatch の artifact をそのまま停止させる案、または利用者に artifact の削除を求める案は、既存 flow の継続、migration record の保存、test-execute への guarded recovery という Issue の期待動作を満たさないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T08:20:24Z",
+    "notes": "Issue #464 と自動承認の preflight に基づき、draft の要件・移行境界・検証範囲を確認した。"
+  }
+}

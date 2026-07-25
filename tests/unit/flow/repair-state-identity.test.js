@@ -16,6 +16,7 @@ import {
 import {
   RepairArtifactRegistry,
   RepairDeltaArtifact,
+  LegacyRepairFingerprintManifest,
   REPAIR_BASELINE_PUBLICATION_DIR,
   beginRepairBaselinePublication,
   captureRepairBaseline,
@@ -31,6 +32,7 @@ import {
   implementationDiff,
   parseAcceptanceResponse,
 } from "../../../src/flow/lib/run-acceptance-review.js";
+import { RunGateCommand } from "../../../src/flow/lib/run-gate.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 let tmp = null;
@@ -421,6 +423,46 @@ describe("repair state identity", () => {
     assert.ok(!fs.existsSync(path.join(tmp, "specs/demo/report.json")));
     assert.ok(!fs.existsSync(path.join(tmp, "specs/demo/repair-state-migration.json")));
     assert.equal(git("rev-parse", "refs/senti/flows/run-test/baseline"), result.state.repairBaseline.commitOid);
+  });
+
+  it("returns integration-gate recovery for a baseline-bearing legacy v2 fingerprint", async () => {
+    const initialized = initRepository();
+    const state = {
+      ...initialized.state,
+      steps: [
+        { id: "test-execute", status: "done" },
+        { id: "test-result-review", status: "in_progress" },
+        { id: "impl-gate", status: "in_progress" },
+      ],
+    };
+    write("app/original.js", "export const value = 2;\n");
+    const current = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const { hash, ...legacyInput } = current.toJSON();
+    const legacy = new LegacyRepairFingerprintManifest({
+      ...legacyInput,
+      version: 2,
+    });
+    assert.notEqual(legacy.hash, current.hash);
+    write("specs/demo/repair-fingerprint.json", JSON.stringify(legacy.toJSON()));
+    write("specs/demo/test-execute-result.json", JSON.stringify({ repairFingerprint: legacy.hash }));
+    const flowManager = {
+      mutate(mutator) { mutator(state); },
+    };
+
+    const result = await new RunGateCommand().execute({
+      root: tmp,
+      phase: "integration",
+      flowState: state,
+      flowManager,
+      skipGuardrail: true,
+    });
+
+    assert.equal(result.result, "recovered");
+    assert.equal(result.next, "test-execute");
+    assert.equal(result.artifacts.evidenceRefresh.recovered, true);
+    assert.equal(state.steps[0].status, "in_progress");
+    assert.ok(!fs.existsSync(path.join(tmp, "specs/demo/test-execute-result.json")));
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/repair-fingerprint.json"), "utf8")).version, 3);
   });
 });
 

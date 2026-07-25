@@ -14,8 +14,10 @@ import {
   REPAIR_LOCK_DIR,
   REPAIR_MIGRATION_FILE,
   REPAIR_STATE_VERSION,
+  LEGACY_REPAIR_STATE_VERSION,
   REPAIR_TRANSACTION_FILE,
   ImmutableGitBaseline,
+  LegacyRepairFingerprintManifest,
   RepairDeltaArtifact,
   RepairFingerprintManifest,
   RepairFingerprintReference,
@@ -24,6 +26,7 @@ import {
   captureRepairBaseline,
   changedRepairPaths,
   normalizeRepairPath,
+  readRepairFingerprintMigrationInput,
   readRepairFingerprintManifest,
   repairDeltaArtifact,
   writeRepairDelta,
@@ -554,10 +557,18 @@ export class ImplRepairTransitionIntent extends StepTransitionCommitIntent {
 
 export class RepairStateMigration {
   constructor(input = {}) {
-    if (input.version !== 1) throw new Error("repair state migration version must be 1");
-    this.version = 1;
+    if (input.version !== 2) throw new Error("repair state migration version must be 2");
+    this.version = 2;
     this.runId = requireString(input.runId, "runId");
     this.specPath = normalizeRepairPath(input.specPath);
+    if (input.sourceVersion !== LEGACY_REPAIR_STATE_VERSION) {
+      throw new Error(`repair state migration sourceVersion must be ${LEGACY_REPAIR_STATE_VERSION}`);
+    }
+    this.sourceVersion = LEGACY_REPAIR_STATE_VERSION;
+    if (input.targetVersion !== REPAIR_STATE_VERSION) {
+      throw new Error(`repair state migration targetVersion must be ${REPAIR_STATE_VERSION}`);
+    }
+    this.targetVersion = REPAIR_STATE_VERSION;
     this.baseline = input.baseline instanceof ImmutableGitBaseline
       ? input.baseline
       : new ImmutableGitBaseline(input.baseline);
@@ -565,9 +576,18 @@ export class RepairStateMigration {
       record instanceof InvalidatedArtifactRecord ? record : new InvalidatedArtifactRecord(record)
     )));
     this.resetStepIds = Object.freeze(requireStringArray(input.resetStepIds, "resetStepIds"));
+    this.recordPhase = requireString(input.recordPhase || "prepared", "recordPhase");
+    if (this.recordPhase !== "prepared" && this.recordPhase !== "completed") {
+      throw new Error("repair state migration recordPhase must be prepared or completed");
+    }
+    this.retainRecord = input.retainRecord === true;
     this.createdAt = requireString(input.createdAt, "createdAt");
     if (Number.isNaN(Date.parse(this.createdAt))) throw new Error("repair state migration createdAt must be an ISO timestamp");
     Object.freeze(this);
+  }
+
+  complete() {
+    return new RepairStateMigration({ ...this.toJSON(), recordPhase: "completed" });
   }
 
   toJSON() {
@@ -575,9 +595,13 @@ export class RepairStateMigration {
       version: this.version,
       runId: this.runId,
       specPath: this.specPath,
+      sourceVersion: this.sourceVersion,
+      targetVersion: this.targetVersion,
       baseline: this.baseline.toJSON(),
       invalidations: this.invalidations.map((record) => record.toJSON()),
       resetStepIds: [...this.resetStepIds],
+      recordPhase: this.recordPhase,
+      retainRecord: this.retainRecord,
       createdAt: this.createdAt,
     };
   }
@@ -881,6 +905,38 @@ class RepairInvalidationTransaction {
     if (errors.length > 0) {
       throw new AggregateError(errors, "repair invalidation rollback failed");
     }
+  }
+}
+
+function restoreRepairMigrationState(flowManager, snapshot) {
+  flowManager.mutate((next) => {
+    for (const key of Object.keys(next)) delete next[key];
+    Object.assign(next, structuredClone(snapshot));
+  });
+}
+
+class RepairMigrationManifestReplacement {
+  constructor({ specDir, currentManifest }) {
+    this.file = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
+    this.currentManifest = currentManifest;
+    this.previous = fs.existsSync(this.file) ? readJson(this.file) : null;
+    this.replaced = false;
+  }
+
+  replace() {
+    if (!this.currentManifest) return;
+    writeRepairFingerprintManifest(path.dirname(this.file), this.currentManifest);
+    this.replaced = true;
+  }
+
+  rollback() {
+    if (!this.replaced) return;
+    if (this.previous == null) {
+      fs.rmSync(this.file, { force: true });
+    } else {
+      writeJson(this.file, this.previous);
+    }
+    this.replaced = false;
   }
 }
 
@@ -1391,18 +1447,21 @@ class RepairRunLock {
   }
 }
 
-function legacyMigrationInvalidations(specDir) {
+function legacyMigrationInvalidations(specDir, {
+  includeManifest = true,
+  reason = "legacy repair fingerprint contract migrated to version 2",
+} = {}) {
   const candidates = new Set([
     ...Object.values(EVIDENCE_FILE_BY_STEP),
     ...Object.values(ASSOCIATED_EVIDENCE_PATHS).flat(),
     IMPL_REPAIR_ARTIFACT_FILE,
     IMPL_TRIAGE_ARTIFACT_FILE,
-    REPAIR_FINGERPRINT_MANIFEST_FILE,
     REPAIR_DELTA_DIR,
     "final-regression-result.json",
     "upgrade-result.json",
     "report.json",
   ]);
+  if (includeManifest) candidates.add(REPAIR_FINGERPRINT_MANIFEST_FILE);
   const rawDir = path.join(specDir, "tests", ".raw");
   if (fs.existsSync(rawDir)) {
     for (const name of fs.readdirSync(rawDir)) {
@@ -1422,11 +1481,28 @@ function legacyMigrationInvalidations(specDir) {
     }
     invalidations.push(new InvalidatedArtifactRecord({
       path: relPath,
-      reason: "legacy repair fingerprint contract migrated to version 2",
+      reason,
       previousFingerprint,
     }));
   }
   return invalidations;
+}
+
+function sameBaselineAuthority(left, right) {
+  const first = left instanceof ImmutableGitBaseline ? left : new ImmutableGitBaseline(left);
+  const second = right instanceof ImmutableGitBaseline ? right : new ImmutableGitBaseline(right);
+  return first.kind === second.kind
+    && first.objectFormat === second.objectFormat
+    && first.commitOid === second.commitOid
+    && first.treeOid === second.treeOid
+    && first.ref === second.ref;
+}
+
+function assertMatchingMigrationBaseline(state, baseline) {
+  if (!state.repairBaseline) return;
+  if (!sameBaselineAuthority(state.repairBaseline, baseline)) {
+    throw new Error("repair state migration baseline conflicts with active flow state");
+  }
 }
 
 function applyRepairMigrationState(state, migration) {
@@ -1434,10 +1510,7 @@ function applyRepairMigrationState(state, migration) {
     throw new Error("repair state migration authority no longer matches the active flow");
   }
   if (state.repairBaseline) {
-    const existing = new ImmutableGitBaseline(state.repairBaseline);
-    if (existing.commitOid !== migration.baseline.commitOid || existing.ref !== migration.baseline.ref) {
-      throw new Error("repair state migration baseline conflicts with active flow state");
-    }
+    assertMatchingMigrationBaseline(state, migration.baseline);
   } else {
     state.repairBaseline = migration.baseline.toJSON();
   }
@@ -1459,20 +1532,70 @@ function applyRepairMigrationState(state, migration) {
   return state;
 }
 
-function commitRepairStateMigration({ root, state, flowManager, specDir, migration }) {
-  flowManager.mutate((next) => applyRepairMigrationState(next, migration));
-  applyRepairInvalidations(specDir, migration.invalidations);
-  appendIssueLogEntry(root, migration.specPath, {
-    step: "test-execute",
-    reason: "legacy repair fingerprint evidence cannot be trusted by the version 2 contract",
-    trigger: "automatic fail-closed repair fingerprint migration",
-    resolution: `Pinned ${migration.baseline.commitOid} and invalidated ${migration.invalidations.length} downstream artifact(s).`,
-    normalizedFindingId: "repair-state-migration-v2",
-    repairRef: { files: [migration.specPath] },
-    taskId: null,
-    timestamp: migration.createdAt,
-  }, `repair-state-migration:${migration.runId}`);
-  fs.rmSync(path.join(specDir, REPAIR_MIGRATION_FILE), { force: true });
+function hasAppliedRepairMigration(state, specDir, migration) {
+  const testExecute = findStepById(state.steps || [], "test-execute");
+  if (testExecute?.status !== "in_progress") return false;
+  for (const stepId of migration.resetStepIds) {
+    if (stepId === "test-execute") continue;
+    const step = findStepById(state.steps || [], stepId);
+    if (step && step.status !== "pending") return false;
+  }
+  return migration.invalidations.every((record) => (
+    !fs.existsSync(path.join(specDir, record.path))
+  ));
+}
+
+function commitRepairStateMigration({ root, state, flowManager, specDir, migration, currentManifest = null }) {
+  const stateSnapshot = structuredClone(state);
+  const invalidation = new RepairInvalidationTransaction({ specDir, invalidations: migration.invalidations });
+  const manifest = new RepairMigrationManifestReplacement({ specDir, currentManifest });
+  let stateMutationStarted = false;
+  try {
+    invalidation.stage();
+    stateMutationStarted = true;
+    flowManager.mutate((next) => applyRepairMigrationState(next, migration));
+    manifest.replace();
+    appendIssueLogEntry(root, migration.specPath, {
+      step: "test-execute",
+      reason: `legacy repair fingerprint evidence migrated from version ${migration.sourceVersion} to ${migration.targetVersion}`,
+      trigger: "automatic fail-closed repair fingerprint migration",
+      resolution: `Pinned ${migration.baseline.commitOid} and invalidated ${migration.invalidations.length} downstream artifact(s).`,
+      normalizedFindingId: `repair-state-migration-v${migration.targetVersion}`,
+      repairRef: { files: [migration.specPath] },
+      taskId: null,
+      timestamp: migration.createdAt,
+    }, `repair-state-migration:${migration.runId}`);
+    const migrationFile = path.join(specDir, REPAIR_MIGRATION_FILE);
+    if (migration.retainRecord) {
+      writeJson(migrationFile, migration.complete().toJSON());
+    } else {
+      fs.rmSync(migrationFile, { force: true });
+    }
+    invalidation.commit();
+  } catch (error) {
+    const rollbackErrors = [];
+    try {
+      manifest.rollback();
+    } catch (rollbackError) {
+      rollbackErrors.push(rollbackError);
+    }
+    if (stateMutationStarted) {
+      try {
+        restoreRepairMigrationState(flowManager, stateSnapshot);
+      } catch (rollbackError) {
+        rollbackErrors.push(rollbackError);
+      }
+    }
+    try {
+      invalidation.rollback();
+    } catch (rollbackError) {
+      rollbackErrors.push(rollbackError);
+    }
+    if (rollbackErrors.length > 0) {
+      throw new AggregateError([error, ...rollbackErrors], "repair state migration rollback failed");
+    }
+    throw error;
+  }
   const migratedState = structuredClone(state);
   return applyRepairMigrationState(migratedState, migration);
 }
@@ -1486,7 +1609,27 @@ export function ensureRepairFingerprintContract({
   if (!state?.runId) return { state, migrated: false };
   const specDir = path.dirname(path.resolve(root, state.spec));
   const migrationFile = path.join(specDir, REPAIR_MIGRATION_FILE);
-  if (!fs.existsSync(migrationFile) && state.repairBaseline) {
+  const persisted = fs.existsSync(migrationFile)
+    ? new RepairStateMigration(readJson(migrationFile))
+    : null;
+  const manifestFile = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
+  const migrationInput = fs.existsSync(manifestFile)
+    ? readRepairFingerprintMigrationInput(specDir)
+    : null;
+
+  if (persisted?.recordPhase === "completed"
+    && hasAppliedRepairMigration(state, specDir, persisted)) {
+    if (state.repairBaseline) assertMatchingMigrationBaseline(state, persisted.baseline);
+    return { state, migrated: false };
+  }
+  if (!migrationInput && persisted?.retainRecord) {
+    throw new Error("repair fingerprint migration record requires its legacy or current manifest");
+  }
+  if (migrationInput instanceof RepairFingerprintManifest && !persisted) {
+    if (state.repairBaseline) assertMatchingMigrationBaseline(state, migrationInput.baseline);
+    return { state, migrated: false };
+  }
+  if (!migrationInput && state.repairBaseline && !persisted) {
     new ImmutableGitBaseline(state.repairBaseline);
     return { state, migrated: false };
   }
@@ -1497,10 +1640,55 @@ export function ensureRepairFingerprintContract({
   lock.acquire();
   let migratedState;
   try {
-    let migration;
-    if (fs.existsSync(migrationFile)) {
-      migration = new RepairStateMigration(readJson(migrationFile));
-    } else {
+    let migration = persisted;
+    let currentManifest = null;
+    if (migrationInput instanceof LegacyRepairFingerprintManifest) {
+      if (state.repairBaseline) {
+        assertMatchingMigrationBaseline(state, migrationInput.baseline);
+        migration = migration || new RepairStateMigration({
+          version: 2,
+          runId: state.runId,
+          specPath: state.spec,
+          sourceVersion: LEGACY_REPAIR_STATE_VERSION,
+          targetVersion: REPAIR_STATE_VERSION,
+          baseline: state.repairBaseline,
+          invalidations: legacyMigrationInvalidations(specDir, {
+            includeManifest: false,
+            reason: "repair fingerprint version 2 migrated to version 3",
+          }),
+          resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+          retainRecord: true,
+          createdAt: new Date().toISOString(),
+        });
+        currentManifest = migrationInput.toCurrentManifest();
+      } else {
+        const baseline = migration?.baseline || captureRepairBaseline({
+          root,
+          baseRef: state.baseBranch,
+          runId: state.runId,
+          useMergeBase: true,
+        });
+        migration = migration || new RepairStateMigration({
+          version: 2,
+          runId: state.runId,
+          specPath: state.spec,
+          sourceVersion: LEGACY_REPAIR_STATE_VERSION,
+          targetVersion: REPAIR_STATE_VERSION,
+          baseline,
+          invalidations: legacyMigrationInvalidations(specDir),
+          resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+          retainRecord: false,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } else if (migrationInput instanceof RepairFingerprintManifest) {
+      if (!migration) {
+        if (state.repairBaseline) assertMatchingMigrationBaseline(state, migrationInput.baseline);
+        return { state, migrated: false };
+      }
+      assertMatchingMigrationBaseline(state, migration.baseline);
+      currentManifest = migrationInput;
+    } else if (!migration) {
       const baseline = captureRepairBaseline({
         root,
         baseRef: state.baseBranch,
@@ -1508,17 +1696,30 @@ export function ensureRepairFingerprintContract({
         useMergeBase: true,
       });
       migration = new RepairStateMigration({
-        version: 1,
+        version: 2,
         runId: state.runId,
         specPath: state.spec,
+        sourceVersion: LEGACY_REPAIR_STATE_VERSION,
+        targetVersion: REPAIR_STATE_VERSION,
         baseline,
         invalidations: legacyMigrationInvalidations(specDir),
         resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+        retainRecord: false,
         createdAt: new Date().toISOString(),
       });
+    }
+    if (!migration) throw new Error("repair fingerprint migration is missing a validated migration input");
+    if (!fs.existsSync(migrationFile)) {
       writeJson(migrationFile, migration.toJSON());
     }
-    migratedState = commitRepairStateMigration({ root, state, flowManager, specDir, migration });
+    migratedState = commitRepairStateMigration({
+      root,
+      state,
+      flowManager,
+      specDir,
+      migration,
+      currentManifest,
+    });
   } finally {
     lock.release();
   }

@@ -1,0 +1,141 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/342-repair-fingerprint-migration/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "test_name": "R1: recognizes a valid legacy v2 canonical hash and rewrites the current v3 manifest",
+        "command": "node --test specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "test_name": "R2: persists an auditable v2-to-v3 migration record before invalidating evidence",
+        "command": "node --test specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "test_name": "R3: makes the integration gate return recovered and next=test-execute for a baseline-bearing v2 flow",
+        "command": "node --test specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "test_name": "R4: uses the migration contract to preserve evidence while malformed and unsupported artifacts fail closed",
+        "command": "node --test specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "test_name": "R5: keeps requirement markers beside the v2 migration, record, recovery, and regression scenarios",
+        "command": "node --test specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/repair-state-identity.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-gate.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "fd7129c518630feee1d2e07823abd400a07323780db39bc50ad4772612b8c58e"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/repair-state-identity.js",
+        "fingerprint": "55ecd5cc101879ff477706f536c30927a3ff8fe461d3e99ce1beb0700132259f"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "13352ad1765206b090595919d8330bac4bd245e8b2cadd91c84463a93d38fcfc"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "fingerprint": "32e703c4c5c9222a7994d4a7d9cc65af5d863a5f5d2f1f24dc036302fa672f9e"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "fd7129c518630feee1d2e07823abd400a07323780db39bc50ad4772612b8c58e"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/repair-state-identity.js",
+        "fingerprint": "55ecd5cc101879ff477706f536c30927a3ff8fe461d3e99ce1beb0700132259f"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "13352ad1765206b090595919d8330bac4bd245e8b2cadd91c84463a93d38fcfc"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "fingerprint": "32e703c4c5c9222a7994d4a7d9cc65af5d863a5f5d2f1f24dc036302fa672f9e"
+      }
+    ]
+  },
+  "repairFingerprint": "953521e49be93d6bafadecea7fa3b2857fed28a854044532cbe18b0c1d98fed6"
+}

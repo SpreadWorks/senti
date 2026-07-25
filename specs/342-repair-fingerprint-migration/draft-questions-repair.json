@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Added the missing self-contained, requirement-level migration QA entry.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "qa[]",
+      "rationale": "Added one pending migration-policy question without answering it or adding implementation design.",
+      "evidence": "draft.json qa[0] now states the requested auditable migration and guarded test-execute recovery boundary.",
+      "changedFieldPaths": ["qa[0]"]
+    }
+  ]
+}

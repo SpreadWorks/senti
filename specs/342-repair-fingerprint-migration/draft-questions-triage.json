@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Initial QA list is absent; add one self-contained requirement-level question in the repair step.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "qa[]",
+      "decision": "apply",
+      "rationale": "The draft has no answered questions, and the review identifies a directly repairable structural omission. A single requirement-level question can capture the migration safety boundary without introducing implementation design.",
+      "evidence": "draft-review-questions.json#repairTargets[0] reports qa[] is empty; draft.json decisionMap identifies the v2 migration and guarded test-execute recovery as requirement-level constraints."
+    }
+  ]
+}

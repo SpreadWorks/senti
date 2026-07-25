@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T08:46:15.377Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "manifest-rewritten-before-migration-commit",
+      "title": "Migration rewrites legacy manifest before all failure points complete",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/impl-repair-artifacts.js",
+      "requirementId": "R3",
+      "issue": "`commitRepairStateMigration` writes `currentManifest` to `repair-fingerprint.json` before `flowManager.mutate`, downstream invalidation, issue-log append, and migration-record completion. If any later step throws, the migration has failed but the existing legacy manifest has already been replaced with the v3 manifest, violating the failure-preservation requirement.",
+      "suggestion": "Change `commitRepairStateMigration` so manifest replacement is committed only after the state mutation and downstream invalidations have succeeded, or wrap the sequence with rollback/restoration of the original manifest on any error. Add a unit test that injects a failure after `writeRepairFingerprintManifest` would currently run and asserts the legacy manifest and downstream evidence remain unchanged.",
+      "disposition": "must-fix",
+      "rationale": "R3 explicitly requires that a failed migration preserves the existing manifest and downstream evidence. The current ordering mutates the manifest before later operations that can fail, so a failed migration can leave a partially migrated artifact.",
+      "findingId": "7f07b6e70bc65dd407d56eeab889ae0e1c0bf7c3564df79ebd70a3801a13e5bb",
+      "fingerprint": "7f07b6e70bc65dd407d56eeab889ae0e1c0bf7c3564df79ebd70a3801a13e5bb",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "33c66ac60fa386377ff54446454eaa7038570bd8398f3faf0c97be66900a8a46",
+  "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/342-repair-fingerprint-migration/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/342-repair-fingerprint-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "1cee096b718381fb4419d329a9f84fe2f8775440dc5d44cdbf9bd397c48933c2"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "7f07b6e70bc65dd407d56eeab889ae0e1c0bf7c3564df79ebd70a3801a13e5bb",
+      "findingId": "7f07b6e70bc65dd407d56eeab889ae0e1c0bf7c3564df79ebd70a3801a13e5bb",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Migration rewrites legacy manifest before all failure points complete",
+      "body": "`commitRepairStateMigration` writes `currentManifest` to `repair-fingerprint.json` before `flowManager.mutate`, downstream invalidation, issue-log append, and migration-record completion. If any later step throws, the migration has failed but the existing legacy manifest has already been replaced with the v3 manifest, violating the failure-preservation requirement.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "7f07b6e70bc65dd407d56eeab889ae0e1c0bf7c3564df79ebd70a3801a13e5bb",
+      "disposition": "must-fix",
+      "rationale": "R3 explicitly requires that a failed migration preserves the existing manifest and downstream evidence. The current ordering mutates the manifest before later operations that can fail, so a failed migration can leave a partially migrated artifact.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    }
+  ]
+}

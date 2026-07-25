@@ -1,0 +1,134 @@
+[senti] scenario-validity tests start
+command: node --test specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js
+[senti] scenario-validity file start command=node specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js
+TAP version 13
+# Subtest: repair fingerprint v2 migration
+    # Subtest: R1: recognizes a valid legacy v2 canonical hash and rewrites the current v3 manifest
+    not ok 1 - R1: recognizes a valid legacy v2 canonical hash and rewrites the current v3 manifest
+      ---
+      duration_ms: 232.826397
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:109:3'
+      failureType: 'testCodeFailure'
+      error: 'repair fingerprint hash does not match its canonical state'
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        new RepairFingerprintManifest (file:///home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/src/flow/lib/repair-state-identity.js:260:13)
+        readRepairFingerprintManifest (file:///home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/src/flow/lib/repair-state-identity.js:1167:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:118:21)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+      ...
+    # Subtest: R2: persists an auditable v2-to-v3 migration record before invalidating evidence
+    not ok 2 - R2: persists an auditable v2-to-v3 migration record before invalidating evidence
+      ---
+      duration_ms: 192.984352
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:126:3'
+      failureType: 'testCodeFailure'
+      error: "ENOENT: no such file or directory, open '/tmp/repair-fingerprint-v2-migration-u1jUQQ/specs/demo/repair-state-migration.json'"
+      code: 'ENOENT'
+      stack: |-
+        Object.readFileSync (node:fs:440:20)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:136:37)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R3: recovers a baseline-bearing flow by invalidating stale evidence and restarting test-execute
+    not ok 3 - R3: recovers a baseline-bearing flow by invalidating stale evidence and restarting test-execute
+      ---
+      duration_ms: 180.016606
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:146:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        false !== true
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:156:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: reads current v3 artifacts and preserves evidence when a malformed or unsupported artifact fails closed
+    not ok 4 - R4: reads current v3 artifacts and preserves evidence when a malformed or unsupported artifact fails closed
+      ---
+      duration_ms: 187.767245
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:164:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        2 !== 3
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 3
+      actual: 2
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:169:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: keeps requirement markers beside the v2 migration, record, recovery, and regression scenarios
+    ok 5 - R5: keeps requirement markers beside the v2 migration, record, recovery, and regression scenarios
+      ---
+      duration_ms: 3.511258
+      type: 'test'
+      ...
+    1..5
+not ok 1 - repair fingerprint v2 migration
+  ---
+  duration_ms: 803.897294
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-342-repair-fingerprint-migration/specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js:107:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 1
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 834.940213
+Command failed: node specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: recognizes a valid legacy v2 canonical hash and rewrites the current v3 manifest
+[senti] requirement R2 observed: R2: persists an auditable v2-to-v3 migration record before invalidating evidence
+[senti] requirement R3 observed: R3: recovers a baseline-bearing flow by invalidating stale evidence and restarting test-execute
+[senti] requirement R4 observed: R4: reads current v3 artifacts and preserves evidence when a malformed or unsupported artifact fails closed
+[senti] requirement R5 observed: R5: keeps requirement markers beside the v2 migration, record, recovery, and regression scenarios
+[senti] scenario-validity tests end

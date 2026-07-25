@@ -4945,12 +4945,29 @@ export class RunGateCommand extends FlowCommand {
           `legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.`,
       );
     }
+    const level = PHASE_TO_LEVEL[phase];
     if (phase === "integration") {
-      ensureRepairFingerprintContract({ root, state: ctx.flowState, flowManager: ctx.flowManager });
+      const repairContract = ensureRepairFingerprintContract({
+        root,
+        state: ctx.flowState,
+        flowManager: ctx.flowManager,
+        continueAfterMigration: true,
+      });
+      if (repairContract.migrated) {
+        return {
+          result: "recovered",
+          changed: [],
+          artifacts: {
+            level,
+            phase,
+            evidenceRefresh: { recovered: true, migration: "repair-fingerprint-v2-to-v3" },
+          },
+          next: "test-execute",
+        };
+      }
     }
 
     const skipGuardrail = ctx.skipGuardrail || false;
-    const level = PHASE_TO_LEVEL[phase];
     const flowManager = inferPhase ? (ctx.flowManager || container.get("flowManager")) : null;
     const inferredTransition = inferPhase
       ? new InferredGateTransition({

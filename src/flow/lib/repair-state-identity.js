@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { runGit, runGitToFile } from "../../lib/git-helpers.js";
 
-export const REPAIR_STATE_VERSION = 2;
+export const REPAIR_STATE_VERSION = 3;
+export const LEGACY_REPAIR_STATE_VERSION = 2;
 export const DEFAULT_REPAIR_CHANGED_PATH_LIMIT = 20_000;
 export const MAX_REPAIR_CHANGED_PATH_LIMIT = 1_000_000;
 export const REPAIR_FINGERPRINT_MANIFEST_FILE = "repair-fingerprint.json";
@@ -224,14 +225,25 @@ export class CanonicalRepairEntry {
   canonicalParts() {
     return [this.path, this.oldPath || "", this.mode, this.contentHash];
   }
+
+  legacyCanonicalParts() {
+    return [
+      this.path,
+      this.oldPath || "",
+      ...this.statuses,
+      this.mode,
+      this.indexOid || "",
+      this.contentHash,
+    ];
+  }
 }
 
-export class RepairFingerprintManifest {
-  constructor(input = {}) {
-    if (input.version !== REPAIR_STATE_VERSION) {
-      throw new Error(`repair fingerprint version must be ${REPAIR_STATE_VERSION}`);
+class RepairFingerprintManifestBase {
+  constructor(input, { version, entryParts }) {
+    if (input.version !== version) {
+      throw new Error(`repair fingerprint version must be ${version}`);
     }
-    this.version = REPAIR_STATE_VERSION;
+    this.version = version;
     this.baseline = input.baseline instanceof ImmutableGitBaseline
       ? input.baseline
       : new ImmutableGitBaseline(input.baseline);
@@ -253,7 +265,7 @@ export class RepairFingerprintManifest {
       this.version,
       JSON.stringify(baselineIdentity(this.baseline)),
       this.environmentHash,
-      ...this.entries.flatMap((entry) => entry.canonicalParts()),
+      ...this.entries.flatMap((entry) => entryParts(entry)),
     ];
     const expectedHash = canonicalHash(parts);
     if (input.hash != null && requireHash(input.hash, "hash") !== expectedHash) {
@@ -261,14 +273,6 @@ export class RepairFingerprintManifest {
     }
     this.hash = expectedHash;
     Object.freeze(this);
-  }
-
-  toReference() {
-    return {
-      version: this.version,
-      hash: this.hash,
-      manifestRef: REPAIR_FINGERPRINT_MANIFEST_FILE,
-    };
   }
 
   toJSON() {
@@ -281,6 +285,40 @@ export class RepairFingerprintManifest {
       environmentHash: this.environmentHash,
       entries: this.entries.map((entry) => entry.toJSON()),
     };
+  }
+}
+
+export class RepairFingerprintManifest extends RepairFingerprintManifestBase {
+  constructor(input = {}) {
+    super(input, {
+      version: REPAIR_STATE_VERSION,
+      entryParts: (entry) => entry.canonicalParts(),
+    });
+  }
+
+  toReference() {
+    return {
+      version: this.version,
+      hash: this.hash,
+      manifestRef: REPAIR_FINGERPRINT_MANIFEST_FILE,
+    };
+  }
+}
+
+export class LegacyRepairFingerprintManifest extends RepairFingerprintManifestBase {
+  constructor(input = {}) {
+    super(input, {
+      version: LEGACY_REPAIR_STATE_VERSION,
+      entryParts: (entry) => entry.legacyCanonicalParts(),
+    });
+  }
+
+  toCurrentManifest() {
+    const { hash, ...currentState } = this.toJSON();
+    return new RepairFingerprintManifest({
+      ...currentState,
+      version: REPAIR_STATE_VERSION,
+    });
   }
 }
 
@@ -1162,9 +1200,25 @@ export function writeRepairFingerprintManifest(specDir, manifest) {
 }
 
 export function readRepairFingerprintManifest(specDir) {
+  const artifact = readRepairFingerprintMigrationInput(specDir);
+  if (!(artifact instanceof RepairFingerprintManifest)) {
+    throw new Error(
+      `repair fingerprint version ${LEGACY_REPAIR_STATE_VERSION} is a migration input and cannot be read as current evidence`,
+    );
+  }
+  return artifact;
+}
+
+export function readRepairFingerprintMigrationInput(specDir) {
   const file = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
   if (!fs.existsSync(file)) throw new Error(`${REPAIR_FINGERPRINT_MANIFEST_FILE} is required`);
-  return new RepairFingerprintManifest(JSON.parse(fs.readFileSync(file, "utf8")));
+  const input = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (input?.version === REPAIR_STATE_VERSION) return new RepairFingerprintManifest(input);
+  if (input?.version === LEGACY_REPAIR_STATE_VERSION) return new LegacyRepairFingerprintManifest(input);
+  throw new Error(
+    `unsupported repair fingerprint version: ${input?.version}; expected ${REPAIR_STATE_VERSION}` +
+    ` or migration input ${LEGACY_REPAIR_STATE_VERSION}`,
+  );
 }
 
 export function changedRepairPaths(previous, current) {

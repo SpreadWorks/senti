@@ -1,0 +1,850 @@
+{
+  "entries": [
+    {
+      "step": "draft-questions-repair",
+      "reason": "Completion state update temporarily resolved no active flow despite a valid guarded target.",
+      "trigger": "senti flow set step returned NO_FLOW after draft repair files were written.",
+      "resolution": "Revalidated the target run and worktree binding before retrying the guarded transition.",
+      "guardrailCandidate": "State mutations must resolve the guarded worktree flow before reporting no active flow.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:18:53.561Z",
+      "issueLogId": "issue-log-f620c231-6f9a-4be1-8e39-bb7e10ab8550"
+    },
+    {
+      "step": "draft-refine",
+      "reason": "State transition was blocked by an active repository flow-operation lock.",
+      "trigger": "senti flow set step returned REPOSITORY_FLOW_OPERATION_BUSY for PID 1881514.",
+      "resolution": "Waited until the owner process exited, then resumed the same guarded transition.",
+      "guardrailCandidate": "Retry flow-state mutation only after the repository flow-operation lock owner has exited.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:19:49.433Z",
+      "issueLogId": "issue-log-f76c2289-4b4c-4564-b6c0-219d3b0fb9e3"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses the vague condition \"安全に移行\" without stating verifiable conditions for what makes the migration safe.; Requirement says the active flow should be migrated \"安全に\" but does not define measurable criteria that two reviewers could use to agree the implementation satisfies it.; Requirement uses \"監査証跡\" without specifying the required artifact, fields, or observable conditions that make the migration auditable.; Requirement says to leave an audit trail for migration and downstream evidence invalidation, but does not state measurable acceptance criteria for the audit trail content.; Requirement says \"migration が監査可能であること\" without defining verifiable auditability criteria.; Requirement uses the subjective condition \"監査可能\" without measurable criteria that independent reviewers could apply.; Requirement says the distinction from old version 2 should be \"明確\" without stating a verifiable condition for clear identification.; Requirement uses the subjective term \"明確\" without measurable criteria for reviewers to determine whether the new format version is distinguishable enough.; Requirement says to leave an \"監査可能な migration 記録\" without specifying required recorded fields or verification criteria.; Requirement uses \"監査可能\" for the migration record without measurable criteria that two reviewers could apply.; Requirement says audit users can confirm migration details \"確認できる形\" without specifying the exact artifact fields or observable output required.; Requirement relies on the subjective phrase \"確認できる形\" without measurable criteria for whether the issue log and migration artifact satisfy it.; Question uses \"監査可能な自動移行\" without defining verifiable conditions for auditability.; Question uses the subjective term \"監査可能\" without measurable criteria that reviewers could use to verify the accepted behavior.; Answer requires the migration to be \"監査可能\" but does not define specific audit fields or observable verification conditions.; Answer uses \"監査可能\" without measurable criteria that two independent reviewers could apply.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:21:10.748Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "goal"
+          },
+          "observed": "Requirement uses the vague condition \"安全に移行\" without stating verifiable conditions for what makes the migration safe.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "goal"
+          },
+          "observed": "Requirement says the active flow should be migrated \"安全に\" but does not define measurable criteria that two reviewers could use to agree the implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "Requirement uses \"監査証跡\" without specifying the required artifact, fields, or observable conditions that make the migration auditable.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "Requirement says to leave an audit trail for migration and downstream evidence invalidation, but does not state measurable acceptance criteria for the audit trail content.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "analysis.validation"
+          },
+          "observed": "Requirement says \"migration が監査可能であること\" without defining verifiable auditability criteria.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "analysis.validation"
+          },
+          "observed": "Requirement uses the subjective condition \"監査可能\" without measurable criteria that independent reviewers could apply.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.decisionPoints[0]"
+          },
+          "observed": "Requirement says the distinction from old version 2 should be \"明確\" without stating a verifiable condition for clear identification.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.decisionPoints[0]"
+          },
+          "observed": "Requirement uses the subjective term \"明確\" without measurable criteria for reviewers to determine whether the new format version is distinguishable enough.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.decisionPoints[1]"
+          },
+          "observed": "Requirement says to leave an \"監査可能な migration 記録\" without specifying required recorded fields or verification criteria.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.decisionPoints[1]"
+          },
+          "observed": "Requirement uses \"監査可能\" for the migration record without measurable criteria that two reviewers could apply.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[3]"
+          },
+          "observed": "Requirement says audit users can confirm migration details \"確認できる形\" without specifying the exact artifact fields or observable output required.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[3]"
+          },
+          "observed": "Requirement relies on the subjective phrase \"確認できる形\" without measurable criteria for whether the issue log and migration artifact satisfy it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "qa[0].question"
+          },
+          "observed": "Question uses \"監査可能な自動移行\" without defining verifiable conditions for auditability.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "qa[0].question"
+          },
+          "observed": "Question uses the subjective term \"監査可能\" without measurable criteria that reviewers could use to verify the accepted behavior.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "qa[0].answer"
+          },
+          "observed": "Answer requires the migration to be \"監査可能\" but does not define specific audit fields or observable verification conditions.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "qa[0].answer"
+          },
+          "observed": "Answer uses \"監査可能\" without measurable criteria that two independent reviewers could apply.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement uses the vague condition \"安全に移行\" without stating verifiable conditions for what makes the migration safe."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement says the active flow should be migrated \"安全に\" but does not define measurable criteria that two reviewers could use to agree the implementation satisfies it."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement uses \"監査証跡\" without specifying the required artifact, fields, or observable conditions that make the migration auditable."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement says to leave an audit trail for migration and downstream evidence invalidation, but does not state measurable acceptance criteria for the audit trail content."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement says \"migration が監査可能であること\" without defining verifiable auditability criteria."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses the subjective condition \"監査可能\" without measurable criteria that independent reviewers could apply."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement says the distinction from old version 2 should be \"明確\" without stating a verifiable condition for clear identification."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses the subjective term \"明確\" without measurable criteria for reviewers to determine whether the new format version is distinguishable enough."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement says to leave an \"監査可能な migration 記録\" without specifying required recorded fields or verification criteria."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses \"監査可能\" for the migration record without measurable criteria that two reviewers could apply."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement says audit users can confirm migration details \"確認できる形\" without specifying the exact artifact fields or observable output required."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement relies on the subjective phrase \"確認できる形\" without measurable criteria for whether the issue log and migration artifact satisfy it."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Question uses \"監査可能な自動移行\" without defining verifiable conditions for auditability."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Question uses the subjective term \"監査可能\" without measurable criteria that reviewers could use to verify the accepted behavior."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Answer requires the migration to be \"監査可能\" but does not define specific audit fields or observable verification conditions."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Answer uses \"監査可能\" without measurable criteria that two independent reviewers could apply."
+        }
+      ],
+      "issueLogId": "issue-log-7d2a7ced-02a0-4f88-883d-6b6c927ea2d3"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found vague migration and auditability requirements without observable acceptance conditions.",
+      "trigger": "Draft gate reported 16 unambiguous-requirements and complete-context observations.",
+      "resolution": "Replace vague terms with explicit format, migration-record, invalidation, and test-execute recovery conditions across every affected draft field.",
+      "guardrailCandidate": "Migration requirements must name the persisted record fields and the observable recovery state instead of using subjective safety terms.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:21:21.405Z",
+      "issueLogId": "issue-log-c172fc67-899d-4aa9-b83d-a919ac64501d"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses the subjective term \"正確な\" in \"migration audit artifact の正確な class/API 分担を設計する\" without measurable criteria, so independent reviewers may not agree on satisfaction.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:22:34.998Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "Requirement uses the subjective term \"正確な\" in \"migration audit artifact の正確な class/API 分担を設計する\" without measurable criteria, so independent reviewers may not agree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses the subjective term \"正確な\" in \"migration audit artifact の正確な class/API 分担を設計する\" without measurable criteria, so independent reviewers may not agree on satisfaction."
+        }
+      ],
+      "issueLogId": "issue-log-13f87686-a8c6-4ce3-b190-f8d594d7d045"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found a subjective ownership statement in deferred migration design work.",
+      "trigger": "Draft gate reported complete-context violation at decisionMap.deferredToSpec[0].",
+      "resolution": "Named the value-class and migration-transition responsibilities by module and persisted behavior.",
+      "guardrailCandidate": "Deferred design statements must name module responsibilities and observable outputs instead of qualitative ownership language.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:23:04.549Z",
+      "issueLogId": "issue-log-9baae34a-06a8-46dc-9db9-7c19989e51a3"
+    },
+    {
+      "step": "spec",
+      "reason": "Spec completion state update temporarily resolved no active flow despite a valid guarded worktree target.",
+      "trigger": "senti flow set step spec done returned NO_FLOW after spec.json was written.",
+      "resolution": "Revalidated the exact run state before retrying the guarded transition.",
+      "guardrailCandidate": "Guarded worktree state mutations must resolve flow identity before reporting no active flow.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:25:58.092Z",
+      "issueLogId": "issue-log-71a69825-843b-49bb-b2f3-a85b4141ba7b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec does not explicitly list the change's impact on existing features or state that no existing features are affected.; The implementation targets list tests/unit/flow/repair-state-identity.test.js and integration gate lifecycle regression tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:28:11.003Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "document"
+          },
+          "observed": "The spec does not explicitly list the change's impact on existing features or state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "implementationTargets"
+          },
+          "observed": "The implementation targets list tests/unit/flow/repair-state-identity.test.js and integration gate lifecycle regression tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not explicitly list the change's impact on existing features or state that no existing features are affected."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The implementation targets list tests/unit/flow/repair-state-identity.test.js and integration gate lifecycle regression tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file."
+        }
+      ],
+      "issueLogId": "issue-log-9d7a36c2-2f3d-4b53-82b1-629f39a707d4"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found missing explicit existing-feature impact and missing required spec-local test coverage.",
+      "trigger": "Spec gate reported impact-on-existing-features and spec-test-coverage violations.",
+      "resolution": "Add an existing-behavior impact decision and require specs/342-repair-fingerprint-migration/tests coverage with R1-R5 headers.",
+      "guardrailCandidate": "Migration specs must name retained user-facing behavior and require spec-local tests with requirement headers.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:28:22.664Z",
+      "issueLogId": "issue-log-2cf1678b-bd63-4bfc-a667-d83059f9cda8"
+    },
+    {
+      "step": "test",
+      "reason": "Spec-local test header validation did not recognize per-case markers.",
+      "trigger": "flow set step test done reported missing header coverage for R1-R5.",
+      "resolution": "Inspect the repository marker convention, update the test file header, then retry the guarded step transition.",
+      "guardrailCandidate": "Keep each testable requirement declaration in the spec-local file header using the validator-recognized syntax.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T08:33:43.673Z",
+      "issueLogId": "issue-log-797241dc-2972-4539-a0ba-381e72f086b5"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "The spec-local test imported buildRepairFingerprint from the identity module, but that module does not export it.",
+      "trigger": "scenario-validity classified all requirements invalid_test because ESM module linking failed before tests ran.",
+      "resolution": "Import buildRepairFingerprint from impl-repair-artifacts, retain identity-module imports only for baseline and manifest I/O, then rerun scenario validity.",
+      "guardrailCandidate": "Validate imported production API ownership against the source module before scenario-validity.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T08:34:32.735Z",
+      "issueLogId": "issue-log-7212c9e5-f4b0-4860-9dcf-eb36ff59c6da"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found that R3 omitted the integration gate result and R4 bypassed the migration entrypoint.",
+      "trigger": "test review attempt 001 was rejected with two blocking coverage findings.",
+      "resolution": "Exercise the production gate path for recovered/next assertions and use ensureRepairFingerprintContract for malformed and unsupported preservation assertions before rerunning review.",
+      "guardrailCandidate": "Acceptance tests for a public recovery surface must assert both the recovery state transition and the public command/result contract.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T08:35:54.871Z",
+      "issueLogId": "issue-log-60c816bc-6e11-4428-a288-8f336d3eb80d"
+    },
+    {
+      "step": "task-impl",
+      "reason": "Guardrail retrieval rejected target guard options.",
+      "trigger": "senti flow get guardrail task-impl returned ARGS_ERROR for --expect-run-id.",
+      "resolution": "Retrieve the task-implementation guardrail with its supported argument form, then continue task implementation.",
+      "guardrailCandidate": "Use command-specific option support for read-only guardrail retrieval.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T08:37:34.467Z",
+      "issueLogId": "issue-log-443e6965-47b7-4359-9e48-b020e685bffd"
+    },
+    {
+      "step": "task-review",
+      "reason": "Removed the legacy v2 digest before constructing the v3 manifest so the current canonical hash is recomputed.",
+      "resolution": "A verified v2 artifact now converts using only common state fields and version 3.",
+      "normalizedFindingId": "1d92ecfc8db3079b7e1f1a8a085fb273fde4884f2ae7881808cf78b07a5fc548",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/repair-state-identity.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T08:40:00.802Z",
+      "issueLogId": "issue-log-dd88e1c5-d7da-4e0a-b6c1-09aa1654a685"
+    },
+    {
+      "step": "task-review",
+      "reason": "Made legacy and current manifest handling mutually exclusive in the migration state machine.",
+      "resolution": "A legacy v2 input cannot be reinterpreted as a current v3 manifest during guarded migration.",
+      "normalizedFindingId": "3b6e74af4311e1b31359675df0976aade632fd46e5fd851604da982c4bb0eb80",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T08:45:22.104Z",
+      "issueLogId": "issue-log-d3d65843-34ef-46cb-9dae-ebc14903b575"
+    },
+    {
+      "step": "task-review",
+      "reason": "Completed migration records now verify the flow reset and evidence invalidation before being treated as settled.",
+      "resolution": "An incomplete completed record resumes the idempotent state and artifact repair path.",
+      "normalizedFindingId": "c2874d24ea810bffbdede7d50ffa5f60d55be0b7b493a2d44ac712067298325a",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T08:45:28.844Z",
+      "issueLogId": "issue-log-a4b68eab-155d-4842-91af-bcf48fadcccc"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added reversible staging and rollback for migration state, manifest, and downstream evidence before completing the audit record.",
+      "resolution": "Any commit-time failure restores the legacy manifest and invalidated evidence while retaining a prepared migration record for retry.",
+      "normalizedFindingId": "7f07b6e70bc65dd407d56eeab889ae0e1c0bf7c3564df79ebd70a3801a13e5bb",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T08:47:10.290Z",
+      "issueLogId": "issue-log-fbc0ddc9-4639-404c-b360-b24a2c082831"
+    },
+    {
+      "step": "task-review",
+      "reason": "Expanded the existing spec-local R3 integration-gate test with the recovered evidenceRefresh contract.",
+      "resolution": "The task now changes the required spec-local R1-R5 test file as well as the shared gate regression test.",
+      "normalizedFindingId": "5c1add8de22c7352a2a183c9679625fc633561fa7d9a3eb081d8637449d4ef49",
+      "repairRef": {
+        "files": [
+          "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T08:51:30.942Z",
+      "issueLogId": "issue-log-af47a1d8-62c8-4a8a-a630-8ac935fdc395"
+    },
+    {
+      "step": "task-review",
+      "reason": "The required spec-local test is untracked, so task-scoped Git diff omitted it from review evidence.",
+      "resolution": "Stage only the required spec-local test file so the review can verify its R1-R5 header and migration coverage.",
+      "normalizedFindingId": "9c095b48531445592b991738bd4203273b56561d786cc9843a38bc32bbaf6914",
+      "repairRef": {
+        "files": [
+          "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T08:52:35.080Z",
+      "issueLogId": "issue-log-065d5285-3cc4-44b9-8bb5-fb0a77c7eb25"
+    },
+    {
+      "step": "task-review",
+      "reason": "Staging the untracked spec-local test did not change the review target-tree evidence signature.",
+      "trigger": "review rejected the retry with REVIEW_EVIDENCE_CHANGE_REQUIRED.",
+      "resolution": "Inspect review target-tree evidence handling and make a source-visible test or task evidence change that includes the required spec-local test coverage before retrying.",
+      "guardrailCandidate": "Task review remediation must change the exact evidence surface tracked by its target-tree signature.",
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T08:53:09.491Z",
+      "issueLogId": "issue-log-fc6f0a23-b145-4749-b3df-dbddfd76540b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "must-fix finding 9c095b48531445592b991738bd4203273b56561d786cc9843a38bc32bbaf6914 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:54:11.270Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 9c095b48531445592b991738bd4203273b56561d786cc9843a38bc32bbaf6914 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-8e7abcb7-b5c2-4aeb-be95-15eccb6e6a89"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added a post-finding assertion for the exact v2-to-v3 migration identifier in the recovered integration-gate payload.",
+      "resolution": "The repair reference now materializes after the finding and verifies the specific recovery path.",
+      "normalizedFindingId": "9c095b48531445592b991738bd4203273b56561d786cc9843a38bc32bbaf6914",
+      "repairRef": {
+        "files": [
+          "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T08:55:01.094Z",
+      "issueLogId": "issue-log-1c6fcfe6-236d-497e-9e41-f3258857d8a1"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: added a post-finding integration-gate assertion for the migration identifier.",
+      "resolution": "The task-local repair evidence now directly proves the v2-to-v3 recovery payload and was created after the reported finding.",
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T08:55:08.989Z",
+      "issueLogId": "issue-log-cd179587-ac99-4d0b-85a4-f8805ca3db61"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that this design direction was confirmed before implementation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:55:31.366Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "T-3 task specification",
+            "locator": "Implementation Notes / Git Diff"
+          },
+          "observed": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that this design direction was confirmed before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that this design direction was confirmed before implementation."
+        }
+      ],
+      "issueLogId": "issue-log-9ef0abbe-68e8-4ef3-bdb5-e2d5d5d4907d"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: record the design confirmation for the versioned migration, rollback, and gate-recovery flow in the task specification.",
+      "resolution": "The task specification will link the non-trivial recovery path to Issue #464 requirements and the reused atomic/staging/FlowManager primitives before gate re-evaluation.",
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T08:56:02.648Z",
+      "issueLogId": "issue-log-105dc84c-4b63-4a5b-983d-93fdcb13490b"
+    },
+    {
+      "step": "implement",
+      "reason": "Flow-level implement completion requires a file-map entry for every testable requirement.",
+      "trigger": "implement completion reported file-map-missing.",
+      "resolution": "Register the existing production and regression files for R1-R5, then retry the guarded completion.",
+      "guardrailCandidate": "Populate file-map before the flow-level implement completion and integration gate.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:57:12.406Z",
+      "issueLogId": "issue-log-74d9b11e-c208-4b80-b65f-84a0739f1e1b"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-001; 1 changed path(s), delta repair-deltas/repair-001.json.",
+      "normalizedFindingId": "bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce",
+      "repairRef": {
+        "files": [
+          "tests/unit/flow/repair-state-identity.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T09:03:27.343Z",
+      "issueLogId": "impl-repair:repair-001:bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Flow-level implementation review failed before artifact persistence because a generated must-fix finding conflicts with the policy's informational classification.",
+      "trigger": "senti flow run review",
+      "resolution": "Inspect the policy classification evidence and generated finding, then apply a scoped correction or follow structured retry recovery before rerunning review.",
+      "normalizedFindingId": "review-disposition-policy-conflict",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/finding-disposition-policy.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T09:05:03.736Z",
+      "issueLogId": "issue-log-e5acc5a1-6cec-4682-b196-1660dbd03d81"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Audited review retry reset was rejected because the recorded review identity remains unchanged after the repaired test fixture.",
+      "trigger": "senti flow set retry reset review impl",
+      "resolution": "Inspect the review identity baseline and make only an evidence-bearing change required to permit the structured review retry.",
+      "normalizedFindingId": "review-retry-identity-unchanged",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/retry-recovery.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T10:10:36.355Z",
+      "issueLogId": "issue-log-e06a705b-854d-4476-9e6e-b8d2649a9105"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Review retry recovery found inconsistent tooling-attempt state: next-action reports exhaustion but atomic recovery requires an exhausted attempt.",
+      "trigger": "senti flow set retry reset review impl",
+      "resolution": "Inspect review convergence state and recovery mutation preconditions, then use the state-consistent recovery route.",
+      "normalizedFindingId": "review-retry-tooling-state-conflict",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/review-convergence.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T10:11:30.340Z",
+      "issueLogId": "issue-log-e8c44bdf-c73e-43b5-9b2a-d880c8b5d41b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds `RepairMigrationStateSnapshot`, a new single-caller class used only by `commitRepairStateMigration`; it stores a cloned state and restores it without enforcing an invariant or creating a shared ownership boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T10:14:34.385Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "RepairMigrationStateSnapshot"
+          },
+          "observed": "The diff adds `RepairMigrationStateSnapshot`, a new single-caller class used only by `commitRepairStateMigration`; it stores a cloned state and restores it without enforcing an invariant or creating a shared ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds `RepairMigrationStateSnapshot`, a new single-caller class used only by `commitRepairStateMigration`; it stores a cloned state and restores it without enforcing an invariant or creating a shared ownership boundary."
+        }
+      ],
+      "issueLogId": "issue-log-9d8ad0fb-ac6c-4249-9079-f197ec0d5c70"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: Replaced the single-use RepairMigrationStateSnapshot class with a local rollback helper and structured clone.",
+      "trigger": "integration gate no-overengineering observation 1a320b22d92a5522d4e184e4f4b41a1419586760302360ffb23fb83f6f098c6d",
+      "resolution": "Rollback behavior remains identical while the unneeded class and its invariant-free abstraction are removed.",
+      "normalizedFindingId": "1a320b22d92a5522d4e184e4f4b41a1419586760302360ffb23fb83f6f098c6d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T10:16:49.619Z",
+      "issueLogId": "issue-log-c510d358-3179-46e9-bf2d-7f962f6eecc6"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T10:21:44.046Z",
+      "issueLogId": "issue-log-cb633e43-a5e2-4179-97f8-a246e833773c"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in .senti/output/analysis.json. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.",
+      "timestamp": "2026-07-25T10:29:43.025Z",
+      "issueLogId": "issue-log-f98e6bf6-8858-45b4-be44-c9ad903e30b6"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase conflicted only in generated .senti/output/analysis.json.",
+      "trigger": "senti flow run finalize-merge",
+      "resolution": "Rebase within the managed worktree, resolve the generated analysis artifact against main, continue the rebase, then retry finalize-merge.",
+      "normalizedFindingId": "finalize-rebase-analysis-conflict",
+      "repairRef": {
+        "files": [
+          ".senti/output/analysis.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T10:30:05.018Z",
+      "issueLogId": "issue-log-d925d454-a675-481a-ac92-268a1a1eda1b"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Manual rebase could not start because flow.json and issue-log.json are intentionally dirty after finalization state updates.",
+      "trigger": "git rebase main",
+      "resolution": "Use a flow-owned finalization or state-preserving rebase route; do not stash active-flow state.",
+      "normalizedFindingId": "finalize-rebase-flow-state-dirty",
+      "repairRef": {
+        "files": [
+          "specs/342-repair-fingerprint-migration/issue-log.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T10:30:40.453Z",
+      "issueLogId": "issue-log-aba31752-5b2a-42e6-b9f9-e56e3a28e919"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Rebase stopped on the generated analysis artifact; production files and tests applied cleanly.",
+      "trigger": "git rebase main",
+      "resolution": "Resolve .senti/output/analysis.json with main's generated analysis, continue the rebase, then retry finalize-merge.",
+      "normalizedFindingId": "finalize-rebase-generated-analysis-conflict",
+      "repairRef": {
+        "files": [
+          ".senti/output/analysis.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T10:31:59.282Z",
+      "issueLogId": "issue-log-891ffe0b-6dbc-491f-977a-94b422f51444"
+    }
+  ]
+}

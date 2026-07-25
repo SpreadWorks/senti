@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T08:55:31.024Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "fail",
+      "reason": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that this design direction was confirmed before implementation.",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "T-3 task specification",
+            "locator": "Implementation Notes / Git Diff"
+          },
+          "observed": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that this design direction was confirmed before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "findingId": "701b5878c4057c15f62f78772f42c1e0447aa2d54210004e3c6882010b5d4708",
+      "fingerprint": "701b5878c4057c15f62f78772f42c1e0447aa2d54210004e3c6882010b5d4708",
+      "disposition": "must-fix",
+      "rationale": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that this design direction was confirmed before implementation.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-25T08:55:31.024Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-overengineering",
+      "where": {
+        "file": "T-3 task specification",
+        "locator": "Implementation Notes / Git Diff"
+      },
+      "observed": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that this design direction was confirmed before implementation.",
+      "severity": "blocking",
+      "refs": [
+        "no-overengineering"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-overengineering",
+      "category": "guardrail",
+      "findingId": "db6cd6914aad24ba90b81a2188f7b4c3cc0bb0fe84e281f3dd6f17f3e1b95c12",
+      "fingerprint": "db6cd6914aad24ba90b81a2188f7b4c3cc0bb0fe84e281f3dd6f17f3e1b95c12",
+      "disposition": "must-fix",
+      "rationale": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that this design direction was confirmed before implementation.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-25T08:55:31.024Z",
+      "repeatCount": 1
+    }
+  ]
+}

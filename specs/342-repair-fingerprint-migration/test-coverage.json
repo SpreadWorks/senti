@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Repair fingerprint の current format を version 3 とし、version 2 artifact を legacy canonical hash 規則で検証して migration input として識別する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/repair-fingerprint-migration.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "readable な version 2 manifest を version 3 manifest へ変換する migration record は、runId、specPath、sourceVersion、targetVersion、invalidated artifact paths、reset step を保存する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/repair-fingerprint-migration.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "repairBaseline を持つ active flow が旧 version 2 artifact を検出した場合、guarded mutation で stale downstream evidence を無効化し、test-execute を in_progress にし、integration gate は recovered と next=test-execute を返す。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/repair-fingerprint-migration.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "migration が current format manifest、破損 artifact、未対応 format を区別し、current format は従来どおり読取でき、破損または未対応 artifact は evidence を削除せずエラーにする。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/repair-fingerprint-migration.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "specs/342-repair-fingerprint-migration/tests/ 配下の test file に // spec: R1 から // spec: R5 の header を付け、version 2 migration、migration record、guarded integration gate recovery、current format regression を shared regression tests と併せて検証する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/repair-fingerprint-migration.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/repair-fingerprint-migration.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

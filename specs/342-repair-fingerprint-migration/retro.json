@@ -1,0 +1,45 @@
+{
+  "spec": "specs/342-repair-fingerprint-migration/spec.json",
+  "date": "2026-07-25T10:18:46.991Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Repair fingerprint の current format を version 3 とし、version 2 artifact を legacy canonical hash 規則で検証して migration input として識別する。",
+      "status": "done",
+      "note": "R1: recognizes a valid legacy v2 canonical hash and rewrites the current v3 manifest"
+    },
+    {
+      "desc": "readable な version 2 manifest を version 3 manifest へ変換する migration record は、runId、specPath、sourceVersion、targetVersion、invalidated artifact paths、reset step を保存する。",
+      "status": "done",
+      "note": "R2: persists an auditable v2-to-v3 migration record before invalidating evidence"
+    },
+    {
+      "desc": "repairBaseline を持つ active flow が旧 version 2 artifact を検出した場合、guarded mutation で stale downstream evidence を無効化し、test-execute を in_progress にし、integration gate は recovered と next=test-execute を返す。",
+      "status": "done",
+      "note": "R3: makes the integration gate return recovered and next=test-execute for a baseline-bearing v2 flow"
+    },
+    {
+      "desc": "migration が current format manifest、破損 artifact、未対応 format を区別し、current format は従来どおり読取でき、破損または未対応 artifact は evidence を削除せずエラーにする。",
+      "status": "done",
+      "note": "R4: uses the migration contract to preserve evidence while malformed and unsupported artifacts fail closed"
+    },
+    {
+      "desc": "specs/342-repair-fingerprint-migration/tests/ 配下の test file に // spec: R1 から // spec: R5 の header を付け、version 2 migration、migration record、guarded integration gate recovery、current format regression を shared regression tests と併せて検証する。",
+      "status": "done",
+      "note": "R5: keeps requirement markers beside the v2 migration, record, recovery, and regression scenarios"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "953521e49be93d6bafadecea7fa3b2857fed28a854044532cbe18b0c1d98fed6"
+}

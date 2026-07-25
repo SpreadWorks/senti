@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T08:51:07.418Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-spec-migration-regression-test",
+      "title": "Required migration regression spec file was not added",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "tests/unit/flow/repair-state-identity.test.js",
+      "requirementId": "R1",
+      "issue": "The task acceptance criteria require `specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js` with `// spec: R1` through `// spec: R5` headers covering migration behavior. The implementation instead adds coverage only to `tests/unit/flow/repair-state-identity.test.js`, and the required spec test artifact and requirement headers are absent from the touched file set.",
+      "suggestion": "Add `specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js` using `node:test`, include `// spec: R1` through `// spec: R5` headers, and move or duplicate the migrated v2 integration-gate recovery coverage there while keeping shared gate-surface regression coverage as needed.",
+      "disposition": "must-fix",
+      "rationale": "This is tied directly to an explicit acceptance criterion and the implementation notes/test strategy for T-3, so the typed disposition policy should classify it as blocking rather than informational.",
+      "findingId": "5c1add8de22c7352a2a183c9679625fc633561fa7d9a3eb081d8637449d4ef49",
+      "fingerprint": "5c1add8de22c7352a2a183c9679625fc633561fa7d9a3eb081d8637449d4ef49",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "9f41cb82a8851d19499664e8ecff8d8e6e0882e384755f333c32aea8d32e519a",
+  "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+  "planRewindAt": null,
+  "taskId": "T-3",
+  "target": "specs/342-repair-fingerprint-migration/tasks/T-3.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/342-repair-fingerprint-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "c4d74bf94251c5ea201c20f6fafe1643ee68616d2d437c786b49442b716600ee"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "5c1add8de22c7352a2a183c9679625fc633561fa7d9a3eb081d8637449d4ef49",
+      "findingId": "5c1add8de22c7352a2a183c9679625fc633561fa7d9a3eb081d8637449d4ef49",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Required migration regression spec file was not added",
+      "body": "The task acceptance criteria require `specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js` with `// spec: R1` through `// spec: R5` headers covering migration behavior. The implementation instead adds coverage only to `tests/unit/flow/repair-state-identity.test.js`, and the required spec test artifact and requirement headers are absent from the touched file set.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "5c1add8de22c7352a2a183c9679625fc633561fa7d9a3eb081d8637449d4ef49",
+      "disposition": "must-fix",
+      "rationale": "This is tied directly to an explicit acceptance criterion and the implementation notes/test strategy for T-3, so the typed disposition policy should classify it as blocking rather than informational.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

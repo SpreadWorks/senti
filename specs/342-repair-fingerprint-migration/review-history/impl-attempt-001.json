@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T08:39:45.602Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "legacy-conversion-reuses-v2-hash",
+      "title": "Legacy conversion carries the v2 hash into v3 validation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/repair-state-identity.js",
+      "requirementId": "R1",
+      "issue": "LegacyRepairFingerprintManifest.toCurrentManifest() spreads this.toJSON(), which includes the legacy v2 hash, then changes only version to 3. RepairFingerprintManifest recomputes the v3 canonical hash and rejects any supplied hash that does not match, so a valid legacy v2 manifest cannot convert to a current v3 manifest unless the v2 and v3 hashes accidentally match.",
+      "suggestion": "In LegacyRepairFingerprintManifest.toCurrentManifest(), omit the legacy hash before constructing RepairFingerprintManifest, or explicitly recompute/pass the v3 hash. For example, destructure hash out of this.toJSON() and construct the current manifest from the remaining fields plus version: REPAIR_STATE_VERSION.",
+      "disposition": "must-fix",
+      "rationale": "The task requires legacy v2 manifests to verify under historical canonical input and convert to v3 with a current canonical hash. This implementation verifies v2 but fails conversion for normal legacy inputs, directly blocking that mandatory acceptance criterion.",
+      "findingId": "1d92ecfc8db3079b7e1f1a8a085fb273fde4884f2ae7881808cf78b07a5fc548",
+      "fingerprint": "1d92ecfc8db3079b7e1f1a8a085fb273fde4884f2ae7881808cf78b07a5fc548",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "8f05d51debd78599e4c52a7cad01834b214cf790d08f15253aede647f981b5de",
+  "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/342-repair-fingerprint-migration/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/342-repair-fingerprint-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "69471583d4de89e6d3e69ce98bbd4dcef18a44a7a5de306ee7eb48c49485b15c"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "1d92ecfc8db3079b7e1f1a8a085fb273fde4884f2ae7881808cf78b07a5fc548",
+      "findingId": "1d92ecfc8db3079b7e1f1a8a085fb273fde4884f2ae7881808cf78b07a5fc548",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Legacy conversion carries the v2 hash into v3 validation",
+      "body": "LegacyRepairFingerprintManifest.toCurrentManifest() spreads this.toJSON(), which includes the legacy v2 hash, then changes only version to 3. RepairFingerprintManifest recomputes the v3 canonical hash and rejects any supplied hash that does not match, so a valid legacy v2 manifest cannot convert to a current v3 manifest unless the v2 and v3 hashes accidentally match.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "1d92ecfc8db3079b7e1f1a8a085fb273fde4884f2ae7881808cf78b07a5fc548",
+      "disposition": "must-fix",
+      "rationale": "The task requires legacy v2 manifests to verify under historical canonical input and convert to v3 with a current canonical hash. This implementation verifies v2 but fails conversion for normal legacy inputs, directly blocking that mandatory acceptance criterion.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

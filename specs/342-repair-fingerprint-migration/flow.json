@@ -1,0 +1,4042 @@
+{
+  "spec": "specs/342-repair-fingerprint-migration/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/342-repair-fingerprint-migration",
+  "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+  "repairBaseline": {
+    "kind": "git",
+    "objectFormat": "sha1",
+    "commitOid": "9f2a9bd712c9df4b048696981095caef866318bf",
+    "treeOid": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+    "sourceRef": "main",
+    "ref": "refs/senti/flows/d5de7532-6920-4b3b-9fd4-db00d8122495/baseline",
+    "capturedAt": "2026-07-25T08:12:23.644Z"
+  },
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-07-25T08:12:25.015Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-07-25T08:12:25.015Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-07-25T08:12:25.015Z",
+          "finishedAt": "2026-07-25T08:15:32.910Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 7,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:15:32.858Z",
+            "endedAt": "2026-07-25T08:15:32.931Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-07-25T08:15:32.910Z",
+          "finishedAt": "2026-07-25T08:15:59.275Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 9,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T08:15:48.049Z",
+            "endedAt": "2026-07-25T08:15:59.399Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-07-25T08:15:59.275Z",
+          "finishedAt": "2026-07-25T08:16:28.211Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 12,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:16:28.157Z",
+            "endedAt": "2026-07-25T08:16:28.234Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-07-25T08:16:28.211Z",
+          "finishedAt": "2026-07-25T08:18:58.254Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 19,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:18:58.200Z",
+            "endedAt": "2026-07-25T08:18:58.278Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-07-25T08:18:58.254Z",
+          "finishedAt": "2026-07-25T08:19:54.276Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 24,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:19:54.222Z",
+            "endedAt": "2026-07-25T08:19:54.299Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-07-25T08:19:54.276Z",
+          "finishedAt": "2026-07-25T08:20:14.024Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 26,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T08:20:03.861Z",
+            "endedAt": "2026-07-25T08:20:14.213Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-07-25T08:20:14.024Z",
+          "finishedAt": "2026-07-25T08:20:14.069Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-07-25T08:20:14.069Z",
+          "finishedAt": "2026-07-25T08:20:14.125Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "done",
+          "startedAt": "2026-07-25T08:20:14.125Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 34,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-25T08:23:19.515Z",
+            "endedAt": "2026-07-25T08:23:29.282Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T08:23:29.211Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-07-25T08:23:29.211Z",
+          "finishedAt": "2026-07-25T08:26:03.230Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 42,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:26:03.162Z",
+            "endedAt": "2026-07-25T08:26:03.265Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-review",
+          "status": "done",
+          "startedAt": "2026-07-25T08:26:03.230Z",
+          "finishedAt": "2026-07-25T08:27:33.769Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 44,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T08:26:15.777Z",
+            "endedAt": "2026-07-25T08:27:33.902Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-triage",
+          "status": "done",
+          "startedAt": "2026-07-25T08:27:33.769Z",
+          "finishedAt": "2026-07-25T08:27:33.803Z"
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-07-25T08:27:33.803Z",
+          "finishedAt": "2026-07-25T08:27:33.839Z"
+        },
+        {
+          "id": "spec-gate",
+          "status": "done",
+          "startedAt": "2026-07-25T08:27:33.839Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 167,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-25T10:18:18.766Z",
+            "endedAt": "2026-07-25T10:18:34.148Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T08:29:09.539Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-07-25T08:29:09.539Z",
+          "finishedAt": "2026-07-25T08:29:53.851Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 55,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:29:53.782Z",
+            "endedAt": "2026-07-25T08:29:53.895Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-07-25T08:29:53.851Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 59,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:34:02.527Z",
+            "endedAt": "2026-07-25T08:34:02.744Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T08:34:02.697Z"
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-07-25T08:34:02.697Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 63,
+            "attempt": 1,
+            "command": "flow run scenario-validity",
+            "startedAt": "2026-07-25T08:34:46.449Z",
+            "endedAt": "2026-07-25T08:34:47.872Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T08:34:47.847Z"
+        },
+        {
+          "id": "test-review",
+          "status": "done",
+          "startedAt": "2026-07-25T08:34:47.847Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 68,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T08:36:57.574Z",
+            "endedAt": "2026-07-25T08:37:09.841Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T08:37:09.817Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-07-25T08:37:09.817Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 125,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:57:49.313Z",
+            "endedAt": "2026-07-25T08:57:49.440Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T08:57:49.408Z"
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-07-25T08:57:49.408Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 161,
+            "attempt": 1,
+            "command": "flow run test-execute",
+            "startedAt": "2026-07-25T10:17:26.043Z",
+            "endedAt": "2026-07-25T10:17:27.442Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T10:17:27.426Z"
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 163,
+            "attempt": 1,
+            "command": "flow run test-result-review",
+            "startedAt": "2026-07-25T10:17:39.154Z",
+            "endedAt": "2026-07-25T10:17:39.865Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T10:17:27.426Z",
+          "finishedAt": "2026-07-25T10:17:39.849Z"
+        },
+        {
+          "id": "impl-review",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 165,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T10:17:50.694Z",
+            "endedAt": "2026-07-25T10:18:06.010Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T10:17:39.849Z",
+          "finishedAt": "2026-07-25T10:18:05.801Z"
+        },
+        {
+          "id": "impl-triage",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 133,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T09:02:55.819Z",
+            "endedAt": "2026-07-25T09:02:55.933Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T10:18:05.853Z"
+        },
+        {
+          "id": "impl-repair",
+          "status": "done",
+          "startedAt": "2026-07-25T09:02:55.901Z",
+          "finishedAt": "2026-07-25T09:03:27.361Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 135,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T09:03:26.977Z",
+            "endedAt": "2026-07-25T09:03:27.754Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-gate",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 159,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-25T10:17:10.992Z",
+            "endedAt": "2026-07-25T10:17:12.675Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T10:18:05.926Z",
+          "finishedAt": "2026-07-25T10:18:34.011Z"
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "startedAt": "2026-07-25T10:18:34.011Z",
+          "finishedAt": "2026-07-25T10:18:47.031Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 169,
+            "attempt": 1,
+            "command": "flow run retro",
+            "startedAt": "2026-07-25T10:18:46.611Z",
+            "endedAt": "2026-07-25T10:18:47.047Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "acceptance-review",
+          "status": "done",
+          "startedAt": "2026-07-25T10:18:47.031Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 171,
+            "attempt": 1,
+            "command": "flow run acceptance-review",
+            "startedAt": "2026-07-25T10:19:01.352Z",
+            "endedAt": "2026-07-25T10:19:27.885Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "acceptance-decision",
+          "status": "done"
+        },
+        {
+          "id": "final-regression",
+          "status": "done",
+          "finishedAt": "2026-07-25T10:28:14.526Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 175,
+            "attempt": 1,
+            "command": "flow run final-regression",
+            "startedAt": "2026-07-25T10:21:59.762Z",
+            "endedAt": "2026-07-25T10:28:14.542Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "report",
+          "status": "done",
+          "startedAt": "2026-07-25T10:28:14.526Z",
+          "finishedAt": "2026-07-25T10:28:59.678Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 177,
+            "attempt": 1,
+            "command": "flow run report",
+            "startedAt": "2026-07-25T10:28:57.432Z",
+            "endedAt": "2026-07-25T10:28:59.765Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-07-25T10:28:59.678Z",
+              "finishedAt": "2026-07-25T10:29:23.786Z",
+              "runtimeLog": {
+                "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+                "sequence": 180,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-07-25T10:29:23.119Z",
+                "endedAt": "2026-07-25T10:29:23.855Z",
+                "exitCode": 0
+              }
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-07-25T10:29:23.786Z",
+              "runtimeLog": {
+                "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+                "sequence": 182,
+                "attempt": 1,
+                "command": "flow run finalize-merge",
+                "startedAt": "2026-07-25T10:29:39.944Z",
+                "endedAt": "2026-07-25T10:29:43.152Z",
+                "exitCode": 1
+              }
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "spec": "specs/342-repair-fingerprint-migration/tasks/T-1.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-25T08:37:16.629Z",
+          "finishedAt": "2026-07-25T08:39:23.821Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 76,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:39:23.763Z",
+            "endedAt": "2026-07-25T08:39:23.844Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "task-review",
+          "status": "done",
+          "finishedAt": "2026-07-25T08:40:21.745Z"
+        },
+        {
+          "id": "task-gate",
+          "status": "done",
+          "finishedAt": "2026-07-25T08:40:42.680Z"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    },
+    {
+      "id": "T-2",
+      "spec": "specs/342-repair-fingerprint-migration/tasks/T-2.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-25T08:40:47.423Z",
+          "finishedAt": "2026-07-25T08:44:29.416Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 86,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:44:29.357Z",
+            "endedAt": "2026-07-25T08:44:29.440Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "task-review",
+          "status": "done",
+          "finishedAt": "2026-07-25T08:48:23.230Z"
+        },
+        {
+          "id": "task-gate",
+          "status": "done",
+          "finishedAt": "2026-07-25T08:48:51.237Z"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    },
+    {
+      "id": "T-3",
+      "spec": "specs/342-repair-fingerprint-migration/tasks/T-3.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-25T08:48:57.255Z",
+          "finishedAt": "2026-07-25T08:50:35.516Z",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 100,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T08:50:35.428Z",
+            "endedAt": "2026-07-25T08:50:35.553Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "task-review",
+          "status": "done",
+          "finishedAt": "2026-07-25T08:54:00.545Z"
+        },
+        {
+          "id": "task-gate",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+            "sequence": 113,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-25T08:55:14.589Z",
+            "endedAt": "2026-07-25T08:55:31.419Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T08:56:34.665Z"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    }
+  ],
+  "currentTaskId": null,
+  "outbox": [
+    {
+      "idempotencyKey": "flow-outbox-v1:d5de7532-6920-4b3b-9fd4-db00d8122495:flow:report:report",
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "report",
+      "operation": "report",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-25T10:28:57.452Z",
+      "updatedAt": "2026-07-25T10:28:59.714Z",
+      "result": {
+        "result": "ok",
+        "changed": [
+          "specs/342-repair-fingerprint-migration/report.json"
+        ],
+        "artifacts": {
+          "report": {
+            "data": {
+              "implementation": {
+                "diffStat": ".../tests/repair-fingerprint-migration.test.js     | 210 +++++++++++++++++\n src/flow/lib/impl-repair-artifacts.js              | 261 ++++++++++++++++++---\n src/flow/lib/repair-state-identity.js              |  86 +++++--\n src/flow/lib/run-gate.js                           |  21 +-\n tests/unit/flow/repair-state-identity.test.js      |  42 ++++\n 5 files changed, 572 insertions(+), 48 deletions(-)",
+                "commits": [
+                  "Simplify repair migration rollback",
+                  "Assert legacy migration fixture hash",
+                  "Fix legacy fingerprint migration test fixture",
+                  "Migrate legacy repair fingerprint manifests"
+                ]
+              },
+              "retro": {
+                "total": 5,
+                "done": 5,
+                "partial": 0,
+                "not_done": 0,
+                "not_applicable_count": 0,
+                "na_count": 0,
+                "not_testable_count": 0,
+                "rate": 1,
+                "notes": "aggregated from test-execute-result.json",
+                "requirements": [
+                  {
+                    "desc": "Repair fingerprint の current format を version 3 とし、version 2 artifact を legacy canonical hash 規則で検証して migration input として識別する。",
+                    "status": "done",
+                    "note": "R1: recognizes a valid legacy v2 canonical hash and rewrites the current v3 manifest"
+                  },
+                  {
+                    "desc": "readable な version 2 manifest を version 3 manifest へ変換する migration record は、runId、specPath、sourceVersion、targetVersion、invalidated artifact paths、reset step を保存する。",
+                    "status": "done",
+                    "note": "R2: persists an auditable v2-to-v3 migration record before invalidating evidence"
+                  },
+                  {
+                    "desc": "repairBaseline を持つ active flow が旧 version 2 artifact を検出した場合、guarded mutation で stale downstream evidence を無効化し、test-execute を in_progress にし、integration gate は recovered と next=test-execute を返す。",
+                    "status": "done",
+                    "note": "R3: makes the integration gate return recovered and next=test-execute for a baseline-bearing v2 flow"
+                  },
+                  {
+                    "desc": "migration が current format manifest、破損 artifact、未対応 format を区別し、current format は従来どおり読取でき、破損または未対応 artifact は evidence を削除せずエラーにする。",
+                    "status": "done",
+                    "note": "R4: uses the migration contract to preserve evidence while malformed and unsupported artifacts fail closed"
+                  },
+                  {
+                    "desc": "specs/342-repair-fingerprint-migration/tests/ 配下の test file に // spec: R1 から // spec: R5 の header を付け、version 2 migration、migration record、guarded integration gate recovery、current format regression を shared regression tests と併せて検証する。",
+                    "status": "done",
+                    "note": "R5: keeps requirement markers beside the v2 migration, record, recovery, and regression scenarios"
+                  }
+                ]
+              },
+              "upgrade": null,
+              "issueLog": {
+                "count": 33,
+                "fullLogPath": "specs/342-repair-fingerprint-migration/issue-log.json",
+                "importantTotal": 13,
+                "importantShown": 10,
+                "importantOmitted": 3,
+                "recentOtherTotal": 20,
+                "recentOtherShown": 5,
+                "recentOtherOmitted": 15,
+                "entries": [
+                  {
+                    "classification": "important",
+                    "step": "draft-refine",
+                    "reason": "State transition was blocked by an active repository flow-operation lock.",
+                    "resolution": "Waited until the owner process exited, then resumed the same guarded transition."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "draft-gate",
+                    "reason": "Draft gate found vague migration and auditability requirements without observable acceptance conditions.",
+                    "resolution": "Replace vague terms with explicit format, migration-record, invalidation, and test-execute recovery conditions across every affected draft field."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "scenario-validity",
+                    "reason": "The spec-local test imported buildRepairFingerprint from the identity module, but that module does not export it.",
+                    "resolution": "Import buildRepairFingerprint from impl-repair-artifacts, retain identity-module imports only for baseline and manifest I/O, then rerun scenario validity."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "test-review",
+                    "reason": "Static test review found that R3 omitted the integration gate result and R4 bypassed the migration entrypoint.",
+                    "resolution": "Exercise the production gate path for recovered/next assertions and use ensureRepairFingerprintContract for malformed and unsupported preservation assertions before rerunning review."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "task-impl",
+                    "reason": "Guardrail retrieval rejected target guard options.",
+                    "resolution": "Retrieve the task-implementation guardrail with its supported argument form, then continue task implementation."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "task-review",
+                    "reason": "Added reversible staging and rollback for migration state, manifest, and downstream evidence before completing the audit record.",
+                    "resolution": "Any commit-time failure restores the legacy manifest and invalidated evidence while retaining a prepared migration record for retry."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "task-review",
+                    "reason": "Expanded the existing spec-local R3 integration-gate test with the recovered evidenceRefresh contract.",
+                    "resolution": "The task now changes the required spec-local R1-R5 test file as well as the shared gate regression test."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "task-review",
+                    "reason": "Added a post-finding assertion for the exact v2-to-v3 migration identifier in the recovered integration-gate payload.",
+                    "resolution": "The repair reference now materializes after the finding and verifies the specific recovery path."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "task-gate",
+                    "reason": "fix: added a post-finding integration-gate assertion for the migration identifier.",
+                    "resolution": "The task-local repair evidence now directly proves the v2-to-v3 recovery payload and was created after the reported finding."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "spec-gate",
+                    "reason": "The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "impl-review",
+                    "reason": "Repair applied for findings bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce.",
+                    "resolution": "Repair evidence recorded by repair-001; 1 changed path(s), delta repair-deltas/repair-001.json."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "impl-review",
+                    "reason": "Audited review retry reset was rejected because the recorded review identity remains unchanged after the repaired test fixture.",
+                    "resolution": "Inspect the review identity baseline and make only an evidence-bearing change required to permit the structured review retry."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "spec-gate",
+                    "reason": "The diff adds `RepairMigrationStateSnapshot`, a new single-caller class used only by `commitRepairStateMigration`; it stores a cloned state and restores it without enforcing an invariant or creating a shared ownership boundary.",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "impl-gate",
+                    "reason": "fix: Replaced the single-use RepairMigrationStateSnapshot class with a local rollback helper and structured clone.",
+                    "resolution": "Rollback behavior remains identical while the unneeded class and its invariant-free abstraction are removed."
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "acceptance-decision",
+                    "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+                    "resolution": "continue to final-regression with accepted risk"
+                  }
+                ]
+              },
+              "metrics": {
+                "docsRead": 1,
+                "srcRead": 7,
+                "question": 0,
+                "issueLog": 25
+              },
+              "tokenMetrics": {
+                "input": 550444,
+                "output": 17419,
+                "cacheRead": 488192,
+                "cacheCreation": 0,
+                "cost": null,
+                "callCount": 34,
+                "durationMs": 535173,
+                "phaseDurations": [
+                  {
+                    "phase": "draft-questions-review",
+                    "durationMs": 5930
+                  },
+                  {
+                    "phase": "draft-coverage-review",
+                    "durationMs": 8121
+                  },
+                  {
+                    "phase": "draft-gate",
+                    "durationMs": 41145
+                  },
+                  {
+                    "phase": "spec-review",
+                    "durationMs": 76060
+                  },
+                  {
+                    "phase": "spec-gate",
+                    "durationMs": 33781
+                  },
+                  {
+                    "phase": "test-review",
+                    "durationMs": 36420
+                  },
+                  {
+                    "phase": "implement",
+                    "durationMs": 155752
+                  },
+                  {
+                    "phase": "impl-review",
+                    "durationMs": 65280
+                  },
+                  {
+                    "phase": "impl-gate",
+                    "durationMs": 87636
+                  },
+                  {
+                    "phase": "acceptance-review",
+                    "durationMs": 25048
+                  }
+                ]
+              },
+              "tests": {
+                "total": 5,
+                "passed": 5,
+                "failed": 0,
+                "verdict": "pass",
+                "invalidReason": null,
+                "rawOutputPath": "specs/342-repair-fingerprint-migration/tests/.raw/test-execution.log",
+                "projectRegression": {
+                  "required": false,
+                  "result": "skipped",
+                  "mode": "none",
+                  "category": "full-regression-deferred",
+                  "reason": "full project regression deferred to final-regression",
+                  "classified_paths": [
+                    {
+                      "path": "src/flow/lib/impl-repair-artifacts.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "src/flow/lib/repair-state-identity.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "src/flow/lib/run-gate.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "tests/unit/flow/repair-state-identity.test.js",
+                      "category": "full-regression-deferred"
+                    }
+                  ],
+                  "trigger_relevant_changed_files": [
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/impl-repair-artifacts.js",
+                      "fingerprint": "fd7129c518630feee1d2e07823abd400a07323780db39bc50ad4772612b8c58e"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/repair-state-identity.js",
+                      "fingerprint": "55ecd5cc101879ff477706f536c30927a3ff8fe461d3e99ce1beb0700132259f"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-gate.js",
+                      "fingerprint": "13352ad1765206b090595919d8330bac4bd245e8b2cadd91c84463a93d38fcfc"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/repair-state-identity.test.js",
+                      "fingerprint": "32e703c4c5c9222a7994d4a7d9cc65af5d863a5f5d2f1f24dc036302fa672f9e"
+                    }
+                  ],
+                  "changed_files": [
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/impl-repair-artifacts.js",
+                      "fingerprint": "fd7129c518630feee1d2e07823abd400a07323780db39bc50ad4772612b8c58e"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/repair-state-identity.js",
+                      "fingerprint": "55ecd5cc101879ff477706f536c30927a3ff8fe461d3e99ce1beb0700132259f"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-gate.js",
+                      "fingerprint": "13352ad1765206b090595919d8330bac4bd245e8b2cadd91c84463a93d38fcfc"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/repair-state-identity.test.js",
+                      "fingerprint": "32e703c4c5c9222a7994d4a7d9cc65af5d863a5f5d2f1f24dc036302fa672f9e"
+                    }
+                  ]
+                },
+                "finalRegression": {
+                  "status": "done",
+                  "result": "pass",
+                  "failureKind": null,
+                  "failureCategory": null,
+                  "failureNature": null,
+                  "skipKind": null,
+                  "rawOutputPath": "specs/342-repair-fingerprint-migration/tests/.raw/final-regression-attempt-001.log",
+                  "command": "node tests/run.js",
+                  "process": {
+                    "started": true,
+                    "exitCode": 0,
+                    "signal": null,
+                    "timedOut": false,
+                    "spawnError": null
+                  },
+                  "exitCode": 0,
+                  "failureSummary": null,
+                  "currentDiffRelationship": null,
+                  "changedFiles": [
+                    {
+                      "status": "modified",
+                      "path": ".senti/output/analysis.json",
+                      "fingerprint": "750652cdcf56018b78a2b18324270ee34d40da4e0534d87105ff9e42cb38c126"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/acceptance-review.json",
+                      "fingerprint": "723fb1af6ad44b38202ac412e59dd701b386f119f9da9bda3c368a29d3f17083"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/draft-coverage-repair.json",
+                      "fingerprint": "0008d93f9ca460551e5884d0df25b5f5dd306cb01ff9b6ee34de8ec22cbf8d10"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/draft-coverage-triage.json",
+                      "fingerprint": "b7c9340925975cc440ff5bbee05da88fbf3030648b200431198ab562717fd1c5"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/draft-gate-source.json",
+                      "fingerprint": "8bdf889229fd3d66e43f7d25811b0429013831c6c2eb6a724af5b63afda5a8ab"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/draft-questions-repair.json",
+                      "fingerprint": "39780efbdf5f86771772ca09dd95ab9ace3959a960ab5996c0d037c7c3aa300d"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/draft-questions-triage.json",
+                      "fingerprint": "3be9292a0911cd17878e229610f8c9682324840fef483c568a0a722baf4c7a69"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/draft-review-coverage.json",
+                      "fingerprint": "f27ad90adc3801e62b20c36a8a8e75518abad006dd19d15b8c08fb5603dc1435"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/draft-review-questions.json",
+                      "fingerprint": "40cec503fca3e1904671a7579dbaffff6743e74e0ac9b09092e72cec66ef66fa"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/draft.json",
+                      "fingerprint": "c65be8bbdb92d99bec412e6e5eef5c3df2a42f68643c22eba58c70454eb12061"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/file-map.json",
+                      "fingerprint": "24e56ba53a5fc0d63a728c97bc85346cad120b597a7b16b394a598a987e11236"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/flow-findings.json",
+                      "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/impl-gate-result.json",
+                      "fingerprint": "5971216f9b0fe3d4427ee5fd89edc5b14137959a34159747fe06c6b2cdff7ee6"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/impl-repair.json",
+                      "fingerprint": "1746a06678c8487b965e6a97b8851bd989093420075320cc27a27dbb2a10a6f9"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/impl-review.json",
+                      "fingerprint": "55dc0f9c00ed315374dca8534414020e8eb8914c5503114ff62e306d8a34b430"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/impl-triage.json",
+                      "fingerprint": "0e3c679e3e496e70186a20f5fe4d14ebe53a23739eebdf06f570f4468826a2d4"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/issue.md",
+                      "fingerprint": "c02fe3df63940aaa9467147bd16c969a3801e0ac2fb1829efd89aba26a8edd3c"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/plugin-artifacts/workflow/prepare.json",
+                      "fingerprint": "16902a02af997dac1fad97403fb061f5f9a07d0dd06c6fa5d34cf1a941001a9c"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/repair-deltas/repair-001.json",
+                      "fingerprint": "35639b73dbee8e8a04e23cc080fc9cad8d06687f4042501fe9a6f48f42788773"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/repair-deltas/repair-002.json",
+                      "fingerprint": "a6df08b4d221595eb5bd3d4fb063dd189e98fe7d209a67bdf75cb9507c6e2bec"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/repair-deltas/repair-003.json",
+                      "fingerprint": "50630610c4129ecce0753825ccbdf89d8e95df357f0bf44daef026c0777ddd66"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/repair-fingerprint.json",
+                      "fingerprint": "e152b8309616b365ecf12d33873a252db971cd5ea601ab699389a17ee3b526ba"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/retro.json",
+                      "fingerprint": "a0f869c63593c08b00a59b778b49687af6c3eb8ea9bdfe9e471cac9876a5c0a1"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/086ae718a9c14a9c5a7036332a423f7d0ab1c69d681423186b39ef8a702c1822.json",
+                      "fingerprint": "4c477462febf966f46acc76793461ed95cebc3ac41192e539ac51159bb384f90"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/11bc46cbadd086b7fc4101ca24364e659b3b7806bd4ad211b1f0ff102d89e3c2.json",
+                      "fingerprint": "7dbe134683f85b04016fffc2f592278177635cd09894232265b724cbc0963d43"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/14dfc4f550f72add9ac4e6b3c7b5d726f837b8074e464e6bb1d7c6938d74e331.json",
+                      "fingerprint": "e098a04f64e564d9c9e1f0040e73e1f695c05c77d47ef15d267b503acc034b9e"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/1dc13ffaa21a3156c4cff35b2e2b6e05b13270285b032bf2d61b66c9dbe2ff3b.json",
+                      "fingerprint": "68b6ce209797b84fe74593b54d3e77ddf82585d4441fed3488b809a6af045d1d"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c.json",
+                      "fingerprint": "40c07781a3278c78452a4f0704842994053dcecce51f4ca134ea8b612adf31ae"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/36389cc8bcb2d59201b7042daabe9d9febd0625cf320c790e057b13edad22aac.json",
+                      "fingerprint": "56e2cb846234e0feb28935a15a6a2ec35421d79791dcbbc96613aecc01a629d5"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/43bef254b902a7918246d7688d22100b564d6179932de5eb8bfeb204ffee150a.json",
+                      "fingerprint": "3dc96d99764ddf3a60096313e1e75b83aa4d6b8e855cb3c454bd580dc5b58549"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/445c684a5b584d4016472d084d838ea6f28d65b1c5b179bd89f70323b74a1f83.json",
+                      "fingerprint": "7d8880189a10d5dba355243c6d78c551e34ba5cef8de99434dea1947707563ec"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/490e95ca524ce388c0ab360c77ce91e855b37dfc853264d7cd202b81b08ba524.json",
+                      "fingerprint": "dac11b6b6837a913980b72c71df3e5c483610912726255c3304479389526793d"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/5823f06d74911d09caa1d1c20ae111277706ed3cf51ff227141ffba217cddfb0.json",
+                      "fingerprint": "02ecfaff9b2311b45a8324b92241b2d920fae80b9ff5b2ec4c6cbc0690d3a1d0"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/77ec728374cd2aa0b65aafb7d304d766f0003f53653221e811c994c7f1aae182.json",
+                      "fingerprint": "b4fbcc549fa4ef777412f1c37f31660a766ee0d608cb12282666cce1b0519b5e"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/9fa2a2bc6910039f78b933269298ff1509df245fd4d652e11d08dc1d8cc3042e.json",
+                      "fingerprint": "be1e0da3865492209e24d92336e13d7b7e373554a7b74c35d56fd57e125f911a"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/a1940d27a725bdb08e6e2185bb24117d35c6351769ee7e35c0058c712db5ba9f.json",
+                      "fingerprint": "e343c1316d37fa3df3a647bcb904402def540b201982df7eb2ea6df26ab467a1"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/ac159537408652ed6d4de8693afdbf228073afb11d8b4db028b9b8db6f742746.json",
+                      "fingerprint": "cd08075435e715cbed5effa20bacc4e3efc57784c164c6199591bb65f3279c22"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/bfacdf38ccb47414c2646064594b3db3bf31dd63b42903e24d12d1597c8bb83c.json",
+                      "fingerprint": "5b13ebc943a97891f3a48434c3bcdfab54cc9468f7afd0a2d77a3bcaab928f75"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/e6610b6d498f57ca3f4455c45cc105506229986c719f9f90aeb6cd6adbf17f5a.json",
+                      "fingerprint": "ed0485c48c9f3a12cab35b266fa6f1fbab0140fbcb63b2be70533164c8d361e2"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/draft-coverage-attempt-001.json",
+                      "fingerprint": "a572eace17a9d4703d473e3c684eda1ff4b4ca4159a6563d05e3f01e01a41700"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/draft-questions-attempt-001.json",
+                      "fingerprint": "eb14a05bd3a52ad2166bcdb0cfd0194951178972d17672aeaf319594e0e9af07"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-001.json",
+                      "fingerprint": "162b18f5138314f00f65c4971b404c838f2063359471916001156cb81f5d395d"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-001.md",
+                      "fingerprint": "6dcd9a95ca86beff8a0eba8e48f103327e9622ba6668cbeebcaf39a60971e20d"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-002.json",
+                      "fingerprint": "129b4edb638d51873488d839ba8cfcbeb9b7e1340bc660ea87a98eee5767a49c"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-002.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-003.json",
+                      "fingerprint": "406c6fdcda34a1fe81cb97d7b98310887ca708fce26b2fe6dfaa5ebd9e0c61d4"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-003.md",
+                      "fingerprint": "c8249e1acbdd9d617c10f0e24c70ee19366b2721fd74e32ffc44480697eea12a"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-004.json",
+                      "fingerprint": "63f3c0e504e2306dd0f801d8dcb16b782b1a65c57de7a2761a95ec603795a426"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-004.md",
+                      "fingerprint": "d9a903a7aa1f01c50640c2c3e76afc70a0cd7659b9259c023e4b57687aa9af85"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-005.json",
+                      "fingerprint": "447082216f3aa364c501c717aaaf3d1958401b8a3c6e0a8a81c600895d8dc458"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-005.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-006.json",
+                      "fingerprint": "b8778635f526fe9e30db54063983c592b264621f5c643f541190663df4c83311"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-006.md",
+                      "fingerprint": "eebed6e514a9dbc1c6fc2e2c11efa85ac9b270da0814da5edd69884ed9872bba"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-007.json",
+                      "fingerprint": "8f6d67e6ce65629002260ca45fa0bf5e2c22b55a323ca2a3d35c34d3ef79476c"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-007.md",
+                      "fingerprint": "5e6003313f03ea7fb9c9733deb68e98f92f6161813ef972e4d5ff94ba06cdf88"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-008.json",
+                      "fingerprint": "003b5fe09ed4353ac8c872d62cf6c1e51905bb436fced3c9ffbd82441b8c58ab"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-008.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-009.json",
+                      "fingerprint": "c948602d47401645f18e7ad8de1e32f350ec8bb1a922b8d51eacb2665bd96a01"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-009.md",
+                      "fingerprint": "7766724c5df03c20f08c9662a510c0fed9c5b65be30d6de149beb602244aae69"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-010.json",
+                      "fingerprint": "713b4f6926c36a52a75068967d3861bc9ee0ae38ec8538474e7a3044b8418bf9"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-010.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-011.json",
+                      "fingerprint": "3f481215c59a873fcf08ddd45b7d512913887e1fa53f3abe8d9958cde4e52f30"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-011.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/spec-attempt-001.json",
+                      "fingerprint": "860c1052970afd89631964365690995a5934fb5e13da6c3c0aa50b437d1bf1ab"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/spec-attempt-001.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/test-attempt-001.json",
+                      "fingerprint": "cc15643267c6b1a6e664589533919c6ab1a11d508b245387cfef2efe261d83af"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/test-attempt-001.md",
+                      "fingerprint": "ccda61a452b8c51847d087639e30b209fa833cecdf1c6523c7b6b4cc8640f0ef"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/test-attempt-002.json",
+                      "fingerprint": "9030cf9ba0406e4e135f6e5328e6c78decac2ac3c9e8b4262066f9271fd32d23"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review-history/test-attempt-002.md",
+                      "fingerprint": "64a516f171ddcb9d9c2cfd2103566ae86109b014ea8a3c4f4bd26ba3dbb0dd62"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/review.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/scenario-validity-result.json",
+                      "fingerprint": "a04ce876618b3e579e4e4454afa6c78431638f4b3a1d14ce0556f429c0002e51"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/spec-gate-source.json",
+                      "fingerprint": "aa018c3d07e0a344f6ca110ea54431551766ccfa710a0b0b5aa3b68608299163"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/spec-review.json",
+                      "fingerprint": "f19658b4f104362536c17012d5f9ca28aa5a23df37a9ecf20db94a6246f4c2bc"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/spec-review.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/spec.json",
+                      "fingerprint": "0ea0ce22754d7c465814a2e5002fd8c55384ed865f4593ce3f1539f9dabef2ff"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/spec.md",
+                      "fingerprint": "a4ccc7059207574a0b500c65bd907817954d1a367bf83a36a8dd10f1413f5ed0"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/task-impl-gate-source.json",
+                      "fingerprint": "05d6b613d6788de7d5440261465adc8e04c5458a00e91a4a56c2c0a8e8a11974"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/tasks/T-1.md",
+                      "fingerprint": "82af8b93b598507621ec3b7d41c313fb24d797d7c2b8c199560f030cc651ab91"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/tasks/T-2.md",
+                      "fingerprint": "dd78a60710fdffadbad7290753078fd99adca4078e7168c26a1f016a29105f94"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/tasks/T-3.md",
+                      "fingerprint": "8ace1a03f278f48602097c7cf6ea8bdf202f7720af9eff60e69bc456d4e5ea4a"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/test-coverage.json",
+                      "fingerprint": "6106f2c3659d5d9842a644414a6840c1eb4603b4cb133bd3e20bee4d36bbb6a5"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/test-execute-result.json",
+                      "fingerprint": "86089fffa94b3b56d76e511abf4bf8d23f573ae6aa4b895c49aef59c9e3fb0cf"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/test-result-review.json",
+                      "fingerprint": "97b01b9cd0e596d71ac2fa351c82b6a1fb56aab3c27110e517dc1e36fbb9f257"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/test-result-review.md",
+                      "fingerprint": "e13a95de6ea98884dab7ea42aaf63257b73b2e3de8a3568305e7d9ffa9c32758"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/test-review.json",
+                      "fingerprint": "b8e3f3ba8e6fa2f544a5ce0d3ac9f689b28b8c49fbb2ba1e7778829b59f583c9"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/test-review.md",
+                      "fingerprint": "64a516f171ddcb9d9c2cfd2103566ae86109b014ea8a3c4f4bd26ba3dbb0dd62"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/tests/.raw/scenario-validity.log",
+                      "fingerprint": "01560fcb5739c2fd1605d2ea9a1660c4e4274d1b9d9cead7ebb05485dcf2ff82"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/342-repair-fingerprint-migration/tests/.raw/test-execution.log",
+                      "fingerprint": "be46a104046e5303b0236b18eb46660d399a3605ac0256e9b0f5c0ea0736e35c"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+                      "fingerprint": "3ef37f23a017ec807ddadc802d2fdc8986cc85e7fad536fbadd4522b45f18a22"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/impl-repair-artifacts.js",
+                      "fingerprint": "fd7129c518630feee1d2e07823abd400a07323780db39bc50ad4772612b8c58e"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/repair-state-identity.js",
+                      "fingerprint": "55ecd5cc101879ff477706f536c30927a3ff8fe461d3e99ce1beb0700132259f"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/run-gate.js",
+                      "fingerprint": "13352ad1765206b090595919d8330bac4bd245e8b2cadd91c84463a93d38fcfc"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/repair-state-identity.test.js",
+                      "fingerprint": "32e703c4c5c9222a7994d4a7d9cc65af5d863a5f5d2f1f24dc036302fa672f9e"
+                    }
+                  ],
+                  "changedFileFingerprints": [
+                    {
+                      "path": ".senti/output/analysis.json",
+                      "fingerprint": "750652cdcf56018b78a2b18324270ee34d40da4e0534d87105ff9e42cb38c126"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/acceptance-review.json",
+                      "fingerprint": "723fb1af6ad44b38202ac412e59dd701b386f119f9da9bda3c368a29d3f17083"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/draft-coverage-repair.json",
+                      "fingerprint": "0008d93f9ca460551e5884d0df25b5f5dd306cb01ff9b6ee34de8ec22cbf8d10"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/draft-coverage-triage.json",
+                      "fingerprint": "b7c9340925975cc440ff5bbee05da88fbf3030648b200431198ab562717fd1c5"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/draft-gate-source.json",
+                      "fingerprint": "8bdf889229fd3d66e43f7d25811b0429013831c6c2eb6a724af5b63afda5a8ab"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/draft-questions-repair.json",
+                      "fingerprint": "39780efbdf5f86771772ca09dd95ab9ace3959a960ab5996c0d037c7c3aa300d"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/draft-questions-triage.json",
+                      "fingerprint": "3be9292a0911cd17878e229610f8c9682324840fef483c568a0a722baf4c7a69"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/draft-review-coverage.json",
+                      "fingerprint": "f27ad90adc3801e62b20c36a8a8e75518abad006dd19d15b8c08fb5603dc1435"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/draft-review-questions.json",
+                      "fingerprint": "40cec503fca3e1904671a7579dbaffff6743e74e0ac9b09092e72cec66ef66fa"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/draft.json",
+                      "fingerprint": "c65be8bbdb92d99bec412e6e5eef5c3df2a42f68643c22eba58c70454eb12061"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/file-map.json",
+                      "fingerprint": "24e56ba53a5fc0d63a728c97bc85346cad120b597a7b16b394a598a987e11236"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/flow-findings.json",
+                      "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/impl-gate-result.json",
+                      "fingerprint": "5971216f9b0fe3d4427ee5fd89edc5b14137959a34159747fe06c6b2cdff7ee6"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/impl-repair.json",
+                      "fingerprint": "1746a06678c8487b965e6a97b8851bd989093420075320cc27a27dbb2a10a6f9"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/impl-review.json",
+                      "fingerprint": "55dc0f9c00ed315374dca8534414020e8eb8914c5503114ff62e306d8a34b430"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/impl-triage.json",
+                      "fingerprint": "0e3c679e3e496e70186a20f5fe4d14ebe53a23739eebdf06f570f4468826a2d4"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/issue.md",
+                      "fingerprint": "c02fe3df63940aaa9467147bd16c969a3801e0ac2fb1829efd89aba26a8edd3c"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/plugin-artifacts/workflow/prepare.json",
+                      "fingerprint": "16902a02af997dac1fad97403fb061f5f9a07d0dd06c6fa5d34cf1a941001a9c"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/repair-deltas/repair-001.json",
+                      "fingerprint": "35639b73dbee8e8a04e23cc080fc9cad8d06687f4042501fe9a6f48f42788773"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/repair-deltas/repair-002.json",
+                      "fingerprint": "a6df08b4d221595eb5bd3d4fb063dd189e98fe7d209a67bdf75cb9507c6e2bec"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/repair-deltas/repair-003.json",
+                      "fingerprint": "50630610c4129ecce0753825ccbdf89d8e95df357f0bf44daef026c0777ddd66"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/repair-fingerprint.json",
+                      "fingerprint": "e152b8309616b365ecf12d33873a252db971cd5ea601ab699389a17ee3b526ba"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/retro.json",
+                      "fingerprint": "a0f869c63593c08b00a59b778b49687af6c3eb8ea9bdfe9e471cac9876a5c0a1"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/086ae718a9c14a9c5a7036332a423f7d0ab1c69d681423186b39ef8a702c1822.json",
+                      "fingerprint": "4c477462febf966f46acc76793461ed95cebc3ac41192e539ac51159bb384f90"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/11bc46cbadd086b7fc4101ca24364e659b3b7806bd4ad211b1f0ff102d89e3c2.json",
+                      "fingerprint": "7dbe134683f85b04016fffc2f592278177635cd09894232265b724cbc0963d43"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/14dfc4f550f72add9ac4e6b3c7b5d726f837b8074e464e6bb1d7c6938d74e331.json",
+                      "fingerprint": "e098a04f64e564d9c9e1f0040e73e1f695c05c77d47ef15d267b503acc034b9e"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/1dc13ffaa21a3156c4cff35b2e2b6e05b13270285b032bf2d61b66c9dbe2ff3b.json",
+                      "fingerprint": "68b6ce209797b84fe74593b54d3e77ddf82585d4441fed3488b809a6af045d1d"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c.json",
+                      "fingerprint": "40c07781a3278c78452a4f0704842994053dcecce51f4ca134ea8b612adf31ae"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/36389cc8bcb2d59201b7042daabe9d9febd0625cf320c790e057b13edad22aac.json",
+                      "fingerprint": "56e2cb846234e0feb28935a15a6a2ec35421d79791dcbbc96613aecc01a629d5"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/43bef254b902a7918246d7688d22100b564d6179932de5eb8bfeb204ffee150a.json",
+                      "fingerprint": "3dc96d99764ddf3a60096313e1e75b83aa4d6b8e855cb3c454bd580dc5b58549"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/445c684a5b584d4016472d084d838ea6f28d65b1c5b179bd89f70323b74a1f83.json",
+                      "fingerprint": "7d8880189a10d5dba355243c6d78c551e34ba5cef8de99434dea1947707563ec"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/490e95ca524ce388c0ab360c77ce91e855b37dfc853264d7cd202b81b08ba524.json",
+                      "fingerprint": "dac11b6b6837a913980b72c71df3e5c483610912726255c3304479389526793d"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/5823f06d74911d09caa1d1c20ae111277706ed3cf51ff227141ffba217cddfb0.json",
+                      "fingerprint": "02ecfaff9b2311b45a8324b92241b2d920fae80b9ff5b2ec4c6cbc0690d3a1d0"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/77ec728374cd2aa0b65aafb7d304d766f0003f53653221e811c994c7f1aae182.json",
+                      "fingerprint": "b4fbcc549fa4ef777412f1c37f31660a766ee0d608cb12282666cce1b0519b5e"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/9fa2a2bc6910039f78b933269298ff1509df245fd4d652e11d08dc1d8cc3042e.json",
+                      "fingerprint": "be1e0da3865492209e24d92336e13d7b7e373554a7b74c35d56fd57e125f911a"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/a1940d27a725bdb08e6e2185bb24117d35c6351769ee7e35c0058c712db5ba9f.json",
+                      "fingerprint": "e343c1316d37fa3df3a647bcb904402def540b201982df7eb2ea6df26ab467a1"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/ac159537408652ed6d4de8693afdbf228073afb11d8b4db028b9b8db6f742746.json",
+                      "fingerprint": "cd08075435e715cbed5effa20bacc4e3efc57784c164c6199591bb65f3279c22"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/bfacdf38ccb47414c2646064594b3db3bf31dd63b42903e24d12d1597c8bb83c.json",
+                      "fingerprint": "5b13ebc943a97891f3a48434c3bcdfab54cc9468f7afd0a2d77a3bcaab928f75"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-evidence/e6610b6d498f57ca3f4455c45cc105506229986c719f9f90aeb6cd6adbf17f5a.json",
+                      "fingerprint": "ed0485c48c9f3a12cab35b266fa6f1fbab0140fbcb63b2be70533164c8d361e2"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/draft-coverage-attempt-001.json",
+                      "fingerprint": "a572eace17a9d4703d473e3c684eda1ff4b4ca4159a6563d05e3f01e01a41700"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/draft-questions-attempt-001.json",
+                      "fingerprint": "eb14a05bd3a52ad2166bcdb0cfd0194951178972d17672aeaf319594e0e9af07"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-001.json",
+                      "fingerprint": "162b18f5138314f00f65c4971b404c838f2063359471916001156cb81f5d395d"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-001.md",
+                      "fingerprint": "6dcd9a95ca86beff8a0eba8e48f103327e9622ba6668cbeebcaf39a60971e20d"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-002.json",
+                      "fingerprint": "129b4edb638d51873488d839ba8cfcbeb9b7e1340bc660ea87a98eee5767a49c"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-002.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-003.json",
+                      "fingerprint": "406c6fdcda34a1fe81cb97d7b98310887ca708fce26b2fe6dfaa5ebd9e0c61d4"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-003.md",
+                      "fingerprint": "c8249e1acbdd9d617c10f0e24c70ee19366b2721fd74e32ffc44480697eea12a"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-004.json",
+                      "fingerprint": "63f3c0e504e2306dd0f801d8dcb16b782b1a65c57de7a2761a95ec603795a426"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-004.md",
+                      "fingerprint": "d9a903a7aa1f01c50640c2c3e76afc70a0cd7659b9259c023e4b57687aa9af85"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-005.json",
+                      "fingerprint": "447082216f3aa364c501c717aaaf3d1958401b8a3c6e0a8a81c600895d8dc458"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-005.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-006.json",
+                      "fingerprint": "b8778635f526fe9e30db54063983c592b264621f5c643f541190663df4c83311"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-006.md",
+                      "fingerprint": "eebed6e514a9dbc1c6fc2e2c11efa85ac9b270da0814da5edd69884ed9872bba"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-007.json",
+                      "fingerprint": "8f6d67e6ce65629002260ca45fa0bf5e2c22b55a323ca2a3d35c34d3ef79476c"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-007.md",
+                      "fingerprint": "5e6003313f03ea7fb9c9733deb68e98f92f6161813ef972e4d5ff94ba06cdf88"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-008.json",
+                      "fingerprint": "003b5fe09ed4353ac8c872d62cf6c1e51905bb436fced3c9ffbd82441b8c58ab"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-008.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-009.json",
+                      "fingerprint": "c948602d47401645f18e7ad8de1e32f350ec8bb1a922b8d51eacb2665bd96a01"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-009.md",
+                      "fingerprint": "7766724c5df03c20f08c9662a510c0fed9c5b65be30d6de149beb602244aae69"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-010.json",
+                      "fingerprint": "713b4f6926c36a52a75068967d3861bc9ee0ae38ec8538474e7a3044b8418bf9"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-010.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-011.json",
+                      "fingerprint": "3f481215c59a873fcf08ddd45b7d512913887e1fa53f3abe8d9958cde4e52f30"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/impl-attempt-011.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/spec-attempt-001.json",
+                      "fingerprint": "860c1052970afd89631964365690995a5934fb5e13da6c3c0aa50b437d1bf1ab"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/spec-attempt-001.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/test-attempt-001.json",
+                      "fingerprint": "cc15643267c6b1a6e664589533919c6ab1a11d508b245387cfef2efe261d83af"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/test-attempt-001.md",
+                      "fingerprint": "ccda61a452b8c51847d087639e30b209fa833cecdf1c6523c7b6b4cc8640f0ef"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/test-attempt-002.json",
+                      "fingerprint": "9030cf9ba0406e4e135f6e5328e6c78decac2ac3c9e8b4262066f9271fd32d23"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review-history/test-attempt-002.md",
+                      "fingerprint": "64a516f171ddcb9d9c2cfd2103566ae86109b014ea8a3c4f4bd26ba3dbb0dd62"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/review.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/scenario-validity-result.json",
+                      "fingerprint": "a04ce876618b3e579e4e4454afa6c78431638f4b3a1d14ce0556f429c0002e51"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/spec-gate-source.json",
+                      "fingerprint": "aa018c3d07e0a344f6ca110ea54431551766ccfa710a0b0b5aa3b68608299163"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/spec-review.json",
+                      "fingerprint": "f19658b4f104362536c17012d5f9ca28aa5a23df37a9ecf20db94a6246f4c2bc"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/spec-review.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/spec.json",
+                      "fingerprint": "0ea0ce22754d7c465814a2e5002fd8c55384ed865f4593ce3f1539f9dabef2ff"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/spec.md",
+                      "fingerprint": "a4ccc7059207574a0b500c65bd907817954d1a367bf83a36a8dd10f1413f5ed0"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/task-impl-gate-source.json",
+                      "fingerprint": "05d6b613d6788de7d5440261465adc8e04c5458a00e91a4a56c2c0a8e8a11974"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/tasks/T-1.md",
+                      "fingerprint": "82af8b93b598507621ec3b7d41c313fb24d797d7c2b8c199560f030cc651ab91"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/tasks/T-2.md",
+                      "fingerprint": "dd78a60710fdffadbad7290753078fd99adca4078e7168c26a1f016a29105f94"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/tasks/T-3.md",
+                      "fingerprint": "8ace1a03f278f48602097c7cf6ea8bdf202f7720af9eff60e69bc456d4e5ea4a"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/test-coverage.json",
+                      "fingerprint": "6106f2c3659d5d9842a644414a6840c1eb4603b4cb133bd3e20bee4d36bbb6a5"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/test-execute-result.json",
+                      "fingerprint": "86089fffa94b3b56d76e511abf4bf8d23f573ae6aa4b895c49aef59c9e3fb0cf"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/test-result-review.json",
+                      "fingerprint": "97b01b9cd0e596d71ac2fa351c82b6a1fb56aab3c27110e517dc1e36fbb9f257"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/test-result-review.md",
+                      "fingerprint": "e13a95de6ea98884dab7ea42aaf63257b73b2e3de8a3568305e7d9ffa9c32758"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/test-review.json",
+                      "fingerprint": "b8e3f3ba8e6fa2f544a5ce0d3ac9f689b28b8c49fbb2ba1e7778829b59f583c9"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/test-review.md",
+                      "fingerprint": "64a516f171ddcb9d9c2cfd2103566ae86109b014ea8a3c4f4bd26ba3dbb0dd62"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/tests/.raw/scenario-validity.log",
+                      "fingerprint": "01560fcb5739c2fd1605d2ea9a1660c4e4274d1b9d9cead7ebb05485dcf2ff82"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/tests/.raw/test-execution.log",
+                      "fingerprint": "be46a104046e5303b0236b18eb46660d399a3605ac0256e9b0f5c0ea0736e35c"
+                    },
+                    {
+                      "path": "specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+                      "fingerprint": "3ef37f23a017ec807ddadc802d2fdc8986cc85e7fad536fbadd4522b45f18a22"
+                    },
+                    {
+                      "path": "src/flow/lib/impl-repair-artifacts.js",
+                      "fingerprint": "fd7129c518630feee1d2e07823abd400a07323780db39bc50ad4772612b8c58e"
+                    },
+                    {
+                      "path": "src/flow/lib/repair-state-identity.js",
+                      "fingerprint": "55ecd5cc101879ff477706f536c30927a3ff8fe461d3e99ce1beb0700132259f"
+                    },
+                    {
+                      "path": "src/flow/lib/run-gate.js",
+                      "fingerprint": "13352ad1765206b090595919d8330bac4bd245e8b2cadd91c84463a93d38fcfc"
+                    },
+                    {
+                      "path": "tests/unit/flow/repair-state-identity.test.js",
+                      "fingerprint": "32e703c4c5c9222a7994d4a7d9cc65af5d863a5f5d2f1f24dc036302fa672f9e"
+                    }
+                  ],
+                  "fixAttempts": null,
+                  "selectedAction": null,
+                  "remainingRisk": null,
+                  "retryable": false,
+                  "nextAction": "report",
+                  "nextRecommendedAction": null,
+                  "recordAndProceed": null,
+                  "humanSummary": "result=pass raw_output=specs/342-repair-fingerprint-migration/tests/.raw/final-regression-attempt-001.log"
+                }
+              },
+              "sync": {
+                "status": "skipped",
+                "reason": "sync was skipped"
+              },
+              "tasks": [
+                {
+                  "id": "T-1",
+                  "status": "done",
+                  "implementationSummary": "missing",
+                  "testExecute": "available",
+                  "review": "done",
+                  "gateImpl": "done"
+                },
+                {
+                  "id": "T-2",
+                  "status": "done",
+                  "implementationSummary": "missing",
+                  "testExecute": "available",
+                  "review": "done",
+                  "gateImpl": "done"
+                },
+                {
+                  "id": "T-3",
+                  "status": "done",
+                  "implementationSummary": "missing",
+                  "testExecute": "available",
+                  "review": "done",
+                  "gateImpl": "done"
+                }
+              ],
+              "taskTotal": 3,
+              "tasksTruncated": 0,
+              "broadModeHistory": [],
+              "broadModeHistoryTotal": 0,
+              "broadModeHistoryTruncated": 0
+            },
+            "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Simplify repair migration rollback\n    Assert legacy migration fixture hash\n    Fix legacy fingerprint migration test fixture\n    Migrate legacy repair fingerprint manifests\n    5 files changed, 572 insertions(+), 48 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 7\n    Q&A ......................... 0\n    issue-log ................... 25\n    agent calls ................. 34\n    input tokens ................ 550,444\n    output tokens ............... 17,419\n    cache-read tokens ........... 488,192\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 535.2s\n      draft-questions-review .... 5.9s\n      draft-coverage-review ..... 8.1s\n      draft-gate ................ 41.1s\n      spec-review ............... 76.1s\n      spec-gate ................. 33.8s\n      test-review ............... 36.4s\n      implement ................. 155.8s\n      impl-review ............... 65.3s\n      impl-gate ................. 87.6s\n      acceptance-review ......... 25.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/342-repair-fingerprint-migration/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/342-repair-fingerprint-migration/tests/.raw/final-regression-attempt-001.log\n\n  Tasks (3/3)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n    T-3 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (33 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/342-repair-fingerprint-migration/issue-log.json\n\n    Important (10 of 13)\n    - [draft-refine] State transition was blocked by an active repository flow-operation lock.\n    - [draft-gate] Draft gate found vague migration and auditability requirements without observable acceptance conditions.\n    - [scenario-validity] The spec-local test imported buildRepairFingerprint from the identity module, but that module does not export it.\n    - [test-review] Static test review found that R3 omitted the integration gate result and R4 bypassed the migration entrypoint.\n    - [task-impl] Guardrail retrieval rejected target guard options.\n    - [task-review] Added reversible staging and rollback for migration state, manifest, and downstream evidence before completing the audit record.\n    - [task-review] Expanded the existing spec-local R3 integration-gate test with the recovered evidenceRefresh contract.\n    - [task-review] Added a post-finding assertion for the exact v2-to-v3 migration identifier in the recovered integration-gate payload.\n    - [task-gate] fix: added a post-finding integration-gate assertion for the migration identifier.\n    - [spec-gate] The diff implements a non-trivial migration/recovery data flow, including migration state records, manifest replacement, rollback handling, and integration-gate recovery behavior, but the provided spec text does not include evidence that...\n    ... 3 important issue-log entries omitted\n\n    Recent Other (5 of 20)\n    - [impl-review] Repair applied for findings bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce.\n    - [impl-review] Audited review retry reset was rejected because the recorded review identity remains unchanged after the repaired test fixture.\n    - [spec-gate] The diff adds `RepairMigrationStateSnapshot`, a new single-caller class used only by `commitRepairStateMigration`; it stores a cloned state and restores it without enforcing an invariant or creating a shared ownership boundary.\n    - [impl-gate] fix: Replaced the single-use RepairMigrationStateSnapshot class with a local rollback helper and structured clone.\n    - [acceptance-decision] User explicitly selected accept_risk_and_continue for unresolved acceptance risk.\n    ... 15 other issue-log entries omitted"
+          },
+          "issueComment": {
+            "status": "done",
+            "issue": 464,
+            "resumed": false
+          }
+        }
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:d5de7532-6920-4b3b-9fd4-db00d8122495:flow:finalize-commit:finalize-commit",
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "finalize-commit",
+      "operation": "finalize-commit",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-25T10:29:23.144Z",
+      "updatedAt": "2026-07-25T10:29:23.838Z",
+      "result": {
+        "status": "done",
+        "message": "feat: feature/342-repair-fingerprint-migration"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:d5de7532-6920-4b3b-9fd4-db00d8122495:flow:finalize-merge:finalize-merge",
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "finalize-merge",
+      "operation": "finalize-merge",
+      "status": "pending",
+      "attempt": 2,
+      "startedAt": "2026-07-25T10:35:08.871Z",
+      "updatedAt": "2026-07-25T10:35:08.871Z"
+    }
+  ],
+  "issue": 464,
+  "request": "Goal: migrate repair-fingerprint manifests so existing active flows created with canonical format v2 can continue after the canonical hash input changed.\n\nScope: define a bumped current format and explicit v2 migration in repair-state identity and implementation repair-artifact handling; atomically and auditably rematerialize readable v2 artifacts; use the guarded recovery route to return affected flows to test-execute; add migration and integration-gate regression coverage.\n\nOut of Scope: manual deletion or editing of mismatched artifacts; changing unrelated flow behavior or historical artifact formats beyond the required v2 migration.\n\nDescription: Existing v2 artifacts hash fields that are no longer part of the canonical state. When an active flow incorporates current main, integration gate must recognize and migrate the old artifact before stale-evidence processing, preserving an auditable path back to test-execute.",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 23,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 1
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "goalGate": {
+      "checked": true,
+      "passed": true
+    },
+    "reason": "目的・対象・期待動作・除外範囲・再現条件が明確。既存移行の前例は一部推測が必要。"
+  },
+  "notes": [
+    {
+      "text": "preflight-auto: [1] 自動承認を有効化。Issue #464 の Goal・Scope・説明を承認。",
+      "taskId": null,
+      "ts": "2026-07-25T08:12:09.539Z"
+    }
+  ],
+  "worktree": true,
+  "plugins": {
+    "flowCommandHooks": [
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/finalize-cleanup.js",
+        "className": "WorkflowFinalizeCleanupHook",
+        "command": "finalize-cleanup",
+        "hook": "post",
+        "priority": 0
+      },
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/prepare.js",
+        "className": "WorkflowPrepareHook",
+        "command": "prepare",
+        "hook": "post",
+        "priority": 0
+      }
+    ]
+  },
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:13:17.763Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:13:25.462Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:14:29.465Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 222,
+      "durationMs": 5930,
+      "tokens": {
+        "input": 5385,
+        "output": 130,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:15:57.353Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T08:15:59.336Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:16:12.717Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:16:39.168Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:18:53.610Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:19:49.538Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 8121,
+      "tokens": {
+        "input": 16208,
+        "output": 39,
+        "cacheRead": 5504,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:20:13.331Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T08:20:14.160Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4474,
+      "durationMs": 25822,
+      "tokens": {
+        "input": 19728,
+        "output": 1165,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:21:10.660Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:21:10.717Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:21:21.474Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 359,
+      "durationMs": 5851,
+      "tokens": {
+        "input": 17435,
+        "output": 96,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:22:34.912Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:22:34.967Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:23:04.651Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 9472,
+      "tokens": {
+        "input": 20074,
+        "output": 15,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:23:29.179Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T08:23:29.238Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:23:45.570Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:24:01.221Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:25:58.146Z"
+    },
+    {
+      "phase": "spec-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2389,
+      "durationMs": 76060,
+      "tokens": {
+        "input": 58650,
+        "output": 3058,
+        "cacheRead": 287104,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:27:33.146Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T08:27:33.869Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 683,
+      "durationMs": 18369,
+      "tokens": {
+        "input": 16077,
+        "output": 667,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:28:10.905Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:28:10.974Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:28:22.720Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 15412,
+      "tokens": {
+        "input": 16368,
+        "output": 405,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:29:09.472Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T08:29:09.592Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:29:33.463Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:33:43.774Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:34:32.850Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1897,
+      "durationMs": 26496,
+      "tokens": {
+        "input": 17099,
+        "output": 853,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:35:29.113Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:35:54.932Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 45,
+      "durationMs": 9924,
+      "tokens": {
+        "input": 12907,
+        "output": 165,
+        "cacheRead": 5504,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:37:09.091Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:37:34.557Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1295,
+      "durationMs": 11670,
+      "tokens": {
+        "input": 4258,
+        "output": 408,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:39:45.582Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:40:00.892Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 52,
+      "durationMs": 8910,
+      "tokens": {
+        "input": 4719,
+        "output": 152,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:40:20.807Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 8797,
+      "tokens": {
+        "input": 16463,
+        "output": 178,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T08:40:42.624Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T08:40:42.712Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2806,
+      "durationMs": 15380,
+      "tokens": {
+        "input": 7163,
+        "output": 548,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-25T08:44:55.324Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-2",
+      "ts": "2026-07-25T08:45:22.159Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-2",
+      "ts": "2026-07-25T08:45:28.940Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1392,
+      "durationMs": 15245,
+      "tokens": {
+        "input": 8190,
+        "output": 523,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-25T08:46:15.359Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-2",
+      "ts": "2026-07-25T08:47:10.377Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 52,
+      "durationMs": 14330,
+      "tokens": {
+        "input": 10910,
+        "output": 540,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-25T08:48:21.674Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 16842,
+      "tokens": {
+        "input": 13421,
+        "output": 404,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-25T08:48:51.115Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T08:48:51.292Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1257,
+      "durationMs": 18403,
+      "tokens": {
+        "input": 18380,
+        "output": 677,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:51:07.396Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:51:31.017Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1100,
+      "durationMs": 11711,
+      "tokens": {
+        "input": 9586,
+        "output": 351,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:51:58.753Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:52:35.157Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:53:09.584Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 52,
+      "durationMs": 10264,
+      "tokens": {
+        "input": 11676,
+        "output": 295,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:53:59.253Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:55:01.159Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:55:09.043Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 490,
+      "durationMs": 16008,
+      "tokens": {
+        "input": 23941,
+        "output": 573,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:55:30.911Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:55:31.076Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:56:02.705Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 8192,
+      "tokens": {
+        "input": 10692,
+        "output": 179,
+        "cacheRead": 14720,
+        "cacheCreation": 0
+      },
+      "taskId": "T-3",
+      "ts": "2026-07-25T08:56:34.602Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T08:56:34.699Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:57:12.462Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1257,
+      "durationMs": 18708,
+      "tokens": {
+        "input": 13691,
+        "output": 792,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T08:58:44.879Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T08:58:46.244Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2570,
+      "durationMs": 15651,
+      "tokens": {
+        "input": 11326,
+        "output": 594,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T09:04:41.432Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T09:05:03.798Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T10:10:36.421Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T10:11:30.398Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 52,
+      "durationMs": 18903,
+      "tokens": {
+        "input": 11310,
+        "output": 540,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:13:04.114Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T10:13:06.566Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 688,
+      "durationMs": 10783,
+      "tokens": {
+        "input": 17045,
+        "output": 239,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:13:30.557Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 886,
+      "durationMs": 11642,
+      "tokens": {
+        "input": 10110,
+        "output": 360,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:13:42.242Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 846,
+      "durationMs": 10481,
+      "tokens": {
+        "input": 20448,
+        "output": 312,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:13:52.765Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1344,
+      "durationMs": 14895,
+      "tokens": {
+        "input": 20563,
+        "output": 544,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:14:07.715Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 837,
+      "durationMs": 10427,
+      "tokens": {
+        "input": 16616,
+        "output": 314,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:14:18.188Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 433,
+      "durationMs": 15579,
+      "tokens": {
+        "input": 15322,
+        "output": 470,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:14:33.839Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T10:14:34.238Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T10:16:49.674Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 104,
+      "durationMs": 12018,
+      "tokens": {
+        "input": 20496,
+        "output": 425,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:18:04.449Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T10:18:05.967Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 13829,
+      "tokens": {
+        "input": 22103,
+        "output": 533,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:18:33.364Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T10:18:34.055Z"
+    },
+    {
+      "phase": "acceptance-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3183,
+      "durationMs": 25048,
+      "tokens": {
+        "input": 32084,
+        "output": 875,
+        "cacheRead": 5504,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T10:19:27.524Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T10:30:05.083Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T10:30:40.517Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T10:31:59.350Z"
+    }
+  ],
+  "reviewConvergence": {
+    "version": 1,
+    "records": [
+      {
+        "phase": "draft-questions",
+        "taskId": null,
+        "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 1,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c",
+          "disposition": "ADVISORY"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [
+          {
+            "findingId": "draft-questions-advisory-001",
+            "summary": "1. Empty initial QA list",
+            "fingerprint": "650c818720659d0ae060b96f0d82fe154c66bbac085d8ee131a763b20497c4ea",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-001"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "40cec503fca3e1904671a7579dbaffff6743e74e0ac9b09092e72cec66ef66fa",
+              "capturedAt": "2026-07-25T08:15:57.368Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c.json",
+            "evidenceDigest": "2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          }
+        ],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "draft-questions",
+          "taskId": null,
+          "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "40cec503fca3e1904671a7579dbaffff6743e74e0ac9b09092e72cec66ef66fa",
+            "capturedAt": "2026-07-25T08:15:57.368Z"
+          },
+          "evidenceDigest": "2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "40cec503fca3e1904671a7579dbaffff6743e74e0ac9b09092e72cec66ef66fa",
+              "capturedAt": "2026-07-25T08:15:57.368Z"
+            },
+            "evidenceDigest": "2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c.json",
+        "targetStateDigest": "503149857257a64e104108adfd0e19136b253680c43e45bb212c043afea18935"
+      },
+      {
+        "phase": "draft-coverage",
+        "taskId": null,
+        "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 1,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "e6610b6d498f57ca3f4455c45cc105506229986c719f9f90aeb6cd6adbf17f5a",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "draft-coverage",
+          "taskId": null,
+          "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "f27ad90adc3801e62b20c36a8a8e75518abad006dd19d15b8c08fb5603dc1435",
+            "capturedAt": "2026-07-25T08:20:13.342Z"
+          },
+          "evidenceDigest": "e6610b6d498f57ca3f4455c45cc105506229986c719f9f90aeb6cd6adbf17f5a"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "draft-coverage",
+            "taskId": null,
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "f27ad90adc3801e62b20c36a8a8e75518abad006dd19d15b8c08fb5603dc1435",
+              "capturedAt": "2026-07-25T08:20:13.342Z"
+            },
+            "evidenceDigest": "e6610b6d498f57ca3f4455c45cc105506229986c719f9f90aeb6cd6adbf17f5a"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/e6610b6d498f57ca3f4455c45cc105506229986c719f9f90aeb6cd6adbf17f5a.json",
+        "targetStateDigest": "503149857257a64e104108adfd0e19136b253680c43e45bb212c043afea18935"
+      },
+      {
+        "phase": "spec",
+        "taskId": null,
+        "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "9fa2a2bc6910039f78b933269298ff1509df245fd4d652e11d08dc1d8cc3042e",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "spec",
+          "taskId": null,
+          "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "f19658b4f104362536c17012d5f9ca28aa5a23df37a9ecf20db94a6246f4c2bc",
+            "capturedAt": "2026-07-25T08:27:33.159Z"
+          },
+          "evidenceDigest": "9fa2a2bc6910039f78b933269298ff1509df245fd4d652e11d08dc1d8cc3042e"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "spec",
+            "taskId": null,
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "f19658b4f104362536c17012d5f9ca28aa5a23df37a9ecf20db94a6246f4c2bc",
+              "capturedAt": "2026-07-25T08:27:33.159Z"
+            },
+            "evidenceDigest": "9fa2a2bc6910039f78b933269298ff1509df245fd4d652e11d08dc1d8cc3042e"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/9fa2a2bc6910039f78b933269298ff1509df245fd4d652e11d08dc1d8cc3042e.json",
+        "targetStateDigest": "28c151bc1fc2a0fcbfa66507e7f87341b09035ed9aff9259a92add2d78df8364"
+      },
+      {
+        "phase": "test",
+        "taskId": null,
+        "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+        "semanticAttempts": 1,
+        "semanticMaxAttempts": 5,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "36389cc8bcb2d59201b7042daabe9d9febd0625cf320c790e057b13edad22aac",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "test",
+          "taskId": null,
+          "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "b8e3f3ba8e6fa2f544a5ce0d3ac9f689b28b8c49fbb2ba1e7778829b59f583c9",
+            "capturedAt": "2026-07-25T08:37:09.112Z"
+          },
+          "evidenceDigest": "36389cc8bcb2d59201b7042daabe9d9febd0625cf320c790e057b13edad22aac"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "6b78828c43b94cc02e1059ada86f29e097bae83bcb9fe76e5e6f4332f71f78a9",
+              "capturedAt": "2026-07-25T08:35:29.149Z"
+            },
+            "evidenceDigest": "445c684a5b584d4016472d084d838ea6f28d65b1c5b179bd89f70323b74a1f83"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "b8e3f3ba8e6fa2f544a5ce0d3ac9f689b28b8c49fbb2ba1e7778829b59f583c9",
+              "capturedAt": "2026-07-25T08:37:09.112Z"
+            },
+            "evidenceDigest": "36389cc8bcb2d59201b7042daabe9d9febd0625cf320c790e057b13edad22aac"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/36389cc8bcb2d59201b7042daabe9d9febd0625cf320c790e057b13edad22aac.json",
+        "targetStateDigest": "9c3a2f2d84d53f56ea5117d2db406364180947c3439df6ebd52ecf72fd2ee922"
+      },
+      {
+        "phase": "impl",
+        "taskId": "T-1",
+        "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+        "semanticAttempts": 1,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "1dc13ffaa21a3156c4cff35b2e2b6e05b13270285b032bf2d61b66c9dbe2ff3b",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": "T-1",
+          "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "5b2c4b148b8fb41c4fe623f88fe9b35e2bed350f107827b5d606dc7610dc8e87",
+            "capturedAt": "2026-07-25T08:40:20.824Z"
+          },
+          "evidenceDigest": "1dc13ffaa21a3156c4cff35b2e2b6e05b13270285b032bf2d61b66c9dbe2ff3b"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": "T-1",
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "664c469253824ded5a218eead8c030064812bb95395ee791926e3e8d0880c08d",
+              "capturedAt": "2026-07-25T08:39:45.602Z"
+            },
+            "evidenceDigest": "5823f06d74911d09caa1d1c20ae111277706ed3cf51ff227141ffba217cddfb0"
+          },
+          {
+            "phase": "impl",
+            "taskId": "T-1",
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5b2c4b148b8fb41c4fe623f88fe9b35e2bed350f107827b5d606dc7610dc8e87",
+              "capturedAt": "2026-07-25T08:40:20.824Z"
+            },
+            "evidenceDigest": "1dc13ffaa21a3156c4cff35b2e2b6e05b13270285b032bf2d61b66c9dbe2ff3b"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/1dc13ffaa21a3156c4cff35b2e2b6e05b13270285b032bf2d61b66c9dbe2ff3b.json",
+        "targetStateDigest": "70c0bd7043d63dab5d3547e526ae69afa94d4438b0a287c2f5c7a2e4556a2b7e"
+      },
+      {
+        "phase": "impl",
+        "taskId": "T-2",
+        "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+        "semanticAttempts": 2,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "490e95ca524ce388c0ab360c77ce91e855b37dfc853264d7cd202b81b08ba524",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": "T-2",
+          "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "47fe5848a70467ca8c2a3824b028cec34f42e16df82729141dbb2baf11059b00",
+            "capturedAt": "2026-07-25T08:48:21.725Z"
+          },
+          "evidenceDigest": "490e95ca524ce388c0ab360c77ce91e855b37dfc853264d7cd202b81b08ba524"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": "T-2",
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5cb222435603006d6208798ddd101e76610bd8a342bcd53263d9dc79f647d16d",
+              "capturedAt": "2026-07-25T08:44:55.343Z"
+            },
+            "evidenceDigest": "ac159537408652ed6d4de8693afdbf228073afb11d8b4db028b9b8db6f742746"
+          },
+          {
+            "phase": "impl",
+            "taskId": "T-2",
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "13a83ca05941de5217c8cc960abeccd129dcc20a3357f5167e8d92b0aca6b798",
+              "capturedAt": "2026-07-25T08:46:15.377Z"
+            },
+            "evidenceDigest": "77ec728374cd2aa0b65aafb7d304d766f0003f53653221e811c994c7f1aae182"
+          },
+          {
+            "phase": "impl",
+            "taskId": "T-2",
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "47fe5848a70467ca8c2a3824b028cec34f42e16df82729141dbb2baf11059b00",
+              "capturedAt": "2026-07-25T08:48:21.725Z"
+            },
+            "evidenceDigest": "490e95ca524ce388c0ab360c77ce91e855b37dfc853264d7cd202b81b08ba524"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/490e95ca524ce388c0ab360c77ce91e855b37dfc853264d7cd202b81b08ba524.json",
+        "targetStateDigest": "144e05f38ecb49317bf5a2956211d1ab9bf892f6e5ed9cc1c2e694e2a55fbf14"
+      },
+      {
+        "phase": "impl",
+        "taskId": "T-3",
+        "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+        "semanticAttempts": 2,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "11bc46cbadd086b7fc4101ca24364e659b3b7806bd4ad211b1f0ff102d89e3c2",
+          "disposition": "REJECTED"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [
+          {
+            "findingId": "9c095b48531445592b991738bd4203273b56561d786cc9843a38bc32bbaf6914",
+            "summary": "Required migration regression spec file was not added",
+            "fingerprint": "9c095b48531445592b991738bd4203273b56561d786cc9843a38bc32bbaf6914",
+            "evidenceRefs": [
+              "impl-review.json#9c095b48531445592b991738bd4203273b56561d786cc9843a38bc32bbaf6914"
+            ],
+            "sourceStep": "task-review",
+            "phase": "impl",
+            "taskId": "T-3",
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "7e640bb62c91bba48061af405a64e9714c01f995b49738e17292a92660d473f5",
+              "capturedAt": "2026-07-25T08:51:58.773Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/11bc46cbadd086b7fc4101ca24364e659b3b7806bd4ad211b1f0ff102d89e3c2.json",
+            "evidenceDigest": "11bc46cbadd086b7fc4101ca24364e659b3b7806bd4ad211b1f0ff102d89e3c2",
+            "reviewDisposition": "REJECTED",
+            "finalDispositionOwner": "acceptance-review"
+          }
+        ],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": "T-3",
+          "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "7e640bb62c91bba48061af405a64e9714c01f995b49738e17292a92660d473f5",
+            "capturedAt": "2026-07-25T08:51:58.773Z"
+          },
+          "evidenceDigest": "11bc46cbadd086b7fc4101ca24364e659b3b7806bd4ad211b1f0ff102d89e3c2"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": "T-3",
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "b533fa9a3de7111da904f94225f0eaaac91defb94120f44865d655fd7151f8f8",
+              "capturedAt": "2026-07-25T08:51:07.418Z"
+            },
+            "evidenceDigest": "086ae718a9c14a9c5a7036332a423f7d0ab1c69d681423186b39ef8a702c1822"
+          },
+          {
+            "phase": "impl",
+            "taskId": "T-3",
+            "treeSha": "44f46549a222d30c3665e151c3d8ffb2e847b520",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "7e640bb62c91bba48061af405a64e9714c01f995b49738e17292a92660d473f5",
+              "capturedAt": "2026-07-25T08:51:58.773Z"
+            },
+            "evidenceDigest": "11bc46cbadd086b7fc4101ca24364e659b3b7806bd4ad211b1f0ff102d89e3c2"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/11bc46cbadd086b7fc4101ca24364e659b3b7806bd4ad211b1f0ff102d89e3c2.json",
+        "targetStateDigest": "9fab6a3cbd9017d110404fae7ca16b28c4aea8f73df7c4e7d61b1f25e32ae067"
+      },
+      {
+        "phase": "impl",
+        "taskId": "T-3",
+        "treeSha": "80418952caf24acb332fd6dcf5dfa7a86ba6a981",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "bfacdf38ccb47414c2646064594b3db3bf31dd63b42903e24d12d1597c8bb83c",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": "T-3",
+          "treeSha": "80418952caf24acb332fd6dcf5dfa7a86ba6a981",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "6880d7f1bc9884d38f835e7b3aba2678d7f20399f91a93f66f0d88920616e42a",
+            "capturedAt": "2026-07-25T08:53:59.282Z"
+          },
+          "evidenceDigest": "bfacdf38ccb47414c2646064594b3db3bf31dd63b42903e24d12d1597c8bb83c"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": "T-3",
+            "treeSha": "80418952caf24acb332fd6dcf5dfa7a86ba6a981",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "6880d7f1bc9884d38f835e7b3aba2678d7f20399f91a93f66f0d88920616e42a",
+              "capturedAt": "2026-07-25T08:53:59.282Z"
+            },
+            "evidenceDigest": "bfacdf38ccb47414c2646064594b3db3bf31dd63b42903e24d12d1597c8bb83c"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/bfacdf38ccb47414c2646064594b3db3bf31dd63b42903e24d12d1597c8bb83c.json",
+        "targetStateDigest": "9fab6a3cbd9017d110404fae7ca16b28c4aea8f73df7c4e7d61b1f25e32ae067"
+      },
+      {
+        "phase": "impl",
+        "taskId": null,
+        "treeSha": "80418952caf24acb332fd6dcf5dfa7a86ba6a981",
+        "semanticAttempts": 1,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "a1940d27a725bdb08e6e2185bb24117d35c6351769ee7e35c0058c712db5ba9f",
+          "disposition": "REJECTED"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [
+          {
+            "findingId": "bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce",
+            "summary": "Legacy unit test constructs an invalid v2 manifest",
+            "fingerprint": "bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce",
+            "evidenceRefs": [
+              "impl-review.json#bb8c99bc9666b6eee6e281a85f7b0954046d7f38b58530dc6dcd93badc4809ce"
+            ],
+            "sourceStep": "impl-review",
+            "phase": "impl",
+            "taskId": null,
+            "treeSha": "80418952caf24acb332fd6dcf5dfa7a86ba6a981",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "b3fe44695928bd66ea489d8d24772a34b2be45bfe58a13e1c60aa02b99c6074b",
+              "capturedAt": "2026-07-25T08:58:44.899Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/a1940d27a725bdb08e6e2185bb24117d35c6351769ee7e35c0058c712db5ba9f.json",
+            "evidenceDigest": "a1940d27a725bdb08e6e2185bb24117d35c6351769ee7e35c0058c712db5ba9f",
+            "reviewDisposition": "REJECTED",
+            "finalDispositionOwner": "acceptance-review"
+          }
+        ],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": null,
+          "treeSha": "80418952caf24acb332fd6dcf5dfa7a86ba6a981",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "b3fe44695928bd66ea489d8d24772a34b2be45bfe58a13e1c60aa02b99c6074b",
+            "capturedAt": "2026-07-25T08:58:44.899Z"
+          },
+          "evidenceDigest": "a1940d27a725bdb08e6e2185bb24117d35c6351769ee7e35c0058c712db5ba9f"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": null,
+            "treeSha": "80418952caf24acb332fd6dcf5dfa7a86ba6a981",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "b3fe44695928bd66ea489d8d24772a34b2be45bfe58a13e1c60aa02b99c6074b",
+              "capturedAt": "2026-07-25T08:58:44.899Z"
+            },
+            "evidenceDigest": "a1940d27a725bdb08e6e2185bb24117d35c6351769ee7e35c0058c712db5ba9f"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/a1940d27a725bdb08e6e2185bb24117d35c6351769ee7e35c0058c712db5ba9f.json",
+        "targetStateDigest": "a46e8bf07ff09fab856a2a82657437d8fba2c86fe90f2e161386efb0b559c3d1"
+      },
+      {
+        "phase": "impl",
+        "taskId": null,
+        "treeSha": "8cb243bdcd6097a92e4d61003a389a89ac546007",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": null,
+        "finalizedEvidenceAvailable": false,
+        "handoffFindings": [],
+        "blocker": {
+          "kind": "tooling_attempts_exhausted",
+          "reason": "[presets] resolveChain failed for \"node-cli\": Preset not found: node-cli\n[presets] resolveChain failed for \"node-cli\": Preset not found: node-cli\nError: finding disposition must-fix conflicts with policy disposition informational\n    at FindingDispositionPolicy.classify (file:///home/nakano/workspace/senti/src/flow/lib/finding-disposition-policy.js:639:13)\n    at classify (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1090:32)\n    at Array.forEach (<anonymous>)\n    at applyImplReviewDispositionPolicy (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1106:29)\n    at runImplReviewWithPersistence (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1126:25)\n    at StrictImplReviewPersistence.persist (file:///home/nakano/workspace/senti/src/flow/commands/review.js:977:12)\n    at persistImplReview (file:///home/nakano/workspace/senti/src/flow/commands/review.js:4061:83)\n    at StrictImplReviewPersistence.persistWith (file:///home/nakano/workspace/senti/src/flow/commands/review.js:973:12)\n    at runActiveImplReviewWithDependencies (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1735:30)\n    at async runReviewWithDependencies (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1739:18)"
+        },
+        "toolingOutcome": {
+          "kind": "TOOLING_ERROR",
+          "stage": "communication",
+          "attempt": 1,
+          "maxAttempts": 2,
+          "remainingAttempts": 1,
+          "reason": "[presets] resolveChain failed for \"node-cli\": Preset not found: node-cli\n[presets] resolveChain failed for \"node-cli\": Preset not found: node-cli\nError: finding disposition must-fix conflicts with policy disposition informational\n    at FindingDispositionPolicy.classify (file:///home/nakano/workspace/senti/src/flow/lib/finding-disposition-policy.js:639:13)\n    at classify (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1090:32)\n    at Array.forEach (<anonymous>)\n    at applyImplReviewDispositionPolicy (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1106:29)\n    at runImplReviewWithPersistence (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1126:25)\n    at StrictImplReviewPersistence.persist (file:///home/nakano/workspace/senti/src/flow/commands/review.js:977:12)\n    at persistImplReview (file:///home/nakano/workspace/senti/src/flow/commands/review.js:4061:83)\n    at StrictImplReviewPersistence.persistWith (file:///home/nakano/workspace/senti/src/flow/commands/review.js:973:12)\n    at runActiveImplReviewWithDependencies (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1735:30)\n    at async runReviewWithDependencies (file:///home/nakano/workspace/senti/src/flow/commands/review.js:1739:18)",
+          "permissionRelated": false
+        },
+        "provider": "senti-review",
+        "updatedAt": "2026-07-25T09:04:42.051Z",
+        "targetStateDigest": "5bc051dc0ed73a471b5abc1c053d922e3317daf2e9175568da2d56912990f358"
+      },
+      {
+        "phase": "impl",
+        "taskId": null,
+        "treeSha": "771acb902f76e4d2ee442b5cd4ce10183a1aab04",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "14dfc4f550f72add9ac4e6b3c7b5d726f837b8074e464e6bb1d7c6938d74e331",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": null,
+          "treeSha": "771acb902f76e4d2ee442b5cd4ce10183a1aab04",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "cfa10bbbdad7ef52ee26e1efd43f0a4882c63c52657ed70dcf238834cc63ca81",
+            "capturedAt": "2026-07-25T10:13:04.143Z"
+          },
+          "evidenceDigest": "14dfc4f550f72add9ac4e6b3c7b5d726f837b8074e464e6bb1d7c6938d74e331"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": null,
+            "treeSha": "771acb902f76e4d2ee442b5cd4ce10183a1aab04",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "cfa10bbbdad7ef52ee26e1efd43f0a4882c63c52657ed70dcf238834cc63ca81",
+              "capturedAt": "2026-07-25T10:13:04.143Z"
+            },
+            "evidenceDigest": "14dfc4f550f72add9ac4e6b3c7b5d726f837b8074e464e6bb1d7c6938d74e331"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/14dfc4f550f72add9ac4e6b3c7b5d726f837b8074e464e6bb1d7c6938d74e331.json",
+        "targetStateDigest": "5c16c96c91918bc03ce01b613db0f95006045c76f747e6a1ae7f95cc662d873d"
+      },
+      {
+        "phase": "impl",
+        "taskId": null,
+        "treeSha": "b1da50ec83d7a1f06966d290baf0550f3b9e1e3b",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "43bef254b902a7918246d7688d22100b564d6179932de5eb8bfeb204ffee150a",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": null,
+          "treeSha": "b1da50ec83d7a1f06966d290baf0550f3b9e1e3b",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "55dc0f9c00ed315374dca8534414020e8eb8914c5503114ff62e306d8a34b430",
+            "capturedAt": "2026-07-25T10:18:04.472Z"
+          },
+          "evidenceDigest": "43bef254b902a7918246d7688d22100b564d6179932de5eb8bfeb204ffee150a"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": null,
+            "treeSha": "b1da50ec83d7a1f06966d290baf0550f3b9e1e3b",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "55dc0f9c00ed315374dca8534414020e8eb8914c5503114ff62e306d8a34b430",
+              "capturedAt": "2026-07-25T10:18:04.472Z"
+            },
+            "evidenceDigest": "43bef254b902a7918246d7688d22100b564d6179932de5eb8bfeb204ffee150a"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/43bef254b902a7918246d7688d22100b564d6179932de5eb8bfeb204ffee150a.json",
+        "targetStateDigest": "953521e49be93d6bafadecea7fa3b2857fed28a854044532cbe18b0c1d98fed6"
+      }
+    ]
+  },
+  "stepAttempts": [
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "draft-questions-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-questions-triage",
+        "decision": "ADVISORY"
+      },
+      "recordedAt": "2026-07-25T08:15:59.353Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "draft-coverage-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:20:14.175Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-draft"
+      },
+      "recordedAt": "2026-07-25T08:21:10.726Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-draft"
+      },
+      "recordedAt": "2026-07-25T08:22:34.977Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "spec",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:23:29.246Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "spec-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "spec-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:27:33.879Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-spec"
+      },
+      "recordedAt": "2026-07-25T08:28:10.984Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "approval",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:29:09.605Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-1",
+      "stepId": "task-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-25T08:39:46.457Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-1",
+      "stepId": "task-review",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:40:21.766Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-1",
+      "stepId": "impl-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "refresh-next-action",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:40:42.723Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-2",
+      "stepId": "task-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-25T08:44:56.227Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-2",
+      "stepId": "task-review",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-25T08:46:16.321Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-2",
+      "stepId": "task-review",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:48:23.253Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-2",
+      "stepId": "impl-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "refresh-next-action",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:48:51.304Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-3",
+      "stepId": "task-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-25T08:51:08.677Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-3",
+      "stepId": "task-review",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-25T08:51:59.784Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-3",
+      "stepId": "task-review",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:54:00.571Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-3",
+      "stepId": "task-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-task-impl"
+      },
+      "recordedAt": "2026-07-25T08:55:31.096Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": "T-3",
+      "stepId": "impl-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "refresh-next-action",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T08:56:34.709Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "impl-review",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T10:13:06.579Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-integration"
+      },
+      "recordedAt": "2026-07-25T10:14:34.249Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "impl-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T10:18:05.979Z"
+    },
+    {
+      "runId": "d5de7532-6920-4b3b-9fd4-db00d8122495",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "retro",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T10:18:34.067Z"
+    }
+  ],
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "gate",
+      "phase": "task-impl",
+      "canonicalPhase": "task-impl",
+      "fingerprint": {
+        "sourceKind": "implementation-diff",
+        "hash": "23269d9e3abb722a309b2cdb0b6dd333033e46b319566fdb14c2797ee1e34cad",
+        "paths": [
+          "specs/342-repair-fingerprint-migration/spec.json",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/repair-state-identity.js",
+          "src/flow/lib/run-gate.js"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "c1a17080bfe8bff97860dc952cf9b2824ff0174611f0a62263bba608c4a2f5a2",
+          "runtimeHash": "7500cb54f2fe9415b3eb1515c9c5bcb1ca672464c9893e5c52381cce310f6a25"
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-25T08:55:31.339Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "84336a864ed8e9bf1622c4ee47565ad42c57abd57418ace60dbd6c0f1d03c59d",
+        "paths": [
+          "specs/342-repair-fingerprint-migration/file-map.json",
+          "specs/342-repair-fingerprint-migration/test-execute-result.json",
+          "specs/342-repair-fingerprint-migration/test-result-review.json",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/repair-state-identity.js",
+          "src/flow/lib/run-gate.js"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "84336a864ed8e9bf1622c4ee47565ad42c57abd57418ace60dbd6c0f1d03c59d",
+          "runtimeHash": null
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-25T10:14:34.373Z"
+    }
+  ],
+  "acceptanceReview": {
+    "verdict": "user_decision_required",
+    "artifactPath": "specs/342-repair-fingerprint-migration/acceptance-review.json",
+    "requirementJudgments": [
+      {
+        "requirementId": "R1",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R1"
+        ],
+        "diffRefs": [
+          "diff:specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+          "diff:src/flow/lib/impl-repair-artifacts.js",
+          "diff:src/flow/lib/repair-state-identity.js",
+          "diff:src/flow/lib/run-gate.js",
+          "diff:tests/unit/flow/repair-state-identity.test.js",
+          "diff:specs/342-repair-fingerprint-migration/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/342-repair-fingerprint-migration/spec.json",
+          "diff:specs/342-repair-fingerprint-migration/task-impl-gate-source.json",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-1.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-2.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-3.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R1",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R2",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R2"
+        ],
+        "diffRefs": [
+          "diff:specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+          "diff:src/flow/lib/impl-repair-artifacts.js",
+          "diff:src/flow/lib/repair-state-identity.js",
+          "diff:src/flow/lib/run-gate.js",
+          "diff:tests/unit/flow/repair-state-identity.test.js",
+          "diff:specs/342-repair-fingerprint-migration/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/342-repair-fingerprint-migration/spec.json",
+          "diff:specs/342-repair-fingerprint-migration/task-impl-gate-source.json",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-1.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-2.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-3.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R2",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R3",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R3"
+        ],
+        "diffRefs": [
+          "diff:specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+          "diff:src/flow/lib/impl-repair-artifacts.js",
+          "diff:src/flow/lib/repair-state-identity.js",
+          "diff:src/flow/lib/run-gate.js",
+          "diff:tests/unit/flow/repair-state-identity.test.js",
+          "diff:specs/342-repair-fingerprint-migration/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/342-repair-fingerprint-migration/spec.json",
+          "diff:specs/342-repair-fingerprint-migration/task-impl-gate-source.json",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-1.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-2.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-3.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R3",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R4",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R4"
+        ],
+        "diffRefs": [
+          "diff:specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+          "diff:src/flow/lib/impl-repair-artifacts.js",
+          "diff:src/flow/lib/repair-state-identity.js",
+          "diff:src/flow/lib/run-gate.js",
+          "diff:tests/unit/flow/repair-state-identity.test.js",
+          "diff:specs/342-repair-fingerprint-migration/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/342-repair-fingerprint-migration/spec.json",
+          "diff:specs/342-repair-fingerprint-migration/task-impl-gate-source.json",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-1.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-2.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-3.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R4",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R5",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R5"
+        ],
+        "diffRefs": [
+          "diff:specs/342-repair-fingerprint-migration/tests/repair-fingerprint-migration.test.js",
+          "diff:src/flow/lib/impl-repair-artifacts.js",
+          "diff:src/flow/lib/repair-state-identity.js",
+          "diff:src/flow/lib/run-gate.js",
+          "diff:tests/unit/flow/repair-state-identity.test.js",
+          "diff:specs/342-repair-fingerprint-migration/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/342-repair-fingerprint-migration/spec.json",
+          "diff:specs/342-repair-fingerprint-migration/task-impl-gate-source.json",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-1.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-2.md",
+          "diff:specs/342-repair-fingerprint-migration/tasks/T-3.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R5",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      }
+    ],
+    "mechanicalBlockers": [],
+    "deferredFindings": [
+      {
+        "findingId": "RF-2559ff3491ad-draft-questions-advisory-001",
+        "sourceStep": "draft-questions-review",
+        "sourceArtifact": "review-evidence/2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c.json",
+        "sourceFindingId": "draft-questions-advisory-001",
+        "finalDisposition": "still_open",
+        "evidenceRefs": [
+          "review-evidence/2559ff3491ad28a7619493f95380169480f18bef6f51d792a60ef357e2163c1c.json#draft-questions-advisory-001"
+        ]
+      }
+    ],
+    "updatedAt": "2026-07-25T10:19:27.866Z",
+    "userDecision": {
+      "choice": "accept_risk_and_continue",
+      "decidedAt": "2026-07-25T10:21:44.000Z"
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-07-25T10:29:23.351Z"
+  }
+}
