@@ -234,7 +234,7 @@ export function checkIntegrationTestArtifacts(root, state, level, phase, config 
       artifacts,
       currentFingerprint: fingerprint.hash,
     });
-    if (mismatch) return new StaleIntegrationTestEvidence(mismatch);
+    if (mismatch) return new StaleIntegrationTestEvidence(mismatch, state);
   } catch (error) {
     // Full trust validation below owns malformed, missing, and oversized
     // artifact diagnostics. Identity probing only enables stale-evidence

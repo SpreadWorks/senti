@@ -576,11 +576,10 @@ function validateDeferredFindingCoverage(specDir, deferredFindings, flowState = 
   }
 }
 
-export function writeAcceptanceReviewArtifact({
+function prepareAcceptanceReviewArtifact({
   specDir,
   artifact,
   requirementIds = null,
-  fingerprint = null,
   flowState = null,
 }) {
   const normalized = normalizeArtifact(artifact);
@@ -588,6 +587,10 @@ export function writeAcceptanceReviewArtifact({
   if (fs.existsSync(reportPath)) normalized.reportRefs = ["report.json"];
   validateDeferredFindingCoverage(specDir, normalized.deferredFindings, flowState);
   validateAcceptanceReviewArtifact(normalized, { requirementIds });
+  return normalized;
+}
+
+function persistAcceptanceReviewArtifact({ specDir, normalized, fingerprint }) {
   if (!fingerprint) throw new Error("acceptance-review writer requires the current repair fingerprint");
   const written = writeRepairEvidenceArtifact({
     specDir,
@@ -597,6 +600,22 @@ export function writeAcceptanceReviewArtifact({
   });
   if (normalized.deferredFindings.length > 0) mirrorFinalDispositions(specDir, normalized.deferredFindings);
   return written;
+}
+
+export function writeAcceptanceReviewArtifact({
+  specDir,
+  artifact,
+  requirementIds = null,
+  fingerprint = null,
+  flowState = null,
+}) {
+  const normalized = prepareAcceptanceReviewArtifact({
+    specDir,
+    artifact,
+    requirementIds,
+    flowState,
+  });
+  return persistAcceptanceReviewArtifact({ specDir, normalized, fingerprint });
 }
 
 function dispositionEvidence(specDir) {
@@ -1153,30 +1172,34 @@ export function applyAcceptanceReviewResult({
   if (requireString(artifact.repairFingerprint, "repairFingerprint") !== fingerprint.hash) {
     throw new Error("acceptance-review repairFingerprint does not match current inputs");
   }
-  const written = writeAcceptanceReviewArtifact({
+  const normalized = prepareAcceptanceReviewArtifact({
     specDir,
     artifact,
     requirementIds: requirements.map((entry) => entry.id),
-    fingerprint,
     flowState: state,
   });
-  const next = written.artifact;
   const refreshResult = evidenceRefresh instanceof AcceptanceEvidenceRefresh
     ? evidenceRefresh.recover({
         specDir,
         flowManager,
-        acceptancePath: written.path,
+        acceptancePath: path.join(specDir, ACCEPTANCE_REVIEW_ARTIFACT_FILE),
       })
     : null;
   if (refreshResult) {
     return {
-      verdict: next.verdict,
+      verdict: normalized.verdict,
       artifactPath: acceptanceArtifactPath(state),
-      artifact: next,
-      path: written.path,
+      artifact: normalized,
+      path: path.join(specDir, ACCEPTANCE_REVIEW_ARTIFACT_FILE),
       evidenceRefresh: refreshResult.toJSON(),
     };
   }
+  const written = persistAcceptanceReviewArtifact({
+    specDir,
+    normalized,
+    fingerprint,
+  });
+  const next = written.artifact;
   if (next.verdict === "repair_required") {
     const findings = next.requirementJudgments
       .filter((judgment) => judgment.status === "notMet")
