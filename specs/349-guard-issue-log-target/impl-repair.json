@@ -1,0 +1,539 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "id": "repair-001",
+      "sourceFindingIds": [
+        "test-evidence-refresh:final-regression"
+      ],
+      "reason": "final-regression detected stale fingerprint evidence",
+      "changedPathCount": 6,
+      "changedPathsPreview": [
+        ".senti/config.json",
+        "src/flow/lib/impl-repair-artifacts.js",
+        "src/flow/lib/run-final-regression.js",
+        "src/flow/lib/test-regression.js",
+        "tests/unit/flow/set-step-impl-repair.test.js",
+        "tests/unit/flow/test-regression-policy.test.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "src/flow/",
+          "count": 3
+        },
+        {
+          "prefix": "tests/unit/",
+          "count": 2
+        },
+        {
+          "prefix": ".senti/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-001.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md",
+        "impl-gate-result.json",
+        "retro.json",
+        "acceptance-review.json",
+        "final-regression-result.json"
+      ],
+      "previousHash": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b",
+      "currentHash": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc",
+      "createdAt": "2026-07-25T15:19:20.803Z",
+      "changedPathsDigest": "70a7621ab17590675a40d6429029d1880e46a04b9d7ace3809bdcb3bc254218d",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "ac9e7a5cdcf226e055c0b5d7136965a7e0ed28eefdbaaebdfedf7b8d89fe27cc"
+        },
+        {
+          "path": "review.md",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "ac9e7a5cdcf226e055c0b5d7136965a7e0ed28eefdbaaebdfedf7b8d89fe27cc"
+        },
+        {
+          "path": "impl-gate-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b"
+        },
+        {
+          "path": "retro.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b"
+        },
+        {
+          "path": "acceptance-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b"
+        },
+        {
+          "path": "final-regression-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (explicit_refresh_artifact)",
+          "previousFingerprint": "4a275d0e93d2596a4e3c71a139d6e62e123a1462d33d2a7c042cd0ac7bf2d70b"
+        }
+      ]
+    },
+    {
+      "id": "repair-002",
+      "sourceFindingIds": [
+        "test-evidence-refresh:impl-gate"
+      ],
+      "reason": "integration gate detected stale fingerprint evidence",
+      "changedPathCount": 3,
+      "changedPathsPreview": [
+        "src/flow/lib/run-final-regression.js",
+        "src/flow/lib/test-regression.js",
+        "tests/unit/flow/test-regression-policy.test.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "src/flow/",
+          "count": 2
+        },
+        {
+          "prefix": "tests/unit/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-002.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md",
+        "impl-gate-result.json"
+      ],
+      "previousHash": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc",
+      "currentHash": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f",
+      "createdAt": "2026-07-25T15:23:38.458Z",
+      "changedPathsDigest": "4b933ea303dfdd9aa35f868cfcba1a18b2a2cbbdad268118b0c6869546a9099b",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc"
+        },
+        {
+          "path": "review.md",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc"
+        },
+        {
+          "path": "impl-gate-result.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "d0495f9db890f97c8b0588bfe5c103b79e172ccf9de85d8f5065cce7471426cc"
+        }
+      ]
+    },
+    {
+      "id": "repair-003",
+      "sourceFindingIds": [
+        "8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97"
+      ],
+      "reason": "Repair applied for findings 8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97.",
+      "changedPathCount": 2,
+      "changedPathsPreview": [
+        "src/flow.js",
+        "src/flow/lib/flow-context.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "src/",
+          "count": 1
+        },
+        {
+          "prefix": "src/flow/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-003.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md"
+      ],
+      "previousHash": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f",
+      "currentHash": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c",
+      "createdAt": "2026-07-25T15:25:40.904Z",
+      "changedPathsDigest": "dc924bf10b1536a83c0d3e09d2e52a1e77c875e4019f63bb64aa57c132dd68cf",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "Repair applied for findings 8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97. (repair_fingerprint_mismatch)",
+          "previousFingerprint": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "Repair applied for findings 8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97. (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "Repair applied for findings 8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97. (repair_fingerprint_mismatch)",
+          "previousFingerprint": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "Repair applied for findings 8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97. (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "Repair applied for findings 8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97. (repair_fingerprint_mismatch)",
+          "previousFingerprint": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f"
+        },
+        {
+          "path": "review.md",
+          "reason": "Repair applied for findings 8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97. (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f"
+        }
+      ]
+    },
+    {
+      "id": "repair-004",
+      "sourceFindingIds": [
+        "test-evidence-refresh:final-regression"
+      ],
+      "reason": "final-regression detected stale fingerprint evidence",
+      "changedPathCount": 3,
+      "changedPathsPreview": [
+        "src/flow/lib/run-final-regression.js",
+        "src/lib/config.js",
+        "tests/unit/flow/final-regression.test.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "src/flow/",
+          "count": 1
+        },
+        {
+          "prefix": "src/lib/",
+          "count": 1
+        },
+        {
+          "prefix": "tests/unit/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-004.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md",
+        "impl-gate-result.json",
+        "retro.json",
+        "acceptance-review.json",
+        "final-regression-result.json"
+      ],
+      "previousHash": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c",
+      "currentHash": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1",
+      "createdAt": "2026-07-25T15:44:47.302Z",
+      "changedPathsDigest": "95045e3066878564625d6088ac83eb6aa568c48eedff96b558df9ad16364defa",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "review.md",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "impl-gate-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "retro.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "acceptance-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        },
+        {
+          "path": "final-regression-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (explicit_refresh_artifact)",
+          "previousFingerprint": "ce2ce9c0e8064e0109c8e68d5ef7828524f7eb68314a7f755f9908523dc4483c"
+        }
+      ]
+    },
+    {
+      "id": "repair-005",
+      "sourceFindingIds": [
+        "test-evidence-refresh:final-regression"
+      ],
+      "reason": "final-regression detected stale fingerprint evidence",
+      "changedPathCount": 2,
+      "changedPathsPreview": [
+        "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "src/flow/lib/acceptance-review-artifacts.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "specs/338-active-flow-registry-race/",
+          "count": 1
+        },
+        {
+          "prefix": "src/flow/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-005.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md",
+        "impl-gate-result.json",
+        "retro.json",
+        "acceptance-review.json"
+      ],
+      "previousHash": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1",
+      "currentHash": "3f48f2f1db66d1c87422f99fa2c49b6cb676662014c1c94ae09e8b1ebf1353da",
+      "createdAt": "2026-07-25T15:53:39.777Z",
+      "changedPathsDigest": "1c266853f45720cf471b2869811af5decd6cc9b8316fa828bc1b374611cf32ef",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        },
+        {
+          "path": "review.md",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        },
+        {
+          "path": "impl-gate-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        },
+        {
+          "path": "retro.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        },
+        {
+          "path": "acceptance-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "a00e1c1a4483383a4060e986f5351e9d458d4f67ac9939ad96586a971e39f1e1"
+        }
+      ]
+    },
+    {
+      "id": "repair-006",
+      "sourceFindingIds": [
+        "test-evidence-refresh:impl-gate"
+      ],
+      "reason": "integration gate detected stale fingerprint evidence",
+      "changedPathCount": 18,
+      "changedPathsPreview": [
+        ".senti/config.json",
+        ".senti/config.local.json",
+        "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "specs/349-guard-issue-log-target/spec.json",
+        "specs/349-guard-issue-log-target/tasks/T-1.md",
+        "specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js",
+        "src/flow.js",
+        "src/flow/lib/acceptance-review-artifacts.js",
+        "src/flow/lib/flow-context.js",
+        "src/flow/lib/impl-repair-artifacts.js",
+        "src/flow/lib/run-final-regression.js",
+        "src/flow/lib/set-issue-log.js",
+        "src/flow/registry.js",
+        "src/lib/config.js",
+        "src/lib/dispatcher.js",
+        "tests/e2e/flow/worktree-flow-command-identity.test.js",
+        "tests/unit/flow/final-regression.test.js",
+        "tests/unit/flow/set-step-impl-repair.test.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "src/flow/",
+          "count": 6
+        },
+        {
+          "prefix": "specs/349-guard-issue-log-target/",
+          "count": 3
+        },
+        {
+          "prefix": ".senti/",
+          "count": 2
+        },
+        {
+          "prefix": "src/lib/",
+          "count": 2
+        },
+        {
+          "prefix": "tests/unit/",
+          "count": 2
+        },
+        {
+          "prefix": "specs/338-active-flow-registry-race/",
+          "count": 1
+        },
+        {
+          "prefix": "src/",
+          "count": 1
+        },
+        {
+          "prefix": "tests/e2e/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-006.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md",
+        "impl-gate-result.json"
+      ],
+      "previousHash": "3f48f2f1db66d1c87422f99fa2c49b6cb676662014c1c94ae09e8b1ebf1353da",
+      "currentHash": "58f945c083f1081ff1d7edb575b551c045d675622e6f23c943f3fead1cb47cc4",
+      "createdAt": "2026-07-25T16:14:26.357Z",
+      "changedPathsDigest": "a386c780f710800b7281a3b17ac66aff9c5c55dcf330f50a505f83298e220e42",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "524f9bc97f06c3804c916c9d80c74b1c7c88872daa536178708fbeb3b3cf855e"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "524f9bc97f06c3804c916c9d80c74b1c7c88872daa536178708fbeb3b3cf855e"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "524f9bc97f06c3804c916c9d80c74b1c7c88872daa536178708fbeb3b3cf855e"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "524f9bc97f06c3804c916c9d80c74b1c7c88872daa536178708fbeb3b3cf855e"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "524f9bc97f06c3804c916c9d80c74b1c7c88872daa536178708fbeb3b3cf855e"
+        },
+        {
+          "path": "review.md",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "524f9bc97f06c3804c916c9d80c74b1c7c88872daa536178708fbeb3b3cf855e"
+        },
+        {
+          "path": "impl-gate-result.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "524f9bc97f06c3804c916c9d80c74b1c7c88872daa536178708fbeb3b3cf855e"
+        }
+      ]
+    }
+  ]
+}

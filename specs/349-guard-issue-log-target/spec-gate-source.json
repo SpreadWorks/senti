@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "6fa6f612-99de-4236-893f-8e20b9ae1154",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T14:32:41.271Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Requirement uses the relative phrase \"1つ以上\" for guard options but does not state how reviewers should determine satisfaction when multiple options are provided beyond requiring all specified values to match; clarify the exact command behavior for one, two, and three supplied expectations so independent reviewers can agree.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Requirement uses the relative phrase \"1つ以上\" for guard options but does not state how reviewers should determine satisfaction when multiple options are provided beyond requiring all specified values to match; clarify the exact command behavior for one, two, and three supplied expectations so independent reviewers can agree.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "fingerprint": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "disposition": "must-fix",
+      "rationale": "Requirement uses the relative phrase \"1つ以上\" for guard options but does not state how reviewers should determine satisfaction when multiple options are provided beyond requiring all specified values to match; clarify the exact command behavior for one, two, and three supplied expectations so independent reviewers can agree.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T14:32:41.271Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "req-diff-verifiability",
+      "result": "fail",
+      "reason": "AC5 requires targeted test execution and final regression to pass; final regression pass/fail is runtime lifecycle evidence and is not decidable from a standard unified diff plus test execution summary alone.",
+      "category": "process",
+      "title": "REQ Diff-Verifiability",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "AC5 requires targeted test execution and final regression to pass; final regression pass/fail is runtime lifecycle evidence and is not decidable from a standard unified diff plus test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ],
+      "findingId": "ca7e2b97b7914db4e04d84b72662ca3d8772dfe73e7b1466f7b5478e80e0813f",
+      "fingerprint": "ca7e2b97b7914db4e04d84b72662ca3d8772dfe73e7b1466f7b5478e80e0813f",
+      "disposition": "must-fix",
+      "rationale": "AC5 requires targeted test execution and final regression to pass; final regression pass/fail is runtime lifecycle evidence and is not decidable from a standard unified diff plus test execution summary alone.",
+      "requirementId": null,
+      "guardrailId": "req-diff-verifiability",
+      "reportedAt": "2026-07-25T14:32:41.271Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[0].desc"
+      },
+      "observed": "Requirement uses the relative phrase \"1つ以上\" for guard options but does not state how reviewers should determine satisfaction when multiple options are provided beyond requiring all specified values to match; clarify the exact command behavior for one, two, and three supplied expectations so independent reviewers can agree.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "fingerprint": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "disposition": "must-fix",
+      "rationale": "Requirement uses the relative phrase \"1つ以上\" for guard options but does not state how reviewers should determine satisfaction when multiple options are provided beyond requiring all specified values to match; clarify the exact command behavior for one, two, and three supplied expectations so independent reviewers can agree.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T14:32:41.271Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "req-diff-verifiability",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[4]"
+      },
+      "observed": "AC5 requires targeted test execution and final regression to pass; final regression pass/fail is runtime lifecycle evidence and is not decidable from a standard unified diff plus test execution summary alone.",
+      "severity": "blocking",
+      "refs": [
+        "req-diff-verifiability"
+      ],
+      "result": "fail",
+      "guardrail_id": "req-diff-verifiability",
+      "category": "guardrail",
+      "findingId": "28961d33866c3428d0500c9d979dda395d94d5763030d129aeb5d3e260540f40",
+      "fingerprint": "28961d33866c3428d0500c9d979dda395d94d5763030d129aeb5d3e260540f40",
+      "disposition": "must-fix",
+      "rationale": "AC5 requires targeted test execution and final regression to pass; final regression pass/fail is runtime lifecycle evidence and is not decidable from a standard unified diff plus test execution summary alone.",
+      "requirementId": null,
+      "guardrailId": "req-diff-verifiability",
+      "reportedAt": "2026-07-25T14:32:41.271Z",
+      "repeatCount": 1
+    }
+  ]
+}

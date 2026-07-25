@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:24:21.547Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "target-not-found-allows-cwd-append",
+      "title": "Missing target can fall through to cwd issue log",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow.js",
+      "requirementId": "R2",
+      "issue": "`targetNotFoundAsMismatch` is wired by broadening `allowMissingActive` for `issue-log`. That allows a missing or non-resolved target context to continue down the no-active-flow path instead of stopping before `SetIssueLogCommand.execute`, which can write `issue-log.json` relative to the command cwd. This is the exact fallback R2 is meant to prevent when guard resolution fails.",
+      "suggestion": "Keep `allowMissingActive` tied only to `requiresFlow === false`; handle `targetNotFoundAsMismatch` only at the error-envelope mapping layer, or make `resolveFlowContext` return a blocking mismatch error before command execution when any `--expect-*` guard cannot resolve a matching active flow.",
+      "disposition": "must-fix",
+      "rationale": "R2 is a mandatory target guard requirement mapped to `src/flow.js`. A guard mismatch or missing target must reject without appending anywhere, so a control-flow change that permits cwd fallback is a blocking data-integrity risk.",
+      "findingId": "8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97",
+      "fingerprint": "8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "e888aa578a57f7c85793da94196e76646219f1750b653187670e88f385bfd43f",
+  "runId": "6fa6f612-99de-4236-893f-8e20b9ae1154",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/349-guard-issue-log-target/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "541ed2c7b190314a9926ab86efe2d3e1da6d32648158556194cbfba68fd665d2"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97",
+      "findingId": "8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing target can fall through to cwd issue log",
+      "body": "`targetNotFoundAsMismatch` is wired by broadening `allowMissingActive` for `issue-log`. That allows a missing or non-resolved target context to continue down the no-active-flow path instead of stopping before `SetIssueLogCommand.execute`, which can write `issue-log.json` relative to the command cwd. This is the exact fallback R2 is meant to prevent when guard resolution fails.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97",
+      "disposition": "must-fix",
+      "rationale": "R2 is a mandatory target guard requirement mapped to `src/flow.js`. A guard mismatch or missing target must reject without appending anywhere, so a control-flow change that permits cwd fallback is a blocking data-integrity risk.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

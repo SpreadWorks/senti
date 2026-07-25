@@ -119,17 +119,11 @@ class AcceptanceDecisionRegistryEntry {
 class AcceptanceDecisionTargetIdentity {
   constructor(state) {
     this.runId = requireString(state?.runId, "active flow runId");
-    this.issue = state?.issue == null ? null : Number(state.issue);
-    if (this.issue == null || !Number.isSafeInteger(this.issue) || this.issue < 1) {
-      throw acceptanceDecisionRegistryError(
-        "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",
-        "managed-worktree acceptance decision requires a positive Issue identity",
-      );
-    }
+    this.issue = requireNullableIssue(state?.issue, "active flow issue");
     this.spec = requireString(state?.spec, "active flow spec");
     this.expectation = new FlowTargetExpectation({
       expectRunId: this.runId,
-      expectIssue: this.issue,
+      ...(this.issue === null ? { expectNoIssue: true } : { expectIssue: this.issue }),
       expectSpec: this.spec,
     });
     this.specId = this.expectation.spec;
@@ -147,7 +141,7 @@ class AcceptanceDecisionTargetIdentity {
     if (
       resolved?.specId !== this.specId
       || resolved.state?.runId !== this.runId
-      || Number(resolved.state?.issue) !== this.issue
+      || requireNullableIssue(resolved.state?.issue, "resolved flow issue") !== this.issue
     ) {
       throw acceptanceDecisionRegistryError(
         "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",

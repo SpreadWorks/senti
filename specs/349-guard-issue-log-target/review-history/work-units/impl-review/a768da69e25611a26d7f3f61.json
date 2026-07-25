@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "a768da69e25611a26d7f3f61",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-2abb045c31b92c49",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/lib/dispatcher.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "2abb045c31b92c49dfc304c0458456929136b9d1c8eae50d806168dc0ce53640",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "a768da69e25611a26d7f3f61"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/lib/dispatcher.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "2abb045c31b92c49dfc304c0458456929136b9d1c8eae50d806168dc0ce53640",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T15:26:59.356Z",
+  "finishedAt": "2026-07-25T15:26:59.356Z",
+  "rawResponse": "### 1. Centralize Timeout Resolution Semantics\n**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R1  \n**Issue:** Timeout precedence is being introduced inline for final regression while existing timeout behavior appears to live behind `resolveTestTimeoutSeconds(config)`. This creates an interface inconsistency: some callers use the resolver abstraction, while this path partially bypasses it.  \n**Suggestion:** Add a dedicated resolver such as `resolveFinalRegressionTimeoutSeconds(config)` or extend the existing timeout resolver to handle final-regression precedence, then keep call sites using resolver APIs consistently.\n\n### 2. Align Lifecycle Authority Error Naming With API Checks\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** The code now checks for the batch lifecycle API `flowManager.updateStepStatuses`, but the reported authority name remains generic. Across files, recent changes appear to be tightening specific failure codes and capability checks, so this vague lifecycle message is inconsistent with the more precise target-resolution naming in `src/lib/dispatcher.js`.  \n**Suggestion:** Name the missing capability directly in the error, for example `late applied-finding repair requires flowManager.updateStepStatuses lifecycle authority`.\n\n### 3. Avoid Scattered Normalization Logic\n**File:** `src/lib/dispatcher.js`  \n**Requirement:** R2  \n**Issue:** Target-resolution failure normalization is embedded directly in `dispatch`, while other reviewed changes also introduce local call-site adaptations around lifecycle/status transition APIs. These small inline mappings can diverge across files as more recovery paths are added.  \n**Suggestion:** Extract the target failure-code mapping into a named helper such as `resolveTargetFailureCode(...)`, and use similarly named helpers for transition/status normalization where needed. This keeps cross-file recovery behavior explicit and easier to compare.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Timeout Resolution Semantics",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R1  \n**Issue:** Timeout precedence is being introduced inline for final regression while existing timeout behavior appears to live behind `resolveTestTimeoutSeconds(config)`. This creates an interface inconsistency: some callers use the resolver abstraction, while this path partially bypasses it.  \n**Suggestion:** Add a dedicated resolver such as `resolveFinalRegressionTimeoutSeconds(config)` or extend the existing timeout resolver to handle final-regression precedence, then keep call sites using resolver APIs consistently.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Align Lifecycle Authority Error Naming With API Checks",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** The code now checks for the batch lifecycle API `flowManager.updateStepStatuses`, but the reported authority name remains generic. Across files, recent changes appear to be tightening specific failure codes and capability checks, so this vague lifecycle message is inconsistent with the more precise target-resolution naming in `src/lib/dispatcher.js`.  \n**Suggestion:** Name the missing capability directly in the error, for example `late applied-finding repair requires flowManager.updateStepStatuses lifecycle authority`.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Avoid Scattered Normalization Logic",
+        "body": "**File:** `src/lib/dispatcher.js`  \n**Requirement:** R2  \n**Issue:** Target-resolution failure normalization is embedded directly in `dispatch`, while other reviewed changes also introduce local call-site adaptations around lifecycle/status transition APIs. These small inline mappings can diverge across files as more recovery paths are added.  \n**Suggestion:** Extract the target failure-code mapping into a named helper such as `resolveTargetFailureCode(...)`, and use similarly named helpers for transition/status normalization where needed. This keeps cross-file recovery behavior explicit and easier to compare.",
+        "file": "src/lib/dispatcher.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

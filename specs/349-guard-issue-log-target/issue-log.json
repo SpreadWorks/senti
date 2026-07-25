@@ -1,0 +1,1959 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions.; The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions.; The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:26:48.059Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "Content",
+            "locator": "analysis.validation"
+          },
+          "observed": "The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "Content",
+            "locator": "scopeVerification.in[4]"
+          },
+          "observed": "The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague term \"focused test\" instead of stating verifiable test scope or concrete conditions."
+        }
+      ],
+      "issueLogId": "issue-log-928aca78-bb24-4438-877b-c301a063c564"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate rejected vague focused-test wording in three requirement fields.",
+      "trigger": "The unambiguous-requirements guardrail identified validation, scope, and deferred-spec entries.",
+      "resolution": "Replace every focused-test reference with named target-selection and mismatch assertions.",
+      "guardrailCandidate": "Test requirements must name the command, target cases, and observable outcomes.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:26:59.613Z",
+      "issueLogId": "issue-log-c43d33ce-fbd0-4e17-bf29-b2c785ef13be"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The goal requires issue-log recording to be done \"安全に\" but does not state a verifiable condition for what safe recording means.; The goal uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the implementation satisfies it.; The requirement says \"曖昧な target\" should fail, but does not define the concrete conditions that make a target ambiguous.; The requirement uses \"曖昧な target\" without measurable criteria, so independent reviewers may disagree on which target states must return the mismatch error.; The requirement says help output should let users run the command \"安全に\" in multiple-flow environments, but does not state a verifiable condition for that outcome.; The requirement uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the help output satisfies it.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:27:37.543Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "goal"
+          },
+          "observed": "The goal requires issue-log recording to be done \"安全に\" but does not state a verifiable condition for what safe recording means.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "goal"
+          },
+          "observed": "The goal uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement says \"曖昧な target\" should fail, but does not define the concrete conditions that make a target ambiguous.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement uses \"曖昧な target\" without measurable criteria, so independent reviewers may disagree on which target states must return the mismatch error.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The requirement says help output should let users run the command \"安全に\" in multiple-flow environments, but does not state a verifiable condition for that outcome.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The requirement uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the help output satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The goal requires issue-log recording to be done \"安全に\" but does not state a verifiable condition for what safe recording means."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The goal uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the implementation satisfies it."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement says \"曖昧な target\" should fail, but does not define the concrete conditions that make a target ambiguous."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement uses \"曖昧な target\" without measurable criteria, so independent reviewers may disagree on which target states must return the mismatch error."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement says help output should let users run the command \"安全に\" in multiple-flow environments, but does not state a verifiable condition for that outcome."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the help output satisfies it."
+        }
+      ],
+      "issueLogId": "issue-log-3310deb1-1b49-4458-847c-3d0c2c60025d"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found subjective safety and ambiguous-target wording in the draft.",
+      "trigger": "Unambiguous-requirements and complete-context guardrails rejected three requirement fields.",
+      "resolution": "Replace subjective wording with exact target match, mismatch, and help-output assertions.",
+      "guardrailCandidate": "Every target-selection requirement must name the accepted match and rejected mismatch outcomes.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:27:45.487Z",
+      "issueLogId": "issue-log-665917d2-512a-48b7-8725-24556d7f8c84"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requirement uses the relative phrase \"1つ以上\" for guard options but does not state how reviewers should determine satisfaction when multiple options are provided beyond requiring all specified values to match; clarify the exact command behavior for one, two, and three supplied expectations so independent reviewers can agree.; AC5 requires targeted test execution and final regression to pass; final regression pass/fail is runtime lifecycle evidence and is not decidable from a standard unified diff plus test execution summary alone.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:32:41.348Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Requirement uses the relative phrase \"1つ以上\" for guard options but does not state how reviewers should determine satisfaction when multiple options are provided beyond requiring all specified values to match; clarify the exact command behavior for one, two, and three supplied expectations so independent reviewers can agree.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "AC5 requires targeted test execution and final regression to pass; final regression pass/fail is runtime lifecycle evidence and is not decidable from a standard unified diff plus test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses the relative phrase \"1つ以上\" for guard options but does not state how reviewers should determine satisfaction when multiple options are provided beyond requiring all specified values to match; clarify the exact command behavior for one, two, and three supplied expectations so independent reviewers can agree."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "AC5 requires targeted test execution and final regression to pass; final regression pass/fail is runtime lifecycle evidence and is not decidable from a standard unified diff plus test execution summary alone."
+        }
+      ],
+      "issueLogId": "issue-log-4cda15fa-cba3-4e97-9396-a2020872ebd7"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found incomplete guard-combination semantics and non-diff-verifiable acceptance.",
+      "trigger": "Complete-context and req-diff-verifiability guardrails rejected R1 and AC5.",
+      "resolution": "State exact one-, two-, and three-guard matching rules and keep acceptance criteria diff-and-test decidable.",
+      "guardrailCandidate": "Guard combinations and acceptance evidence must be enumerated without downstream lifecycle assertions.",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:32:51.749Z",
+      "issueLogId": "issue-log-a3df3a4d-063c-4869-b2dc-21b035f69f83"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found incomplete coverage for guard combinations and retained entry fields.",
+      "trigger": "R1 lacked one- and two-guard success cases, and R3 omitted optional fields and envelope assertions.",
+      "resolution": "Extend the spec-local tests with all successful guard combinations and complete guard-free entry assertions.",
+      "guardrailCandidate": "Each requirement-to-test mapping must assert every enumerated success branch and retained public field.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T14:37:00.253Z",
+      "issueLogId": "issue-log-369b611a-4ee3-4851-b471-cddc26af6a6c"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second test review found missing cwd no-write coverage and non-null taskId preservation.",
+      "trigger": "R2 lacked a cwd-level sentinel assertion and R3 used only a null taskId fixture.",
+      "resolution": "Add a cwd issue-log sentinel check and an explicit T-1 taskId assertion to the guard-free command test.",
+      "guardrailCandidate": "No-write tests must snapshot every named persistence location and field-preservation tests need non-default values.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T14:38:13.842Z",
+      "issueLogId": "issue-log-395c9164-5f61-4fc3-86d7-1575901f3cbf"
+    },
+    {
+      "step": "task-impl",
+      "reason": "task-impl completion cleared task routing before task review post-hook, leaving the task review unmarked and flow-level implement active",
+      "trigger": "task review invoked after task-impl completion",
+      "resolution": "inspect definition lifecycle and recover only through guarded flow commands",
+      "guardrailCandidate": "task lifecycle routing",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T14:43:19.043Z",
+      "issueLogId": "issue-log-d81986be-e1ea-447c-8c2e-a11a35209495"
+    },
+    {
+      "step": "task-gate",
+      "reason": "complete-task returned NO_TASK_TARGET after task gate PASS because the gate post-hook cleared currentTaskId before the prescribed completion command",
+      "trigger": "task gate PASS prescription complete-task",
+      "resolution": "invoke complete-task with the explicit completed task id under target guards",
+      "guardrailCandidate": "task lifecycle routing",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T14:43:53.948Z",
+      "issueLogId": "issue-log-20406813-b254-4f16-8b98-5209e0190c34"
+    },
+    {
+      "step": "implement",
+      "reason": "flow-level implement completion rejected because file-map entries were not yet recorded for the testable requirements",
+      "trigger": "IMPLEMENT_COMPLETION_VALIDATION_FAILED file-map-missing",
+      "resolution": "record each requirement-to-file mapping before marking implementation complete",
+      "guardrailCandidate": "file-map readiness",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:44:26.725Z",
+      "issueLogId": "issue-log-20e23dd9-1270-49c0-9074-e261804f40e3"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion encountered a transient repository flow-operation lock after file-map entries were recorded",
+      "trigger": "REPOSITORY_FLOW_OPERATION_BUSY owner pid 2571698",
+      "resolution": "verify owner exited and retry the unchanged guarded completion command",
+      "guardrailCandidate": "flow operation lock",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:45:01.650Z",
+      "issueLogId": "issue-log-7a3430b9-1e0f-4131-9a90-cb3f904aaca3"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:45:47.004Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-63439ce4-9359-4aad-80b4-049bf158ac11"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate rejected the test artifact as untrusted because R1-R4 were recorded as failed despite test-execute completing",
+      "trigger": "ARTIFACT_PLACEHOLDER artifact_trust_failure",
+      "resolution": "inspect test-execute result and raw log, correct the evidence-producing test configuration or implementation, then rerun the required test steps",
+      "guardrailCandidate": "test artifact trust",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:45:54.805Z",
+      "issueLogId": "issue-log-c3d20f85-ed5e-4e84-a221-977a752068d0"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fixed set issue-log target registration so dispatcher resolves matching guarded flows and normalizes absent guarded targets to ACTIVE_FLOW_MISMATCH before writes",
+      "trigger": "test-execute R2 showed FLOW_TARGET_NOT_FOUND instead of the required mismatch envelope",
+      "resolution": "add command registry target-resolution metadata and scoped not-found normalization while preserving pre-write dispatch rejection",
+      "guardrailCandidate": "target guard enforcement",
+      "repairRef": {
+        "files": [
+          "src/flow/registry.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T14:46:52.345Z",
+      "issueLogId": "issue-log-a3429c3b-836e-421d-a6ed-f038bbf2fa4b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "rewind-test-evidence was unavailable because the current gate block is artifact trust from a failing test result, not a stale repair-fingerprint mismatch",
+      "trigger": "STALE_TEST_EVIDENCE_BLOCKER_MISMATCH",
+      "resolution": "rerun the authorized test-execute and test-result-review commands to replace the failed evidence after the implementation repair",
+      "guardrailCandidate": "test evidence recovery classification",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:47:29.708Z",
+      "issueLogId": "issue-log-5cf2b97e-3da0-4a1b-b56e-81421f2f805a"
+    },
+    {
+      "step": "impl-review",
+      "reason": "a second flow-level review invocation was rejected because the already-completed impl-review step no longer has a single active scope",
+      "trigger": "REVIEW_SCOPE_INVALID after refreshed test evidence",
+      "resolution": "preserve the prior PASS review and continue through the active integration gate with refreshed test artifacts",
+      "guardrailCandidate": "review lifecycle scope",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:47:57.538Z",
+      "issueLogId": "issue-log-3314d5bc-4f5d-40d0-945f-da3e5481dedb"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:48:03.269Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-d8338af4-da8d-4092-a9a8-ae3097bd8b59"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "test rerun showed the scoped dispatcher normalization was unreachable because hook-context resolution rethrew FLOW_TARGET_NOT_FOUND before envelope mapping",
+      "trigger": "R2 continued to receive an empty stdout process failure after registry and dispatcher changes",
+      "resolution": "allow missing guarded targets only for this command metadata so dispatcher can emit ACTIVE_FLOW_MISMATCH before command execution",
+      "guardrailCandidate": "target guard enforcement",
+      "repairRef": {
+        "files": [
+          "src/flow.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T14:48:22.046Z",
+      "issueLogId": "issue-log-4c25c07b-5a2c-4b3b-8fc7-25940a25e95e"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires any runId, issue, or spec mismatch to return `ACTIVE_FLOW_MISMATCH` before `IssueLogStore.append` and leave both candidate and cwd `issue-log.json` unchanged. The tests assert this behavior, but the mapped production evidence only enables `explicitTargetResolution` on `SetIssueLogCommand`; the additional dispatcher conversion from `FLOW_TARGET_NOT_FOUND` to `ACTIVE_FLOW_MISMATCH` is gated by `entry.targetNotFoundAsMismatch === true`, and the diff provides no issue-log registry declaration setting that flag. Because a wrong runId can produce target-not-found rather than a resolved-flow value mismatch, the implementation evidence omits a required mismatch outcome. Sources: [EVIDENCE:R2], [CONSTRAINT:2], [TASK:T-1], Git Diff `src/lib/dispatcher.js`, Git Diff `src/flow.js`.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T14:49:25.271Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires any runId, issue, or spec mismatch to return `ACTIVE_FLOW_MISMATCH` before `IssueLogStore.append` and leave both candidate and cwd `issue-log.json` unchanged. The tests assert this behavior, but the mapped production evidence only enables `explicitTargetResolution` on `SetIssueLogCommand`; the additional dispatcher conversion from `FLOW_TARGET_NOT_FOUND` to `ACTIVE_FLOW_MISMATCH` is gated by `entry.targetNotFoundAsMismatch === true`, and the diff provides no issue-log registry declaration setting that flag. Because a wrong runId can produce target-not-found rather than a resolved-flow value mismatch, the implementation evidence omits a required mismatch outcome. Sources: [EVIDENCE:R2], [CONSTRAINT:2], [TASK:T-1], Git Diff `src/lib/dispatcher.js`, Git Diff `src/flow.js`.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires any runId, issue, or spec mismatch to return `ACTIVE_FLOW_MISMATCH` before `IssueLogStore.append` and leave both candidate and cwd `issue-log.json` unchanged. The tests assert this behavior, but the mapped production evidence only enables `explicitTargetResolution` on `SetIssueLogCommand`; the additional dispatcher conversion from `FLOW_TARGET_NOT_FOUND` to `ACTIVE_FLOW_MISMATCH` is gated by `entry.targetNotFoundAsMismatch === true`, and the diff provides no issue-log registry declaration setting that flag. Because a wrong runId can produce target-not-found rather than a resolved-flow value mismatch, the implementation evidence omits a required mismatch outcome. Sources: [EVIDENCE:R2], [CONSTRAINT:2], [TASK:T-1], Git Diff `src/lib/dispatcher.js`, Git Diff `src/flow.js`."
+        }
+      ],
+      "issueLogId": "issue-log-00ff53c2-33b5-4755-a8b7-11a7e4894c6d"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "the integration gate invocation ended without an envelope and a subsequent status read observed its transient repository operation lock",
+      "trigger": "gate retry output ended after retry counter; REPOSITORY_FLOW_OPERATION_BUSY owner pid 2588734 on status read",
+      "resolution": "verify the lock owner exited, then inspect guarded flow status before any further gate action",
+      "guardrailCandidate": "flow operation lock",
+      "taskId": null,
+      "timestamp": "2026-07-25T14:49:36.286Z",
+      "issueLogId": "issue-log-33ffe0bc-6c9a-431d-84e8-a3f44bf619d6"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate found that R2 file-map evidence omitted the registry and dispatcher changes that produce the required ACTIVE_FLOW_MISMATCH envelope",
+      "trigger": "impl-gate R2 must-fix finding 95b7e8bf9dd5037298d0c76b5d0c0bbbbe02bb1fbb970f4d2b2508a35fb082a3",
+      "resolution": "expand R2 file-map coverage to every changed production file participating in guarded resolution and mismatch normalization",
+      "guardrailCandidate": "file-map evidence coverage",
+      "normalizedFindingId": "95b7e8bf9dd5037298d0c76b5d0c0bbbbe02bb1fbb970f4d2b2508a35fb082a3",
+      "repairRef": {
+        "files": [
+          "src/flow/registry.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T14:50:13.376Z",
+      "issueLogId": "issue-log-bdaf3eaf-d468-4bb6-b52d-fee2021b7045"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "timeout",
+      "failureCategory": "timeout",
+      "reason": "final-regression failed: timeout",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "368aebc80f528c1e7b9e09a055d3b0412a185d8d59fea0c156892170005fbdd8"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/acceptance-review.json",
+          "fingerprint": "e2361c3218822250bae4dabdb1992605c1ce4bd9526566b99b802beae9b14529"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-coverage-repair.json",
+          "fingerprint": "25ca7bb79c0de2cfc77f73880e687a0163ebc1ce62e6ab98c8cff116dca5b3fd"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-coverage-triage.json",
+          "fingerprint": "25456b6a9db32f9f87dbb6f8ebd130550b45bb247848673b6706d83d015db721"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-gate-source.json",
+          "fingerprint": "1e21d2cdc5df3fe972370991a70038d072ce441d9220ae1415488e6d690e8bb6"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-questions-repair.json",
+          "fingerprint": "b329f982fb550af2b4a0fa62ee5e567007a6ec775d79bf50c49118f2d0099b17"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-questions-triage.json",
+          "fingerprint": "1417cf5077d98a98bf9388d1657586ed91d50c8e98b11eb502b1b4a3e700e06b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-review-coverage.json",
+          "fingerprint": "9858181bedc14f14b5dd8d025a0569cca1c7fc871a4fc49075e39d6061849ecc"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-review-questions.json",
+          "fingerprint": "368c0fc2b26da372bb0da11c6c3a21de016e5dc5bd32218f176aede2d63db8cc"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft.json",
+          "fingerprint": "4df5a44ac9065b2327961d587cacb7b3a671a8fad2e088bae430ee7f84101a9a"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/file-map.json",
+          "fingerprint": "48697c4ec430303cd91e71f5d04a5665ea05f0a8ce6721482b99b92ac757f1d9"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-gate-result.json",
+          "fingerprint": "407f348fcf301e7d50e212dffd3d02df875c12abacbf23a66d040c05c5ff1b92"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-review.json",
+          "fingerprint": "85412bf9caf012498713d2ae9b04ff0410e1c5aaf0fbbc42669909c6f6dc7684"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-fingerprint.json",
+          "fingerprint": "6634b045f878ba8bb90fda3ee7173d8fce3d66a91b9f053df35c2f938d77b43f"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/retro.json",
+          "fingerprint": "fb3c79cc15c9df1e89fbfbba9eeed46f0b57e70739570ee8cae984396afc5639"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/029015c6ad4573a70034c814426952d228806c69a1215823e201483275e51c77.json",
+          "fingerprint": "51715cf9454151644d1552095f3c68c54f655a106ff4c276d4f10eef78aa3a2b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/071814e09c70342641b6115e11d305cd80a302524d8ece97d6104a217ce82889.json",
+          "fingerprint": "89ed7c5b812f387c554d68566b52704846b32ef3a3bed255707755025c27b879"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/0e5840ab2303bb68144e8a7fc516f15b64c6cc29ba1ae3d2cf59dff7e1d7ae08.json",
+          "fingerprint": "1c8d416e37f370cf96af65b784dfc82c8f16408d8be18cb7db2955272403b755"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/17376f74b9e1bcc884d265a420cba4d506f41063e2612d2101ad2d1f662ff87b.json",
+          "fingerprint": "43a2bb20328088259aec31efe24b896e27ed5f69b943057ccdf2cc3eca074ca2"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/1f1485337f2170ef9ce9a4436f83c0c1fce33a4db68fe50202ba7a5649cf2477.json",
+          "fingerprint": "d47bea23d7e5d5d3d0333ae59f89319d824e9b37f8d664149fc480c1359ddf5b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/36b93f42a379b19ab7f0fb56979851b526c665722c0a8184b214d7c4c0011e95.json",
+          "fingerprint": "802bf5114412fe680d9f68e7e1f0f2d73f6de6ad30fe26b36a5bda8ecf798c39"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/c202be0e637f62d0c055b38438dc13b69516817636eefb77902394877132e639.json",
+          "fingerprint": "b75f4cc9fd15f7847cc6debd11e413f6691dfc4c3e8653556c2ae6bb63f3c654"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/d2256122735b21e325f10c17148495c2ede90b9ccbfdf7f633de7de4ad05ba46.json",
+          "fingerprint": "2aec399ef71d28eeb0b044081639db06c526d72fef8f74b376264db15f34415b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "b515322df2d1b2b54dce3f1899d18950045f2e02c582c77baf567cc6a4b0c7f1"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "6d1cc1962ba38036019fdc80e9ddd0068e4d7106ab54458fc938da3d02e7311e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-001.json",
+          "fingerprint": "d4449ce53be8b8e0e17c18184e5f58be3f8ed06c3ddbf5f02e696f703d586839"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-002.json",
+          "fingerprint": "01a368fc3d24808c9a5b25b44d31ab8fd0dc6125f16598bca4239c83a1fc3909"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/spec-attempt-001.json",
+          "fingerprint": "b033cc4ebc8cf7fdd04c2d6ec9e46605ebb93407ba79085ed6c340e20bf286b0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-001.json",
+          "fingerprint": "fc046dfbaf1cde07a8558a0a4871bbf16e4871ed2b7a3300d7617ff910d969fa"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-001.md",
+          "fingerprint": "c2cb5bbc0c3cb4ccdc0e5e10fd43ea82f670402972fddb88bba7ce65acee98c0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-002.json",
+          "fingerprint": "e8d44f31c38d0f6cd4b714dca91aec55fffdf50e7098f8bb249a7c608485f09c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-002.md",
+          "fingerprint": "dbf153893de29e398f39914a6f4a1bbab159350aef77873a5d18dd4e350fa82c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-003.json",
+          "fingerprint": "5f83d0af540f5038a53e58ee66f2a716546780737021b04da61b1b9d043c5456"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-003.md",
+          "fingerprint": "fbc80186a0f7ce48843e95eb559246107d6685872c58ce4e3902e14bf0886052"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/scenario-validity-result.json",
+          "fingerprint": "fb780317c6b6d2aa493571eb27197084bc53c5f15525cf3fdb2b7266d609ca91"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-gate-source.json",
+          "fingerprint": "3764079ad12bf9932d5371a88c83d6a53dfddad521a1808a580b18bdaeb8f52d"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-review.json",
+          "fingerprint": "9cd98a5fc98e5f7ffe10eaeefc86e96730198365ec30434ceb1cc6ea435f861e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec.json",
+          "fingerprint": "df5d13de5ff3de1b5fedb3aa3a852675aa15fad079f34e675b98109b6517ffa8"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec.md",
+          "fingerprint": "ba5ac24dbcb6327c4bc35a65c2f3d5edd7f94f056900771392b6590da96dad51"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tasks/T-1.md",
+          "fingerprint": "fc6f6a31fda1de951982ffb7745b766c9509b1c985de443cc1ce07ea44cc2f3e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-coverage.json",
+          "fingerprint": "1d16b5de43e71fc9059b085554ec9d7ef9ac4b1f7943c3e6e1e954d85c482751"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-execute-result.json",
+          "fingerprint": "761ca035dd8fe1b3fd7cbacc5d44c8721e09f523cfb360d656a1c4cdb5ecaabe"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-result-review.json",
+          "fingerprint": "1cc68376a4de0bff77d06df22425879ece8177c3274d30bdb06de0c9f9e9fad1"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-result-review.md",
+          "fingerprint": "fa1bc25efa5e8dfb15ff51862dc5080cb751a8fc0e32d9ab7b12ee088e55c32b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-review.json",
+          "fingerprint": "8a5700bd75154c8d46a9df1e112d4a8321e55eca2b6445c52396728b9ecdc69b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-review.md",
+          "fingerprint": "fbc80186a0f7ce48843e95eb559246107d6685872c58ce4e3902e14bf0886052"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/.raw/scenario-validity.log",
+          "fingerprint": "66e353ac6704243b3fa37bb59318748f3e1f97e8f36f6178f582a67de68c04ea"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/.raw/test-execution.log",
+          "fingerprint": "f5bd68bf406ff1fe2d61a105f7127e752bb91258c727ef687102bc6a57bb3eb8"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js",
+          "fingerprint": "99a8c774cfe397e8d8e83cc57124f1dfd73a1253e2dae258d6f482cc8e82ce4a"
+        },
+        {
+          "path": "src/flow.js",
+          "fingerprint": "222f7acbe2703edaa136b516abc1e26e85faff1c5695bd4b6073426706d3c70d"
+        },
+        {
+          "path": "src/flow/lib/set-issue-log.js",
+          "fingerprint": "5926c993f062833694e5f405bfc0e7b00ccda7c35ec3990441259cd4ef36902a"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "6e746adc45cf8d699ae31ff6083ef862591307358c8d2da943246624905856bf"
+        },
+        {
+          "path": "src/lib/dispatcher.js",
+          "fingerprint": "5e1011a5000af097e1d2dc3534c5eb8d1c611c0cc313b58e9d5875d4d004c557"
+        }
+      ],
+      "rawOutputPath": "specs/349-guard-issue-log-target/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-25T15:01:48.582Z",
+      "issueLogId": "issue-log-a7b49760-b8f0-4a81-87eb-5d60591f1a14"
+    },
+    {
+      "step": "final-regression",
+      "reason": "full project regression timed out after ten minutes and the final-regression artifact requires stop with retryable false",
+      "trigger": "final-regression-result.json: failureKind timeout, signal SIGTERM, nextAction stop",
+      "resolution": "preserve the retained raw attempt log and stop without rerunning, as required by the final-regression outcome",
+      "guardrailCandidate": "final regression timeout policy",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:02:11.042Z",
+      "issueLogId": "issue-log-71a9fd62-87c6-4010-b4e8-1fb7b9699a66"
+    },
+    {
+      "step": "final-regression",
+      "reason": "the full regression exceeded the ten-minute budget after unit tests consumed 8m22s, and set-step impl-repair has two product-behavior failures",
+      "trigger": "final-regression-attempt-001: unit duration 502747ms; set-step-impl-repair subtests fail with recovery unavailable and missing impl-review artifact",
+      "resolution": "repair the impl-repair recovery transition and make the final-regression timeout proportional to the configured full-suite command",
+      "guardrailCandidate": "full regression timeout budgeting",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:16:03.519Z",
+      "issueLogId": "issue-log-ad818155-8c56-4879-a35b-ef3916c50a0f"
+    },
+    {
+      "step": "final-regression",
+      "reason": "the remaining impl-repair unit failure is a fixture setup error: normal repair has already invalidated the two review artifacts that the scenario removes again",
+      "trigger": "set-step-impl-repair-after-source.log: ENOENT at the test fixture rmSync before the command under test executes",
+      "resolution": "make the fixture's cleanup idempotent so it represents the documented already-invalidated state",
+      "guardrailCandidate": "idempotent invalidated-artifact fixtures",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:17:58.123Z",
+      "issueLogId": "issue-log-d5189d0c-039a-4948-a9f9-64e6e5d54184"
+    },
+    {
+      "step": "final-regression",
+      "reason": "the gate-observed recovery reaches its post-transition commit but cannot clear its persisted transition intent with the lifecycle batch authority",
+      "trigger": "set-step-impl-repair-after-fixture.log: recovery result lacks recovered=true after the scenario reaches the command under test",
+      "resolution": "complete the intent through the batch lifecycle authority and retain the direct state fallback only for non-persistent in-memory callers",
+      "guardrailCandidate": "impl-repair transition intent completion",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:18:25.480Z",
+      "issueLogId": "issue-log-f46a4b74-3746-4812-8369-01dc79b8ebaa"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a new exported helper with exactly one production caller, and the abstraction only wraps a single configuration fallback expression without shared behavior, invariant enforcement, or a distinct ownership boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T15:22:52.779Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/test-regression.js",
+            "locator": "resolveFinalRegressionTimeoutSeconds"
+          },
+          "observed": "The diff adds a new exported helper with exactly one production caller, and the abstraction only wraps a single configuration fallback expression without shared behavior, invariant enforcement, or a distinct ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R2"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a new exported helper with exactly one production caller, and the abstraction only wraps a single configuration fallback expression without shared behavior, invariant enforcement, or a distinct ownership boundary."
+        }
+      ],
+      "issueLogId": "issue-log-a649b771-542b-40b8-a13f-ecb418bc330a"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: remove the single-caller final-regression timeout helper while retaining the dedicated configuration override",
+      "trigger": "integration gate observation no-overengineering: resolveFinalRegressionTimeoutSeconds has one production caller",
+      "resolution": "inline test.finalRegressionTimeout with the existing resolveTestTimeoutSeconds fallback in the final regression runner",
+      "guardrailCandidate": "no-overengineering",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:23:03.268Z",
+      "issueLogId": "issue-log-5be60f57-8aae-4325-8828-c495846e4f58"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fix: separate target-resolution error capture from allow-missing-active so a missing guarded target cannot reach cwd execution",
+      "trigger": "impl review finding target-not-found-allows-cwd-append in src/flow.js",
+      "resolution": "return the resolution error to dispatcher for ACTIVE_FLOW_MISMATCH mapping without enabling the no-active-flow execution path",
+      "guardrailCandidate": "target-resolution safety",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:24:53.738Z",
+      "issueLogId": "issue-log-0a327a15-143e-4482-8ed9-a27510631f80"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 2 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97",
+      "repairRef": {
+        "files": [
+          "src/flow.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T15:25:40.904Z",
+      "issueLogId": "impl-repair:repair-003:8a12d8b6caef246631e112f3bbefc7c38b77f1eee41845870939ea17d7841e97"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "timeout",
+      "failureCategory": "timeout",
+      "reason": "final-regression failed: timeout",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/config.json",
+          "fingerprint": "955250d958de9f99465dd347bf2696e9121b4daec7bbafdb8b6f08d2e4267783"
+        },
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "368aebc80f528c1e7b9e09a055d3b0412a185d8d59fea0c156892170005fbdd8"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/acceptance-review.json",
+          "fingerprint": "b0b7db6374a6678acd9fac39904de4b6448b4fe8144d40c3be425de8daa7d3ef"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-coverage-repair.json",
+          "fingerprint": "25ca7bb79c0de2cfc77f73880e687a0163ebc1ce62e6ab98c8cff116dca5b3fd"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-coverage-triage.json",
+          "fingerprint": "25456b6a9db32f9f87dbb6f8ebd130550b45bb247848673b6706d83d015db721"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-gate-source.json",
+          "fingerprint": "1e21d2cdc5df3fe972370991a70038d072ce441d9220ae1415488e6d690e8bb6"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-questions-repair.json",
+          "fingerprint": "b329f982fb550af2b4a0fa62ee5e567007a6ec775d79bf50c49118f2d0099b17"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-questions-triage.json",
+          "fingerprint": "1417cf5077d98a98bf9388d1657586ed91d50c8e98b11eb502b1b4a3e700e06b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-review-coverage.json",
+          "fingerprint": "9858181bedc14f14b5dd8d025a0569cca1c7fc871a4fc49075e39d6061849ecc"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-review-questions.json",
+          "fingerprint": "368c0fc2b26da372bb0da11c6c3a21de016e5dc5bd32218f176aede2d63db8cc"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft.json",
+          "fingerprint": "4df5a44ac9065b2327961d587cacb7b3a671a8fad2e088bae430ee7f84101a9a"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/file-map.json",
+          "fingerprint": "48697c4ec430303cd91e71f5d04a5665ea05f0a8ce6721482b99b92ac757f1d9"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/flow-findings.json",
+          "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-gate-result.json",
+          "fingerprint": "9d8f43001327cc73d4c576cda9a9b20dcbeb5dab3ddbac1dd7b16f958aa076c8"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-repair.json",
+          "fingerprint": "acfdca7136b6ba587ab947f3ef70bfcee01b1020247d260d7317dc82455d1fa6"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-review.json",
+          "fingerprint": "64fe83156f4219df5e737644e324555f0f6799f20dd39152f4018ea6a0da23ed"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-triage.json",
+          "fingerprint": "bbe4a29fcc2c8024ba0ed434cec5e96f222924a04f3c28f91a0c451fe37c52b1"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-deltas/repair-001.json",
+          "fingerprint": "b79c702ed35e09086c9f6c79ec290e5bd585691424ea0493881adc6a82420425"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-deltas/repair-002.json",
+          "fingerprint": "56528ba1c41874dd30a794c985295593d1a5aca444ed282b7aa6b4d0bb0ee528"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-deltas/repair-003.json",
+          "fingerprint": "3731bb31d58044d572ee7781b85b502e42cef589e2c318394c1a2a4e34c4388b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-fingerprint.json",
+          "fingerprint": "eee10bc7fcae857dac37f69d95a3fe6f5d53dda321e809bc03dd622aad5d5434"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/retro.json",
+          "fingerprint": "783b23f45817c0e4777adb7af8d6db923dc529b883a64d6cd2fd0258aab0c0f4"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/029015c6ad4573a70034c814426952d228806c69a1215823e201483275e51c77.json",
+          "fingerprint": "51715cf9454151644d1552095f3c68c54f655a106ff4c276d4f10eef78aa3a2b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/0457cb875de59a399fcd7fab98ba205022881e6f070631dde4b73925eed03982.json",
+          "fingerprint": "2882f7dc6566e4eaeb0237d891805833bf6bec20a021bb284f346162911cf90f"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/071814e09c70342641b6115e11d305cd80a302524d8ece97d6104a217ce82889.json",
+          "fingerprint": "89ed7c5b812f387c554d68566b52704846b32ef3a3bed255707755025c27b879"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/0e5840ab2303bb68144e8a7fc516f15b64c6cc29ba1ae3d2cf59dff7e1d7ae08.json",
+          "fingerprint": "1c8d416e37f370cf96af65b784dfc82c8f16408d8be18cb7db2955272403b755"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/17376f74b9e1bcc884d265a420cba4d506f41063e2612d2101ad2d1f662ff87b.json",
+          "fingerprint": "43a2bb20328088259aec31efe24b896e27ed5f69b943057ccdf2cc3eca074ca2"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/1f1485337f2170ef9ce9a4436f83c0c1fce33a4db68fe50202ba7a5649cf2477.json",
+          "fingerprint": "d47bea23d7e5d5d3d0333ae59f89319d824e9b37f8d664149fc480c1359ddf5b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/36b93f42a379b19ab7f0fb56979851b526c665722c0a8184b214d7c4c0011e95.json",
+          "fingerprint": "802bf5114412fe680d9f68e7e1f0f2d73f6de6ad30fe26b36a5bda8ecf798c39"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/c202be0e637f62d0c055b38438dc13b69516817636eefb77902394877132e639.json",
+          "fingerprint": "b75f4cc9fd15f7847cc6debd11e413f6691dfc4c3e8653556c2ae6bb63f3c654"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/c57796fd012f1731e3b978d17228315902e56028ea248fbf186be7e7d793e1ce.json",
+          "fingerprint": "958180030a36ddc374f4c2ca7a04befce2ff5d81e5f042ab919d3e186844b804"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/d2256122735b21e325f10c17148495c2ede90b9ccbfdf7f633de7de4ad05ba46.json",
+          "fingerprint": "2aec399ef71d28eeb0b044081639db06c526d72fef8f74b376264db15f34415b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/f0df9c03e1346f9390ccb44ebcb7b0e0e881f4eef13f2117ef72a2657a67eb4a.json",
+          "fingerprint": "dd0f5de94f275b578a637f790138b95858e464e2a0385298fa5986dc04644a18"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "b515322df2d1b2b54dce3f1899d18950045f2e02c582c77baf567cc6a4b0c7f1"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "6d1cc1962ba38036019fdc80e9ddd0068e4d7106ab54458fc938da3d02e7311e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-001.json",
+          "fingerprint": "d4449ce53be8b8e0e17c18184e5f58be3f8ed06c3ddbf5f02e696f703d586839"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-002.json",
+          "fingerprint": "01a368fc3d24808c9a5b25b44d31ab8fd0dc6125f16598bca4239c83a1fc3909"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-003.json",
+          "fingerprint": "a4a357b409cfaa5598cc2607b5bc836d2b47e7ced436c04558f4b1c6a9c90c45"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-003.md",
+          "fingerprint": "9f28d62be32f95aea4a63b5985e99124c7d547985d7786b1c5b5ba0335102b29"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-004.json",
+          "fingerprint": "3daf2c70b2d4e2107298a71e2f4b7d9ced81b30f3cd0b891aefeb4b4f99b9d1b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-004.md",
+          "fingerprint": "b6954b22cfc990fc53b602c1340748a9a725de5b974ba5b35105311c622f9027"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-005.json",
+          "fingerprint": "a63057619965e9c97345ff1e1561c69bad079d65c165f268613a2ed6ac8c90a0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-005.md",
+          "fingerprint": "635dc47bcf201fe80c1cb01cf3ef82f9c59ff5369da3ffaddd60917f71730595"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/spec-attempt-001.json",
+          "fingerprint": "b033cc4ebc8cf7fdd04c2d6ec9e46605ebb93407ba79085ed6c340e20bf286b0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-001.json",
+          "fingerprint": "fc046dfbaf1cde07a8558a0a4871bbf16e4871ed2b7a3300d7617ff910d969fa"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-001.md",
+          "fingerprint": "c2cb5bbc0c3cb4ccdc0e5e10fd43ea82f670402972fddb88bba7ce65acee98c0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-002.json",
+          "fingerprint": "e8d44f31c38d0f6cd4b714dca91aec55fffdf50e7098f8bb249a7c608485f09c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-002.md",
+          "fingerprint": "dbf153893de29e398f39914a6f4a1bbab159350aef77873a5d18dd4e350fa82c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-003.json",
+          "fingerprint": "5f83d0af540f5038a53e58ee66f2a716546780737021b04da61b1b9d043c5456"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-003.md",
+          "fingerprint": "fbc80186a0f7ce48843e95eb559246107d6685872c58ce4e3902e14bf0886052"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "d011ff99106071c8ad05a96b0a3bd32b921b2c51acb71cdd9eeed0e1d14ebf6c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "ae7aafd2a5522ad329aa93778792ef8bf53ba8b6b0b79d6e3366887354efada6"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "26d1d47d802cb122b4454a5a407540bf08bae3c72d2a8879aefdcdd53702f291"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "cba214d950765d9737f009904293d6f57379fd209ec17b603cbe7d8a7ce86733"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "a08a293e34686766eec61031fb6875ec00fb68aba23e068683290d9d95268bbf"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "8582a2118eb2502a448f2c2478e96fe4ad41532e6d80e4102af419d485c18b69"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "5de02cfd1431b1c30eb138f8eb3520cb779b2d5d6382565e34a854bd8e6f9122"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "938f454d12f19b2dd609d6310a43506c98ae2014657f693c973077fae4908b04"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/a768da69e25611a26d7f3f61.json",
+          "fingerprint": "50113ce50d71e355006f469c029fc21267551956c900011867195869ac8b43f5"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "6650d131b11a43a1ab4e26d2e05099f1ce5d3b62bd20a4119a01e07a726a21f2"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "091dcacf82b00054da248b5b87ec0756ea2ff877ed1846f3554a21d5dbe5007f"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/e578ef422d40fb6ade163194.json",
+          "fingerprint": "493940676320884547c42dd5ecdeb75cde9263186e0d4c0d5d5c6f234dcfc429"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review.md",
+          "fingerprint": "635dc47bcf201fe80c1cb01cf3ef82f9c59ff5369da3ffaddd60917f71730595"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/scenario-validity-result.json",
+          "fingerprint": "fb780317c6b6d2aa493571eb27197084bc53c5f15525cf3fdb2b7266d609ca91"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-gate-source.json",
+          "fingerprint": "3764079ad12bf9932d5371a88c83d6a53dfddad521a1808a580b18bdaeb8f52d"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-review.json",
+          "fingerprint": "9cd98a5fc98e5f7ffe10eaeefc86e96730198365ec30434ceb1cc6ea435f861e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec.json",
+          "fingerprint": "df5d13de5ff3de1b5fedb3aa3a852675aa15fad079f34e675b98109b6517ffa8"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec.md",
+          "fingerprint": "ba5ac24dbcb6327c4bc35a65c2f3d5edd7f94f056900771392b6590da96dad51"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tasks/T-1.md",
+          "fingerprint": "fc6f6a31fda1de951982ffb7745b766c9509b1c985de443cc1ce07ea44cc2f3e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-coverage.json",
+          "fingerprint": "1d16b5de43e71fc9059b085554ec9d7ef9ac4b1f7943c3e6e1e954d85c482751"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-execute-result.json",
+          "fingerprint": "0990cb7e0f16fbedcd200b6111d6341d7e1763c6351f79da832e1803052fe933"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-result-review.json",
+          "fingerprint": "2f9104ceba3374640184d382a9a908281c3276d58c33622405ee247561d91f3c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-result-review.md",
+          "fingerprint": "fa1bc25efa5e8dfb15ff51862dc5080cb751a8fc0e32d9ab7b12ee088e55c32b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-review.json",
+          "fingerprint": "8a5700bd75154c8d46a9df1e112d4a8321e55eca2b6445c52396728b9ecdc69b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-review.md",
+          "fingerprint": "fbc80186a0f7ce48843e95eb559246107d6685872c58ce4e3902e14bf0886052"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/.raw/scenario-validity.log",
+          "fingerprint": "66e353ac6704243b3fa37bb59318748f3e1f97e8f36f6178f582a67de68c04ea"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/.raw/test-execution.log",
+          "fingerprint": "6fa9220e855ffdbdecb38e25a2770f2b90361fa43a05d12a2d8d9ba4c737191c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js",
+          "fingerprint": "99a8c774cfe397e8d8e83cc57124f1dfd73a1253e2dae258d6f482cc8e82ce4a"
+        },
+        {
+          "path": "src/flow.js",
+          "fingerprint": "7776cd923adebc211a4398ed7523b55c43d90e5c814a638727a3c3ba6197b3a0"
+        },
+        {
+          "path": "src/flow/lib/flow-context.js",
+          "fingerprint": "14ae5000341cbb5f907f5d4481a0bf0f97aa85cf15255e8ba986a7bbc7cabbda"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "b91d345af1fdaf794956e29cc8d768500708ea8aef3887aab71bcc7175fec421"
+        },
+        {
+          "path": "src/flow/lib/run-final-regression.js",
+          "fingerprint": "72e15019dc1323a3b3511f4882b43e11ad054539f6f2c54aabf712d92b64b111"
+        },
+        {
+          "path": "src/flow/lib/set-issue-log.js",
+          "fingerprint": "5926c993f062833694e5f405bfc0e7b00ccda7c35ec3990441259cd4ef36902a"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "6e746adc45cf8d699ae31ff6083ef862591307358c8d2da943246624905856bf"
+        },
+        {
+          "path": "src/lib/dispatcher.js",
+          "fingerprint": "5e1011a5000af097e1d2dc3534c5eb8d1c611c0cc313b58e9d5875d4d004c557"
+        },
+        {
+          "path": "tests/unit/flow/set-step-impl-repair.test.js",
+          "fingerprint": "b67a285e8a6b100035e83673b6e46fc60959ae5a85d5d07eedc01d5b083e9ccb"
+        }
+      ],
+      "rawOutputPath": "specs/349-guard-issue-log-target/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "report",
+      "nextRecommendedAction": "record-and-proceed",
+      "timestamp": "2026-07-25T15:40:20.204Z",
+      "issueLogId": "issue-log-34423fc9-26f9-435c-9c82-d1a5dad91238"
+    },
+    {
+      "step": "final-regression",
+      "reason": "the dedicated timeout is read from the container config initialized outside the selected worktree, so the worktree configuration remains at the default 600 seconds",
+      "trigger": "attempt 002 timed out at 10m02s despite .senti/config.json test.finalRegressionTimeout=1200",
+      "resolution": "load and validate configuration from the resolved authority root when running final regression",
+      "guardrailCandidate": "worktree configuration authority",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:41:51.515Z",
+      "issueLogId": "issue-log-1b76a8b0-6665-4572-9e76-c6c39ca3e078"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "lock owner pid 2920216 is active",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-25T15:47:07.591Z",
+      "issueLogId": "issue-log-5b5a9b91-11fb-4886-bd02-4a8e9371ef64"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: upgrade-result.json missing",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T15:47:18.837Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: upgrade-result.json missing",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-e08a8db2-4fc4-4749-abbf-7a28f83ec8ad"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: evidence refresh invalidated the required upgrade-result.json artifact",
+      "resolution": "run the guarded upgrade step to regenerate trusted upgrade evidence before rerunning the integration gate",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:47:32.474Z",
+      "issueLogId": "issue-log-6d01d655-e3db-436a-84b8-b3e242e0b4f4"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "fix: acceptance-decision incorrectly rejects an active no-Issue managed worktree",
+      "resolution": "preserve exact target identity with expectNoIssue for no-Issue flows and add regression coverage",
+      "taskId": null,
+      "timestamp": "2026-07-25T15:52:45.966Z",
+      "issueLogId": "issue-log-80c6c9d6-b985-4906-9f92-be0fed7dcb9e"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "failureCategory": "existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/config.json",
+          "fingerprint": "955250d958de9f99465dd347bf2696e9121b4daec7bbafdb8b6f08d2e4267783"
+        },
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "368aebc80f528c1e7b9e09a055d3b0412a185d8d59fea0c156892170005fbdd8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+          "fingerprint": "0954c52ee0cfb766a5e292e96d0bc3fa6c5d5da563f98dc7dfb6f56ae6b1e434"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-coverage-repair.json",
+          "fingerprint": "25ca7bb79c0de2cfc77f73880e687a0163ebc1ce62e6ab98c8cff116dca5b3fd"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-coverage-triage.json",
+          "fingerprint": "25456b6a9db32f9f87dbb6f8ebd130550b45bb247848673b6706d83d015db721"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-gate-source.json",
+          "fingerprint": "1e21d2cdc5df3fe972370991a70038d072ce441d9220ae1415488e6d690e8bb6"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-questions-repair.json",
+          "fingerprint": "b329f982fb550af2b4a0fa62ee5e567007a6ec775d79bf50c49118f2d0099b17"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-questions-triage.json",
+          "fingerprint": "1417cf5077d98a98bf9388d1657586ed91d50c8e98b11eb502b1b4a3e700e06b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-review-coverage.json",
+          "fingerprint": "9858181bedc14f14b5dd8d025a0569cca1c7fc871a4fc49075e39d6061849ecc"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft-review-questions.json",
+          "fingerprint": "368c0fc2b26da372bb0da11c6c3a21de016e5dc5bd32218f176aede2d63db8cc"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/draft.json",
+          "fingerprint": "4df5a44ac9065b2327961d587cacb7b3a671a8fad2e088bae430ee7f84101a9a"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/file-map.json",
+          "fingerprint": "48697c4ec430303cd91e71f5d04a5665ea05f0a8ce6721482b99b92ac757f1d9"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/flow-findings.json",
+          "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-repair-transaction.json",
+          "fingerprint": "5fbb6f19a9740476a1b066dbb3c72c6ce9d43309b1968cea6fafe8e1315d153b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-repair.json",
+          "fingerprint": "0e58d4cfec4c696e118d71e2301109319fd64cd747bfe376c3c9b17aae22d5b3"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/impl-triage.json",
+          "fingerprint": "00e1091e29b2def9da8ca4a06de03d7f4224cb55ab1247d8eed66cd41cfcf5a0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-deltas/repair-001.json",
+          "fingerprint": "b79c702ed35e09086c9f6c79ec290e5bd585691424ea0493881adc6a82420425"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-deltas/repair-002.json",
+          "fingerprint": "56528ba1c41874dd30a794c985295593d1a5aca444ed282b7aa6b4d0bb0ee528"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-deltas/repair-003.json",
+          "fingerprint": "3731bb31d58044d572ee7781b85b502e42cef589e2c318394c1a2a4e34c4388b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-deltas/repair-004.json",
+          "fingerprint": "a26a21d4df8588478a218deb723fa973194496cef3d1dd9745a030945462cb2c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-deltas/repair-005.json",
+          "fingerprint": "c70aeb73262212c1c72704b7d3bda6a6bdf20e6d7bc6de979a87d5b4d6f19bd0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/repair-fingerprint.json",
+          "fingerprint": "3c083e647beb9803678135f3239e90ebb6bf2ac5ee4eb0cef3e543bbb103c151"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/029015c6ad4573a70034c814426952d228806c69a1215823e201483275e51c77.json",
+          "fingerprint": "51715cf9454151644d1552095f3c68c54f655a106ff4c276d4f10eef78aa3a2b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/0457cb875de59a399fcd7fab98ba205022881e6f070631dde4b73925eed03982.json",
+          "fingerprint": "2882f7dc6566e4eaeb0237d891805833bf6bec20a021bb284f346162911cf90f"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/071814e09c70342641b6115e11d305cd80a302524d8ece97d6104a217ce82889.json",
+          "fingerprint": "89ed7c5b812f387c554d68566b52704846b32ef3a3bed255707755025c27b879"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/0e5840ab2303bb68144e8a7fc516f15b64c6cc29ba1ae3d2cf59dff7e1d7ae08.json",
+          "fingerprint": "1c8d416e37f370cf96af65b784dfc82c8f16408d8be18cb7db2955272403b755"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/17376f74b9e1bcc884d265a420cba4d506f41063e2612d2101ad2d1f662ff87b.json",
+          "fingerprint": "43a2bb20328088259aec31efe24b896e27ed5f69b943057ccdf2cc3eca074ca2"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/1f1485337f2170ef9ce9a4436f83c0c1fce33a4db68fe50202ba7a5649cf2477.json",
+          "fingerprint": "d47bea23d7e5d5d3d0333ae59f89319d824e9b37f8d664149fc480c1359ddf5b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/36b93f42a379b19ab7f0fb56979851b526c665722c0a8184b214d7c4c0011e95.json",
+          "fingerprint": "802bf5114412fe680d9f68e7e1f0f2d73f6de6ad30fe26b36a5bda8ecf798c39"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/462af45a5ca69e46d82863e80c3aff510e1846e75a3c5361ebca1cc8fc03c761.json",
+          "fingerprint": "53fc83758c93a55bc58d4dd3de6b1dd52af7a5f2a4203312ab0703c6de9ea84c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/c202be0e637f62d0c055b38438dc13b69516817636eefb77902394877132e639.json",
+          "fingerprint": "b75f4cc9fd15f7847cc6debd11e413f6691dfc4c3e8653556c2ae6bb63f3c654"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/c57796fd012f1731e3b978d17228315902e56028ea248fbf186be7e7d793e1ce.json",
+          "fingerprint": "958180030a36ddc374f4c2ca7a04befce2ff5d81e5f042ab919d3e186844b804"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/d2256122735b21e325f10c17148495c2ede90b9ccbfdf7f633de7de4ad05ba46.json",
+          "fingerprint": "2aec399ef71d28eeb0b044081639db06c526d72fef8f74b376264db15f34415b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-evidence/f0df9c03e1346f9390ccb44ebcb7b0e0e881f4eef13f2117ef72a2657a67eb4a.json",
+          "fingerprint": "dd0f5de94f275b578a637f790138b95858e464e2a0385298fa5986dc04644a18"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "b515322df2d1b2b54dce3f1899d18950045f2e02c582c77baf567cc6a4b0c7f1"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "6d1cc1962ba38036019fdc80e9ddd0068e4d7106ab54458fc938da3d02e7311e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-001.json",
+          "fingerprint": "d4449ce53be8b8e0e17c18184e5f58be3f8ed06c3ddbf5f02e696f703d586839"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-002.json",
+          "fingerprint": "01a368fc3d24808c9a5b25b44d31ab8fd0dc6125f16598bca4239c83a1fc3909"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-003.json",
+          "fingerprint": "a4a357b409cfaa5598cc2607b5bc836d2b47e7ced436c04558f4b1c6a9c90c45"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-003.md",
+          "fingerprint": "9f28d62be32f95aea4a63b5985e99124c7d547985d7786b1c5b5ba0335102b29"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-004.json",
+          "fingerprint": "3daf2c70b2d4e2107298a71e2f4b7d9ced81b30f3cd0b891aefeb4b4f99b9d1b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-004.md",
+          "fingerprint": "b6954b22cfc990fc53b602c1340748a9a725de5b974ba5b35105311c622f9027"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-005.json",
+          "fingerprint": "a63057619965e9c97345ff1e1561c69bad079d65c165f268613a2ed6ac8c90a0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-005.md",
+          "fingerprint": "635dc47bcf201fe80c1cb01cf3ef82f9c59ff5369da3ffaddd60917f71730595"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-006.json",
+          "fingerprint": "e85d9d21d195a23400c82e007012ac73cf05e02b7617a8c02426349928ab9586"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-006.md",
+          "fingerprint": "f2a2cc9e7e69444c9007c4b9ef98a62eda3a922ba8540f98355f988a8d82ab90"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-007.json",
+          "fingerprint": "4e9f2ef830739f009e82e0cfa6161ca686dd6b1f396f5c8b63d996f995a85745"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/impl-attempt-007.md",
+          "fingerprint": "f2a2cc9e7e69444c9007c4b9ef98a62eda3a922ba8540f98355f988a8d82ab90"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/spec-attempt-001.json",
+          "fingerprint": "b033cc4ebc8cf7fdd04c2d6ec9e46605ebb93407ba79085ed6c340e20bf286b0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-001.json",
+          "fingerprint": "fc046dfbaf1cde07a8558a0a4871bbf16e4871ed2b7a3300d7617ff910d969fa"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-001.md",
+          "fingerprint": "c2cb5bbc0c3cb4ccdc0e5e10fd43ea82f670402972fddb88bba7ce65acee98c0"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-002.json",
+          "fingerprint": "e8d44f31c38d0f6cd4b714dca91aec55fffdf50e7098f8bb249a7c608485f09c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-002.md",
+          "fingerprint": "dbf153893de29e398f39914a6f4a1bbab159350aef77873a5d18dd4e350fa82c"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-003.json",
+          "fingerprint": "5f83d0af540f5038a53e58ee66f2a716546780737021b04da61b1b9d043c5456"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/test-attempt-003.md",
+          "fingerprint": "fbc80186a0f7ce48843e95eb559246107d6685872c58ce4e3902e14bf0886052"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "22e9bb7a52f3d2cdbf5a48ae413cb7de38004352489744c72a322eba04f91fe1"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "ae7aafd2a5522ad329aa93778792ef8bf53ba8b6b0b79d6e3366887354efada6"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "0cac2fd41359ed70b649cdd32b68fb53b50e0b43a036068036d718a7e5b9cba7"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "dab8d95586c19fcc1c929a08173e0a5c2b3fab1cfd114cbf61494e2f871b1d20"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "a08a293e34686766eec61031fb6875ec00fb68aba23e068683290d9d95268bbf"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "8582a2118eb2502a448f2c2478e96fe4ad41532e6d80e4102af419d485c18b69"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "5de02cfd1431b1c30eb138f8eb3520cb779b2d5d6382565e34a854bd8e6f9122"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "938f454d12f19b2dd609d6310a43506c98ae2014657f693c973077fae4908b04"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/a768da69e25611a26d7f3f61.json",
+          "fingerprint": "50113ce50d71e355006f469c029fc21267551956c900011867195869ac8b43f5"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "6650d131b11a43a1ab4e26d2e05099f1ce5d3b62bd20a4119a01e07a726a21f2"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "07d0d6c799e4df9b33439630df38c1e975b36dfaf1ec44df75611aaa624bfb96"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "9ff15d3fc85dea5571fea47c6cc95ab25ad82565824947129d61e4a4ff50ae0a"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/e578ef422d40fb6ade163194.json",
+          "fingerprint": "493940676320884547c42dd5ecdeb75cde9263186e0d4c0d5d5c6f234dcfc429"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/review-history/work-units/impl-review/fe1b5e1dc84734536bac3204.json",
+          "fingerprint": "904c6c62db4343290acf076f98695505bb0305387338cf66111219d1360c7916"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/scenario-validity-result.json",
+          "fingerprint": "fb780317c6b6d2aa493571eb27197084bc53c5f15525cf3fdb2b7266d609ca91"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-gate-source.json",
+          "fingerprint": "3764079ad12bf9932d5371a88c83d6a53dfddad521a1808a580b18bdaeb8f52d"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-review.json",
+          "fingerprint": "9cd98a5fc98e5f7ffe10eaeefc86e96730198365ec30434ceb1cc6ea435f861e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec.json",
+          "fingerprint": "df5d13de5ff3de1b5fedb3aa3a852675aa15fad079f34e675b98109b6517ffa8"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/spec.md",
+          "fingerprint": "ba5ac24dbcb6327c4bc35a65c2f3d5edd7f94f056900771392b6590da96dad51"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tasks/T-1.md",
+          "fingerprint": "fc6f6a31fda1de951982ffb7745b766c9509b1c985de443cc1ce07ea44cc2f3e"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-coverage.json",
+          "fingerprint": "1d16b5de43e71fc9059b085554ec9d7ef9ac4b1f7943c3e6e1e954d85c482751"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-review.json",
+          "fingerprint": "8a5700bd75154c8d46a9df1e112d4a8321e55eca2b6445c52396728b9ecdc69b"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/test-review.md",
+          "fingerprint": "fbc80186a0f7ce48843e95eb559246107d6685872c58ce4e3902e14bf0886052"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/.raw/scenario-validity.log",
+          "fingerprint": "66e353ac6704243b3fa37bb59318748f3e1f97e8f36f6178f582a67de68c04ea"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/.raw/upgrade.log",
+          "fingerprint": "60ec4e3bc408e28767b0c1b3ef96e623e0e7af04513dce10fe02303064aff31a"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js",
+          "fingerprint": "99a8c774cfe397e8d8e83cc57124f1dfd73a1253e2dae258d6f482cc8e82ce4a"
+        },
+        {
+          "path": "specs/349-guard-issue-log-target/upgrade-result.json",
+          "fingerprint": "7cf867a837368ecc00384f59277612a169f305daf69ec7d444fd7bdca64ad816"
+        },
+        {
+          "path": "src/flow.js",
+          "fingerprint": "7776cd923adebc211a4398ed7523b55c43d90e5c814a638727a3c3ba6197b3a0"
+        },
+        {
+          "path": "src/flow/lib/acceptance-review-artifacts.js",
+          "fingerprint": "a680088ae075cc2039e4fd246629bd3496f360690be970ed9e69dabfd81f35a7"
+        },
+        {
+          "path": "src/flow/lib/flow-context.js",
+          "fingerprint": "14ae5000341cbb5f907f5d4481a0bf0f97aa85cf15255e8ba986a7bbc7cabbda"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "b91d345af1fdaf794956e29cc8d768500708ea8aef3887aab71bcc7175fec421"
+        },
+        {
+          "path": "src/flow/lib/run-final-regression.js",
+          "fingerprint": "ce39cb2b08da474407857cd997446892c091012b9cc99cb696363b7f68878dd6"
+        },
+        {
+          "path": "src/flow/lib/set-issue-log.js",
+          "fingerprint": "5926c993f062833694e5f405bfc0e7b00ccda7c35ec3990441259cd4ef36902a"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "6e746adc45cf8d699ae31ff6083ef862591307358c8d2da943246624905856bf"
+        },
+        {
+          "path": "src/lib/config.js",
+          "fingerprint": "d9ffc2cee414f90ffd2528d84a5c82d846eee633d982626ccd29d850b392b7e2"
+        },
+        {
+          "path": "src/lib/dispatcher.js",
+          "fingerprint": "5e1011a5000af097e1d2dc3534c5eb8d1c611c0cc313b58e9d5875d4d004c557"
+        },
+        {
+          "path": "tests/unit/flow/final-regression.test.js",
+          "fingerprint": "a0dfc76011c68ebab053f91754a9459bb6189a161c8d230c6be6d0ed406224ee"
+        },
+        {
+          "path": "tests/unit/flow/set-step-impl-repair.test.js",
+          "fingerprint": "b67a285e8a6b100035e83673b6e46fc60959ae5a85d5d07eedc01d5b083e9ccb"
+        }
+      ],
+      "rawOutputPath": "specs/349-guard-issue-log-target/tests/.raw/final-regression-attempt-003.log",
+      "fixAttempts": 2,
+      "retryable": false,
+      "nextAction": "report",
+      "nextRecommendedAction": "record-and-proceed",
+      "timestamp": "2026-07-25T16:03:35.300Z",
+      "issueLogId": "issue-log-8ec8e618-b02c-45b2-961a-9633f6315910"
+    },
+    {
+      "step": "final-regression",
+      "reason": "fix: worktree command identity allowlist must include issue-log after making its target resolution explicit",
+      "resolution": "update the e2e identity contract to cover the newly guarded command instead of treating the intentional behavior as a regression",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:04:39.547Z",
+      "issueLogId": "issue-log-eec853df-11a5-427d-8109-96fbd1b04751"
+    },
+    {
+      "step": "test-execute",
+      "reason": "fix: a pending uncommitted test-evidence refresh must not block a newer source revision",
+      "resolution": "discard only a fingerprint-stale refresh intent with no durable effects, then rebuild evidence for the current source",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:06:41.337Z",
+      "issueLogId": "issue-log-a1f7e727-6715-4890-85e3-4a579ebb843b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: upgrade-result.json missing",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:11:58.503Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: upgrade-result.json missing",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-82eba082-44fe-4789-bbb6-d91e40d9bb1c"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a non-trivial impl-repair recovery branch for the case where durable metadata was committed after source changes, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction.; The diff adds a non-trivial test-evidence-refresh transaction discard/commit recovery flow, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:13:22.533Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "commitRepairTransaction"
+          },
+          "observed": "The diff adds a non-trivial impl-repair recovery branch for the case where durable metadata was committed after source changes, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "recoverImplRepairTransaction"
+          },
+          "observed": "The diff adds a non-trivial test-evidence-refresh transaction discard/commit recovery flow, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R2",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial impl-repair recovery branch for the case where durable metadata was committed after source changes, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial test-evidence-refresh transaction discard/commit recovery flow, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction."
+        }
+      ],
+      "issueLogId": "issue-log-c408b9d5-df2a-4d9e-a6de-00e801aca2fe"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a non-trivial impl-repair recovery branch for the case where durable metadata was committed after source changes, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction.; The diff adds a non-trivial test-evidence-refresh transaction discard/commit recovery flow, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:13:32.851Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "commitRepairTransaction"
+          },
+          "observed": "The diff adds a non-trivial impl-repair recovery branch for the case where durable metadata was committed after source changes, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "recoverImplRepairTransaction"
+          },
+          "observed": "The diff adds a non-trivial test-evidence-refresh transaction discard/commit recovery flow, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial impl-repair recovery branch for the case where durable metadata was committed after source changes, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial test-evidence-refresh transaction discard/commit recovery flow, but the provided spec/issue-log content does not include design-confirmation evidence for this recovery direction."
+        }
+      ],
+      "issueLogId": "issue-log-9282514c-9787-4125-bfd0-5fe253fef851"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: remove the temporary recovery branch after the interrupted evidence refresh was reconciled",
+      "resolution": "keep the final change scoped to guarded issue logging, timeout configuration, and no-Issue acceptance decision behavior",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:14:08.465Z",
+      "issueLogId": "issue-log-6fd7ae33-3e60-4406-931e-6d4135e5537d"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: upgrade-result.json missing",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:16:14.143Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: upgrade-result.json missing",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-89766b5a-da24-4c5d-8f1b-2356ac6dd091"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R1] requires `flow set issue-log` target resolution for matching guard combinations, and the set-issue-log diff opts into shared explicit target resolution via `super({ explicitTargetResolution: true })` with spec-local coverage for the three matching combinations. However [CONSTRAINT:4] limits production changes to set issue-log and its registry/help/target-resolution declaration, while the Git Diff also changes production files including `src/flow/lib/acceptance-review-artifacts.js`, `src/flow/lib/flow-context.js`, `src/flow/lib/impl-repair-artifacts.js`, `src/flow/lib/run-final-regression.js`, and `src/lib/config.js`, contradicting that constraint.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T16:17:20.024Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "[REQ:R1] requires `flow set issue-log` target resolution for matching guard combinations, and the set-issue-log diff opts into shared explicit target resolution via `super({ explicitTargetResolution: true })` with spec-local coverage for the three matching combinations. However [CONSTRAINT:4] limits production changes to set issue-log and its registry/help/target-resolution declaration, while the Git Diff also changes production files including `src/flow/lib/acceptance-review-artifacts.js`, `src/flow/lib/flow-context.js`, `src/flow/lib/impl-repair-artifacts.js`, `src/flow/lib/run-final-regression.js`, and `src/lib/config.js`, contradicting that constraint.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R3",
+        "R2",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "[REQ:R1] requires `flow set issue-log` target resolution for matching guard combinations, and the set-issue-log diff opts into shared explicit target resolution via `super({ explicitTargetResolution: true })` with spec-local coverage for the three matching combinations. However [CONSTRAINT:4] limits production changes to set issue-log and its registry/help/target-resolution declaration, while the Git Diff also changes production files including `src/flow/lib/acceptance-review-artifacts.js`, `src/flow/lib/flow-context.js`, `src/flow/lib/impl-repair-artifacts.js`, `src/flow/lib/run-final-regression.js`, and `src/lib/config.js`, contradicting that constraint."
+        }
+      ],
+      "issueLogId": "issue-log-2ea91ce1-2c04-4893-82be-3b4f0c69b871"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:21:28.718Z",
+      "issueLogId": "issue-log-969260e0-3e5f-49d7-88b5-6b931f94484c"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T16:33:27.006Z",
+      "issueLogId": "issue-log-7a5a0a74-4e0f-4dd1-b1ca-3f69c2080979"
+    }
+  ]
+}

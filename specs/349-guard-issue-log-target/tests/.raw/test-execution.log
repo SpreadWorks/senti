@@ -1,0 +1,63 @@
+[senti] spec-local tests start
+command: node --test specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js
+process.kind: passed
+process.command: node --test specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 1108
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 3087.830013
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: issue-log target guards
+    # Subtest: R1: appends only to the flow for every supported matching guard combination
+    ok 1 - R1: appends only to the flow for every supported matching guard combination
+      ---
+      duration_ms: 957.83984
+      type: 'test'
+      ...
+    # Subtest: R2: rejects each mismatched guard without appending to either flow
+    ok 2 - R2: rejects each mismatched guard without appending to either flow
+      ---
+      duration_ms: 1169.055237
+      type: 'test'
+      ...
+    # Subtest: R3: keeps guard-free appends for one active flow
+    ok 3 - R3: keeps guard-free appends for one active flow
+      ---
+      duration_ms: 514.889983
+      type: 'test'
+      ...
+    # Subtest: R4: help documents all supported target guards
+    ok 4 - R4: help documents all supported target guards
+      ---
+      duration_ms: 288.963593
+      type: 'test'
+      ...
+    1..4
+ok 1 - issue-log target guards
+  ---
+  duration_ms: 2942.186032
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3087.830013
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] spec-local tests end

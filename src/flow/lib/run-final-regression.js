@@ -10,7 +10,7 @@ import fs from "fs";
 import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { sentiOutputDir } from "../../lib/config.js";
+import { loadConfig, sentiConfigPath, sentiOutputDir } from "../../lib/config.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import {
   FINAL_REGRESSION_RESULT_FILE,
@@ -106,6 +106,10 @@ const ATTEMPT_LIMIT_MESSAGE = `final-regression attempt limit exceeded (max=${MA
 const MAX_CHANGED_FILES_TO_MATCH = 1000;
 export const FINAL_REGRESSION_HEARTBEAT_MS = DEFAULT_PROCESS_HEARTBEAT_MS;
 const CHILD_PROCESS_RECORD_CODEC = new ChildProcessExecutionRecordCodec();
+
+function configForAuthorityRoot(root, fallback = {}) {
+  return fs.existsSync(sentiConfigPath(root)) ? loadConfig(root) : fallback;
+}
 
 class TextFailureClassifier {
   constructor(pattern, FailureClass) {
@@ -1242,7 +1246,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     const { root } = ctx;
     const state = ctx.flowState;
     ensureRepairFingerprintContract({ root, state, flowManager: ctx.flowManager });
-    const config = ctx.config || {};
+    const config = configForAuthorityRoot(root, ctx.config || {});
     const specDir = resolveSpecDir(path.resolve(root, state.spec));
     const resultPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);
     const resultPathRelative = repoRelative(root, resultPath);
@@ -1309,7 +1313,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
           writeFinalRegressionProgressLine(`raw log: ${rawOutputPathRelative}`);
           result = await runProcessDetailed(rootCommand, {
             cwd: root,
-            timeoutMs: resolveTestTimeoutSeconds(config) * 1000,
+            timeoutMs: (config?.test?.finalRegressionTimeout || resolveTestTimeoutSeconds(config)) * 1000,
             heartbeatIntervalMs: ctx.finalRegressionProgress?.heartbeatMs ?? FINAL_REGRESSION_HEARTBEAT_MS,
             onHeartbeat({ elapsedMs }) {
               writeFinalRegressionProgressLine(`elapsed: ${formatElapsedMs(elapsedMs)}`);
@@ -1485,7 +1489,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
   recordAndProceed(ctx, { specDir, resultPath, resultPathRelative }) {
     const { root } = ctx;
     const state = ctx.flowState;
-    const config = ctx.config || {};
+    const config = configForAuthorityRoot(root, ctx.config || {});
     const read = readCurrentFinalRegressionArtifact(resultPath);
     if (read.error === "missing") {
       return recordAndProceedFailure(

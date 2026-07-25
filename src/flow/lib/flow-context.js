@@ -127,7 +127,7 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
         : baseFlowManager.resolveExplicitFlowTarget.bind(baseFlowManager);
       target = resolver(new FlowTargetExpectation(options.input));
     } catch (error) {
-      if (!options.allowMissingActive) throw error;
+      if (!options.allowMissingActive && !options.captureTargetResolutionError) throw error;
       return {
         flowManager: baseFlowManager,
         flowState: null,

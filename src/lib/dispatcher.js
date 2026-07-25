@@ -373,10 +373,14 @@ export async function dispatch({
     ? hookCtx.flowResolutionError
     : null;
   if (targetResolutionError) {
+    const failureCode = targetResolutionError.code === "FLOW_TARGET_NOT_FOUND"
+      && entry.targetNotFoundAsMismatch === true
+      ? "ACTIVE_FLOW_MISMATCH"
+      : targetResolutionError.code;
     emitTargetFailure(Envelope.fail(
       envelopeType || "run",
       envelopeKey || "?",
-      targetResolutionError.code,
+      failureCode,
       targetResolutionError.message,
       targetResolutionError.data,
     ));

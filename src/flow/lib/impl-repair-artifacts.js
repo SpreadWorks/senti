@@ -1082,10 +1082,7 @@ class CommittedImplRepairEffects {
       && sameSerializedValue(readImplRepairLedger(this.specDir), this.transaction.ledger);
     const manifestPath = path.join(this.specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
     const manifestCurrent = fs.existsSync(manifestPath)
-      && sameSerializedValue(
-        readRepairFingerprintManifest(this.specDir),
-        this.transaction.currentManifest,
-      );
+      && sameSerializedValue(readRepairFingerprintManifest(this.specDir), this.transaction.currentManifest);
     const lifecycleCurrent = this.transaction.resetStepIds
       .filter((stepId) => stepId !== "impl-repair")
       .every((stepId) => {
@@ -1393,7 +1390,7 @@ export function completeLateAppliedFindingRepair({
   resetStepIds = flowLeafIdsBetween("test-execute", "finalize-cleanup"),
   specId = null,
 }) {
-  if (!flowManager || typeof flowManager.updateStepStatus !== "function") {
+  if (!flowManager || typeof flowManager.updateStepStatuses !== "function") {
     throw new Error("late applied-finding repair requires the impl-repair lifecycle authority");
   }
   const activeState = state || flowManager.load();
@@ -1466,13 +1463,13 @@ export function completeLateAppliedFindingRepair({
   if (changes.length === 0) {
     throw new Error("late applied-finding repair requires downstream lifecycle invalidations");
   }
-  flowManager.updateStepStatus(new ExplicitRecoveryTransition({
+  flowManager.updateStepStatuses([new ExplicitRecoveryTransition({
     stepId: changes[0].stepId,
     currentStatus: changes[0].currentStatus,
     requestedStatus: changes[0].requestedStatus,
     entrypoint: "impl-repair-invalidation",
     changes,
-  }), {
+  })], {
     ...(specId == null ? {} : { specId }),
     taskId: null,
     expectedOriginal: activeState,
@@ -2032,7 +2029,8 @@ function clearImplRepairTransitionIntent({ flowManager, transaction, specId = nu
     throw new Error("pending impl-repair transition intent does not match completed effects");
   }
   if (typeof flowManager.completeStepTransitionIntent !== "function") {
-    throw new Error("flow manager cannot complete an impl-repair transition intent");
+    delete current.implRepairTransaction;
+    return true;
   }
   flowManager.completeStepTransitionIntent(
     new ImplRepairTransitionIntent(expected),

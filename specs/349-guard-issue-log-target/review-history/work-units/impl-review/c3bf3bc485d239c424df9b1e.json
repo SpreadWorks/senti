@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "c3bf3bc485d239c424df9b1e",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-cbec9f8af19c04b2",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/lib/dispatcher.js",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "cbec9f8af19c04b27d011e6e7b19806dff72c5726a79580bc9b3586d7797c3ef",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c3bf3bc485d239c424df9b1e"
+  },
+  "targetFiles": [
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/lib/dispatcher.js",
+    "tests/unit/flow/final-regression.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "cbec9f8af19c04b27d011e6e7b19806dff72c5726a79580bc9b3586d7797c3ef",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:15:37.598Z",
+  "finishedAt": "2026-07-25T16:15:37.598Z",
+  "rawResponse": "### 1. Centralize Target Failure Normalization\n**File:** `src/lib/dispatcher.js`\n**Requirement:** R2\n**Issue:** Target mismatch normalization appears in multiple areas with slightly different names and behavior: `matchesResolvedTarget()` in `acceptance-review-artifacts.js` normalizes identity mismatch behavior, while `dispatcher.js` maps `FLOW_TARGET_NOT_FOUND` to `ACTIVE_FLOW_MISMATCH`. These are related flow-target failure concepts but are implemented and named independently.\n**Suggestion:** Introduce a shared helper or clearly documented flow-target error normalization convention so target-not-found, identity mismatch, and active-flow mismatch paths use consistent names and semantics.\n\n### 2. Align Config Resolution Naming Across Runtime And Tests\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R2\n**Issue:** `configForAuthorityRoot` is vague, and the related test summary proposes a helper like `writeContextConfig`. Together these introduce inconsistent terminology around “authority root”, “context config”, and persisted config behavior.\n**Suggestion:** Use consistent names that distinguish loading from writing, for example `loadConfigForAuthorityRoot(root, fallback)` in runtime code and `writeAuthorityRootConfig(tmp, overrides)` or similar in tests.\n\n### 3. Avoid Duplicating Final Regression Timeout Semantics\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R1\n**Issue:** Runtime timeout resolution is being added inline, while the test introduces explicit duplicated config shape for `test.timeout` and `test.finalRegressionTimeout`. This risks the test and implementation drifting on which timeout field takes precedence.\n**Suggestion:** Centralize final regression timeout resolution in a helper such as `resolveFinalRegressionTimeoutSeconds(config)`, then structure the test fixture to override only the timeout fields needed to verify that helper’s precedence behavior.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Target Failure Normalization",
+        "body": "**File:** `src/lib/dispatcher.js`\n**Requirement:** R2\n**Issue:** Target mismatch normalization appears in multiple areas with slightly different names and behavior: `matchesResolvedTarget()` in `acceptance-review-artifacts.js` normalizes identity mismatch behavior, while `dispatcher.js` maps `FLOW_TARGET_NOT_FOUND` to `ACTIVE_FLOW_MISMATCH`. These are related flow-target failure concepts but are implemented and named independently.\n**Suggestion:** Introduce a shared helper or clearly documented flow-target error normalization convention so target-not-found, identity mismatch, and active-flow mismatch paths use consistent names and semantics.",
+        "file": "src/lib/dispatcher.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Align Config Resolution Naming Across Runtime And Tests",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R2\n**Issue:** `configForAuthorityRoot` is vague, and the related test summary proposes a helper like `writeContextConfig`. Together these introduce inconsistent terminology around “authority root”, “context config”, and persisted config behavior.\n**Suggestion:** Use consistent names that distinguish loading from writing, for example `loadConfigForAuthorityRoot(root, fallback)` in runtime code and `writeAuthorityRootConfig(tmp, overrides)` or similar in tests.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Avoid Duplicating Final Regression Timeout Semantics",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R1\n**Issue:** Runtime timeout resolution is being added inline, while the test introduces explicit duplicated config shape for `test.timeout` and `test.finalRegressionTimeout`. This risks the test and implementation drifting on which timeout field takes precedence.\n**Suggestion:** Centralize final regression timeout resolution in a helper such as `resolveFinalRegressionTimeoutSeconds(config)`, then structure the test fixture to override only the timeout fields needed to verify that helper’s precedence behavior.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

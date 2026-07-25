@@ -264,10 +264,10 @@ function finalRegressionStep(flow) {
   return findStepById(flow.manager.load().steps, "final-regression");
 }
 
-async function setup({ includeOther = true } = {}) {
+async function setup({ includeOther = true, targetIssue = 461 } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "senti-acceptance-registry-"));
   initializeRepository(root);
-  const target = createManagedFlow(root, targetSpec, 461);
+  const target = createManagedFlow(root, targetSpec, targetIssue);
   const other = includeOther ? createManagedFlow(root, otherSpec, 462) : null;
   const acceptance = await loadAcceptanceModule();
   await applyDecisionArtifact(acceptance, target);
@@ -340,6 +340,20 @@ test("R1: acceptance-decision persists only the exact bound worktree flow identi
       sortRegistryIdentityEntries(result.registryVerification.entries),
       registryIdentityEntries(context.target, context.other),
     );
+  } finally {
+    removeContext(context);
+  }
+});
+
+test("R1: acceptance-decision supports an exact no-Issue managed worktree", async () => {
+  const context = await setup({ includeOther: false, targetIssue: null });
+  try {
+    const result = applyContinue(context);
+
+    assertGuardedTargetResolution(context.target);
+    assert.deepEqual(result.registryVerification.target, targetIdentity(context.target));
+    assert.equal(decisionStep(context.target).status, "done");
+    assert.equal(finalRegressionStep(context.target).status, "in_progress");
   } finally {
     removeContext(context);
   }

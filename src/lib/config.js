@@ -304,6 +304,7 @@ const CONFIG_SCHEMA = {
         command: { type: "string", minLength: 1 },
         projectPaths: { type: "array", items: { type: "string", minLength: 1 } },
         timeout: { type: "number", minimum: 1 },
+        finalRegressionTimeout: { type: "number", minimum: 1 },
         testExecuteRegression: { type: "string", enum: ["targeted", "full", "skip"] },
       },
     },
@@ -397,6 +398,9 @@ export function validate(raw, options = {}) {
     }
     if (raw.test.timeout != null && !Number.isInteger(raw.test.timeout)) {
       errors.push("'test.timeout' must be a positive integer number of seconds");
+    }
+    if (raw.test.finalRegressionTimeout != null && !Number.isInteger(raw.test.finalRegressionTimeout)) {
+      errors.push("'test.finalRegressionTimeout' must be a positive integer number of seconds");
     }
   }
 

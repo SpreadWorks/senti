@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "fe1b5e1dc84734536bac3204",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-ffa483588accaa7d",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/lib/dispatcher.js",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "ffa483588accaa7d72b48a1837eeeb48c1b3cfeedc07c4382067bf531e02e682",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "fe1b5e1dc84734536bac3204"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/lib/dispatcher.js",
+    "tests/unit/flow/final-regression.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "ffa483588accaa7d72b48a1837eeeb48c1b3cfeedc07c4382067bf531e02e682",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T15:46:30.836Z",
+  "finishedAt": "2026-07-25T15:46:30.836Z",
+  "rawResponse": "### 1. Centralize Final Regression Config Resolution\n**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R1  \n**Issue:** Final regression timeout/config resolution is now spread across production logic and mirrored by `tests/unit/flow/final-regression.test.js`, which hardcodes stale config shape to exercise the behavior. This creates a cross-file coupling where tests must know too much about config fallback details.  \n**Suggestion:** Add a focused helper such as `resolveFinalRegressionTimeoutSeconds(config)` or `resolveFinalRegressionConfig(root, fallbackConfig)`, use it from command code, and test that helper directly with minimal fixtures.\n\n### 2. Align Target/Transition Authority Failure Naming\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Capability checks introduced across flow code use different levels of specificity: `dispatcher.js` normalizes target-resolution failure codes explicitly, while `impl-repair-artifacts.js` reports a broad “lifecycle authority” error even though the missing interface is specifically `updateStepStatuses`. This makes cross-file diagnostics inconsistent.  \n**Suggestion:** Standardize failure messages around the missing capability or normalized failure code, e.g. mention `flowManager.updateStepStatuses` in impl-repair and keep dispatcher naming similarly explicit with `normalizedTargetFailureCode`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Final Regression Config Resolution",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R1  \n**Issue:** Final regression timeout/config resolution is now spread across production logic and mirrored by `tests/unit/flow/final-regression.test.js`, which hardcodes stale config shape to exercise the behavior. This creates a cross-file coupling where tests must know too much about config fallback details.  \n**Suggestion:** Add a focused helper such as `resolveFinalRegressionTimeoutSeconds(config)` or `resolveFinalRegressionConfig(root, fallbackConfig)`, use it from command code, and test that helper directly with minimal fixtures.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Align Target/Transition Authority Failure Naming",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Capability checks introduced across flow code use different levels of specificity: `dispatcher.js` normalizes target-resolution failure codes explicitly, while `impl-repair-artifacts.js` reports a broad “lifecycle authority” error even though the missing interface is specifically `updateStepStatuses`. This makes cross-file diagnostics inconsistent.  \n**Suggestion:** Standardize failure messages around the missing capability or normalized failure code, e.g. mention `flowManager.updateStepStatuses` in impl-repair and keep dispatcher naming similarly explicit with `normalizedTargetFailureCode`.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

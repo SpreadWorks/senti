@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:37:52.151Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/349-guard-issue-log-target/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Mismatch no-write does not cover executing cwd issue-log.json",
+      "target": "specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js",
+      "findingId": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "fingerprint": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "disposition": "must-fix",
+      "rationale": "This is an explicit acceptance requirement with no corresponding spec-local test coverage.",
+      "issue": "R2 requires mismatched guards to leave both the target candidate issue-log.json and the executing cwd issue-log.json unchanged, but the test only checks the two spec-local logs via entries(root, specId). It never snapshots or asserts the cwd-level issue-log.json path, so an implementation could still write to the executing cwd log and pass.",
+      "requiredChange": "In the R2 mismatch test, assert the executing cwd issue-log.json state is unchanged for each mismatch, in addition to the candidate spec logs.",
+      "whyBlocking": "This is an explicit acceptance requirement with no corresponding spec-local test coverage.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Guard-free append does not verify taskId preservation for non-null taskId",
+      "target": "specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js",
+      "findingId": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "fingerprint": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "disposition": "must-fix",
+      "rationale": "A required field preservation behavior is not covered by an executable test.",
+      "issue": "R3 requires guard-free issue-log append to preserve step, reason, optional fields, and taskId. The test only verifies taskId is null when no taskId is supplied, so an implementation that drops or rewrites a supplied taskId could pass.",
+      "requiredChange": "Add a guard-free append assertion that supplies a taskId and verifies the persisted entry and JSON envelope retain that taskId.",
+      "whyBlocking": "A required field preservation behavior is not covered by an executable test.",
+      "origin": "R3",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/349-guard-issue-log-target/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f83e1dc271f3b726e1974fa472fc764c3d9070207efd794b60336da652ff5d18"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "findingId": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Mismatch no-write does not cover executing cwd issue-log.json",
+      "body": "R2 requires mismatched guards to leave both the target candidate issue-log.json and the executing cwd issue-log.json unchanged, but the test only checks the two spec-local logs via entries(root, specId). It never snapshots or asserts the cwd-level issue-log.json path, so an implementation could still write to the executing cwd log and pass.",
+      "category": "unknown",
+      "fingerprint": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "disposition": "must-fix",
+      "rationale": "This is an explicit acceptance requirement with no corresponding spec-local test coverage."
+    },
+    {
+      "id": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "findingId": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Guard-free append does not verify taskId preservation for non-null taskId",
+      "body": "R3 requires guard-free issue-log append to preserve step, reason, optional fields, and taskId. The test only verifies taskId is null when no taskId is supplied, so an implementation that drops or rewrites a supplied taskId could pass.",
+      "category": "unknown",
+      "fingerprint": "529970ade592ca04b20701e7b1552eb7f2573960e3cd3fb33537653f38afeeb5",
+      "disposition": "must-fix",
+      "rationale": "A required field preservation behavior is not covered by an executable test."
+    }
+  ]
+}

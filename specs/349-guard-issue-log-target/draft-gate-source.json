@@ -1,0 +1,348 @@
+{
+  "version": 1,
+  "runId": "6fa6f612-99de-4236-893f-8e20b9ae1154",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T14:27:37.414Z",
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The goal requires issue-log recording to be done \"安全に\" but does not state a verifiable condition for what safe recording means.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "goal"
+          },
+          "observed": "The goal requires issue-log recording to be done \"安全に\" but does not state a verifiable condition for what safe recording means.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "findingId": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "fingerprint": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "disposition": "must-fix",
+      "rationale": "The goal requires issue-log recording to be done \"安全に\" but does not state a verifiable condition for what safe recording means.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-25T14:26:47.976Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The goal uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the implementation satisfies it.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "goal"
+          },
+          "observed": "The goal uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "fingerprint": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "disposition": "must-fix",
+      "rationale": "The goal uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the implementation satisfies it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement says \"曖昧な target\" should fail, but does not define the concrete conditions that make a target ambiguous.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement says \"曖昧な target\" should fail, but does not define the concrete conditions that make a target ambiguous.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "findingId": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "fingerprint": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "disposition": "must-fix",
+      "rationale": "The requirement says \"曖昧な target\" should fail, but does not define the concrete conditions that make a target ambiguous.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-25T14:26:47.976Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement uses \"曖昧な target\" without measurable criteria, so independent reviewers may disagree on which target states must return the mismatch error.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement uses \"曖昧な target\" without measurable criteria, so independent reviewers may disagree on which target states must return the mismatch error.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "fingerprint": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses \"曖昧な target\" without measurable criteria, so independent reviewers may disagree on which target states must return the mismatch error.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement says help output should let users run the command \"安全に\" in multiple-flow environments, but does not state a verifiable condition for that outcome.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The requirement says help output should let users run the command \"安全に\" in multiple-flow environments, but does not state a verifiable condition for that outcome.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "findingId": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "fingerprint": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "disposition": "must-fix",
+      "rationale": "The requirement says help output should let users run the command \"安全に\" in multiple-flow environments, but does not state a verifiable condition for that outcome.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-25T14:26:47.976Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the help output satisfies it.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The requirement uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the help output satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "fingerprint": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the help output satisfies it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "content",
+        "locator": "goal"
+      },
+      "observed": "The goal requires issue-log recording to be done \"安全に\" but does not state a verifiable condition for what safe recording means.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ],
+      "result": "fail",
+      "guardrail_id": "unambiguous-requirements",
+      "category": "guardrail",
+      "findingId": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "fingerprint": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "disposition": "must-fix",
+      "rationale": "The goal requires issue-log recording to be done \"安全に\" but does not state a verifiable condition for what safe recording means.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "content",
+        "locator": "goal"
+      },
+      "observed": "The goal uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the implementation satisfies it.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "fingerprint": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "disposition": "must-fix",
+      "rationale": "The goal uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the implementation satisfies it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "content",
+        "locator": "scopeVerification.in[2]"
+      },
+      "observed": "The requirement says \"曖昧な target\" should fail, but does not define the concrete conditions that make a target ambiguous.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ],
+      "result": "fail",
+      "guardrail_id": "unambiguous-requirements",
+      "category": "guardrail",
+      "findingId": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "fingerprint": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "disposition": "must-fix",
+      "rationale": "The requirement says \"曖昧な target\" should fail, but does not define the concrete conditions that make a target ambiguous.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "content",
+        "locator": "scopeVerification.in[2]"
+      },
+      "observed": "The requirement uses \"曖昧な target\" without measurable criteria, so independent reviewers may disagree on which target states must return the mismatch error.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "fingerprint": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses \"曖昧な target\" without measurable criteria, so independent reviewers may disagree on which target states must return the mismatch error.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "content",
+        "locator": "impactOnExisting[2]"
+      },
+      "observed": "The requirement says help output should let users run the command \"安全に\" in multiple-flow environments, but does not state a verifiable condition for that outcome.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ],
+      "result": "fail",
+      "guardrail_id": "unambiguous-requirements",
+      "category": "guardrail",
+      "findingId": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "fingerprint": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "disposition": "must-fix",
+      "rationale": "The requirement says help output should let users run the command \"安全に\" in multiple-flow environments, but does not state a verifiable condition for that outcome.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "content",
+        "locator": "impactOnExisting[2]"
+      },
+      "observed": "The requirement uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the help output satisfies it.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "fingerprint": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses the subjective term \"安全に\" without measurable criteria, so independent reviewers may not agree on whether the help output satisfies it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T14:27:37.414Z",
+      "repeatCount": 1
+    }
+  ]
+}

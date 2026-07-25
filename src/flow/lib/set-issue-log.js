@@ -91,6 +91,10 @@ function validateRepairRef(repairRef) {
 }
 
 export default class SetIssueLogCommand extends FlowCommand {
+  constructor() {
+    super({ explicitTargetResolution: true });
+  }
+
   execute(ctx) {
     const { root } = ctx;
 

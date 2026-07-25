@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`flow set issue-log` は、--expect-run-id だけを指定した場合は runId が一致する flow、--expect-run-id と --expect-issue を指定した場合は両方が一致する flow、--expect-run-id・--expect-issue・--expect-spec を指定した場合は3値すべてが一致する flow の authority root と flow state で実行されなければならない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/issue-log-target-guards.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "指定した runId、Issue、spec のいずれかが解決 flow の値と異なる場合、command は IssueLogStore.append 前に ACTIVE_FLOW_MISMATCH を返し、対象候補と実行 cwd の両方の issue-log.json を変更してはならない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/issue-log-target-guards.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "guard-free の `flow set issue-log` は既存の bound worktree flow へ同じ step、reason、optional field、taskId を持つ entry を append し、entry validation と JSON envelope の形式を維持しなければならない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/issue-log-target-guards.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "`flow set issue-log --help` は --expect-issue、--expect-spec、--expect-run-id の3つを supported option として表示し、command test は3条件一致の append と各条件を1つずつ不一致にした無書き込みを検証しなければならない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/issue-log-target-guards.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/issue-log-target-guards.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    }
+  ]
+}

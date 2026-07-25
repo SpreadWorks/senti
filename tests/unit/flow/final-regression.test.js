@@ -104,6 +104,25 @@ describe("flow run final-regression", () => {
     assert.ok(fs.existsSync(path.join(tmp, attemptLogPath(1))));
   });
 
+  it("uses the authority root final regression timeout over a stale context config", async () => {
+    tmp = createTmpDir("final-regression-authority-timeout-");
+    const ctx = setupProject(tmp, "sleep 2\nprintf '%s\\n' 'final pass'\n");
+    writeFile(tmp, ".senti/config.json", JSON.stringify({
+      lang: "en",
+      type: "node-cli",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+      test: {
+        command: `sh ${FIXTURE_PATH}`,
+        timeout: 1,
+        finalRegressionTimeout: 5,
+      },
+    }, null, 2));
+
+    const result = await new RunFinalRegressionCommand().execute(ctx);
+
+    assert.equal(result.result, "pass");
+  });
+
   it("invalidates stale test evidence and rewinds to test-execute before starting regression", async () => {
     tmp = createTmpDir("final-regression-stale-evidence-");
     const ctx = setupProject(tmp, "printf '%s\\n' 'final pass'\n");

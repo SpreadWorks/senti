@@ -1,0 +1,124 @@
+[senti] scenario-validity tests start
+command: node --test specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js
+[senti] scenario-validity file start command=node specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js
+TAP version 13
+# Subtest: issue-log target guards
+    # Subtest: R1: appends only to the flow matching run ID, Issue, and spec
+    ok 1 - R1: appends only to the flow matching run ID, Issue, and spec
+      ---
+      duration_ms: 401.565524
+      type: 'test'
+      ...
+    # Subtest: R2: rejects each mismatched guard without appending to either flow
+    not ok 2 - R2: rejects each mismatched guard without appending to either flow
+      ---
+      duration_ms: 228.716827
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js:77:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Error: explicit flow target not found: runId run-wrong, Issue #349, spec 349-target
+            at resolveUniqueFlowTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/lib/flow-manager.js:262:35)
+            at FlowManager.resolveActiveFlow (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/lib/flow-manager.js:825:22)
+            at resolveAuthorityFlowState (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow/lib/flow-context.js:156:27)
+            at resolveFlowContext (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow/lib/flow-context.js:205:7)
+            at buildHookCtx (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow.js:64:14)
+            at buildRuntimeHookCtx (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/lib/dispatcher.js:288:12)
+            at dispatch (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/lib/dispatcher.js:360:19)
+            at run (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow.js:41:9)
+            at dispatchFlow (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow.js:122:9)
+            at file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow.js:125:7
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: ''
+      actual: ''
+      operator: 'notStrictEqual'
+      stack: |-
+        resolveUniqueFlowTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/lib/flow-manager.js:262:35)
+        FlowManager.resolveActiveFlow (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/lib/flow-manager.js:825:22)
+        resolveAuthorityFlowState (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow/lib/flow-context.js:156:27)
+        resolveFlowContext (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow/lib/flow-context.js:205:7)
+        buildHookCtx (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow.js:64:14)
+        buildRuntimeHookCtx (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/lib/dispatcher.js:288:12)
+        dispatch (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/lib/dispatcher.js:360:19)
+        run (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow.js:41:9)
+        dispatchFlow (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow.js:122:9)
+        file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/src/flow.js:125:7
+        parse (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js:43:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js:93:20)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R3: keeps guard-free appends for one active flow
+    ok 3 - R3: keeps guard-free appends for one active flow
+      ---
+      duration_ms: 236.082626
+      type: 'test'
+      ...
+    # Subtest: R4: help documents all supported target guards
+    not ok 4 - R4: help documents all supported target guards
+      ---
+      duration_ms: 170.294764
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js:108:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /--expect-run-id/. Input:
+        
+        'Usage: senti flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>]\n' +
+          '\n' +
+          'Record an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        Usage: senti flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>]
+        
+        Record an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js:118:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..4
+not ok 1 - issue-log target guards
+  ---
+  duration_ms: 1038.675512
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-349-guard-issue-log-target/specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js:52:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 2
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1054.122592
+Command failed: node specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/349-guard-issue-log-target/tests/issue-log-target-guards.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: appends only to the flow matching run ID, Issue, and spec
+[senti] requirement R2 observed: R2: rejects each mismatched guard without appending to either flow
+[senti] requirement R3 observed: R3: keeps guard-free appends for one active flow
+[senti] requirement R4 observed: R4: help documents all supported target guards
+[senti] scenario-validity tests end

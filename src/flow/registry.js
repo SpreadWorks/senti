@@ -960,9 +960,11 @@ export const FLOW_COMMANDS = {
     },
     "issue-log": {
       helpKey: "flow.set.issue-log",
+      explicitTargetResolution: true,
+      targetNotFoundAsMismatch: true,
       command: () => import("./lib/set-issue-log.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--normalized-finding-id", "--repair-ref-commit", "--repair-ref-file", "--task-id"]) },
-      help: "Usage: senti flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>]\n\nRecord an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.",
+      help: "Usage: senti flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]\n\nRecord an issue-log entry in issue-log.json. When target guards are supplied, append only to the matching flow. Infers taskId from active task unless --task-id is given.",
       post(ctx) {
         const phase = deriveActivePhase(ctx);
         if (phase) ctx.flowManager.incrementMetric(phase, "issueLog");

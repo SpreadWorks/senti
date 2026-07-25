@@ -1,0 +1,40 @@
+{
+  "spec": "specs/349-guard-issue-log-target/spec.json",
+  "date": "2026-07-25T16:19:47.569Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`flow set issue-log` は、--expect-run-id だけを指定した場合は runId が一致する flow、--expect-run-id と --expect-issue を指定した場合は両方が一致する flow、--expect-run-id・--expect-issue・--expect-spec を指定した場合は3値すべてが一致する flow の authority root と flow state で実行されなければならない。",
+      "status": "done",
+      "note": "R1: appends only to the flow for every supported matching guard combination"
+    },
+    {
+      "desc": "指定した runId、Issue、spec のいずれかが解決 flow の値と異なる場合、command は IssueLogStore.append 前に ACTIVE_FLOW_MISMATCH を返し、対象候補と実行 cwd の両方の issue-log.json を変更してはならない。",
+      "status": "done",
+      "note": "R2: rejects each mismatched guard without appending to either flow"
+    },
+    {
+      "desc": "guard-free の `flow set issue-log` は既存の bound worktree flow へ同じ step、reason、optional field、taskId を持つ entry を append し、entry validation と JSON envelope の形式を維持しなければならない。",
+      "status": "done",
+      "note": "R3: keeps guard-free appends for one active flow"
+    },
+    {
+      "desc": "`flow set issue-log --help` は --expect-issue、--expect-spec、--expect-run-id の3つを supported option として表示し、command test は3条件一致の append と各条件を1つずつ不一致にした無書き込みを検証しなければならない。",
+      "status": "done",
+      "note": "R4: help documents all supported target guards"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "58f945c083f1081ff1d7edb575b551c045d675622e6f23c943f3fead1cb47cc4"
+}

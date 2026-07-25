@@ -1,0 +1,54 @@
+{
+  "devType": "bugfix",
+  "goal": "複数の active flow がある環境で、senti flow set issue-log は --expect-run-id、--expect-issue、--expect-spec の全指定に一致する flow へだけ entry を記録し、いずれかが不一致なら entry を記録しない。",
+  "analysis": {
+    "problem": "set issue-log は target guard の引数を登録済みだが、通常の FlowCommand の context 解決は明示 guard を authority 選択に使わない。そのため worktree 外または複数 flow 状態では、guard 付きの issue-log 記録が対象 flow を解決できず NO_FLOW になる。",
+    "proposedApproach": "set issue-log を、guard で選択した flow の authority root と flow state を明示的に解決する command として扱う。選択後も既存の target mismatch 検証と IssueLogStore の append 検証を通す。",
+    "validation": "複数 flow を用意した command test で、runId・Issue・spec が一致する対象だけへ entry が書かれること、不一致は ACTIVE_FLOW_MISMATCH となり両方の issue-log.json が変化しないこと、guard を省略した単一 flow の既存挙動と entry schema が維持されることを検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "FLOW_COMMANDS の set.issue-log は --expect-issue、--expect-spec、--expect-run-id を引数として登録している。",
+      "FlowCommand は explicitTargetResolution が false のとき ambient cwd の flow context を優先し、guard は解決済み state との一致確認だけに使う。",
+      "SetIssueLogCommand は ctx.flowState.spec を使って IssueLogStore に append し、entry の内容と既存 validation は command 内に集約されている。"
+    ],
+    "decisionPoints": [
+      "must: issue-log は既存の FlowCommand context 解決機構を使い、独自の flow 検索・ファイル書き込み経路を追加しない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: target mismatch は標準の ACTIVE_FLOW_MISMATCH envelope を返し、書き込み前に停止する。",
+      "must: 値の構造制約と振る舞いは既存クラスに所属させ、外部依存を追加しない。",
+      "must: 同一 concern の既存 command との target guard 契約を維持し、他の set command の挙動は変更しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "対象選択を有効にする既存 FlowCommand の constructor option と、CLI help に表示する guard usage を source と command test に基づいて spec 化する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: set issue-log は --expect-run-id、--expect-issue、--expect-spec を組み合わせて指定 flow を解決する。",
+      "must: 一致した target flow の issue-log.json にだけ entry を append する。",
+      "must: 指定した runId・Issue・spec のいずれかが選択 flow の値と異なる場合は entry を作成せず、ACTIVE_FLOW_MISMATCH を返す。",
+      "must: single active flow で guard を省略した既存の issue-log 追記を維持する。",
+      "must: command help と command test に target guard の契約を反映し、一致 target の追記と不一致 target の無書き込みを確認する。"
+    ],
+    "out": [
+      "must not: issue-log entry schema、validation の最小文字数、taskId 解決、IssueLogStore の永続化形式を変更しない。",
+      "must not: 他の flow set command の target 解決を変更しない。",
+      "must not: #466 の acceptance-review 実装または artifact validation を変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: 現在の worktree 内で target guard を付けずに実行する issue-log 記録は、同じ flow state と同じ entry 内容を維持する。",
+    "must: guard 付き実行は ambient cwd の別 flow へ書き込まず、明示 target の authority root を使う。",
+    "must: help 出力は --expect-run-id、--expect-issue、--expect-spec を列挙し、command test は3つの一致条件で選択 flow だけに entry が追加されることを確認する。"
+  ],
+  "qa": [],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T23:26:21+09:00",
+    "notes": "autoApprove により、明示 target への安全な issue-log 記録という要求範囲を確認済み。"
+  }
+}

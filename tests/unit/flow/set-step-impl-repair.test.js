@@ -290,8 +290,8 @@ describe("set step impl-repair completion", () => {
       timestamp: new Date().toISOString(),
     });
     writeJson(tmp, "specs/001-test/issue-log.json", issueLog);
-    fs.rmSync(path.join(specDir, "impl-review.json"));
-    fs.rmSync(path.join(specDir, "impl-triage.json"));
+    fs.rmSync(path.join(specDir, "impl-review.json"), { force: true });
+    fs.rmSync(path.join(specDir, "impl-triage.json"), { force: true });
 
     const currentFingerprint = buildRepairFingerprint({ root: tmp, specPath: SPEC_PATH, state });
     writeJson(tmp, "specs/001-test/test-execute-result.json", {

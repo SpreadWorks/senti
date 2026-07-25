@@ -63,6 +63,7 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
       }
       return resolveFlowContext(c, {
         allowMissingActive: resolvedEntry.requiresFlow === false,
+        captureTargetResolutionError: resolvedEntry.targetNotFoundAsMismatch === true,
         explicitTargetResolution: resolvedEntry.explicitTargetResolution === true,
         mismatchTargetResolution: resolvedEntry.mismatchTargetResolution === true,
         preparingRunIdSelection: resolvedEntry.preparingRunIdSelection !== false,
