@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-25T02:15:30.180Z",
+  "analyzedAt": "2026-07-25T06:19:24.065Z",
   "package": {
     "entries": [
       {
@@ -2649,9 +2649,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "681d43e7065bbd066002d51bd4a33768",
-        "lines": 4206,
-        "mtime": "2026-07-25T02:15:17.782Z",
+        "hash": "73c2c6807ded6521bd79b3f7b6e2310a",
+        "lines": 4183,
+        "mtime": "2026-07-25T06:19:07.262Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2659,7 +2659,6 @@
           "ensureAgent",
           "getReviewMaxAttempts",
           "resolveDraftReviewStage",
-          "resolveMergeBase",
           "resolveReviewTarget",
           "resolveReviewExcludePaths",
           "createReviewExcludeMatcher",
@@ -2908,31 +2907,31 @@
         "extends": "ImplReviewPersistenceStrategy",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the flow review command and its review pipelines for spec, draft, implementation, and test phases. It coordinates diff collection, prompt construction, AI review execution, schema validation, and artifact persistence.",
-        "detail": "This command module is the main controller for review workflows under `flow review`, including merge-base resolution, target file scoping, exclusion rules, and per-phase dispatch. It builds structured prompts for multiple review modes, parses and repairs JSON model output, enforces response schemas, and filters findings against touched files and requirement IDs. The implementation includes looped review strategies for larger diffs, persistence abstractions for implementation review artifacts, and history tracking for repeated attempts. It also writes Markdown and JSON outputs such as `review.md`, `impl-review.json`, `spec-review.json`, and test review artifacts while classifying recoverable failures into review-specific error types.",
+        "summary": "Implements the `flow review` CLI command and orchestrates AI-assisted review workflows for specs, drafts, implementation diffs, and tests. It also validates model output and persists structured review artifacts and history files.",
+        "detail": "The module parses command arguments, resolves spec and repository context, computes diffs, and dispatches execution by review phase. It contains prompt builders and parsing logic for implementation review, loop-based review, spec review, draft QA and coverage review, and test review. Model responses are repaired when possible, validated against explicit schemas, normalized into artifact classes, and filtered against touched files or requirement IDs. The command writes Markdown and JSON outputs, tracks attempt history, enforces guardrails and retry limits, and converts failures into structured review error handling.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-25T02:15:54.385Z",
+          "processedAt": "2026-07-25T06:20:40.810Z",
           "attempts": 1
         },
         "keywords": [
           "flow review command",
-          "code review pipeline",
-          "implementation review",
+          "CLI subcommand",
+          "code review",
           "spec review",
           "test review",
-          "prompt orchestration",
-          "artifact persistence",
-          "schema validation",
-          "diff analysis"
+          "draft QA",
+          "git diff analysis",
+          "AI agent orchestration",
+          "artifact persistence"
         ]
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "6c351482f2f3a1addffb246db91837f2",
-        "lines": 1466,
-        "mtime": "2026-07-22T08:22:16.366Z",
+        "hash": "40d609895b8a58f95078e18f0a65cc4a",
+        "lines": 1479,
+        "mtime": "2026-07-25T06:19:07.262Z",
         "className": "definition",
         "methods": [
           "SetStepStatus",
@@ -2998,6 +2997,7 @@
           "resolveFinalizeLifecycle",
           "resolveReportLifecycle",
           "resolveLifecycleForNode",
+          "writeEmptyDraftReviewArtifact",
           "createPlanReviewNode",
           "createDraftReviewLeafNode",
           "createDraftReviewRouteNodes",
@@ -3067,30 +3067,29 @@
           "src/flow/registry.js"
         ],
         "id": "2cb27b93",
-        "summary": "Central workflow definition for the flow and task state machines. It declares nodes, retry policies, and lifecycle plans that drive step transitions across the review pipeline.",
-        "detail": "This module defines the canonical nested flow graph, task graph, and the typed lifecycle action classes used to mutate step state in a controlled way. It models retry limits as either a single positive integer or an auto/manual-aware policy, and validates node metadata such as labels, failure policies, and child depth. Lifecycle resolvers map runtime inputs into concrete actions like status updates, resets, outbox effect handling, side-effect execution, and hook dispatch for review, gate, finalize, and report phases. Traversal helpers derive leaf order, phase maps, prerequisites, active nodes, branch membership, and the latest in-progress leaf while guarding against invalid recursion depth and oversized scans. It also contains small filesystem utilities for creating empty draft-review artifacts and clearing implementation evidence after review proposals trigger a reset.",
+        "summary": "Defines the workflow and task state machine that drives the flow engine. It models nodes, lifecycle actions, retry policies, and traversal helpers for resolving the next step.",
+        "detail": "The module wraps retry limits in scalar and auto/manual strategies, then validates node metadata such as labels, steps, and failure policies. It represents lifecycle mutations as small action objects, including step status changes, metric increments, outbox effects, and hook execution, and resolves them from current phase input. Immutable flow and task definition trees describe the full pipeline, including draft review routes, gates, finalize and report phases, and step side effects. Utility exports derive leaf order, prerequisites, active nodes, branch membership, initial nested step state, and step-specific max-attempt behavior.",
         "chapter": "internal_design",
         "role": "model",
         "enrich": {
-          "processedAt": "2026-07-22T08:25:26.026Z",
+          "processedAt": "2026-07-25T06:20:40.838Z",
           "attempts": 1
         },
         "keywords": [
           "workflow definition",
           "state machine",
           "flow graph",
-          "lifecycle actions",
-          "step transitions",
+          "step lifecycle",
           "retry policy",
-          "prerequisites",
-          "review routes"
+          "phase resolution",
+          "task orchestration"
         ]
       },
       {
         "file": "src/flow/lib/acceptance-review-artifacts.js",
-        "hash": "8a363e7f1d6eb2a7e10e84354fac7675",
-        "lines": 1272,
-        "mtime": "2026-07-24T23:50:11.050Z",
+        "hash": "9281293d4a3b3540334c62e3a4ccbf40",
+        "lines": 1295,
+        "mtime": "2026-07-25T02:24:59.960Z",
         "className": "acceptance-review-artifacts",
         "methods": [
           "RequirementAcceptanceJudgment",
@@ -3122,6 +3121,8 @@
           "deferredFindingBlockers",
           "normalizeArtifact",
           "validateDeferredFindingCoverage",
+          "prepareAcceptanceReviewArtifact",
+          "persistAcceptanceReviewArtifact",
           "dispositionEvidence",
           "latestReviewConvergenceRecords",
           "reviewHandoffFindingId",
@@ -3185,23 +3186,22 @@
           "src/flow/lib/set-acceptance-decision.js"
         ],
         "id": "aa8dda77",
-        "summary": "Implements the acceptance review artifact model and validation pipeline for the flow engine. It builds verdicts, binds evidence to requirements and deferred findings, and persists normalized review outputs.",
-        "detail": "This module defines typed value objects for requirement judgments, blockers, evidence projections, deferred findings, and final acceptance outcomes. It enforces schema constraints, canonical file checks, fingerprint matching, and strict reference binding across request, requirement, diff, repair, and test evidence. The code also derives higher-level state such as deferred finding blockers, stale evidence refresh needs, and the overall acceptance verdict from normalized inputs. It integrates with flow state by reading related artifacts, updating step status, appending issue log entries, and applying explicit user decisions when review results require risk acceptance or abort behavior.",
+        "summary": "Manages the acceptance-review artifact format, evidence projections, and verdict application for the flow engine. It validates review output against schema rules and current repository state before persisting decisions.",
+        "detail": "The module defines typed wrappers for requirement judgments, deferred findings, blockers, canonical review evidence, and final outcomes, with strict field and reference validation. It reads and writes JSON artifacts under the spec directory, fingerprints repair and test inputs, and checks that referenced evidence stays inside the spec tree and matches the current flow state. It assembles deferred findings from flow findings and review handoff records, classifies mechanical blockers from missing or stale artifacts, and builds a normalized review context. When a verdict is applied, it updates step statuses, resets or advances workflow branches, records issue-log entries for risk decisions, and persists the acceptance-review artifact.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-24T23:51:34.422Z",
+          "processedAt": "2026-07-25T06:20:40.838Z",
           "attempts": 1
         },
         "keywords": [
-          "acceptance review",
-          "artifact validation",
-          "evidence binding",
+          "acceptance artifact",
+          "review evidence",
+          "schema validation",
           "deferred findings",
-          "verdict derivation",
-          "repair fingerprint",
-          "flow state",
-          "quality gate"
+          "mechanical blockers",
+          "verdict application",
+          "spec directory"
         ]
       },
       {
@@ -5171,9 +5171,9 @@
       },
       {
         "file": "src/flow/lib/plan-rewind.js",
-        "hash": "56103a2c21f7cc6df41529ab686c018f",
-        "lines": 486,
-        "mtime": "2026-07-18T13:42:07.053Z",
+        "hash": "c14db7bf7d8108823946fc1f9be125aa",
+        "lines": 513,
+        "mtime": "2026-07-25T06:19:07.263Z",
         "className": "plan-rewind",
         "methods": [
           "PlanRewindError",
@@ -5233,21 +5233,22 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "ae86cab5",
-        "summary": "Implements plan rewind as a controlled rollback of flow progress with captured evidence and audit metadata. It limits rewinds to supported stages and tracks freshness so later artifacts can be checked against the rewind point.",
-        "detail": "The module defines supported stages, review and gate phases, evidence kinds, and rewind limits, and wraps validation failures in a dedicated `PlanRewindError`. It models rewind requests, evidence inventory entries, evidence references, and persisted rewind records, with normalized strings, ISO timestamps, and SHA-256 hashes for integrity. Evidence capture walks the spec directory recursively, records file metadata, and hashes content so the rewind has a verifiable snapshot of relevant files. Rewind application clones state, asserts identity against the request, resets selected leaves and counters, and records the rewind so later freshness checks can determine whether evidence or artifacts were produced after the rewind event.",
+        "summary": "Implements plan rewind support for rolling a flow back to an earlier planning stage with auditable evidence. It validates rewind requests, captures file inventories, and records rewind history in state.",
+        "detail": "The module constrains supported stages, review phases, gate phases, evidence kinds, and request sizes through explicit constants and dedicated validation errors. It snapshots evidence by walking the spec directory, normalizing relative paths, hashing file contents, and storing metadata in inventory entries. Rewind application checks state identity, confirms baseline conditions and guard rules, resets relevant steps and counters, and appends a structured rewind record to the state. Freshness helpers compare artifact timestamps against the latest rewind occurrence so later logic can reject stale plan evidence.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-18T13:44:12.981Z",
+          "processedAt": "2026-07-25T06:20:40.838Z",
           "attempts": 1
         },
         "keywords": [
           "plan rewind",
-          "state rollback",
+          "workflow rollback",
           "evidence inventory",
-          "rewind record",
+          "state reset",
+          "audit trail",
           "freshness check",
-          "flow reset"
+          "rewind guards"
         ]
       },
       {
@@ -6192,9 +6193,9 @@
       },
       {
         "file": "src/flow/lib/run-acceptance-review.js",
-        "hash": "c78122d371269bc0ef455892d9753d6f",
-        "lines": 468,
-        "mtime": "2026-07-24T13:43:11.338Z",
+        "hash": "11f57f6e917c94d32ce98e7050877bca",
+        "lines": 469,
+        "mtime": "2026-07-25T06:19:07.263Z",
         "className": "run-acceptance-review",
         "methods": [
           "AcceptanceBudgetError",
@@ -6240,21 +6241,22 @@
         "extends": "Error",
         "usedBy": null,
         "id": "2d93c301",
-        "summary": "Runs the acceptance review command by building a bounded prompt, collecting implementation diff evidence, and validating the model response. It is the orchestration layer between flow state, repair fingerprints, and AI-produced acceptance judgments.",
-        "detail": "The command constructs JSON schemas for the expected response, enforces request and response size budgets, and surfaces a dedicated `AcceptanceBudgetError` when diff, prompt, or reply payloads would exceed limits. Diff collection merges tracked Git changes with bounded untracked-file snapshots while rechecking repair fingerprints so the review cannot be generated against a moving workspace. Prompt builders serialize structured evidence and can emit a narrower repair prompt when deferred finding dispositions are missing from the first model response. Response binding validates requirement judgments and deferred dispositions against the live acceptance context, with JSON-repair fallback parsing and a single-command orchestration path exposed through `RunAcceptanceReviewCommand`.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Runs the acceptance-review command by building an evidence-rich prompt, calling the configured AI agent, and binding the response back to flow data. It also enforces strict size budgets for diffs, prompts, and model output.",
+        "detail": "The module collects tracked and untracked implementation changes from Git, includes symlink and binary handling, and guards against repair-state drift while the diff is being built. It defines JSON schemas for requirement judgments and deferred finding dispositions, then uses a prompt builder to produce schema-constrained acceptance and repair prompts. Response handling first attempts strict JSON parsing, falls back to JSON repair when needed, and maps the result into validated bindings tied to the current acceptance context. The command class extends FlowCommand and delegates model execution to the configured flow acceptance-review agent through the container.",
+        "chapter": "internal_design",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-24T13:45:57.082Z",
+          "processedAt": "2026-07-25T06:20:40.838Z",
           "attempts": 1
         },
         "keywords": [
-          "acceptance review command",
-          "prompt budget",
-          "git diff evidence",
-          "LLM response binding",
-          "deferred disposition",
-          "artifact generation"
+          "acceptance review",
+          "LLM orchestration",
+          "prompt builder",
+          "git diff collection",
+          "response parsing",
+          "JSON repair",
+          "flow command"
         ]
       },
       {
@@ -6872,9 +6874,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "85de6f439e5e5e42200fcec7ca80c1c6",
+        "hash": "fea15d95f94640af06875da06d9e031b",
         "lines": 5687,
-        "mtime": "2026-07-25T02:15:17.783Z",
+        "mtime": "2026-07-25T02:24:59.958Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -7177,24 +7179,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate engine that validates spec, draft, task implementation, and integration phases. It combines artifact checks, diff analysis, AI guardrail evaluation, retry handling, and result persistence in one orchestration module.",
-        "detail": "This module gathers gate inputs from specs, drafts, git diffs, and generated artifacts, then normalizes them into phase-specific evaluation targets. It builds structured prompts for guardrail and requirement checks, parses strict JSON responses, and converts them into normalized gate reports and next actions. The file also manages retry accounting, no-progress detection, repeated-failure suppression, durable deferral, and recovery baselines so gate failures can be retried or escalated consistently. Additional helpers validate lifecycle artifacts, file maps, review findings, and same-spec requirement context to keep semantic gate decisions bounded and auditable. The exported command integrates these utilities into the flow command system and writes issue-log and artifact side effects for downstream steps.",
+        "summary": "Implements the gate execution engine for flow phases such as spec, draft, task implementation, and integration. It validates artifacts, evaluates guardrails and requirement checks, and drives retry, deferral, and result persistence behavior.",
+        "detail": "This module combines command-level orchestration with a large set of helpers for building diffs, compacting prompt inputs, filtering lifecycle artifacts, and validating spec or draft review files. It defines prompt schemas and response parsers for AI-based guardrail and implementation-requirement evaluation, including strict JSON validation and fallback formatting rules. The code also manages retry accounting, repeated-failure detection, recovery baselines, durable deferral artifacts, and issue-log recording so gate failures can be resumed or escalated consistently. Its exported RunGateCommand ties these pieces together by selecting the effective phase, executing semantic checks, enforcing gate readiness rules, and writing normalized gate result artifacts for downstream flow steps.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-25T02:15:54.400Z",
+          "processedAt": "2026-07-25T06:20:40.862Z",
           "attempts": 1
         },
         "keywords": [
           "gate execution",
           "guardrail evaluation",
-          "implementation diff",
-          "retry recovery",
-          "artifact validation",
-          "semantic checks",
           "flow orchestration",
-          "requirement gating",
-          "issue log"
+          "semantic validation",
+          "retry recovery",
+          "diff analysis",
+          "artifact validation",
+          "issue log",
+          "integration gate"
         ]
       },
       {
@@ -11628,9 +11630,9 @@
       },
       {
         "file": "src/lib/git-helpers.js",
-        "hash": "d65c1a9ffe24fad2d21c9fbac2cd84d9",
-        "lines": 330,
-        "mtime": "2026-07-21T07:06:02.111Z",
+        "hash": "97fa3c5e725a1f6aa1b299f4dee7ec13",
+        "lines": 351,
+        "mtime": "2026-07-25T06:19:07.263Z",
         "className": "git-helpers",
         "methods": [
           "runGit",
@@ -11638,6 +11640,7 @@
           "getWorktreeStatus",
           "getCurrentBranch",
           "getAheadCount",
+          "resolveMergeBase",
           "getLastCommit",
           "isGhAvailable",
           "collectGitSummary",
@@ -11668,6 +11671,7 @@
           "getWorktreeStatus",
           "getCurrentBranch",
           "getAheadCount",
+          "resolveMergeBase",
           "getLastCommit",
           "isGhAvailable",
           "collectGitSummary",
@@ -11684,26 +11688,26 @@
         "extends": null,
         "usedBy": [
           "src/lib/active-flow-registry.js",
-          "src/lib/flow-manager.js",
           "src/lib/flow-store.js",
           "src/lib/lint.js"
         ],
         "id": "61b28e9c",
-        "summary": "Provides Git and GitHub CLI utility wrappers used by flow operations. The module normalizes porcelain output, worktree state, rebases, changed-file listings, and idempotent issue comments.",
-        "detail": "Core wrappers run Git commands directly or stream Git output into a newly created file with restrictive permissions. Repository helpers expose current-branch, ahead-count, last-commit, dirty-state, commit-count, and summary information in normalized forms that higher-level flow code can consume. Rebase support classifies failure modes such as dirty trees and conflicts instead of returning only raw subprocess output. Changed-file parsing normalizes porcelain records, bounds the number of accepted entries, and deduplicates or sorts the final list for predictable downstream behavior. The module also supports posting issue comments and one-time idempotent comments, tying GitHub interactions back into automated flow execution.",
-        "chapter": "stack_and_ops",
+        "summary": "Provides shared Git and GitHub CLI helpers for repository inspection and workflow automation. It wraps command execution and returns normalized data for higher-level features.",
+        "detail": "The module centralizes Git process execution through helper wrappers that apply common options such as working directory, timeouts, and structured error handling. It exposes repository state queries including worktree dirtiness, current branch, ahead counts, merge-base resolution, last commit lookup, and compact diff summaries. For change tracking, it parses porcelain output into normalized records, standardizes paths and statuses, deduplicates entries, and enforces bounded result sizes to prevent oversized outputs. It also includes workflow-oriented helpers for fetch and rebase operations, with explicit handling for dirty trees and merge conflicts, plus GitHub issue commenting with idempotency support.",
+        "chapter": "development",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T08:01:09.528Z",
+          "processedAt": "2026-07-25T06:20:40.880Z",
           "attempts": 1
         },
         "keywords": [
           "git helpers",
-          "worktree status",
-          "porcelain parsing",
-          "rebase handling",
+          "repository status",
+          "porcelain parser",
           "changed files",
-          "github issue comments",
+          "merge base",
+          "rebase workflow",
+          "github cli",
           "command wrapper"
         ]
       },
@@ -14527,9 +14531,9 @@
     ],
     "summary": {
       "total": 257,
-      "totalMethods": 2828
+      "totalMethods": 2831
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-25T02:15:54.413Z"
+  "enrichedAt": "2026-07-25T06:20:40.880Z"
 }
