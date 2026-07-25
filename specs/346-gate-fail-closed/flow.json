@@ -436,25 +436,38 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
+              "status": "done",
               "startedAt": "2026-07-25T17:26:32.697Z",
               "runtimeLog": {
                 "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
-                "sequence": 498,
+                "sequence": 500,
                 "attempt": 1,
                 "command": "flow run finalize-merge",
-                "startedAt": "2026-07-25T17:26:42.473Z",
-                "endedAt": "2026-07-25T17:26:45.781Z",
-                "exitCode": 1
-              }
+                "startedAt": "2026-07-25T17:28:19.640Z",
+                "endedAt": "2026-07-25T17:28:23.101Z",
+                "exitCode": 0
+              },
+              "finishedAt": "2026-07-25T17:28:22.970Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-07-25T17:28:22.970Z",
+              "finishedAt": "2026-07-25T17:29:33.355Z",
+              "runtimeLog": {
+                "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-07-25T17:28:34.003Z",
+                "endedAt": "2026-07-25T17:29:33.488Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "in_progress",
+              "startedAt": "2026-07-25T17:29:33.355Z"
             }
           ]
         }
@@ -3170,10 +3183,42 @@
       "taskId": null,
       "stepId": "finalize-merge",
       "operation": "finalize-merge",
-      "status": "pending",
+      "status": "done",
       "attempt": 2,
       "startedAt": "2026-07-25T17:28:19.699Z",
-      "updatedAt": "2026-07-25T17:28:19.699Z"
+      "updatedAt": "2026-07-25T17:28:23.072Z",
+      "result": {
+        "status": "done",
+        "strategy": "squash",
+        "mergedFromSha": "281ba46ba297fb7aa821f2e86755f2f52e5ca6ad"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:8f256730-22f4-4063-8d71-ecb6b38ac165:flow:finalize-sync:finalize-sync",
+      "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+      "taskId": null,
+      "stepId": "finalize-sync",
+      "operation": "finalize-sync",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-25T17:28:34.061Z",
+      "updatedAt": "2026-07-25T17:29:33.459Z",
+      "result": {
+        "status": "done",
+        "diffStat": ".senti/output/analysis.json  | 344 +++++++++++++++++++++++--------------------\n docs/ja/project_structure.md |   4 +-\n docs/project_structure.md    |   4 +-\n 3 files changed, 186 insertions(+), 166 deletions(-)",
+        "diffSummary": ".senti/output/analysis.json\ndocs/ja/project_structure.md\ndocs/project_structure.md"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:8f256730-22f4-4063-8d71-ecb6b38ac165:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "8f256730-22f4-4063-8d71-ecb6b38ac165",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-25T17:29:56.660Z",
+      "updatedAt": "2026-07-25T17:29:57.670Z"
     }
   ],
   "issue": 465,
@@ -14990,6 +15035,8 @@
     "updatedAt": "2026-07-25T17:18:52.324Z"
   },
   "state": {
-    "finalizedAt": "2026-07-25T17:26:31.985Z"
+    "finalizedAt": "2026-07-25T17:26:31.985Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "281ba46ba297fb7aa821f2e86755f2f52e5ca6ad"
   }
 }
