@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/335-implement-evidence-freshness/issue-log.json",
+      "specs/335-implement-evidence-freshness/issue.md",
+      "specs/335-implement-evidence-freshness/plugin-artifacts/workflow/prepare.json"
+    ],
+    "inputHash": "8f30f45cbff5d04bfeb4f773556a75d5108ed6c9cf9352fd758fc75771f7e808",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/335-implement-evidence-freshness/issue-log.json",
+    "specs/335-implement-evidence-freshness/issue.md",
+    "specs/335-implement-evidence-freshness/plugin-artifacts/workflow/prepare.json"
+  ],
+  "inputHash": "8f30f45cbff5d04bfeb4f773556a75d5108ed6c9cf9352fd758fc75771f7e808",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:10:29.495Z",
+  "finishedAt": "2026-07-25T07:10:29.495Z",
+  "rawResponse": "### 1. Collapse Duplicate Gate Finding Text\n**File:** `specs/335-implement-evidence-freshness/issue-log.json`  \n**Requirement:** R5  \n**Issue:** The `spec-gate` entry at `2026-07-25T06:59:29.885Z` repeats the same SHA-256 duplication message three times in `reason` and again as three identical `failedEvaluations`. This makes the log noisy and harder to review without adding distinct information.  \n**Suggestion:** Store the shared reason once, and keep the per-location detail only in `observations`. If duplicate `failedEvaluations` are required by tooling, consider normalizing them before persistence or adding a count field.\n\n### 2. Add Final Newline\n**File:** `specs/335-implement-evidence-freshness/issue.md`  \n**Requirement:** R5  \n**Issue:** The file ends without a trailing newline, which is inconsistent with common Markdown/text file conventions and can create avoidable diff churn.  \n**Suggestion:** Add a newline at EOF.\n\n### 3. Avoid Redundant Issue Number Fields\n**File:** `specs/335-implement-evidence-freshness/plugin-artifacts/workflow/prepare.json`  \n**Requirement:** R5  \n**Issue:** The artifact stores the same value twice as top-level `issue` and nested `result.issueNumber`. If both are not required by the artifact contract, this duplication can drift in future generated outputs.  \n**Suggestion:** Keep a single issue identifier, or document/validate that the two fields are intentionally duplicated because they come from different producer/consumer contracts.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Collapse Duplicate Gate Finding Text",
+        "body": "**File:** `specs/335-implement-evidence-freshness/issue-log.json`  \n**Requirement:** R5  \n**Issue:** The `spec-gate` entry at `2026-07-25T06:59:29.885Z` repeats the same SHA-256 duplication message three times in `reason` and again as three identical `failedEvaluations`. This makes the log noisy and harder to review without adding distinct information.  \n**Suggestion:** Store the shared reason once, and keep the per-location detail only in `observations`. If duplicate `failedEvaluations` are required by tooling, consider normalizing them before persistence or adding a count field.",
+        "file": "specs/335-implement-evidence-freshness/issue-log.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Add Final Newline",
+        "body": "**File:** `specs/335-implement-evidence-freshness/issue.md`  \n**Requirement:** R5  \n**Issue:** The file ends without a trailing newline, which is inconsistent with common Markdown/text file conventions and can create avoidable diff churn.  \n**Suggestion:** Add a newline at EOF.",
+        "file": "specs/335-implement-evidence-freshness/issue.md",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Avoid Redundant Issue Number Fields",
+        "body": "**File:** `specs/335-implement-evidence-freshness/plugin-artifacts/workflow/prepare.json`  \n**Requirement:** R5  \n**Issue:** The artifact stores the same value twice as top-level `issue` and nested `result.issueNumber`. If both are not required by the artifact contract, this duplication can drift in future generated outputs.  \n**Suggestion:** Keep a single issue identifier, or document/validate that the two fields are intentionally duplicated because they come from different producer/consumer contracts.",
+        "file": "specs/335-implement-evidence-freshness/plugin-artifacts/workflow/prepare.json",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

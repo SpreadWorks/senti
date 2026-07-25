@@ -1,0 +1,77 @@
+{
+  "devType": "bugfix",
+  "goal": "must: plan rewind 後の implement 完了判定では、最新 plan epoch より前の scenario-validity、test-execute、test-result-review 証跡を current evidence として受理せず、rewind がない flow の現行動作を維持する。",
+  "analysis": {
+    "problem": "must: implement 完了判定は artifact の存在と機械的妥当性を確認するが、最新 plan rewind 後に生成された証跡かを確認しないため、保持または skip された旧 plan の証跡が current plan の完了条件を満たし得る。",
+    "proposedApproach": "must: 既存の plan rewind freshness 契約を implement 完了判定の対象証跡へ適用し、stale evidence を missing または malformed evidence とは別の識別可能な失敗として扱う。",
+    "validation": "must: retained、skipped、regenerated、no-rewind の focused test により、旧 epoch の証跡は拒否され、rewind 後に再生成された証跡と rewind がない既存 flow の証跡は受理されることを確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #460 は implement evidence eligibility after plan rewind のみを修正対象としている。",
+      "must: src/flow/lib/plan-rewind.js は最新 rewoundAt より後に生成された証跡だけを fresh と判定し、rewind がない場合は fresh と判定する契約を提供している。",
+      "must: src/flow/lib/set-step.js の approval 完了判定は既存 freshness 契約を使用して stale approval を識別可能なエラーとして拒否する。",
+      "must: src/flow/lib/set-step.js の implement 完了判定は scenario-validity-result.json、test-execute-result.json、test-result-review.json を機械検証するが、plan epoch との対応を検証していない。",
+      "must: 既存 implement 完了判定は requirement status、file-map、artifact schema、raw test output も検証しているため、これらの missing または malformed 診断を維持する。"
+    ],
+    "decisionPoints": [
+      "must: 最新 rewind より前の対象証跡は、ファイルが存在して機械検証に合格しても implement 完了の根拠にしない。",
+      "must: stale evidence の診断は missing または malformed evidence と異なる issue code で識別できるようにする。",
+      "must: 最新 rewind 後に通常経路で再生成された対象証跡は current plan evidence として受理する。",
+      "must: plan rewind 履歴がない flow には追加の freshness 拒否を適用しない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加せず、Node.js 組み込みモジュールと既存 plan rewind helper を使用する。",
+      "must: 値の制約や新しい意味型が必要な場合は専用クラスで invariant と振る舞いを表現し、オブジェクトリテラルによる疑似 discriminated union を追加しない。",
+      "must: 同じ freshness 判定パターンが複数箇所に現れる場合は共通 helper に抽出する。",
+      "must: src/ 以下へ Issue #460 やこのリポジトリ固有の固定値を埋め込まない。",
+      "must: テスト失敗時は妥当なシナリオを維持し、テストを通す目的で期待値を現行バグへ合わせない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: stale 判定を対象 artifact の機械検証と組み合わせる順序を、missing、malformed、stale がそれぞれ識別できる acceptance criteria と task に落とし込む。",
+      "must: retained と skipped の旧証跡、rewind 後に regenerated された証跡、no-rewind 証跡の production-path coverage を spec-local test に定義する。",
+      "should: 既存 specs/295-producer-artifact-contract の implement completion fixture と specs/319-guarded-plan-rewind の freshness boundary coverage を先例として再利用する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: implement 完了判定における scenario-validity、test-execute、test-result-review evidence の current plan epoch eligibility。",
+      "must: stale evidence と missing または malformed evidence を別の識別可能なエラーとして報告する。",
+      "must: 最新 rewind 後に再生成された evidence を受理する。",
+      "must: plan rewind がない flow の既存 implement completion behavior を維持する。",
+      "must: retained、skipped、regenerated、no-rewind の focused regression coverage を追加する。"
+    ],
+    "out": [
+      "must: Issue #443 に含まれる変更は対象外。",
+      "must: plan rewind の対応 stage、reset 対象、監査 record、evidence inventory の再設計は対象外。",
+      "must: approval や implement 以外の completion freshness policy の変更は対象外。",
+      "must: scenario-validity、test-execute、test-result-review artifact schema 自体の変更は対象外。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: plan rewind を経験した flow では、旧 epoch の persistent test evidence だけで implement を done にできなくなる。",
+    "must: rewind 後に必要な evidence を通常経路で再生成した flow は implement completion を継続できる。",
+    "must: rewind がない flow では現在の artifact existence、schema、requirement status、file-map、raw output の検証結果を維持する。",
+    "should: CLI 利用者は IMPLEMENT_COMPLETION_VALIDATION_FAILED の issueCodes により stale と missing または malformed を区別できる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #460 の Goal を、plan rewind 前の persistent evidence を implement 完了根拠から除外し、rewind 後に再生成された evidence と no-rewind flow の現行動作を受理する範囲として進めますか。",
+      "answer": "はい。must: plan rewind 前の persistent evidence は implement 完了根拠から除外し、最新 rewind 後に再生成された evidence と no-rewind flow の現行動作を受理する。",
+      "evidence": "Issue #460 Acceptance Criteria は stale evidence の拒否、current plan epoch との対応、no-rewind behavior の維持、retained・skipped・regenerated・no-rewind の focused test を要求する。src/flow/lib/plan-rewind.js は最新 rewoundAt を基準にする freshness 契約を提供し、src/flow/lib/set-step.js の implement 判定にはその適用がない。",
+      "why": "旧 plan の証跡が存在するだけで current plan の implement completion を満たすことが root problem であり、既存 freshness 契約の適用は Issue の受け入れ条件を直接満たす。",
+      "considered": "artifact の存在と機械検証だけを維持する案は root problem を残すため採用しない。Issue #443 の変更まで含める案は明示された out of scope に反するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T00:31:25Z",
+    "notes": "Issue #460 の Goal / Scope はユーザー承認済み。draft review は質問構造と coverage の両方で PASS し、未解決のユーザー判断はない。"
+  }
+}

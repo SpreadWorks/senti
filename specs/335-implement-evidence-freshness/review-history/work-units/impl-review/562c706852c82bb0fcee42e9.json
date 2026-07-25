@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/335-implement-evidence-freshness/spec-review.json",
+      "specs/335-implement-evidence-freshness/spec.json",
+      "specs/335-implement-evidence-freshness/spec.md"
+    ],
+    "inputHash": "317e8819405fcb2650ff9690e239f3231d2f20a1d640cf55c3e1559ce546df2b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "specs/335-implement-evidence-freshness/spec-review.json",
+    "specs/335-implement-evidence-freshness/spec.json",
+    "specs/335-implement-evidence-freshness/spec.md"
+  ],
+  "inputHash": "317e8819405fcb2650ff9690e239f3231d2f20a1d640cf55c3e1559ce546df2b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:10:45.148Z",
+  "finishedAt": "2026-07-25T07:10:45.148Z",
+  "rawResponse": "### 1. Remove duplicated overview entries\n**File:** `specs/335-implement-evidence-freshness/spec.json`  \n**Requirement:** R1  \n**Issue:** The `overview.modules` and `overview.data_flow` sections repeat the same `set-step.js` eligibility/classification responsibility in near-identical wording, including task-added entries that duplicate earlier bullets.  \n**Suggestion:** Consolidate each duplicated pair into one entry so the spec has a single source of truth for where eligibility is applied and how stale evidence is filtered.\n\n### 2. Remove duplicated overview text in markdown\n**File:** `specs/335-implement-evidence-freshness/spec.md`  \n**Requirement:** R1  \n**Issue:** The generated markdown repeats the same implement-completion classification/filtering points in both `Modules` and `Data Flow`, making the design look broader than it is.  \n**Suggestion:** Keep one concise module bullet for ownership and one data-flow bullet for filtering behavior; remove the redundant `set-step.js` and “filters each retained evidence artifact” bullets.\n\n### 3. Replace empty open question placeholder\n**File:** `specs/335-implement-evidence-freshness/spec.md`  \n**Requirement:** R5  \n**Issue:** `## Open Questions` contains `- [ ]`, which is dead placeholder content and can be mistaken for an unresolved spec item.  \n**Suggestion:** Replace it with `None.` or omit the section if the generator allows it, matching `spec.json` where `open_questions` is an empty array.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated overview entries",
+        "body": "**File:** `specs/335-implement-evidence-freshness/spec.json`  \n**Requirement:** R1  \n**Issue:** The `overview.modules` and `overview.data_flow` sections repeat the same `set-step.js` eligibility/classification responsibility in near-identical wording, including task-added entries that duplicate earlier bullets.  \n**Suggestion:** Consolidate each duplicated pair into one entry so the spec has a single source of truth for where eligibility is applied and how stale evidence is filtered.",
+        "file": "specs/335-implement-evidence-freshness/spec.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Remove duplicated overview text in markdown",
+        "body": "**File:** `specs/335-implement-evidence-freshness/spec.md`  \n**Requirement:** R1  \n**Issue:** The generated markdown repeats the same implement-completion classification/filtering points in both `Modules` and `Data Flow`, making the design look broader than it is.  \n**Suggestion:** Keep one concise module bullet for ownership and one data-flow bullet for filtering behavior; remove the redundant `set-step.js` and “filters each retained evidence artifact” bullets.",
+        "file": "specs/335-implement-evidence-freshness/spec.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Replace empty open question placeholder",
+        "body": "**File:** `specs/335-implement-evidence-freshness/spec.md`  \n**Requirement:** R5  \n**Issue:** `## Open Questions` contains `- [ ]`, which is dead placeholder content and can be mistaken for an unresolved spec item.  \n**Suggestion:** Replace it with `None.` or omit the section if the generator allows it, matching `spec.json` where `open_questions` is an empty array.",
+        "file": "specs/335-implement-evidence-freshness/spec.md",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

@@ -257,6 +257,40 @@ describe("draft repair target canonical classification", () => {
       /duplicate fingerprint/,
     );
   });
+
+  it("normalizes colliding provider identities for distinct findings", () => {
+    const duplicateIdentity = "a".repeat(64);
+    const canonical = canonicalReviewArtifactFindings({
+      verdict: "REJECTED",
+      blockingFindings: [
+        {
+          title: "Missing stale scenario evidence coverage",
+          issue: "Scenario evidence at the rewind boundary is not covered.",
+          findingId: duplicateIdentity,
+          fingerprint: duplicateIdentity,
+        },
+        {
+          title: "Missing stale test execution evidence coverage",
+          issue: "Test execution evidence at the rewind boundary is not covered.",
+          findingId: duplicateIdentity,
+          fingerprint: duplicateIdentity,
+        },
+      ],
+    }, "test", "test-review.json");
+
+    assert.deepEqual(
+      canonical.blockingFindings.map((finding) => finding.findingId),
+      [duplicateIdentity, "test-blocking-002"],
+    );
+    assert.notEqual(
+      canonical.blockingFindings[0].fingerprint,
+      canonical.blockingFindings[1].fingerprint,
+    );
+    assert.equal(new ReviewDisposition({
+      value: "REJECTED",
+      ...canonical,
+    }).blockingFindings.length, 2);
+  });
 });
 
 describe("FLOW_STEPS includes impl-review", () => {

@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "e218eb3651cfc649e2bd55e5",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-35b36595e2d175c3",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/335-implement-evidence-freshness/draft.json",
+      "specs/335-implement-evidence-freshness/issue-log.json",
+      "specs/335-implement-evidence-freshness/review-history/draft-coverage-attempt-001.json",
+      "specs/335-implement-evidence-freshness/review-history/test-attempt-001.json",
+      "specs/335-implement-evidence-freshness/review-history/test-attempt-003.json",
+      "specs/335-implement-evidence-freshness/review-history/test-attempt-005.json",
+      "specs/335-implement-evidence-freshness/spec-review.json",
+      "specs/335-implement-evidence-freshness/tests/.raw/scenario-validity.log",
+      "src/flow/lib/set-step.js"
+    ],
+    "inputHash": "35b36595e2d175c30ffa1c5025c5a9f290d874e69b7d4288a5a781a81b12e99d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "e218eb3651cfc649e2bd55e5"
+  },
+  "targetFiles": [
+    "specs/335-implement-evidence-freshness/draft.json",
+    "specs/335-implement-evidence-freshness/issue-log.json",
+    "specs/335-implement-evidence-freshness/review-history/draft-coverage-attempt-001.json",
+    "specs/335-implement-evidence-freshness/review-history/test-attempt-001.json",
+    "specs/335-implement-evidence-freshness/review-history/test-attempt-003.json",
+    "specs/335-implement-evidence-freshness/review-history/test-attempt-005.json",
+    "specs/335-implement-evidence-freshness/spec-review.json",
+    "specs/335-implement-evidence-freshness/tests/.raw/scenario-validity.log",
+    "src/flow/lib/set-step.js"
+  ],
+  "inputHash": "35b36595e2d175c30ffa1c5025c5a9f290d874e69b7d4288a5a781a81b12e99d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:11:05.303Z",
+  "finishedAt": "2026-07-25T07:11:05.303Z",
+  "rawResponse": "### 1. Normalize Review Finding Identity Across Attempt Artifacts\n**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-001.json`\n**Requirement:** R5\n**Issue:** Multiple review-history files report distinct findings that reuse identical `findingId`, `fingerprint`, and `id` values. This is a cross-file identity contract problem because downstream deduplication cannot reliably compare findings across `test-attempt-001.json`, `test-attempt-003.json`, and `test-attempt-004.json`.\n**Suggestion:** Generate stable unique IDs per finding from semantic content such as phase, requirement, target, title, and body, and apply the same identity rule consistently to all review-history attempt artifacts.\n\n### 2. Consolidate Duplicated Review Finding Payload Shape\n**File:** `specs/335-implement-evidence-freshness/review-history/impl-attempt-001.json`\n**Requirement:** R5\n**Issue:** Several artifacts duplicate full finding payloads across parallel fields such as `blockingFindings`, `advisoryFindings`, `findings`, Markdown mirrors, and `flow.json` handoff records. The same data model is being repeated differently across files, which creates drift risk between canonical history, rendered summaries, and flow state.\n**Suggestion:** Define one canonical finding representation, store full finding details once, and make secondary views reference finding IDs or be generated on demand.\n\n### 3. Bound Persisted Review History Consistently\n**File:** `specs/335-implement-evidence-freshness/flow.json`\n**Requirement:** R5\n**Issue:** `flow.json`, `issue-log.json`, and repeated `review-history/test-attempt-*.json` files all preserve retry and review history as append-only payloads. The proposals describe local duplication, but together they indicate an inconsistent retention policy across flow state, issue log, and review history artifacts.\n**Suggestion:** Add a shared retention rule for workflow evidence: keep canonical current results plus a bounded number of prior attempts, with large or rendered payloads derived externally rather than persisted repeatedly.\n\n### 4. Align Spec JSON And Markdown Empty-State Rendering\n**File:** `specs/335-implement-evidence-freshness/spec.md`\n**Requirement:** R5\n**Issue:** `spec.json` represents `open_questions` as an empty array, while `spec.md` renders `## Open Questions` as a dangling `- [ ]` placeholder. This is a cross-file representation inconsistency between structured spec data and generated Markdown.\n**Suggestion:** Update the Markdown renderer so empty arrays render as `None.` or omit the section consistently, rather than emitting a task-list placeholder.\n\n### 5. Use Consistent Freshness Boolean Naming Across Implementation And Tests\n**File:** `src/flow/lib/set-step.js`\n**Requirement:** R1\n**Issue:** Implementation proposals use generic freshness names like `present`, `current`, and `stale`, while test proposals refer to “current scenario evidence” and helpers like `writeCurrentScenarioArtifact`. The mixed naming makes the evidence freshness interface less obvious across production and test files.\n**Suggestion:** Standardize on explicit boolean names such as `isPresent`, `isCurrent`, and `isStale` in implementation, and mirror those terms in test helper names and fixture options.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Review Finding Identity Across Attempt Artifacts",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-001.json`\n**Requirement:** R5\n**Issue:** Multiple review-history files report distinct findings that reuse identical `findingId`, `fingerprint`, and `id` values. This is a cross-file identity contract problem because downstream deduplication cannot reliably compare findings across `test-attempt-001.json`, `test-attempt-003.json`, and `test-attempt-004.json`.\n**Suggestion:** Generate stable unique IDs per finding from semantic content such as phase, requirement, target, title, and body, and apply the same identity rule consistently to all review-history attempt artifacts.",
+        "file": "specs/335-implement-evidence-freshness/review-history/test-attempt-001.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Consolidate Duplicated Review Finding Payload Shape",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/impl-attempt-001.json`\n**Requirement:** R5\n**Issue:** Several artifacts duplicate full finding payloads across parallel fields such as `blockingFindings`, `advisoryFindings`, `findings`, Markdown mirrors, and `flow.json` handoff records. The same data model is being repeated differently across files, which creates drift risk between canonical history, rendered summaries, and flow state.\n**Suggestion:** Define one canonical finding representation, store full finding details once, and make secondary views reference finding IDs or be generated on demand.",
+        "file": "specs/335-implement-evidence-freshness/review-history/impl-attempt-001.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Bound Persisted Review History Consistently",
+        "body": "**File:** `specs/335-implement-evidence-freshness/flow.json`\n**Requirement:** R5\n**Issue:** `flow.json`, `issue-log.json`, and repeated `review-history/test-attempt-*.json` files all preserve retry and review history as append-only payloads. The proposals describe local duplication, but together they indicate an inconsistent retention policy across flow state, issue log, and review history artifacts.\n**Suggestion:** Add a shared retention rule for workflow evidence: keep canonical current results plus a bounded number of prior attempts, with large or rendered payloads derived externally rather than persisted repeatedly.",
+        "file": "specs/335-implement-evidence-freshness/flow.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Align Spec JSON And Markdown Empty-State Rendering",
+        "body": "**File:** `specs/335-implement-evidence-freshness/spec.md`\n**Requirement:** R5\n**Issue:** `spec.json` represents `open_questions` as an empty array, while `spec.md` renders `## Open Questions` as a dangling `- [ ]` placeholder. This is a cross-file representation inconsistency between structured spec data and generated Markdown.\n**Suggestion:** Update the Markdown renderer so empty arrays render as `None.` or omit the section consistently, rather than emitting a task-list placeholder.",
+        "file": "specs/335-implement-evidence-freshness/spec.md",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Use Consistent Freshness Boolean Naming Across Implementation And Tests",
+        "body": "**File:** `src/flow/lib/set-step.js`\n**Requirement:** R1\n**Issue:** Implementation proposals use generic freshness names like `present`, `current`, and `stale`, while test proposals refer to “current scenario evidence” and helpers like `writeCurrentScenarioArtifact`. The mixed naming makes the evidence freshness interface less obvious across production and test files.\n**Suggestion:** Standardize on explicit boolean names such as `isPresent`, `isCurrent`, and `isStale` in implementation, and mirror those terms in test helper names and fixture options.",
+        "file": "src/flow/lib/set-step.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

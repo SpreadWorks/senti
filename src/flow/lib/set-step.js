@@ -37,6 +37,7 @@ import {
 } from "./test-artifacts.js";
 import {
   PlanEvidenceReference,
+  isPlanArtifactFresh,
   isPlanEvidenceFresh,
   latestPlanRewind,
 } from "./plan-rewind.js";
@@ -185,6 +186,19 @@ function addImplementIssue(issueCodes, code) {
   if (!issueCodes.includes(code)) issueCodes.push(code);
 }
 
+class ImplementEvidenceEligibility {
+  constructor({ state, file, kind }) {
+    this.file = file;
+    this.present = fs.existsSync(file);
+    this.current = this.present && isPlanArtifactFresh(state, file, kind);
+    Object.freeze(this);
+  }
+
+  get stale() {
+    return this.present && !this.current;
+  }
+}
+
 export async function preValidateImplementStepCompletion({ root, state, requestedStatus } = {}) {
   if (requestedStatus !== "done") return null;
   if (!state?.spec) return implementFailure(["durable-artifact-missing"], ["active flow spec is required"]);
@@ -220,13 +234,34 @@ export async function preValidateImplementStepCompletion({ root, state, requeste
   const scenarioValidityPath = path.join(specDir, "scenario-validity-result.json");
   const testExecutePath = path.join(specDir, "test-execute-result.json");
   const testResultReviewPath = path.join(specDir, "test-result-review.json");
-  if (!fs.existsSync(testExecutePath) && !fs.existsSync(scenarioValidityPath)) {
-    addImplementIssue(issueCodes, "durable-artifact-missing");
+  const scenarioValidityEvidence = new ImplementEvidenceEligibility({
+    state,
+    file: scenarioValidityPath,
+    kind: "scenario-validity",
+  });
+  const testExecuteEvidence = new ImplementEvidenceEligibility({
+    state,
+    file: testExecutePath,
+    kind: "test-execute",
+  });
+  const testResultReviewEvidence = new ImplementEvidenceEligibility({
+    state,
+    file: testResultReviewPath,
+    kind: "test-result-review",
+  });
+  const readinessEvidence = [scenarioValidityEvidence, testExecuteEvidence];
+  if (!readinessEvidence.some((evidence) => evidence.current)) {
+    addImplementIssue(
+      issueCodes,
+      readinessEvidence.some((evidence) => evidence.stale)
+        ? "durable-artifact-stale"
+        : "durable-artifact-missing",
+    );
   }
   if (issueCodes.includes("requirement-status-incomplete")) {
     return implementFailure(issueCodes);
   }
-  if (fs.existsSync(scenarioValidityPath)) {
+  if (scenarioValidityEvidence.current) {
     try {
       const completed = await completeScenarioValidityArtifactChange({
         root,
@@ -240,7 +275,7 @@ export async function preValidateImplementStepCompletion({ root, state, requeste
       addImplementIssue(issueCodes, "durable-artifact-missing");
     }
   }
-  if (fs.existsSync(testExecutePath)) {
+  if (testExecuteEvidence.current) {
     try {
       const artifact = JSON.parse(fs.readFileSync(testExecutePath, "utf8"));
       const completed = await completeTestExecuteArtifactChange({ root, specDir, artifact });
@@ -258,7 +293,7 @@ export async function preValidateImplementStepCompletion({ root, state, requeste
       addImplementIssue(issueCodes, "durable-artifact-missing");
     }
   }
-  if (fs.existsSync(testResultReviewPath)) {
+  if (testResultReviewEvidence.current) {
     try {
       const completed = await completeTestResultReviewArtifactChange({
         specDir,

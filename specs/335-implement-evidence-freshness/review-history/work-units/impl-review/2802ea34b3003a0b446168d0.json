@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/335-implement-evidence-freshness/review-history/test-attempt-005.json",
+      "specs/335-implement-evidence-freshness/review-history/test-attempt-005.md",
+      "specs/335-implement-evidence-freshness/scenario-validity-result.json",
+      "specs/335-implement-evidence-freshness/test-review.md"
+    ],
+    "inputHash": "75c5e284af8b0ce5af61532adf7616f14a6e24a276cd51ba976d00b6e9fe3e67",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "specs/335-implement-evidence-freshness/review-history/test-attempt-005.json",
+    "specs/335-implement-evidence-freshness/review-history/test-attempt-005.md",
+    "specs/335-implement-evidence-freshness/scenario-validity-result.json",
+    "specs/335-implement-evidence-freshness/test-review.md"
+  ],
+  "inputHash": "75c5e284af8b0ce5af61532adf7616f14a6e24a276cd51ba976d00b6e9fe3e67",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:05:27.743Z",
+  "finishedAt": "2026-07-25T07:05:27.743Z",
+  "rawResponse": "### 1. Remove Repeated Advisory Rationale Text\n**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-005.json`  \n**Requirement:** R3  \n**Issue:** The same rationale text is duplicated across `advisoryFindings[0].rationale`, `advisoryFindings[0].whyNonBlocking`, `findings[0].body`, and `findings[0].rationale`. This makes the artifact harder to maintain and increases drift risk if one copy changes.  \n**Suggestion:** Keep one canonical rationale field per finding and have consumers derive display-specific fields from it, or omit redundant aliases if the schema allows it.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Repeated Advisory Rationale Text",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-005.json`  \n**Requirement:** R3  \n**Issue:** The same rationale text is duplicated across `advisoryFindings[0].rationale`, `advisoryFindings[0].whyNonBlocking`, `findings[0].body`, and `findings[0].rationale`. This makes the artifact harder to maintain and increases drift risk if one copy changes.  \n**Suggestion:** Keep one canonical rationale field per finding and have consumers derive display-specific fields from it, or omit redundant aliases if the schema allows it.",
+        "file": "specs/335-implement-evidence-freshness/review-history/test-attempt-005.json",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

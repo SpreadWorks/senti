@@ -1,0 +1,223 @@
+{
+  "entries": [
+    {
+      "step": "spec-review",
+      "reason": "spec review result recording failed because a transient active lock owner blocked artifact persistence",
+      "trigger": "senti flow run review --phase spec returned REVIEW_TOOLING_ERROR with lock owner pid 1220966 active",
+      "resolution": "verified the lock owner process exited, then used the dispatcher-provided tooling retry without changing semantic evidence",
+      "guardrailCandidate": "before retrying a review lock conflict, verify the recorded lock owner process is no longer active",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:35:51.460Z",
+      "issueLogId": "issue-log-3c57819e-00f8-4516-bb53-5b7e820eb171"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity preflight detected implementation-target changes because main advanced after worktree preparation",
+      "trigger": "git diff against symbolic baseBranch main included 18 upstream source and shared-test files not changed by spec 335",
+      "resolution": "restored only this flow's regenerated analysis output and rebased the clean feature HEAD onto current main while preserving spec 335 artifacts",
+      "guardrailCandidate": "before scenario-validity, detect base-branch drift and rebase a clean feature worktree so upstream files are not misclassified as test implementation",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:44:11.689Z",
+      "issueLogId": "issue-log-dbee6efa-870e-4ab5-b023-d7b16a7423ca"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review tooling exhausted both result-recording attempts because the generated findings reused duplicate findingId values",
+      "trigger": "two guarded review runs returned REVIEW_TOOLING_ERROR at result_recording with identical duplicate findingId diagnostics",
+      "resolution": "no in-scope recovery remains; dispatcher persisted stop_as_blocker with zero tooling attempts, so the flow was stopped without implementation",
+      "guardrailCandidate": "review result generation must assign unique findingId values or normalize duplicates before consuming the tooling retry budget",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:45:34.268Z",
+      "issueLogId": "issue-log-cce95d34-35e8-4597-9dd9-5f3d30550060"
+    },
+    {
+      "step": "test-review",
+      "reason": "After rebasing onto main and resetting the review retry, the base-integrated rerun again exhausted review tooling at result recording because all four findings share one findingId.",
+      "trigger": "guarded test-review rerun returned REVIEW_TOOLING_ERROR with stop_as_blocker and remainingToolingAttempts 0",
+      "resolution": "flow remains stopped at test-review; no implementation or review override was performed",
+      "guardrailCandidate": "Review result normalization must derive a unique deterministic findingId per distinct finding before persistence, without consuming tooling retries for duplicate producer ids.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:28:32.062Z",
+      "issueLogId": "issue-log-2ccca653-a8c5-41f8-956b-5e630a0e9447"
+    },
+    {
+      "step": "test-review",
+      "reason": "Normalized distinct provider findings that reuse a findingId or fingerprint so result recording no longer exhausts tooling retries.",
+      "trigger": "The base-integrated test-review rerun stopped before canonical evidence registration because four distinct findings shared one identity.",
+      "resolution": "Canonical review evidence now retains the first provider identity and deterministically derives unique identities for later distinct collisions; focused unit coverage verifies the result.",
+      "guardrailCandidate": "Canonical review evidence must normalize colliding producer identities for distinct findings while retaining true duplicate detection.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-review.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:42:12.548Z",
+      "issueLogId": "issue-log-251ea5bb-8224-4459-91b8-79afd01338a9"
+    },
+    {
+      "step": "task-review",
+      "reason": "R3 explicitly requires stale optional test-result-review evidence to neither substitute for nor block current scenario evidence, so requiring a current review artifact would contradict the approved specification.",
+      "resolution": "Strengthened the focused assertions that stale optional review evidence does not enter mechanical validation when current scenario evidence is sufficient.",
+      "normalizedFindingId": "8d6091e0eb7f2db75192735925c4573dd5bbb27fcc7ff9b2c8c166e2fff93878",
+      "repairRef": {
+        "files": [
+          "specs/335-implement-evidence-freshness/tests/implement-evidence-freshness.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:50:30.848Z",
+      "issueLogId": "issue-log-9a32056f-6bc2-4dfc-8595-5e1c92bc1678"
+    },
+    {
+      "step": "task-review",
+      "reason": "The malformed current test-execute fixture asserted a generic missing-summary code instead of exercising the adapter's raw evidence-range mechanical diagnostic.",
+      "resolution": "The fixture is now otherwise valid with an out-of-range raw evidence span and asserts raw-evidence-range-invalid while durable-artifact-stale remains absent.",
+      "normalizedFindingId": "16037f8c72bffbaa0ef8e1255c36444ede131278e54b87c094dfa0d9f66d1ba5",
+      "repairRef": {
+        "files": [
+          "specs/335-implement-evidence-freshness/tests/implement-evidence-freshness.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:50:42.743Z",
+      "issueLogId": "issue-log-d5b41f16-ec9a-4f8e-a528-5812d3d06c53"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation.; The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation.; The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:59:29.885Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-review.js",
+            "locator": "CanonicalReviewFindingRegistry.uniqueFingerprint initial normalized hash"
+          },
+          "observed": "The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-review.js",
+            "locator": "CanonicalReviewFindingRegistry.uniqueFingerprint loop normalized hash"
+          },
+          "observed": "The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-review.js",
+            "locator": "CanonicalReviewFindingRegistry.register requestedFingerprint fallback hash"
+          },
+          "observed": "The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff repeats the same SHA-256 hex generation expression used for review-finding fingerprints; a local helper could remove the duplicated production-code transformation."
+        }
+      ],
+      "issueLogId": "issue-log-1bab98da-3428-4b1b-b470-6190a43379e3"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: centralized SHA-256 derivation for canonical review identities",
+      "resolution": "All identity and invocation hashes now use sha256Hex, removing the repeated transformation reported by the integration gate.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:01:42.343Z",
+      "issueLogId": "issue-log-2216cd96-070c-4265-87df-8006cc7c2794"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds or updates shared regression coverage for spec behavior in `tests/unit/flow/commands/review.test.js`, but the required spec-local coverage header rule applies only to new spec behavior coverage under `specs/<specid>/tests/`; shared regression updates do not substitute for spec-local coverage and this shared file is not shown with a `// spec: R<N>` header in the provided header evidence.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T07:07:38.139Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "tests/unit/flow/commands/review.test.js"
+          },
+          "observed": "The diff adds or updates shared regression coverage for spec behavior in `tests/unit/flow/commands/review.test.js`, but the required spec-local coverage header rule applies only to new spec behavior coverage under `specs/<specid>/tests/`; shared regression updates do not substitute for spec-local coverage and this shared file is not shown with a `// spec: R<N>` header in the provided header evidence.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The diff adds or updates shared regression coverage for spec behavior in `tests/unit/flow/commands/review.test.js`, but the required spec-local coverage header rule applies only to new spec behavior coverage under `specs/<specid>/tests/`; shared regression updates do not substitute for spec-local coverage and this shared file is not shown with a `// spec: R<N>` header in the provided header evidence."
+        }
+      ],
+      "issueLogId": "issue-log-eab5559e-4e66-43b5-9909-43cf075f4328"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: documented spec-test-coverage scope for supplemental shared regression",
+      "resolution": "The clarification names spec-test-coverage and records that the shared review identity test supplements, but does not replace, the required R1-R5 spec-local coverage.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:09:03.063Z",
+      "issueLogId": "issue-log-0023f598-8646-4efa-8aba-e348d1d1adcd"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:27:37.625Z",
+      "issueLogId": "issue-log-b798e5d7-ec1a-4df1-b1dc-1995c38fa35c"
+    }
+  ]
+}

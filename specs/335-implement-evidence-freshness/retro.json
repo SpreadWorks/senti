@@ -1,0 +1,45 @@
+{
+  "spec": "specs/335-implement-evidence-freshness/spec.json",
+  "date": "2026-07-25T07:11:42.697Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When a latest plan rewind exists, implement completion shall classify each existing scenario-validity, test-execute, and test-result-review artifact as current only when its modification time is strictly later than the latest `rewoundAt`; an artifact at or before the boundary shall be stale and shall not participate in current readiness or mechanical validation.",
+      "status": "done",
+      "note": "R1: stale fixture"
+    },
+    {
+      "desc": "If stale scenario-validity or test-execute evidence is the reason no eligible readiness artifact remains, implement completion shall fail with `IMPLEMENT_COMPLETION_VALIDATION_FAILED` and include `durable-artifact-stale`; a fixture with no corresponding artifact shall continue to include `durable-artifact-missing`, and malformed eligible evidence shall continue to expose its existing producer-specific mechanical issue codes.",
+      "status": "done",
+      "note": "R2: missing and stale readiness evidence remain distinct"
+    },
+    {
+      "desc": "A stale retained test-execute or test-result-review artifact shall neither substitute for missing current evidence nor block completion when another eligible current readiness artifact and all existing requirement-status, file-map, raw-output, and mechanical checks are satisfied.",
+      "status": "done",
+      "note": "R3: stale skipped downstream artifacts do not poison current scenario evidence"
+    },
+    {
+      "desc": "When no plan rewind exists, implement completion shall preserve the current decisions for missing evidence, incomplete requirements, incomplete file-map entries, valid scenario-validity or test-execute evidence, raw output presence, and all three producer completion adapters.",
+      "status": "done",
+      "note": "R4: no-rewind fixtures preserve readiness, prerequisites, and producer adapters"
+    },
+    {
+      "desc": "Spec-local tests shall exercise the exported implement completion pre-validator with retained pre-rewind evidence, stale artifacts left by reset or skipped producers, evidence regenerated after rewind, malformed eligible evidence, the exact rewind-time boundary, and no-rewind fixtures, and each test file shall carry the required `// spec: R<N>` coverage header.",
+      "status": "done",
+      "note": "R5: regenerated evidence is eligible and malformed current evidence is not stale"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "266ec9826e042ba8617df735b1663db5c08d824e3ee3d17a4e3986c94bfbcd37"
+}

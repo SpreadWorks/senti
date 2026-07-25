@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T06:46:32.580Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/335-implement-evidence-freshness/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Boundary Coverage Could Be Symmetric",
+      "target": "specs/335-implement-evidence-freshness/tests/implement-evidence-freshness.test.js",
+      "findingId": "27848b59a23c31c12067c5bee75e0e8427a702d3b959c18b80f7f96924007e8d",
+      "fingerprint": "27848b59a23c31c12067c5bee75e0e8427a702d3b959c18b80f7f96924007e8d",
+      "disposition": "informational",
+      "rationale": "The exact-boundary case exercises the stricter part of the `mtime <= rewoundAt` rule, and R3 already verifies stale downstream artifacts are ignored; this is extra symmetry rather than missing core coverage.",
+      "improvement": "Add a pre-rewind `test-result-review.json` case in addition to the exact-boundary case, matching the scenario-validity and test-execute stale checks.",
+      "whyNonBlocking": "The exact-boundary case exercises the stricter part of the `mtime <= rewoundAt` rule, and R3 already verifies stale downstream artifacts are ignored; this is extra symmetry rather than missing core coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/335-implement-evidence-freshness/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "cec35bd18aaf5542b3ade004996e16f4de3c7290c7d0c68af413331dde581a4e"
+  }
+}

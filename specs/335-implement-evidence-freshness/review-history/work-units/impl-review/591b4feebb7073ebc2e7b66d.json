@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/335-implement-evidence-freshness/review-history/draft-coverage-attempt-001.json",
+      "specs/335-implement-evidence-freshness/review-history/draft-questions-attempt-001.json",
+      "specs/335-implement-evidence-freshness/review-history/impl-attempt-001.json"
+    ],
+    "inputHash": "97a837adb15a83982ae3c5a630b1a5553f8b6fbdb1c2445461a94872f267cb37",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "specs/335-implement-evidence-freshness/review-history/draft-coverage-attempt-001.json",
+    "specs/335-implement-evidence-freshness/review-history/draft-questions-attempt-001.json",
+    "specs/335-implement-evidence-freshness/review-history/impl-attempt-001.json"
+  ],
+  "inputHash": "97a837adb15a83982ae3c5a630b1a5553f8b6fbdb1c2445461a94872f267cb37",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:04:13.523Z",
+  "finishedAt": "2026-07-25T07:04:13.523Z",
+  "rawResponse": "### 1. Remove Duplicated Finding Payloads\n**File:** `specs/335-implement-evidence-freshness/review-history/impl-attempt-001.json`  \n**Requirement:** R4  \n**Issue:** Each finding is stored twice: once in `blockingFindings` and again in `findings`, with largely duplicated fields such as title, rationale, fingerprint, disposition, requirement ID, and repeat count. This increases drift risk if one copy is updated and the other is not.  \n**Suggestion:** Keep one canonical finding list and derive severity-specific views from it, or reduce `blockingFindings` to lightweight references such as finding IDs if the schema requires both sections.\n\n### 2. Normalize Repeated Draft Review History Shape\n**File:** `specs/335-implement-evidence-freshness/review-history/draft-coverage-attempt-001.json`  \n**Requirement:** R5  \n**Issue:** This file duplicates the same empty PASS review structure used by `draft-questions-attempt-001.json`, differing only in `phase`, `generatedAt`, and `sourceArtifact`. If these are hand-authored or persisted as fixtures, the repeated full shape is noisy and easy to update inconsistently.  \n**Suggestion:** If the surrounding tooling allows it, generate these history artifacts from a shared empty-review template instead of storing repeated boilerplate fields manually. If these files are immutable generated audit records, no change is needed.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Duplicated Finding Payloads",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/impl-attempt-001.json`  \n**Requirement:** R4  \n**Issue:** Each finding is stored twice: once in `blockingFindings` and again in `findings`, with largely duplicated fields such as title, rationale, fingerprint, disposition, requirement ID, and repeat count. This increases drift risk if one copy is updated and the other is not.  \n**Suggestion:** Keep one canonical finding list and derive severity-specific views from it, or reduce `blockingFindings` to lightweight references such as finding IDs if the schema requires both sections.",
+        "file": "specs/335-implement-evidence-freshness/review-history/impl-attempt-001.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Normalize Repeated Draft Review History Shape",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/draft-coverage-attempt-001.json`  \n**Requirement:** R5  \n**Issue:** This file duplicates the same empty PASS review structure used by `draft-questions-attempt-001.json`, differing only in `phase`, `generatedAt`, and `sourceArtifact`. If these are hand-authored or persisted as fixtures, the repeated full shape is noisy and easy to update inconsistently.  \n**Suggestion:** If the surrounding tooling allows it, generate these history artifacts from a shared empty-review template instead of storing repeated boilerplate fields manually. If these files are immutable generated audit records, no change is needed.",
+        "file": "specs/335-implement-evidence-freshness/review-history/draft-coverage-attempt-001.json",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

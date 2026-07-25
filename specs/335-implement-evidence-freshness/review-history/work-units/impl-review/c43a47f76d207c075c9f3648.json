@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "c43a47f76d207c075c9f3648",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0010",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/335-implement-evidence-freshness/review-history/test-attempt-003.json",
+      "specs/335-implement-evidence-freshness/review-history/test-attempt-004.json",
+      "specs/335-implement-evidence-freshness/review-history/test-attempt-004.md"
+    ],
+    "inputHash": "77519748365b0d0e7bf744f2609931201ea23e34b6cf752cbaed78ea9aef6a74",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c43a47f76d207c075c9f3648"
+  },
+  "targetFiles": [
+    "specs/335-implement-evidence-freshness/review-history/test-attempt-003.json",
+    "specs/335-implement-evidence-freshness/review-history/test-attempt-004.json",
+    "specs/335-implement-evidence-freshness/review-history/test-attempt-004.md"
+  ],
+  "inputHash": "77519748365b0d0e7bf744f2609931201ea23e34b6cf752cbaed78ea9aef6a74",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:05:12.988Z",
+  "finishedAt": "2026-07-25T07:05:12.988Z",
+  "rawResponse": "### 1. Use unique finding identifiers per distinct finding\n**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-003.json`  \n**Requirement:** R5  \n**Issue:** All four distinct findings reuse the same `findingId`, `fingerprint`, and `id`. This makes deduplication, tracking, and history comparison ambiguous because unrelated findings collapse to the same identity.  \n**Suggestion:** Generate a stable unique identifier from each finding’s semantic content, such as phase + origin + title/body, instead of reusing one fingerprint across all findings.\n\n### 2. Use unique finding identifiers per distinct finding\n**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-004.json`  \n**Requirement:** R5  \n**Issue:** Both distinct findings reuse the same `findingId`, `fingerprint`, and `id`, which weakens review-history traceability and can cause downstream consumers to treat separate issues as duplicates.  \n**Suggestion:** Assign separate stable identifiers for each finding, derived from the finding content or source requirement.\n\n### 3. Avoid storing duplicated finding payloads in the same artifact\n**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-003.json`  \n**Requirement:** R5  \n**Issue:** `blockingFindings` and `findings` contain the same findings with overlapping fields and repeated prose. This duplication increases artifact size and creates drift risk if one representation changes without the other.  \n**Suggestion:** Store one canonical findings array and derive filtered views like blocking/advisory counts from it, or keep `blockingFindings` as references to canonical finding IDs only.\n\n### 4. Avoid storing duplicated finding payloads in the same artifact\n**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-004.json`  \n**Requirement:** R5  \n**Issue:** The same finding data is repeated in both `blockingFindings` and `findings`, including duplicated rationale/body text.  \n**Suggestion:** Normalize the artifact shape so full finding details live in one place, with summary sections referencing finding IDs or counts.\n\n### 5. Add trailing newline\n**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-004.md`  \n**Requirement:** R5  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with common text-file formatting and can create noisy diffs.  \n**Suggestion:** End the file with a newline.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Use unique finding identifiers per distinct finding",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-003.json`  \n**Requirement:** R5  \n**Issue:** All four distinct findings reuse the same `findingId`, `fingerprint`, and `id`. This makes deduplication, tracking, and history comparison ambiguous because unrelated findings collapse to the same identity.  \n**Suggestion:** Generate a stable unique identifier from each finding’s semantic content, such as phase + origin + title/body, instead of reusing one fingerprint across all findings.",
+        "file": "specs/335-implement-evidence-freshness/review-history/test-attempt-003.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Use unique finding identifiers per distinct finding",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-004.json`  \n**Requirement:** R5  \n**Issue:** Both distinct findings reuse the same `findingId`, `fingerprint`, and `id`, which weakens review-history traceability and can cause downstream consumers to treat separate issues as duplicates.  \n**Suggestion:** Assign separate stable identifiers for each finding, derived from the finding content or source requirement.",
+        "file": "specs/335-implement-evidence-freshness/review-history/test-attempt-004.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Avoid storing duplicated finding payloads in the same artifact",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-003.json`  \n**Requirement:** R5  \n**Issue:** `blockingFindings` and `findings` contain the same findings with overlapping fields and repeated prose. This duplication increases artifact size and creates drift risk if one representation changes without the other.  \n**Suggestion:** Store one canonical findings array and derive filtered views like blocking/advisory counts from it, or keep `blockingFindings` as references to canonical finding IDs only.",
+        "file": "specs/335-implement-evidence-freshness/review-history/test-attempt-003.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Avoid storing duplicated finding payloads in the same artifact",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-004.json`  \n**Requirement:** R5  \n**Issue:** The same finding data is repeated in both `blockingFindings` and `findings`, including duplicated rationale/body text.  \n**Suggestion:** Normalize the artifact shape so full finding details live in one place, with summary sections referencing finding IDs or counts.",
+        "file": "specs/335-implement-evidence-freshness/review-history/test-attempt-004.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Add trailing newline",
+        "body": "**File:** `specs/335-implement-evidence-freshness/review-history/test-attempt-004.md`  \n**Requirement:** R5  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with common text-file formatting and can create noisy diffs.  \n**Suggestion:** End the file with a newline.",
+        "file": "specs/335-implement-evidence-freshness/review-history/test-attempt-004.md",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

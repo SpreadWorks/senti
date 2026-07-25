@@ -1,0 +1,69 @@
+[senti] spec-local tests start
+command: node --test specs/335-implement-evidence-freshness/tests/implement-evidence-freshness.test.js
+process.kind: passed
+process.command: node --test specs/335-implement-evidence-freshness/tests/implement-evidence-freshness.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 1429
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 259.326882
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R1: retained readiness evidence before or exactly at the rewind boundary is stale
+ok 1 - R1: retained readiness evidence before or exactly at the rewind boundary is stale
+  ---
+  duration_ms: 109.955857
+  type: 'test'
+  ...
+# Subtest: R2: missing and stale readiness evidence remain distinct
+ok 2 - R2: missing and stale readiness evidence remain distinct
+  ---
+  duration_ms: 13.585512
+  type: 'test'
+  ...
+# Subtest: R3: stale skipped downstream artifacts do not poison current scenario evidence
+ok 3 - R3: stale skipped downstream artifacts do not poison current scenario evidence
+  ---
+  duration_ms: 11.075858
+  type: 'test'
+  ...
+# Subtest: R1: a test-result-review artifact at the rewind boundary is stale
+ok 4 - R1: a test-result-review artifact at the rewind boundary is stale
+  ---
+  duration_ms: 7.226398
+  type: 'test'
+  ...
+# Subtest: R4: no-rewind fixtures preserve readiness, prerequisites, and producer adapters
+ok 5 - R4: no-rewind fixtures preserve readiness, prerequisites, and producer adapters
+  ---
+  duration_ms: 17.621933
+  type: 'test'
+  ...
+# Subtest: R5: regenerated evidence is eligible and malformed current evidence is not stale
+ok 6 - R5: regenerated evidence is eligible and malformed current evidence is not stale
+  ---
+  duration_ms: 12.394945
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 259.326882
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] spec-local tests end

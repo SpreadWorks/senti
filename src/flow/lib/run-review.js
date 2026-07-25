@@ -892,16 +892,77 @@ function canonicalProviderVerdict(value) {
 
 const DRAFT_REPAIR_TARGET_PHASES = new Set(["draft-questions", "draft-coverage"]);
 
-function canonicalFinding(input, artifactName, fallbackFindingId = "review-finding") {
-  const findingId = String(
-    input.findingId || input.id || input.proposalId || input.findingKey || fallbackFindingId,
-  ).trim();
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => (
+      `${JSON.stringify(key)}:${stableStringify(value[key])}`
+    )).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sha256Hex(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function canonicalFindingFallbackId(phase, bucket, index) {
+  return `${phase}-${bucket}-${String(index + 1).padStart(3, "0")}`;
+}
+
+class CanonicalReviewFindingRegistry {
+  constructor() {
+    this.findingIds = new Map();
+    this.fingerprints = new Map();
+  }
+
+  uniqueFindingId(candidate, fallback, identity) {
+    if (!this.findingIds.has(candidate) || this.findingIds.get(candidate) === identity) {
+      return candidate;
+    }
+    let suffix = 1;
+    let normalized = fallback;
+    while (this.findingIds.has(normalized)) {
+      suffix += 1;
+      normalized = `${fallback}-${suffix}`;
+    }
+    return normalized;
+  }
+
+  uniqueFingerprint(candidate, identity) {
+    if (!this.fingerprints.has(candidate) || this.fingerprints.get(candidate) === identity) {
+      return candidate;
+    }
+    let suffix = 1;
+    let normalized = sha256Hex(`${identity}:${suffix}`);
+    while (this.fingerprints.has(normalized)) {
+      suffix += 1;
+      normalized = sha256Hex(`${identity}:${suffix}`);
+    }
+    return normalized;
+  }
+
+  register(input, { phase, bucket, index }) {
+    const identity = stableStringify(input);
+    const fallbackFindingId = canonicalFindingFallbackId(phase, bucket, index);
+    const requestedFindingId = String(
+      input.findingId || input.id || input.proposalId || input.findingKey || fallbackFindingId,
+    ).trim();
+    const requestedFingerprint = typeof input.fingerprint === "string" && /^[a-f0-9]{64}$/.test(input.fingerprint)
+      ? input.fingerprint
+      : sha256Hex(identity);
+    const findingId = this.uniqueFindingId(requestedFindingId, fallbackFindingId, identity);
+    const fingerprint = this.uniqueFingerprint(requestedFingerprint, identity);
+    this.findingIds.set(findingId, identity);
+    this.fingerprints.set(fingerprint, identity);
+    return { findingId, fingerprint };
+  }
+}
+
+function canonicalFinding(input, artifactName, { findingId, fingerprint }) {
   const summary = String(
     input.summary || input.title || input.issue || input.improvement || input.rationale || "Review finding.",
   ).trim();
-  const fingerprint = typeof input.fingerprint === "string" && /^[a-f0-9]{64}$/.test(input.fingerprint)
-    ? input.fingerprint
-    : crypto.createHash("sha256").update(JSON.stringify(input)).digest("hex");
   return {
     findingId,
     summary,
@@ -931,28 +992,29 @@ export function reviewArtifactFindingLists(artifact, phase) {
   return { blocking, advisory: [...advisory, ...repairTargets] };
 }
 
-function canonicalFindingList(findings, { phase, bucket, artifactName }) {
+function canonicalFindingList(findings, { phase, bucket, artifactName, registry }) {
   return findings.map((finding, index) => canonicalFinding(
     finding,
     artifactName,
-    DRAFT_REPAIR_TARGET_PHASES.has(phase)
-      ? `${phase}-${bucket}-${String(index + 1).padStart(3, "0")}`
-      : "review-finding",
+    registry.register(finding, { phase, bucket, index }),
   ));
 }
 
 export function canonicalReviewArtifactFindings(artifact, phase, artifactName) {
   const { blocking, advisory } = reviewArtifactFindingLists(artifact, phase);
+  const registry = new CanonicalReviewFindingRegistry();
   return {
     blockingFindings: canonicalFindingList(blocking, {
       phase,
       bucket: "blocking",
       artifactName,
+      registry,
     }),
     advisoryFindings: canonicalFindingList(advisory, {
       phase,
       bucket: "advisory",
       artifactName,
+      registry,
     }),
   };
 }
@@ -1224,7 +1286,7 @@ function persistCanonicalReviewArtifact(
       ...canonicalFindings,
       provenance: {
         provider: "senti-review",
-        invocationId: crypto.createHash("sha256").update(bytes).digest("hex"),
+        invocationId: sha256Hex(bytes),
         capturedAt,
       },
     },

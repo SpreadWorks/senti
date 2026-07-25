@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T06:49:34.962Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "stale-review-success-bypasses-mechanical-validation",
+      "title": "Stale test-result-review can hide missing review evidence",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/set-step.js",
+      "requirementId": "R4",
+      "issue": "`preValidateImplementStepCompletion` now only runs `completeTestResultReviewArtifactChange` when `testResultReviewEvidence.current` is true. When a plan rewind exists and a stale `test-result-review.json` is present, the branch is skipped entirely and no replacement `test-result-review` missing/mechanical issue is added, so implement can be marked done with current scenario evidence even though the current plan has no eligible result-review evidence.",
+      "suggestion": "In `preValidateImplementStepCompletion`, after filtering stale artifacts, preserve the existing requirement that producer completion adapters run for the current evidence set: require an eligible `test-result-review.json` when the artifact is expected, or add the existing missing/mechanical issue code instead of silently ignoring a stale present file.",
+      "disposition": "must-fix",
+      "rationale": "R4 requires preserving existing implement completion behavior for all three producer completion adapters, and T-1 says only eligible artifacts reach the existing completion-adapter paths. Silently skipping the result-review adapter for stale evidence changes the mandatory completion contract.",
+      "findingId": "8d6091e0eb7f2db75192735925c4573dd5bbb27fcc7ff9b2c8c166e2fff93878",
+      "fingerprint": "8d6091e0eb7f2db75192735925c4573dd5bbb27fcc7ff9b2c8c166e2fff93878",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "test-execute-malformed-asserts-wrong-code",
+      "title": "Malformed test-execute coverage asserts the wrong producer code",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/335-implement-evidence-freshness/tests/implement-evidence-freshness.test.js",
+      "requirementId": "R2",
+      "issue": "The R5 malformed current `test-execute-result.json` case asserts `requirement-summary-missing`, but R2 requires malformed eligible evidence to expose the existing producer-specific mechanical issue codes. This assertion can pass even if the test-execute adapter is not reporting its actual malformed-artifact diagnostic.",
+      "suggestion": "Update the malformed test-execute branch in `R5: regenerated evidence is eligible and malformed current evidence is not stale` to assert the producer-specific test-execute mechanical issue code emitted by `completeTestExecuteArtifactChange`, while still asserting `durable-artifact-stale` is absent.",
+      "disposition": "must-fix",
+      "rationale": "R2 is mandatory and specifically distinguishes malformed eligible producer evidence from stale evidence. The current test does not verify the required producer-specific diagnostic for test-execute.",
+      "findingId": "16037f8c72bffbaa0ef8e1255c36444ede131278e54b87c094dfa0d9f66d1ba5",
+      "fingerprint": "16037f8c72bffbaa0ef8e1255c36444ede131278e54b87c094dfa0d9f66d1ba5",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "cad1da7ceb94303c83bf9ff5ce081b76cddfe1c4d8cc00f8aa8477b6577a84bc",
+  "runId": "d1cb8d23-3a00-4961-8aeb-ca0c50b3197c",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/335-implement-evidence-freshness/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/335-implement-evidence-freshness/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "9029baec3fbefc0080f44fa40e43629e4084c3bbb208ad71c01cd42a491e108f"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "8d6091e0eb7f2db75192735925c4573dd5bbb27fcc7ff9b2c8c166e2fff93878",
+      "findingId": "8d6091e0eb7f2db75192735925c4573dd5bbb27fcc7ff9b2c8c166e2fff93878",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Stale test-result-review can hide missing review evidence",
+      "body": "`preValidateImplementStepCompletion` now only runs `completeTestResultReviewArtifactChange` when `testResultReviewEvidence.current` is true. When a plan rewind exists and a stale `test-result-review.json` is present, the branch is skipped entirely and no replacement `test-result-review` missing/mechanical issue is added, so implement can be marked done with current scenario evidence even though the current plan has no eligible result-review evidence.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "8d6091e0eb7f2db75192735925c4573dd5bbb27fcc7ff9b2c8c166e2fff93878",
+      "disposition": "must-fix",
+      "rationale": "R4 requires preserving existing implement completion behavior for all three producer completion adapters, and T-1 says only eligible artifacts reach the existing completion-adapter paths. Silently skipping the result-review adapter for stale evidence changes the mandatory completion contract.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    },
+    {
+      "id": "16037f8c72bffbaa0ef8e1255c36444ede131278e54b87c094dfa0d9f66d1ba5",
+      "findingId": "16037f8c72bffbaa0ef8e1255c36444ede131278e54b87c094dfa0d9f66d1ba5",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Malformed test-execute coverage asserts the wrong producer code",
+      "body": "The R5 malformed current `test-execute-result.json` case asserts `requirement-summary-missing`, but R2 requires malformed eligible evidence to expose the existing producer-specific mechanical issue codes. This assertion can pass even if the test-execute adapter is not reporting its actual malformed-artifact diagnostic.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "16037f8c72bffbaa0ef8e1255c36444ede131278e54b87c094dfa0d9f66d1ba5",
+      "disposition": "must-fix",
+      "rationale": "R2 is mandatory and specifically distinguishes malformed eligible producer evidence from stale evidence. The current test does not verify the required producer-specific diagnostic for test-execute.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}
