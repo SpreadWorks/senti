@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-25T08:47:38.345Z",
+  "analyzedAt": "2026-07-25T10:35:22.972Z",
   "package": {
     "entries": [
       {
@@ -4782,9 +4782,9 @@
       },
       {
         "file": "src/flow/lib/impl-repair-artifacts.js",
-        "hash": "933adc608d136b0cf84caab49caf041d",
-        "lines": 1814,
-        "mtime": "2026-07-25T08:47:20.857Z",
+        "hash": "176f1f8e176c9a55f6f5501d7c5fff16",
+        "lines": 2015,
+        "mtime": "2026-07-25T10:35:11.334Z",
         "className": "impl-repair-artifacts",
         "methods": [
           "ImplTriageItem",
@@ -4836,13 +4836,17 @@
           "invalidationFingerprint",
           "planRepairInvalidation",
           "applyRepairInvalidations",
+          "restoreRepairMigrationState",
           "planAdditionalRefreshInvalidations",
           "testEvidenceRefreshTransition",
           "commitOwnedTestEvidenceRefresh",
           "resumeJournaledTestEvidenceRefresh",
           "recordAppliedFindingRepairEvidence",
           "legacyMigrationInvalidations",
+          "sameBaselineAuthority",
+          "assertMatchingMigrationBaseline",
           "applyRepairMigrationState",
+          "hasAppliedRepairMigration",
           "commitRepairStateMigration",
           "updateRepairSteps",
           "commitRepairTransaction",
@@ -4920,23 +4924,22 @@
           "src/flow/lib/stale-test-evidence-refresh.js"
         ],
         "id": "69dba1ec",
-        "summary": "Implements the implementation-repair artifact system, covering triage, repair ledgers, fingerprint tracking, and crash-safe transaction recovery. It coordinates how repair evidence is recorded, invalidated, and committed into the flow lifecycle.",
-        "detail": "The module models triage items, ledger entries, invalidated artifacts, path-group summaries, transaction state, and repair purposes as explicit classes with strong invariants and JSON serialization rules. It validates hash chains, changed-path delta files, entry limits, ledger size, and fingerprint consistency so repair history cannot drift from the current evidence set. It includes staged invalidation and journal-based commit logic to make repair effects recoverable if a transition is interrupted, including dedicated handling for test-evidence refresh flows. It also supports legacy migration, run locking, flow-manager transition intents, and helper APIs for appending repair entries, completing triage, and re-synchronizing pending repair transactions.",
+        "summary": "Implements the artifact layer for implementation-repair flows, covering triage records, repair ledgers, evidence fingerprints, and transaction journals. It also manages invalidation, migration, and recovery for interrupted repair operations.",
+        "detail": "The module models repair-side data as validated value objects, including triage items, repair entries, ledgers, target identities, purposes, and transactions, then serializes them to JSON with strict consistency checks. It ties repair records to fingerprint manifests and delta artifacts, verifying preview and group summaries, enforcing fingerprint-chain continuity, and stamping evidence files with the current repair fingerprint. For refreshes and migrations, it computes invalidation plans, stages files in temporary directories, and supports rollback when artifact removal or manifest replacement fails. The commit path journals pending work, coordinates precommit authorities for step transitions, appends ledger entries, updates flow state, and can recover unfinished impl-repair or test-evidence-refresh runs.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T08:48:26.069Z",
+          "processedAt": "2026-07-25T10:36:37.283Z",
           "attempts": 1
         },
         "keywords": [
           "implementation repair",
-          "repair ledger",
-          "fingerprint manifest",
-          "evidence invalidation",
-          "transaction recovery",
-          "triage artifact",
-          "delta evidence",
-          "workflow transition"
+          "artifact ledger",
+          "repair transaction",
+          "evidence fingerprint",
+          "triage workflow",
+          "artifact invalidation",
+          "crash recovery"
         ]
       },
       {
@@ -5367,9 +5370,9 @@
       },
       {
         "file": "src/flow/lib/repair-state-identity.js",
-        "hash": "23d46596faf0a1c9d6fe6ea5b0cbfb33",
-        "lines": 1253,
-        "mtime": "2026-07-25T00:45:29.350Z",
+        "hash": "5c8951b3be22788fc17e9c8351cede98",
+        "lines": 1307,
+        "mtime": "2026-07-25T10:35:11.334Z",
         "className": "repair-state-identity",
         "methods": [
           "RepairStateError",
@@ -5378,6 +5381,7 @@
           "RepairBaselinePublication",
           "CanonicalRepairEntry",
           "RepairFingerprintManifest",
+          "LegacyRepairFingerprintManifest",
           "RepairFingerprintReference",
           "RepairArtifactRegistry",
           "captureRepairBaseline",
@@ -5390,6 +5394,7 @@
           "buildRepairStateManifest",
           "writeRepairFingerprintManifest",
           "readRepairFingerprintManifest",
+          "readRepairFingerprintMigrationInput",
           "changedRepairPaths",
           "RepairDeltaArtifact",
           "repairDeltaArtifact",
@@ -5440,6 +5445,7 @@
           "RepairBaselinePublication",
           "CanonicalRepairEntry",
           "RepairFingerprintManifest",
+          "LegacyRepairFingerprintManifest",
           "RepairFingerprintReference",
           "RepairArtifactRegistry",
           "captureRepairBaseline",
@@ -5452,12 +5458,14 @@
           "buildRepairStateManifest",
           "writeRepairFingerprintManifest",
           "readRepairFingerprintManifest",
+          "readRepairFingerprintMigrationInput",
           "changedRepairPaths",
           "RepairDeltaArtifact",
           "repairDeltaArtifact",
           "writeRepairDelta",
           "atomicWriteJson",
           "REPAIR_STATE_VERSION",
+          "LEGACY_REPAIR_STATE_VERSION",
           "DEFAULT_REPAIR_CHANGED_PATH_LIMIT",
           "MAX_REPAIR_CHANGED_PATH_LIMIT",
           "REPAIR_FINGERPRINT_MANIFEST_FILE",
@@ -5476,23 +5484,22 @@
           "src/flow/lib/run-rewind-test-evidence.js"
         ],
         "id": "12c0ba47",
-        "summary": "Defines the canonical identity model for repair state, including baselines, manifests, deltas, and publication records. It turns repository and filesystem state into stable fingerprints that can be compared, persisted, and recovered safely.",
-        "detail": "The module validates artifact identifiers, paths, hashes, Git object identifiers, and ref namespaces before building immutable baseline and manifest objects. It inspects repository changes through Git, supplements them with explicit filesystem inputs, and canonicalizes each entry into a repair fingerprint manifest with a deterministic hash. Publication helpers pin baseline refs, persist temporary publication records, recover interrupted publications, and remove obsolete refs for completed flows. The file also provides atomic JSON writers, manifest readers, changed-path diffing, and repair delta artifact generation so downstream repair workflows can reference precise state transitions.",
-        "chapter": "development",
+        "summary": "Builds canonical repair-state fingerprints from Git and filesystem inputs, and manages the manifests, baselines, and delta files that identify a flow's mutable state. It also publishes and recovers pinned baseline refs so repair workflows can resume safely.",
+        "detail": "The module defines strict value objects for baselines, publications, manifest entries, fingerprint manifests, references, and delta artifacts, each with canonical hashing and schema validation. It derives repair state by normalizing repository-relative paths, reading configured inclusion boundaries, streaming Git status and index data, and hashing files or symlinks with race checks to reject unstable inputs. For non-Git or explicit inputs, it can walk the filesystem directly and merge those results into the same canonical manifest format. Persistence helpers atomically write manifests and delta files, compare changed paths across versions, and maintain baseline publication records under recovery storage for commit pinning and crash recovery.",
+        "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T00:46:19.932Z",
+          "processedAt": "2026-07-25T10:36:37.283Z",
           "attempts": 1
         },
         "keywords": [
           "repair fingerprint",
-          "state identity",
-          "git baseline",
-          "manifest hash",
-          "changed paths",
-          "delta artifact",
+          "state manifest",
+          "Git baseline",
+          "changed path delta",
+          "canonical hashing",
           "baseline publication",
-          "atomic write"
+          "filesystem identity"
         ]
       },
       {
@@ -6882,9 +6889,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "fea15d95f94640af06875da06d9e031b",
-        "lines": 5687,
-        "mtime": "2026-07-25T02:24:59.958Z",
+        "hash": "2382817a5a405612131fbc98d756e0f5",
+        "lines": 5704,
+        "mtime": "2026-07-25T10:35:11.336Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -7187,24 +7194,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the gate execution engine for flow phases such as spec, draft, task implementation, and integration. It validates artifacts, evaluates guardrails and requirement checks, and drives retry, deferral, and result persistence behavior.",
-        "detail": "This module combines command-level orchestration with a large set of helpers for building diffs, compacting prompt inputs, filtering lifecycle artifacts, and validating spec or draft review files. It defines prompt schemas and response parsers for AI-based guardrail and implementation-requirement evaluation, including strict JSON validation and fallback formatting rules. The code also manages retry accounting, repeated-failure detection, recovery baselines, durable deferral artifacts, and issue-log recording so gate failures can be resumed or escalated consistently. Its exported RunGateCommand ties these pieces together by selecting the effective phase, executing semantic checks, enforcing gate readiness rules, and writing normalized gate result artifacts for downstream flow steps.",
+        "summary": "Implements the flow gate engine that evaluates spec, draft, task implementation, and integration phases. It coordinates artifact completion, semantic checks, retries, recovery, and persisted gate results.",
+        "detail": "This module centralizes gate execution across multiple lifecycle phases and combines git state inspection, diff collection, artifact loading, and command orchestration. It builds bounded AI prompts for guardrails and requirement checks, parses strict JSON responses, and validates schemas to keep semantic evaluation deterministic. The implementation includes extensive integrity checks for specs, drafts, review artifacts, test evidence, retry counters, and repeated-failure detection, with deferral and recovery handling when progress stalls. It also persists gate reports, issue log updates, recovery baselines, per-phase memory, and durable source artifacts so later runs can reconcile findings and infer safe state transitions.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T06:20:40.862Z",
+          "processedAt": "2026-07-25T10:36:37.299Z",
           "attempts": 1
         },
         "keywords": [
           "gate execution",
-          "guardrail evaluation",
-          "flow orchestration",
+          "workflow guardrails",
           "semantic validation",
           "retry recovery",
-          "diff analysis",
-          "artifact validation",
-          "issue log",
-          "integration gate"
+          "artifact persistence",
+          "git diff analysis",
+          "requirement evaluation",
+          "integration gate",
+          "flow orchestration"
         ]
       },
       {
@@ -10260,16 +10267,17 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "864509ba1c78670cb5d79ddb9036f322",
-        "lines": 1286,
-        "mtime": "2026-07-21T13:16:05.078Z",
+        "hash": "73adf092059f95ed5d4cca6927ea04ef",
+        "lines": 1384,
+        "mtime": "2026-07-25T08:56:00.226Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
           "buildAgentMetricEntry",
           "shouldPersistFinalizeMetricToSidecar",
           "persistFinalizeMetricToSidecar",
-          "processGroupContainsOnlyZombies",
+          "readLinuxProcessGroupMembers",
+          "processGroupHasNoLiveMembers",
           "runWindowsTaskkill",
           "resolvePromptCacheContext",
           "recordPromptCacheHit",
@@ -10306,7 +10314,8 @@
           "./error-preview.js",
           "./agent-defaults.js",
           "./agent-metrics.js",
-          "./agent-timeout.js"
+          "./agent-timeout.js",
+          "./process-identity.js"
         ],
         "exports": [
           "createPluginAgentApi",
@@ -10321,22 +10330,21 @@
           "src/lib/plugin-registry.js"
         ],
         "id": "13ddf392",
-        "summary": "Implements the core agent runtime used to resolve profiles, spawn providers, cache prompts, and supervise subprocess execution. It also records metrics, applies retries, and exposes a plugin-facing API.",
-        "detail": "The Agent class resolves provider and profile selection from config and environment, prepares prompt invocation arguments, optionally injects JSON schema support, and runs commands with retry and backoff behavior. Prompt caching uses stable hashed identities tied to flow context, provider metadata, and invocation options, with cache-hit metrics written to sidecar artifacts when applicable. ChildProcessSupervisor enforces timeouts across platforms by escalating from soft termination to process-tree cleanup and polling for process death. The module also includes helpers for streaming-output filtering, spawn diagnostics, work-directory handling, profile aliases, metric normalization, and a PluginAgentApi wrapper for extension consumers.",
+        "summary": "Implements the core agent execution layer that resolves provider and profile settings, then runs external model commands. It also wraps caching, retries, logging, metrics, and process supervision around each invocation.",
+        "detail": "The `Agent` pipeline resolves command IDs against built-in and user-defined profiles, normalizes provider aliases, and assembles final CLI arguments, environment variables, working directories, and optional JSON schema payloads. It supports prompt caching keyed by a stable serialized invocation identity, with flow-aware attribution and sidecar metric recording for cache hits and finalized responses. Execution uses `child_process.spawn` with timeout handling, retry backoff, provider-specific output parsing, and filtering of streaming protocol events before text extraction. The module also includes cross-platform child-process supervision, prompt token substitution helpers, spawn diagnostics, and a plugin-facing API that exposes safe `resolve` and `call` methods.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T15:20:55.311Z",
+          "processedAt": "2026-07-25T10:36:37.315Z",
           "attempts": 1
         },
         "keywords": [
-          "agent runtime",
-          "provider profiles",
+          "agent execution",
           "prompt cache",
-          "subprocess supervision",
+          "child process supervision",
           "retry backoff",
-          "plugin API",
-          "process timeout",
+          "provider profiles",
+          "CLI invocation",
           "metrics logging"
         ]
       },
@@ -12889,49 +12897,52 @@
       },
       {
         "file": "src/lib/process-identity.js",
-        "hash": "d90bd85c99154e7d7de9e1dc15d0f55d",
-        "lines": 129,
-        "mtime": "2026-07-16T22:49:01.916Z",
+        "hash": "ea652f3995654bd179f91b27a13bcb4a",
+        "lines": 174,
+        "mtime": "2026-07-25T08:56:00.227Z",
         "className": "process-identity",
         "methods": [
+          "LinuxProcessStat",
           "ProcessIdentity",
           "ProcessIdentitySource",
           "processIdentityUnavailable",
           "readBoundedIdentityFile",
           "defaultBootIdentityReader",
+          "invalidLinuxProcessStat",
           "defaultProcessStartFingerprintReader"
         ],
         "imports": [
           "node:fs"
         ],
         "exports": [
+          "LinuxProcessStat",
           "ProcessIdentity",
           "ProcessIdentitySource"
         ],
         "extends": null,
         "usedBy": [
+          "src/lib/agent.js",
           "src/lib/flow-state-atomic-writer.js",
           "src/lib/process-owned-lock.js",
           "src/lib/repository-maintenance-lock.js"
         ],
         "id": "d9d66587",
-        "summary": "Process identity primitives used to decide whether a lock owner is still valid. It combines system boot identity, PID, process start fingerprint, and a random owner token into a comparable identity record.",
-        "detail": "It reads boot and process-start data through bounded file readers and turns low-level failures into a dedicated unavailable error shape. ProcessIdentity validates the structure of each component, including UUID format and numeric start fingerprints, before exposing equality semantics. ProcessIdentitySource builds the current process identity with injectable readers, making the logic testable and platform-aware. It can also assess another lock owner's state as live, stale, or unknown by comparing boot IDs, checking process existence, and detecting PID reuse. This lets higher-level locking code distinguish safe stale-lock recovery from ambiguous runtime conditions.",
+        "summary": "Provides Linux-oriented process identity primitives used to decide whether a recorded process owner is still the same live process. It builds a stronger identity from boot UUID, PID, and process start fingerprint instead of PID alone.",
+        "detail": "The module reads bounded files from `/proc` and `/proc/sys/kernel/random/boot_id`, validates UUID and stat formats, and converts Linux process stat data into structured objects. `LinuxProcessStat` parses the kernel stat line and extracts a start fingerprint that changes when a PID is reused. `ProcessIdentity` combines boot identity, PID, start fingerprint, and an owner token, while `ProcessIdentitySource` can construct the current process identity or assess whether a lock owner is live, stale, or unknown. Error helpers standardize unsupported-platform and unavailable-data cases so higher-level lock and supervision code can degrade safely.",
         "chapter": "stack_and_ops",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.631Z",
+          "processedAt": "2026-07-25T10:36:37.315Z",
           "attempts": 1
         },
         "keywords": [
           "process identity",
-          "boot id",
-          "pid reuse",
-          "lock owner",
-          "start fingerprint",
-          "stale process",
-          "runtime detection",
-          "owner token"
+          "PID reuse",
+          "Linux procfs",
+          "boot ID",
+          "lock ownership",
+          "process liveness",
+          "start fingerprint"
         ]
       },
       {
@@ -14559,9 +14570,9 @@
     ],
     "summary": {
       "total": 257,
-      "totalMethods": 2850
+      "totalMethods": 2859
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-25T08:48:26.109Z"
+  "enrichedAt": "2026-07-25T10:36:37.315Z"
 }
