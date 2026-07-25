@@ -1,0 +1,84 @@
+[senti] spec-local tests start
+command: node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js
+process.kind: passed
+process.command: node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 1884
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 6550.680916
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R1: failed requirement evidence reaches stale fingerprint classification
+ok 1 - R1: failed requirement evidence reaches stale fingerprint classification
+  ---
+  duration_ms: 269.767963
+  type: 'test'
+  ...
+# Subtest: R2: failed review evidence with a material fingerprint change is stale
+ok 2 - R2: failed review evidence with a material fingerprint change is stale
+  ---
+  duration_ms: 228.302947
+  type: 'test'
+  ...
+# Subtest: R3: the gate-owned recovery invalidates evidence and reactivates test-execute
+ok 3 - R3: the gate-owned recovery invalidates evidence and reactivates test-execute
+  ---
+  duration_ms: 233.685855
+  type: 'test'
+  ...
+# Subtest: R4: a failed lifecycle mutation leaves stale artifacts available for retry
+ok 4 - R4: a failed lifecycle mutation leaves stale artifacts available for retry
+  ---
+  duration_ms: 248.814334
+  type: 'test'
+  ...
+# Subtest: R5: invalid fingerprint authority fails closed without a recovery mutation
+ok 5 - R5: invalid fingerprint authority fails closed without a recovery mutation
+  ---
+  duration_ms: 1744.206913
+  type: 'test'
+  ...
+# Subtest: R6: unchanged failed evidence still fails after stale recovery is available
+ok 6 - R6: unchanged failed evidence still fails after stale recovery is available
+  ---
+  duration_ms: 546.724644
+  type: 'test'
+  ...
+# Subtest: R7: trusted current evidence and explicit rewind guard behavior remain intact
+ok 7 - R7: trusted current evidence and explicit rewind guard behavior remain intact
+  ---
+  duration_ms: 2173.895988
+  type: 'test'
+  ...
+# Subtest: R8: failed authoritative evidence variants share one recovery contract
+ok 8 - R8: failed authoritative evidence variants share one recovery contract
+  ---
+  duration_ms: 900.137962
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6550.680916
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] spec-local tests end

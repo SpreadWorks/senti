@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/get-status.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/repair-state-identity.js"
+    ],
+    "inputHash": "84ea27ba98aff5074afc6301409ce7284215a1b28ad281425ad2dd361ccb8ce1",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "src/flow/lib/get-status.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/repair-state-identity.js"
+  ],
+  "inputHash": "84ea27ba98aff5074afc6301409ce7284215a1b28ad281425ad2dd361ccb8ce1",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:38:15.209Z",
+  "finishedAt": "2026-07-24T23:38:15.209Z",
+  "rawResponse": "I’ll review only the three diff files you supplied and map any suggestions to the listed requirement IDs. I’ll focus on quality issues rather than trying to infer broader repo context outside the diff.### 1. Memoize review tree SHA resolution\n**File:** `src/flow/lib/get-status.js`  \n**Requirement:** R7  \n**Issue:** `resolveTreeSha: () => resolveCurrentReviewTreeSha(root)` may perform repeated filesystem/git evidence resolution if `resolveReviewActionForFlowState` calls the callback more than once. It also risks inconsistent values during one status build if the underlying tree changes mid-call.  \n**Suggestion:** Capture a lazy memoized value inside `buildStatusReviewViews`, e.g. `let treeSha; const resolveTreeSha = () => treeSha ??= resolveCurrentReviewTreeSha(root);`, then pass `resolveTreeSha`.\n\n### 2. Avoid repeated invalidation projection work\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `RepairEvidenceInvalidationPlan.apply()` computes `invalidatedArtifacts` and `invalidationRecords` through getters that each remap `this.invalidations`. This duplicates traversal and makes the return payload depend on recomputed projections after mutation application.  \n**Suggestion:** Compute both arrays once in `apply()` before returning, and return those local values after `applyRepairInvalidations(...)`. This keeps the owned recovery result explicit and avoids redundant work.\n\n### 3. Rename stored invalidation records for clarity\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** The class field `this.invalidations` contains planned invalidation record objects, while the public return field `invalidations` contains serialized JSON records. The shared name makes it harder to distinguish plan objects from emitted recovery artifact data.  \n**Suggestion:** Rename the internal field to `plannedInvalidations` or `invalidationPlanRecords`, and leave the public return key as `invalidations` for compatibility.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Memoize review tree SHA resolution",
+        "body": "**File:** `src/flow/lib/get-status.js`  \n**Requirement:** R7  \n**Issue:** `resolveTreeSha: () => resolveCurrentReviewTreeSha(root)` may perform repeated filesystem/git evidence resolution if `resolveReviewActionForFlowState` calls the callback more than once. It also risks inconsistent values during one status build if the underlying tree changes mid-call.  \n**Suggestion:** Capture a lazy memoized value inside `buildStatusReviewViews`, e.g. `let treeSha; const resolveTreeSha = () => treeSha ??= resolveCurrentReviewTreeSha(root);`, then pass `resolveTreeSha`.",
+        "file": "src/flow/lib/get-status.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Avoid repeated invalidation projection work",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `RepairEvidenceInvalidationPlan.apply()` computes `invalidatedArtifacts` and `invalidationRecords` through getters that each remap `this.invalidations`. This duplicates traversal and makes the return payload depend on recomputed projections after mutation application.  \n**Suggestion:** Compute both arrays once in `apply()` before returning, and return those local values after `applyRepairInvalidations(...)`. This keeps the owned recovery result explicit and avoids redundant work.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Rename stored invalidation records for clarity",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** The class field `this.invalidations` contains planned invalidation record objects, while the public return field `invalidations` contains serialized JSON records. The shared name makes it harder to distinguish plan objects from emitted recovery artifact data.  \n**Suggestion:** Rename the internal field to `plannedInvalidations` or `invalidationPlanRecords`, and leave the public return key as `invalidations` for compatibility.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

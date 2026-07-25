@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "513a911e56c8d49afa1dd835",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-d8ca08478e2deeae",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".senti/presets/base/guardrail.json",
+      "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+      "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+      "specs/334-stale-test-evidence-recovery/issue-log.json",
+      "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+      "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+      "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+      "specs/334-stale-test-evidence-recovery/spec.json",
+      "specs/334-stale-test-evidence-recovery/test-coverage.json",
+      "specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log",
+      "src/flow/lib/get-status.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/test-artifacts.js",
+      "tests/unit/flow/review-convergence-action.test.js"
+    ],
+    "inputHash": "d8ca08478e2deeae6200df2600b61bf8f3046e84f1938334d8379457be7eec94",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "513a911e56c8d49afa1dd835"
+  },
+  "targetFiles": [
+    ".senti/presets/base/guardrail.json",
+    "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+    "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+    "specs/334-stale-test-evidence-recovery/issue-log.json",
+    "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+    "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+    "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+    "specs/334-stale-test-evidence-recovery/spec.json",
+    "specs/334-stale-test-evidence-recovery/test-coverage.json",
+    "specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log",
+    "src/flow/lib/get-status.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/test-artifacts.js",
+    "tests/unit/flow/review-convergence-action.test.js"
+  ],
+  "inputHash": "d8ca08478e2deeae6200df2600b61bf8f3046e84f1938334d8379457be7eec94",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:45:32.160Z",
+  "finishedAt": "2026-07-24T23:45:32.160Z",
+  "rawResponse": "### 1. Standardize Review Phase Names\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R7\n**Issue:** Multiple artifacts and code paths appear to use overlapping phase labels such as `test`, `test-review`, `task-impl`, `spec-gate`, and lifecycle-owner terminology. The per-file reviews flag this in guardrail text, `test-review.json`, and review convergence naming. This creates cross-file ambiguity about which lifecycle step owns evidence, review state, and recovery decisions.\n**Suggestion:** Define one canonical phase vocabulary for review artifacts and resolver APIs, then update guardrail copy, generated JSON fields, and callback names to use those exact labels consistently.\n\n### 2. Deduplicate Finding Representations Across Review Artifacts\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json`\n**Requirement:** R8\n**Issue:** Several review artifacts store the same finding data in parallel structures such as `findings`, `blockingFindings`, `repairTargets`, and `handoffFindings`. The duplication appears in multiple review-history and flow artifacts, increasing drift risk between files and between generated summaries.\n**Suggestion:** Use one canonical findings array across review artifacts, with blocking/advisory/repair-target groupings represented as derived views or lightweight ID references.\n\n### 3. Normalize Finding Identifier Generation\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`\n**Requirement:** R5\n**Issue:** Multiple review-history files report duplicated `findingId`, `fingerprint`, or `id` values for distinct findings. Since these identifiers are used across files for deduplication and history correlation, collisions make cross-file tracking ambiguous.\n**Suggestion:** Generate stable IDs from requirement ID plus normalized finding title/body/target, and apply that scheme consistently to all review-history and review-evidence artifacts.\n\n### 4. Use Consistent Generated Artifact Metadata\n**File:** `specs/334-stale-test-evidence-recovery/draft-questions-repair.json`\n**Requirement:** R5\n**Issue:** Related generated review artifacts do not share the same metadata shape: `draft-review-coverage.json` has `generatedAt`, while triage and repair artifacts omit it. This weakens provenance consistency across the artifact family.\n**Suggestion:** Add a shared metadata schema for generated review artifacts, including `generatedAt`, and apply it uniformly to coverage, triage, repair, and question review outputs.\n\n### 5. Canonicalize JSON Formatting Across Evidence Files\n**File:** `specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json`\n**Requirement:** R1\n**Issue:** Review evidence JSON files are inconsistently formatted, with several stored as single-line dense JSON while related review-history files are pretty-printed. This makes cross-file review and diffs harder to inspect.\n**Suggestion:** Adopt one canonical generated JSON format, preferably stable pretty-printed JSON with deterministic key ordering, for all review-evidence and review-history artifacts.\n\n### 6. Consolidate Stale Evidence Recovery Helpers Across Call Sites\n**File:** `src/flow/lib/get-next-action.js`\n**Requirement:** R7\n**Issue:** Both `get-next-action.js` and `get-status.js` pass a tree SHA resolver callback into `resolveReviewActionForFlowState`, and both reviews raise the same repeated-resolution concern. This indicates the interface encourages duplicated call-site handling.\n**Suggestion:** Move lazy memoization or current-tree resolution ownership into `resolveReviewActionForFlowState`, or expose a shared helper so all callers use the same cached resolution behavior.\n\n### 7. Align Authority Validation Naming Across Source And Tests\n**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R5\n**Issue:** Source-level authority classes and tests both introduce authority/fingerprint/link validation concepts, but the reviews flag repeated validation helpers in source and duplicated invalid authority fixtures in tests. Without shared naming and fixtures, source behavior and test cases can drift.\n**Suggestion:** Extract shared validation helper names around fingerprint and artifact path authority, then mirror those names in reusable test case builders for invalid authority scenarios.\n\n### 8. Remove Ordinal Prefixes From Stored Titles Across Artifacts\n**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`\n**Requirement:** R4\n**Issue:** Ordinal prefixes appear in multiple generated artifacts, including draft question triage and repair target titles. This duplicates array ordering inside semantic title fields and can become stale when items are reordered across files.\n**Suggestion:** Store titles without numbering in all JSON artifacts, and let renderers add display numbering when producing Markdown or UI lists.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize Review Phase Names",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R7\n**Issue:** Multiple artifacts and code paths appear to use overlapping phase labels such as `test`, `test-review`, `task-impl`, `spec-gate`, and lifecycle-owner terminology. The per-file reviews flag this in guardrail text, `test-review.json`, and review convergence naming. This creates cross-file ambiguity about which lifecycle step owns evidence, review state, and recovery decisions.\n**Suggestion:** Define one canonical phase vocabulary for review artifacts and resolver APIs, then update guardrail copy, generated JSON fields, and callback names to use those exact labels consistently.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Deduplicate Finding Representations Across Review Artifacts",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json`\n**Requirement:** R8\n**Issue:** Several review artifacts store the same finding data in parallel structures such as `findings`, `blockingFindings`, `repairTargets`, and `handoffFindings`. The duplication appears in multiple review-history and flow artifacts, increasing drift risk between files and between generated summaries.\n**Suggestion:** Use one canonical findings array across review artifacts, with blocking/advisory/repair-target groupings represented as derived views or lightweight ID references.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Normalize Finding Identifier Generation",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`\n**Requirement:** R5\n**Issue:** Multiple review-history files report duplicated `findingId`, `fingerprint`, or `id` values for distinct findings. Since these identifiers are used across files for deduplication and history correlation, collisions make cross-file tracking ambiguous.\n**Suggestion:** Generate stable IDs from requirement ID plus normalized finding title/body/target, and apply that scheme consistently to all review-history and review-evidence artifacts.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Use Consistent Generated Artifact Metadata",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/draft-questions-repair.json`\n**Requirement:** R5\n**Issue:** Related generated review artifacts do not share the same metadata shape: `draft-review-coverage.json` has `generatedAt`, while triage and repair artifacts omit it. This weakens provenance consistency across the artifact family.\n**Suggestion:** Add a shared metadata schema for generated review artifacts, including `generatedAt`, and apply it uniformly to coverage, triage, repair, and question review outputs.",
+        "file": "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Canonicalize JSON Formatting Across Evidence Files",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json`\n**Requirement:** R1\n**Issue:** Review evidence JSON files are inconsistently formatted, with several stored as single-line dense JSON while related review-history files are pretty-printed. This makes cross-file review and diffs harder to inspect.\n**Suggestion:** Adopt one canonical generated JSON format, preferably stable pretty-printed JSON with deterministic key ordering, for all review-evidence and review-history artifacts.",
+        "file": "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "6. Consolidate Stale Evidence Recovery Helpers Across Call Sites",
+        "body": "**File:** `src/flow/lib/get-next-action.js`\n**Requirement:** R7\n**Issue:** Both `get-next-action.js` and `get-status.js` pass a tree SHA resolver callback into `resolveReviewActionForFlowState`, and both reviews raise the same repeated-resolution concern. This indicates the interface encourages duplicated call-site handling.\n**Suggestion:** Move lazy memoization or current-tree resolution ownership into `resolveReviewActionForFlowState`, or expose a shared helper so all callers use the same cached resolution behavior.",
+        "file": "src/flow/lib/get-next-action.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "7. Align Authority Validation Naming Across Source And Tests",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R5\n**Issue:** Source-level authority classes and tests both introduce authority/fingerprint/link validation concepts, but the reviews flag repeated validation helpers in source and duplicated invalid authority fixtures in tests. Without shared naming and fixtures, source behavior and test cases can drift.\n**Suggestion:** Extract shared validation helper names around fingerprint and artifact path authority, then mirror those names in reusable test case builders for invalid authority scenarios.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "8. Remove Ordinal Prefixes From Stored Titles Across Artifacts",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`\n**Requirement:** R4\n**Issue:** Ordinal prefixes appear in multiple generated artifacts, including draft question triage and repair target titles. This duplicates array ordering inside semantic title fields and can become stale when items are reordered across files.\n**Suggestion:** Store titles without numbering in all JSON artifacts, and let renderers add display numbering when producing Markdown or UI lists.",
+        "file": "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

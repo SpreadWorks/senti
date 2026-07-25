@@ -1,0 +1,306 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/334-stale-test-evidence-recovery/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "test_name": "R1: demo requirement",
+        "command": "node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "test_name": "R2: failed review evidence with a material fingerprint change is stale",
+        "command": "node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "test_name": "R3: the gate-owned recovery invalidates evidence and reactivates test-execute",
+        "command": "node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "test_name": "R4: a failed lifecycle mutation leaves stale artifacts available for retry",
+        "command": "node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "test_name": "R5: invalid fingerprint authority fails closed without a recovery mutation",
+        "command": "node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "test_name": "R6: unchanged failed evidence still fails after stale recovery is available",
+        "command": "node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "test_name": "R7: trusted current evidence and explicit rewind guard behavior remain intact",
+        "command": "node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "test_name": "R8: failed authoritative evidence variants share one recovery contract",
+        "command": "node --test specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/lib/get-next-action.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/get-status.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/repair-state-identity.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/review-convergence.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-gate.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/test-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/gate-deferred-regression.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/review-convergence-action.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/review-convergence-action.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-next-action.js",
+        "fingerprint": "3408d0999b87960905faf82c39aaa0a99c8bdf3e5b47b4150a581d31fa60f1c5"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js",
+        "fingerprint": "555cf06bfd6efd70bb4813a366c6117cca29d853d1f5d0ef90db2e8155b20358"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "0a04981532ee0ef8077da4d5e701acf1a2d735d514487227d5c2aa17e904d7c8"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/repair-state-identity.js",
+        "fingerprint": "905f4b2305204f8e37e09165d8c2c8b81c40b2aba0fc82241b8825b4404e2912"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-convergence.js",
+        "fingerprint": "9c83b601c790493edd081e25ad320dfd066042def161da8d52db456da6475011"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "735963626a8f507ee6329c8eaec5b2ebcf47e1d991f0d0ea2af3c6bf2063ca88"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "fingerprint": "f0a37a240458fccc142207323eaee60138c39c8fcbabe653d2422a3de7c0e1b6"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-artifacts.js",
+        "fingerprint": "f1d8debcad1c30b3f2829d1438cd9c4a50b078596f143928b0551605dd9b7a5a"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "153edcc458df13bfd29b33da530e11aac8a0ea4f9789da42f9c699fc6cbb43d4"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-deferred-regression.test.js",
+        "fingerprint": "4be18510eba243cce9c9b6de3ada87df6fd76af5758dccd3456a2980fbdb2be7"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "fingerprint": "99233e763d0fcf7c809fed13434cd82cea6343bca7112c2d37545d7b86294dc5"
+      },
+      {
+        "status": "added",
+        "path": "tests/unit/flow/review-convergence-action.test.js",
+        "fingerprint": "ec82c9c5befd2d5c4b0bb719e8aab075b07a74b5506efabaf04810a4b19a6466"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/review-convergence-action.test.js",
+        "fingerprint": "ec82c9c5befd2d5c4b0bb719e8aab075b07a74b5506efabaf04810a4b19a6466"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-next-action.js",
+        "fingerprint": "3408d0999b87960905faf82c39aaa0a99c8bdf3e5b47b4150a581d31fa60f1c5"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js",
+        "fingerprint": "555cf06bfd6efd70bb4813a366c6117cca29d853d1f5d0ef90db2e8155b20358"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "0a04981532ee0ef8077da4d5e701acf1a2d735d514487227d5c2aa17e904d7c8"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/repair-state-identity.js",
+        "fingerprint": "905f4b2305204f8e37e09165d8c2c8b81c40b2aba0fc82241b8825b4404e2912"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-convergence.js",
+        "fingerprint": "9c83b601c790493edd081e25ad320dfd066042def161da8d52db456da6475011"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "735963626a8f507ee6329c8eaec5b2ebcf47e1d991f0d0ea2af3c6bf2063ca88"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "fingerprint": "f0a37a240458fccc142207323eaee60138c39c8fcbabe653d2422a3de7c0e1b6"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-artifacts.js",
+        "fingerprint": "f1d8debcad1c30b3f2829d1438cd9c4a50b078596f143928b0551605dd9b7a5a"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "153edcc458df13bfd29b33da530e11aac8a0ea4f9789da42f9c699fc6cbb43d4"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-deferred-regression.test.js",
+        "fingerprint": "4be18510eba243cce9c9b6de3ada87df6fd76af5758dccd3456a2980fbdb2be7"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "fingerprint": "99233e763d0fcf7c809fed13434cd82cea6343bca7112c2d37545d7b86294dc5"
+      },
+      {
+        "status": "added",
+        "path": "tests/unit/flow/review-convergence-action.test.js",
+        "fingerprint": "ec82c9c5befd2d5c4b0bb719e8aab075b07a74b5506efabaf04810a4b19a6466"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/review-convergence-action.test.js",
+        "fingerprint": "ec82c9c5befd2d5c4b0bb719e8aab075b07a74b5506efabaf04810a4b19a6466"
+      }
+    ]
+  },
+  "repairFingerprint": "0b50dc4308df7545df3a381e218304d8722f0af6d20bb75f761e59f545c1d913"
+}

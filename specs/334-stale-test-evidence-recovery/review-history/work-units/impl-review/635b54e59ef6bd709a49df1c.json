@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+      "specs/334-stale-test-evidence-recovery/draft.json",
+      "specs/334-stale-test-evidence-recovery/flow.json"
+    ],
+    "inputHash": "1044f55e69a61e2301c7edf8bd26c4de17c6d6f5f19dd0678211b66406fefc9a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+    "specs/334-stale-test-evidence-recovery/draft.json",
+    "specs/334-stale-test-evidence-recovery/flow.json"
+  ],
+  "inputHash": "1044f55e69a61e2301c7edf8bd26c4de17c6d6f5f19dd0678211b66406fefc9a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T00:13:40.184Z",
+  "finishedAt": "2026-07-25T00:13:40.184Z",
+  "rawResponse": "### 1. Prune Volatile Runtime History\n**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R1  \n**Issue:** The checked-in flow state includes thousands of lines of runtime-only data, including repeated `metrics`, `runtimeLog`, `reviewConvergence.handoffFindings`, `evidenceHistory`, `stepAttempts`, and `reviewRecoveryBaselines`. This makes the artifact noisy, hard to review, and likely to churn on every run.  \n**Suggestion:** Persist only the canonical current flow state needed to resume or audit the feature, and move detailed attempt history to generated evidence artifacts or a bounded external log.\n\n### 2. Add Explicit Bounds To Recorded Histories\n**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R2  \n**Issue:** Arrays such as `metrics`, `reviewConvergence.records[].handoffFindings`, `reviewConvergence.records[].evidenceHistory`, and `stepAttempts` appear to grow with every review or gate attempt without an explicit cap. This violates the `bounded-resource-usage` guardrail because repeated retries can produce unbounded persisted state.  \n**Suggestion:** Add explicit retention limits, for example max attempts per phase, max evidence history entries per record, and max handoff findings per review record. If older entries are needed for audit, summarize or archive them outside the main flow state.\n\n### 3. Deduplicate Repeated Review Finding Metadata\n**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R3  \n**Issue:** Each `handoffFindings` entry repeats identical fields such as `sourceStep`, `phase`, `taskId`, `treeSha`, `provenance`, `canonicalEvidenceRef`, `evidenceDigest`, `reviewDisposition`, and `finalDispositionOwner`. This bloats the file and makes metadata consistency harder to maintain.  \n**Suggestion:** Store shared review metadata once at the enclosing record level, and keep each finding limited to its unique fields: `findingId`, `summary`, `fingerprint`, and `evidenceRefs`.\n\n### 4. Normalize Draft Review Finding Titles\n**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** `repairTargets[].title` embeds ordinal prefixes like `1. q2 includes recommendation and rationale`. The ordinal duplicates array ordering and can drift if entries are reordered.  \n**Suggestion:** Remove numeric prefixes from titles and rely on array position or stable IDs if ordering must be shown.\n\n### 5. Avoid Duplicating Policy Text Across QA And Decision Map\n**File:** `specs/334-stale-test-evidence-recovery/draft.json`  \n**Requirement:** R5  \n**Issue:** The same stale recovery policy is repeated in `decisionMap.knownFacts`, `scopeVerification`, `impactOnExisting`, and `qa` answers. This increases maintenance cost and creates risk that one copy will be updated without the others.  \n**Suggestion:** Keep the policy once in the canonical decision section, and have QA entries reference that decision rather than restating the full boundary text.\n\n### 6. Remove Empty Placeholder Fields\n**File:** `specs/334-stale-test-evidence-recovery/draft.json`  \n**Requirement:** R6  \n**Issue:** QA entries include empty string fields such as `considered` and `droppedReason` even when no value exists. These placeholders add noise without conveying information.  \n**Suggestion:** Omit optional fields when empty, or use `null` only if the schema requires explicit absence.\n\n### 7. Align Artifact Summary With Structured Counts\n**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`  \n**Requirement:** R7  \n**Issue:** The summary says `0 blocking, 0 advisory, 2 repair target finding(s) recorded` while `verdict` is `ADVISORY` and `advisoryFindings` is empty. This naming split makes the artifact harder to interpret.  \n**Suggestion:** Either classify repair targets under advisory findings when the verdict is advisory, or use a verdict/summary vocabulary that clearly distinguishes repair targets from advisory findings.\n\n### 8. Remove Stale Generated Review State From Source Diff\n**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R8  \n**Issue:** The file records prior failed and superseded review outputs, including rejected findings and retry history that no longer represents the current implementation state. This is effectively dead generated state inside the change set.  \n**Suggestion:** Regenerate or compact `flow.json` so it contains only the current authoritative state, plus bounded audit references to historical evidence files where needed.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Prune Volatile Runtime History",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R1  \n**Issue:** The checked-in flow state includes thousands of lines of runtime-only data, including repeated `metrics`, `runtimeLog`, `reviewConvergence.handoffFindings`, `evidenceHistory`, `stepAttempts`, and `reviewRecoveryBaselines`. This makes the artifact noisy, hard to review, and likely to churn on every run.  \n**Suggestion:** Persist only the canonical current flow state needed to resume or audit the feature, and move detailed attempt history to generated evidence artifacts or a bounded external log.",
+        "file": "specs/334-stale-test-evidence-recovery/flow.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Add Explicit Bounds To Recorded Histories",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R2  \n**Issue:** Arrays such as `metrics`, `reviewConvergence.records[].handoffFindings`, `reviewConvergence.records[].evidenceHistory`, and `stepAttempts` appear to grow with every review or gate attempt without an explicit cap. This violates the `bounded-resource-usage` guardrail because repeated retries can produce unbounded persisted state.  \n**Suggestion:** Add explicit retention limits, for example max attempts per phase, max evidence history entries per record, and max handoff findings per review record. If older entries are needed for audit, summarize or archive them outside the main flow state.",
+        "file": "specs/334-stale-test-evidence-recovery/flow.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Deduplicate Repeated Review Finding Metadata",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R3  \n**Issue:** Each `handoffFindings` entry repeats identical fields such as `sourceStep`, `phase`, `taskId`, `treeSha`, `provenance`, `canonicalEvidenceRef`, `evidenceDigest`, `reviewDisposition`, and `finalDispositionOwner`. This bloats the file and makes metadata consistency harder to maintain.  \n**Suggestion:** Store shared review metadata once at the enclosing record level, and keep each finding limited to its unique fields: `findingId`, `summary`, `fingerprint`, and `evidenceRefs`.",
+        "file": "specs/334-stale-test-evidence-recovery/flow.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Normalize Draft Review Finding Titles",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** `repairTargets[].title` embeds ordinal prefixes like `1. q2 includes recommendation and rationale`. The ordinal duplicates array ordering and can drift if entries are reordered.  \n**Suggestion:** Remove numeric prefixes from titles and rely on array position or stable IDs if ordering must be shown.",
+        "file": "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Avoid Duplicating Policy Text Across QA And Decision Map",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/draft.json`  \n**Requirement:** R5  \n**Issue:** The same stale recovery policy is repeated in `decisionMap.knownFacts`, `scopeVerification`, `impactOnExisting`, and `qa` answers. This increases maintenance cost and creates risk that one copy will be updated without the others.  \n**Suggestion:** Keep the policy once in the canonical decision section, and have QA entries reference that decision rather than restating the full boundary text.",
+        "file": "specs/334-stale-test-evidence-recovery/draft.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "6. Remove Empty Placeholder Fields",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/draft.json`  \n**Requirement:** R6  \n**Issue:** QA entries include empty string fields such as `considered` and `droppedReason` even when no value exists. These placeholders add noise without conveying information.  \n**Suggestion:** Omit optional fields when empty, or use `null` only if the schema requires explicit absence.",
+        "file": "specs/334-stale-test-evidence-recovery/draft.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "7. Align Artifact Summary With Structured Counts",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`  \n**Requirement:** R7  \n**Issue:** The summary says `0 blocking, 0 advisory, 2 repair target finding(s) recorded` while `verdict` is `ADVISORY` and `advisoryFindings` is empty. This naming split makes the artifact harder to interpret.  \n**Suggestion:** Either classify repair targets under advisory findings when the verdict is advisory, or use a verdict/summary vocabulary that clearly distinguishes repair targets from advisory findings.",
+        "file": "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "8. Remove Stale Generated Review State From Source Diff",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R8  \n**Issue:** The file records prior failed and superseded review outputs, including rejected findings and retry history that no longer represents the current implementation state. This is effectively dead generated state inside the change set.  \n**Suggestion:** Regenerate or compact `flow.json` so it contains only the current authoritative state, plus bounded audit references to historical evidence files where needed.",
+        "file": "specs/334-stale-test-evidence-recovery/flow.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

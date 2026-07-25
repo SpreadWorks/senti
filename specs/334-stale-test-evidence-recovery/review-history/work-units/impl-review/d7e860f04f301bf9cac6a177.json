@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.md",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.md"
+    ],
+    "inputHash": "a27b645511976c6ba726c2901678fc06d88296b8d1e27b30f8c65b5ba8e7eed1",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.md",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.md"
+  ],
+  "inputHash": "a27b645511976c6ba726c2901678fc06d88296b8d1e27b30f8c65b5ba8e7eed1",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:22:27.436Z",
+  "finishedAt": "2026-07-24T23:22:27.436Z",
+  "rawResponse": "### 1. Use distinct finding identifiers\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`  \n**Requirement:** R5  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id`, even though they describe different R7 and R5 issues. This makes deduplication, tracking, and history correlation ambiguous.  \n**Suggestion:** Generate stable identifiers from each finding’s own title/body/requirement so the R7 delegated-test finding and R5 missing-review-input finding have distinct IDs.\n\n### 2. Remove duplicated rationale text inside each finding\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`  \n**Requirement:** R7  \n**Issue:** Each `blockingFindings` entry repeats the same sentence in both `rationale` and `whyBlocking`. This is redundant and increases the chance that future edits drift between fields.  \n**Suggestion:** Keep one canonical field for the blocking rationale, or make `whyBlocking` a derived rendering-only value instead of storing duplicate text.\n\n### 3. Normalize newline handling\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with normal text-file conventions and can cause noisy diffs.  \n**Suggestion:** Add a trailing newline at EOF.\n\n### 4. Normalize newline handling\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, matching the same formatting issue as the previous attempt file.  \n**Suggestion:** Add a trailing newline at EOF.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Use distinct finding identifiers",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`  \n**Requirement:** R5  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id`, even though they describe different R7 and R5 issues. This makes deduplication, tracking, and history correlation ambiguous.  \n**Suggestion:** Generate stable identifiers from each finding’s own title/body/requirement so the R7 delegated-test finding and R5 missing-review-input finding have distinct IDs.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Remove duplicated rationale text inside each finding",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`  \n**Requirement:** R7  \n**Issue:** Each `blockingFindings` entry repeats the same sentence in both `rationale` and `whyBlocking`. This is redundant and increases the chance that future edits drift between fields.  \n**Suggestion:** Keep one canonical field for the blocking rationale, or make `whyBlocking` a derived rendering-only value instead of storing duplicate text.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Normalize newline handling",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with normal text-file conventions and can cause noisy diffs.  \n**Suggestion:** Add a trailing newline at EOF.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Normalize newline handling",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, matching the same formatting issue as the previous attempt file.  \n**Suggestion:** Add a trailing newline at EOF.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

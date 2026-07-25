@@ -22,6 +22,10 @@ describe("integration gate deferred regression evidence", () => {
       .createHash("sha256")
       .update(changedFileContent)
       .digest("hex");
+    const repairFingerprint = crypto
+      .createHash("sha256")
+      .update("deferred-regression-fixture")
+      .digest("hex");
     fs.mkdirSync(path.join(specDir, "tests/.raw"), { recursive: true });
 
     writeFile(tmp, "src/flow/lib/run-gate.js", changedFileContent);
@@ -41,6 +45,7 @@ describe("integration gate deferred regression evidence", () => {
     ].join("\n"));
     writeJson(tmp, "specs/001-test/test-execute-result.json", {
       version: "2",
+      repairFingerprint,
       raw_output_path: "specs/001-test/tests/.raw/test-execution.log",
       summary: [{
         id: "R1",
@@ -63,6 +68,7 @@ describe("integration gate deferred regression evidence", () => {
     });
     writeJson(tmp, "specs/001-test/test-result-review.json", {
       verdict: "pass",
+      repairFingerprint,
       checked_items: [{ check: "project_regression_verification", result: "pass", detail: "deferred regression evidence verified" }],
       result_file_path: "specs/001-test/test-execute-result.json",
       raw_output_path: "specs/001-test/tests/.raw/test-execution.log",

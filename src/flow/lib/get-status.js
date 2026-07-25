@@ -30,6 +30,7 @@ import { FlowCompletion } from "./flow-completion.js";
 import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 import { resolveReviewActionForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
+import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
@@ -180,7 +181,11 @@ function buildStatusReviewViews(state, active, root) {
     resolvedMax,
   });
   const taskId = active?.id === "task-review" ? state.currentTaskId : null;
-  const reviewAction = resolveReviewActionForFlowState(state, { phase: reviewPhase, taskId });
+  const reviewAction = resolveReviewActionForFlowState(state, {
+    phase: reviewPhase,
+    taskId,
+    resolveTreeSha: () => resolveCurrentReviewTreeSha(root),
+  });
   return reviewAction ? { reviewAction } : null;
 }
 

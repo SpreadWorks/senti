@@ -275,7 +275,7 @@
     {
       "id": "spec-test-coverage",
       "title": "Spec Test Coverage",
-      "body": "Verify that the implementation conforms to requirements and specifications. New spec behavior coverage MUST be written under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file. Existing shared regression tests under tests/ MAY be updated when production contracts change, but those updates do not substitute for the required spec-local coverage. Runtime spec-local pass/fail is verified at the integration scope by test-execute and test-result-review, while full project regression is verified by final-regression before finalize; task-impl gates inspect diff and header coverage only.",
+      "body": "Verify that the implementation conforms to requirements and specifications. New spec behavior coverage MUST be written under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file. Existing shared regression tests under tests/ MAY be updated when production contracts change, but those updates do not substitute for the required spec-local coverage. Runtime spec-local pass/fail is verified at the integration scope by test-execute and test-result-review, while full project regression is verified by final-regression before finalize; task-impl gates inspect diff and header coverage only.\n\nViolation: a gate requires evidence owned by a later lifecycle step\nDiff-verification conditions:\n- The current integration gate has current PASS test-execute and test-result-review evidence for spec-local requirements.\n- The spec assigns full project regression evidence to final-regression.\n- final-regression is ordered after the current integration gate and remains pending.\nBlocking when: current-step-owned test evidence is missing or failed, or required spec-local/shared regression coverage is absent from the diff.\nAdvisory when: current-step-owned evidence passes and only optional test coverage could be improved. A pending downstream final-regression step alone is neither blocking nor advisory.",
       "meta": {
         "phase": [
           "spec",
@@ -288,7 +288,7 @@
     {
       "id": "project-test-integrity",
       "title": "Project Test Integrity",
-      "body": "Ensure that implemented code continues to work after merging by adding or updating project test code as needed. All project tests MUST pass.",
+      "body": "Ensure that implemented code continues to work after merging by adding or updating project test code as needed. All project tests MUST pass. At the task-impl gate, inspect the diff for the necessary project test changes only; do not require runtime test evidence or completion of the later test-execute and final-regression steps. Runtime pass/fail is verified by those later lifecycle owners before finalize.",
       "meta": {
         "phase": [
           "task-impl"

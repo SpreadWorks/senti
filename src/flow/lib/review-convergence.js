@@ -1033,10 +1033,27 @@ export class ReviewConvergenceStore {
   }
 }
 
-export function resolveReviewActionForFlowState(flowState, { phase, taskId = null } = {}) {
-  const matches = convergenceRecords(flowState).filter((entry) => (
+export function resolveReviewActionForFlowState(
+  flowState,
+  { phase, taskId = null, resolveTreeSha } = {},
+) {
+  const scopedRecords = convergenceRecords(flowState).filter((entry) => (
     entry.phase === phase && (entry.taskId ?? null) === (taskId ?? null)
   ));
+  if (scopedRecords.length === 0) return null;
+  if (resolveTreeSha == null) {
+    const state = storedConvergenceState(scopedRecords[scopedRecords.length - 1]);
+    return resolveReviewPermittedOperation(state).toJSON();
+  }
+  if (typeof resolveTreeSha !== "function") {
+    throw new Error("resolveTreeSha is required for a persisted review target");
+  }
+  const treeSha = requireTreeSha(resolveTreeSha());
+  const matches = scopedRecords.filter((entry) => targetMatches(entry, {
+    phase,
+    taskId,
+    treeSha,
+  }));
   if (matches.length === 0) return null;
   const state = storedConvergenceState(matches[matches.length - 1]);
   return resolveReviewPermittedOperation(state).toJSON();

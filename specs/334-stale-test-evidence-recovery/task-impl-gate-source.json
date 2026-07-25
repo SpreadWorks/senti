@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "512698c6-f674-45f6-b688-4a9f6d26869f",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-24T23:17:28.263Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The diff leaves `final-regression` pending, so the implementation does not provide evidence that all project tests passed as required.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/334-stale-test-evidence-recovery/flow.json",
+            "locator": "impl.children.final-regression.status"
+          },
+          "observed": "The diff leaves `final-regression` pending, so the implementation does not provide evidence that all project tests passed as required.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "fingerprint": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "disposition": "must-fix",
+      "rationale": "The diff leaves `final-regression` pending, so the implementation does not provide evidence that all project tests passed as required.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T23:16:26.175Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/334-stale-test-evidence-recovery/flow.json",
+        "locator": "impl.children.final-regression.status"
+      },
+      "observed": "The diff leaves `final-regression` pending, so the implementation does not provide evidence that all project tests passed as required.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "fingerprint": "470bdc4606d293a5c0fd1d571712bd05f5a586f29ece6347ff1d51be49766d29",
+      "disposition": "must-fix",
+      "rationale": "The diff leaves `final-regression` pending, so the implementation does not provide evidence that all project tests passed as required.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-24T23:17:28.263Z",
+      "repeatCount": 1
+    }
+  ]
+}

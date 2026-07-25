@@ -158,6 +158,26 @@ describe("repair state identity", () => {
     assert.equal(after.hash, before.hash);
   });
 
+  it("keeps commit metadata changes out of explicit input content identity", () => {
+    const { state } = initRepository();
+    write("specs/demo/tests/new.test.js", "export const addedTest = true;\n");
+    const beforeCommit = buildRepairFingerprint({
+      root: tmp,
+      specPath: state.spec,
+      state,
+    });
+
+    git("add", "specs/demo/tests/new.test.js");
+    git("commit", "-q", "-m", "commit unchanged explicit input content");
+    const afterCommit = buildRepairFingerprint({
+      root: tmp,
+      specPath: state.spec,
+      state,
+    });
+
+    assert.equal(afterCommit.hash, beforeCommit.hash);
+  });
+
   it("tracks explicit ignored inputs and fails closed at the configured complete-count boundary", () => {
     const { state } = initRepository({
       config: { flow: { repairFingerprint: { maxChangedPaths: 6, include: ["vendor/cache"] } } },

@@ -1,0 +1,653 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 2,
+    "hash": "0b50dc4308df7545df3a381e218304d8722f0af6d20bb75f761e59f545c1d913",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-25T00:14:55.210Z",
+  "items": [
+    {
+      "findingId": "6a9c2f115e7beecd3096ea4276208940eb4172788d4d2855e02b4e6f9fad6830",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `.senti/presets/base/guardrail.json`  \n**Requirement:** R1  \n**Issue:** The new `spec-test-coverage` text mixes “current integration gate,” “current-step-owned,” and `task-impl` terminology. Since the guardrail metadata phase is `task-impl`, this creates avoidable ambiguity about which lifecycle owner is being described.  \n**Suggestion:** Rewrite the added block to consistently refer to the `task-impl` gate, and reserve `test-execute`, `test-result-review`, and `final-regression` only for the downstream lifecycle steps.",
+      "evidenceRefs": [
+        "impl-review.json#6a9c2f115e7beecd3096ea4276208940eb4172788d4d2855e02b4e6f9fad6830"
+      ]
+    },
+    {
+      "findingId": "728c7daf2ce95d66f956730f14f59206c03cf0b86b5ae09711b75a3fbfc3a63e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `.senti/presets/base/guardrail.json`  \n**Requirement:** R1  \n**Issue:** Both `spec-test-coverage` and `project-test-integrity` now describe the same design rule: `task-impl` inspects diff coverage, while runtime evidence belongs to later lifecycle steps. The repeated wording can drift over time.  \n**Suggestion:** Standardize the phrasing between the two guardrail bodies, using the same concise sentence structure for “task-impl checks diff coverage only” and “runtime pass/fail is owned by later steps.”",
+      "evidenceRefs": [
+        "impl-review.json#728c7daf2ce95d66f956730f14f59206c03cf0b86b5ae09711b75a3fbfc3a63e"
+      ]
+    },
+    {
+      "findingId": "74212427cdce40a5a6b1de9049da78aaf86e150afdd3539387d8e4bbb36ad8c2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft-questions-repair.json`  \n**Requirement:** R5  \n**Issue:** `draft-review-coverage.json` includes `generatedAt`, but the new triage and repair artifacts do not. If these files are part of the same review artifact family, the metadata pattern is inconsistent.  \n**Suggestion:** Add a `generatedAt` timestamp to `draft-questions-repair.json` using the same ISO timestamp format as `draft-review-coverage.json`.",
+      "evidenceRefs": [
+        "impl-review.json#74212427cdce40a5a6b1de9049da78aaf86e150afdd3539387d8e4bbb36ad8c2"
+      ]
+    },
+    {
+      "findingId": "78cecdadb55e33e6324e50b9ba5fa5f6b241da20e9465cbd6f4916d8d73e8e63",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft-questions-triage.json`  \n**Requirement:** R4  \n**Issue:** Each `items[].title` embeds a numeric prefix like `\"1. q2...\"` even though ordering is already represented by array position. This duplicates structure in data and can become stale if items are reordered.  \n**Suggestion:** Rename titles to stable descriptive values such as `\"q2 includes recommendation and rationale\"` and `\"q3 includes recommendation and rationale\"`.",
+      "evidenceRefs": [
+        "impl-review.json#78cecdadb55e33e6324e50b9ba5fa5f6b241da20e9465cbd6f4916d8d73e8e63"
+      ]
+    },
+    {
+      "findingId": "4f10b307650277cd0e4619390b2bf9162abc3382403c134bbde5da3f48d1b595",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft-questions-triage.json`  \n**Requirement:** R5  \n**Issue:** `draft-review-coverage.json` includes `generatedAt`, but this triage artifact omits it. That makes provenance and ordering less consistent across generated review outputs.  \n**Suggestion:** Add a `generatedAt` timestamp field using the same format and placement convention as `draft-review-coverage.json`.",
+      "evidenceRefs": [
+        "impl-review.json#4f10b307650277cd0e4619390b2bf9162abc3382403c134bbde5da3f48d1b595"
+      ]
+    },
+    {
+      "findingId": "b3b7f59c3fdc5d6675bc9053a28a9950bdcc25cb4d588400fd356ab3639cfc52",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`  \n**Requirement:** R4  \n**Issue:** `repairTargets[].title` embeds ordinal prefixes like `1. q2 includes recommendation and rationale`. The ordinal duplicates array ordering and can drift if entries are reordered.  \n**Suggestion:** Remove numeric prefixes from titles and rely on array position or stable IDs if ordering must be shown.",
+      "evidenceRefs": [
+        "impl-review.json#b3b7f59c3fdc5d6675bc9053a28a9950bdcc25cb4d588400fd356ab3639cfc52"
+      ]
+    },
+    {
+      "findingId": "95596b95189219ccd63bb348f832fd5aee2e950002349057773030509571a4d0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`  \n**Requirement:** R7  \n**Issue:** The summary says `0 blocking, 0 advisory, 2 repair target finding(s) recorded` while `verdict` is `ADVISORY` and `advisoryFindings` is empty. This naming split makes the artifact harder to interpret.  \n**Suggestion:** Either classify repair targets under advisory findings when the verdict is advisory, or use a verdict/summary vocabulary that clearly distinguishes repair targets from advisory findings.",
+      "evidenceRefs": [
+        "impl-review.json#95596b95189219ccd63bb348f832fd5aee2e950002349057773030509571a4d0"
+      ]
+    },
+    {
+      "findingId": "2b31fb6a2eb1997ce8c4bb72db6176967a61d411e1b2a5876102c7ffbcfe37ae",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft.json`  \n**Requirement:** R5  \n**Issue:** The same stale recovery policy is repeated in `decisionMap.knownFacts`, `scopeVerification`, `impactOnExisting`, and `qa` answers. This increases maintenance cost and creates risk that one copy will be updated without the others.  \n**Suggestion:** Keep the policy once in the canonical decision section, and have QA entries reference that decision rather than restating the full boundary text.",
+      "evidenceRefs": [
+        "impl-review.json#2b31fb6a2eb1997ce8c4bb72db6176967a61d411e1b2a5876102c7ffbcfe37ae"
+      ]
+    },
+    {
+      "findingId": "a0293cedd3235226a0cecf4f6cf188a21127471ec963c29d19418eac658cabf5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft.json`  \n**Requirement:** R6  \n**Issue:** QA entries include empty string fields such as `considered` and `droppedReason` even when no value exists. These placeholders add noise without conveying information.  \n**Suggestion:** Omit optional fields when empty, or use `null` only if the schema requires explicit absence.",
+      "evidenceRefs": [
+        "impl-review.json#a0293cedd3235226a0cecf4f6cf188a21127471ec963c29d19418eac658cabf5"
+      ]
+    },
+    {
+      "findingId": "1e52c1ac4faefc9cc97a6b5e6b1240a529d59a9d44521157c6e4de2218f88c9b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R1  \n**Issue:** The checked-in flow state includes thousands of lines of runtime-only data, including repeated `metrics`, `runtimeLog`, `reviewConvergence.handoffFindings`, `evidenceHistory`, `stepAttempts`, and `reviewRecoveryBaselines`. This makes the artifact noisy, hard to review, and likely to churn on every run.  \n**Suggestion:** Persist only the canonical current flow state needed to resume or audit the feature, and move detailed attempt history to generated evidence artifacts or a bounded external log.",
+      "evidenceRefs": [
+        "impl-review.json#1e52c1ac4faefc9cc97a6b5e6b1240a529d59a9d44521157c6e4de2218f88c9b"
+      ]
+    },
+    {
+      "findingId": "1136e814a438d33bfdcbe17849350780a25c9e69275fd59ac3ac5fdb0ce7bae9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R2  \n**Issue:** Arrays such as `metrics`, `reviewConvergence.records[].handoffFindings`, `reviewConvergence.records[].evidenceHistory`, and `stepAttempts` appear to grow with every review or gate attempt without an explicit cap. This violates the `bounded-resource-usage` guardrail because repeated retries can produce unbounded persisted state.  \n**Suggestion:** Add explicit retention limits, for example max attempts per phase, max evidence history entries per record, and max handoff findings per review record. If older entries are needed for audit, summarize or archive them outside the main flow state.",
+      "evidenceRefs": [
+        "impl-review.json#1136e814a438d33bfdcbe17849350780a25c9e69275fd59ac3ac5fdb0ce7bae9"
+      ]
+    },
+    {
+      "findingId": "ffb00c8e0e210a947b315b54554b149c0e5f0d1ea32a0a1cd9eae38531f17fef",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R3  \n**Issue:** Each `handoffFindings` entry repeats identical fields such as `sourceStep`, `phase`, `taskId`, `treeSha`, `provenance`, `canonicalEvidenceRef`, `evidenceDigest`, `reviewDisposition`, and `finalDispositionOwner`. This bloats the file and makes metadata consistency harder to maintain.  \n**Suggestion:** Store shared review metadata once at the enclosing record level, and keep each finding limited to its unique fields: `findingId`, `summary`, `fingerprint`, and `evidenceRefs`.",
+      "evidenceRefs": [
+        "impl-review.json#ffb00c8e0e210a947b315b54554b149c0e5f0d1ea32a0a1cd9eae38531f17fef"
+      ]
+    },
+    {
+      "findingId": "b5aee83185de03deee7700c621b6ec0983d8e6c28d7ff9cdddf3772a66da2ada",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`  \n**Requirement:** R8  \n**Issue:** The file records prior failed and superseded review outputs, including rejected findings and retry history that no longer represents the current implementation state. This is effectively dead generated state inside the change set.  \n**Suggestion:** Regenerate or compact `flow.json` so it contains only the current authoritative state, plus bounded audit references to historical evidence files where needed.",
+      "evidenceRefs": [
+        "impl-review.json#b5aee83185de03deee7700c621b6ec0983d8e6c28d7ff9cdddf3772a66da2ada"
+      ]
+    },
+    {
+      "findingId": "50329cd15a6c613dd6a04a12f10b8bc063a279b7114ca6840aadb70c2f99968e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/issue-log.json`  \n**Requirement:** R8  \n**Issue:** Several `changedFileFingerprints` arrays contain duplicate path/fingerprint entries, for example repeated `spec.json`, `spec.md`, `test-review.json`, `test-review.md`, `tests/stale-test-evidence-recovery.test.js`, and `tests/unit/flow/review-convergence-action.test.js` records. This makes the evidence noisy and harder to review without adding information.  \n**Suggestion:** Normalize each `changedFileFingerprints` list to one record per unique `path` and `fingerprint` pair before persisting the issue log.",
+      "evidenceRefs": [
+        "impl-review.json#50329cd15a6c613dd6a04a12f10b8bc063a279b7114ca6840aadb70c2f99968e"
+      ]
+    },
+    {
+      "findingId": "e09c6711b14e57c3ff2a2f92b9fd4b48b6a47fe5b8081c43535b524d6c6dcbbc",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/issue-log.json`  \n**Requirement:** R8  \n**Issue:** The log embeds very large `changedFileFingerprints` snapshots directly in multiple final-regression entries. Without an explicit cap or reference strategy, this can grow unbounded as the spec accumulates artifacts, conflicting with the `bounded-resource-usage` guardrail.  \n**Suggestion:** Store a bounded summary in `issue-log.json`, such as counts plus the first N relevant fingerprints, and move full fingerprint manifests to a referenced artifact path.",
+      "evidenceRefs": [
+        "impl-review.json#e09c6711b14e57c3ff2a2f92b9fd4b48b6a47fe5b8081c43535b524d6c6dcbbc"
+      ]
+    },
+    {
+      "findingId": "beab243cdc573abe4de7c8b6c9e15006b683b01714edb596b8343c3b020a0db3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/issue.md`  \n**Requirement:** R1  \n**Issue:** The English issue body and Japanese `<details>` section duplicate the same structure and content. This increases maintenance cost because future edits must keep two full copies aligned.  \n**Suggestion:** Keep the canonical issue content in one language and either replace the second section with a short summary or move translations into a separate localized artifact if bilingual documentation is required.",
+      "evidenceRefs": [
+        "impl-review.json#beab243cdc573abe4de7c8b6c9e15006b683b01714edb596b8343c3b020a0db3"
+      ]
+    },
+    {
+      "findingId": "5be3f4e404723d15f4d919955bf67f57e2fcc1705fc74125798b0df44fdb0d05",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/issue.md`  \n**Requirement:** R1  \n**Issue:** The file ends without a trailing newline, which is inconsistent with common text-file conventions and can create avoidable diff churn.  \n**Suggestion:** Add a final newline after the closing `</details>` tag.",
+      "evidenceRefs": [
+        "impl-review.json#5be3f4e404723d15f4d919955bf67f57e2fcc1705fc74125798b0df44fdb0d05"
+      ]
+    },
+    {
+      "findingId": "214f1d365cbbf1ec1fc486e6fccad2203e8fe6d3805895ad15ae25a10c5d34cf",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json`  \n**Requirement:** R1  \n**Issue:** The PASS spec evidence is also a single-line JSON object. This is less severe here, but inconsistent with review-friendly evidence artifacts once larger fields are added.  \n**Suggestion:** Use the same pretty-printed canonical JSON format as the other evidence files.",
+      "evidenceRefs": [
+        "impl-review.json#214f1d365cbbf1ec1fc486e6fccad2203e8fe6d3805895ad15ae25a10c5d34cf"
+      ]
+    },
+    {
+      "findingId": "381230d75c2e2b99748a3a2d9e8a05b0bb61e043368b809a3fc67413b36a89fe",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/927ba919f3639bbe049ab1c2d54cbbf6a0bdc8dc3226237bff96259aebdf0589.json`  \n**Requirement:** R8  \n**Issue:** The entire rejected test-phase evidence payload is stored on one very long line, making review of the regression matrix findings difficult and increasing merge-conflict risk.  \n**Suggestion:** Format the JSON with stable indentation and key ordering, matching the same data exactly. This keeps generated evidence auditable without changing semantics.",
+      "evidenceRefs": [
+        "impl-review.json#381230d75c2e2b99748a3a2d9e8a05b0bb61e043368b809a3fc67413b36a89fe"
+      ]
+    },
+    {
+      "findingId": "abe8185b0db55d738343d69adf72fc38fe5a031b050ddfe0c0a1a52f4c11dc39",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/d3443c0c1b6625e4c9fa2e4d730e22b48ea5a1d94812163c343983acb1cef037.json`  \n**Requirement:** R1  \n**Issue:** The draft-coverage evidence file repeats the same compact single-line structure, creating avoidable inconsistency and making future diffs noisy if fields are added.  \n**Suggestion:** Normalize it to the same stable pretty-printed JSON representation used for all review evidence artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#abe8185b0db55d738343d69adf72fc38fe5a031b050ddfe0c0a1a52f4c11dc39"
+      ]
+    },
+    {
+      "findingId": "e01ba9f8a967847fc0e5a9c4e7ae34e4f1ca1b16bb9f96fece74d01251db96be",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json`  \n**Requirement:** R8  \n**Issue:** This JSON artifact is stored as a single long line, unlike the other touched JSON files. That makes review diffs noisy and harder to inspect.  \n**Suggestion:** Pretty-print this artifact with the same indentation style used by the files under `review-history`.",
+      "evidenceRefs": [
+        "impl-review.json#e01ba9f8a967847fc0e5a9c4e7ae34e4f1ca1b16bb9f96fece74d01251db96be"
+      ]
+    },
+    {
+      "findingId": "6f7130a2556ef68c85d1f120abc356f71182ed3a29a3486a5e8c4733c1b4423b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R5  \n**Issue:** Each repair target repeats the same title, target, evidence, and rationale again under `findings`, creating two parallel representations that can drift.  \n**Suggestion:** Keep one canonical finding list and derive `repairTargets` from `findings` by filtering `category: \"repair_target\"`, or reduce `repairTargets` to lightweight references such as finding IDs.",
+      "evidenceRefs": [
+        "impl-review.json#6f7130a2556ef68c85d1f120abc356f71182ed3a29a3486a5e8c4733c1b4423b"
+      ]
+    },
+    {
+      "findingId": "3b60b237bdbfe24a72689bf31fce6f621d8d9e4ef419e3791f3285eb37ff6eae",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R4  \n**Issue:** The file has `verdict: \"ADVISORY\"` and two repair targets, but the summary says `0 advisory`, while the related review-evidence artifact records two advisory findings. This naming/count mismatch makes the review state harder to reason about.  \n**Suggestion:** Use consistent terminology and counts across the artifact, for example `0 blocking, 2 advisory repair target finding(s) recorded.` or rename the verdict/category if repair targets are intentionally distinct from advisory findings.",
+      "evidenceRefs": [
+        "impl-review.json#3b60b237bdbfe24a72689bf31fce6f621d8d9e4ef419e3791f3285eb37ff6eae"
+      ]
+    },
+    {
+      "findingId": "287963c9505876872709a1b803e11489ea15cdba0b2297431b7b003f11b3f2ba",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json`  \n**Requirement:** R1  \n**Issue:** The spec artifact uses `nonBlockingImprovements`, while the test artifact uses `advisoryFindings`. If these files are consumed by shared review-history tooling, the differing names force avoidable branching.  \n**Suggestion:** Use a consistent naming convention for non-blocking/advisory findings across review-history JSON artifacts, or document phase-specific schema differences explicitly in the artifact.",
+      "evidenceRefs": [
+        "impl-review.json#287963c9505876872709a1b803e11489ea15cdba0b2297431b7b003f11b3f2ba"
+      ]
+    },
+    {
+      "findingId": "63cba3a56dc11b489c5ddc0ba1fe16d4c821bbebc4f853a0d9c82c90dcdff62f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with common repository formatting conventions and can create noisy diffs later.  \n**Suggestion:** Add a final newline at EOF.",
+      "evidenceRefs": [
+        "impl-review.json#63cba3a56dc11b489c5ddc0ba1fe16d4c821bbebc4f853a0d9c82c90dcdff62f"
+      ]
+    },
+    {
+      "findingId": "fcf48a4e89e8681e9e0f8d5fd21e6e64004023f6d69f026d0543000f0067d019",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/spec-review.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with common repository formatting conventions and can create noisy diffs later.  \n**Suggestion:** Add a final newline at EOF.",
+      "evidenceRefs": [
+        "impl-review.json#fcf48a4e89e8681e9e0f8d5fd21e6e64004023f6d69f026d0543000f0067d019"
+      ]
+    },
+    {
+      "findingId": "d40a3f719e120f248343c20d66b30194ae8519c0301fa987d409a67ef4e5facd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json`  \n**Requirement:** R8  \n**Issue:** Each blocking finding is represented twice: once in `blockingFindings` and again in `findings`, with mostly duplicated fields under slightly different names. This creates drift risk if one copy is updated without the other.  \n**Suggestion:** Keep one canonical findings array and derive phase-specific groupings from it, or reduce `blockingFindings` to lightweight references such as finding IDs.",
+      "evidenceRefs": [
+        "impl-review.json#d40a3f719e120f248343c20d66b30194ae8519c0301fa987d409a67ef4e5facd"
+      ]
+    },
+    {
+      "findingId": "b0340937d9612c36908d2ccc8f6a6050f4149f1bd4348748566315bf6cf387c8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with normal text-file conventions and can cause noisy diffs.  \n**Suggestion:** Add a trailing newline at EOF.",
+      "evidenceRefs": [
+        "impl-review.json#b0340937d9612c36908d2ccc8f6a6050f4149f1bd4348748566315bf6cf387c8"
+      ]
+    },
+    {
+      "findingId": "267e7bd54bc9cb7a3cf279ca973413bbbe54e02920d12ffd11b37da9027a3236",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`  \n**Requirement:** R5  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id`, even though they describe different R7 and R5 issues. This makes deduplication, tracking, and history correlation ambiguous.  \n**Suggestion:** Generate stable identifiers from each finding’s own title/body/requirement so the R7 delegated-test finding and R5 missing-review-input finding have distinct IDs.",
+      "evidenceRefs": [
+        "impl-review.json#267e7bd54bc9cb7a3cf279ca973413bbbe54e02920d12ffd11b37da9027a3236"
+      ]
+    },
+    {
+      "findingId": "a2336231834a4a2dcb94a52c80dfc1cb4a72e7d10b50a4b7cd8237a1d5444aba",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`  \n**Requirement:** R7  \n**Issue:** Each `blockingFindings` entry repeats the same sentence in both `rationale` and `whyBlocking`. This is redundant and increases the chance that future edits drift between fields.  \n**Suggestion:** Keep one canonical field for the blocking rationale, or make `whyBlocking` a derived rendering-only value instead of storing duplicate text.",
+      "evidenceRefs": [
+        "impl-review.json#a2336231834a4a2dcb94a52c80dfc1cb4a72e7d10b50a4b7cd8237a1d5444aba"
+      ]
+    },
+    {
+      "findingId": "c2b4115462435c189779cb65228fee3124090e480fed2c227ba91e8836936add",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, matching the same formatting issue as the previous attempt file.  \n**Suggestion:** Add a trailing newline at EOF.",
+      "evidenceRefs": [
+        "impl-review.json#c2b4115462435c189779cb65228fee3124090e480fed2c227ba91e8836936add"
+      ]
+    },
+    {
+      "findingId": "22a9c6f82de629a24cd461cf3c87751c9bd80bf7e3e7bc5cc1fab8c0417631ba",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, matching the same formatting issue as the previous attempt file.  \n**Suggestion:** Add a trailing newline at EOF.",
+      "evidenceRefs": [
+        "impl-review.json#22a9c6f82de629a24cd461cf3c87751c9bd80bf7e3e7bc5cc1fab8c0417631ba"
+      ]
+    },
+    {
+      "findingId": "4b47d035ee204fc55818325bcabdfff0173cb1700d56ed7302323c8dd77cedc5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json`  \n**Requirement:** R7  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id`, even though they describe different requirements and different missing coverage paths. This makes deduplication, tracking, and history analysis ambiguous.  \n**Suggestion:** Generate distinct stable IDs/fingerprints per finding, ideally from requirement ID plus normalized title/body/target.",
+      "evidenceRefs": [
+        "impl-review.json#4b47d035ee204fc55818325bcabdfff0173cb1700d56ed7302323c8dd77cedc5"
+      ]
+    },
+    {
+      "findingId": "0769ebb691964efd39f4c15480407e52935ca3415d7e4085498b92aecd269bc8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json`  \n**Requirement:** R5  \n**Issue:** The same findings are represented twice, once in `blockingFindings` and again in `findings`, with overlapping fields such as title, rationale, disposition, fingerprint, and source metadata. This duplication can drift over time.  \n**Suggestion:** Keep one canonical findings array and derive blocking/advisory subsets from severity, or reduce `blockingFindings` to references by finding ID.",
+      "evidenceRefs": [
+        "impl-review.json#0769ebb691964efd39f4c15480407e52935ca3415d7e4085498b92aecd269bc8"
+      ]
+    },
+    {
+      "findingId": "c53eb922b7770d7b26614daf9bc0bf887b565bef13f4d9fbf23c31660f2fe945",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/scenario-validity-result.json`  \n**Requirement:** R1  \n**Issue:** `process.exitCode` is `1` while top-level `result` is `\"pass\"`. Because every requirement is classified as `expected_fail`, this may be intentional, but the naming makes the artifact easy to misread as a successful test execution.  \n**Suggestion:** Rename or split the status fields, for example `harnessResult: \"pass\"` and `commandResult: \"failed_as_expected\"`, or add an explicit `expectedExitCode: 1`.",
+      "evidenceRefs": [
+        "impl-review.json#c53eb922b7770d7b26614daf9bc0bf887b565bef13f4d9fbf23c31660f2fe945"
+      ]
+    },
+    {
+      "findingId": "8452cf9f63522acdbdf1d38c3efe5e7f77877e7b44de13fc4e9da86472fc2f07",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/scenario-validity-result.json`  \n**Requirement:** R8  \n**Issue:** Each summary entry repeats identical `test_file`, `command`, and `raw_output_lines` values. This increases artifact size and makes later edits error-prone.  \n**Suggestion:** Move shared evidence fields to a top-level `evidenceDefaults` object and keep only requirement-specific fields such as `id`, `classification`, and `test_name` inside each summary entry.",
+      "evidenceRefs": [
+        "impl-review.json#8452cf9f63522acdbdf1d38c3efe5e7f77877e7b44de13fc4e9da86472fc2f07"
+      ]
+    },
+    {
+      "findingId": "a701ef4943dc41ceef85afd162d77aa15cf81f0a30aec561c9b2aec42cb1b449",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/spec.json`  \n**Requirement:** R1  \n**Issue:** `overview.modules` and `overview.data_flow` contain both original entries and `added_by_task` entries that restate the same responsibilities for `test-artifacts.js`, `stale-test-evidence-refresh.js`, and the integration gate flow. This makes the spec harder to scan and increases the chance of drift between overlapping descriptions.  \n**Suggestion:** Consolidate the overlapping overview items into single canonical entries per module/data-flow step, preserving the task-specific detail without duplicating the same responsibility in multiple bullets.",
+      "evidenceRefs": [
+        "impl-review.json#a701ef4943dc41ceef85afd162d77aa15cf81f0a30aec561c9b2aec42cb1b449"
+      ]
+    },
+    {
+      "findingId": "1df9edbd6d7370c5b6896a1d83b22328b40d87be2e900a026580f3dbea5f6721",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/spec.md`  \n**Requirement:** R8  \n**Issue:** The `## Implementation Targets` section contains only `-`, and `## Open Questions` contains only `- [ ]`. These are dead placeholders in the rendered spec and add noise without actionable content.  \n**Suggestion:** Omit empty rendered sections entirely, or render them as an explicit `None` only if the project’s spec format requires the heading.",
+      "evidenceRefs": [
+        "impl-review.json#1df9edbd6d7370c5b6896a1d83b22328b40d87be2e900a026580f3dbea5f6721"
+      ]
+    },
+    {
+      "findingId": "d7184a70ce5407b0f14f9002a7ae1175d39d8228d9e86577169e5dee71ef49af",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/spec.md`  \n**Requirement:** R1  \n**Issue:** The rendered `### Modules` and `### Data Flow` sections repeat concepts from earlier bullets, especially structural/outcome separation and staged stale recovery behavior. Since this file is human-facing, the duplication reduces clarity.  \n**Suggestion:** Update the source `spec.json` so the renderer emits one concise bullet per distinct module responsibility and one concise bullet per distinct data-flow step.",
+      "evidenceRefs": [
+        "impl-review.json#d7184a70ce5407b0f14f9002a7ae1175d39d8228d9e86577169e5dee71ef49af"
+      ]
+    },
+    {
+      "findingId": "28ed9eb43e30b4ad80442ee929a5cd69b073181215b104f833d90b0024fa52bd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/test-review.json`  \n**Requirement:** R8  \n**Issue:** The top-level `\"phase\"` is `\"test\"`, while the artifact path, `contractSummary.targetStep`, and coverage artifact all refer to `\"test-review\"`. This creates avoidable naming inconsistency in generated evidence.  \n**Suggestion:** Change `\"phase\": \"test\"` to `\"phase\": \"test-review\"` unless the schema explicitly requires the shorter phase name.",
+      "evidenceRefs": [
+        "impl-review.json#28ed9eb43e30b4ad80442ee929a5cd69b073181215b104f833d90b0024fa52bd"
+      ]
+    },
+    {
+      "findingId": "7dccd07d74695d775a325e54100d92db7ee9b209258022fd0b585ec389bfcd84",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/test-review.md`  \n**Requirement:** R8  \n**Issue:** The Markdown artifact has no trailing newline, which is a small formatting inconsistency and can create unnecessary diff noise.  \n**Suggestion:** Add a newline at end of file.",
+      "evidenceRefs": [
+        "impl-review.json#7dccd07d74695d775a325e54100d92db7ee9b209258022fd0b585ec389bfcd84"
+      ]
+    },
+    {
+      "findingId": "8b99a2d56e5fc15488a8f9b63f492908a1307004febeea10ac87ae8b0f99a4ab",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log`  \n**Requirement:** R8  \n**Issue:** This file is a generated raw test execution log, and it records an all-failing run. Keeping transient failure output in the change set adds noise and can become stale immediately.  \n**Suggestion:** Remove this generated `.raw/scenario-validity.log` from the diff, or replace it only with intentionally curated fixture evidence if the test suite explicitly consumes it.",
+      "evidenceRefs": [
+        "impl-review.json#8b99a2d56e5fc15488a8f9b63f492908a1307004febeea10ac87ae8b0f99a4ab"
+      ]
+    },
+    {
+      "findingId": "20f68fc00e6512765b766d4858f88b88eed62af11fac3dd1d793acaefc7b01f9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js`  \n**Requirement:** R3  \n**Issue:** Recovery expectations are repeated across R3 and R8: checking `result.result === \"recovered\"` and `result.next === \"test-execute\"`. R3 also performs a fuller version of the same contract.  \n**Suggestion:** Add a small helper such as `assertRecoveredToTestExecute(result)` and reuse it anywhere the recovery contract is asserted.",
+      "evidenceRefs": [
+        "impl-review.json#20f68fc00e6512765b766d4858f88b88eed62af11fac3dd1d793acaefc7b01f9"
+      ]
+    },
+    {
+      "findingId": "b4dad4a446e89c42568454e9083ac059d88edb6f32168ee72ddab5fafabf7774",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js`  \n**Requirement:** R5  \n**Issue:** Malformed and inconsistent authority cases are defined once in the R5 table and again in the R8 test. This duplicates the same mutation patterns with slightly different labels.  \n**Suggestion:** Extract shared case builders, for example `invalidAuthorityCases`, and let R5 and R8 select the cases they need from that list.",
+      "evidenceRefs": [
+        "impl-review.json#b4dad4a446e89c42568454e9083ac059d88edb6f32168ee72ddab5fafabf7774"
+      ]
+    },
+    {
+      "findingId": "2e750333146fb9291c1a377da5c15499e592ae791c094f602be0669071fc3b60",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js`  \n**Requirement:** R8  \n**Issue:** `prepareEvidence` does more than prepare evidence: it creates a repository fixture, writes artifacts, mutates source state, computes fingerprints, and returns paths plus flow state. The name understates the helper’s responsibility.  \n**Suggestion:** Rename it to something more explicit, such as `prepareEvidenceFixture` or `prepareStaleEvidenceFixture`.",
+      "evidenceRefs": [
+        "impl-review.json#2e750333146fb9291c1a377da5c15499e592ae791c094f602be0669071fc3b60"
+      ]
+    },
+    {
+      "findingId": "fb8214f1df40eeda1b9a671e6ea00cd5b0c16036cbb65f78fbb82682cfd7b164",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R7  \n**Issue:** `resolveTreeSha` is passed as a callback that calls `resolveCurrentReviewTreeSha(ctx.root)` each time it is invoked. If `resolveReviewActionForFlowState` calls the resolver more than once, this repeats the same repository lookup.  \n**Suggestion:** Compute the tree SHA once before calling `resolveReviewActionForFlowState`, then pass `resolveTreeSha: () => currentReviewTreeSha`.",
+      "evidenceRefs": [
+        "impl-review.json#fb8214f1df40eeda1b9a671e6ea00cd5b0c16036cbb65f78fbb82682cfd7b164"
+      ]
+    },
+    {
+      "findingId": "de9f99c2a038f2a31c96f94f3277bd8799c1eb78e7e1fa1d39c0f74661fd01d6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-status.js`  \n**Requirement:** R7  \n**Issue:** `resolveTreeSha: () => resolveCurrentReviewTreeSha(root)` may perform repeated filesystem/git evidence resolution if `resolveReviewActionForFlowState` calls the callback more than once. It also risks inconsistent values during one status build if the underlying tree changes mid-call.  \n**Suggestion:** Capture a lazy memoized value inside `buildStatusReviewViews`, e.g. `let treeSha; const resolveTreeSha = () => treeSha ??= resolveCurrentReviewTreeSha(root);`, then pass `resolveTreeSha`.",
+      "evidenceRefs": [
+        "impl-review.json#de9f99c2a038f2a31c96f94f3277bd8799c1eb78e7e1fa1d39c0f74661fd01d6"
+      ]
+    },
+    {
+      "findingId": "1b173a226b402876e7714d9fb5367d809d21a31b753e3367883a6981ea60e8ab",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `RepairEvidenceInvalidationPlan.apply()` computes `invalidatedArtifacts` and `invalidationRecords` through getters that each remap `this.invalidations`. This duplicates traversal and makes the return payload depend on recomputed projections after mutation application.  \n**Suggestion:** Compute both arrays once in `apply()` before returning, and return those local values after `applyRepairInvalidations(...)`. This keeps the owned recovery result explicit and avoids redundant work.",
+      "evidenceRefs": [
+        "impl-review.json#1b173a226b402876e7714d9fb5367d809d21a31b753e3367883a6981ea60e8ab"
+      ]
+    },
+    {
+      "findingId": "1c15c1a2227c1cb31365a9c015e2eae858ffc350b8ea1005ada584be001cf050",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** The class field `this.invalidations` contains planned invalidation record objects, while the public return field `invalidations` contains serialized JSON records. The shared name makes it harder to distinguish plan objects from emitted recovery artifact data.  \n**Suggestion:** Rename the internal field to `plannedInvalidations` or `invalidationPlanRecords`, and leave the public return key as `invalidations` for compatibility.",
+      "evidenceRefs": [
+        "impl-review.json#1c15c1a2227c1cb31365a9c015e2eae858ffc350b8ea1005ada584be001cf050"
+      ]
+    },
+    {
+      "findingId": "212b02e85031d4f282ba54d680bf5d9ea766b8c910f2970481990569541c9db3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `resolveReviewActionForFlowState` now contains two resolution modes: latest scoped record and persisted target by tree SHA. The branching is compact but mixes scope filtering, argument validation, target matching, and state extraction in one function.  \n**Suggestion:** Extract helpers such as `latestScopedConvergenceRecord(...)` and `latestTargetedConvergenceRecord(...)`. This would preserve behavior while making the persisted-target path easier to reason about and test independently.",
+      "evidenceRefs": [
+        "impl-review.json#212b02e85031d4f282ba54d680bf5d9ea766b8c910f2970481990569541c9db3"
+      ]
+    },
+    {
+      "findingId": "5f467f1a45d88e30f493ec345be17dfebb4407a935a8d305aa744fd4d666bf16",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `resolveTreeSha` sounds like it may resolve a value asynchronously or perform broader lookup work, but this function expects a synchronous callback returning the current tree SHA.  \n**Suggestion:** Rename the option to `getTreeSha` or `readTreeSha`, matching the synchronous callback shape and making the error message clearer: `getTreeSha is required for a persisted review target`.",
+      "evidenceRefs": [
+        "impl-review.json#5f467f1a45d88e30f493ec345be17dfebb4407a935a8d305aa744fd4d666bf16"
+      ]
+    },
+    {
+      "findingId": "da6aee3cb839d5489000c7560dcce7e0fa08fe0f85bd90d4a9b8603578e70465",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R6  \n**Issue:** `checkIntegrationTestArtifacts` now has two separate failure-return blocks after trust validation: stale mismatch recovery and outcome failure. The outcome failure message construction is inline, which makes the main decision flow slightly harder to scan.  \n**Suggestion:** Extract a small helper such as `failIntegrationArtifactValidation({ outcome, phase, level, specPath })`. This keeps the precheck flow focused on ordering: structural trust, stale classification, then outcome verdict.",
+      "evidenceRefs": [
+        "impl-review.json#da6aee3cb839d5489000c7560dcce7e0fa08fe0f85bd90d4a9b8603578e70465"
+      ]
+    },
+    {
+      "findingId": "4d3f87003e2b3596e5eeee1bb7195903620b46d5cf2f6d8edee6b7b1437a94bf",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** `AdditionalArtifactDeletion`, `StagedArtifact`, and `StaleArtifactInvalidationTransaction` split a small staging workflow across several single-purpose classes. This adds object churn and indirection without matching the surrounding module style, which otherwise uses small functions and direct procedural flow.  \n**Suggestion:** Replace these classes with local helper functions such as `collectExistingArtifacts(...)`, `stageArtifacts(...)`, `rollbackStagedArtifacts(...)`, and `commitStagedArtifacts(...)`. This would make the owned recovery transaction easier to audit and keep the mutation sequence visibly atomic.",
+      "evidenceRefs": [
+        "impl-review.json#4d3f87003e2b3596e5eeee1bb7195903620b46d5cf2f6d8edee6b7b1437a94bf"
+      ]
+    },
+    {
+      "findingId": "a610de41328c51179b4891e4d117189d9dd4fc9adb97eabc5b5d04a2044991db",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** The variable name `additional` is vague and loses the important fact that it only contains paths that currently exist and will be invalidated.  \n**Suggestion:** Rename it to `existingAdditionalArtifacts` or `additionalInvalidatedArtifacts` so the result construction clearly reports only artifacts that were actually part of the recovery operation.",
+      "evidenceRefs": [
+        "impl-review.json#a610de41328c51179b4891e4d117189d9dd4fc9adb97eabc5b5d04a2044991db"
+      ]
+    },
+    {
+      "findingId": "db6a5bb65506ef65779fd1c1d7f1f1f1805457b3d2aec3395f75c967de74bdcd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** `rollback()` already throws an `AggregateError`, and `StaleRecoveryRollbackError` wraps that aggregate as a single-element aggregate. This creates nested aggregate errors that are harder to inspect and does not add much structure.  \n**Suggestion:** Make `StaleRecoveryRollbackError` extend `Error` with `cause: rollbackError`, or flatten `rollbackError.errors` when available. Keep the original mutation error attached explicitly, for example as `mutationError`.",
+      "evidenceRefs": [
+        "impl-review.json#db6a5bb65506ef65779fd1c1d7f1f1f1805457b3d2aec3395f75c967de74bdcd"
+      ]
+    },
+    {
+      "findingId": "dab9df6246175315d45c54472fc7805f26cac8a510715546789bfcdd5529a89d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `IntegrationArtifactFingerprintAuthority.toArtifactMap()` is introduced but not used in the diff. It adds API surface without a current caller.  \n**Suggestion:** Remove `toArtifactMap()` unless a follow-up change needs it, or use it where artifact maps are required.",
+      "evidenceRefs": [
+        "impl-review.json#dab9df6246175315d45c54472fc7805f26cac8a510715546789bfcdd5529a89d"
+      ]
+    },
+    {
+      "findingId": "0ba19883c58a50631a0194a143744b96977a52016ed2be9ae120e5a73071491a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `IntegrationArtifactFingerprintAuthority` repeats the same repair fingerprint validation logic for result and review artifacts, differing only by filename.  \n**Suggestion:** Add a small helper such as `assertValidRepairFingerprint(fileName, value)` and call it for both artifacts. This keeps error behavior consistent and makes future changes to fingerprint validation less error-prone.",
+      "evidenceRefs": [
+        "impl-review.json#0ba19883c58a50631a0194a143744b96977a52016ed2be9ae120e5a73071491a"
+      ]
+    },
+    {
+      "findingId": "97bd10f96c091909ff7028db2a60b6dc0d47cbc104f89332e8f5fe75f707638a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `validateIntegrationArtifactTrust()` builds `contract`, but if `IntegrationArtifactTrustAssessment` throws during fingerprint or link validation, the `catch` returns `new GateArtifactTrustFailure(err.message)` without the contract. Earlier outcome failures preserve the contract through `evaluateOutcome()`, so this is inconsistent.  \n**Suggestion:** Return `new GateArtifactTrustFailure(err.message, { contract })` when `contract` is available, or narrow the `try` block so post-contract failures consistently carry contract context.",
+      "evidenceRefs": [
+        "impl-review.json#97bd10f96c091909ff7028db2a60b6dc0d47cbc104f89332e8f5fe75f707638a"
+      ]
+    },
+    {
+      "findingId": "efe3fc49619f9b9fb6648a137444c61ff65da1cf2be4636838bc6a8a2de8bc5a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/review-convergence-action.test.js`  \n**Requirement:** R8  \n**Issue:** Each test repeats the same `flowState.reviewConvergence` wrapper around `toolingRecord(...)`, which makes the assertions harder to scan and increases setup noise.  \n**Suggestion:** Add a small helper such as `flowStateWithRecords(records)` and use it in each test. This keeps each case focused on the differing record data and expected action.",
+      "evidenceRefs": [
+        "impl-review.json#efe3fc49619f9b9fb6648a137444c61ff65da1cf2be4636838bc6a8a2de8bc5a"
+      ]
+    },
+    {
+      "findingId": "6b746d6b178b231d988fbf6d88cacaef17a09902b7e0d92c836169148db1e99d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/review-convergence-action.test.js`  \n**Requirement:** R8  \n**Issue:** `CURRENT_TREE_SHA` and `STALE_TREE_SHA` are clear, but the tests are specifically validating resolver-target identity, not generic Git tree values.  \n**Suggestion:** Consider names like `RESOLVED_TREE_SHA` and `STALE_RECORD_TREE_SHA` to make the relationship between `resolveTreeSha` and stored records explicit.",
+      "evidenceRefs": [
+        "impl-review.json#6b746d6b178b231d988fbf6d88cacaef17a09902b7e0d92c836169148db1e99d"
+      ]
+    },
+    {
+      "findingId": "37818aef7ca7427c292f41f2c5fb70d8004971b25183fa61f8437bce3659996e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/review-convergence-action.test.js`  \n**Requirement:** R8  \n**Issue:** `remainingAttempts: 2 - attempt` duplicates knowledge of `maxAttempts: 2` inside `toolingRecord`. If `maxAttempts` changes later, the fixture can become internally inconsistent.  \n**Suggestion:** Introduce a local `const maxAttempts = 2;` inside `toolingRecord` and compute `remainingAttempts: maxAttempts - attempt`, while assigning `maxAttempts` from the same constant.",
+      "evidenceRefs": [
+        "impl-review.json#37818aef7ca7427c292f41f2c5fb70d8004971b25183fa61f8437bce3659996e"
+      ]
+    },
+    {
+      "findingId": "07395def50436787312cf7f66aee2b5ef610598f4925fc86d8d5ab8b70eaeca3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R7\n**Issue:** The review action interface uses `resolveTreeSha`, while callers in `src/flow/lib/get-status.js` and `src/flow/lib/get-next-action.js` pass callbacks with the same name, and artifacts elsewhere use mixed phase labels such as `\"test\"` vs `\"test-review\"`. Together this creates inconsistent naming around whether a value is a resolver callback, a current tree identity, or a lifecycle phase.\n**Suggestion:** Rename the callback consistently across implementation and callers to `getTreeSha` or `readTreeSha`, and normalize persisted artifact phase values to the canonical lifecycle step name, e.g. `test-review`.",
+      "evidenceRefs": [
+        "impl-review.json#07395def50436787312cf7f66aee2b5ef610598f4925fc86d8d5ab8b70eaeca3"
+      ]
+    },
+    {
+      "findingId": "d4037121e45022023995aa495068c04b27ee7133c6de2e44e25d2dfde49a9e46",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-status.js`\n**Requirement:** R7\n**Issue:** Both `get-status.js` and `get-next-action.js` pass `resolveTreeSha: () => resolveCurrentReviewTreeSha(...)`, creating the same repeated-resolution risk in two entry points.\n**Suggestion:** Introduce a shared helper for lazy current review tree SHA resolution, or memoize the value in both callers using the same pattern before passing it into `resolveReviewActionForFlowState`.",
+      "evidenceRefs": [
+        "impl-review.json#d4037121e45022023995aa495068c04b27ee7133c6de2e44e25d2dfde49a9e46"
+      ]
+    },
+    {
+      "findingId": "a003858af8151cd5d5f4f4503f1308c095a6d8f61675205975eaa0ef7fdd9ae2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json`\n**Requirement:** R5\n**Issue:** Multiple artifacts store the same findings in parallel arrays such as `findings`, `blockingFindings`, `advisoryFindings`, and `repairTargets`. The summaries identify this duplication in `draft-questions-attempt-001.json`, `test-attempt-001.json`, `test-attempt-003.json`, and `draft-review-questions.json`, with inconsistent counts and labels.\n**Suggestion:** Use one canonical `findings` array with normalized fields such as `id`, `requirement`, `severity`, `category`, and `disposition`; derive blocking, advisory, and repair-target views from that canonical list.",
+      "evidenceRefs": [
+        "impl-review.json#a003858af8151cd5d5f4f4503f1308c095a6d8f61675205975eaa0ef7fdd9ae2"
+      ]
+    },
+    {
+      "findingId": "cf2f7b5c2ad813aba7c86f7536a86e59950da2b386e8ed49ae7326679186dafe",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`\n**Requirement:** R7\n**Issue:** Duplicate `findingId`, `fingerprint`, and `id` values appear in both `test-attempt-002.json` and `test-attempt-003.json` for distinct findings. This is a cross-file tracking problem because history correlation cannot reliably distinguish different requirements or targets.\n**Suggestion:** Generate stable finding identifiers from requirement ID plus normalized title/body/target, and apply the same ID scheme to all review-history and review-evidence artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#cf2f7b5c2ad813aba7c86f7536a86e59950da2b386e8ed49ae7326679186dafe"
+      ]
+    },
+    {
+      "findingId": "7704394f68933acda7ddf859b552cb1eab310ba0dc9697aabb8782572255445f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft-questions-repair.json`\n**Requirement:** R5\n**Issue:** `draft-review-coverage.json` includes `generatedAt`, while related triage and repair artifacts omit it. Review-history and review-evidence files also appear to vary in formatting and provenance fields.\n**Suggestion:** Define a shared generated-artifact metadata block, including `generatedAt`, phase/step, source, and schema version where applicable, then apply it consistently to coverage, triage, repair, review-history, and review-evidence artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#7704394f68933acda7ddf859b552cb1eab310ba0dc9697aabb8782572255445f"
+      ]
+    },
+    {
+      "findingId": "f995ffb043ef352339275bef5295c214dfa54fc273bc1736d5159f3f94ec3853",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft-review-questions.json`\n**Requirement:** R4\n**Issue:** Ordinal prefixes appear in both `draft-review-questions.json` repair target titles and draft question triage/repair item titles. This duplicates array ordering across multiple artifact types and can drift after reordering.\n**Suggestion:** Strip numeric prefixes from all generated titles and rely on array position or stable IDs for ordering.",
+      "evidenceRefs": [
+        "impl-review.json#f995ffb043ef352339275bef5295c214dfa54fc273bc1736d5159f3f94ec3853"
+      ]
+    },
+    {
+      "findingId": "b1553561c31aac19f3ab7e5dfd138fe9928835969e1a2f5315c8441719d48abe",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json`\n**Requirement:** R8\n**Issue:** Several review-evidence JSON files are single-line payloads, while review-history files appear to use readable formatting. This creates inconsistent review ergonomics across generated artifacts.\n**Suggestion:** Apply one canonical JSON serialization policy, such as stable key order with two-space indentation and trailing newline, to all generated JSON artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#b1553561c31aac19f3ab7e5dfd138fe9928835969e1a2f5315c8441719d48abe"
+      ]
+    },
+    {
+      "findingId": "c67e8e7722282f2795a11defd26ebca9845fa742e9e53c392e51c686375bf22c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/draft.json`\n**Requirement:** R5\n**Issue:** The stale recovery policy is repeated in `draft.json`, `spec.json`, and rendered `spec.md` overview sections. The same behavior is described in multiple generated forms, increasing drift risk.\n**Suggestion:** Keep the policy in one canonical structured source, then render references or concise derived summaries into human-facing Markdown and QA sections.",
+      "evidenceRefs": [
+        "impl-review.json#c67e8e7722282f2795a11defd26ebca9845fa742e9e53c392e51c686375bf22c"
+      ]
+    },
+    {
+      "findingId": "f9322f46c22000f85ceead875b3c7962a22cfc0a74848e531963eb0fa77189f2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.md`\n**Requirement:** R1\n**Issue:** Multiple Markdown artifacts lack trailing newlines, including review-history attempt files, `test-review.md`, and `issue.md`. This is a repeated formatting inconsistency across generated text artifacts.\n**Suggestion:** Update the artifact writer or formatter so every generated Markdown file ends with exactly one trailing newline.",
+      "evidenceRefs": [
+        "impl-review.json#f9322f46c22000f85ceead875b3c7962a22cfc0a74848e531963eb0fa77189f2"
+      ]
+    },
+    {
+      "findingId": "4f6f6e1d300d7e20f7c3ea9e58dfdd5104641e89f8fb7b36bdd7d49d2308ef3c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R4\n**Issue:** `impl-repair-artifacts.js` uses `invalidations` for internal planned records while returning serialized invalidations publicly, and `stale-test-evidence-refresh.js` uses vague names such as `additional` for invalidated artifacts. Across files, similar recovery concepts have different names and levels of specificity.\n**Suggestion:** Use consistent terms such as `plannedInvalidations`, `invalidatedArtifacts`, and `invalidationRecords` across both implementation files, reserving public return keys only for serialized artifact data.",
+      "evidenceRefs": [
+        "impl-review.json#4f6f6e1d300d7e20f7c3ea9e58dfdd5104641e89f8fb7b36bdd7d49d2308ef3c"
+      ]
+    }
+  ]
+}

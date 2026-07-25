@@ -1,0 +1,60 @@
+{
+  "spec": "specs/334-stale-test-evidence-recovery/spec.json",
+  "date": "2026-07-25T00:16:05.365Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The integration precheck shall distinguish structurally authoritative test evidence from the test outcome verdict so a requirement failure alone does not prevent stale fingerprint classification.",
+      "status": "done",
+      "note": "R1: demo requirement"
+    },
+    {
+      "desc": "When structurally authoritative test-execute and test-result-review artifacts carry the same valid repairFingerprint and it differs from the current material repair fingerprint, the integration gate shall classify the evidence as stale before returning a failed test outcome verdict.",
+      "status": "done",
+      "note": "R2: failed review evidence with a material fingerprint change is stale"
+    },
+    {
+      "desc": "Authoritative stale evidence shall use the existing gate-owned recovery operation to invalidate stale downstream evidence and make flow-level test-execute the active step without semantic gate evaluation.",
+      "status": "done",
+      "note": "R3: the gate-owned recovery invalidates evidence and reactivates test-execute"
+    },
+    {
+      "desc": "A successful stale recovery shall report the previous fingerprint, current fingerprint, invalidated artifact paths, and active step, and its observable artifact and lifecycle mutations shall complete as one owned recovery operation.",
+      "status": "done",
+      "note": "R4: a failed lifecycle mutation leaves stale artifacts available for retry"
+    },
+    {
+      "desc": "Missing required inputs, malformed JSON or schema, invalid or inconsistent repairFingerprint values, unowned paths, invalid raw evidence, and placeholder-policy failures shall remain fail-closed structural trust failures with no stale recovery mutation.",
+      "status": "done",
+      "note": "R5: invalid fingerprint authority fails closed without a recovery mutation"
+    },
+    {
+      "desc": "Failed test evidence whose repairFingerprint matches the current material repair fingerprint shall retain the existing test artifact validation failure and shall not rewind lifecycle state.",
+      "status": "done",
+      "note": "R6: unchanged failed evidence still fails after stale recovery is available"
+    },
+    {
+      "desc": "Trusted current evidence shall continue to semantic integration gate evaluation, and the explicit rewind-test-evidence command shall retain its exact target guard, ExternalBlockedOutcome, material repair, and artifact ownership requirements.",
+      "status": "done",
+      "note": "R7: trusted current evidence and explicit rewind guard behavior remain intact"
+    },
+    {
+      "desc": "Regression coverage shall exercise failed-but-authoritative stale evidence, malformed and inconsistent authority, unchanged failed evidence, successful recovery effects, trusted current evidence, and unchanged explicit rewind rejection behavior.",
+      "status": "done",
+      "note": "R8: failed authoritative evidence variants share one recovery contract"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "0b50dc4308df7545df3a381e218304d8722f0af6d20bb75f761e59f545c1d913"
+}

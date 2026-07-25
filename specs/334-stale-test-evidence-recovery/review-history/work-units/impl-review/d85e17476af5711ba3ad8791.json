@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/stale-test-evidence-refresh.js"
+    ],
+    "inputHash": "df4ac5ee03dc7f445e85a3e77ece61a304a7406233eadc50efdd86d0e79a70c6",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/stale-test-evidence-refresh.js"
+  ],
+  "inputHash": "df4ac5ee03dc7f445e85a3e77ece61a304a7406233eadc50efdd86d0e79a70c6",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:38:35.590Z",
+  "finishedAt": "2026-07-24T23:38:35.590Z",
+  "rawResponse": "I’ll review only the three touched files in the supplied diff and keep this to quality/design proposals, including the guardrail check where it applies.### 1. Collapse The Transaction Helper Classes\n**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** `AdditionalArtifactDeletion`, `StagedArtifact`, and `StaleArtifactInvalidationTransaction` split a small staging workflow across several single-purpose classes. This adds object churn and indirection without matching the surrounding module style, which otherwise uses small functions and direct procedural flow.  \n**Suggestion:** Replace these classes with local helper functions such as `collectExistingArtifacts(...)`, `stageArtifacts(...)`, `rollbackStagedArtifacts(...)`, and `commitStagedArtifacts(...)`. This would make the owned recovery transaction easier to audit and keep the mutation sequence visibly atomic.\n\n### 2. Rename `additional` To Reflect Existing Invalidations\n**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** The variable name `additional` is vague and loses the important fact that it only contains paths that currently exist and will be invalidated.  \n**Suggestion:** Rename it to `existingAdditionalArtifacts` or `additionalInvalidatedArtifacts` so the result construction clearly reports only artifacts that were actually part of the recovery operation.\n\n### 3. Avoid Duplicate Rollback Error Aggregation\n**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** `rollback()` already throws an `AggregateError`, and `StaleRecoveryRollbackError` wraps that aggregate as a single-element aggregate. This creates nested aggregate errors that are harder to inspect and does not add much structure.  \n**Suggestion:** Make `StaleRecoveryRollbackError` extend `Error` with `cause: rollbackError`, or flatten `rollbackError.errors` when available. Keep the original mutation error attached explicitly, for example as `mutationError`.\n\n### 4. Extract Scoped Review Record Resolution\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `resolveReviewActionForFlowState` now contains two resolution modes: latest scoped record and persisted target by tree SHA. The branching is compact but mixes scope filtering, argument validation, target matching, and state extraction in one function.  \n**Suggestion:** Extract helpers such as `latestScopedConvergenceRecord(...)` and `latestTargetedConvergenceRecord(...)`. This would preserve behavior while making the persisted-target path easier to reason about and test independently.\n\n### 5. Rename `resolveTreeSha` For Consistency\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `resolveTreeSha` sounds like it may resolve a value asynchronously or perform broader lookup work, but this function expects a synchronous callback returning the current tree SHA.  \n**Suggestion:** Rename the option to `getTreeSha` or `readTreeSha`, matching the synchronous callback shape and making the error message clearer: `getTreeSha is required for a persisted review target`.\n\n### 6. Extract Artifact Outcome Failure Formatting\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R6  \n**Issue:** `checkIntegrationTestArtifacts` now has two separate failure-return blocks after trust validation: stale mismatch recovery and outcome failure. The outcome failure message construction is inline, which makes the main decision flow slightly harder to scan.  \n**Suggestion:** Extract a small helper such as `failIntegrationArtifactValidation({ outcome, phase, level, specPath })`. This keeps the precheck flow focused on ordering: structural trust, stale classification, then outcome verdict.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Collapse The Transaction Helper Classes",
+        "body": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** `AdditionalArtifactDeletion`, `StagedArtifact`, and `StaleArtifactInvalidationTransaction` split a small staging workflow across several single-purpose classes. This adds object churn and indirection without matching the surrounding module style, which otherwise uses small functions and direct procedural flow.  \n**Suggestion:** Replace these classes with local helper functions such as `collectExistingArtifacts(...)`, `stageArtifacts(...)`, `rollbackStagedArtifacts(...)`, and `commitStagedArtifacts(...)`. This would make the owned recovery transaction easier to audit and keep the mutation sequence visibly atomic.",
+        "file": "src/flow/lib/stale-test-evidence-refresh.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Rename `additional` To Reflect Existing Invalidations",
+        "body": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** The variable name `additional` is vague and loses the important fact that it only contains paths that currently exist and will be invalidated.  \n**Suggestion:** Rename it to `existingAdditionalArtifacts` or `additionalInvalidatedArtifacts` so the result construction clearly reports only artifacts that were actually part of the recovery operation.",
+        "file": "src/flow/lib/stale-test-evidence-refresh.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Avoid Duplicate Rollback Error Aggregation",
+        "body": "**File:** `src/flow/lib/stale-test-evidence-refresh.js`  \n**Requirement:** R4  \n**Issue:** `rollback()` already throws an `AggregateError`, and `StaleRecoveryRollbackError` wraps that aggregate as a single-element aggregate. This creates nested aggregate errors that are harder to inspect and does not add much structure.  \n**Suggestion:** Make `StaleRecoveryRollbackError` extend `Error` with `cause: rollbackError`, or flatten `rollbackError.errors` when available. Keep the original mutation error attached explicitly, for example as `mutationError`.",
+        "file": "src/flow/lib/stale-test-evidence-refresh.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Extract Scoped Review Record Resolution",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `resolveReviewActionForFlowState` now contains two resolution modes: latest scoped record and persisted target by tree SHA. The branching is compact but mixes scope filtering, argument validation, target matching, and state extraction in one function.  \n**Suggestion:** Extract helpers such as `latestScopedConvergenceRecord(...)` and `latestTargetedConvergenceRecord(...)`. This would preserve behavior while making the persisted-target path easier to reason about and test independently.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Rename `resolveTreeSha` For Consistency",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R7  \n**Issue:** `resolveTreeSha` sounds like it may resolve a value asynchronously or perform broader lookup work, but this function expects a synchronous callback returning the current tree SHA.  \n**Suggestion:** Rename the option to `getTreeSha` or `readTreeSha`, matching the synchronous callback shape and making the error message clearer: `getTreeSha is required for a persisted review target`.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "6. Extract Artifact Outcome Failure Formatting",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R6  \n**Issue:** `checkIntegrationTestArtifacts` now has two separate failure-return blocks after trust validation: stale mismatch recovery and outcome failure. The outcome failure message construction is inline, which makes the main decision flow slightly harder to scan.  \n**Suggestion:** Extract a small helper such as `failIntegrationArtifactValidation({ outcome, phase, level, specPath })`. This keeps the precheck flow focused on ordering: structural trust, stale classification, then outcome verdict.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

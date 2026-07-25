@@ -38,6 +38,7 @@ import {
 } from "./step-outcome.js";
 import { resolveReviewActionForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
+import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -372,6 +373,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     const reviewAction = resolveReviewActionForFlowState(state, {
       phase: reviewPhase,
       taskId: target.taskId,
+      resolveTreeSha: () => resolveCurrentReviewTreeSha(ctx.root),
     });
     if (reviewAction) result.reviewAction = reviewAction;
   }

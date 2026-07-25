@@ -55,7 +55,6 @@ import { contractFromGateArtifact, repoRelative } from "./flow-judgment-contract
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
 import {
   IMPL_GATE_RESULT_FILE,
-  assertIntegrationRegressionEvidence,
   validateIntegrationArtifactTrust,
 } from "./test-artifacts.js";
 import {
@@ -179,8 +178,9 @@ export const PHASE_TO_LEVEL = Object.freeze({
 });
 
 class StaleIntegrationTestEvidence {
-  constructor(mismatch) {
+  constructor(mismatch, flowState) {
     this.mismatch = mismatch;
+    this.flowState = flowState;
     this.artifactNames = mismatch.artifactNames;
     Object.freeze(this);
   }
@@ -188,7 +188,7 @@ class StaleIntegrationTestEvidence {
   recover(ctx, { level, phase, specDir }) {
     const refresh = this.mismatch.recover({
       root: ctx.root,
-      state: ctx.flowState,
+      state: ctx.flowState || this.flowState,
       specDir,
       flowManager: ctx.flowManager,
       reason: "integration gate detected stale fingerprint evidence",
@@ -219,19 +219,6 @@ class StaleIntegrationTestEvidence {
 export function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
   const specPath = state.spec;
   const specDir = path.dirname(path.resolve(root, specPath));
-  const fingerprint = buildRepairFingerprint({ root, specPath, state });
-  const artifacts = new Map();
-  for (const file of ["test-execute-result.json", "test-result-review.json"]) {
-    const artifactPath = path.join(specDir, file);
-    if (!fs.existsSync(artifactPath)) continue;
-    const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
-    artifacts.set(file, artifact);
-  }
-  const mismatch = StaleTestEvidenceMismatch.detect({
-    artifacts,
-    currentFingerprint: fingerprint.hash,
-  });
-  if (mismatch) return new StaleIntegrationTestEvidence(mismatch);
   const result = validateIntegrationArtifactTrust({
     root,
     specDir,
@@ -245,12 +232,25 @@ export function checkIntegrationTestArtifacts(root, state, level, phase, config 
       `test artifact validation failed: ${result.reason}`,
     ], { phase, level, spec: specPath });
   }
+  const fingerprint = buildRepairFingerprint({ root, specPath, state });
+  const artifacts = result.fingerprintAuthority.toArtifactMap();
+  const mismatch = StaleTestEvidenceMismatch.detect({
+    artifacts,
+    currentFingerprint: fingerprint.hash,
+  });
+  if (mismatch) return new StaleIntegrationTestEvidence(mismatch, state);
   for (const [file, artifact] of artifacts) {
     assertRepairFingerprint({
       artifact,
       fingerprint,
       label: file,
     });
+  }
+  const outcome = result.evaluateOutcome();
+  if (!outcome.ok) {
+    return Envelope.fail("run", "gate", outcome.code, [
+      `test artifact validation failed: ${outcome.reason}`,
+    ], { phase, level, spec: specPath });
   }
   return null;
 }

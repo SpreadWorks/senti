@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "02954b322c34d6201a5f18ed",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-9d66c05c6b6c6f80",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".senti/presets/base/guardrail.json",
+      "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+      "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+      "specs/334-stale-test-evidence-recovery/issue-log.json",
+      "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+      "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+      "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+      "specs/334-stale-test-evidence-recovery/spec.json",
+      "specs/334-stale-test-evidence-recovery/test-coverage.json",
+      "specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log",
+      "src/flow/lib/get-status.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/test-artifacts.js",
+      "tests/unit/flow/review-convergence-action.test.js"
+    ],
+    "inputHash": "9d66c05c6b6c6f80b3501c3f6c6da21cbe98a19ea780b943f7d297e5936c463a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "02954b322c34d6201a5f18ed"
+  },
+  "targetFiles": [
+    ".senti/presets/base/guardrail.json",
+    "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+    "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+    "specs/334-stale-test-evidence-recovery/issue-log.json",
+    "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+    "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+    "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+    "specs/334-stale-test-evidence-recovery/spec.json",
+    "specs/334-stale-test-evidence-recovery/test-coverage.json",
+    "specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log",
+    "src/flow/lib/get-status.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/test-artifacts.js",
+    "tests/unit/flow/review-convergence-action.test.js"
+  ],
+  "inputHash": "9d66c05c6b6c6f80b3501c3f6c6da21cbe98a19ea780b943f7d297e5936c463a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:54:45.316Z",
+  "finishedAt": "2026-07-24T23:54:45.316Z",
+  "rawResponse": "### 1. Normalize Review Artifact Metadata\n**File:** `specs/334-stale-test-evidence-recovery/draft-questions-repair.json`\n**Requirement:** R5\n**Issue:** Review artifacts in the same family use inconsistent provenance metadata: `draft-review-coverage.json` includes `generatedAt`, while `draft-questions-repair.json` and `draft-questions-triage.json` omit it.\n**Suggestion:** Add `generatedAt` to both question review artifacts using the same ISO format and placement convention as `draft-review-coverage.json`.\n\n### 2. Standardize Review Evidence JSON Formatting\n**File:** `specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json`\n**Requirement:** R8\n**Issue:** Multiple review-evidence JSON artifacts are stored as compact single-line JSON, while review-history artifacts appear to use readable formatting. This creates inconsistent generated artifact conventions and makes evidence diffs harder to review.\n**Suggestion:** Apply one canonical JSON formatting policy across all `review-evidence/*.json` files, preferably stable pretty-printing with consistent indentation and key ordering.\n\n### 3. Unify Review History Finding Schemas\n**File:** `specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json`\n**Requirement:** R1\n**Issue:** Review history artifacts use inconsistent names and structures for finding groups: `nonBlockingImprovements`, `advisoryFindings`, `blockingFindings`, and duplicated `findings` arrays. Shared consumers would need phase-specific branching for conceptually similar data.\n**Suggestion:** Define one review-history schema with a canonical `findings` array plus severity/disposition fields, and make grouped fields either derived or lightweight references by finding ID.\n\n### 4. Generate Unique Finding Identifiers Consistently\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`\n**Requirement:** R5\n**Issue:** Several test review artifacts repeat the same `findingId`, `fingerprint`, or `id` for distinct findings, while issue-log entries also show repeated normalized finding identifiers. This undermines cross-artifact deduplication and tracking.\n**Suggestion:** Generate stable IDs from requirement ID plus normalized finding title/body/target, and use that scheme consistently across review-history and issue-log artifacts.\n\n### 5. Align Review Phase Naming\n**File:** `specs/334-stale-test-evidence-recovery/test-review.json`\n**Requirement:** R8\n**Issue:** Related artifacts use inconsistent phase names: `test-review.json` has `\"phase\": \"test\"`, while file paths, `contractSummary.targetStep`, and coverage artifacts refer to `test-review`.\n**Suggestion:** Use `test-review` consistently for the review phase unless the schema explicitly reserves `\"test\"`; if so, document the distinction in the artifact schema.\n\n### 6. Deduplicate Persisted Process History\n**File:** `specs/334-stale-test-evidence-recovery/flow.json`\n**Requirement:** R8\n**Issue:** `flow.json`, `issue-log.json`, raw logs, and review-history artifacts all appear to persist overlapping runtime attempts, failures, timestamps, and repair history. This duplicates transient execution state across files and increases drift risk.\n**Suggestion:** Keep durable state in `flow.json`, concise final issue summaries in `issue-log.json`, and move verbose attempt/runtime logs to ignored generated evidence unless they are required fixtures.\n\n### 7. Rename Tree SHA Resolver Consistently\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R7\n**Issue:** `resolveTreeSha` is used across `review-convergence.js`, `get-next-action.js`, and `get-status.js`, but reviewers flagged both naming ambiguity and repeated callback resolution. The interface name obscures that callers should provide a synchronous, stable current tree SHA value.\n**Suggestion:** Rename the option consistently to `getTreeSha` or `readTreeSha`, and have callers memoize or precompute the SHA once per operation before passing the callback.\n\n### 8. Keep Integration Artifact Authority API Private\n**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R1\n**Issue:** Authority classes are exported from `test-artifacts.js` while surrounding files appear to consume only higher-level validation behavior. This expands the cross-file interface without a clear consumer contract.\n**Suggestion:** Keep authority classes module-private and export only stable functions such as `validateIntegrationArtifactTrust`, unless tests or other modules need direct construction.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Review Artifact Metadata",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/draft-questions-repair.json`\n**Requirement:** R5\n**Issue:** Review artifacts in the same family use inconsistent provenance metadata: `draft-review-coverage.json` includes `generatedAt`, while `draft-questions-repair.json` and `draft-questions-triage.json` omit it.\n**Suggestion:** Add `generatedAt` to both question review artifacts using the same ISO format and placement convention as `draft-review-coverage.json`.",
+        "file": "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Standardize Review Evidence JSON Formatting",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json`\n**Requirement:** R8\n**Issue:** Multiple review-evidence JSON artifacts are stored as compact single-line JSON, while review-history artifacts appear to use readable formatting. This creates inconsistent generated artifact conventions and makes evidence diffs harder to review.\n**Suggestion:** Apply one canonical JSON formatting policy across all `review-evidence/*.json` files, preferably stable pretty-printing with consistent indentation and key ordering.",
+        "file": "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Unify Review History Finding Schemas",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json`\n**Requirement:** R1\n**Issue:** Review history artifacts use inconsistent names and structures for finding groups: `nonBlockingImprovements`, `advisoryFindings`, `blockingFindings`, and duplicated `findings` arrays. Shared consumers would need phase-specific branching for conceptually similar data.\n**Suggestion:** Define one review-history schema with a canonical `findings` array plus severity/disposition fields, and make grouped fields either derived or lightweight references by finding ID.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Generate Unique Finding Identifiers Consistently",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`\n**Requirement:** R5\n**Issue:** Several test review artifacts repeat the same `findingId`, `fingerprint`, or `id` for distinct findings, while issue-log entries also show repeated normalized finding identifiers. This undermines cross-artifact deduplication and tracking.\n**Suggestion:** Generate stable IDs from requirement ID plus normalized finding title/body/target, and use that scheme consistently across review-history and issue-log artifacts.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Align Review Phase Naming",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/test-review.json`\n**Requirement:** R8\n**Issue:** Related artifacts use inconsistent phase names: `test-review.json` has `\"phase\": \"test\"`, while file paths, `contractSummary.targetStep`, and coverage artifacts refer to `test-review`.\n**Suggestion:** Use `test-review` consistently for the review phase unless the schema explicitly reserves `\"test\"`; if so, document the distinction in the artifact schema.",
+        "file": "specs/334-stale-test-evidence-recovery/test-review.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "6. Deduplicate Persisted Process History",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/flow.json`\n**Requirement:** R8\n**Issue:** `flow.json`, `issue-log.json`, raw logs, and review-history artifacts all appear to persist overlapping runtime attempts, failures, timestamps, and repair history. This duplicates transient execution state across files and increases drift risk.\n**Suggestion:** Keep durable state in `flow.json`, concise final issue summaries in `issue-log.json`, and move verbose attempt/runtime logs to ignored generated evidence unless they are required fixtures.",
+        "file": "specs/334-stale-test-evidence-recovery/flow.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "7. Rename Tree SHA Resolver Consistently",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R7\n**Issue:** `resolveTreeSha` is used across `review-convergence.js`, `get-next-action.js`, and `get-status.js`, but reviewers flagged both naming ambiguity and repeated callback resolution. The interface name obscures that callers should provide a synchronous, stable current tree SHA value.\n**Suggestion:** Rename the option consistently to `getTreeSha` or `readTreeSha`, and have callers memoize or precompute the SHA once per operation before passing the callback.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "8. Keep Integration Artifact Authority API Private",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R1\n**Issue:** Authority classes are exported from `test-artifacts.js` while surrounding files appear to consume only higher-level validation behavior. This expands the cross-file interface without a clear consumer contract.\n**Suggestion:** Keep authority classes module-private and export only stable functions such as `validateIntegrationArtifactTrust`, unless tests or other modules need direct construction.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

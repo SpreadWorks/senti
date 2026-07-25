@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+      "specs/334-stale-test-evidence-recovery/review-history/draft-coverage-attempt-001.json",
+      "specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json"
+    ],
+    "inputHash": "aa4847a3c9357f95aec305582b541cd2cd303b31f46e2f4cc108a422c4607913",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+    "specs/334-stale-test-evidence-recovery/review-history/draft-coverage-attempt-001.json",
+    "specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json"
+  ],
+  "inputHash": "aa4847a3c9357f95aec305582b541cd2cd303b31f46e2f4cc108a422c4607913",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:21:57.693Z",
+  "finishedAt": "2026-07-24T23:21:57.693Z",
+  "rawResponse": "### 1. Normalize duplicated finding content\n**File:** `specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R5  \n**Issue:** Each repair target repeats the same title, target, evidence, and rationale again under `findings`, creating two parallel representations that can drift.  \n**Suggestion:** Keep one canonical finding list and derive `repairTargets` from `findings` by filtering `category: \"repair_target\"`, or reduce `repairTargets` to lightweight references such as finding IDs.\n\n### 2. Avoid conflicting advisory counts\n**File:** `specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R4  \n**Issue:** The file has `verdict: \"ADVISORY\"` and two repair targets, but the summary says `0 advisory`, while the related review-evidence artifact records two advisory findings. This naming/count mismatch makes the review state harder to reason about.  \n**Suggestion:** Use consistent terminology and counts across the artifact, for example `0 blocking, 2 advisory repair target finding(s) recorded.` or rename the verdict/category if repair targets are intentionally distinct from advisory findings.\n\n### 3. Format generated JSON consistently\n**File:** `specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json`  \n**Requirement:** R8  \n**Issue:** This JSON artifact is stored as a single long line, unlike the other touched JSON files. That makes review diffs noisy and harder to inspect.  \n**Suggestion:** Pretty-print this artifact with the same indentation style used by the files under `review-history`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize duplicated finding content",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R5  \n**Issue:** Each repair target repeats the same title, target, evidence, and rationale again under `findings`, creating two parallel representations that can drift.  \n**Suggestion:** Keep one canonical finding list and derive `repairTargets` from `findings` by filtering `category: \"repair_target\"`, or reduce `repairTargets` to lightweight references such as finding IDs.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Avoid conflicting advisory counts",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json`  \n**Requirement:** R4  \n**Issue:** The file has `verdict: \"ADVISORY\"` and two repair targets, but the summary says `0 advisory`, while the related review-evidence artifact records two advisory findings. This naming/count mismatch makes the review state harder to reason about.  \n**Suggestion:** Use consistent terminology and counts across the artifact, for example `0 blocking, 2 advisory repair target finding(s) recorded.` or rename the verdict/category if repair targets are intentionally distinct from advisory findings.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Format generated JSON consistently",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json`  \n**Requirement:** R8  \n**Issue:** This JSON artifact is stored as a single long line, unlike the other touched JSON files. That makes review diffs noisy and harder to inspect.  \n**Suggestion:** Pretty-print this artifact with the same indentation style used by the files under `review-history`.",
+        "file": "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

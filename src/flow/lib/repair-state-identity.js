@@ -222,7 +222,7 @@ export class CanonicalRepairEntry {
   }
 
   canonicalParts() {
-    return [this.path, this.oldPath || "", ...this.statuses, this.mode, this.indexOid || "", this.contentHash];
+    return [this.path, this.oldPath || "", this.mode, this.contentHash];
   }
 }
 

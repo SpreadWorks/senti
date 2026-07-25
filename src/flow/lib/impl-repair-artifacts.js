@@ -557,6 +557,7 @@ export function writeRepairEvidenceArtifact({ specDir, stepId, artifact, fingerp
   const current = fingerprintFrom(fingerprint, "fingerprint");
   const stamped = stampRepairFingerprint({ artifact, fingerprint: current });
   const file = path.join(specDir, fileName);
+  writeRepairFingerprintManifest(specDir, current);
   writeJson(file, stamped);
   return { path: file, artifact: stamped };
 }
@@ -708,13 +709,120 @@ function applyRepairInvalidations(specDir, invalidations) {
   }
 }
 
+class StagedRepairArtifact {
+  constructor({ specDir, stagingDir, record, index }) {
+    const normalized = record instanceof InvalidatedArtifactRecord
+      ? record
+      : new InvalidatedArtifactRecord(record);
+    this.sourcePath = path.join(specDir, normalized.path);
+    this.stagedPath = path.join(stagingDir, String(index));
+    Object.freeze(this);
+  }
+
+  stage() {
+    if (!fs.existsSync(this.sourcePath)) return false;
+    fs.renameSync(this.sourcePath, this.stagedPath);
+    return true;
+  }
+
+  restore() {
+    if (!fs.existsSync(this.stagedPath)) return;
+    fs.mkdirSync(path.dirname(this.sourcePath), { recursive: true });
+    fs.renameSync(this.stagedPath, this.sourcePath);
+  }
+}
+
+class RepairInvalidationTransaction {
+  constructor({ specDir, invalidations }) {
+    this.stagingDir = fs.mkdtempSync(path.join(path.resolve(specDir), ".repair-invalidation-"));
+    this.artifacts = Object.freeze(invalidations.map((record, index) => (
+      new StagedRepairArtifact({
+        specDir,
+        stagingDir: this.stagingDir,
+        record,
+        index,
+      })
+    )));
+    this.staged = [];
+  }
+
+  stage() {
+    try {
+      for (const artifact of this.artifacts) {
+        if (artifact.stage()) this.staged.push(artifact);
+      }
+    } catch (error) {
+      this.rollback();
+      throw error;
+    }
+  }
+
+  commit() {
+    fs.rmSync(this.stagingDir, { recursive: true, force: true });
+    this.staged = [];
+  }
+
+  rollback() {
+    const errors = [];
+    for (const artifact of [...this.staged].reverse()) {
+      try {
+        artifact.restore();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    try {
+      fs.rmSync(this.stagingDir, { recursive: true, force: true });
+    } catch (error) {
+      errors.push(error);
+    }
+    this.staged = [];
+    if (errors.length > 0) {
+      throw new AggregateError(errors, "repair invalidation rollback failed");
+    }
+  }
+}
+
+export class RepairEvidenceInvalidationPlan {
+  constructor({ specDir, currentFingerprint, previousFingerprint, reason }) {
+    this.specDir = path.resolve(specDir);
+    this.invalidations = Object.freeze(planRepairInvalidation({
+      specDir: this.specDir,
+      currentFingerprint,
+      previousFingerprint,
+      reason,
+    }));
+    Object.freeze(this);
+  }
+
+  get invalidatedArtifacts() {
+    return this.invalidations.map((record) => record.path);
+  }
+
+  get invalidationRecords() {
+    return this.invalidations.map((record) => record.toJSON());
+  }
+
+  apply() {
+    applyRepairInvalidations(this.specDir, this.invalidations);
+    return {
+      invalidatedArtifacts: this.invalidatedArtifacts,
+      invalidations: this.invalidationRecords,
+    };
+  }
+}
+
+export function planRepairEvidenceInvalidation(options) {
+  return new RepairEvidenceInvalidationPlan(options);
+}
+
 export function invalidateRepairEvidence({ specDir, currentFingerprint, previousFingerprint, reason }) {
-  const invalidations = planRepairInvalidation({ specDir, currentFingerprint, previousFingerprint, reason });
-  applyRepairInvalidations(specDir, invalidations);
-  return {
-    invalidatedArtifacts: invalidations.map((record) => record.path),
-    invalidations: invalidations.map((record) => record.toJSON()),
-  };
+  return planRepairEvidenceInvalidation({
+    specDir,
+    currentFingerprint,
+    previousFingerprint,
+    reason,
+  }).apply();
 }
 
 function planAdditionalRefreshInvalidations({
@@ -755,33 +863,6 @@ export function completeTestEvidenceRefresh({
   const lock = new RepairRunLock(specDir);
   lock.acquire();
   try {
-    const manifestPath = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
-    if (!fs.existsSync(manifestPath)) {
-      const invalidated = invalidateRepairEvidence({
-        specDir,
-        currentFingerprint: expectedCurrentFingerprint,
-        previousFingerprint: expectedPreviousFingerprint,
-        reason,
-      });
-      const invalidatedArtifacts = [...invalidated.invalidatedArtifacts];
-      for (const relPath of additionalArtifacts) {
-        const file = path.join(specDir, relPath);
-        if (!fs.existsSync(file)) continue;
-        fs.rmSync(file, { force: true });
-        if (!invalidatedArtifacts.includes(relPath)) invalidatedArtifacts.push(relPath);
-      }
-      updateRepairSteps(flowManager, resetStepIds);
-      flowManager.mutate((next) => {
-        delete next.acceptanceReview;
-      });
-      return {
-        entry: null,
-        invalidations: invalidated.invalidations,
-        previousFingerprint: null,
-        currentFingerprint: expectedCurrentFingerprint,
-        invalidatedArtifacts,
-      };
-    }
     const activeState = state || flowManager.load();
     const specParent = path.dirname(activeState.spec);
     const inferredRoot = path.resolve(
@@ -791,6 +872,77 @@ export function completeTestEvidenceRefresh({
     const executionRoot = root || inferredRoot;
     if (path.dirname(path.resolve(executionRoot, activeState.spec)) !== path.resolve(specDir)) {
       throw new Error("test evidence refresh spec directory does not match the active flow");
+    }
+    const transactionPath = path.join(specDir, REPAIR_TRANSACTION_FILE);
+    if (fs.existsSync(transactionPath)) {
+      const transaction = new ImplRepairTransaction(readJson(transactionPath));
+      if (!(transaction.purpose instanceof TestEvidenceRefreshPurpose)) {
+        throw new Error("pending repair transaction is not a test evidence refresh");
+      }
+      if (
+        expectedPreviousFingerprint
+        && transaction.entry.previousHash !== expectedPreviousFingerprint
+      ) {
+        throw new Error("pending test evidence refresh previous fingerprint changed");
+      }
+      if (
+        expectedCurrentFingerprint
+        && transaction.entry.currentHash !== expectedCurrentFingerprint
+      ) {
+        throw new Error("pending test evidence refresh current fingerprint changed");
+      }
+      const resumed = commitRepairTransaction({
+        root: executionRoot,
+        state: activeState,
+        specDir,
+        flowManager,
+        transaction,
+      });
+      return {
+        ...resumed,
+        previousFingerprint: transaction.entry.previousHash,
+        currentFingerprint: transaction.entry.currentHash,
+        invalidatedArtifacts: resumed.invalidations.map((record) => record.path),
+      };
+    }
+    const manifestPath = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
+    if (!fs.existsSync(manifestPath)) {
+      const invalidationPlan = planRepairEvidenceInvalidation({
+        specDir,
+        currentFingerprint: expectedCurrentFingerprint,
+        previousFingerprint: expectedPreviousFingerprint,
+        reason,
+      });
+      const invalidations = [...invalidationPlan.invalidations];
+      const plannedPaths = new Set(invalidations.map((record) => record.path));
+      for (const relPath of additionalArtifacts) {
+        const file = path.join(specDir, relPath);
+        if (!fs.existsSync(file) || plannedPaths.has(relPath)) continue;
+        invalidations.push(new InvalidatedArtifactRecord({
+          path: relPath,
+          reason: `${requireString(reason, "reason")} (explicit_refresh_artifact)`,
+          previousFingerprint: expectedPreviousFingerprint,
+        }));
+      }
+      const invalidationTransaction = new RepairInvalidationTransaction({
+        specDir,
+        invalidations,
+      });
+      invalidationTransaction.stage();
+      try {
+        updateRepairSteps(flowManager, resetStepIds, { clearAcceptanceReview: true });
+        invalidationTransaction.commit();
+      } catch (error) {
+        invalidationTransaction.rollback();
+        throw error;
+      }
+      return {
+        entry: null,
+        invalidations: invalidations.map((record) => record.toJSON()),
+        previousFingerprint: null,
+        currentFingerprint: expectedCurrentFingerprint,
+        invalidatedArtifacts: invalidations.map((record) => record.path),
+      };
     }
     const previous = readRepairFingerprintManifest(specDir);
     const current = buildRepairFingerprint({
@@ -873,9 +1025,6 @@ export function completeTestEvidenceRefresh({
       specDir,
       flowManager,
       transaction,
-    });
-    flowManager.mutate((next) => {
-      delete next.acceptanceReview;
     });
     return {
       ...result,
@@ -1093,7 +1242,11 @@ export function ensureRepairFingerprintContract({
   return { state: migratedState, migrated: true };
 }
 
-function updateRepairSteps(flowManager, resetStepIds) {
+function updateRepairSteps(
+  flowManager,
+  resetStepIds,
+  { clearAcceptanceReview = false } = {},
+) {
   flowManager.mutate((next) => {
     const repairStep = findStepById(next.steps || [], "impl-repair");
     if (repairStep) {
@@ -1108,6 +1261,7 @@ function updateRepairSteps(flowManager, resetStepIds) {
       delete step.finishedAt;
       if (stepId === "test-execute") step.startedAt = new Date().toISOString();
     }
+    if (clearAcceptanceReview) delete next.acceptanceReview;
   });
 }
 
@@ -1126,25 +1280,46 @@ function commitRepairTransaction({
   if (observed.hash !== manifest.hash) {
     throw new Error("impl-repair transaction current state changed before recovery");
   }
-  const deltaRef = writeRepairDelta(specDir, journal.delta);
-  if (deltaRef !== entry.changedPathsRef) throw new Error("impl-repair delta reference changed during transaction");
-  faultInjector?.({ phase: "after-delta" });
-  writeJson(path.join(specDir, IMPL_REPAIR_ARTIFACT_FILE), ledger.toJSON());
-  faultInjector?.({ phase: "after-ledger" });
-  writeRepairFingerprintManifest(specDir, manifest);
-  faultInjector?.({ phase: "after-manifest" });
-  applyRepairInvalidations(specDir, journal.invalidations);
-  faultInjector?.({ phase: "after-invalidation" });
-  journal.purpose.recordEvidence({
-    root,
-    specPath: state.spec,
-    sourceStep: journal.sourceStep,
-    entry,
+  const invalidationTransaction = new RepairInvalidationTransaction({
+    specDir,
+    invalidations: journal.invalidations,
   });
-  if (commitFlowState) updateRepairSteps(flowManager, journal.resetStepIds);
-  faultInjector?.({ phase: "after-flow-state" });
-  fs.rmSync(path.join(specDir, REPAIR_TRANSACTION_FILE), { force: true });
-  return { entry: entry.toJSON(), invalidations: entry.invalidations.map((record) => record.toJSON()) };
+  invalidationTransaction.stage();
+  try {
+    const deltaRef = writeRepairDelta(specDir, journal.delta);
+    if (deltaRef !== entry.changedPathsRef) throw new Error("impl-repair delta reference changed during transaction");
+    faultInjector?.({ phase: "after-delta" });
+    writeJson(path.join(specDir, IMPL_REPAIR_ARTIFACT_FILE), ledger.toJSON());
+    faultInjector?.({ phase: "after-ledger" });
+    writeRepairFingerprintManifest(specDir, manifest);
+    faultInjector?.({ phase: "after-manifest" });
+    faultInjector?.({ phase: "after-invalidation" });
+    journal.purpose.recordEvidence({
+      root,
+      specPath: state.spec,
+      sourceStep: journal.sourceStep,
+      entry,
+    });
+    if (commitFlowState) {
+      updateRepairSteps(flowManager, journal.resetStepIds, {
+        clearAcceptanceReview: journal.purpose instanceof TestEvidenceRefreshPurpose,
+      });
+    }
+    faultInjector?.({ phase: "after-flow-state" });
+    invalidationTransaction.commit();
+    fs.rmSync(path.join(specDir, REPAIR_TRANSACTION_FILE), { force: true });
+    return { entry: entry.toJSON(), invalidations: entry.invalidations.map((record) => record.toJSON()) };
+  } catch (error) {
+    try {
+      invalidationTransaction.rollback();
+    } catch (rollbackError) {
+      throw new AggregateError(
+        [error, rollbackError],
+        `repair transaction failed and rollback also failed: ${error.message}`,
+      );
+    }
+    throw error;
+  }
 }
 
 function prepareImplRepairTransaction({ root, state, specDir, resetStepIds }) {

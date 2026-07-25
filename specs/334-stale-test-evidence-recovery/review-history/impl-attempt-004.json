@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T23:15:06.341Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "recovery-omits-invalidation-records",
+      "title": "Recovery still skips the invalidation plan application",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/stale-test-evidence-refresh.js",
+      "requirementId": "R4",
+      "issue": "`StaleTestEvidenceRefresh.recover()` now includes `invalidationPlan.invalidationRecords` in the returned `StaleTestEvidenceRefreshResult`, but it still never applies the `RepairEvidenceInvalidationPlan`. The transaction stages and removes files directly, bypassing the existing `applyRepairInvalidations()` path that materializes the planned invalidation audit records.",
+      "suggestion": "In `StaleTestEvidenceRefresh.recover()`, preserve the staged lifecycle rollback behavior but commit the planned invalidation operation after the lifecycle mutation succeeds, or introduce an equivalent commit method that writes the same audit records while respecting the staged artifact removal.",
+      "disposition": "must-fix",
+      "rationale": "R4 is mandatory and requires successful stale recovery to be auditable as one owned recovery operation. Returning serialized records is not equivalent to writing the invalidation audit artifacts consumed by the existing repair evidence workflow.",
+      "findingId": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "fingerprint": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "59ea3cf74f665b581a12bfa0c54060ac7a425ddafd1617b8e5b2d856b373c945",
+  "runId": "512698c6-f674-45f6-b688-4a9f6d26869f",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/334-stale-test-evidence-recovery/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/334-stale-test-evidence-recovery/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "73b8b8e5cccd88d38e7e997ad70d063b18c07b77eb9fa950b1e86aefffe8625f"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "findingId": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Recovery still skips the invalidation plan application",
+      "body": "`StaleTestEvidenceRefresh.recover()` now includes `invalidationPlan.invalidationRecords` in the returned `StaleTestEvidenceRefreshResult`, but it still never applies the `RepairEvidenceInvalidationPlan`. The transaction stages and removes files directly, bypassing the existing `applyRepairInvalidations()` path that materializes the planned invalidation audit records.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "disposition": "must-fix",
+      "rationale": "R4 is mandatory and requires successful stale recovery to be auditable as one owned recovery operation. Returning serialized records is not equivalent to writing the invalidation audit artifacts consumed by the existing repair evidence workflow.",
+      "requirementId": "R4",
+      "repeatCount": 2
+    }
+  ]
+}

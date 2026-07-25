@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/334-stale-test-evidence-recovery/issue-log.json",
+      "specs/334-stale-test-evidence-recovery/issue.md",
+      "specs/334-stale-test-evidence-recovery/plugin-artifacts/workflow/prepare.json"
+    ],
+    "inputHash": "1f6603d9b5e909a06e98a53ca215b287b5f637be489578068f11ccccee1f10d0",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/334-stale-test-evidence-recovery/issue-log.json",
+    "specs/334-stale-test-evidence-recovery/issue.md",
+    "specs/334-stale-test-evidence-recovery/plugin-artifacts/workflow/prepare.json"
+  ],
+  "inputHash": "1f6603d9b5e909a06e98a53ca215b287b5f637be489578068f11ccccee1f10d0",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T00:13:57.562Z",
+  "finishedAt": "2026-07-25T00:13:57.562Z",
+  "rawResponse": "### 1. Deduplicate Repeated Fingerprint Records\n**File:** `specs/334-stale-test-evidence-recovery/issue-log.json`  \n**Requirement:** R8  \n**Issue:** Several `changedFileFingerprints` arrays contain duplicate path/fingerprint entries, for example repeated `spec.json`, `spec.md`, `test-review.json`, `test-review.md`, `tests/stale-test-evidence-recovery.test.js`, and `tests/unit/flow/review-convergence-action.test.js` records. This makes the evidence noisy and harder to review without adding information.  \n**Suggestion:** Normalize each `changedFileFingerprints` list to one record per unique `path` and `fingerprint` pair before persisting the issue log.\n\n### 2. Bound Large Evidence Snapshots\n**File:** `specs/334-stale-test-evidence-recovery/issue-log.json`  \n**Requirement:** R8  \n**Issue:** The log embeds very large `changedFileFingerprints` snapshots directly in multiple final-regression entries. Without an explicit cap or reference strategy, this can grow unbounded as the spec accumulates artifacts, conflicting with the `bounded-resource-usage` guardrail.  \n**Suggestion:** Store a bounded summary in `issue-log.json`, such as counts plus the first N relevant fingerprints, and move full fingerprint manifests to a referenced artifact path.\n\n### 3. Remove Duplicated Bilingual Content Or Split It\n**File:** `specs/334-stale-test-evidence-recovery/issue.md`  \n**Requirement:** R1  \n**Issue:** The English issue body and Japanese `<details>` section duplicate the same structure and content. This increases maintenance cost because future edits must keep two full copies aligned.  \n**Suggestion:** Keep the canonical issue content in one language and either replace the second section with a short summary or move translations into a separate localized artifact if bilingual documentation is required.\n\n### 4. Add Final Newline\n**File:** `specs/334-stale-test-evidence-recovery/issue.md`  \n**Requirement:** R1  \n**Issue:** The file ends without a trailing newline, which is inconsistent with common text-file conventions and can create avoidable diff churn.  \n**Suggestion:** Add a final newline after the closing `</details>` tag.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Deduplicate Repeated Fingerprint Records",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/issue-log.json`  \n**Requirement:** R8  \n**Issue:** Several `changedFileFingerprints` arrays contain duplicate path/fingerprint entries, for example repeated `spec.json`, `spec.md`, `test-review.json`, `test-review.md`, `tests/stale-test-evidence-recovery.test.js`, and `tests/unit/flow/review-convergence-action.test.js` records. This makes the evidence noisy and harder to review without adding information.  \n**Suggestion:** Normalize each `changedFileFingerprints` list to one record per unique `path` and `fingerprint` pair before persisting the issue log.",
+        "file": "specs/334-stale-test-evidence-recovery/issue-log.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Bound Large Evidence Snapshots",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/issue-log.json`  \n**Requirement:** R8  \n**Issue:** The log embeds very large `changedFileFingerprints` snapshots directly in multiple final-regression entries. Without an explicit cap or reference strategy, this can grow unbounded as the spec accumulates artifacts, conflicting with the `bounded-resource-usage` guardrail.  \n**Suggestion:** Store a bounded summary in `issue-log.json`, such as counts plus the first N relevant fingerprints, and move full fingerprint manifests to a referenced artifact path.",
+        "file": "specs/334-stale-test-evidence-recovery/issue-log.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Remove Duplicated Bilingual Content Or Split It",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/issue.md`  \n**Requirement:** R1  \n**Issue:** The English issue body and Japanese `<details>` section duplicate the same structure and content. This increases maintenance cost because future edits must keep two full copies aligned.  \n**Suggestion:** Keep the canonical issue content in one language and either replace the second section with a short summary or move translations into a separate localized artifact if bilingual documentation is required.",
+        "file": "specs/334-stale-test-evidence-recovery/issue.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Add Final Newline",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/issue.md`  \n**Requirement:** R1  \n**Issue:** The file ends without a trailing newline, which is inconsistent with common text-file conventions and can create avoidable diff churn.  \n**Suggestion:** Add a final newline after the closing `</details>` tag.",
+        "file": "specs/334-stale-test-evidence-recovery/issue.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "99f2e7ef3071b3205bbf22e2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-b38f886023394653",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+      "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+      "specs/334-stale-test-evidence-recovery/issue-log.json",
+      "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+      "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+      "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+      "specs/334-stale-test-evidence-recovery/spec.json",
+      "specs/334-stale-test-evidence-recovery/test-coverage.json",
+      "specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log",
+      "src/flow/lib/run-gate.js",
+      "src/presets/base/guardrail.json"
+    ],
+    "inputHash": "b38f886023394653f5442df121c9248c4264b1f091acb68b0f6c2416f9d44ed7",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "99f2e7ef3071b3205bbf22e2"
+  },
+  "targetFiles": [
+    "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+    "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+    "specs/334-stale-test-evidence-recovery/issue-log.json",
+    "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+    "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+    "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+    "specs/334-stale-test-evidence-recovery/spec.json",
+    "specs/334-stale-test-evidence-recovery/test-coverage.json",
+    "specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log",
+    "src/flow/lib/run-gate.js",
+    "src/presets/base/guardrail.json"
+  ],
+  "inputHash": "b38f886023394653f5442df121c9248c4264b1f091acb68b0f6c2416f9d44ed7",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:24:20.760Z",
+  "finishedAt": "2026-07-24T23:24:20.760Z",
+  "rawResponse": "### 1. Consolidate Repeated Finding Duplication Fixes\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json`\n**Requirement:** R8\n**Issue:** Multiple artifacts introduce the same structural duplication pattern: findings are stored both in phase-specific arrays like `blockingFindings` or `repairTargets` and again in generic `findings`. The issue appears across `draft-questions-attempt-001.json`, `test-attempt-001.json`, and `test-attempt-003.json`, which suggests a cross-file schema inconsistency rather than isolated file noise.\n**Suggestion:** Define one canonical findings representation across review-history artifacts. Use lightweight references for derived groupings such as `blockingFindings` and `repairTargets`, or derive those groupings from `findings` by severity/category.\n\n### 2. Normalize Review Artifact Metadata\n**File:** `specs/334-stale-test-evidence-recovery/draft-questions-repair.json`\n**Requirement:** R5\n**Issue:** `draft-review-coverage.json` includes `generatedAt`, while related triage and repair artifacts omit it. This creates inconsistent provenance metadata across artifacts that appear to belong to the same generated review family.\n**Suggestion:** Add a shared metadata convention for generated review artifacts, including `generatedAt` placement and timestamp format, then apply it consistently to `draft-questions-repair.json` and `draft-questions-triage.json`.\n\n### 3. Standardize Evidence JSON Formatting\n**File:** `specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json`\n**Requirement:** R1\n**Issue:** Several review-evidence files are compact single-line JSON while review-history files are formatted for review. The same formatting concern appears for multiple evidence files, creating inconsistent artifact readability and noisier future diffs.\n**Suggestion:** Adopt one canonical JSON serialization policy for generated evidence artifacts, preferably stable pretty-printed JSON with consistent indentation and key ordering.\n\n### 4. Align Review Phase Naming\n**File:** `specs/334-stale-test-evidence-recovery/test-review.json`\n**Requirement:** R8\n**Issue:** The review artifacts use inconsistent phase names: `phase` is `\"test\"` while file paths and related fields use `\"test-review\"`. Similar naming ambiguity appears in review-history files where non-blocking concepts are named `nonBlockingImprovements`, `advisoryFindings`, and `repairTargets`.\n**Suggestion:** Define canonical phase and finding-category names in the artifact schema, then update all review artifacts to use the same vocabulary unless a documented phase-specific schema requires otherwise.\n\n### 5. Share Fingerprint Validation Semantics\n**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R5\n**Issue:** Fingerprint validation appears to be introduced in more than one file with separate constants or identifiers, including `REPAIR_FINGERPRINT_PATTERN` and `HASH_PATTERN`. This creates a cross-file interface risk for structural trust checks.\n**Suggestion:** Move fingerprint validation into a single shared helper such as `isValidRepairFingerprint(value)` and use it from both `test-artifacts.js` and `stale-test-evidence-refresh.js`.\n\n### 6. Use Unique Finding Identifiers Across Attempts\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`\n**Requirement:** R7\n**Issue:** Duplicate `findingId`, `fingerprint`, and `id` values are reported in both `test-attempt-002.json` and `test-attempt-003.json` for distinct findings. This breaks cross-file tracking and makes deduplication ambiguous across review attempts.\n**Suggestion:** Generate stable IDs from each finding’s requirement, title, target, and normalized body so distinct findings remain distinct across attempts while identical findings correlate cleanly.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate Repeated Finding Duplication Fixes",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json`\n**Requirement:** R8\n**Issue:** Multiple artifacts introduce the same structural duplication pattern: findings are stored both in phase-specific arrays like `blockingFindings` or `repairTargets` and again in generic `findings`. The issue appears across `draft-questions-attempt-001.json`, `test-attempt-001.json`, and `test-attempt-003.json`, which suggests a cross-file schema inconsistency rather than isolated file noise.\n**Suggestion:** Define one canonical findings representation across review-history artifacts. Use lightweight references for derived groupings such as `blockingFindings` and `repairTargets`, or derive those groupings from `findings` by severity/category.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Normalize Review Artifact Metadata",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/draft-questions-repair.json`\n**Requirement:** R5\n**Issue:** `draft-review-coverage.json` includes `generatedAt`, while related triage and repair artifacts omit it. This creates inconsistent provenance metadata across artifacts that appear to belong to the same generated review family.\n**Suggestion:** Add a shared metadata convention for generated review artifacts, including `generatedAt` placement and timestamp format, then apply it consistently to `draft-questions-repair.json` and `draft-questions-triage.json`.",
+        "file": "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Standardize Evidence JSON Formatting",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json`\n**Requirement:** R1\n**Issue:** Several review-evidence files are compact single-line JSON while review-history files are formatted for review. The same formatting concern appears for multiple evidence files, creating inconsistent artifact readability and noisier future diffs.\n**Suggestion:** Adopt one canonical JSON serialization policy for generated evidence artifacts, preferably stable pretty-printed JSON with consistent indentation and key ordering.",
+        "file": "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Align Review Phase Naming",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/test-review.json`\n**Requirement:** R8\n**Issue:** The review artifacts use inconsistent phase names: `phase` is `\"test\"` while file paths and related fields use `\"test-review\"`. Similar naming ambiguity appears in review-history files where non-blocking concepts are named `nonBlockingImprovements`, `advisoryFindings`, and `repairTargets`.\n**Suggestion:** Define canonical phase and finding-category names in the artifact schema, then update all review artifacts to use the same vocabulary unless a documented phase-specific schema requires otherwise.",
+        "file": "specs/334-stale-test-evidence-recovery/test-review.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "5. Share Fingerprint Validation Semantics",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R5\n**Issue:** Fingerprint validation appears to be introduced in more than one file with separate constants or identifiers, including `REPAIR_FINGERPRINT_PATTERN` and `HASH_PATTERN`. This creates a cross-file interface risk for structural trust checks.\n**Suggestion:** Move fingerprint validation into a single shared helper such as `isValidRepairFingerprint(value)` and use it from both `test-artifacts.js` and `stale-test-evidence-refresh.js`.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "6. Use Unique Finding Identifiers Across Attempts",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json`\n**Requirement:** R7\n**Issue:** Duplicate `findingId`, `fingerprint`, and `id` values are reported in both `test-attempt-002.json` and `test-attempt-003.json` for distinct findings. This breaks cross-file tracking and makes deduplication ambiguous across review attempts.\n**Suggestion:** Generate stable IDs from each finding’s requirement, title, target, and normalized body so distinct findings remain distinct across attempts while identical findings correlate cleanly.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

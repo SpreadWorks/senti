@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "q2 と q3 から推奨回答と理由を除き、ユーザー判断だけを尋ねる質問文へ修正する。",
+  "items": [
+    {
+      "title": "1. q2 includes recommendation and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "pending question は質問だけを保持する必要があり、推奨案と比較理由は後続の回答・判断記録に属する。",
+      "evidence": "draft.json qa[1].question に「推奨は」と方式比較の理由が含まれている。"
+    },
+    {
+      "title": "2. q3 includes recommendation and rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "pending question は境界の確認だけを行い、その境界を推奨する理由を先取りしない形にできる。",
+      "evidence": "draft.json qa[2].question に「推奨は」と authority 維持の理由が含まれている。"
+    }
+  ]
+}

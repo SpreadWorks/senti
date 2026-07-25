@@ -1,0 +1,87 @@
+{
+  "devType": "bugfix",
+  "goal": "失敗した test evidence の後に material な実装修正で repair fingerprint が変わった場合、既存の安全制約を維持したまま、監査可能な正規経路で flow-level impl-gate から test-execute へ戻せるようにする。",
+  "analysis": {
+    "problem": "flow-level impl-gate は test artifact の trust validation を repair fingerprint mismatch の検出より先に行う。requirement failure を含む artifact は trust validation で早期に拒否されるため、stale evidence recovery も rewind-test-evidence が要求する external-blocked authority も成立せず、artifact を手編集または削除しない限り flow を再開できない。",
+    "proposedApproach": "失敗していても回復権限を確認できる test evidence と、権限を確認できない malformed evidence を区別する。material な実装修正による fingerprint mismatch が確認できる場合は、既存の監査・無効化・lifecycle transition の所有権を再利用して test-execute へ戻す。malformed evidence は回復の根拠として受け入れず、既存の構造エラーとして扱う。",
+    "validation": "failed evidence と malformed evidence、fingerprint の一致・不一致、material repair の有無、target guard の有無を組み合わせた回帰テストで判定する。成功時は stale artifacts の無効化、repair ledger、step transition が一体として記録され、失敗時は部分更新が残らないことを確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "[must] checkIntegrationTestArtifacts() は現状 trust validation の失敗を fingerprint mismatch の検出前に返す。",
+      "[must] 既存の stale evidence recovery は test-execute 以降の証跡を無効化し、test-execute を in_progress に戻す。",
+      "[must] rewind-test-evidence は flow-level impl-gate の ExternalBlockedOutcome、完全な target guards、material repair authority を要求する。",
+      "[must] valid かつ相互に一致する stale repair fingerprint を持つ failed evidence は、material repair 後の正規回復対象にする。",
+      "[must] missing、invalid、または相互に矛盾する fingerprint evidence は recovery authority に使用せず、構造エラーとして拒否する。"
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "[must] target guards、material repair、artifact ownership の既存制約を弱めない。",
+      "[must] stale evidence の無効化と lifecycle transition は原子的かつ監査可能にする。",
+      "[must] 外部依存を追加せず、意味のある recovery authority と transition は既存のクラス設計に合わせる。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "[must] 既存 recovery owner の再利用方法と責務境界を、関連テストの既存パターンを基に spec で定義する。",
+      "[must] 回帰テストの具体的な fixture と fault-injection points を spec で定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] flow-level integration impl-gate における failed test evidence と stale repair fingerprint の優先順位。",
+      "[must] guarded な stale test evidence recovery と test-execute への lifecycle transition。",
+      "[must] run-gate、rewind-test-evidence、および関連する flow regression tests。"
+    ],
+    "out": [
+      "[must] target guard 要件の緩和。",
+      "[must] material repair authority の省略。",
+      "[must] artifact ownership の変更または手編集・手削除を前提とする運用。"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] impl-gate の structural precheck が、failed-but-authoritative evidence と malformed evidence を区別するようになる。",
+    "[must] rewind-test-evidence の既存 guard、atomic transaction、audit artifacts は維持する。",
+    "[must] fingerprint が一致する通常の test evidence と、material repair がない失敗経路の挙動は変更しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] Issue #457 の目標を、material な実装修正後に既存制約を維持した監査可能な正規経路で impl-gate から test-execute へ戻せるようにすることとしてよいか。",
+      "answer": "[must] はい。Issue #457 の目標と対象範囲を preflight summary の内容で進める。",
+      "evidence": "ユーザーは preflight summary を表示した自動モード選択で [1] を明示的に選択した。",
+      "why": "承認された summary が Goal、Scope、Out of Scope を明示し、Issue の完了条件と一致する。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "[must] material な実装修正後に repair fingerprint が変わった failed evidence を、guarded な正規コマンドで impl-gate から test-execute へ戻す対象としてよいか。",
+      "answer": "[must] はい。valid かつ相互に一致する stale repair fingerprint を持つ failed evidence を、material repair 後の正規回復対象にする。",
+      "evidence": "Issue #457 の完了条件は failed test artifact 後の実装修正から guarded な正規コマンドで test-execute へ戻れることを要求し、src/flow/lib/run-gate.js の StaleIntegrationTestEvidence.recover() は既に integration gate から test-execute へ戻す所有権を持つ。",
+      "why": "既存の integration gate recovery owner を再利用すると、artifact invalidation と lifecycle transition の責務を一つに保てる。",
+      "considered": "structural failure を ExternalBlockedOutcome として記録し、別の rewind-test-evidence invocation に委譲する方式も検討したが、既存の gate-owned recovery と同じ stale mismatch に二つの入口を持たせるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "[must] stale recovery の対象を valid かつ相互に一致する repair fingerprint を持つ evidence に限定し、missing、invalid、または矛盾する fingerprint を持つ evidence は構造エラーとして拒否する境界でよいか。",
+      "answer": "[must] はい。recovery authority を valid かつ相互に一致する fingerprint evidence に限定し、それ以外は既存の構造エラーとして拒否する。",
+      "evidence": "Issue #457 は target guard、material repair、artifact ownership の既存制約を弱めないことを完了条件とし、src/flow/lib/run-rewind-test-evidence.js の StaleTestEvidenceAuthority は両 test artifacts の valid かつ一致する repairFingerprint を要求する。",
+      "why": "failed result と malformed authority を分離すれば、requirement failure からの回復可能性だけを追加し、証跡の真正性検証は維持できる。",
+      "considered": "fingerprint が欠落または矛盾する evidence も回復対象に含める方式は、stale state の同一性を証明できないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-24T22:29:13Z",
+    "notes": "preflight summary approval and auto-mode draft refinement"
+  }
+}

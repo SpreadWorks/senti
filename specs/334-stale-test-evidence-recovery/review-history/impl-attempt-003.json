@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T23:13:47.178Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "recovery-omits-invalidation-records",
+      "title": "Recovery no longer writes invalidation audit records",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/stale-test-evidence-refresh.js",
+      "requirementId": "R4",
+      "issue": "`StaleTestEvidenceRefresh.recover()` builds a `planRepairEvidenceInvalidation()` but never applies it. The new transaction only renames/removes the artifact paths and returns `invalidatedArtifacts`, so the previous `InvalidatedRepairArtifactRecord.toJSON()` audit records produced by `invalidateRepairEvidence().apply()` are dropped from the successful recovery path.",
+      "suggestion": "In `StaleTestEvidenceRefresh.recover()`, preserve the staged atomic behavior but also commit the planned invalidation records from `RepairEvidenceInvalidationPlan.apply()` or an equivalent record-writing branch after the lifecycle mutation succeeds, and include the serialized invalidations in the recovery result.",
+      "disposition": "must-fix",
+      "rationale": "R4 is mandatory and requires successful stale recovery to be auditable as one owned recovery operation. Removing the invalidation record application weakens the audit trail even though the result still lists path names.",
+      "findingId": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "fingerprint": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "rollback-can-mask-mutation-failure",
+      "title": "Rollback failure can replace the original recovery error",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/stale-test-evidence-refresh.js",
+      "requirementId": "R4",
+      "issue": "When `flowManager.mutate()` throws, `recover()` calls `transaction.rollback()` directly inside the catch block. If rollback restoration or staging-dir cleanup throws, `rollback()` throws an `AggregateError` and masks the original lifecycle mutation failure, leaving callers without the authoritative cause of the failed owned recovery operation.",
+      "suggestion": "In the `flowManager.mutate()` catch branch, catch rollback errors separately and rethrow an error that preserves the original mutation error as the primary cause while attaching rollback failures as suppressed/secondary detail.",
+      "disposition": "must-fix",
+      "rationale": "R4 requires artifact and lifecycle mutations to complete as one owned recovery operation. A failed recovery must remain diagnosable and auditable; masking the lifecycle failure with cleanup errors undermines that mandatory guarantee.",
+      "findingId": "71e3272559f1a9e42c93b17b5f37df4ae78950f25b563076cb4b336ce6e9acc0",
+      "fingerprint": "71e3272559f1a9e42c93b17b5f37df4ae78950f25b563076cb4b336ce6e9acc0",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "9e396030b88d70b1cd7e47d91a6061f86ca10772df24bbf4a3366cce1f5e0970",
+  "runId": "512698c6-f674-45f6-b688-4a9f6d26869f",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/334-stale-test-evidence-recovery/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/334-stale-test-evidence-recovery/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "1f4faad6cbbbf3bc0a76f8b727d6d9469be7db828b0aade52da32884e348a7da"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "findingId": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Recovery no longer writes invalidation audit records",
+      "body": "`StaleTestEvidenceRefresh.recover()` builds a `planRepairEvidenceInvalidation()` but never applies it. The new transaction only renames/removes the artifact paths and returns `invalidatedArtifacts`, so the previous `InvalidatedRepairArtifactRecord.toJSON()` audit records produced by `invalidateRepairEvidence().apply()` are dropped from the successful recovery path.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "disposition": "must-fix",
+      "rationale": "R4 is mandatory and requires successful stale recovery to be auditable as one owned recovery operation. Removing the invalidation record application weakens the audit trail even though the result still lists path names.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    },
+    {
+      "id": "71e3272559f1a9e42c93b17b5f37df4ae78950f25b563076cb4b336ce6e9acc0",
+      "findingId": "71e3272559f1a9e42c93b17b5f37df4ae78950f25b563076cb4b336ce6e9acc0",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Rollback failure can replace the original recovery error",
+      "body": "When `flowManager.mutate()` throws, `recover()` calls `transaction.rollback()` directly inside the catch block. If rollback restoration or staging-dir cleanup throws, `rollback()` throws an `AggregateError` and masks the original lifecycle mutation failure, leaving callers without the authoritative cause of the failed owned recovery operation.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "71e3272559f1a9e42c93b17b5f37df4ae78950f25b563076cb4b336ce6e9acc0",
+      "disposition": "must-fix",
+      "rationale": "R4 requires artifact and lifecycle mutations to complete as one owned recovery operation. A failed recovery must remain diagnosable and auditable; masking the lifecycle failure with cleanup errors undermines that mandatory guarantee.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    }
+  ]
+}

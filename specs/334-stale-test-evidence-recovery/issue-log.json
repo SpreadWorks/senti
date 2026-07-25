@@ -1,0 +1,1525 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "documentation freshness check was indeterminate because the repository exceeded the artifact scan limit",
+      "trigger": "senti check freshness stopped at the 10000-file limit under specs",
+      "resolution": "compared the latest Git commit timestamps for docs and src; source is newer and is treated as authoritative",
+      "guardrailCandidate": "freshness checks should exclude generated spec artifacts or support repositories with more than 10000 files",
+      "taskId": null,
+      "timestamp": "2026-07-24T22:25:10.843Z",
+      "issueLogId": "issue-log-63b8fbf8-d77f-45e5-be22-97d36f01a444"
+    },
+    {
+      "step": "test-review",
+      "reason": "static test review found incomplete preservation coverage for recovery reporting and authority boundaries",
+      "trigger": "test-review REJECTED with four blocking findings for R4, R5, R7, and R8",
+      "resolution": "added invalidated-path assertions, malformed and inconsistent authority matrices, and focused rewind material-repair, ownership, lifecycle, and guard regressions",
+      "guardrailCandidate": "spec tests that claim recovery safety must cover both successful mutation audit fields and every named fail-closed authority category",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T22:40:07.719Z",
+      "issueLogId": "issue-log-55a5d7bd-0d03-486c-8109-57eb4401de2f"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review result recording exhausted its tooling attempts because the provider emitted duplicate findingId values",
+      "trigger": "two consecutive guarded test-review invocations returned REVIEW_TOOLING_ERROR at result_recording",
+      "resolution": "no in-scope recovery was available; the persisted reviewAction is stop_as_blocker and the flow remains at test-review",
+      "guardrailCandidate": "review tooling should normalize or reject duplicate provider finding identifiers before consuming the terminal tooling budget",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T22:41:09.111Z",
+      "issueLogId": "issue-log-8a2649fb-fa70-4438-ae34-dc35dc277e34"
+    },
+    {
+      "step": "test-review",
+      "reason": "the blocked review attempts exposed two remaining test coverage gaps after the first repair",
+      "trigger": "test attempt history identified missing review-artifact absence coverage and non-deterministic delegated rewind assertions",
+      "resolution": "added the missing test-result-review case and asserted all four selected rewind authority tests plus the exact executed pass count",
+      "guardrailCandidate": "delegated focused regressions must prove the intended named cases executed instead of checking subprocess exit status alone",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T23:00:47.920Z",
+      "issueLogId": "issue-log-89bce95b-e166-4edc-bf11-62efdf724537"
+    },
+    {
+      "step": "test-review",
+      "reason": "stale review convergence records were projected by phase after a changed review tree, so retry reset remained blocked despite new evidence",
+      "trigger": "manual blocker repair authorized by the user after duplicate finding IDs exhausted canonical test-review tooling attempts",
+      "resolution": "made status and next-action resolve convergence actions against the current Git tree SHA; added regression coverage preserving same-tree exhaustion",
+      "guardrailCandidate": "review action projections must use the same phase, task, and tree identity as the execution guard",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T23:05:34.643Z",
+      "issueLogId": "issue-log-77c45479-195d-4150-8a8a-ebfa9b3ec93a"
+    },
+    {
+      "step": "task-review",
+      "reason": "preserved legacy phase/task review action resolution when no tree resolver is supplied while retaining current-tree filtering for migrated production callers",
+      "normalizedFindingId": "054d218e709957c99577971473fe1a265167ab0f9c9f74bbe35d4d0f8a291a3f",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/review-convergence.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T23:12:30.353Z",
+      "issueLogId": "issue-log-6d23e310-2d8d-4687-8291-47ee8b336284"
+    },
+    {
+      "step": "task-review",
+      "reason": "included the typed repair invalidation records in the atomic stale recovery result while preserving staged artifact removal",
+      "normalizedFindingId": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/stale-test-evidence-refresh.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T23:14:45.570Z",
+      "issueLogId": "issue-log-d840f1ad-dec2-43c0-86a4-ef83542e4c12"
+    },
+    {
+      "step": "task-review",
+      "reason": "preserved the lifecycle mutation error as the cause of a dedicated rollback failure instead of allowing cleanup errors to mask it",
+      "normalizedFindingId": "71e3272559f1a9e42c93b17b5f37df4ae78950f25b563076cb4b336ce6e9acc0",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/stale-test-evidence-refresh.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T23:14:45.966Z",
+      "issueLogId": "issue-log-214eaa27-a674-45f7-b262-21d3bd446e79"
+    },
+    {
+      "step": "task-review",
+      "reason": "applied the canonical RepairEvidenceInvalidationPlan inside the staged recovery transaction and used its serialized audit records in the recovery result",
+      "normalizedFindingId": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/stale-test-evidence-refresh.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T23:15:37.464Z",
+      "issueLogId": "issue-log-2d52c527-94d1-4798-9aff-894af8539aa0"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff leaves the final-regression step pending and does not include evidence that the full project test suite passed, despite the guardrail requirement that all project tests MUST pass.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T23:16:26.338Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/334-stale-test-evidence-recovery/flow.json",
+            "locator": "final-regression step"
+          },
+          "observed": "The diff leaves the final-regression step pending and does not include evidence that the full project test suite passed, despite the guardrail requirement that all project tests MUST pass.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The diff leaves the final-regression step pending and does not include evidence that the full project test suite passed, despite the guardrail requirement that all project tests MUST pass."
+        }
+      ],
+      "issueLogId": "issue-log-0a901970-bdd7-4ec1-acb2-7926ca730197"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "task-gate incorrectly required evidence from the future final-regression lifecycle step",
+      "resolution": "clarify that project-test-integrity remains mandatory but is evidenced by the later test-execute and final-regression steps, not task-gate",
+      "normalizedFindingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "repairRef": {
+        "files": [
+          "specs/334-stale-test-evidence-recovery/spec.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T23:16:49.551Z",
+      "issueLogId": "issue-log-2a83dd37-5fb1-40b9-9d9b-fd488d4dbb4c"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff leaves `final-regression` pending, so the implementation does not provide evidence that all project tests passed as required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T23:17:28.427Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/334-stale-test-evidence-recovery/flow.json",
+            "locator": "impl.children.final-regression.status"
+          },
+          "observed": "The diff leaves `final-regression` pending, so the implementation does not provide evidence that all project tests passed as required.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The diff leaves `final-regression` pending, so the implementation does not provide evidence that all project tests passed as required."
+        }
+      ],
+      "issueLogId": "issue-log-f13436b6-aa09-416d-aa2a-4571826a8995"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "made the project-test-integrity guardrail respect task-impl lifecycle ownership",
+      "resolution": "task-gate now inspects required test-code changes without requiring runtime evidence owned by later test-execute and final-regression steps",
+      "normalizedFindingId": "4d552923fa4ceaa8c5be290b9e5e0521e851a409a57185829ec2ad13ec9515be",
+      "repairRef": {
+        "files": [
+          "src/presets/base/guardrail.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T23:18:34.632Z",
+      "issueLogId": "issue-log-14299a2b-9d14-4a6b-97bf-b60c63971e5c"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "regenerated required upgrade evidence after the integration precheck reported upgrade-result.json missing",
+      "trigger": "preset source changed during task-gate blocker repair",
+      "resolution": "worktree-local upgrade completed successfully and produced upgrade-result.json plus tests/.raw/upgrade.log",
+      "repairRef": {
+        "files": [
+          "specs/334-stale-test-evidence-recovery/upgrade-result.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:25:22.028Z",
+      "issueLogId": "issue-log-37f7a7f3-f62e-43dc-a404-e2a3fa48cdd0"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R5 failed because integration trust accepted review artifact links that pointed outside the active spec-owned result path",
+      "trigger": "canonical test-execute evidence reported the unowned result_file_path case as stale recovery instead of a fail-closed structural error",
+      "resolution": "added exact ownership validation for result and raw evidence links before fingerprint staleness classification",
+      "guardrailCandidate": "structural artifact authority must validate every cross-artifact path against exact owner-derived paths before freshness checks",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/test-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:29:20.007Z",
+      "issueLogId": "issue-log-f98ee394-75e9-4add-bc7d-c9e3a27fbde2"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R6 and R7 failed because repair fingerprint hashing treated Git staging and commit metadata changes as material content changes",
+      "trigger": "canonical test-execute evidence committed unchanged explicit test input content and current evidence was then misclassified as stale",
+      "resolution": "reduced canonical entry identity to path, rename source, mode, and content hash while retaining Git status metadata for audit output",
+      "guardrailCandidate": "repair evidence identity must be based on material content equality and must not vary solely because identical content moved from worktree to commit",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/repair-state-identity.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:29:25.939Z",
+      "issueLogId": "issue-log-8c5767d2-1286-4443-8c74-8aca62ba22ab"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "R6 and R7 remained stale because evidence writers stamped only the hash and did not persist the manifest that owns the immutable baseline",
+      "trigger": "the second canonical test-execute showed identical material entries but selected the post-evidence HEAD as a new baseline when state had no persisted repair manifest",
+      "resolution": "the shared evidence writer now persists the authoritative repair fingerprint manifest before publishing each stamped evidence artifact",
+      "guardrailCandidate": "a persisted fingerprint reference and its canonical manifest must be published together so later readers resolve the same immutable baseline",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:32:35.722Z",
+      "issueLogId": "issue-log-86dffcad-b17d-4e3a-aed9-f9333214ec6b"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "test-result-review correctly rejected evidence after the manifest-publication repair changed product source following test execution",
+      "trigger": "the dispatcher remained at test-result-review while its test-execute artifact carried the pre-repair material fingerprint",
+      "resolution": "completed integrity review against the exact source state that produced the artifact, then restored the repair so impl-review can perform its owned stale-evidence rewind",
+      "guardrailCandidate": "when source changes after test execution but before impl-review, preserve evidence integrity and use the next lifecycle owner that supports stale-evidence recovery",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:33:53.626Z",
+      "issueLogId": "issue-log-e9bc407a-dfac-49ff-acd7-73d80824f820"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "R7 nested regression did not execute because Node 22 propagates NODE_TEST_CONTEXT to child node --test processes and suppresses recursive test discovery",
+      "trigger": "canonical test-execute reached the focused rewind regression for the first time and spawnSync returned status zero with empty stdout plus the recursive-runner warning under direct reproduction",
+      "resolution": "kept every behavioral assertion unchanged and isolated the nested runner by removing only NODE_TEST_CONTEXT from its child environment",
+      "guardrailCandidate": "nested node --test regressions must launch with a standalone child environment that excludes the parent runner context marker",
+      "repairRef": {
+        "files": [
+          "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:35:45.937Z",
+      "issueLogId": "issue-log-706eb48a-a9a8-47fb-9317-09dd80c94933"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate could not validate preset deployment because stale-evidence recovery had correctly invalidated the earlier upgrade-result artifact",
+      "trigger": "mechanical integration precheck returned ARTIFACT_PLACEHOLDER with upgrade-result.json missing after the repaired test cycle",
+      "resolution": "reran the worktree-local upgrade command to regenerate current upgrade-result.json and raw upgrade evidence for the unchanged deployed preset content",
+      "guardrailCandidate": "after stale test evidence recovery invalidates downstream upgrade evidence, regenerate upgrade proof before retrying integration gate",
+      "repairRef": {
+        "files": [
+          "specs/334-stale-test-evidence-recovery/upgrade-result.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:39:57.882Z",
+      "issueLogId": "issue-log-85c72f22-5104-4c18-b6be-ac4d67a4a8bd"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R8] requires regression coverage for the named stale-evidence cases, and [AC:8] additionally requires spec-local tests, affected shared flow unit tests, and the full project regression to pass at final-regression. The diff adds spec-local cases covering failed-but-authoritative stale evidence, malformed/inconsistent authority, unchanged failed evidence, recovery effects, trusted current evidence, and explicit rewind rejection in specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, plus affected shared tests in tests/unit/flow/repair-state-identity.test.js and tests/unit/flow/review-convergence-action.test.js. However, the provided flow evidence leaves impl.children.final-regression as pending and impl-gate in_progress with exitCode 1 in specs/334-stale-test-evidence-recovery/flow.json, so the required full project regression pass at final-regression is omitted/contradicted. Sources: [AC:8], specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, tests/unit/flow/repair-state-identity.test.js, tests/unit/flow/review-convergence-action.test.js, specs/334-stale-test-evidence-recovery/flow.json.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T23:42:04.508Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "[REQ:R8] requires regression coverage for the named stale-evidence cases, and [AC:8] additionally requires spec-local tests, affected shared flow unit tests, and the full project regression to pass at final-regression. The diff adds spec-local cases covering failed-but-authoritative stale evidence, malformed/inconsistent authority, unchanged failed evidence, recovery effects, trusted current evidence, and explicit rewind rejection in specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, plus affected shared tests in tests/unit/flow/repair-state-identity.test.js and tests/unit/flow/review-convergence-action.test.js. However, the provided flow evidence leaves impl.children.final-regression as pending and impl-gate in_progress with exitCode 1 in specs/334-stale-test-evidence-recovery/flow.json, so the required full project regression pass at final-regression is omitted/contradicted. Sources: [AC:8], specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, tests/unit/flow/repair-state-identity.test.js, tests/unit/flow/review-convergence-action.test.js, specs/334-stale-test-evidence-recovery/flow.json.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R5",
+        "R3",
+        "R4",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "[REQ:R8] requires regression coverage for the named stale-evidence cases, and [AC:8] additionally requires spec-local tests, affected shared flow unit tests, and the full project regression to pass at final-regression. The diff adds spec-local cases covering failed-but-authoritative stale evidence, malformed/inconsistent authority, unchanged failed evidence, recovery effects, trusted current evidence, and explicit rewind rejection in specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, plus affected shared tests in tests/unit/flow/repair-state-identity.test.js and tests/unit/flow/review-convergence-action.test.js. However, the provided flow evidence leaves impl.children.final-regression as pending and impl-gate in_progress with exitCode 1 in specs/334-stale-test-evidence-recovery/flow.json, so the required full project regression pass at final-regression is omitted/contradicted. Sources: [AC:8], specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, tests/unit/flow/repair-state-identity.test.js, tests/unit/flow/review-convergence-action.test.js, specs/334-stale-test-evidence-recovery/flow.json."
+        }
+      ],
+      "issueLogId": "issue-log-44f09f1e-875c-41a9-a738-4c9624959692"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate treated the downstream final-regression step as missing current evidence and blocked R8 despite current spec-local tests passing",
+      "trigger": "gate observation 2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f cited final-regression pending as a spec-implementation mismatch",
+      "resolution": "expanded the shared spec-test-coverage guardrail with a named lifecycle-owner violation, diff conditions, and blocking/advisory policy that excludes pending downstream evidence",
+      "guardrailCandidate": "gates must evaluate evidence owned by the current or prior lifecycle steps and must not require successful evidence from a downstream step",
+      "repairRef": {
+        "files": [
+          "src/presets/base/guardrail.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:42:58.215Z",
+      "issueLogId": "issue-log-5038d82d-7fac-4a21-9e0c-8b42f2da0089"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "the post-recovery integration attempt again lacked upgrade evidence because stale evidence cleanup removed the upgrade artifact after the preset guardrail changed",
+      "trigger": "integration precheck returned upgrade-result.json missing immediately after the final current-fingerprint test and review cycle",
+      "resolution": "regenerated upgrade-result.json and raw upgrade output after all source, test, and preset changes were complete and immediately before the gate retry",
+      "guardrailCandidate": "upgrade evidence should be generated after the last stale recovery in a repair cycle because that recovery owns downstream evidence invalidation",
+      "repairRef": {
+        "files": [
+          "specs/334-stale-test-evidence-recovery/upgrade-result.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:46:17.705Z",
+      "issueLogId": "issue-log-18f1480c-680a-4996-b5ab-31d72e681bda"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "impl-gate escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R8 (jaccard=0.76): [REQ:R8] requires regression coverage for failed-but-authoritative stale evidence, malformed and inconsistent authority, unchanged failed evidence, successful recovery effects, trusted current evidence, and unchanged explicit rewind rejection behavior, and [AC:8] requires spec-local tests, affected shared flow unit tests, and the full project regression to pass at final-regression. The diff adds relevant spec-local and shared test files, including specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, tests/unit/flow/repair-state-identity.test.js, and tests/unit/flow/review-convergence-action.test.js, but the provided flow evidence leaves final-regression pending and impl-gate in_progress with exitCode 1 in specs/334-stale-test-evidence-recovery/flow.json. The required full project regression pass at final-regression is therefore omitted/contradicted. Sources: [AC:8], specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, tests/unit/flow/repair-state-identity.test.js, tests/unit/flow/review-convergence-action.test.js, specs/334-stale-test-evidence-recovery/flow.json. ↔ [REQ:R8] requires regression coverage for the named stale-evidence cases, and [AC:8] additionally requires spec-local tests, affected shared flow unit tests, and the full project regression to pass at final-regression. The diff adds spec-local cases covering failed-but-authoritative stale evidence, malformed/inconsistent authority, unchanged failed evidence, recovery effects, trusted current evidence, and explicit rewind rejection in specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, plus affected shared tests in tests/unit/flow/repair-state-identity.test.js and tests/unit/flow/review-convergence-action.test.js. However, the provided flow evidence leaves impl.children.final-regression as pending and impl-gate in_progress with exitCode 1 in specs/334-stale-test-evidence-recovery/flow.json, so the required full project regression pass at final-regression is omitted/contradicted. Sources: [AC:8], specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js, tests/unit/flow/repair-state-identity.test.js, tests/unit/flow/review-convergence-action.test.js, specs/334-stale-test-evidence-recovery/flow.json.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-24T23:46:44.401Z",
+      "issueLogId": "issue-log-14a40759-a5ff-43a7-bad0-beda0f50e413"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T23:46:44.502Z",
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-59b3f5a5-90ca-42ca-8bd3-f6c20d8408c6"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "the R8 integration finding repeated because its acceptance criterion combined pre-gate tests and downstream final regression without stating the lifecycle boundary",
+      "trigger": "ESCALATE_REPEATED_FAIL matched the current R8 final-regression-pending reason to normalized finding 2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f",
+      "resolution": "clarified AC8 and the testing Q&A so pre-gate evidence is required before impl-gate while the pending full suite is explicitly owned and enforced by downstream final-regression",
+      "guardrailCandidate": "acceptance criteria spanning multiple lifecycle owners must state which evidence is required at each owner and when pending state is expected",
+      "normalizedFindingId": "2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f",
+      "repairRef": {
+        "files": [
+          "specs/334-stale-test-evidence-recovery/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:47:23.192Z",
+      "issueLogId": "issue-log-f41733be-4a51-4e2f-abe1-4267967ae6f0"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Stale-evidence recovery removed the required upgrade artifacts before the integration gate",
+      "trigger": "The final recovery loop invalidated generated verification artifacts after source and preset changes",
+      "resolution": "Re-ran node src/senti.js upgrade immediately before impl-gate to regenerate upgrade-result.json and the raw upgrade log",
+      "guardrailCandidate": "Preserve or deterministically regenerate required upgrade evidence after stale-evidence recovery before integration gating",
+      "taskId": null,
+      "timestamp": "2026-07-24T23:55:22.665Z",
+      "issueLogId": "issue-log-1a9a5ce9-fcf7-46b2-a03d-041293cbf0f6"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "caused_by_current_change",
+      "failureCategory": "caused_by_current_change",
+      "reason": "final-regression failed: caused_by_current_change",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "84a6af624d9291d252cd09912375c0eb8c685834c74d6a41eae10ae49ec9ef52"
+        },
+        {
+          "path": ".senti/presets/base/guardrail.json",
+          "fingerprint": "58c1f789aa64e1fba804a4f24ffd0d98882f1bc4a1032e0e839be76a03ba0c71"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/acceptance-review.json",
+          "fingerprint": "49d25a0133aba4009d0e8ad851a579b9a30eb14d03006b892afb5bb5882e0d46"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-coverage-repair.json",
+          "fingerprint": "474e1f00d96ca559d471a98c0e0c83a8cd8bb8e94cd28b8bb4a30397bbcef14f"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-coverage-triage.json",
+          "fingerprint": "0694a26afdfb32b090fa2d71730591ff15a0d7fd2f5f2d553463f4e928f7d03a"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+          "fingerprint": "d28c9946800764d2ca7b3ece965b7713487a91e16b6de4431df831ffc3767fe0"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-questions-triage.json",
+          "fingerprint": "b7817b3758ea5dd57a67bbb3a33cbbb3b2ec491220ec3dd3bf5e4a0f90336312"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-review-coverage.json",
+          "fingerprint": "e39066158ca65c6ebc22f0e5bb5dbbb28286928259111ca10a65d68c8156b8eb"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+          "fingerprint": "1001bc2dd24c0045198be0c84a2cec752450a4fb81e6c98d8021bfb1385d1d3f"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft.json",
+          "fingerprint": "223adccc800656bf57aa2190757ec484ab1bfe40e0e97f83769e48f3dd01a17c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/file-map.json",
+          "fingerprint": "f0c92ea2301b3cd8eaa0c3d189f74ef1ecd500a0dca8d6d76b0bd6566e58669e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/flow-findings.json",
+          "fingerprint": "06e9a3274516e9ebbd0b77715058c828456b8a071bcb2f8c3c8c909fcc09accb"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/impl-gate-result.json",
+          "fingerprint": "bc8acf73e4a4b9d80b0d801657003b8be0f55455f17c420cc58e5392193cf016"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/impl-review.json",
+          "fingerprint": "0579470b4f938f8435ce4522aa566a4a9af91c0459dd1366c66c306e706ee465"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/impl-triage.json",
+          "fingerprint": "5389a601b33d5ae6cfd798ea60b926406858e15b33f6d4f01bf2a4bfd5e0eb5c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/issue.md",
+          "fingerprint": "b52266fb7d783adcc739bab46195f36b487b8092d476756d7f6c7cafdb1e8316"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "1685cd3bb9ff4d2ece04ed4806d33eb3488fff75f15cba262d6f45a04ef28456"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/repair-fingerprint.json",
+          "fingerprint": "ff17028121aecd1664b74e1b8219fc2837bca486c70a3ff8c60ab89592d3b7a4"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/retro.json",
+          "fingerprint": "beedc7193c914a22dd9d0fb5532512b95557d33091125cf25bef4a8927125f52"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/18b0d89f5b8947a38e9ab7e226626e7e8611eaa05994ca9805dd066654159bcc.json",
+          "fingerprint": "172fad90923a143489a3c2ef6636373e2292c3edee2b870f312abf3420927010"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/1b171c7402a277182e5eff9ee775b9c6f367ad1d17b644d961b4be6f877bee4f.json",
+          "fingerprint": "6c48a7b08fa1e736a51c94f3eb0e45660d85f77ba76fd8ac17bee73340f81e6c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+          "fingerprint": "495bb2b056778d129b04ae650ae57e632f845812e0312123c3f847a40fdc8cd8"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/6e485d16159676855f53fc63e80108f6d1cedf455ddd9d660af6f6dda343451d.json",
+          "fingerprint": "7971a7cca6f19ff07bbd6aa16b53284b53010b28830b42e520575a5a98305ed7"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/901e6a9927e1c3a4934b7a7383bda52b20477229535610c616a285730b91790b.json",
+          "fingerprint": "48c58b21e999b57ec18301655cb1683dfe5c89ee89ae77001fd28dc069b493e8"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/927ba919f3639bbe049ab1c2d54cbbf6a0bdc8dc3226237bff96259aebdf0589.json",
+          "fingerprint": "b3ad6067e8e8c4c5504cc6d7723070e37a0fbdba6ae6ce3a5a814b39bcd75c3e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/99ec167c25d43e8d660c64b1e5b34be311062d614a0361a35559569da82668a1.json",
+          "fingerprint": "925ecb8e81f543dbeeebab00e2a66a7b7c1b2650037bab6375043156fe0e7c78"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/d27a5373f1b9f2a9b54e0c57eb5749a9b8d1821b7b415c9ae981c94b92c906d1.json",
+          "fingerprint": "cbb3b83d67394c19dc6bf4e2a58775332d93eb3556c63aea53c80166258e005e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/d3443c0c1b6625e4c9fa2e4d730e22b48ea5a1d94812163c343983acb1cef037.json",
+          "fingerprint": "95da30cf93a7a96ba961b8ed560ed1d55280020febd26fa0cbd92adbe333c112"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+          "fingerprint": "9633a17a7cab3ffdfaf84878a760a5f6fd25a9d0aa49676c87577013cebc03cf"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/e2226a360b7da03c9849d61d9b42bd7bfc12475c9153890dd78b984dec0b767c.json",
+          "fingerprint": "20560711d92ef87ae460bf29e79bd598448e31a52999da887bfb83aaf299e782"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/e8c7aa7ecf3178e11c27880ebdc11740832abf3848164e121bc04cf335e5d48e.json",
+          "fingerprint": "10fc1be2abf045aede7591fb5ef5c887690fb72a3717bbde784cb03c13c76b42"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/eea8ad977633d39ed0a878d96dc956eeddf6f492a4a7bf7c41c318be093f2be9.json",
+          "fingerprint": "5d2f263f5074c00a7537ec6a7a0ce4a72f021cdd4ab676033fe272ff4c8a6a64"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "fadc7b390cdbf120d38a605712a6fcf9855b7eed7502eba60774b11e727c74d9"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "c4c5551141b3325a382219f817bfb4f60f195ca62a71ad4bc3a468fb632af604"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-001.json",
+          "fingerprint": "f29ef3f8c81a8e7e547849f00ccaf02db4c7c706fd49e246123ceb5b8e22435d"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-001.md",
+          "fingerprint": "be7373cd30f48750fb355952494c7cf8ca514ad36aeceede2af8d525ffd3637c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-002.json",
+          "fingerprint": "d580bfab4a2199bb69c8afd4d1235f5c127c768259a4bd85fa60d60738ec9cc6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-003.json",
+          "fingerprint": "b067dc898a4c641ad09c31605e097b2123702fc9c773c20a3a6d3a875475ee55"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-003.md",
+          "fingerprint": "7e82b6edbe48ca65a12b18340ea8c75b9f41684fb2e19e19bcfc25072fed736f"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-004.json",
+          "fingerprint": "041b7c325e2fac607583e0e0f90aa4ec4ffb0438a6bfedb9bda0db43f3f6e6d6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-004.md",
+          "fingerprint": "6d32c44307434d2b837f2d44eb5eeaac15ae052876d61c9d46095f2fa5d1e78c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-005.json",
+          "fingerprint": "a50f1ef95d2fe4748ca164832fb61794e4f8b6573b0d8bd50fbf1e01e227fb31"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-005.md",
+          "fingerprint": "da1558835a603c287870fd316fd644871031d1279b10f735333cf3d535143141"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-006.json",
+          "fingerprint": "16ea507828fd214271af862a72ab425e702df7ad2c1b284b11b0d82b2548d22f"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-006.md",
+          "fingerprint": "4f2b00527727b4c6cf2ff81f09a714257d7b708578f48c45723e4b85db20978c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-007.json",
+          "fingerprint": "178052dd13edf9b5b39cce35aa95e00e16ff43bb5b616912e9b81dcd347f8cfc"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-007.md",
+          "fingerprint": "1017a06e13a97fa9eb7e9d0ffda0210d99e1882b7cf0a5f2fcfaaa0ab0263067"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-008.json",
+          "fingerprint": "399ddd65727368b1e34ad5fe7bc7ae3e1813ed5df1561b6185c55a49f84ae997"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-008.md",
+          "fingerprint": "bd0c3bcab5280eb6d013c18ea3ec6320251fc950ad74c0463972c0df0409e93e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-009.json",
+          "fingerprint": "4b932a52baf6c9e942f57f20d2654e7a6cc073e3e6843c4b71b34f5436714084"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-009.md",
+          "fingerprint": "108b88a4faddb1ad1739313733d26b1650e2eeefe166f0d19a395d8f2924c607"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-010.json",
+          "fingerprint": "cd2cd6a05911146daf54c1cea708e424bb7826e13e34594496e3a8de560ca981"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-010.md",
+          "fingerprint": "94c7c5570399af880335fff6041ccf09f6a6eb7eea8eaed6c64aa2ccccadc6b6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+          "fingerprint": "fefe3678a1c3c4cb272847b60dd4e4b2c6a84c1ba07612d535de43dfb87925f4"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json",
+          "fingerprint": "3148e68c614840e85d1e63bb35d6a43112a6b2ac1d9026a4a2bc05220df4626a"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+          "fingerprint": "51012db21b6b66988736322656e15f59e1683f47fb60fbae988e46fd2016eda3"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+          "fingerprint": "8eb0719ac080b4ec1068ad1bf6882cc75b4107aa4cecc43516242f9d1eaa5410"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.md",
+          "fingerprint": "4db81ac5e2c73da3d31fb178a693d8e4905334d0830fcd65c8c6c87db201ae81"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+          "fingerprint": "5e1397c6d2badad3461a50da7ea21913f25e8d7ae41b2162fa38a18f29d597b2"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.md",
+          "fingerprint": "4db81ac5e2c73da3d31fb178a693d8e4905334d0830fcd65c8c6c87db201ae81"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-004.json",
+          "fingerprint": "07ad5e4f1e9a93cc497b456d20b6ac0bf7e315f50aae9f621d884160ed5ab0f5"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-004.md",
+          "fingerprint": "d2791e3245c99d07dd4c132e4bb7c45b83d04963e234206d211cfe7f5d4f6785"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "00c4b68e603e8bbad0a50ee6069c20b63c9267068aafb31a7a6e52d5cf151aaa"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/02954b322c34d6201a5f18ed.json",
+          "fingerprint": "2a62734811cbbafe4a7a3759eb7c0a47e4d34f44a3e6378e8046079ba6318d90"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/06ced848728053e3c964dec4.json",
+          "fingerprint": "6d1a09824edcdd52a5055d3586467d8d6af56c0b2e8f53f83bd39fcb2a2003f0"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "118553104db1c908e18d850b4e74fec582970834af1da6c0264e55d228f056a7"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+          "fingerprint": "4b0e0a0e3567d89fdf566568f24ff61c1f0b22698700b56b084f04eb0923be3a"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "988a19a8ed0aa042471cd1a149f875717ee4e9714b78dc01057046142544f0f5"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "fc8a15636a03f2bc9f2ce335c619ec768e21c847c1652b095df805d4dc2b4f18"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "8c0f31b1d3efa22490946fc224888be55e7f5c83d7e5d9701e84ea763b3cbd13"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/513a911e56c8d49afa1dd835.json",
+          "fingerprint": "364cd5d186f48ffb56775eca46b0d768db5633dd585745aeec85277436a20460"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "e3273b47fb127ddedab4d974eb7a1191a50930680f29345ff00f197d1c3ce54b"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "fdfd090edef162b05517e92f451955ea5424cd5515c7d3d5ad03c0e2df091742"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "d4857559b1299a9ce9c455fd242f5dfe1ca1de3681f3392b2f449848ed8af539"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "7e60a0440c9c73b05bb15b5ae07ec360f47b90d220648d81ee8c7510c485bd9e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "8d37c403eadd33f229e5122a683ef7ea20cda5438c6dcfcdf0294e24f9291386"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+          "fingerprint": "7c1841c44a38258b1a5b8f2bd2b9d14becba739bf0ab868ba9a311b5d813d0da"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/99f2e7ef3071b3205bbf22e2.json",
+          "fingerprint": "2d9b969de83263e602c582e5bc07d6f14d236b453a91f57dec9185be13deb393"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "d16c33b35a56fe82eec4fbddf48e25592ae86f7633e474158b0f55a228d100c7"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "546c91e78213af1a555c7f4a89d63db08a7736dcf7921c0650c11a97d9658749"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "d816327a5c119edeea7f82493be235c0dd0a4f2741e4f9cf00c4c6d54d6d10a2"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "aa4ab00295ddc004a64c9a134df588b5eece17659abecb4f25ed88d8052fa446"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/f7e73c2b593db22e89dcc0d8.json",
+          "fingerprint": "d1de2f5131ea76e1874625fa68c4a86066dfbec4bbddc08cdfb4eee1e8093a82"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review.md",
+          "fingerprint": "94c7c5570399af880335fff6041ccf09f6a6eb7eea8eaed6c64aa2ccccadc6b6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/scenario-validity-result.json",
+          "fingerprint": "d92f1223b121f97467c12ec15db367a4c91196fc050a6d9786ae6ad6844b60f3"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec-review.json",
+          "fingerprint": "472a97b2aa5446c86ebe09ec74b0ab36b21496ca854e4fce9f4bdede05bc0772"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec.json",
+          "fingerprint": "3e4c0629a84888278ad4bb19ea6a3d23e5d1c8d14f917f4cf48418b03155b68e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec.json",
+          "fingerprint": "3e4c0629a84888278ad4bb19ea6a3d23e5d1c8d14f917f4cf48418b03155b68e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec.md",
+          "fingerprint": "d642364b18b4c0076b6be111f12d556b9f5be2cc8e6c2f88b1ca3e41ebc566b8"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec.md",
+          "fingerprint": "d642364b18b4c0076b6be111f12d556b9f5be2cc8e6c2f88b1ca3e41ebc566b8"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/task-impl-gate-source.json",
+          "fingerprint": "28ac8c55bd77790a9b16b662482aa5290ffbc0eac46f5e2a8b7a915d6d71fddf"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tasks/T-1.md",
+          "fingerprint": "cb19a1155be9992c798480f66a326dcd8293af3dc49246079285eb3793ac9750"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-coverage.json",
+          "fingerprint": "74bfba66bb935606b959b524f3521c51f43d109904b36143cb3c9901183ae6f6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-execute-result.json",
+          "fingerprint": "ef84405efc63e36a271d793d1840103db47d011b22d3ca4b09a5d0435287a741"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-result-review.json",
+          "fingerprint": "16dcc6734e8fcd6a3d12f0970d85bdfeb07c4b164c2e4d7277402f52bdb89745"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-result-review.md",
+          "fingerprint": "5845ed78ceea27582345f7c7e5e9605544d6b04e1dc8883acceb12390c2d7220"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-review.json",
+          "fingerprint": "70e871096f0e66acdd6bd6b73ce03335c3884b29b61b878d12eca3e48986a34c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-review.json",
+          "fingerprint": "70e871096f0e66acdd6bd6b73ce03335c3884b29b61b878d12eca3e48986a34c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-review.md",
+          "fingerprint": "d2791e3245c99d07dd4c132e4bb7c45b83d04963e234206d211cfe7f5d4f6785"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-review.md",
+          "fingerprint": "d2791e3245c99d07dd4c132e4bb7c45b83d04963e234206d211cfe7f5d4f6785"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log",
+          "fingerprint": "c8f7478bf6158e4aee6e3cc01d16e495a0f9f1e89c9380425d3d77a5cdacf4d3"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/.raw/test-execution.log",
+          "fingerprint": "7e66b8df6d63dca1d67e440596feeedecd75969e7c6074796af2cf623e8b356b"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/.raw/upgrade.log",
+          "fingerprint": "b04f78edff7b397a4b7fbadc33923f1ae84c09c65afb1a053e9bc338f26d3c30"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+          "fingerprint": "97e52c0fc1227759707720ab4ed2708a84d3bf5ec6bce697d8f1eb592c1837dd"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+          "fingerprint": "97e52c0fc1227759707720ab4ed2708a84d3bf5ec6bce697d8f1eb592c1837dd"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/upgrade-result.json",
+          "fingerprint": "25983d66ba92827f2ab2f0e02f22f03085f8016170235844ebabee6bfc831db6"
+        },
+        {
+          "path": "src/flow/lib/get-next-action.js",
+          "fingerprint": "3408d0999b87960905faf82c39aaa0a99c8bdf3e5b47b4150a581d31fa60f1c5"
+        },
+        {
+          "path": "src/flow/lib/get-status.js",
+          "fingerprint": "555cf06bfd6efd70bb4813a366c6117cca29d853d1f5d0ef90db2e8155b20358"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "0a04981532ee0ef8077da4d5e701acf1a2d735d514487227d5c2aa17e904d7c8"
+        },
+        {
+          "path": "src/flow/lib/repair-state-identity.js",
+          "fingerprint": "905f4b2305204f8e37e09165d8c2c8b81c40b2aba0fc82241b8825b4404e2912"
+        },
+        {
+          "path": "src/flow/lib/review-convergence.js",
+          "fingerprint": "9c83b601c790493edd081e25ad320dfd066042def161da8d52db456da6475011"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "735963626a8f507ee6329c8eaec5b2ebcf47e1d991f0d0ea2af3c6bf2063ca88"
+        },
+        {
+          "path": "src/flow/lib/stale-test-evidence-refresh.js",
+          "fingerprint": "f0a37a240458fccc142207323eaee60138c39c8fcbabe653d2422a3de7c0e1b6"
+        },
+        {
+          "path": "src/flow/lib/test-artifacts.js",
+          "fingerprint": "f1d8debcad1c30b3f2829d1438cd9c4a50b078596f143928b0551605dd9b7a5a"
+        },
+        {
+          "path": "src/presets/base/guardrail.json",
+          "fingerprint": "58c1f789aa64e1fba804a4f24ffd0d98882f1bc4a1032e0e839be76a03ba0c71"
+        },
+        {
+          "path": "tests/unit/flow/repair-state-identity.test.js",
+          "fingerprint": "99233e763d0fcf7c809fed13434cd82cea6343bca7112c2d37545d7b86294dc5"
+        },
+        {
+          "path": "tests/unit/flow/review-convergence-action.test.js",
+          "fingerprint": "ec82c9c5befd2d5c4b0bb719e8aab075b07a74b5506efabaf04810a4b19a6466"
+        },
+        {
+          "path": "tests/unit/flow/review-convergence-action.test.js",
+          "fingerprint": "ec82c9c5befd2d5c4b0bb719e8aab075b07a74b5506efabaf04810a4b19a6466"
+        }
+      ],
+      "rawOutputPath": "specs/334-stale-test-evidence-recovery/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": true,
+      "nextAction": "regression-repair",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-25T00:06:47.014Z",
+      "issueLogId": "issue-log-90b8e216-c396-4f6b-befb-e075d134ad4b"
+    },
+    {
+      "step": "final-regression",
+      "reason": "The deferred-regression unit fixture predated the required 64-character repairFingerprint authority and failed the full regression",
+      "trigger": "Integration artifact trust now validates matching SHA-256 repair fingerprints before evaluating deferred regression evidence",
+      "resolution": "Updated the fixture to write one deterministic SHA-256 repairFingerprint into both linked test artifacts without weakening fail-closed validation",
+      "guardrailCandidate": "When an artifact contract gains required authority fields, migrate all valid regression fixtures to the canonical field shape in the same change",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:08:54.216Z",
+      "issueLogId": "issue-log-9c02a2fe-1a9c-4085-8f67-432e800e1fe9"
+    },
+    {
+      "step": "final-regression",
+      "reason": "The shared help renderer exposes only a flow command's summary line, so the parked-resume no-discovery guarantee was absent from actual CLI help",
+      "trigger": "The dispatcher end-to-end regression asserted the exact parked resume safety contract against rendered help",
+      "resolution": "Moved the no-discovery guarantee into the resume command summary that the shared renderer preserves",
+      "guardrailCandidate": "Safety-critical command guarantees must appear in renderer-backed help metadata, not only in legacy multiline dispatcher help",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:09:00.397Z",
+      "issueLogId": "issue-log-b5362d37-1d96-4f6c-9840-ee90f971a66d"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "invalid_project_test",
+      "failureCategory": "environment",
+      "reason": "final-regression failed: invalid_project_test",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "84a6af624d9291d252cd09912375c0eb8c685834c74d6a41eae10ae49ec9ef52"
+        },
+        {
+          "path": ".senti/presets/base/guardrail.json",
+          "fingerprint": "58c1f789aa64e1fba804a4f24ffd0d98882f1bc4a1032e0e839be76a03ba0c71"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/acceptance-review.json",
+          "fingerprint": "49d25a0133aba4009d0e8ad851a579b9a30eb14d03006b892afb5bb5882e0d46"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-coverage-repair.json",
+          "fingerprint": "474e1f00d96ca559d471a98c0e0c83a8cd8bb8e94cd28b8bb4a30397bbcef14f"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-coverage-triage.json",
+          "fingerprint": "0694a26afdfb32b090fa2d71730591ff15a0d7fd2f5f2d553463f4e928f7d03a"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-questions-repair.json",
+          "fingerprint": "d28c9946800764d2ca7b3ece965b7713487a91e16b6de4431df831ffc3767fe0"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-questions-triage.json",
+          "fingerprint": "b7817b3758ea5dd57a67bbb3a33cbbb3b2ec491220ec3dd3bf5e4a0f90336312"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-review-coverage.json",
+          "fingerprint": "e39066158ca65c6ebc22f0e5bb5dbbb28286928259111ca10a65d68c8156b8eb"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft-review-questions.json",
+          "fingerprint": "1001bc2dd24c0045198be0c84a2cec752450a4fb81e6c98d8021bfb1385d1d3f"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/draft.json",
+          "fingerprint": "223adccc800656bf57aa2190757ec484ab1bfe40e0e97f83769e48f3dd01a17c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/file-map.json",
+          "fingerprint": "f0c92ea2301b3cd8eaa0c3d189f74ef1ecd500a0dca8d6d76b0bd6566e58669e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/flow-findings.json",
+          "fingerprint": "06e9a3274516e9ebbd0b77715058c828456b8a071bcb2f8c3c8c909fcc09accb"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/impl-gate-result.json",
+          "fingerprint": "bc8acf73e4a4b9d80b0d801657003b8be0f55455f17c420cc58e5392193cf016"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/impl-review.json",
+          "fingerprint": "0579470b4f938f8435ce4522aa566a4a9af91c0459dd1366c66c306e706ee465"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/impl-triage.json",
+          "fingerprint": "5389a601b33d5ae6cfd798ea60b926406858e15b33f6d4f01bf2a4bfd5e0eb5c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/issue.md",
+          "fingerprint": "b52266fb7d783adcc739bab46195f36b487b8092d476756d7f6c7cafdb1e8316"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "1685cd3bb9ff4d2ece04ed4806d33eb3488fff75f15cba262d6f45a04ef28456"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/repair-fingerprint.json",
+          "fingerprint": "ff17028121aecd1664b74e1b8219fc2837bca486c70a3ff8c60ab89592d3b7a4"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/retro.json",
+          "fingerprint": "beedc7193c914a22dd9d0fb5532512b95557d33091125cf25bef4a8927125f52"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/18b0d89f5b8947a38e9ab7e226626e7e8611eaa05994ca9805dd066654159bcc.json",
+          "fingerprint": "172fad90923a143489a3c2ef6636373e2292c3edee2b870f312abf3420927010"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/1b171c7402a277182e5eff9ee775b9c6f367ad1d17b644d961b4be6f877bee4f.json",
+          "fingerprint": "6c48a7b08fa1e736a51c94f3eb0e45660d85f77ba76fd8ac17bee73340f81e6c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/667f4562f63ed3378f9db5046830723dbdbd756d4c4d8b49731c3e7b21c24e81.json",
+          "fingerprint": "495bb2b056778d129b04ae650ae57e632f845812e0312123c3f847a40fdc8cd8"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/6e485d16159676855f53fc63e80108f6d1cedf455ddd9d660af6f6dda343451d.json",
+          "fingerprint": "7971a7cca6f19ff07bbd6aa16b53284b53010b28830b42e520575a5a98305ed7"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/901e6a9927e1c3a4934b7a7383bda52b20477229535610c616a285730b91790b.json",
+          "fingerprint": "48c58b21e999b57ec18301655cb1683dfe5c89ee89ae77001fd28dc069b493e8"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/927ba919f3639bbe049ab1c2d54cbbf6a0bdc8dc3226237bff96259aebdf0589.json",
+          "fingerprint": "b3ad6067e8e8c4c5504cc6d7723070e37a0fbdba6ae6ce3a5a814b39bcd75c3e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/99ec167c25d43e8d660c64b1e5b34be311062d614a0361a35559569da82668a1.json",
+          "fingerprint": "925ecb8e81f543dbeeebab00e2a66a7b7c1b2650037bab6375043156fe0e7c78"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/d27a5373f1b9f2a9b54e0c57eb5749a9b8d1821b7b415c9ae981c94b92c906d1.json",
+          "fingerprint": "cbb3b83d67394c19dc6bf4e2a58775332d93eb3556c63aea53c80166258e005e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/d3443c0c1b6625e4c9fa2e4d730e22b48ea5a1d94812163c343983acb1cef037.json",
+          "fingerprint": "95da30cf93a7a96ba961b8ed560ed1d55280020febd26fa0cbd92adbe333c112"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/dc4975c13f70b83a624d8615ac1ee6fd0890581f9b9a0730c4afada09dc3ddc3.json",
+          "fingerprint": "9633a17a7cab3ffdfaf84878a760a5f6fd25a9d0aa49676c87577013cebc03cf"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/e2226a360b7da03c9849d61d9b42bd7bfc12475c9153890dd78b984dec0b767c.json",
+          "fingerprint": "20560711d92ef87ae460bf29e79bd598448e31a52999da887bfb83aaf299e782"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/e8c7aa7ecf3178e11c27880ebdc11740832abf3848164e121bc04cf335e5d48e.json",
+          "fingerprint": "10fc1be2abf045aede7591fb5ef5c887690fb72a3717bbde784cb03c13c76b42"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-evidence/eea8ad977633d39ed0a878d96dc956eeddf6f492a4a7bf7c41c318be093f2be9.json",
+          "fingerprint": "5d2f263f5074c00a7537ec6a7a0ce4a72f021cdd4ab676033fe272ff4c8a6a64"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "fadc7b390cdbf120d38a605712a6fcf9855b7eed7502eba60774b11e727c74d9"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "c4c5551141b3325a382219f817bfb4f60f195ca62a71ad4bc3a468fb632af604"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-001.json",
+          "fingerprint": "f29ef3f8c81a8e7e547849f00ccaf02db4c7c706fd49e246123ceb5b8e22435d"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-001.md",
+          "fingerprint": "be7373cd30f48750fb355952494c7cf8ca514ad36aeceede2af8d525ffd3637c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-002.json",
+          "fingerprint": "d580bfab4a2199bb69c8afd4d1235f5c127c768259a4bd85fa60d60738ec9cc6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-003.json",
+          "fingerprint": "b067dc898a4c641ad09c31605e097b2123702fc9c773c20a3a6d3a875475ee55"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-003.md",
+          "fingerprint": "7e82b6edbe48ca65a12b18340ea8c75b9f41684fb2e19e19bcfc25072fed736f"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-004.json",
+          "fingerprint": "041b7c325e2fac607583e0e0f90aa4ec4ffb0438a6bfedb9bda0db43f3f6e6d6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-004.md",
+          "fingerprint": "6d32c44307434d2b837f2d44eb5eeaac15ae052876d61c9d46095f2fa5d1e78c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-005.json",
+          "fingerprint": "a50f1ef95d2fe4748ca164832fb61794e4f8b6573b0d8bd50fbf1e01e227fb31"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-005.md",
+          "fingerprint": "da1558835a603c287870fd316fd644871031d1279b10f735333cf3d535143141"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-006.json",
+          "fingerprint": "16ea507828fd214271af862a72ab425e702df7ad2c1b284b11b0d82b2548d22f"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-006.md",
+          "fingerprint": "4f2b00527727b4c6cf2ff81f09a714257d7b708578f48c45723e4b85db20978c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-007.json",
+          "fingerprint": "178052dd13edf9b5b39cce35aa95e00e16ff43bb5b616912e9b81dcd347f8cfc"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-007.md",
+          "fingerprint": "1017a06e13a97fa9eb7e9d0ffda0210d99e1882b7cf0a5f2fcfaaa0ab0263067"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-008.json",
+          "fingerprint": "399ddd65727368b1e34ad5fe7bc7ae3e1813ed5df1561b6185c55a49f84ae997"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-008.md",
+          "fingerprint": "bd0c3bcab5280eb6d013c18ea3ec6320251fc950ad74c0463972c0df0409e93e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-009.json",
+          "fingerprint": "4b932a52baf6c9e942f57f20d2654e7a6cc073e3e6843c4b71b34f5436714084"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-009.md",
+          "fingerprint": "108b88a4faddb1ad1739313733d26b1650e2eeefe166f0d19a395d8f2924c607"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-010.json",
+          "fingerprint": "cd2cd6a05911146daf54c1cea708e424bb7826e13e34594496e3a8de560ca981"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/impl-attempt-010.md",
+          "fingerprint": "94c7c5570399af880335fff6041ccf09f6a6eb7eea8eaed6c64aa2ccccadc6b6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.json",
+          "fingerprint": "fefe3678a1c3c4cb272847b60dd4e4b2c6a84c1ba07612d535de43dfb87925f4"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.json",
+          "fingerprint": "3148e68c614840e85d1e63bb35d6a43112a6b2ac1d9026a4a2bc05220df4626a"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-001.md",
+          "fingerprint": "51012db21b6b66988736322656e15f59e1683f47fb60fbae988e46fd2016eda3"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.json",
+          "fingerprint": "8eb0719ac080b4ec1068ad1bf6882cc75b4107aa4cecc43516242f9d1eaa5410"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-002.md",
+          "fingerprint": "4db81ac5e2c73da3d31fb178a693d8e4905334d0830fcd65c8c6c87db201ae81"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+          "fingerprint": "5e1397c6d2badad3461a50da7ea21913f25e8d7ae41b2162fa38a18f29d597b2"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.md",
+          "fingerprint": "4db81ac5e2c73da3d31fb178a693d8e4905334d0830fcd65c8c6c87db201ae81"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-004.json",
+          "fingerprint": "07ad5e4f1e9a93cc497b456d20b6ac0bf7e315f50aae9f621d884160ed5ab0f5"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-004.md",
+          "fingerprint": "d2791e3245c99d07dd4c132e4bb7c45b83d04963e234206d211cfe7f5d4f6785"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "00c4b68e603e8bbad0a50ee6069c20b63c9267068aafb31a7a6e52d5cf151aaa"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/02954b322c34d6201a5f18ed.json",
+          "fingerprint": "2a62734811cbbafe4a7a3759eb7c0a47e4d34f44a3e6378e8046079ba6318d90"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/06ced848728053e3c964dec4.json",
+          "fingerprint": "6d1a09824edcdd52a5055d3586467d8d6af56c0b2e8f53f83bd39fcb2a2003f0"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "118553104db1c908e18d850b4e74fec582970834af1da6c0264e55d228f056a7"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+          "fingerprint": "4b0e0a0e3567d89fdf566568f24ff61c1f0b22698700b56b084f04eb0923be3a"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "988a19a8ed0aa042471cd1a149f875717ee4e9714b78dc01057046142544f0f5"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "fc8a15636a03f2bc9f2ce335c619ec768e21c847c1652b095df805d4dc2b4f18"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "8c0f31b1d3efa22490946fc224888be55e7f5c83d7e5d9701e84ea763b3cbd13"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/513a911e56c8d49afa1dd835.json",
+          "fingerprint": "364cd5d186f48ffb56775eca46b0d768db5633dd585745aeec85277436a20460"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "e3273b47fb127ddedab4d974eb7a1191a50930680f29345ff00f197d1c3ce54b"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "fdfd090edef162b05517e92f451955ea5424cd5515c7d3d5ad03c0e2df091742"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "d4857559b1299a9ce9c455fd242f5dfe1ca1de3681f3392b2f449848ed8af539"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "7e60a0440c9c73b05bb15b5ae07ec360f47b90d220648d81ee8c7510c485bd9e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "8d37c403eadd33f229e5122a683ef7ea20cda5438c6dcfcdf0294e24f9291386"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+          "fingerprint": "7c1841c44a38258b1a5b8f2bd2b9d14becba739bf0ab868ba9a311b5d813d0da"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/99f2e7ef3071b3205bbf22e2.json",
+          "fingerprint": "2d9b969de83263e602c582e5bc07d6f14d236b453a91f57dec9185be13deb393"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "d16c33b35a56fe82eec4fbddf48e25592ae86f7633e474158b0f55a228d100c7"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "546c91e78213af1a555c7f4a89d63db08a7736dcf7921c0650c11a97d9658749"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "d816327a5c119edeea7f82493be235c0dd0a4f2741e4f9cf00c4c6d54d6d10a2"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "aa4ab00295ddc004a64c9a134df588b5eece17659abecb4f25ed88d8052fa446"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review-history/work-units/impl-review/f7e73c2b593db22e89dcc0d8.json",
+          "fingerprint": "d1de2f5131ea76e1874625fa68c4a86066dfbec4bbddc08cdfb4eee1e8093a82"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/review.md",
+          "fingerprint": "94c7c5570399af880335fff6041ccf09f6a6eb7eea8eaed6c64aa2ccccadc6b6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/scenario-validity-result.json",
+          "fingerprint": "d92f1223b121f97467c12ec15db367a4c91196fc050a6d9786ae6ad6844b60f3"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec-review.json",
+          "fingerprint": "472a97b2aa5446c86ebe09ec74b0ab36b21496ca854e4fce9f4bdede05bc0772"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec.json",
+          "fingerprint": "3e4c0629a84888278ad4bb19ea6a3d23e5d1c8d14f917f4cf48418b03155b68e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec.json",
+          "fingerprint": "3e4c0629a84888278ad4bb19ea6a3d23e5d1c8d14f917f4cf48418b03155b68e"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec.md",
+          "fingerprint": "d642364b18b4c0076b6be111f12d556b9f5be2cc8e6c2f88b1ca3e41ebc566b8"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/spec.md",
+          "fingerprint": "d642364b18b4c0076b6be111f12d556b9f5be2cc8e6c2f88b1ca3e41ebc566b8"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/task-impl-gate-source.json",
+          "fingerprint": "28ac8c55bd77790a9b16b662482aa5290ffbc0eac46f5e2a8b7a915d6d71fddf"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tasks/T-1.md",
+          "fingerprint": "cb19a1155be9992c798480f66a326dcd8293af3dc49246079285eb3793ac9750"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-coverage.json",
+          "fingerprint": "74bfba66bb935606b959b524f3521c51f43d109904b36143cb3c9901183ae6f6"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-execute-result.json",
+          "fingerprint": "ef84405efc63e36a271d793d1840103db47d011b22d3ca4b09a5d0435287a741"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-result-review.json",
+          "fingerprint": "16dcc6734e8fcd6a3d12f0970d85bdfeb07c4b164c2e4d7277402f52bdb89745"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-result-review.md",
+          "fingerprint": "5845ed78ceea27582345f7c7e5e9605544d6b04e1dc8883acceb12390c2d7220"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-review.json",
+          "fingerprint": "70e871096f0e66acdd6bd6b73ce03335c3884b29b61b878d12eca3e48986a34c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-review.json",
+          "fingerprint": "70e871096f0e66acdd6bd6b73ce03335c3884b29b61b878d12eca3e48986a34c"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-review.md",
+          "fingerprint": "d2791e3245c99d07dd4c132e4bb7c45b83d04963e234206d211cfe7f5d4f6785"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/test-review.md",
+          "fingerprint": "d2791e3245c99d07dd4c132e4bb7c45b83d04963e234206d211cfe7f5d4f6785"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/.raw/scenario-validity.log",
+          "fingerprint": "c8f7478bf6158e4aee6e3cc01d16e495a0f9f1e89c9380425d3d77a5cdacf4d3"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/.raw/test-execution.log",
+          "fingerprint": "7e66b8df6d63dca1d67e440596feeedecd75969e7c6074796af2cf623e8b356b"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/.raw/upgrade.log",
+          "fingerprint": "b04f78edff7b397a4b7fbadc33923f1ae84c09c65afb1a053e9bc338f26d3c30"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+          "fingerprint": "97e52c0fc1227759707720ab4ed2708a84d3bf5ec6bce697d8f1eb592c1837dd"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/tests/stale-test-evidence-recovery.test.js",
+          "fingerprint": "97e52c0fc1227759707720ab4ed2708a84d3bf5ec6bce697d8f1eb592c1837dd"
+        },
+        {
+          "path": "specs/334-stale-test-evidence-recovery/upgrade-result.json",
+          "fingerprint": "25983d66ba92827f2ab2f0e02f22f03085f8016170235844ebabee6bfc831db6"
+        },
+        {
+          "path": "src/flow/lib/get-next-action.js",
+          "fingerprint": "3408d0999b87960905faf82c39aaa0a99c8bdf3e5b47b4150a581d31fa60f1c5"
+        },
+        {
+          "path": "src/flow/lib/get-status.js",
+          "fingerprint": "555cf06bfd6efd70bb4813a366c6117cca29d853d1f5d0ef90db2e8155b20358"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "0a04981532ee0ef8077da4d5e701acf1a2d735d514487227d5c2aa17e904d7c8"
+        },
+        {
+          "path": "src/flow/lib/repair-state-identity.js",
+          "fingerprint": "905f4b2305204f8e37e09165d8c2c8b81c40b2aba0fc82241b8825b4404e2912"
+        },
+        {
+          "path": "src/flow/lib/review-convergence.js",
+          "fingerprint": "9c83b601c790493edd081e25ad320dfd066042def161da8d52db456da6475011"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "735963626a8f507ee6329c8eaec5b2ebcf47e1d991f0d0ea2af3c6bf2063ca88"
+        },
+        {
+          "path": "src/flow/lib/stale-test-evidence-refresh.js",
+          "fingerprint": "f0a37a240458fccc142207323eaee60138c39c8fcbabe653d2422a3de7c0e1b6"
+        },
+        {
+          "path": "src/flow/lib/test-artifacts.js",
+          "fingerprint": "f1d8debcad1c30b3f2829d1438cd9c4a50b078596f143928b0551605dd9b7a5a"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "153edcc458df13bfd29b33da530e11aac8a0ea4f9789da42f9c699fc6cbb43d4"
+        },
+        {
+          "path": "src/presets/base/guardrail.json",
+          "fingerprint": "58c1f789aa64e1fba804a4f24ffd0d98882f1bc4a1032e0e839be76a03ba0c71"
+        },
+        {
+          "path": "tests/unit/flow/gate-deferred-regression.test.js",
+          "fingerprint": "4be18510eba243cce9c9b6de3ada87df6fd76af5758dccd3456a2980fbdb2be7"
+        },
+        {
+          "path": "tests/unit/flow/repair-state-identity.test.js",
+          "fingerprint": "99233e763d0fcf7c809fed13434cd82cea6343bca7112c2d37545d7b86294dc5"
+        },
+        {
+          "path": "tests/unit/flow/review-convergence-action.test.js",
+          "fingerprint": "ec82c9c5befd2d5c4b0bb719e8aab075b07a74b5506efabaf04810a4b19a6466"
+        },
+        {
+          "path": "tests/unit/flow/review-convergence-action.test.js",
+          "fingerprint": "ec82c9c5befd2d5c4b0bb719e8aab075b07a74b5506efabaf04810a4b19a6466"
+        }
+      ],
+      "rawOutputPath": "specs/334-stale-test-evidence-recovery/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-25T00:09:27.418Z",
+      "issueLogId": "issue-log-a5fb712b-442a-436b-8aa8-dada7d03fc47"
+    },
+    {
+      "step": "final-regression",
+      "reason": "The post-regression repair changed the material repair fingerprint, so final-regression correctly rejected stale pre-repair test evidence before starting the project command",
+      "trigger": "The repaired fixture and CLI help changed tracked source/test content after acceptance-review",
+      "resolution": "Use explicit terminal integration-gate revalidation so the gate-owned stale-evidence transaction invalidates downstream evidence and reactivates test-execute",
+      "guardrailCandidate": "Final-regression repair guidance should route material post-acceptance changes through terminal integration-gate stale recovery before retrying final-regression",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:12:26.490Z",
+      "issueLogId": "issue-log-9ad903eb-c4fe-4a88-a07c-7d62dfd78c40"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Terminal stale-evidence recovery removed the required upgrade artifacts before re-running the integration gate",
+      "trigger": "The post-final-regression repair recovery invalidated downstream generated evidence",
+      "resolution": "Re-ran node src/senti.js upgrade after the final recovery and immediately before impl-gate",
+      "guardrailCandidate": "Gate-owned stale recovery should preserve or regenerate upgrade evidence required by unchanged preset-source modifications",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:15:21.773Z",
+      "issueLogId": "issue-log-978fff44-bf41-42f4-add3-55797c2d7c58"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:28:39.322Z",
+      "issueLogId": "issue-log-f8c841d2-bc1e-4345-bdab-62c6c59e7cc8"
+    },
+    {
+      "step": "final-regression",
+      "reason": "The shared active-flow pointer disappeared after acceptance-decision even though the worktree flow state and exact identity remained valid",
+      "trigger": "The first final-regression invocation after accepting risk returned NO_FLOW",
+      "resolution": "Restored the exact managed-worktree pointer with flow resume --parked and runId/spec/Issue guards",
+      "guardrailCandidate": "Acceptance-decision must preserve the active-flow registry entry through final-regression promotion, including concurrent-flow registry mutations",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:29:43.212Z",
+      "issueLogId": "issue-log-d20fcd58-d5d5-4240-a3e4-331b54b6b052"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in .senti/output/analysis.json. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.",
+      "timestamp": "2026-07-25T00:37:16.686Z",
+      "issueLogId": "issue-log-85089fd1-97a5-49bc-adde-dae5d431aa0f"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Manual rebase conflict resolution exposed non-atomic stale-evidence invalidation when lifecycle mutation fails.",
+      "trigger": "Rebased feature branch onto main after finalize-merge reported a conflict in generated analysis metadata.",
+      "resolution": "Kept main's newer analysis metadata, preserved structural trust validation before stale classification, centralized evidence invalidation in the repair transaction, and added rollback plus pending-transaction resume behavior. Spec tests pass 8/8 and focused unit tests pass 29/29.",
+      "normalizedFindingId": "finalize-merge:stale-evidence-transaction-rollback",
+      "repairRef": {
+        "commit": "15f3d754"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T00:45:04.117Z",
+      "issueLogId": "issue-log-c31dc3e3-1f2c-4a0f-af27-98db8a999f37"
+    }
+  ]
+}

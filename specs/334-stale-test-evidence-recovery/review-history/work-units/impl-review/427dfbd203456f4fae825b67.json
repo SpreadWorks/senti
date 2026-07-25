@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+      "specs/334-stale-test-evidence-recovery/scenario-validity-result.json",
+      "specs/334-stale-test-evidence-recovery/spec-review.json"
+    ],
+    "inputHash": "ccd42111f490fa7d89007ecacdd32fadfec6257f259d38151902bcb001cae9aa",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+    "specs/334-stale-test-evidence-recovery/scenario-validity-result.json",
+    "specs/334-stale-test-evidence-recovery/spec-review.json"
+  ],
+  "inputHash": "ccd42111f490fa7d89007ecacdd32fadfec6257f259d38151902bcb001cae9aa",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:22:42.691Z",
+  "finishedAt": "2026-07-24T23:22:42.691Z",
+  "rawResponse": "### 1. Use unique finding identifiers\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json`  \n**Requirement:** R7  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id`, even though they describe different requirements and different missing coverage paths. This makes deduplication, tracking, and history analysis ambiguous.  \n**Suggestion:** Generate distinct stable IDs/fingerprints per finding, ideally from requirement ID plus normalized title/body/target.\n\n### 2. Remove duplicated finding payloads\n**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json`  \n**Requirement:** R5  \n**Issue:** The same findings are represented twice, once in `blockingFindings` and again in `findings`, with overlapping fields such as title, rationale, disposition, fingerprint, and source metadata. This duplication can drift over time.  \n**Suggestion:** Keep one canonical findings array and derive blocking/advisory subsets from severity, or reduce `blockingFindings` to references by finding ID.\n\n### 3. Align process result naming with exit status\n**File:** `specs/334-stale-test-evidence-recovery/scenario-validity-result.json`  \n**Requirement:** R1  \n**Issue:** `process.exitCode` is `1` while top-level `result` is `\"pass\"`. Because every requirement is classified as `expected_fail`, this may be intentional, but the naming makes the artifact easy to misread as a successful test execution.  \n**Suggestion:** Rename or split the status fields, for example `harnessResult: \"pass\"` and `commandResult: \"failed_as_expected\"`, or add an explicit `expectedExitCode: 1`.\n\n### 4. Factor repeated evidence fields\n**File:** `specs/334-stale-test-evidence-recovery/scenario-validity-result.json`  \n**Requirement:** R8  \n**Issue:** Each summary entry repeats identical `test_file`, `command`, and `raw_output_lines` values. This increases artifact size and makes later edits error-prone.  \n**Suggestion:** Move shared evidence fields to a top-level `evidenceDefaults` object and keep only requirement-specific fields such as `id`, `classification`, and `test_name` inside each summary entry.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Use unique finding identifiers",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json`  \n**Requirement:** R7  \n**Issue:** Both blocking findings use the same `findingId`, `fingerprint`, and `id`, even though they describe different requirements and different missing coverage paths. This makes deduplication, tracking, and history analysis ambiguous.  \n**Suggestion:** Generate distinct stable IDs/fingerprints per finding, ideally from requirement ID plus normalized title/body/target.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Remove duplicated finding payloads",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json`  \n**Requirement:** R5  \n**Issue:** The same findings are represented twice, once in `blockingFindings` and again in `findings`, with overlapping fields such as title, rationale, disposition, fingerprint, and source metadata. This duplication can drift over time.  \n**Suggestion:** Keep one canonical findings array and derive blocking/advisory subsets from severity, or reduce `blockingFindings` to references by finding ID.",
+        "file": "specs/334-stale-test-evidence-recovery/review-history/test-attempt-003.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Align process result naming with exit status",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/scenario-validity-result.json`  \n**Requirement:** R1  \n**Issue:** `process.exitCode` is `1` while top-level `result` is `\"pass\"`. Because every requirement is classified as `expected_fail`, this may be intentional, but the naming makes the artifact easy to misread as a successful test execution.  \n**Suggestion:** Rename or split the status fields, for example `harnessResult: \"pass\"` and `commandResult: \"failed_as_expected\"`, or add an explicit `expectedExitCode: 1`.",
+        "file": "specs/334-stale-test-evidence-recovery/scenario-validity-result.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Factor repeated evidence fields",
+        "body": "**File:** `specs/334-stale-test-evidence-recovery/scenario-validity-result.json`  \n**Requirement:** R8  \n**Issue:** Each summary entry repeats identical `test_file`, `command`, and `raw_output_lines` values. This increases artifact size and makes later edits error-prone.  \n**Suggestion:** Move shared evidence fields to a top-level `evidenceDefaults` object and keep only requirement-specific fields such as `id`, `classification`, and `test_name` inside each summary entry.",
+        "file": "specs/334-stale-test-evidence-recovery/scenario-validity-result.json",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0bdf3b707356690edf741e13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0000",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".senti/presets/base/guardrail.json",
+      "specs/334-stale-test-evidence-recovery/draft-coverage-repair.json",
+      "specs/334-stale-test-evidence-recovery/draft-coverage-triage.json"
+    ],
+    "inputHash": "89499fe8c1426bd5de551a2f51d3b7a2eb1fef82d560c891a1aa4e82b0906835",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0bdf3b707356690edf741e13"
+  },
+  "targetFiles": [
+    ".senti/presets/base/guardrail.json",
+    "specs/334-stale-test-evidence-recovery/draft-coverage-repair.json",
+    "specs/334-stale-test-evidence-recovery/draft-coverage-triage.json"
+  ],
+  "inputHash": "89499fe8c1426bd5de551a2f51d3b7a2eb1fef82d560c891a1aa4e82b0906835",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:44:17.276Z",
+  "finishedAt": "2026-07-24T23:44:17.276Z",
+  "rawResponse": "### 1. Use Consistent Gate Naming\n**File:** `.senti/presets/base/guardrail.json`  \n**Requirement:** R1  \n**Issue:** The new `spec-test-coverage` text mixes “current integration gate,” “current-step-owned,” and `task-impl` terminology. Since the guardrail metadata phase is `task-impl`, this creates avoidable ambiguity about which lifecycle owner is being described.  \n**Suggestion:** Rewrite the added block to consistently refer to the `task-impl` gate, and reserve `test-execute`, `test-result-review`, and `final-regression` only for the downstream lifecycle steps.\n\n### 2. Reduce Duplicated Lifecycle Evidence Language\n**File:** `.senti/presets/base/guardrail.json`  \n**Requirement:** R1  \n**Issue:** Both `spec-test-coverage` and `project-test-integrity` now describe the same design rule: `task-impl` inspects diff coverage, while runtime evidence belongs to later lifecycle steps. The repeated wording can drift over time.  \n**Suggestion:** Standardize the phrasing between the two guardrail bodies, using the same concise sentence structure for “task-impl checks diff coverage only” and “runtime pass/fail is owned by later steps.”",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Use Consistent Gate Naming",
+        "body": "**File:** `.senti/presets/base/guardrail.json`  \n**Requirement:** R1  \n**Issue:** The new `spec-test-coverage` text mixes “current integration gate,” “current-step-owned,” and `task-impl` terminology. Since the guardrail metadata phase is `task-impl`, this creates avoidable ambiguity about which lifecycle owner is being described.  \n**Suggestion:** Rewrite the added block to consistently refer to the `task-impl` gate, and reserve `test-execute`, `test-result-review`, and `final-regression` only for the downstream lifecycle steps.",
+        "file": ".senti/presets/base/guardrail.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Reduce Duplicated Lifecycle Evidence Language",
+        "body": "**File:** `.senti/presets/base/guardrail.json`  \n**Requirement:** R1  \n**Issue:** Both `spec-test-coverage` and `project-test-integrity` now describe the same design rule: `task-impl` inspects diff coverage, while runtime evidence belongs to later lifecycle steps. The repeated wording can drift over time.  \n**Suggestion:** Standardize the phrasing between the two guardrail bodies, using the same concise sentence structure for “task-impl checks diff coverage only” and “runtime pass/fail is owned by later steps.”",
+        "file": ".senti/presets/base/guardrail.json",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

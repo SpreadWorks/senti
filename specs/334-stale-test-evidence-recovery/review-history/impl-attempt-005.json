@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T23:15:54.886Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "recovery-omits-invalidation-records",
+      "title": "Recovery still skips the invalidation plan application",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/stale-test-evidence-refresh.js",
+      "requirementId": "R4",
+      "issue": "`StaleTestEvidenceRefresh.recover()` stages the planned stale artifacts by renaming them out of `specDir` before calling `invalidationPlan.apply()`. Because `applyRepairInvalidations()` only records/removes artifacts that still exist at their original paths, the canonical repair invalidation plan is invoked after the evidence has already been moved away and therefore still does not materialize the planned invalidation audit records for the recovered artifacts.",
+      "suggestion": "In `StaleTestEvidenceRefresh.recover()`, apply or commit the `RepairEvidenceInvalidationPlan` while the target artifacts are still present, then preserve rollback by staging/restoring both the original artifacts and any audit artifacts created by the plan if the lifecycle mutation fails.",
+      "disposition": "must-fix",
+      "rationale": "R4 is mandatory and requires stale artifact invalidation and lifecycle transition to complete as one auditable owned recovery operation. Calling the canonical plan after the files have been staged away does not provide the audit evidence that the existing repair evidence workflow consumes.",
+      "findingId": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "fingerprint": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "repeatCount": 3
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "a19e6e6b25fc53ccdf8aad2e4f8036408fae87707345517af9037b7fb7f81a39",
+  "runId": "512698c6-f674-45f6-b688-4a9f6d26869f",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/334-stale-test-evidence-recovery/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/334-stale-test-evidence-recovery/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "ce254ece4771dab45e6fa187b6d106c3193a81d4b53ceecec089741739c6fc7b"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "findingId": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Recovery still skips the invalidation plan application",
+      "body": "`StaleTestEvidenceRefresh.recover()` stages the planned stale artifacts by renaming them out of `specDir` before calling `invalidationPlan.apply()`. Because `applyRepairInvalidations()` only records/removes artifacts that still exist at their original paths, the canonical repair invalidation plan is invoked after the evidence has already been moved away and therefore still does not materialize the planned invalidation audit records for the recovered artifacts.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "6ac9a4114f725af383347c08f17020511cffa9b023867bd8ef07dd17d90b433d",
+      "disposition": "must-fix",
+      "rationale": "R4 is mandatory and requires stale artifact invalidation and lifecycle transition to complete as one auditable owned recovery operation. Calling the canonical plan after the files have been staged away does not provide the audit evidence that the existing repair evidence workflow consumes.",
+      "requirementId": "R4",
+      "repeatCount": 3
+    }
+  ]
+}

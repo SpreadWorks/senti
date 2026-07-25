@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "q2 と q3 を判断対象だけを示す質問文へ修正した。",
+  "items": [
+    {
+      "title": "1. q2 includes recommendation and rationale",
+      "target": "q2",
+      "rationale": "推奨方式、方式比較、内部 recovery owner の説明を削除し、回復対象の承認だけを尋ねる文へ変更した。",
+      "evidence": "draft.json qa[1].question は material repair 後の failed evidence を正規回復対象にするかだけを尋ねる。",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "2. q3 includes recommendation and rationale",
+      "target": "q3",
+      "rationale": "推奨理由を削除し、authoritative evidence と malformed evidence の境界確認だけを残した。",
+      "evidence": "draft.json qa[2].question は valid かつ一致する fingerprint と、それ以外の構造エラーの境界だけを尋ねる。",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    }
+  ]
+}

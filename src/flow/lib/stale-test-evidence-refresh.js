@@ -21,11 +21,19 @@ class AdditionalRefreshArtifact {
 }
 
 export class StaleTestEvidenceRefreshResult {
-  constructor({ previousFingerprint, currentFingerprint, invalidatedArtifacts }) {
+  constructor({
+    previousFingerprint,
+    currentFingerprint,
+    invalidatedArtifacts,
+    invalidations = [],
+  }) {
     this.recovered = true;
     this.previousFingerprint = previousFingerprint;
     this.currentFingerprint = currentFingerprint;
     this.invalidatedArtifacts = Object.freeze([...invalidatedArtifacts]);
+    this.invalidations = Object.freeze(invalidations.map((record) => Object.freeze({
+      ...record,
+    })));
     this.activeStep = "test-execute";
     Object.freeze(this);
   }
@@ -36,6 +44,7 @@ export class StaleTestEvidenceRefreshResult {
       previousFingerprint: this.previousFingerprint,
       currentFingerprint: this.currentFingerprint,
       invalidatedArtifacts: [...this.invalidatedArtifacts],
+      invalidations: this.invalidations.map((record) => ({ ...record })),
       activeStep: this.activeStep,
     };
   }
@@ -126,6 +135,7 @@ export class StaleTestEvidenceRefresh {
       previousFingerprint: this.previousFingerprint,
       currentFingerprint: this.currentFingerprint,
       invalidatedArtifacts: completed.invalidatedArtifacts,
+      invalidations: completed.invalidations || [],
     });
   }
 }

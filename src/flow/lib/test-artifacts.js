@@ -58,6 +58,7 @@ const FINAL_REGRESSION_SKIP_KINDS = Object.freeze([
 // public ARTIFACT_PLACEHOLDER code, including malformed or missing inputs.
 const GATE_ARTIFACT_TRUST_FAILURE_CODE = ARTIFACT_PLACEHOLDER;
 const DEFAULT_PLACEHOLDER_SENTINELS = Object.freeze(["placeholder", "todo", "tbd"]);
+const REPAIR_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 const PLACEHOLDER_JSON_HASHES = Object.freeze(new Set([
   // specs/258-gate-artifact-validation/tests writes this exact fixture to
   // prove known hand-written artifact samples are rejected even when their
@@ -385,6 +386,96 @@ export class GateArtifactTrustFailure {
     this.code = GATE_ARTIFACT_TRUST_FAILURE_CODE;
     this.reason = reason;
     Object.freeze(this);
+  }
+}
+
+export class IntegrationArtifactFingerprintAuthority {
+  constructor({ result, review }) {
+    const resultFingerprint = result?.repairFingerprint;
+    const reviewFingerprint = review?.repairFingerprint;
+    if (!REPAIR_FINGERPRINT_PATTERN.test(resultFingerprint || "")) {
+      throw new Error(
+        `${TEST_EXECUTE_RESULT_FILE} repairFingerprint must be a 64-character SHA-256 digest`,
+      );
+    }
+    if (!REPAIR_FINGERPRINT_PATTERN.test(reviewFingerprint || "")) {
+      throw new Error(
+        `${TEST_RESULT_REVIEW_FILE} repairFingerprint must be a 64-character SHA-256 digest`,
+      );
+    }
+    if (resultFingerprint !== reviewFingerprint) {
+      throw new Error("test artifacts have inconsistent repairFingerprint values");
+    }
+    this.fingerprint = resultFingerprint;
+    this.result = result;
+    this.review = review;
+    Object.freeze(this);
+  }
+
+  toArtifactMap() {
+    return new Map([
+      [TEST_EXECUTE_RESULT_FILE, this.result],
+      [TEST_RESULT_REVIEW_FILE, this.review],
+    ]);
+  }
+}
+
+export class IntegrationArtifactLinkAuthority {
+  constructor({ root, specDir, result, review }) {
+    const specRelative = path.relative(root, specDir).split(path.sep).join("/");
+    const expectedResultPath = path.posix.join(specRelative, TEST_EXECUTE_RESULT_FILE);
+    const expectedRawOutputPath = path.posix.join(specRelative, RAW_OUTPUT_RELATIVE);
+    if (result.raw_output_path !== expectedRawOutputPath) {
+      throw new Error(
+        `${TEST_EXECUTE_RESULT_FILE} raw_output_path must be ${expectedRawOutputPath}`,
+      );
+    }
+    if (review.result_file_path !== expectedResultPath) {
+      throw new Error(
+        `${TEST_RESULT_REVIEW_FILE} result_file_path must be ${expectedResultPath}`,
+      );
+    }
+    if (review.raw_output_path !== expectedRawOutputPath) {
+      throw new Error(
+        `${TEST_RESULT_REVIEW_FILE} raw_output_path must be ${expectedRawOutputPath}`,
+      );
+    }
+    this.resultPath = expectedResultPath;
+    this.rawOutputPath = expectedRawOutputPath;
+    Object.freeze(this);
+  }
+}
+
+export class IntegrationArtifactTrustAssessment {
+  constructor({ root, specDir, contract, result, review }) {
+    if (!(contract instanceof GateArtifactTrustContract)) {
+      throw new Error("integration artifact trust contract is required");
+    }
+    this.ok = true;
+    this.contract = contract;
+    this.fingerprintAuthority = new IntegrationArtifactFingerprintAuthority({
+      result,
+      review,
+    });
+    this.linkAuthority = new IntegrationArtifactLinkAuthority({
+      root,
+      specDir,
+      result,
+      review,
+    });
+    Object.freeze(this);
+  }
+
+  evaluateOutcome() {
+    try {
+      assertIntegrationTestOutcome({
+        result: this.fingerprintAuthority.result,
+        review: this.fingerprintAuthority.review,
+      });
+      return new GateArtifactTrustSuccess({ contract: this.contract });
+    } catch (error) {
+      return new GateArtifactTrustFailure(error.message, { contract: this.contract });
+    }
   }
 }
 
@@ -1305,8 +1396,7 @@ export async function completeTestResultReviewArtifactChange({ specDir, artifact
     : completionSuccess(TEST_RESULT_REVIEW_FILE, artifact);
 }
 
-export function assertIntegrationRegressionEvidence({ root, state, specDir, config = {}, artifacts = null }) {
-  const { result, review } = artifacts || loadValidatedTestArtifacts(specDir);
+function assertIntegrationTestOutcome({ result, review }) {
   if (review.verdict !== "pass") {
     const reason = review?.invalid_reason || "verdict is not 'pass'";
     throw new Error(`test-result-review verdict='${review?.verdict}' (${reason}); test artifacts cannot be trusted`);
@@ -1321,7 +1411,11 @@ export function assertIntegrationRegressionEvidence({ root, state, specDir, conf
   if (regression.required && regression.result !== "pass") {
     throw new Error(`project regression result='${regression.result}', expected 'pass'`);
   }
+}
 
+function assertIntegrationRegressionAuthority({ root, state, specDir, config = {}, artifacts = null }) {
+  const { result, review } = artifacts || loadValidatedTestArtifacts(specDir);
+  const regression = result.regression;
   if (regression.required) {
     const savedChangedFiles = RegressionFileSnapshotList.fromJSON(
       regression.changed_files,
@@ -1352,6 +1446,12 @@ export function assertIntegrationRegressionEvidence({ root, state, specDir, conf
   }
 
   return { result, review };
+}
+
+export function assertIntegrationRegressionEvidence(options) {
+  const artifacts = assertIntegrationRegressionAuthority(options);
+  assertIntegrationTestOutcome(artifacts);
+  return artifacts;
 }
 
 function nonEmptyString(value) {
@@ -1572,12 +1672,24 @@ export function validateIntegrationArtifactTrust({
       requirements,
       specDir,
     });
-    assertIntegrationRegressionEvidence({ root, state, specDir, config, artifacts: { result, review } });
+    assertIntegrationRegressionAuthority({
+      root,
+      state,
+      specDir,
+      config,
+      artifacts: { result, review },
+    });
 
     const hashPermission = enforcePlaceholderPermissionArtifactForHit(specDir, phase, scanPlaceholderHashes([resultArtifact, reviewArtifact, fileMapArtifact]));
     if (hashPermission) return hashPermission;
 
-    return new GateArtifactTrustSuccess({ contract });
+    return new IntegrationArtifactTrustAssessment({
+      root,
+      specDir,
+      contract,
+      result,
+      review,
+    });
   } catch (err) {
     return new GateArtifactTrustFailure(err.message);
   }
