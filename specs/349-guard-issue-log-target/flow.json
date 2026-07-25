@@ -436,16 +436,38 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-07-25T16:41:41.124Z"
+              "status": "done",
+              "startedAt": "2026-07-25T16:41:41.124Z",
+              "finishedAt": "2026-07-25T16:41:53.649Z",
+              "runtimeLog": {
+                "runId": "6fa6f612-99de-4236-893f-8e20b9ae1154",
+                "sequence": 247,
+                "attempt": 1,
+                "command": "flow run finalize-merge",
+                "startedAt": "2026-07-25T16:41:50.484Z",
+                "endedAt": "2026-07-25T16:41:53.712Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-07-25T16:41:53.649Z",
+              "finishedAt": "2026-07-25T16:43:04.436Z",
+              "runtimeLog": {
+                "runId": "6fa6f612-99de-4236-893f-8e20b9ae1154",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-07-25T16:42:06.297Z",
+                "endedAt": "2026-07-25T16:43:04.515Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "in_progress",
+              "startedAt": "2026-07-25T16:43:04.436Z"
             }
           ]
         }
@@ -2101,10 +2123,42 @@
       "taskId": null,
       "stepId": "finalize-merge",
       "operation": "finalize-merge",
-      "status": "pending",
+      "status": "done",
       "attempt": 1,
       "startedAt": "2026-07-25T16:41:50.513Z",
-      "updatedAt": "2026-07-25T16:41:50.513Z"
+      "updatedAt": "2026-07-25T16:41:53.696Z",
+      "result": {
+        "status": "done",
+        "strategy": "squash",
+        "mergedFromSha": "8fe8a7819ad8a4a3029223ada3205dcf9ee60a79"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:6fa6f612-99de-4236-893f-8e20b9ae1154:flow:finalize-sync:finalize-sync",
+      "runId": "6fa6f612-99de-4236-893f-8e20b9ae1154",
+      "taskId": null,
+      "stepId": "finalize-sync",
+      "operation": "finalize-sync",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-25T16:42:06.329Z",
+      "updatedAt": "2026-07-25T16:43:04.497Z",
+      "result": {
+        "status": "done",
+        "diffStat": ".senti/output/analysis.json  | 380 +++++++++++++++++++++++--------------------\n docs/ja/project_structure.md |   2 +-\n docs/project_structure.md    |   2 +-\n 3 files changed, 204 insertions(+), 180 deletions(-)",
+        "diffSummary": ".senti/output/analysis.json\ndocs/ja/project_structure.md\ndocs/project_structure.md"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:6fa6f612-99de-4236-893f-8e20b9ae1154:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "6fa6f612-99de-4236-893f-8e20b9ae1154",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-25T16:43:59.934Z",
+      "updatedAt": "2026-07-25T16:44:00.669Z"
     }
   ],
   "request": "Goal: make senti flow set issue-log target a specific active flow using --expect-run-id, --expect-issue, and --expect-spec. Scope: parse and enforce these target guards for issue-log writes, preserve existing single-flow behavior, and add focused coverage for matching and mismatching targets. Out of scope: changing issue-log contents, other flow set commands, or #466 acceptance-review behavior. The command must reject a target mismatch and write only to the selected flow when multiple worktree flows are active.",
@@ -5186,6 +5240,8 @@
     }
   },
   "state": {
-    "finalizedAt": "2026-07-25T16:41:40.510Z"
+    "finalizedAt": "2026-07-25T16:41:40.510Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "8fe8a7819ad8a4a3029223ada3205dcf9ee60a79"
   }
 }
