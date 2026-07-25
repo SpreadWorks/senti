@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "ddbdb1e1-8b31-4520-b219-ebe8e6c85b58",
+  "planRewindAt": "2026-07-25T10:17:25.310Z",
+  "generatedAt": "2026-07-25T11:07:49.583Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-silent-error-swallowing",
+      "result": "fail",
+      "reason": "The added `catch (_)` block discards missing or malformed historical artifact errors without logging or re-throwing them.",
+      "category": "code-quality",
+      "title": "No Silent Error Swallowing",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/flow/lib/acceptance-review-artifacts.js",
+            "locator": "historicalReviewHandoffs catch block"
+          },
+          "observed": "The added `catch (_)` block discards missing or malformed historical artifact errors without logging or re-throwing them.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "findingId": "646441702f65b722c65ee2df7c5b14b45b4d015aa38ece6f4a4e97528371df43",
+      "fingerprint": "646441702f65b722c65ee2df7c5b14b45b4d015aa38ece6f4a4e97528371df43",
+      "disposition": "must-fix",
+      "rationale": "The added `catch (_)` block discards missing or malformed historical artifact errors without logging or re-throwing them.",
+      "requirementId": null,
+      "guardrailId": "no-silent-error-swallowing",
+      "reportedAt": "2026-07-25T11:07:49.583Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "no-silent-error-swallowing",
+      "result": "fail",
+      "reason": "The added `catch` block silently converts filesystem errors into `false` without logging or re-throwing the error.",
+      "category": "code-quality",
+      "title": "No Silent Error Swallowing",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "isDurableRepairEvidencePath catch block"
+          },
+          "observed": "The added `catch` block silently converts filesystem errors into `false` without logging or re-throwing the error.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "findingId": "646441702f65b722c65ee2df7c5b14b45b4d015aa38ece6f4a4e97528371df43",
+      "fingerprint": "646441702f65b722c65ee2df7c5b14b45b4d015aa38ece6f4a4e97528371df43",
+      "disposition": "must-fix",
+      "rationale": "The added `catch` block silently converts filesystem errors into `false` without logging or re-throwing the error.",
+      "requirementId": null,
+      "guardrailId": "no-silent-error-swallowing",
+      "reportedAt": "2026-07-25T11:07:49.583Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-silent-error-swallowing",
+      "where": {
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "locator": "historicalReviewHandoffs catch block"
+      },
+      "observed": "The added `catch (_)` block discards missing or malformed historical artifact errors without logging or re-throwing them.",
+      "severity": "blocking",
+      "refs": [
+        "no-silent-error-swallowing"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-silent-error-swallowing",
+      "category": "guardrail",
+      "findingId": "06f8e78c0c6f1169bcbddf1d5dcc9e0f1afa5a49116e3a673ec2ebcb0fac9d4f",
+      "fingerprint": "06f8e78c0c6f1169bcbddf1d5dcc9e0f1afa5a49116e3a673ec2ebcb0fac9d4f",
+      "disposition": "must-fix",
+      "rationale": "The added `catch (_)` block discards missing or malformed historical artifact errors without logging or re-throwing them.",
+      "requirementId": null,
+      "guardrailId": "no-silent-error-swallowing",
+      "reportedAt": "2026-07-25T11:07:49.583Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-silent-error-swallowing",
+      "where": {
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "locator": "isDurableRepairEvidencePath catch block"
+      },
+      "observed": "The added `catch` block silently converts filesystem errors into `false` without logging or re-throwing the error.",
+      "severity": "blocking",
+      "refs": [
+        "no-silent-error-swallowing"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-silent-error-swallowing",
+      "category": "guardrail",
+      "findingId": "06f8e78c0c6f1169bcbddf1d5dcc9e0f1afa5a49116e3a673ec2ebcb0fac9d4f",
+      "fingerprint": "06f8e78c0c6f1169bcbddf1d5dcc9e0f1afa5a49116e3a673ec2ebcb0fac9d4f",
+      "disposition": "must-fix",
+      "rationale": "The added `catch` block silently converts filesystem errors into `false` without logging or re-throwing the error.",
+      "requirementId": null,
+      "guardrailId": "no-silent-error-swallowing",
+      "reportedAt": "2026-07-25T11:07:49.583Z",
+      "repeatCount": 1
+    }
+  ]
+}

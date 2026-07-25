@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "8551e7c3be95cfbf8482b783",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-a0ea933f604328b4",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+      "src/flow/definition.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/set-step.js",
+      "src/lib/active-flow-registry.js",
+      "src/lib/flow-manager.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "a0ea933f604328b4cfd780b8d4c85a240a0cff70828b2c8d23165d2dc6afb4d2",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8551e7c3be95cfbf8482b783"
+  },
+  "targetFiles": [
+    "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+    "src/flow/definition.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/set-step.js",
+    "src/lib/active-flow-registry.js",
+    "src/lib/flow-manager.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "a0ea933f604328b4cfd780b8d4c85a240a0cff70828b2c8d23165d2dc6afb4d2",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:22:50.398Z",
+  "finishedAt": "2026-07-25T08:22:50.398Z",
+  "rawResponse": "### 1. Standardize bounded-resource requirement tagging\n**File:** `src/lib/active-flow-registry.js`\n**Requirement:** R5\n**Issue:** Several files raise bounded-resource issues under R5, but `src/lib/active-flow-registry.js` reports the registry snapshot size bound under R4. That creates inconsistent requirement classification for the same guardrail across files.\n**Suggestion:** Reclassify the active-flow registry snapshot bound proposal as R5, and use R5 consistently for bulk scans/copies in registry, issue log, repair ledger, convergence records, and changed paths.\n\n### 2. Consolidate exact-target naming and validation\n**File:** `src/lib/flow-manager.js`\n**Requirement:** R1\n**Issue:** Exact-target concepts are named and enforced inconsistently across `flow-manager.js` and `acceptance-review-artifacts.js`: `CapturedFlowTargetMutation`, `captureExactTarget()`, `mutateExactTarget()`, and acceptance decision mutators all describe similar exact-target behavior with different terminology and validation assumptions.\n**Suggestion:** Introduce shared terminology such as `CapturedExactFlowTarget` and a single validation helper requiring spec identity. Use that consistently from both flow-manager exact mutation paths and acceptance decision mutation/rollback setup.\n\n### 3. Share repair ledger scanning semantics\n**File:** `src/flow/lib/set-step.js`\n**Requirement:** R1\n**Issue:** `set-step.js` has duplicate repair-ledger scans, while `impl-repair-artifacts.js` also constructs and appends repair ledger entries. These files now depend on the same ledger shape but do not share a reader/normalizer, increasing drift risk if ledger entry fields change.\n**Suggestion:** Add a shared helper for reading repaired `sourceFindingIds` from the impl-repair ledger, colocated with ledger artifact utilities if available, and reuse it from `set-step.js` and any repair-flow validation code.\n\n### 4. Align step-id naming in implementation repair tests\n**File:** `tests/unit/flow/run-review-advisory.test.js`\n**Requirement:** R2\n**Issue:** Test code uses camelCase aliases like `implRepair` and `implGate`, while other files and constants use actual step ids such as `impl-repair` and `impl-gate`. This creates cross-file naming drift around lifecycle step identity.\n**Suggestion:** Use canonical step ids as object keys in tests, or import shared step constants where practical, so test fixtures match production lifecycle identifiers.\n\n### 5. Unify impl-review rejection reset naming\n**File:** `src/flow/definition.js`\n**Requirement:** R4\n**Issue:** `REJECTED_IMPL_REVIEW_RESET_STEPS` in `definition.js` and semantic/reset language in `review-convergence.js` and related tests use different phrasing for lifecycle reset behavior. The mixed “rejected impl-review reset” versus “semantic reset/recovery” terminology makes it harder to trace one reset concept across files.\n**Suggestion:** Rename the constant to `IMPL_REVIEW_REJECTION_RESET_STEPS` and use matching “rejection reset” or “semantic recovery reset” wording in nearby tests and helper names where they refer to the same lifecycle transition.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize bounded-resource requirement tagging",
+        "body": "**File:** `src/lib/active-flow-registry.js`\n**Requirement:** R5\n**Issue:** Several files raise bounded-resource issues under R5, but `src/lib/active-flow-registry.js` reports the registry snapshot size bound under R4. That creates inconsistent requirement classification for the same guardrail across files.\n**Suggestion:** Reclassify the active-flow registry snapshot bound proposal as R5, and use R5 consistently for bulk scans/copies in registry, issue log, repair ledger, convergence records, and changed paths.",
+        "file": "src/lib/active-flow-registry.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Consolidate exact-target naming and validation",
+        "body": "**File:** `src/lib/flow-manager.js`\n**Requirement:** R1\n**Issue:** Exact-target concepts are named and enforced inconsistently across `flow-manager.js` and `acceptance-review-artifacts.js`: `CapturedFlowTargetMutation`, `captureExactTarget()`, `mutateExactTarget()`, and acceptance decision mutators all describe similar exact-target behavior with different terminology and validation assumptions.\n**Suggestion:** Introduce shared terminology such as `CapturedExactFlowTarget` and a single validation helper requiring spec identity. Use that consistently from both flow-manager exact mutation paths and acceptance decision mutation/rollback setup.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Share repair ledger scanning semantics",
+        "body": "**File:** `src/flow/lib/set-step.js`\n**Requirement:** R1\n**Issue:** `set-step.js` has duplicate repair-ledger scans, while `impl-repair-artifacts.js` also constructs and appends repair ledger entries. These files now depend on the same ledger shape but do not share a reader/normalizer, increasing drift risk if ledger entry fields change.\n**Suggestion:** Add a shared helper for reading repaired `sourceFindingIds` from the impl-repair ledger, colocated with ledger artifact utilities if available, and reuse it from `set-step.js` and any repair-flow validation code.",
+        "file": "src/flow/lib/set-step.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Align step-id naming in implementation repair tests",
+        "body": "**File:** `tests/unit/flow/run-review-advisory.test.js`\n**Requirement:** R2\n**Issue:** Test code uses camelCase aliases like `implRepair` and `implGate`, while other files and constants use actual step ids such as `impl-repair` and `impl-gate`. This creates cross-file naming drift around lifecycle step identity.\n**Suggestion:** Use canonical step ids as object keys in tests, or import shared step constants where practical, so test fixtures match production lifecycle identifiers.",
+        "file": "tests/unit/flow/run-review-advisory.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "5. Unify impl-review rejection reset naming",
+        "body": "**File:** `src/flow/definition.js`\n**Requirement:** R4\n**Issue:** `REJECTED_IMPL_REVIEW_RESET_STEPS` in `definition.js` and semantic/reset language in `review-convergence.js` and related tests use different phrasing for lifecycle reset behavior. The mixed “rejected impl-review reset” versus “semantic reset/recovery” terminology makes it harder to trace one reset concept across files.\n**Suggestion:** Rename the constant to `IMPL_REVIEW_REJECTION_RESET_STEPS` and use matching “rejection reset” or “semantic recovery reset” wording in nearby tests and helper names where they refer to the same lifecycle transition.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

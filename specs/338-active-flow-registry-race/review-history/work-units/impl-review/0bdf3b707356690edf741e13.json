@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0bdf3b707356690edf741e13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0000",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+      "src/flow/commands/review.js"
+    ],
+    "inputHash": "43ac937421917eb0549aef6da73a31f79a34bef4e89eef33c800eebc86e53317",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0bdf3b707356690edf741e13"
+  },
+  "targetFiles": [
+    "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+    "src/flow/commands/review.js"
+  ],
+  "inputHash": "43ac937421917eb0549aef6da73a31f79a34bef4e89eef33c800eebc86e53317",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T11:42:40.082Z",
+  "finishedAt": "2026-07-25T11:42:40.082Z",
+  "rawResponse": "### 1. Avoid time-based module cache keys\n**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R5  \n**Issue:** `loadAcceptanceModule()` and `repairFingerprint()` use `Date.now()` in dynamic import query strings. If multiple imports happen in the same millisecond, the cache key can collide, which makes the test isolation mechanism weaker than intended.  \n**Suggestion:** Replace `Date.now()` with a monotonic counter or `crypto.randomUUID()` helper, for example `nextImportUrl(modulePath)`, and reuse it for both dynamic imports.\n\n### 2. Consolidate duplicated rollback assertions\n**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R4  \n**Issue:** The R4 failure-boundary test and the issue-log rollback test repeat the same assertions for registry entries, flow file bytes, acceptance-review bytes, issue-log bytes, and step statuses. This makes future rollback coverage easy to update inconsistently.  \n**Suggestion:** Introduce a helper such as `snapshotAcceptanceDecisionTransaction(context)` returning an assertion function, or `assertTransactionRolledBack(context, snapshot)`, and use it in both tests.\n\n### 3. Use explicit failure case objects instead of positional tuples\n**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R4  \n**Issue:** The `cases` array uses positional tuple entries like `[name, inject, expectedCode, expectedCalls]`. The `null` and numeric fields are not self-describing, and the loop relies on unpacking order.  \n**Suggestion:** Change the cases to objects with named fields: `{ name, inject, expectedCode, expectedSnapshotCalls }`. This makes each boundary easier to read and reduces accidental misordering.\n\n### 4. Rename `repairFingerprint` helper to avoid shadowing imported domain wording\n**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R5  \n**Issue:** The helper `repairFingerprint(root, state)` has the same conceptual name as the `repairFingerprint` value passed into `decisionArtifact(repairFingerprint)`, which makes call sites slightly ambiguous.  \n**Suggestion:** Rename the helper to `buildCurrentRepairFingerprint` or `loadRepairFingerprintHash`, and rename the `decisionArtifact` parameter to `fingerprintHash`.\n\n### 5. Remove unused `targetBefore` assertion scope coupling\n**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R2  \n**Issue:** The first test asserts the target flow file changes and the other flow file does not, while later tests assert detailed state transitions and registry preservation. This mixes exact identity persistence with unrelated file-byte mutation checks.  \n**Suggestion:** Replace the byte-level target mutation assertion with explicit step/status assertions, or move byte rollback checks into the rollback helper proposed above.\n\n### 6. Extract untracked-diff exclusion logic from `resolveReviewTarget`\n**File:** `src/flow/commands/review.js`  \n**Requirement:** R5  \n**Issue:** `resolveReviewTarget()` now handles scope parsing, tracked diff collection, spec-test path policy, exclusion matching, untracked diff collection, and diff-file parsing. The embedded `excludeFile` callback is doing enough path policy work to obscure the main flow.  \n**Suggestion:** Extract a helper like `createReviewUntrackedExclude({ flow, scopeFiles, excludeMatcher })` and keep `resolveReviewTarget()` focused on composing tracked and untracked diffs.\n\n### 7. Reuse path normalization helper\n**File:** `src/flow/commands/review.js`  \n**Requirement:** R5  \n**Issue:** Path normalization is repeated with `String(...).split(path.sep).join(\"/\")` for both `flow.spec` and each untracked file.  \n**Suggestion:** Add a small local helper such as `toPosixPath(value)` and use it in `resolveReviewTarget()` and the untracked exclusion callback. This improves readability and keeps path handling consistent.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid time-based module cache keys",
+        "body": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R5  \n**Issue:** `loadAcceptanceModule()` and `repairFingerprint()` use `Date.now()` in dynamic import query strings. If multiple imports happen in the same millisecond, the cache key can collide, which makes the test isolation mechanism weaker than intended.  \n**Suggestion:** Replace `Date.now()` with a monotonic counter or `crypto.randomUUID()` helper, for example `nextImportUrl(modulePath)`, and reuse it for both dynamic imports.",
+        "file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Consolidate duplicated rollback assertions",
+        "body": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R4  \n**Issue:** The R4 failure-boundary test and the issue-log rollback test repeat the same assertions for registry entries, flow file bytes, acceptance-review bytes, issue-log bytes, and step statuses. This makes future rollback coverage easy to update inconsistently.  \n**Suggestion:** Introduce a helper such as `snapshotAcceptanceDecisionTransaction(context)` returning an assertion function, or `assertTransactionRolledBack(context, snapshot)`, and use it in both tests.",
+        "file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Use explicit failure case objects instead of positional tuples",
+        "body": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R4  \n**Issue:** The `cases` array uses positional tuple entries like `[name, inject, expectedCode, expectedCalls]`. The `null` and numeric fields are not self-describing, and the loop relies on unpacking order.  \n**Suggestion:** Change the cases to objects with named fields: `{ name, inject, expectedCode, expectedSnapshotCalls }`. This makes each boundary easier to read and reduces accidental misordering.",
+        "file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Rename `repairFingerprint` helper to avoid shadowing imported domain wording",
+        "body": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R5  \n**Issue:** The helper `repairFingerprint(root, state)` has the same conceptual name as the `repairFingerprint` value passed into `decisionArtifact(repairFingerprint)`, which makes call sites slightly ambiguous.  \n**Suggestion:** Rename the helper to `buildCurrentRepairFingerprint` or `loadRepairFingerprintHash`, and rename the `decisionArtifact` parameter to `fingerprintHash`.",
+        "file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Remove unused `targetBefore` assertion scope coupling",
+        "body": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R2  \n**Issue:** The first test asserts the target flow file changes and the other flow file does not, while later tests assert detailed state transitions and registry preservation. This mixes exact identity persistence with unrelated file-byte mutation checks.  \n**Suggestion:** Replace the byte-level target mutation assertion with explicit step/status assertions, or move byte rollback checks into the rollback helper proposed above.",
+        "file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "6. Extract untracked-diff exclusion logic from `resolveReviewTarget`",
+        "body": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R5  \n**Issue:** `resolveReviewTarget()` now handles scope parsing, tracked diff collection, spec-test path policy, exclusion matching, untracked diff collection, and diff-file parsing. The embedded `excludeFile` callback is doing enough path policy work to obscure the main flow.  \n**Suggestion:** Extract a helper like `createReviewUntrackedExclude({ flow, scopeFiles, excludeMatcher })` and keep `resolveReviewTarget()` focused on composing tracked and untracked diffs.",
+        "file": "src/flow/commands/review.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "7. Reuse path normalization helper",
+        "body": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R5  \n**Issue:** Path normalization is repeated with `String(...).split(path.sep).join(\"/\")` for both `flow.spec` and each untracked file.  \n**Suggestion:** Add a small local helper such as `toPosixPath(value)` and use it in `resolveReviewTarget()` and the untracked exclusion callback. This improves readability and keeps path handling consistent.",
+        "file": "src/flow/commands/review.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

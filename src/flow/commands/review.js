@@ -69,6 +69,7 @@ import {
   stampRepairFingerprint,
 } from "../lib/impl-repair-artifacts.js";
 import { ReviewToolingOutcome } from "../lib/review-convergence.js";
+import { collectUntrackedDiff } from "../lib/run-gate.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -161,9 +162,9 @@ for (const key of Object.keys(REVIEW_PHASES)) {
  * @param {string} root - repo root
  * @param {import("../../lib/flow-state.js").FlowState} flow - flow state
  * @param {string} mergeBase - merge-base SHA resolved by resolveMergeBase
- * @returns {string} diff text for review
+ * @returns {Promise<{diff: string, untrackedFiles: Set<string>}>} review diff and untracked paths
  */
-function resolveReviewTarget(root, flow, mergeBase) {
+async function resolveReviewTarget(root, flow, mergeBase, excludeMatcher = null) {
   // spec 207 / T8: read scope.in from spec.json via the single validated load
   // path. Throws when spec.json is missing or invalid — active flows must
   // have a valid spec.json by invariant.
@@ -175,6 +176,7 @@ function resolveReviewTarget(root, flow, mergeBase) {
         .filter((l) => /\.(js|ts|json|md)$/.test(l))
     : [];
 
+  let trackedDiff = "";
   if (scopeFiles.length > 0) {
     const diffs = [];
     for (const f of scopeFiles) {
@@ -182,11 +184,35 @@ function resolveReviewTarget(root, flow, mergeBase) {
       if (!fs.existsSync(abs)) continue;
       diffs.push(...collectCommittedAndStagedDiff(root, mergeBase, f));
     }
-    if (diffs.length > 0) return diffs.join("\n");
+    trackedDiff = diffs.join("\n");
+  }
+  if (!trackedDiff) {
+    trackedDiff = collectCommittedAndStagedDiff(root, mergeBase).join("\n");
   }
 
-  // Fallback: committed diff against merge-base + staged changes
-  return collectCommittedAndStagedDiff(root, mergeBase).join("\n");
+  const specDir = path.posix.dirname(String(flow.spec).split(path.sep).join("/"));
+  const specTestPrefix = `${specDir}/tests/`;
+  const scopedFiles = new Set(scopeFiles);
+  const untrackedDiff = await collectUntrackedDiff(root, {
+    excludeFile(file) {
+      const normalized = String(file).split(path.sep).join("/");
+      if (excludeMatcher?.excludes(normalized)) return true;
+      if (normalized.startsWith(`${specDir}/`)) {
+        return !normalized.startsWith(specTestPrefix) || normalized.startsWith(`${specTestPrefix}.raw/`);
+      }
+      return scopedFiles.size > 0 && !scopedFiles.has(normalized);
+    },
+  });
+  return {
+    diff: [trackedDiff, untrackedDiff].filter(Boolean).join("\n"),
+    untrackedFiles: collectDiffFilePaths(untrackedDiff),
+  };
+}
+
+function collectDiffFilePaths(diff) {
+  const files = new Set();
+  for (const match of diff.matchAll(/^diff --git a\/.+ b\/(.+)$/gm)) files.add(match[1]);
+  return files;
 }
 
 /** Paths excluded from the fallback (whole-repo) diff in code review.
@@ -3987,8 +4013,9 @@ async function runReview(rawArgs) {
   // Resolve merge-base once and use it as the single diff starting point.
   const mergeBase = resolveMergeBase(root, flow.baseBranch);
 
-  // Resolve target diff
-  const diff = resolveReviewTarget(root, flow, mergeBase);
+  const reviewExcludeMatcher = createReviewExcludeMatcher({ root, exclusions: resolveReviewExcludePaths(config) });
+  const reviewTarget = await resolveReviewTarget(root, flow, mergeBase, reviewExcludeMatcher);
+  const { diff } = reviewTarget;
   if (!diff) {
     const result = await runImplReview({
       root,
@@ -4003,8 +4030,8 @@ async function runReview(rawArgs) {
     return;
   }
 
-  const reviewExcludeMatcher = createReviewExcludeMatcher({ root, exclusions: resolveReviewExcludePaths(config) });
   const touchedFiles = collectTouchedFiles(root, mergeBase, { excludeMatcher: reviewExcludeMatcher });
+  for (const file of reviewTarget.untrackedFiles) touchedFiles.add(file);
   const reviewGuardrails = filterByPhase(loadMergedGuardrails(root), "review");
   const taskSpec = resolveTaskReviewSpec(root, cli.taskSpec);
 

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-00a074cd-adfd-4e25-b26a-76c7c5e2b9e2",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Semantic review recovery now clears stale rejected evidence and grants one verified re-evaluation.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "0fbdca832a06c915d4a303f46eb757fbfbd1f3a2af1252725ba5ffe6beea5431",
+        "currentHash": "f6933117969b9b37bf67aa9567fa2fc3ff0c72b18b0511f6e1b61fccb99b4f50",
+        "changedPaths": [
+          "specs/338-active-flow-registry-race/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/set-step.js",
+          "src/lib/active-flow-registry.js",
+          "src/lib/flow-manager.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Semantic review recovery now clears stale rejected evidence and grants one verified re-evaluation.\" --yes",
+      "createdAt": "2026-07-25T07:51:41.335Z"
+    }
+  ]
+}

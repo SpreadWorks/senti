@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T07:39:27.945Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "issue-log-not-rolled-back-after-successful-verification",
+      "title": "Issue log write is outside the guarded decision transaction",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/acceptance-review-artifacts.js",
+      "requirementId": "R4",
+      "issue": "`applyAcceptanceDecision` verifies the registry and restores flow/artifact state only inside the `try` block, but `appendRiskDecisionIssue(root, state)` runs afterward. If the issue-log append fails after the flow state and acceptance-review artifact have already been committed, the decision is left partially applied instead of leaving flow state and pointers unchanged.",
+      "suggestion": "Move the risk-decision issue-log append into the same guarded transaction/rollback scope in `applyAcceptanceDecision`, snapshot `issue-log.json` before writing, and restore it on any failure after the decision begins.",
+      "disposition": "must-fix",
+      "rationale": "R4 requires binding and registry failure handling to leave flow state and pointers unchanged. The touched test snapshots `issue-log.json`, and the implementation already treats rollback as mandatory evidence, but the final issue-log side effect is not protected by that rollback boundary.",
+      "findingId": "5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185",
+      "fingerprint": "5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "62cbc9b5af1fb7998a649df0200ade8384b28220c90505de2aff7a53bbf6573d",
+  "runId": "ddbdb1e1-8b31-4520-b219-ebe8e6c85b58",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/338-active-flow-registry-race/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "364bb39f4b6caf3bbeb79ea8abe8b7940ad5f1e3356ec622958fb60618343813"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185",
+      "findingId": "5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "Issue log write is outside the guarded decision transaction",
+      "body": "`applyAcceptanceDecision` verifies the registry and restores flow/artifact state only inside the `try` block, but `appendRiskDecisionIssue(root, state)` runs afterward. If the issue-log append fails after the flow state and acceptance-review artifact have already been committed, the decision is left partially applied instead of leaving flow state and pointers unchanged.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185",
+      "disposition": "must-fix",
+      "rationale": "R4 requires binding and registry failure handling to leave flow state and pointers unchanged. The touched test snapshots `issue-log.json`, and the implementation already treats rollback as mandatory evidence, but the final issue-log side effect is not protected by that rollback boundary.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    }
+  ]
+}

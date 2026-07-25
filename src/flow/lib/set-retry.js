@@ -13,7 +13,7 @@ import { countGateRetry, resolveRetryMax } from "./run-gate.js";
 import { countReviewRetry, resolveReviewRetryMax } from "./run-review.js";
 import { flattenSteps } from "./step-tree.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
-import { ReviewToolingRecoveryMutation } from "./review-convergence.js";
+import { ReviewSemanticRecoveryMutation } from "./review-convergence.js";
 import { resolveImplReviewScope } from "./task-scope.js";
 import {
   RetryRecoveryInput,
@@ -152,7 +152,7 @@ export default class SetRetryCommand extends FlowCommand {
         maxAttempts,
         afterReset: reviewRecord == null
           ? null
-          : new ReviewToolingRecoveryMutation({
+          : new ReviewSemanticRecoveryMutation({
               phase: p,
               taskId: reviewTaskId,
               previousTreeSha: reviewRecord.treeSha,

@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "deadae53192b50a07f845e48",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-67ac036f6ddbfd61",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+      "src/flow/definition.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/set-step.js",
+      "src/lib/active-flow-registry.js",
+      "src/lib/flow-manager.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "67ac036f6ddbfd6152e1624d942a3366fd145f648803820d6a4a7db9fc24a4db",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "deadae53192b50a07f845e48"
+  },
+  "targetFiles": [
+    "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+    "src/flow/definition.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/set-step.js",
+    "src/lib/active-flow-registry.js",
+    "src/lib/flow-manager.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "67ac036f6ddbfd6152e1624d942a3366fd145f648803820d6a4a7db9fc24a4db",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:57:11.396Z",
+  "finishedAt": "2026-07-25T07:57:11.396Z",
+  "rawResponse": "### 1. Centralize rollback snapshot behavior\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Both `AcceptanceDecisionIssueLogSnapshot` and `ActiveFlowRegistrySnapshot` introduce snapshot/rollback-style preservation logic, while tests also propose separate snapshot assertion helpers. The snapshot concepts are spreading across files with different bounds, key comparison, and naming patterns.  \n**Suggestion:** Extract or align a shared snapshot convention for acceptance-decision rollback checks: bounded capture, normalized entry keys, and unchanged-state verification helpers.\n\n### 2. Share bounded bulk-input limits for finding IDs\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `sourceFindingIds` handling in `impl-repair-artifacts.js` and ledger/review finding processing in `set-step.js` both need explicit bounds, but the proposals would likely add separate limits in each file. That risks inconsistent accepted sizes for the same repair workflow data.  \n**Suggestion:** Define shared constants for max source finding IDs, ledger entries, and finding ID string size, then use them in both repair completion and missing-applied-finding validation.\n\n### 3. Align fingerprint baseline naming\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R2  \n**Issue:** Production code uses generic `previous` for the repair fingerprint manifest, while tests use `previousFingerprint` for the review-time fingerprint. Across files, the important role is baseline/review fingerprint, not chronology.  \n**Suggestion:** Rename production and test variables around role, such as `previousManifest`, `reviewFingerprint`, or `blockedReviewFingerprint`, so the same concept is recognizable across implementation and tests.\n\n### 4. Use step IDs consistently in test fixtures\n**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R5  \n**Issue:** This test introduces camelCase status override keys like `implRepair` and `implGate`, while other tests and implementation paths use canonical step IDs such as `impl-repair` and `impl-gate`. This creates cross-file naming drift from the domain identifiers.  \n**Suggestion:** Use canonical step IDs as object keys in test fixtures and helpers, matching the identifiers used by flow state and transition code.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize rollback snapshot behavior",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Both `AcceptanceDecisionIssueLogSnapshot` and `ActiveFlowRegistrySnapshot` introduce snapshot/rollback-style preservation logic, while tests also propose separate snapshot assertion helpers. The snapshot concepts are spreading across files with different bounds, key comparison, and naming patterns.  \n**Suggestion:** Extract or align a shared snapshot convention for acceptance-decision rollback checks: bounded capture, normalized entry keys, and unchanged-state verification helpers.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Share bounded bulk-input limits for finding IDs",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `sourceFindingIds` handling in `impl-repair-artifacts.js` and ledger/review finding processing in `set-step.js` both need explicit bounds, but the proposals would likely add separate limits in each file. That risks inconsistent accepted sizes for the same repair workflow data.  \n**Suggestion:** Define shared constants for max source finding IDs, ledger entries, and finding ID string size, then use them in both repair completion and missing-applied-finding validation.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Align fingerprint baseline naming",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R2  \n**Issue:** Production code uses generic `previous` for the repair fingerprint manifest, while tests use `previousFingerprint` for the review-time fingerprint. Across files, the important role is baseline/review fingerprint, not chronology.  \n**Suggestion:** Rename production and test variables around role, such as `previousManifest`, `reviewFingerprint`, or `blockedReviewFingerprint`, so the same concept is recognizable across implementation and tests.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Use step IDs consistently in test fixtures",
+        "body": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R5  \n**Issue:** This test introduces camelCase status override keys like `implRepair` and `implGate`, while other tests and implementation paths use canonical step IDs such as `impl-repair` and `impl-gate`. This creates cross-file naming drift from the domain identifiers.  \n**Suggestion:** Use canonical step IDs as object keys in test fixtures and helpers, matching the identifiers used by flow state and transition code.",
+        "file": "tests/unit/flow/run-review-advisory.test.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

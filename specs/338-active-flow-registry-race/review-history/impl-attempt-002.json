@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T06:40:01.015Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "unguarded-flow-state-mutation",
+      "title": "Acceptance decision mutation is not bound to the captured flow identity",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/acceptance-review-artifacts.js",
+      "requirementId": "R1",
+      "issue": "`applyAcceptanceDecision()` captures and later verifies the managed-worktree identity, but the actual state update still uses plain `flowManager.mutate(...)`. That mutation is not bound to the captured `runId`, Issue, and spec, so the lifecycle does not retain the selected identity through the flow-state mutation itself as required. A concurrent active-flow target change can be detected after the write, but the write has already been attempted against the unguarded current state.",
+      "suggestion": "Replace the unguarded mutation in `applyAcceptanceDecision()` with the FlowManager binding-aware mutation API using the captured `FlowTargetExpectation`, or add an equivalent FlowManager method that resolves and mutates only when `runId`, Issue, and spec still match before applying the acceptance-decision state changes.",
+      "disposition": "must-fix",
+      "rationale": "R1 is a mandatory acceptance criterion and the implementation notes explicitly require reusing FlowManager's binding-aware state APIs. Post-mutation verification does not satisfy the requirement to bind the selected identity through the mutation boundary.",
+      "findingId": "ade664ac56700c097b27633fab20aeea76e46b4d734e58ace7fef765be5241fe",
+      "fingerprint": "ade664ac56700c097b27633fab20aeea76e46b4d734e58ace7fef765be5241fe",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "83011c4715b6baf4ba68a611c9a50d1c1f11a286af4d7ccc6b082766c4290952",
+  "runId": "ddbdb1e1-8b31-4520-b219-ebe8e6c85b58",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/338-active-flow-registry-race/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/338-active-flow-registry-race/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "c42fa389e6b5d75cc4a57c4a2435d5cb2838f7680f8f0799b7a52132db78253f"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "ade664ac56700c097b27633fab20aeea76e46b4d734e58ace7fef765be5241fe",
+      "findingId": "ade664ac56700c097b27633fab20aeea76e46b4d734e58ace7fef765be5241fe",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Acceptance decision mutation is not bound to the captured flow identity",
+      "body": "`applyAcceptanceDecision()` captures and later verifies the managed-worktree identity, but the actual state update still uses plain `flowManager.mutate(...)`. That mutation is not bound to the captured `runId`, Issue, and spec, so the lifecycle does not retain the selected identity through the flow-state mutation itself as required. A concurrent active-flow target change can be detected after the write, but the write has already been attempted against the unguarded current state.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "ade664ac56700c097b27633fab20aeea76e46b4d734e58ace7fef765be5241fe",
+      "disposition": "must-fix",
+      "rationale": "R1 is a mandatory acceptance criterion and the implementation notes explicitly require reusing FlowManager's binding-aware state APIs. Post-mutation verification does not satisfy the requirement to bind the selected identity through the mutation boundary.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

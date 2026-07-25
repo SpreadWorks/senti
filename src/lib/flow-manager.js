@@ -23,6 +23,8 @@ import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 import { WorktreeFlowBindingStore } from "./worktree-flow-binding.js";
 import { RepositoryFlowOperationLock } from "./repository-maintenance-lock.js";
 
+const ACTIVE_FLOW_MODES = new Set(["worktree", "branch", "local"]);
+
 export class ResolvedFlowTarget {
   constructor({ state, specId = null, worktreePath = null, authorityRoot, preparing = false }) {
     if (!state || typeof state !== "object") throw new Error("resolved flow target state is required");
@@ -52,6 +54,65 @@ export class ResolvedFlowTarget {
     return true;
   }
 
+}
+
+export class ActiveFlowIdentityEntry {
+  constructor({ entry, state } = {}) {
+    if (!entry || typeof entry !== "object") throw new Error("active flow identity entry is required");
+    if (typeof entry.spec !== "string" || entry.spec.trim() === "") {
+      throw new Error("active flow identity spec is required");
+    }
+    if (!ACTIVE_FLOW_MODES.has(entry.mode)) throw new Error("active flow identity mode is invalid");
+    if (!state || typeof state !== "object" || typeof state.runId !== "string" || state.runId.trim() === "") {
+      throw new Error(`active flow identity state is unavailable for ${entry.spec}`);
+    }
+    if (specIdFromPath(state.spec) !== entry.spec) {
+      throw new Error(`active flow identity spec mismatch for ${entry.spec}`);
+    }
+    const issue = state.issue == null ? null : Number(state.issue);
+    if (issue != null && (!Number.isSafeInteger(issue) || issue < 1)) {
+      throw new Error(`active flow identity issue is invalid for ${entry.spec}`);
+    }
+    this.runId = state.runId;
+    this.issue = issue;
+    this.spec = entry.spec;
+    this.mode = entry.mode;
+    Object.freeze(this);
+  }
+
+  get key() {
+    return `${this.runId}\u0000${this.issue ?? "none"}\u0000${this.spec}\u0000${this.mode}`;
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      issue: this.issue,
+      spec: this.spec,
+      mode: this.mode,
+    };
+  }
+}
+
+export class ActiveFlowIdentitySnapshot {
+  constructor({ entries, revision } = {}) {
+    if (!Array.isArray(entries)) throw new Error("active flow identity snapshot entries are required");
+    if (revision != null && typeof revision !== "string") {
+      throw new Error("active flow identity snapshot revision is invalid");
+    }
+    this.entries = Object.freeze(entries.map((entry) => (
+      entry instanceof ActiveFlowIdentityEntry ? entry : new ActiveFlowIdentityEntry(entry)
+    )));
+    this.revision = revision;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      entries: this.entries.map((entry) => entry.toJSON()),
+      revision: this.revision,
+    };
+  }
 }
 
 export class FlowTargetNotFoundError extends Error {
@@ -222,6 +283,25 @@ class ActiveFlowMismatchError extends Error {
   }
 }
 
+class CapturedFlowTargetMutation {
+  constructor(expectation, mutate) {
+    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.spec == null) {
+      throw new Error("captured flow target mutation requires an exact target with a spec");
+    }
+    if (typeof mutate !== "function") {
+      throw new Error("captured flow target mutation requires a mutation function");
+    }
+    this.expectation = expectation;
+    this._mutate = mutate;
+    Object.freeze(this);
+  }
+
+  mutate(mutator, opts) {
+    if (typeof mutator !== "function") throw new Error("captured flow target mutator is required");
+    return this._mutate(mutator, opts);
+  }
+}
+
 function isManagedFlowWorktree(root, mainRoot, inWorktree) {
   if (!inWorktree || !root || !mainRoot) return false;
   const resolvedRoot = path.resolve(root);
@@ -325,6 +405,29 @@ export class FlowManager {
     return state;
   }
   mutate(mutator, opts) { return this._store.mutate(mutator, withSpecIdDefault(opts, this._boundSpecId)); }
+  captureExactTarget(expectation) {
+    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.spec == null) {
+      throw new Error("exact flow target with a spec is required for capture");
+    }
+    this.resolveExplicitFlowTargetForRead(expectation);
+    return new CapturedFlowTargetMutation(
+      expectation,
+      (mutator, opts) => this.#mutateCapturedTarget(expectation, mutator, opts),
+    );
+  }
+  mutateExactTarget(expectation, mutator, opts) {
+    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) {
+      throw new Error("exact flow target expectation is required for mutation");
+    }
+    this.resolveExplicitFlowTargetForRead(expectation);
+    return this.#mutateCapturedTarget(expectation, mutator, opts);
+  }
+  #mutateCapturedTarget(expectation, mutator, opts) {
+    return this._store.mutate((current) => {
+      if (expectation.mismatchAgainst(current)) throw new ActiveFlowMismatchError(expectation, current);
+      return mutator(current);
+    }, { ...opts, specId: expectation.spec });
+  }
   pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }
   pathForCurrent() { return this._store.pathForCurrent(); }
   /** Alias preserved for parity with the legacy `flowStatePath` public export. */
@@ -457,6 +560,18 @@ export class FlowManager {
   // ── .active-flow (ActiveFlowRegistry) ───────────────────────────────────────
 
   loadActiveFlows() { return this._activeFlows.load(); }
+  snapshotActiveFlows(options) { return this._activeFlows.snapshot(options); }
+  snapshotActiveFlowIdentities(options) {
+    const registrySnapshot = this.snapshotActiveFlows(options);
+    const entries = registrySnapshot.entries.map((entry) => {
+      const resolved = this._loadActiveFlowState(entry.spec, entry.mode);
+      if (!resolved?.state) {
+        throw new Error(`active flow identity state is unavailable for ${entry.spec}`);
+      }
+      return new ActiveFlowIdentityEntry({ entry, state: resolved.state });
+    });
+    return new ActiveFlowIdentitySnapshot({ entries, revision: registrySnapshot.revision });
+  }
   addActiveFlow(specId, mode, options) { return this._activeFlows.add(specId, mode, options); }
   removeActiveFlow(specId, options) { return this._activeFlows.remove(specId, options); }
   cleanStaleFlows(options) { return this._activeFlows.cleanStale(options); }
@@ -748,15 +863,15 @@ export class FlowManager {
    * @param {string} specId
    * @returns {{ state: object, specId: string, worktreePath: string|null } | null}
    */
-  _loadActiveFlowState(specId) {
+  _loadActiveFlowState(specId, registeredMode = null) {
     let state = this._store.load(specId);
     let worktreePath = null;
 
     // worktree mode: the flow.json lives inside the worktree, not main repo.
     // First check the active-flows registry to know whether to look there.
     if (!state) {
-      const entry = this._activeFlows.load().find((f) => f.spec === specId);
-      if (entry?.mode === "worktree") {
+      const mode = registeredMode ?? this._activeFlows.load().find((entry) => entry.spec === specId)?.mode;
+      if (mode === "worktree") {
         const probe = path.join(sentiDir(this._mainRoot), "worktree", `feature-${specId}`);
         if (fs.existsSync(probe)) {
           const wtManager = this.forRoot(probe, { specId });

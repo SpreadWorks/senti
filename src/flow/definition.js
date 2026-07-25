@@ -300,6 +300,10 @@ const IMPL_REVIEW_RESET_RANGE = Object.freeze([
   "finalize-sync",
   "finalize-cleanup",
 ]);
+const REJECTED_IMPL_REVIEW_RESET_STEPS = Object.freeze([
+  "impl-repair",
+  "impl-gate",
+]);
 const REBUILDABLE_TEST_ARTIFACT_PATHS = Object.freeze([
   "upgrade-result.json",
   "scenario-validity-result.json",
@@ -434,6 +438,7 @@ function resolveImplReviewLifecycle(input) {
       );
     } else if (flowScoped && verdict === "REJECTED") {
       actions.push(
+        new ResetSteps({ steps: REJECTED_IMPL_REVIEW_RESET_STEPS }),
         new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }),
         new SetStepStatus({ step: "impl-triage", status: "in_progress" }),
       );

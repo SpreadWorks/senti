@@ -1,0 +1,50 @@
+{
+  "spec": "specs/338-active-flow-registry-race/spec.json",
+  "date": "2026-07-25T11:48:59.755Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "For a managed-worktree acceptance-decision, the lifecycle operation shall retain the selected binding's runId, Issue, and spec identity through its flow-state write and shall mutate only that bound flow.json.",
+      "status": "done",
+      "note": "R1: acceptance-decision persists only the exact bound worktree flow identity"
+    },
+    {
+      "desc": "The acceptance-decision success path shall not call an active-flow registry remove, park, or document-replacement operation, and it shall verify that the target entry and every entry present before the operation remain registered with their original modes.",
+      "status": "done",
+      "note": "R2: success preserves registry document identity and cannot remove, park, or replace it"
+    },
+    {
+      "desc": "After a successful managed-worktree acceptance-decision, guarded flow resolution shall return the same runId, Issue, and spec and the flow state shall mark acceptance-decision done and final-regression in progress only for accept_risk_and_continue.",
+      "status": "done",
+      "note": "R3: guarded resolution retains identity and only continue advances final regression"
+    },
+    {
+      "desc": "A worktree binding mismatch, registry operation lock failure, registry revision conflict, or registry identity verification failure shall return an explicit failure without reporting a successful acceptance-decision transition and without losing any pre-operation registry entry.",
+      "status": "done",
+      "note": "R4: every binding and registry failure leaves flow state and pointers unchanged"
+    },
+    {
+      "desc": "Regression coverage shall prove registry preservation and guarded target resolution with at least two managed-worktree flows, inject each R4 failure boundary without entry loss, prove that a one-entry registry retains its entry after accept_risk_and_continue, and prove that flow resume --parked restores a parked target's active entry and exact target resolution.",
+      "status": "done",
+      "note": "R5: two-flow, single-flow, and parked-resume regressions preserve exact pointers"
+    },
+    {
+      "desc": "For one current flow and one mechanically blocked gate attempt, missing materialized repair evidence may invoke the existing impl-repair authority at most once, invalidate only leaf steps from test-execute through finalize-cleanup, and permit one subsequent test-review-gate evaluation; a further failure shall not invoke the recovery again. For one exhausted rejected review record with a changed tree, the existing review-convergence authority shall clear only that record's stale fields and permit exactly one semantic re-evaluation without mutating unrelated flow state.",
+      "status": "done",
+      "note": "R6: bounded repair and semantic review recovery invalidate only stale current-flow evidence"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "7bea6358606d130b81e8be43643f286f317a7c09b3ed793b0d63693b3d027195"
+}

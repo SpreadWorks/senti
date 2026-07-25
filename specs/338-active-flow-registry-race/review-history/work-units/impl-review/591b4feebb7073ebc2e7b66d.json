@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "3a9e96fe45e71c857f96f1ef73043da3d1fcee5deb6a4b9a2f63adfaebadb097",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "3a9e96fe45e71c857f96f1ef73043da3d1fcee5deb6a4b9a2f63adfaebadb097",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T11:14:52.860Z",
+  "finishedAt": "2026-07-25T11:14:52.860Z",
+  "rawResponse": "I’ll review this as a change-set quality pass only against the two touched test files, and I’ll keep each proposal tied to one of the allowed requirement IDs.### 1. Extract Minimal Spec Fixture Creation\n**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R1  \n**Issue:** The new `resolveReviewTarget` test inlines a full minimal `spec.json` object, which is verbose and likely to be repeated by future tests covering spec-local files.  \n**Suggestion:** Add a small local helper such as `writeMinimalSpec(tmp, \"specs/demo/spec.json\", overrides)` or reuse an existing fixture helper if present in this file. Keep the test focused on the untracked test-source behavior.\n\n### 2. Rename Passing Evidence Fixture\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R2  \n**Issue:** `advisoryEvidence` has `disposition.value: \"PASS\"`, so the name suggests advisory findings even though the fixture represents a later superseding passing review.  \n**Suggestion:** Rename it to `passingEvidence`, `replacementEvidence`, or `supersedingPassEvidence` to match the role it plays in the test.\n\n### 3. Extract Review Evidence Fixture Boilerplate\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R3  \n**Issue:** The new test repeats substantial `ReviewEvidence` construction and artifact writing boilerplate. This makes the behavior under test harder to see.  \n**Suggestion:** Introduce a local helper such as `makeImplReviewEvidence({ treeSha, invocationId, capturedAt, disposition })` and optionally `writeReviewEvidence(fixture.specDir, evidence)`. The test would then emphasize the deferred-finding resolution scenario instead of setup mechanics.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Minimal Spec Fixture Creation",
+        "body": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R1  \n**Issue:** The new `resolveReviewTarget` test inlines a full minimal `spec.json` object, which is verbose and likely to be repeated by future tests covering spec-local files.  \n**Suggestion:** Add a small local helper such as `writeMinimalSpec(tmp, \"specs/demo/spec.json\", overrides)` or reuse an existing fixture helper if present in this file. Keep the test focused on the untracked test-source behavior.",
+        "file": "tests/unit/flow/commands/review.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Rename Passing Evidence Fixture",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R2  \n**Issue:** `advisoryEvidence` has `disposition.value: \"PASS\"`, so the name suggests advisory findings even though the fixture represents a later superseding passing review.  \n**Suggestion:** Rename it to `passingEvidence`, `replacementEvidence`, or `supersedingPassEvidence` to match the role it plays in the test.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Extract Review Evidence Fixture Boilerplate",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R3  \n**Issue:** The new test repeats substantial `ReviewEvidence` construction and artifact writing boilerplate. This makes the behavior under test harder to see.  \n**Suggestion:** Introduce a local helper such as `makeImplReviewEvidence({ treeSha, invocationId, capturedAt, disposition })` and optionally `writeReviewEvidence(fixture.specDir, evidence)`. The test would then emphasize the deferred-finding resolution scenario instead of setup mechanics.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

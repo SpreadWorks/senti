@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "0532f26e350398f1a09a36c3",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-5667a1d94cafc74b",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+      "src/flow/definition.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/set-retry.js",
+      "src/lib/active-flow-registry.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "5667a1d94cafc74beb911b83e8769b383385c4807c4f22ffce38af5de06df4d4",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0532f26e350398f1a09a36c3"
+  },
+  "targetFiles": [
+    "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+    "src/flow/definition.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/set-retry.js",
+    "src/lib/active-flow-registry.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "5667a1d94cafc74beb911b83e8769b383385c4807c4f22ffce38af5de06df4d4",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T11:15:45.836Z",
+  "finishedAt": "2026-07-25T11:15:45.836Z",
+  "rawResponse": "### 1. Consolidate Impl-Repair Recovery Transaction Logic\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R6  \n**Issue:** Multiple files now describe duplicated impl-repair recovery concerns: `completeLateAppliedFindingRepair` repeats transaction assembly in `impl-repair-artifacts.js`, while `set-step.js` independently reads repair ledgers and resolves repaired finding IDs. This risks drift between the artifact-producing repair path and the recovery-validation path.  \n**Suggestion:** Introduce shared helpers for repair ledger/finding collection and repair transaction construction, then have both `impl-repair-artifacts.js` and `set-step.js` consume those helpers instead of reimplementing adjacent recovery logic.\n\n### 2. Align Registry Snapshot Naming Across Manager And Artifact Layers\n**File:** `src/lib/flow-manager.js`  \n**Requirement:** R2  \n**Issue:** Registry snapshot concepts are named inconsistently across files: `snapshotActiveFlows()` in `flow-manager.js`, `ActiveFlowRegistrySnapshot` in `active-flow-registry.js`, and `AcceptanceDecisionRegistrySnapshot` in `acceptance-review-artifacts.js`. The manager method name hides that callers receive a locked active-flow registry snapshot with revision semantics.  \n**Suggestion:** Rename the manager method toward the registry terminology, such as `snapshotActiveFlowRegistry()` or `lockedActiveFlowRegistrySnapshot()`, and use matching before/after snapshot variable names in acceptance-review preservation checks.\n\n### 3. Centralize Acceptance Transaction Rollback Assertions\n**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R4  \n**Issue:** Rollback preservation is implemented in production through acceptance-review artifact snapshots, while the acceptance tests duplicate detailed snapshot capture and comparison logic across registry entries, flow JSON, review artifacts, issue logs, and step statuses. The test helper proposal mirrors production concepts but remains file-local, increasing the chance that test coverage and implementation invariants evolve separately.  \n**Suggestion:** Add a shared test helper named around the production invariant, for example `captureAcceptanceTransactionSnapshot()` and `assertAcceptanceTransactionUnchanged()`, and keep its terminology aligned with `AcceptanceDecisionRegistrySnapshot`.\n\n### 4. Standardize Flow Step Status Map Keys\n**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R2  \n**Issue:** Test helpers use camelCase keys like `implRepair` and `implGate`, while flow definitions and step transitions use kebab-case IDs like `impl-repair` and `impl-gate`. Other changed tests and recovery code operate directly on step IDs, so this helper introduces an inconsistent cross-file convention.  \n**Suggestion:** Rename the helper input to something like `initialStepStatusesById` and require actual step IDs as keys, matching production flow state shape and the other tests.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate Impl-Repair Recovery Transaction Logic",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R6  \n**Issue:** Multiple files now describe duplicated impl-repair recovery concerns: `completeLateAppliedFindingRepair` repeats transaction assembly in `impl-repair-artifacts.js`, while `set-step.js` independently reads repair ledgers and resolves repaired finding IDs. This risks drift between the artifact-producing repair path and the recovery-validation path.  \n**Suggestion:** Introduce shared helpers for repair ledger/finding collection and repair transaction construction, then have both `impl-repair-artifacts.js` and `set-step.js` consume those helpers instead of reimplementing adjacent recovery logic.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Align Registry Snapshot Naming Across Manager And Artifact Layers",
+        "body": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R2  \n**Issue:** Registry snapshot concepts are named inconsistently across files: `snapshotActiveFlows()` in `flow-manager.js`, `ActiveFlowRegistrySnapshot` in `active-flow-registry.js`, and `AcceptanceDecisionRegistrySnapshot` in `acceptance-review-artifacts.js`. The manager method name hides that callers receive a locked active-flow registry snapshot with revision semantics.  \n**Suggestion:** Rename the manager method toward the registry terminology, such as `snapshotActiveFlowRegistry()` or `lockedActiveFlowRegistrySnapshot()`, and use matching before/after snapshot variable names in acceptance-review preservation checks.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Centralize Acceptance Transaction Rollback Assertions",
+        "body": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R4  \n**Issue:** Rollback preservation is implemented in production through acceptance-review artifact snapshots, while the acceptance tests duplicate detailed snapshot capture and comparison logic across registry entries, flow JSON, review artifacts, issue logs, and step statuses. The test helper proposal mirrors production concepts but remains file-local, increasing the chance that test coverage and implementation invariants evolve separately.  \n**Suggestion:** Add a shared test helper named around the production invariant, for example `captureAcceptanceTransactionSnapshot()` and `assertAcceptanceTransactionUnchanged()`, and keep its terminology aligned with `AcceptanceDecisionRegistrySnapshot`.",
+        "file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Standardize Flow Step Status Map Keys",
+        "body": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R2  \n**Issue:** Test helpers use camelCase keys like `implRepair` and `implGate`, while flow definitions and step transitions use kebab-case IDs like `impl-repair` and `impl-gate`. Other changed tests and recovery code operate directly on step IDs, so this helper introduces an inconsistent cross-file convention.  \n**Suggestion:** Rename the helper input to something like `initialStepStatusesById` and require actual step IDs as keys, matching production flow state shape and the other tests.",
+        "file": "tests/unit/flow/run-review-advisory.test.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

@@ -44,9 +44,17 @@ import {
 import {
   completeImplTriage,
   completeImplRepair,
+  completeLateAppliedFindingRepair,
   commitImplRepairEffects,
   ImplRepairTransitionIntent,
+  readImplRepairLedger,
 } from "./impl-repair-artifacts.js";
+import { loadIssueLog } from "./set-issue-log.js";
+import {
+  ExternalBlockedOutcome,
+  StepAttemptLog,
+} from "./step-outcome.js";
+import { readRepairFingerprintManifest } from "./repair-state-identity.js";
 import {
   DefinitionLifecycleTransition,
   ExplicitRecoveryTransition,
@@ -63,6 +71,130 @@ function definitionTransitions(state, plan) {
       currentStatus: target?.status,
     });
   });
+}
+
+function isBlockedImplRepairRecovery({ id, status, activeNode, storedStep }) {
+  return id === "impl-repair"
+    && status === "done"
+    && activeNode?.scope === "flow"
+    && activeNode.stepId === "impl-gate"
+    && storedStep?.status === "done";
+}
+
+const MISSING_REPAIR_EVIDENCE_REASON = /^must-fix finding ([a-f0-9]{64}) is missing matching repair evidence$/;
+const LATE_APPLIED_REPAIR_REASON_PREFIX = "Late repair evidence recorded for findings ";
+
+function hasLateAppliedFindingRecovery(ledger) {
+  return ledger?.entries.some((entry) => (
+    entry.reason.startsWith(LATE_APPLIED_REPAIR_REASON_PREFIX)
+  )) === true;
+}
+
+function assertLateAppliedFindingRecoveryAvailable(ledger) {
+  if (hasLateAppliedFindingRecovery(ledger)) {
+    throw new Error("impl-repair recovery may run only once for the current flow");
+  }
+}
+
+function assertFreshRecoveryTestEvidence(specDir) {
+  const manifest = readRepairFingerprintManifest(specDir);
+  for (const artifactName of ["test-execute-result.json", "test-result-review.json"]) {
+    const artifact = JSON.parse(fs.readFileSync(path.join(specDir, artifactName), "utf8"));
+    if (artifact.repairFingerprint !== manifest.hash) {
+      throw new Error("impl-repair recovery requires fresh test evidence before invalidation");
+    }
+  }
+}
+
+function missingCurrentAppliedFindingIds(specDir, ledger = readImplRepairLedger(specDir)) {
+  const triage = JSON.parse(fs.readFileSync(path.join(specDir, "impl-triage.json"), "utf8"));
+  if (triage.sourceStep !== "impl-review" || triage.sourceArtifact !== "impl-review.json") {
+    throw new Error("impl-repair recovery requires an impl-review triage artifact");
+  }
+  const review = JSON.parse(fs.readFileSync(path.join(specDir, "impl-review.json"), "utf8"));
+  const previous = triage.previousFingerprint?.hash;
+  if (typeof previous !== "string" || review.repairFingerprint !== previous) {
+    throw new Error("impl-repair recovery requires triage and review fingerprint agreement");
+  }
+  const sourceFindingIds = new Set([
+    ...(review.blockingFindings || []),
+    ...(review.nonBlockingImprovements || []),
+  ].map((finding) => finding.findingId));
+  if (!Array.isArray(triage.items) || triage.items.length === 0) {
+    throw new Error("impl-repair recovery requires triage findings");
+  }
+  if (triage.items.some((item) => !sourceFindingIds.has(item.findingId))) {
+    throw new Error("impl-repair recovery triage findings must come from impl-review");
+  }
+  const applied = triage.items
+    .filter((item) => item.decision === "apply")
+    .map((item) => item.findingId);
+  if (applied.length === 0 || triage.items.some((item) => item.decision !== "apply")) {
+    throw new Error("impl-repair recovery requires only applied triage findings");
+  }
+  assertFreshRecoveryTestEvidence(specDir);
+  const repaired = new Set(
+    ledger?.entries.flatMap((entry) => entry.sourceFindingIds) || [],
+  );
+  const missing = applied.filter((findingId) => !repaired.has(findingId));
+  if (missing.length === 0) {
+    throw new Error("impl-repair recovery requires an applied finding without repair evidence");
+  }
+  if (missing.length !== applied.length) {
+    throw new Error("impl-repair recovery cannot mix repaired and unrepaired applied findings");
+  }
+  return missing;
+}
+
+function missingGateObservedFindingIds({ root, state, specDir, ledger = readImplRepairLedger(specDir) }) {
+  const repaired = new Set(ledger?.entries.flatMap((entry) => entry.sourceFindingIds) || []);
+  const observed = loadIssueLog(root, state.spec).entries
+    .map((entry) => MISSING_REPAIR_EVIDENCE_REASON.exec(String(entry?.reason || ""))?.[1] || null)
+    .filter((findingId) => findingId !== null && repaired.has(findingId));
+  const missing = [...new Set(observed)];
+  if (missing.length === 0) {
+    throw new Error("impl-repair recovery requires a gate-observed repair evidence failure");
+  }
+  assertFreshRecoveryTestEvidence(specDir);
+  return missing;
+}
+
+function validateBlockedImplRepairRecovery({ root, state }) {
+  const latest = new StepAttemptLog(state.stepAttempts || []).latestForRun(state.runId);
+  if (
+    latest?.stepId !== "impl-gate"
+    || latest.taskId !== null
+    || !(latest.outcome instanceof ExternalBlockedOutcome)
+    || latest.outcome.reason !== "mechanical"
+  ) {
+    return Envelope.fail(
+      "set",
+      "step",
+      "IMPL_REPAIR_RECOVERY_UNAVAILABLE",
+      "impl-repair recovery requires a mechanically blocked flow-level impl-gate attempt",
+    );
+  }
+  try {
+    const specDir = resolveSpecDir(path.resolve(root, state.spec));
+    const ledger = readImplRepairLedger(specDir);
+    assertLateAppliedFindingRecoveryAvailable(ledger);
+    try {
+      return { specDir, missingFindingIds: missingCurrentAppliedFindingIds(specDir, ledger) };
+    } catch (triageError) {
+      try {
+        return { specDir, missingFindingIds: missingGateObservedFindingIds({ root, state, specDir, ledger }) };
+      } catch (gateError) {
+        throw new Error(`${triageError.message}; ${gateError.message}`);
+      }
+    }
+  } catch (error) {
+    return Envelope.fail(
+      "set",
+      "step",
+      "IMPL_REPAIR_RECOVERY_UNAVAILABLE",
+      error.message,
+    );
+  }
 }
 
 function collectSideEffects(stepId) {
@@ -336,6 +468,36 @@ export default class SetStepCommand extends FlowCommand {
     const storedStep = activeScope
       ? findStepById(activeScope.steps || [], id)
       : null;
+    if (isBlockedImplRepairRecovery({ id, status, activeNode, storedStep })) {
+      const recovery = validateBlockedImplRepairRecovery({ root: ctx.root, state });
+      if (recovery instanceof Envelope) return recovery;
+      try {
+        const completed = completeLateAppliedFindingRepair({
+          root: ctx.root,
+          state,
+          flowManager: ctx.flowManager,
+          specDir: recovery.specDir,
+          sourceStep: "impl-review",
+          sourceFindingIds: recovery.missingFindingIds,
+          specId: ctx.specId,
+        });
+        return {
+          id,
+          status,
+          recovered: true,
+          repair: completed.entry,
+          missingFindingIds: recovery.missingFindingIds,
+          invalidations: completed.invalidations,
+        };
+      } catch (error) {
+        return Envelope.fail(
+          "set",
+          "step",
+          "IMPL_REPAIR_RECOVERY_FAILED",
+          error.message,
+        );
+      }
+    }
     let transition;
     try {
       transition = new NormalStepTransition({
@@ -389,25 +551,19 @@ export default class SetStepCommand extends FlowCommand {
           state,
           resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
         });
-        const transitions = [transition];
-        if (completed.stepChanges.length > 0) {
-          transitions.push(new ExplicitRecoveryTransition({
+        ctx.flowManager.updateStepStatuses([
+          transition,
+          ...(completed.stepChanges.length > 0 ? [new ExplicitRecoveryTransition({
             stepId: completed.stepChanges[0].stepId,
             currentStatus: completed.stepChanges[0].currentStatus,
             requestedStatus: completed.stepChanges[0].requestedStatus,
             entrypoint: "impl-repair-invalidation",
             changes: completed.stepChanges,
-          }));
-        }
-        const mutationOptions = {
+          })] : []),
+        ], {
           ...(ctx.specId ? { specId: ctx.specId } : {}),
           taskId: null,
-        };
-        ctx.flowManager.updateStepStatuses(
-          transitions,
-          mutationOptions,
-          new ImplRepairTransitionIntent(completed.transaction),
-        );
+        }, new ImplRepairTransitionIntent(completed.transaction));
         commitImplRepairEffects({
           root: ctx.root,
           state,
@@ -415,7 +571,12 @@ export default class SetStepCommand extends FlowCommand {
           transaction: completed.transaction,
           specId: ctx.specId,
         });
-        return { id, status, repair: completed.entry, invalidations: completed.invalidations };
+        return {
+          id,
+          status,
+          repair: completed.entry,
+          invalidations: completed.invalidations,
+        };
       }
       if (id === "implement") {
         const fail = await preValidateImplementStepCompletion({ root: ctx.root, state, requestedStatus: status });

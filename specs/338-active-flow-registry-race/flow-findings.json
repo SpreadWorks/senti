@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "impl-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "03841a0836a1b7750383ec972a0fe31f1d183cb1d3c86cdb14a746eb718b15eb",
+      "runId": "ddbdb1e1-8b31-4520-b219-ebe8e6c85b58",
+      "fingerprint": "03841a0836a1b7750383ec972a0fe31f1d183cb1d3c86cdb14a746eb718b15eb",
+      "disposition": "deferred",
+      "rationale": "R4 requires failures around the acceptance decision to leave flow state and pointers unchanged. This is a data-integrity blocker because a late write failure can expose a partially committed user decision with stale or missing audit evidence.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "still_open"
+    }
+  ]
+}

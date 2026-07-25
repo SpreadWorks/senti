@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/definition.js",
+      "src/flow/lib/acceptance-review-artifacts.js"
+    ],
+    "inputHash": "b1001810f3660e2347d0e0856a816dce4502253797c5eadbe42fdccdc4b39b19",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "src/flow/definition.js",
+    "src/flow/lib/acceptance-review-artifacts.js"
+  ],
+  "inputHash": "b1001810f3660e2347d0e0856a816dce4502253797c5eadbe42fdccdc4b39b19",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T11:43:01.776Z",
+  "finishedAt": "2026-07-25T11:43:01.776Z",
+  "rawResponse": "I’ll review only the two touched files in the supplied diff and keep the output in the exact proposal format, including requirement IDs.### 1. Add Bounds to Historical Evidence Replay\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R6  \n**Issue:** `historicalReviewHandoffs()` iterates every `reviewConvergence.records` entry and every `evidenceHistory` item, reading one evidence file per unique digest with no explicit count or size bound on the collection. The matched bounded-resource rationale only covers full comparison of one active-flow registry snapshot, not unbounded historical evidence replay.  \n**Suggestion:** Add explicit caps for records, evidence history entries, and total evidence files processed, or reuse an existing project cap if one exists in this file. Throw a clear error when exceeded.\n\n### 2. Reuse Issue Validation Logic\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `requireNullableIssue()` validates positive integer issue identities, but `AcceptanceDecisionTargetIdentity` reimplements similar parsing and validation inline. This duplicates identity validation rules and increases the chance of drift.  \n**Suggestion:** Use `requireNullableIssue(state?.issue, \"active flow issue\")` inside `AcceptanceDecisionTargetIdentity`, then keep only the managed-worktree-specific null rejection there.\n\n### 3. Simplify Canonical Evidence Source Handling\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `CanonicalReviewEvidenceProjection` calls `requireString(record.canonicalEvidenceRef, ...)` and immediately passes the result to `readCanonicalReviewEvidence()`, which validates the same value again.  \n**Suggestion:** Pass `record.canonicalEvidenceRef` directly to `readCanonicalReviewEvidence()` and let that helper own canonical evidence reference validation.\n\n### 4. Clarify Rollback Error Helper Naming\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `appendRollbackError()` sounds like it mutates a collection, but it actually returns either the new cause or an `AggregateError`. The current name makes the rollback path harder to scan.  \n**Suggestion:** Rename it to something like `combineRollbackError()` or `mergeRollbackError()` to reflect that it returns the combined error value.\n\n### 5. Align Reset Step Constant Naming\n**File:** `src/flow/definition.js`  \n**Requirement:** R3  \n**Issue:** `REJECTED_IMPL_REVIEW_RESET_STEPS` is verdict-oriented, while nearby lifecycle constants such as `IMPL_REVIEW_RESET_RANGE` are step/lifecycle-oriented. The naming style is slightly inconsistent.  \n**Suggestion:** Rename it to `IMPL_REVIEW_REJECTED_RESET_STEPS` or `IMPL_REVIEW_REJECTION_RESET_STEPS` so related impl-review lifecycle constants group together naturally.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Add Bounds to Historical Evidence Replay",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R6  \n**Issue:** `historicalReviewHandoffs()` iterates every `reviewConvergence.records` entry and every `evidenceHistory` item, reading one evidence file per unique digest with no explicit count or size bound on the collection. The matched bounded-resource rationale only covers full comparison of one active-flow registry snapshot, not unbounded historical evidence replay.  \n**Suggestion:** Add explicit caps for records, evidence history entries, and total evidence files processed, or reuse an existing project cap if one exists in this file. Throw a clear error when exceeded.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Reuse Issue Validation Logic",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `requireNullableIssue()` validates positive integer issue identities, but `AcceptanceDecisionTargetIdentity` reimplements similar parsing and validation inline. This duplicates identity validation rules and increases the chance of drift.  \n**Suggestion:** Use `requireNullableIssue(state?.issue, \"active flow issue\")` inside `AcceptanceDecisionTargetIdentity`, then keep only the managed-worktree-specific null rejection there.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Simplify Canonical Evidence Source Handling",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `CanonicalReviewEvidenceProjection` calls `requireString(record.canonicalEvidenceRef, ...)` and immediately passes the result to `readCanonicalReviewEvidence()`, which validates the same value again.  \n**Suggestion:** Pass `record.canonicalEvidenceRef` directly to `readCanonicalReviewEvidence()` and let that helper own canonical evidence reference validation.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Clarify Rollback Error Helper Naming",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `appendRollbackError()` sounds like it mutates a collection, but it actually returns either the new cause or an `AggregateError`. The current name makes the rollback path harder to scan.  \n**Suggestion:** Rename it to something like `combineRollbackError()` or `mergeRollbackError()` to reflect that it returns the combined error value.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Align Reset Step Constant Naming",
+        "body": "**File:** `src/flow/definition.js`  \n**Requirement:** R3  \n**Issue:** `REJECTED_IMPL_REVIEW_RESET_STEPS` is verdict-oriented, while nearby lifecycle constants such as `IMPL_REVIEW_RESET_RANGE` are step/lifecycle-oriented. The naming style is slightly inconsistent.  \n**Suggestion:** Rename it to `IMPL_REVIEW_REJECTED_RESET_STEPS` or `IMPL_REVIEW_REJECTION_RESET_STEPS` so related impl-review lifecycle constants group together naturally.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Added the initial autonomous QA checklist required by the draft review repair target.",
+  "items": [
+    {
+      "title": "1. Empty QA List",
+      "target": "qa[] (no qa.id)",
+      "rationale": "Added three self-contained pending questions covering goal preservation, failure boundaries, and bounded recovery coverage.",
+      "evidence": "draft.json#qa now contains q1 through q3 with the required pending-entry fields.",
+      "changedFieldPaths": ["qa"]
+    }
+  ]
+}

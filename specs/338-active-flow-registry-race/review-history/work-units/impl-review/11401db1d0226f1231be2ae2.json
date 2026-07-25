@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "314aeb69601c3aef197256d30c295d13d9129f248f0dad0103752132b7241c8c",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "314aeb69601c3aef197256d30c295d13d9129f248f0dad0103752132b7241c8c",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:48:21.030Z",
+  "finishedAt": "2026-07-25T08:48:21.030Z",
+  "rawResponse": "I’ll inspect the touched test file around the added case and nearby helpers so the proposals stay scoped to the diff and consistent with local patterns.The provided path is not present at the current working directory root, so I’m locating the repo layout before reviewing the diff in context.### 1. Extract ReviewEvidence fixture creation\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R4  \n**Issue:** The new test repeats verbose `ReviewEvidence` construction twice with mostly identical structure, which makes the test harder to scan and duplicates provider/provenance setup.  \n**Suggestion:** Add a small local helper such as `makeImplReviewEvidence({ treeSha, invocationId, capturedAt, disposition })` near the existing fixture helpers, then use it for both `rejectedEvidence` and `advisoryEvidence`.\n\n### 2. Align the test request text with the asserted behavior\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R2  \n**Issue:** The `state.request` says “Verify deferred findings survive a later implementation review,” but the test title and assertions are specifically about resolving deferred findings from superseded canonical review evidence. The wording is slightly broader than the behavior under test.  \n**Suggestion:** Rename the request string to something closer to the assertion, for example: `\"Verify deferred findings resolve from superseded canonical review evidence.\"`\n\n### 3. Avoid hard-coded retry exhaustion values repeated inline\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The value `4` appears in both `configuredSemanticMaxAttempts`, `attempts`, and `round`. If the fixture changes, these can drift and weaken the test’s intent.  \n**Suggestion:** Introduce `const maxAttempts = 4;` and use it for `configuredSemanticMaxAttempts`, `attempts`, and `round`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract ReviewEvidence fixture creation",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R4  \n**Issue:** The new test repeats verbose `ReviewEvidence` construction twice with mostly identical structure, which makes the test harder to scan and duplicates provider/provenance setup.  \n**Suggestion:** Add a small local helper such as `makeImplReviewEvidence({ treeSha, invocationId, capturedAt, disposition })` near the existing fixture helpers, then use it for both `rejectedEvidence` and `advisoryEvidence`.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Align the test request text with the asserted behavior",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R2  \n**Issue:** The `state.request` says “Verify deferred findings survive a later implementation review,” but the test title and assertions are specifically about resolving deferred findings from superseded canonical review evidence. The wording is slightly broader than the behavior under test.  \n**Suggestion:** Rename the request string to something closer to the assertion, for example: `\"Verify deferred findings resolve from superseded canonical review evidence.\"`",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Avoid hard-coded retry exhaustion values repeated inline",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The value `4` appears in both `configuredSemanticMaxAttempts`, `attempts`, and `round`. If the fixture changes, these can drift and weaken the test’s intent.  \n**Suggestion:** Introduce `const maxAttempts = 4;` and use it for `configuredSemanticMaxAttempts`, `attempts`, and `round`.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

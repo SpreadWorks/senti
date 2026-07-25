@@ -1,0 +1,292 @@
+{
+  "version": 1,
+  "runId": "ddbdb1e1-8b31-4520-b219-ebe8e6c85b58",
+  "planRewindAt": "2026-07-25T10:17:25.310Z",
+  "generatedAt": "2026-07-25T10:31:40.173Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "R2 requires verifying \"every entry present before the operation\" remains registered, but does not state an explicit upper bound on the number of registry entries processed.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1].desc"
+          },
+          "observed": "R2 requires verifying \"every entry present before the operation\" remains registered, but does not state an explicit upper bound on the number of registry entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "R2 requires verifying \"every entry present before the operation\" remains registered, but does not state an explicit upper bound on the number of registry entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:30:31.378Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "AC2 requires preserving the same registry entry set for \"two or more active registry entries\" without an explicit upper bound on the number of entries processed.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[1]"
+          },
+          "observed": "AC2 requires preserving the same registry entry set for \"two or more active registry entries\" without an explicit upper bound on the number of entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "AC2 requires preserving the same registry entry set for \"two or more active registry entries\" without an explicit upper bound on the number of entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:30:31.378Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "AC4 requires preserving the pre-operation registry entry set during failure cases, but does not state an explicit upper bound on the number of registry entries processed.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[3]"
+          },
+          "observed": "AC4 requires preserving the pre-operation registry entry set during failure cases, but does not state an explicit upper bound on the number of registry entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "AC4 requires preserving the pre-operation registry entry set during failure cases, but does not state an explicit upper bound on the number of registry entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:30:31.378Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "T-1 acceptance requires verifying the original active registry entry set without an explicit upper bound on the number of registry entries processed.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].acceptance[1]"
+          },
+          "observed": "T-1 acceptance requires verifying the original active registry entry set without an explicit upper bound on the number of registry entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "T-1 acceptance requires verifying the original active registry entry set without an explicit upper bound on the number of registry entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:30:31.378Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "T-1 test strategy asserts the full registry entry set without an explicit upper bound on the number of entries processed.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "T-1 test strategy asserts the full registry entry set without an explicit upper bound on the number of entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "T-1 test strategy asserts the full registry entry set without an explicit upper bound on the number of entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:30:31.378Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[1].desc"
+      },
+      "observed": "R2 requires verifying \"every entry present before the operation\" remains registered, but does not state an explicit upper bound on the number of registry entries processed.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "R2 requires verifying \"every entry present before the operation\" remains registered, but does not state an explicit upper bound on the number of registry entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:31:40.173Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[1]"
+      },
+      "observed": "AC2 requires preserving the same registry entry set for \"two or more active registry entries\" without an explicit upper bound on the number of entries processed.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "AC2 requires preserving the same registry entry set for \"two or more active registry entries\" without an explicit upper bound on the number of entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:31:40.173Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[3]"
+      },
+      "observed": "AC4 requires preserving the pre-operation registry entry set during failure cases, but does not state an explicit upper bound on the number of registry entries processed.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "AC4 requires preserving the pre-operation registry entry set during failure cases, but does not state an explicit upper bound on the number of registry entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:31:40.173Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[0].acceptance[1]"
+      },
+      "observed": "T-1 acceptance requires verifying the original active registry entry set without an explicit upper bound on the number of registry entries processed.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "T-1 acceptance requires verifying the original active registry entry set without an explicit upper bound on the number of registry entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:31:40.173Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[0].test_strategy"
+      },
+      "observed": "T-1 test strategy asserts the full registry entry set without an explicit upper bound on the number of entries processed.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "T-1 test strategy asserts the full registry entry set without an explicit upper bound on the number of entries processed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T10:31:40.173Z",
+      "repeatCount": 1
+    }
+  ]
+}

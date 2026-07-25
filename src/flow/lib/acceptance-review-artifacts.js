@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateSchema } from "../../lib/schema-validate.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
+import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 import { flowLeafIdsBetween } from "../definition.js";
 import { findStepById } from "./step-tree.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
@@ -59,6 +60,13 @@ function requireString(value, field) {
   return value.trim();
 }
 
+function requireNullableIssue(value, field) {
+  if (value == null) return null;
+  const issue = Number(value);
+  if (!Number.isSafeInteger(issue) || issue < 1) throw new Error(`${field} must be a positive integer or null`);
+  return issue;
+}
+
 function requireStringArray(value, field, { allowEmpty = false } = {}) {
   if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) {
     throw new Error(`${field} must be ${allowEmpty ? "an" : "a non-empty"} array`);
@@ -77,6 +85,202 @@ function readJson(file) {
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
+}
+
+function acceptanceDecisionRegistryError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+class AcceptanceDecisionRegistryEntry {
+  constructor(input = {}) {
+    this.runId = requireString(input.runId, "active-flow entry.runId");
+    this.issue = requireNullableIssue(input.issue, "active-flow entry.issue");
+    this.spec = requireString(input.spec, "active-flow entry.spec");
+    this.mode = requireString(input.mode, "active-flow entry.mode");
+    Object.freeze(this);
+  }
+
+  get key() {
+    return `${this.runId}\u0000${this.issue ?? "none"}\u0000${this.spec}\u0000${this.mode}`;
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      issue: this.issue,
+      spec: this.spec,
+      mode: this.mode,
+    };
+  }
+}
+
+class AcceptanceDecisionTargetIdentity {
+  constructor(state) {
+    this.runId = requireString(state?.runId, "active flow runId");
+    this.issue = state?.issue == null ? null : Number(state.issue);
+    if (this.issue == null || !Number.isSafeInteger(this.issue) || this.issue < 1) {
+      throw acceptanceDecisionRegistryError(
+        "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",
+        "managed-worktree acceptance decision requires a positive Issue identity",
+      );
+    }
+    this.spec = requireString(state?.spec, "active flow spec");
+    this.expectation = new FlowTargetExpectation({
+      expectRunId: this.runId,
+      expectIssue: this.issue,
+      expectSpec: this.spec,
+    });
+    this.specId = this.expectation.spec;
+    Object.freeze(this);
+  }
+
+  resolve(flowManager) {
+    if (typeof flowManager.resolveExplicitFlowTargetForRead !== "function") {
+      throw acceptanceDecisionRegistryError(
+        "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",
+        "managed-worktree acceptance decision requires guarded flow resolution",
+      );
+    }
+    const resolved = flowManager.resolveExplicitFlowTargetForRead(this.expectation);
+    if (
+      resolved?.specId !== this.specId
+      || resolved.state?.runId !== this.runId
+      || Number(resolved.state?.issue) !== this.issue
+    ) {
+      throw acceptanceDecisionRegistryError(
+        "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",
+        "guarded flow resolution changed during acceptance decision",
+      );
+    }
+    return resolved;
+  }
+
+  captureMutation(flowManager) {
+    if (typeof flowManager.captureExactTarget !== "function") {
+      throw acceptanceDecisionRegistryError(
+        "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",
+        "managed-worktree acceptance decision requires exact target capture",
+      );
+    }
+    return flowManager.captureExactTarget(this.expectation);
+  }
+
+  toJSON() {
+    return { spec: this.specId, runId: this.runId, issue: this.issue, mode: "worktree" };
+  }
+}
+
+class AcceptanceDecisionRegistrySnapshot {
+  constructor({ target, targetMutation, registrySnapshot }) {
+    if (!(target instanceof AcceptanceDecisionTargetIdentity)) {
+      throw new Error("acceptance registry snapshot requires a target identity");
+    }
+    if (targetMutation == null || typeof targetMutation.mutate !== "function") {
+      throw new Error("acceptance registry snapshot requires a captured target mutation");
+    }
+    if (!registrySnapshot || !Array.isArray(registrySnapshot.entries)) {
+      throw new Error("acceptance registry snapshot requires locked registry entries");
+    }
+    this.target = target;
+    this.targetMutation = targetMutation;
+    this.entries = Object.freeze(registrySnapshot.entries.map((entry) => new AcceptanceDecisionRegistryEntry(entry)));
+    this.entryKeys = Object.freeze(this.entries.map((entry) => entry.key).sort());
+    this.revision = registrySnapshot.revision;
+    const targetEntry = new AcceptanceDecisionRegistryEntry(target.toJSON());
+    if (!this.entries.some((entry) => entry.key === targetEntry.key)) {
+      throw acceptanceDecisionRegistryError(
+        "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",
+        "managed-worktree acceptance decision target is absent from the active-flow registry",
+      );
+    }
+    Object.freeze(this);
+  }
+
+  static capture(flowManager, state) {
+    const target = new AcceptanceDecisionTargetIdentity(state);
+    const targetMutation = target.captureMutation(flowManager);
+    if (typeof flowManager.snapshotActiveFlowIdentities !== "function") {
+      throw acceptanceDecisionRegistryError(
+        "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",
+        "managed-worktree acceptance decision requires locked active-flow identity access",
+      );
+    }
+    return new AcceptanceDecisionRegistrySnapshot({
+      target,
+      targetMutation,
+      registrySnapshot: flowManager.snapshotActiveFlowIdentities(),
+    });
+  }
+
+  verify(flowManager) {
+    this.target.resolve(flowManager);
+    const registrySnapshot = flowManager.snapshotActiveFlowIdentities();
+    if (registrySnapshot.revision !== this.revision) {
+      throw acceptanceDecisionRegistryError(
+        "ACTIVE_FLOW_REGISTRY_REVISION_CONFLICT",
+        "active-flow registry revision changed during acceptance decision",
+      );
+    }
+    const entries = registrySnapshot.entries.map((entry) => new AcceptanceDecisionRegistryEntry(entry));
+    const entryKeys = entries.map((entry) => entry.key).sort();
+    if (
+      entryKeys.length !== this.entryKeys.length
+      || entryKeys.some((key, index) => key !== this.entryKeys[index])
+    ) {
+      throw acceptanceDecisionRegistryError(
+        "ACTIVE_FLOW_REGISTRY_IDENTITY_MISMATCH",
+        "active-flow registry entries changed during acceptance decision",
+      );
+    }
+    return {
+      target: this.target.toJSON(),
+      entries: entries.map((entry) => entry.toJSON()),
+      prohibitedOperations: [],
+    };
+  }
+}
+
+class AcceptanceDecisionIssueLogSnapshot {
+  constructor({ file, bytes, mode }) {
+    if ((bytes == null) !== (mode == null)) {
+      throw new Error("acceptance decision issue-log snapshot requires matching bytes and mode");
+    }
+    if (mode != null && (!Number.isSafeInteger(mode) || mode < 0 || mode > 0o777)) {
+      throw new Error("acceptance decision issue-log snapshot mode is invalid");
+    }
+    this.file = requireString(file, "acceptance decision issue-log path");
+    this.bytes = bytes == null ? null : Buffer.from(bytes);
+    this.mode = mode;
+    Object.freeze(this);
+  }
+
+  static capture(specDir) {
+    const file = path.join(specDir, "issue-log.json");
+    if (!fs.existsSync(file)) return new AcceptanceDecisionIssueLogSnapshot({ file, bytes: null, mode: null });
+    const stat = fs.statSync(file);
+    return new AcceptanceDecisionIssueLogSnapshot({
+      file,
+      bytes: fs.readFileSync(file),
+      mode: stat.mode & 0o777,
+    });
+  }
+
+  restore() {
+    if (this.bytes == null) {
+      fs.rmSync(this.file, { force: true });
+      return;
+    }
+    fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    fs.writeFileSync(this.file, this.bytes);
+    fs.chmodSync(this.file, this.mode);
+  }
+}
+
+function replaceState(current, previous) {
+  for (const key of Object.keys(current)) delete current[key];
+  Object.assign(current, clone(previous));
 }
 
 function acceptanceSchema() {
@@ -142,10 +346,16 @@ export class MechanicalBlocker {
 }
 
 export class AcceptanceEvidenceRefresh {
-  constructor({ fingerprint, artifacts, blockers, deferredFindings }) {
+  constructor({ fingerprint, artifacts, blockers, deferredFindings, fingerprintExemptArtifacts = [] }) {
     this.currentFingerprint = fingerprint.hash;
+    this.fingerprintExemptArtifacts = Object.freeze(requireStringArray(
+      fingerprintExemptArtifacts,
+      "fingerprintExemptArtifacts",
+      { allowEmpty: true },
+    ));
     this.staleArtifacts = Object.freeze(FINGERPRINTED_INPUT_ARTIFACTS
       .filter((file) => {
+        if (this.fingerprintExemptArtifacts.includes(file)) return false;
         const previous = artifacts[file]?.repairFingerprint;
         return typeof previous === "string"
           && REPAIR_FINGERPRINT_PATTERN.test(previous)
@@ -279,60 +489,71 @@ export class DeferredFindingEvidenceProjection {
   }
 }
 
+function canonicalEvidenceIdentityMatches(identity, evidence) {
+  return identity
+    && identity.phase === evidence.phase
+    && (identity.taskId ?? null) === evidence.taskId
+    && identity.treeSha === evidence.treeSha
+    && identity.evidenceDigest === evidence.identity.evidenceDigest
+    && ["provider", "invocationId", "capturedAt"].every((field) => (
+      identity.provenance?.[field] === evidence.provenance[field]
+    ));
+}
+
+function readCanonicalReviewEvidence({ specDir, sourceArtifact }) {
+  const normalizedSourceArtifact = requireString(sourceArtifact, "canonicalEvidenceRef");
+  const sourcePath = path.resolve(specDir, normalizedSourceArtifact);
+  const relative = path.relative(specDir, sourcePath);
+  if (relative.startsWith("..") || path.isAbsolute(relative) || !fs.existsSync(sourcePath)) {
+    throw new Error("canonical review evidence is missing or outside the spec directory");
+  }
+  const sourceStat = fs.lstatSync(sourcePath);
+  if (!sourceStat.isFile() || sourceStat.isSymbolicLink()) {
+    throw new Error("canonical review evidence must be a regular file");
+  }
+  if (sourceStat.size > MAX_SOURCE_ARTIFACT_READ_BYTES) {
+    throw new Error(`canonical review evidence exceeds ${MAX_SOURCE_ARTIFACT_READ_BYTES} bytes`);
+  }
+  const realRelative = path.relative(fs.realpathSync(specDir), fs.realpathSync(sourcePath));
+  if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) {
+    throw new Error("canonical review evidence resolves outside the spec directory");
+  }
+  const canonicalText = fs.readFileSync(sourcePath, "utf8").replace(/\n$/, "");
+  const document = JSON.parse(canonicalText);
+  const evidence = new ReviewEvidence({
+    ...document,
+    disposition: new ReviewDisposition({
+      value: document.disposition,
+      blockingFindings: document.blockingFindings,
+      advisoryFindings: document.advisoryFindings,
+    }),
+  });
+  if (evidence.canonicalText !== canonicalText) {
+    throw new Error("canonical review evidence bytes are not canonical");
+  }
+  const expectedSourceArtifact = `review-evidence/${evidence.identity.evidenceDigest}.json`;
+  if (normalizedSourceArtifact !== expectedSourceArtifact) {
+    throw new Error("canonical review evidence reference does not match its digest");
+  }
+  return { sourceArtifact: normalizedSourceArtifact, evidence };
+}
+
 export class CanonicalReviewEvidenceProjection {
   constructor({ specDir, record }) {
     if (!record || typeof record !== "object" || Array.isArray(record)) {
       throw new Error("review convergence record is required");
     }
     const sourceArtifact = requireString(record.canonicalEvidenceRef, "canonicalEvidenceRef");
-    const sourcePath = path.resolve(specDir, sourceArtifact);
-    const relative = path.relative(specDir, sourcePath);
-    if (relative.startsWith("..") || path.isAbsolute(relative) || !fs.existsSync(sourcePath)) {
-      throw new Error("canonical review evidence is missing or outside the spec directory");
-    }
-    const sourceStat = fs.lstatSync(sourcePath);
-    if (!sourceStat.isFile() || sourceStat.isSymbolicLink()) {
-      throw new Error("canonical review evidence must be a regular file");
-    }
-    if (sourceStat.size > MAX_SOURCE_ARTIFACT_READ_BYTES) {
-      throw new Error(`canonical review evidence exceeds ${MAX_SOURCE_ARTIFACT_READ_BYTES} bytes`);
-    }
-    const realRelative = path.relative(fs.realpathSync(specDir), fs.realpathSync(sourcePath));
-    if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) {
-      throw new Error("canonical review evidence resolves outside the spec directory");
-    }
-    const canonicalText = fs.readFileSync(sourcePath, "utf8").replace(/\n$/, "");
-    const document = JSON.parse(canonicalText);
-    const evidence = new ReviewEvidence({
-      ...document,
-      disposition: new ReviewDisposition({
-        value: document.disposition,
-        blockingFindings: document.blockingFindings,
-        advisoryFindings: document.advisoryFindings,
-      }),
-    });
-    if (evidence.canonicalText !== canonicalText) {
-      throw new Error("canonical review evidence bytes are not canonical");
-    }
+    const canonical = readCanonicalReviewEvidence({ specDir, sourceArtifact });
+    const { evidence } = canonical;
     const identity = record.evidenceIdentity;
-    const digest = evidence.identity.evidenceDigest;
-    const expectedSourceArtifact = `review-evidence/${digest}.json`;
-    const identityMatches = identity
-      && identity.phase === evidence.phase
-      && (identity.taskId ?? null) === evidence.taskId
-      && identity.treeSha === evidence.treeSha
-      && identity.evidenceDigest === digest
-      && ["provider", "invocationId", "capturedAt"].every((field) => (
-        identity.provenance?.[field] === evidence.provenance[field]
-      ));
     if (
-      !identityMatches
+      !canonicalEvidenceIdentityMatches(identity, evidence)
       || record.phase !== evidence.phase
       || (record.taskId ?? null) !== evidence.taskId
       || record.treeSha !== evidence.treeSha
-      || record.evidence?.evidenceId !== digest
+      || record.evidence?.evidenceId !== evidence.identity.evidenceDigest
       || record.evidence?.disposition !== evidence.disposition.value
-      || sourceArtifact !== expectedSourceArtifact
     ) {
       throw new Error("canonical review evidence does not match current flow state");
     }
@@ -340,7 +561,7 @@ export class CanonicalReviewEvidenceProjection {
     if (JSON.stringify(record.handoffFindings || []) !== JSON.stringify(expectedHandoffs)) {
       throw new Error("canonical review handoff findings do not match current flow state");
     }
-    this.sourceArtifact = sourceArtifact;
+    this.sourceArtifact = canonical.sourceArtifact;
     this.evidence = evidence;
     Object.freeze(this);
   }
@@ -360,6 +581,30 @@ export class CanonicalReviewEvidenceProjection {
       provenance: this.evidence.provenance.toJSON(),
       findings: this.evidence.findings.map((finding) => finding.toJSON()),
     };
+  }
+}
+
+class HistoricalCanonicalReviewEvidenceProjection {
+  constructor({ specDir, record, evidenceIdentity }) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      throw new Error("review convergence record is required");
+    }
+    const digest = requireString(evidenceIdentity?.evidenceDigest, "evidenceHistory.evidenceDigest");
+    const canonical = readCanonicalReviewEvidence({
+      specDir,
+      sourceArtifact: `review-evidence/${digest}.json`,
+    });
+    const { evidence } = canonical;
+    if (
+      !canonicalEvidenceIdentityMatches(evidenceIdentity, evidence)
+      || record.phase !== evidence.phase
+      || (record.taskId ?? null) !== evidence.taskId
+    ) {
+      throw new Error("historical canonical review evidence does not match flow state");
+    }
+    this.sourceArtifact = canonical.sourceArtifact;
+    this.evidence = evidence;
+    Object.freeze(this);
   }
 }
 
@@ -629,14 +874,18 @@ function dispositionEvidence(specDir) {
 }
 
 function latestReviewConvergenceRecords(flowState) {
-  const records = Array.isArray(flowState?.reviewConvergence?.records)
-    ? flowState.reviewConvergence.records
-    : [];
+  const records = reviewConvergenceRecords(flowState);
   const latest = new Map();
   for (const record of records) {
     latest.set(`${record.phase}:${record.taskId ?? ""}`, record);
   }
   return [...latest.values()];
+}
+
+function reviewConvergenceRecords(flowState) {
+  return Array.isArray(flowState?.reviewConvergence?.records)
+    ? flowState.reviewConvergence.records
+    : [];
 }
 
 function reviewHandoffFindingId(record, finding) {
@@ -657,6 +906,39 @@ function reviewHandoffFindings(flowState) {
   ));
 }
 
+function historicalReviewHandoffs(specDir, flowState) {
+  const handoffs = new Map();
+  const seenEvidence = new Set();
+  for (const record of reviewConvergenceRecords(flowState)) {
+    const identities = [record.evidenceIdentity, ...(record.evidenceHistory || [])];
+    for (const identity of identities) {
+      const digest = identity?.evidenceDigest;
+      if (typeof digest !== "string" || seenEvidence.has(digest)) continue;
+      seenEvidence.add(digest);
+      try {
+        const projection = new HistoricalCanonicalReviewEvidenceProjection({
+          specDir,
+          record,
+          evidenceIdentity: identity,
+        });
+        for (const finding of buildReviewHandoffFindings(projection.evidence)) {
+          const sourceStep = finding.sourceStep || (record.taskId == null ? `${record.phase}-review` : "task-review");
+          const key = `${sourceStep}:${finding.fingerprint}`;
+          if (!handoffs.has(key)) {
+            handoffs.set(key, {
+              sourceArtifact: projection.sourceArtifact,
+              sourceFindingId: finding.findingId,
+            });
+          }
+        }
+      } catch (error) {
+        throw new Error(`historical review evidence is invalid for ${digest}`, { cause: error });
+      }
+    }
+  }
+  return handoffs;
+}
+
 class ResolvedDeferredFindingSource {
   constructor(finding, canonicalHandoff = null) {
     this.findingId = finding.findingId;
@@ -675,11 +957,14 @@ class DeferredFindingSources {
       `${entry.sourceStep}:${entry.handoffFinding.fingerprint}`,
       entry,
     ]));
+    const historicalHandoffs = historicalReviewHandoffs(specDir, flowState);
     this.flowFindings = Object.freeze(
       readFlowFindingsArtifact(specDir, { flowState }).entries.map((entry) => (
         new ResolvedDeferredFindingSource(
           entry,
-          canonicalHandoffs.get(`${entry.sourceStep}:${entry.fingerprint}`) || null,
+          canonicalHandoffs.get(`${entry.sourceStep}:${entry.fingerprint}`)
+            || historicalHandoffs.get(`${entry.sourceStep}:${entry.fingerprint}`)
+            || null,
         )
       )),
     );
@@ -1065,6 +1350,9 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
     artifacts: mechanical.artifacts,
     blockers: mechanicalBlockers,
     deferredFindings,
+    fingerprintExemptArtifacts: mechanical.canonicalImplReviewEvidence
+      ? ["impl-review.json"]
+      : [],
   });
   const repairPath = path.join(specDir, "impl-repair.json");
   const implReview = mechanical.artifacts["impl-review.json"];
@@ -1245,8 +1533,8 @@ export function applyAcceptanceReviewResult({
   return { verdict: next.verdict, artifactPath: acceptanceArtifactPath(state), artifact: next, path: written.path };
 }
 
-function appendRiskDecisionIssue(root, state) {
-  appendIssueLogEntry(root, state.spec, {
+function appendRiskDecisionIssue(root, state, appendIssueLog) {
+  appendIssueLog(root, state.spec, {
     step: "acceptance-decision",
     reason: "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
     trigger: "flow set acceptance-decision",
@@ -1256,14 +1544,26 @@ function appendRiskDecisionIssue(root, state) {
   });
 }
 
-export function applyAcceptanceDecision({ root, flowManager, choice }) {
+function appendRollbackError(rollbackError, cause) {
+  return rollbackError == null
+    ? cause
+    : new AggregateError([rollbackError, cause], "acceptance decision rollback failed", { cause: rollbackError });
+}
+
+export function applyAcceptanceDecision({ root, flowManager, choice, appendIssueLog = appendIssueLogEntry }) {
   if (!USER_DECISION_CHOICES.has(choice)) throw new Error(`invalid acceptance decision choice: ${choice}`);
   const state = flowManager.load();
   if (!state?.spec) throw new Error("active flow spec is required");
+  const registrySnapshot = state.worktree
+    ? AcceptanceDecisionRegistrySnapshot.capture(flowManager, state)
+    : null;
   ensureRepairFingerprintContract({ root, state, flowManager });
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
+  const issueLogSnapshot = AcceptanceDecisionIssueLogSnapshot.capture(specDir);
   const file = path.join(specDir, ACCEPTANCE_REVIEW_ARTIFACT_FILE);
   const artifact = readJson(file);
+  const previousArtifact = clone(artifact);
+  const previousState = clone(state);
   if (artifact.verdict !== "user_decision_required") {
     throw new Error(`acceptance-decision is not available for verdict: ${artifact.verdict}`);
   }
@@ -1279,15 +1579,73 @@ export function applyAcceptanceDecision({ root, flowManager, choice }) {
     flowState: state,
   });
   const decidedArtifact = written.artifact;
-  flowManager.mutate((current) => {
-    current.acceptanceReview = current.acceptanceReview || { verdict: decidedArtifact.verdict };
-    current.acceptanceReview.userDecision = userDecision;
-    markStep(current, "acceptance-decision", "done");
-    if (choice === "accept_risk_and_continue") markStep(current, "final-regression", "in_progress");
-    else current.acceptanceReview.status = "aborted";
-  });
-  if (choice === "accept_risk_and_continue") appendRiskDecisionIssue(root, state);
-  return { verdict: decidedArtifact.verdict, choice, userDecision };
+  const mutateDecision = registrySnapshot == null
+    ? (mutator) => flowManager.mutate(mutator)
+    : (mutator) => {
+      if (typeof flowManager.mutateExactTarget !== "function") {
+        throw acceptanceDecisionRegistryError(
+          "ACTIVE_FLOW_TARGET_IDENTITY_MISMATCH",
+          "managed-worktree acceptance decision requires exact target mutation",
+        );
+      }
+      return flowManager.mutateExactTarget(registrySnapshot.target.expectation, mutator);
+    };
+  const rollbackDecision = registrySnapshot == null
+    ? (mutator) => flowManager.mutate(mutator)
+    : (mutator) => registrySnapshot.targetMutation.mutate(mutator);
+  let stateMutated = false;
+  let registryVerification = null;
+  try {
+    mutateDecision((current) => {
+      current.acceptanceReview = current.acceptanceReview || { verdict: decidedArtifact.verdict };
+      current.acceptanceReview.userDecision = userDecision;
+      markStep(current, "acceptance-decision", "done");
+      if (choice === "accept_risk_and_continue") markStep(current, "final-regression", "in_progress");
+      else current.acceptanceReview.status = "aborted";
+    });
+    stateMutated = true;
+    registryVerification = registrySnapshot?.verify(flowManager) ?? null;
+    if (choice === "accept_risk_and_continue") appendRiskDecisionIssue(root, state, appendIssueLog);
+  } catch (error) {
+    let rollbackError = null;
+    if (stateMutated) {
+      try {
+        rollbackDecision((current) => replaceState(current, previousState));
+      } catch (cause) {
+        rollbackError = cause;
+      }
+    }
+    try {
+      writeAcceptanceReviewArtifact({
+        specDir,
+        artifact: previousArtifact,
+        requirementIds: requirementList(specDir).map((entry) => entry.id),
+        fingerprint,
+        flowState: previousState,
+      });
+    } catch (cause) {
+      rollbackError = appendRollbackError(rollbackError, cause);
+    }
+    try {
+      issueLogSnapshot.restore();
+    } catch (cause) {
+      rollbackError = appendRollbackError(rollbackError, cause);
+    }
+    if (rollbackError) {
+      throw new AggregateError(
+        [error, rollbackError],
+        "acceptance decision registry verification and rollback both failed",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+  return {
+    verdict: decidedArtifact.verdict,
+    choice,
+    userDecision,
+    ...(registryVerification && { registryVerification }),
+  };
 }
 
 export { ACCEPTANCE_FINAL_DISPOSITIONS };

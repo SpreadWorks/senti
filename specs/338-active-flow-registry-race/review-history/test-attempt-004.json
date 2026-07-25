@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T06:31:07.858Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/338-active-flow-registry-race/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 lock and revision failures are injected at the wrong boundary",
+      "target": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js: R4 test cases for registry operation lock failure and registry revision conflict",
+      "findingId": "b53c4969a3c5116e29751278c5b5dcf1eb1f97b8edba477b0caa6876ac4df4f9",
+      "fingerprint": "b53c4969a3c5116e29751278c5b5dcf1eb1f97b8edba477b0caa6876ac4df4f9",
+      "disposition": "must-fix",
+      "rationale": "R4 and R5 require each failure boundary to be injected and prove no registry entry loss. These two cases currently encode an implementation premise about the method call site rather than the required external behavior.",
+      "issue": "The test replaces `flow.manager.loadActiveFlows`, but the acceptance-decision path may verify registry preservation through `ActiveFlowRegistry` or another manager method. If production code never calls this overridden method, these R4 cases will pass or fail for the wrong reason and will not prove the required registry operation lock/revision-conflict boundaries.",
+      "requiredChange": "Inject the lock-failure and revision-conflict faults at the actual registry operation used by acceptance-decision registry verification, or assert that the exercised production path necessarily calls the overridden method.",
+      "whyBlocking": "R4 and R5 require each failure boundary to be injected and prove no registry entry loss. These two cases currently encode an implementation premise about the method call site rather than the required external behavior.",
+      "origin": "R4, R5",
+      "failureKind": "incorrect implementation premise"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 does not verify unsuccessful transition reporting",
+      "target": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js: R4 test",
+      "findingId": "b70c96d3f2150bd1758ecfc44347b5c7dc0fab4d3970182e20f148ecbd88a9ed",
+      "fingerprint": "b70c96d3f2150bd1758ecfc44347b5c7dc0fab4d3970182e20f148ecbd88a9ed",
+      "disposition": "must-fix",
+      "rationale": "A critical part of R4 has no direct regression coverage, so an implementation could preserve files and throw/record inconsistently while still reporting a successful transition.",
+      "issue": "The R4 requirement says failures must return an explicit failure without reporting a successful acceptance-decision transition. The test only asserts thrown error codes, registry preservation, flow bytes, and the step remaining `in_progress`; it does not check that no success result/transition message is produced or recorded.",
+      "requiredChange": "Add a spec-local assertion for the failure contract that would catch a reported successful acceptance-decision transition on each injected failure path.",
+      "whyBlocking": "A critical part of R4 has no direct regression coverage, so an implementation could preserve files and throw/record inconsistently while still reporting a successful transition.",
+      "origin": "R4",
+      "failureKind": "missing coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/338-active-flow-registry-race/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "8e0697d9fed11f1a167c38040a4f107f5bb490e52cd65a348a83e529c82de417"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "b53c4969a3c5116e29751278c5b5dcf1eb1f97b8edba477b0caa6876ac4df4f9",
+      "findingId": "b53c4969a3c5116e29751278c5b5dcf1eb1f97b8edba477b0caa6876ac4df4f9",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R4 lock and revision failures are injected at the wrong boundary",
+      "body": "The test replaces `flow.manager.loadActiveFlows`, but the acceptance-decision path may verify registry preservation through `ActiveFlowRegistry` or another manager method. If production code never calls this overridden method, these R4 cases will pass or fail for the wrong reason and will not prove the required registry operation lock/revision-conflict boundaries.",
+      "category": "unknown",
+      "fingerprint": "b53c4969a3c5116e29751278c5b5dcf1eb1f97b8edba477b0caa6876ac4df4f9",
+      "disposition": "must-fix",
+      "rationale": "R4 and R5 require each failure boundary to be injected and prove no registry entry loss. These two cases currently encode an implementation premise about the method call site rather than the required external behavior."
+    },
+    {
+      "id": "b70c96d3f2150bd1758ecfc44347b5c7dc0fab4d3970182e20f148ecbd88a9ed",
+      "findingId": "b70c96d3f2150bd1758ecfc44347b5c7dc0fab4d3970182e20f148ecbd88a9ed",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R4 does not verify unsuccessful transition reporting",
+      "body": "The R4 requirement says failures must return an explicit failure without reporting a successful acceptance-decision transition. The test only asserts thrown error codes, registry preservation, flow bytes, and the step remaining `in_progress`; it does not check that no success result/transition message is produced or recorded.",
+      "category": "unknown",
+      "fingerprint": "b70c96d3f2150bd1758ecfc44347b5c7dc0fab4d3970182e20f148ecbd88a9ed",
+      "disposition": "must-fix",
+      "rationale": "A critical part of R4 has no direct regression coverage, so an implementation could preserve files and throw/record inconsistently while still reporting a successful transition."
+    }
+  ]
+}

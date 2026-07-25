@@ -79,6 +79,27 @@ test("acceptance refresh treats a stale repair ledger endpoint as part of stale 
   assert.deepEqual(refresh.staleArtifacts, ["test-execute-result.json"]);
 });
 
+test("acceptance refresh ignores an older impl review fingerprint backed by canonical evidence", () => {
+  const previousFingerprint = "a".repeat(64);
+  const currentFingerprint = "b".repeat(64);
+  const refresh = new AcceptanceEvidenceRefresh({
+    fingerprint: { hash: currentFingerprint },
+    artifacts: {
+      "impl-review.json": { repairFingerprint: previousFingerprint },
+    },
+    blockers: [{
+      kind: "invalid_schema",
+      summary: "Required artifact is invalid: impl-repair.json.",
+    }],
+    deferredFindings: [],
+    fingerprintExemptArtifacts: ["impl-review.json"],
+  });
+
+  assert.deepEqual(refresh.staleArtifacts, []);
+  assert.equal(refresh.previousFingerprint, null);
+  assert.equal(refresh.required, false);
+});
+
 test("stale evidence refresh extends an existing repair ledger to the current fingerprint", () => {
   tmp = createTmpDir("stale-test-evidence-refresh-ledger-");
   const specPath = "specs/demo/spec.json";

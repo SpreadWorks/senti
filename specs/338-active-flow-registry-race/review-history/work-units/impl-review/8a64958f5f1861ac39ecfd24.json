@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "8a64958f5f1861ac39ecfd24",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-1fcd8a4df9fd610a",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+      "src/flow/definition.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/set-step.js",
+      "src/lib/active-flow-registry.js",
+      "src/lib/flow-manager.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "1fcd8a4df9fd610a1c7a6d7914cc114167eab592a2c130a646125ff2e269d271",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8a64958f5f1861ac39ecfd24"
+  },
+  "targetFiles": [
+    "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+    "src/flow/definition.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/set-step.js",
+    "src/lib/active-flow-registry.js",
+    "src/lib/flow-manager.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "1fcd8a4df9fd610a1c7a6d7914cc114167eab592a2c130a646125ff2e269d271",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:48:41.158Z",
+  "finishedAt": "2026-07-25T08:48:41.158Z",
+  "rawResponse": "### 1. Align exact-target mutation expectations\n**File:** `src/lib/flow-manager.js`\n**Requirement:** R1\n**Issue:** `captureExactTarget()` requires a spec identity, while `mutateExactTarget()` can accept weaker expectations. Cross-file callers such as `src/flow/lib/acceptance-review-artifacts.js` depend on exact-target mutation semantics for rollback and registry preservation, so this inconsistent interface makes the mutation path harder to reason about.\n**Suggestion:** Add one shared validation helper for exact flow targets and use it in `captureExactTarget()`, `mutateExactTarget()`, and captured target construction.\n\n### 2. Consolidate repair finding terminology\n**File:** `src/flow/lib/set-step.js`\n**Requirement:** R2\n**Issue:** Repair-related finding IDs are named inconsistently across files: `missingCurrentAppliedFindingIds`, `missingGateObservedFindingIds`, `sourceFindingIds`, `GATE_FINDING_ID`, and proposed names like `MISSING_REPAIR_EVIDENCE_FINDING_ID` all describe overlapping late/gate repair concepts. This increases drift between production code and tests.\n**Suggestion:** Pick one domain vocabulary, such as `lateRepairFindingIds` / `gateObservedRepairFindingIds`, and apply it consistently in `set-step.js`, `impl-repair-artifacts.js`, and related tests.\n\n### 3. Centralize repaired finding ledger scanning\n**File:** `src/flow/lib/set-step.js`\n**Requirement:** R1\n**Issue:** Ledger-derived repaired finding ID logic appears in multiple places conceptually: `set-step.js` scans the impl-repair ledger, while `impl-repair-artifacts.js` creates and appends `sourceFindingIds`. Keeping read/write assumptions separate makes future ledger-shape changes easy to miss.\n**Suggestion:** Add a shared helper near the impl-repair ledger utilities, for example `repairedFindingIdsFromLedger(specDir)`, and use it from step recovery code and tests.\n\n### 4. Share review evidence fixture builders\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`\n**Requirement:** R4\n**Issue:** Multiple test files introduce verbose review convergence/evidence fixtures independently, especially `retry-exhaustion-defer.test.js` and `retry-recovery-convergence.test.js`. These fixtures encode the same artifact shape in different places.\n**Suggestion:** Add local shared fixture helpers under the flow test support area, such as `makeImplReviewEvidence()` and `makeReviewConvergenceRecord()`, then reuse them across the retry/convergence tests.\n\n### 5. Use step IDs consistently in test data\n**File:** `tests/unit/flow/run-review-advisory.test.js`\n**Requirement:** R5\n**Issue:** Tests mix actual step IDs like `\"impl-repair\"` with custom camelCase aliases like `implRepair` and `implGate`. Other files and production code use step IDs directly, so the aliases create avoidable naming drift.\n**Suggestion:** Use canonical step IDs as object keys in test fixtures and overrides, e.g. `{ \"impl-repair\": \"done\", \"impl-gate\": \"done\" }`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Align exact-target mutation expectations",
+        "body": "**File:** `src/lib/flow-manager.js`\n**Requirement:** R1\n**Issue:** `captureExactTarget()` requires a spec identity, while `mutateExactTarget()` can accept weaker expectations. Cross-file callers such as `src/flow/lib/acceptance-review-artifacts.js` depend on exact-target mutation semantics for rollback and registry preservation, so this inconsistent interface makes the mutation path harder to reason about.\n**Suggestion:** Add one shared validation helper for exact flow targets and use it in `captureExactTarget()`, `mutateExactTarget()`, and captured target construction.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Consolidate repair finding terminology",
+        "body": "**File:** `src/flow/lib/set-step.js`\n**Requirement:** R2\n**Issue:** Repair-related finding IDs are named inconsistently across files: `missingCurrentAppliedFindingIds`, `missingGateObservedFindingIds`, `sourceFindingIds`, `GATE_FINDING_ID`, and proposed names like `MISSING_REPAIR_EVIDENCE_FINDING_ID` all describe overlapping late/gate repair concepts. This increases drift between production code and tests.\n**Suggestion:** Pick one domain vocabulary, such as `lateRepairFindingIds` / `gateObservedRepairFindingIds`, and apply it consistently in `set-step.js`, `impl-repair-artifacts.js`, and related tests.",
+        "file": "src/flow/lib/set-step.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Centralize repaired finding ledger scanning",
+        "body": "**File:** `src/flow/lib/set-step.js`\n**Requirement:** R1\n**Issue:** Ledger-derived repaired finding ID logic appears in multiple places conceptually: `set-step.js` scans the impl-repair ledger, while `impl-repair-artifacts.js` creates and appends `sourceFindingIds`. Keeping read/write assumptions separate makes future ledger-shape changes easy to miss.\n**Suggestion:** Add a shared helper near the impl-repair ledger utilities, for example `repairedFindingIdsFromLedger(specDir)`, and use it from step recovery code and tests.",
+        "file": "src/flow/lib/set-step.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Share review evidence fixture builders",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`\n**Requirement:** R4\n**Issue:** Multiple test files introduce verbose review convergence/evidence fixtures independently, especially `retry-exhaustion-defer.test.js` and `retry-recovery-convergence.test.js`. These fixtures encode the same artifact shape in different places.\n**Suggestion:** Add local shared fixture helpers under the flow test support area, such as `makeImplReviewEvidence()` and `makeReviewConvergenceRecord()`, then reuse them across the retry/convergence tests.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Use step IDs consistently in test data",
+        "body": "**File:** `tests/unit/flow/run-review-advisory.test.js`\n**Requirement:** R5\n**Issue:** Tests mix actual step IDs like `\"impl-repair\"` with custom camelCase aliases like `implRepair` and `implGate`. Other files and production code use step IDs directly, so the aliases create avoidable naming drift.\n**Suggestion:** Use canonical step IDs as object keys in test fixtures and overrides, e.g. `{ \"impl-repair\": \"done\", \"impl-gate\": \"done\" }`.",
+        "file": "tests/unit/flow/run-review-advisory.test.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

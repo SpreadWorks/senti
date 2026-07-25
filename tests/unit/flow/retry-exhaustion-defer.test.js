@@ -945,6 +945,96 @@ test("acceptance-review deduplicates flow findings and review handoffs by finger
   assert.equal(artifact.deferredFindings.length, 2);
 });
 
+test("acceptance-review resolves deferred findings from superseded canonical review evidence", () => {
+  const fixture = prepareSpecRoot();
+  prepareAcceptanceEvidence(fixture);
+  const deferredFinding = {
+    findingId: "historical-deferred",
+    summary: "Deferred historical review finding",
+    fingerprint: "c".repeat(64),
+    evidenceRefs: ["impl-review.json#historical-deferred"],
+  };
+  const rejectedEvidence = new ReviewEvidence({
+    phase: "impl",
+    taskId: null,
+    treeSha: "2".repeat(40),
+    provenance: {
+      provider: "fixture-provider",
+      invocationId: "historical-review",
+      capturedAt: "2026-07-24T00:00:00.000Z",
+    },
+    disposition: new ReviewDisposition({
+      value: "REJECTED",
+      blockingFindings: [deferredFinding],
+    }),
+  });
+  const advisoryEvidence = new ReviewEvidence({
+    phase: "impl",
+    taskId: null,
+    treeSha: "3".repeat(40),
+    provenance: {
+      provider: "fixture-provider",
+      invocationId: "replacement-review",
+      capturedAt: "2026-07-24T00:01:00.000Z",
+    },
+    disposition: new ReviewDisposition({
+      value: "PASS",
+    }),
+  });
+  const historicalEvidenceRef = `review-evidence/${rejectedEvidence.identity.evidenceDigest}.json`;
+  writeFile(fixture.specDir, historicalEvidenceRef, rejectedEvidence.canonicalText);
+  writeFile(
+    fixture.specDir,
+    `review-evidence/${advisoryEvidence.identity.evidenceDigest}.json`,
+    advisoryEvidence.canonicalText,
+  );
+  const state = {
+    spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
+    request: "Verify deferred findings survive a later implementation review.",
+  };
+  applyReviewEvidenceTransition(state, rejectedEvidence, { configuredSemanticMaxAttempts: 4 });
+  applyReviewEvidenceTransition(state, advisoryEvidence, { configuredSemanticMaxAttempts: 4 });
+  writeFlowFindingsArtifact(fixture.specDir, {
+    entries: [{
+      findingId: "DF-1",
+      sourceStep: "impl-review",
+      sourceArtifact: "impl-review.json",
+      sourceFindingId: deferredFinding.findingId,
+      runId: state.runId,
+      fingerprint: deferredFinding.fingerprint,
+      disposition: "deferred",
+      rationale: "The original review was deferred after retry exhaustion.",
+      retryExhausted: true,
+      attempts: 4,
+      round: 4,
+      completionKind: "deferred",
+      finalDisposition: "still_open",
+    }],
+  });
+  const diff = [
+    "diff --git a/src/demo.js b/src/demo.js",
+    "--- a/src/demo.js",
+    "+++ b/src/demo.js",
+    "@@ -1 +1 @@",
+    "-export const demo = false;",
+    "+export const demo = true;",
+    "",
+  ].join("\n");
+
+  const context = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
+
+  assert.equal(context.mechanicalBlockers.length, 0);
+  assert.equal(context.deferredFindings.length, 1);
+  assert.equal(context.deferredFindings[0].sourceArtifact, historicalEvidenceRef);
+  assert.deepEqual(context.evidence.deferredFindingEvidence, [{
+    findingId: "DF-1",
+    sourceRef: `${historicalEvidenceRef}#${deferredFinding.findingId}`,
+    sourceFinding: deferredFinding,
+  }]);
+});
+
 test("acceptance-review rewinds stale fingerprint evidence to test execution", () => {
   const fixture = prepareSpecRoot();
   const previousFingerprint = prepareAcceptanceEvidence(fixture);

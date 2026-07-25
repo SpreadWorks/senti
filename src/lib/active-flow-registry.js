@@ -103,6 +103,26 @@ class ActiveFlowDocument {
   }
 }
 
+export class ActiveFlowRegistrySnapshot {
+  constructor({ entries, revision }) {
+    this.entries = Object.freeze(entries.map((entry) => Object.freeze(
+      entry instanceof ActiveFlowEntry ? entry.toJSON() : ActiveFlowEntry.fromStored(entry).toJSON(),
+    )));
+    if (revision != null && typeof revision !== "string") {
+      throw new Error("active-flow registry snapshot revision must be a string or null");
+    }
+    this.revision = revision;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      entries: this.entries.map((entry) => ({ ...entry })),
+      revision: this.revision,
+    };
+  }
+}
+
 function registryRevision(bytes) {
   return bytes == null ? null : `${bytes.length}:${Buffer.from(bytes).toString("base64")}`;
 }
@@ -307,6 +327,16 @@ export class ActiveFlowRegistry {
   /** @returns {ActiveFlowEntry[]} */
   load() {
     return readActiveFlowAuthority(activeFlowPath(this._mainRoot)).document.toJSON();
+  }
+
+  snapshot(options = {}) {
+    return this.#withMutationLock(() => {
+      const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
+      return new ActiveFlowRegistrySnapshot({
+        entries: snapshot.document.entries,
+        revision: snapshot.revision,
+      });
+    }, options);
   }
 
   /**

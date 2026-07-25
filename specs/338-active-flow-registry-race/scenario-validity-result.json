@@ -1,0 +1,93 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/338-active-flow-registry-race/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "test_name": "R1: acceptance-decision persists only the exact bound worktree flow identity",
+        "command": "node --test specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 2,
+          "end_line": 156
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "test_name": "R2: success preserves registry document identity and cannot remove, park, or replace it",
+        "command": "node --test specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 2,
+          "end_line": 156
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "test_name": "R3: guarded resolution retains identity and only continue advances final regression",
+        "command": "node --test specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 2,
+          "end_line": 156
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "test_name": "R4: every binding and registry failure leaves flow state and pointers unchanged",
+        "command": "node --test specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 2,
+          "end_line": 156
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "test_name": "R5: two-flow, single-flow, and parked-resume regressions preserve exact pointers",
+        "command": "node --test specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 2,
+          "end_line": 156
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+        "test_name": "R6: bounded repair and semantic review recovery invalidate only stale current-flow evidence",
+        "command": "node --test specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 2,
+          "end_line": 156
+        }
+      }
+    }
+  ]
+}

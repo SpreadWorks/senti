@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T06:37:12.206Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "registry-lock-revision-not-checked",
+      "title": "Registry verification misses lock and revision failure boundaries",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/acceptance-review-artifacts.js",
+      "requirementId": "R4",
+      "issue": "The added guard captures `flowManager.loadActiveFlows()` and later compares the entry array, but it does not use a locked registry authority read or revision token. As a result, lock and revision failure cases required by the task have no explicit fail-closed outcome; they collapse into ordinary entry comparison or are not detected if the final entry set matches again.",
+      "suggestion": "Change `AcceptanceDecisionRegistrySnapshot.capture()` and `verify()` to use FlowManager/ActiveFlowRegistry APIs that return locked authority reads with revision identity, then throw distinct typed errors for binding, lock, revision, and identity verification failures before reporting success.",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires fail-closed outcomes for lock and revision failures, and the implementation notes require locked authority reads. The current implementation only verifies target identity and registry entry equality, so mandatory failure boundaries are missing.",
+      "findingId": "a0096498d3aa85e53c67a15128b0de33799ce8d205d8de16b928240e8f3cdd3e",
+      "fingerprint": "a0096498d3aa85e53c67a15128b0de33799ce8d205d8de16b928240e8f3cdd3e",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "registry-order-sensitive-snapshot",
+      "title": "Registry preservation check is order-sensitive instead of entry-set based",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/acceptance-review-artifacts.js",
+      "requirementId": "R2",
+      "issue": "`AcceptanceDecisionRegistrySnapshot.verify()` treats any order change as a registry identity mismatch because it compares `entries[index]`. R2 requires verifying the original active registry entry set, not the array order. A non-destructive registry read that returns the same entries in a different order would fail even though the set was preserved.",
+      "suggestion": "Compare registry entries as a set keyed by stable identity such as `spec` plus `mode`, or sort canonical JSON entries before comparison in `AcceptanceDecisionRegistrySnapshot.verify()`.",
+      "disposition": "must-fix",
+      "rationale": "R2 is a mandatory acceptance criterion and specifically names entry-set preservation. The current positional comparison contradicts that behavior and can fail valid preserved registries.",
+      "findingId": "61dc8147c616f9ac566f7d7ccfc49208eebb27caef5a59567c9c79d604ae07b7",
+      "fingerprint": "61dc8147c616f9ac566f7d7ccfc49208eebb27caef5a59567c9c79d604ae07b7",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "79a6a7e88a15537c3affd5e2c9b20f82ddb5d2e6086f07376dc02c533c744bc0",
+  "runId": "ddbdb1e1-8b31-4520-b219-ebe8e6c85b58",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/338-active-flow-registry-race/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/338-active-flow-registry-race/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "a249a8580ba4191a12c412e6a1d015cfd3266d534fe3155583b8ff2a0cd9dd15"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "a0096498d3aa85e53c67a15128b0de33799ce8d205d8de16b928240e8f3cdd3e",
+      "findingId": "a0096498d3aa85e53c67a15128b0de33799ce8d205d8de16b928240e8f3cdd3e",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Registry verification misses lock and revision failure boundaries",
+      "body": "The added guard captures `flowManager.loadActiveFlows()` and later compares the entry array, but it does not use a locked registry authority read or revision token. As a result, lock and revision failure cases required by the task have no explicit fail-closed outcome; they collapse into ordinary entry comparison or are not detected if the final entry set matches again.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "a0096498d3aa85e53c67a15128b0de33799ce8d205d8de16b928240e8f3cdd3e",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires fail-closed outcomes for lock and revision failures, and the implementation notes require locked authority reads. The current implementation only verifies target identity and registry entry equality, so mandatory failure boundaries are missing.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    },
+    {
+      "id": "61dc8147c616f9ac566f7d7ccfc49208eebb27caef5a59567c9c79d604ae07b7",
+      "findingId": "61dc8147c616f9ac566f7d7ccfc49208eebb27caef5a59567c9c79d604ae07b7",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Registry preservation check is order-sensitive instead of entry-set based",
+      "body": "`AcceptanceDecisionRegistrySnapshot.verify()` treats any order change as a registry identity mismatch because it compares `entries[index]`. R2 requires verifying the original active registry entry set, not the array order. A non-destructive registry read that returns the same entries in a different order would fail even though the set was preserved.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "61dc8147c616f9ac566f7d7ccfc49208eebb27caef5a59567c9c79d604ae07b7",
+      "disposition": "must-fix",
+      "rationale": "R2 is a mandatory acceptance criterion and specifically names entry-set preservation. The current positional comparison contradicts that behavior and can fail valid preserved registries.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

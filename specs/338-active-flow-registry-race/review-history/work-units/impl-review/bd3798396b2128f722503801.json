@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/lib/active-flow-registry.js",
+      "src/lib/flow-manager.js"
+    ],
+    "inputHash": "dbf6dd03907120d2a5700e0b52d1fef13854bf2204d4a61e8401fc5e4c26b05d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "src/lib/active-flow-registry.js",
+    "src/lib/flow-manager.js"
+  ],
+  "inputHash": "dbf6dd03907120d2a5700e0b52d1fef13854bf2204d4a61e8401fc5e4c26b05d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T11:43:49.861Z",
+  "finishedAt": "2026-07-25T11:43:49.861Z",
+  "rawResponse": "I’ll review only the two diffed files and keep proposals tied to the listed requirements. I’m going to inspect the current file context around these changes so the suggestions are grounded in the actual surrounding patterns.The provided cwd appears to be a scratch directory without the repository files at that relative path. I’ll locate the checkout root from here and then read the two touched files from the actual worktree.I found the repository one level above `.tmp`. I’m reading just the touched files now, with enough surrounding context to identify duplication and consistency issues without widening scope.### 1. Consolidate Exact Target Validation\n**File:** `src/lib/flow-manager.js`  \n**Requirement:** R1  \n**Issue:** `CapturedFlowTargetMutation`, `captureExactTarget`, and `mutateExactTarget` repeat similar `FlowTargetExpectation` validation, with slight differences around requiring `expectation.spec`.  \n**Suggestion:** Add a small helper such as `assertExactFlowTargetExpectation(expectation, { requireSpec = true, label })` and reuse it in all three places. This reduces drift risk in managed-worktree mutation guards.\n\n### 2. Remove Duplicate Explicit Target Resolution Methods\n**File:** `src/lib/flow-manager.js`  \n**Requirement:** R3  \n**Issue:** `resolveExplicitFlowTarget` and `resolveExplicitFlowTargetForRead` currently have identical implementations.  \n**Suggestion:** Keep one implementation and make the other a simple alias, or remove the redundant method if no API compatibility requires it.\n\n### 3. Reuse Active Flow Mode Validation\n**File:** `src/lib/flow-manager.js`  \n**Requirement:** R4  \n**Issue:** `ACTIVE_FLOW_MODES` duplicates the mode set already maintained in `active-flow-registry.js` as `VALID_MODES`. This creates a maintenance risk if registry modes change.  \n**Suggestion:** Export a shared mode validator or constant from `active-flow-registry.js`, then use it in `ActiveFlowIdentityEntry` instead of defining a second mode set.\n\n### 4. Simplify Snapshot Entry Normalization\n**File:** `src/lib/active-flow-registry.js`  \n**Requirement:** R2  \n**Issue:** `ActiveFlowRegistrySnapshot` converts entries through `toJSON()`, then freezes plain objects, while `toJSON()` later clones them again. The nested conversion expression is harder to read than necessary.  \n**Suggestion:** Extract a helper like `snapshotEntry(entry)` or normalize through `new ActiveFlowDocument(entries).toJSON()` before freezing. This keeps snapshot serialization behavior explicit and easier to audit.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate Exact Target Validation",
+        "body": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R1  \n**Issue:** `CapturedFlowTargetMutation`, `captureExactTarget`, and `mutateExactTarget` repeat similar `FlowTargetExpectation` validation, with slight differences around requiring `expectation.spec`.  \n**Suggestion:** Add a small helper such as `assertExactFlowTargetExpectation(expectation, { requireSpec = true, label })` and reuse it in all three places. This reduces drift risk in managed-worktree mutation guards.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Remove Duplicate Explicit Target Resolution Methods",
+        "body": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R3  \n**Issue:** `resolveExplicitFlowTarget` and `resolveExplicitFlowTargetForRead` currently have identical implementations.  \n**Suggestion:** Keep one implementation and make the other a simple alias, or remove the redundant method if no API compatibility requires it.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Reuse Active Flow Mode Validation",
+        "body": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R4  \n**Issue:** `ACTIVE_FLOW_MODES` duplicates the mode set already maintained in `active-flow-registry.js` as `VALID_MODES`. This creates a maintenance risk if registry modes change.  \n**Suggestion:** Export a shared mode validator or constant from `active-flow-registry.js`, then use it in `ActiveFlowIdentityEntry` instead of defining a second mode set.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Simplify Snapshot Entry Normalization",
+        "body": "**File:** `src/lib/active-flow-registry.js`  \n**Requirement:** R2  \n**Issue:** `ActiveFlowRegistrySnapshot` converts entries through `toJSON()`, then freezes plain objects, while `toJSON()` later clones them again. The nested conversion expression is harder to read than necessary.  \n**Suggestion:** Extract a helper like `snapshotEntry(entry)` or normalize through `new ActiveFlowDocument(entries).toJSON()` before freezing. This keeps snapshot serialization behavior explicit and easier to audit.",
+        "file": "src/lib/active-flow-registry.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T06:28:32.432Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/338-active-flow-registry-race/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing document-replacement prohibition coverage",
+      "target": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js:164",
+      "findingId": "b27613836aaae1dce80cfbdfc831ff09e861529cfa0e2beb90638b4ab89cbc9d",
+      "fingerprint": "b27613836aaae1dce80cfbdfc831ff09e861529cfa0e2beb90638b4ab89cbc9d",
+      "disposition": "must-fix",
+      "rationale": "R2 has no corresponding test coverage for one of its explicit prohibited operation classes.",
+      "issue": "R2 requires proving the acceptance-decision success path does not call an active-flow document-replacement operation, but the test only guards removeActiveFlow and parkActiveFlow. A replacement/write-through operation that rewrites registry documents could still be introduced without this test detecting it.",
+      "requiredChange": "Add a spec-local assertion or stub that fails if the acceptance-decision success path invokes the relevant registry document-replacement API.",
+      "whyBlocking": "R2 has no corresponding test coverage for one of its explicit prohibited operation classes.",
+      "origin": "R2",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "flow resume --parked behavior is not exercised",
+      "target": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js:259",
+      "findingId": "ac7f64813a403464b74d91d66b0b5585be9cff2246e7f8053644bbe48a5f0236",
+      "fingerprint": "ac7f64813a403464b74d91d66b0b5585be9cff2246e7f8053644bbe48a5f0236",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact marks R5 covered, but the executable test does not exercise the required API surface.",
+      "issue": "R5 requires preserving existing `flow resume --parked` behavior, but the test calls `FlowManager.resumeParkedFlow()` directly. This bypasses the command path and would pass even if the CLI resume behavior regressed.",
+      "requiredChange": "Add spec-local coverage that exercises the actual `flow resume --parked` command path, or the same command-level entrypoint used by existing resume tests.",
+      "whyBlocking": "The requirement coverage artifact marks R5 covered, but the executable test does not exercise the required API surface.",
+      "origin": "R5",
+      "failureKind": "static_antipattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/338-active-flow-registry-race/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "de84fbb964ba7bd7053a05819f01e43dae91fb7a3683f488b3d1d16a906dc0a3"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "b27613836aaae1dce80cfbdfc831ff09e861529cfa0e2beb90638b4ab89cbc9d",
+      "findingId": "b27613836aaae1dce80cfbdfc831ff09e861529cfa0e2beb90638b4ab89cbc9d",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing document-replacement prohibition coverage",
+      "body": "R2 requires proving the acceptance-decision success path does not call an active-flow document-replacement operation, but the test only guards removeActiveFlow and parkActiveFlow. A replacement/write-through operation that rewrites registry documents could still be introduced without this test detecting it.",
+      "category": "unknown",
+      "fingerprint": "b27613836aaae1dce80cfbdfc831ff09e861529cfa0e2beb90638b4ab89cbc9d",
+      "disposition": "must-fix",
+      "rationale": "R2 has no corresponding test coverage for one of its explicit prohibited operation classes."
+    },
+    {
+      "id": "ac7f64813a403464b74d91d66b0b5585be9cff2246e7f8053644bbe48a5f0236",
+      "findingId": "ac7f64813a403464b74d91d66b0b5585be9cff2246e7f8053644bbe48a5f0236",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "flow resume --parked behavior is not exercised",
+      "body": "R5 requires preserving existing `flow resume --parked` behavior, but the test calls `FlowManager.resumeParkedFlow()` directly. This bypasses the command path and would pass even if the CLI resume behavior regressed.",
+      "category": "unknown",
+      "fingerprint": "ac7f64813a403464b74d91d66b0b5585be9cff2246e7f8053644bbe48a5f0236",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact marks R5 covered, but the executable test does not exercise the required API surface."
+    }
+  ]
+}

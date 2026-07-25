@@ -436,15 +436,15 @@ describe("impl review structured verdict routing", () => {
   });
 
   it("post-hook closes no-repair leaves and routes REJECTED to impl-triage", async () => {
-    async function updatesFor(verdict, blockingCount, nonBlockingCount) {
+    async function updatesFor(verdict, blockingCount, nonBlockingCount, priorStatuses = {}) {
       const updates = [];
       const flowState = {
         currentTaskId: null,
         steps: [
           { id: "impl-review", status: "in_progress" },
           { id: "impl-triage", status: "pending" },
-          { id: "impl-repair", status: "pending" },
-          { id: "impl-gate", status: "pending" },
+          { id: "impl-repair", status: priorStatuses.implRepair || "pending" },
+          { id: "impl-gate", status: priorStatuses.implGate || "pending" },
         ],
         tasks: [],
       };
@@ -453,6 +453,9 @@ describe("impl review structured verdict routing", () => {
         flowState,
         flowManager: {
           appendMetric() {},
+          mutate(mutator) {
+            mutator(flowState);
+          },
           updateStepStatus(transition) {
             updates.push({ stepId: transition.stepId, status: transition.requestedStatus });
             flowState.steps.find((step) => step.id === transition.stepId).status = transition.requestedStatus;
@@ -461,7 +464,7 @@ describe("impl review structured verdict routing", () => {
       }, {
         artifacts: { phase: "impl", verdict, blockingCount, nonBlockingCount },
       });
-      return updates;
+      return { updates, flowState };
     }
 
     const noRepairUpdates = [
@@ -470,12 +473,18 @@ describe("impl review structured verdict routing", () => {
       { stepId: "impl-repair", status: "done" },
       { stepId: "impl-gate", status: "in_progress" },
     ];
-    assert.deepEqual(await updatesFor("PASS", 0, 0), noRepairUpdates);
-    assert.deepEqual(await updatesFor("ADVISORY", 0, 1), noRepairUpdates);
-    assert.deepEqual(await updatesFor("REJECTED", 1, 0), [
+    assert.deepEqual((await updatesFor("PASS", 0, 0)).updates, noRepairUpdates);
+    assert.deepEqual((await updatesFor("ADVISORY", 0, 1)).updates, noRepairUpdates);
+    const rejected = await updatesFor("REJECTED", 1, 0, {
+      implRepair: "done",
+      implGate: "done",
+    });
+    assert.deepEqual(rejected.updates, [
       { stepId: "impl-review", status: "done" },
       { stepId: "impl-triage", status: "in_progress" },
     ]);
+    assert.equal(findStepById(rejected.flowState.steps, "impl-repair").status, "pending");
+    assert.equal(findStepById(rejected.flowState.steps, "impl-gate").status, "pending");
   });
 
   it("rewinds stale test evidence before starting implementation review", () => {

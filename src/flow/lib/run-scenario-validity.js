@@ -11,7 +11,6 @@ import {
   readJsonStrict,
   validateScenarioValidityResult,
 } from "./test-artifacts.js";
-
 const SCENARIO_TEST_FILE_RE = /\.(test|spec)\.(js|ts|mjs)$/;
 
 function normalizePath(p) {
@@ -351,71 +350,71 @@ export default class RunScenarioValidityCommand extends FlowCommand {
       || config?.agent?.timeout
       || DEFAULT_TEST_TIMEOUT_SECONDS) * 1000;
     const fileRecords = await runScenarioValidityTestFiles({ root, files, timeoutMs });
-    const failedRecords = fileRecords.filter((record) => !processPassed(record.process));
-    const spawnErrors = fileRecords.map((record) => record.process.spawnError).filter(Boolean);
-    const scenarioProcess = fileRecords.length === 0
-      ? { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" }
-      : {
-          started: fileRecords.some((record) => record.process.started),
-          exitCode: failedRecords.length === 0 ? 0 : failedRecords.find((record) => record.process.exitCode !== null)?.process.exitCode ?? null,
-          signal: fileRecords.find((record) => record.process.signal)?.process.signal || null,
-          timedOut: fileRecords.some((record) => record.process.timedOut),
-          spawnError: spawnErrors.length > 0 ? spawnErrors.join("\n") : null,
-          stdout: "",
-          stderr: "",
-        };
-    const range = appendRaw(rawLines, [
-      "[senti] scenario-validity tests start",
-      `command: ${command}`,
-      ...fileRecords.flatMap((record) => [
-        `[senti] scenario-validity file start command=${record.command}`,
-        ...processLines(record.process),
-        `[senti] scenario-validity file end command=${record.command}`,
-      ]),
-      ...processLines(scenarioProcess),
-      ...requirements.filter((req) => req.testable !== false).map((req) => {
-        const entry = findTestEntriesForReq(testEntries, req.id)[0];
-        const testName = entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`;
-        return `[senti] requirement ${req.id} observed: ${testName}`;
-      }),
-      "[senti] scenario-validity tests end",
-    ]);
-    const rawText = rawLines.join("\n");
-    const summary = buildSummary({ root, files, testEntries, fileRecords, requirements, command, range });
-    const result = summary.every((entry) => entry.classification === "expected_fail") ? "pass" : "block";
-    const artifact = {
-      version: "1",
-      raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
-      command,
-      process: {
-        started: scenarioProcess.started,
-        exitCode: scenarioProcess.exitCode,
-        signal: scenarioProcess.signal,
-        timedOut: scenarioProcess.timedOut,
-        spawnError: scenarioProcess.spawnError,
-      },
-      result,
-      summary,
-    };
-    await fs.promises.writeFile(rawOutputPath, rawText + "\n");
-    validateScenarioValidityResult(artifact, { root, specDir, requirements, rawText, rawLines, testFileSources });
-    await fs.promises.writeFile(resultPath, JSON.stringify(artifact, null, 2) + "\n");
-
-    const output = {
-      result,
-      changed: [
-        normalizePath(path.relative(root, resultPath)),
-        normalizePath(path.relative(root, rawOutputPath)),
-      ],
-      artifacts: {
-        result_path: normalizePath(path.relative(root, resultPath)),
+      const failedRecords = fileRecords.filter((record) => !processPassed(record.process));
+      const spawnErrors = fileRecords.map((record) => record.process.spawnError).filter(Boolean);
+      const scenarioProcess = fileRecords.length === 0
+        ? { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" }
+        : {
+            started: fileRecords.some((record) => record.process.started),
+            exitCode: failedRecords.length === 0 ? 0 : failedRecords.find((record) => record.process.exitCode !== null)?.process.exitCode ?? null,
+            signal: fileRecords.find((record) => record.process.signal)?.process.signal || null,
+            timedOut: fileRecords.some((record) => record.process.timedOut),
+            spawnError: spawnErrors.length > 0 ? spawnErrors.join("\n") : null,
+            stdout: "",
+            stderr: "",
+          };
+      const range = appendRaw(rawLines, [
+        "[senti] scenario-validity tests start",
+        `command: ${command}`,
+        ...fileRecords.flatMap((record) => [
+          `[senti] scenario-validity file start command=${record.command}`,
+          ...processLines(record.process),
+          `[senti] scenario-validity file end command=${record.command}`,
+        ]),
+        ...processLines(scenarioProcess),
+        ...requirements.filter((req) => req.testable !== false).map((req) => {
+          const entry = findTestEntriesForReq(testEntries, req.id)[0];
+          const testName = entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`;
+          return `[senti] requirement ${req.id} observed: ${testName}`;
+        }),
+        "[senti] scenario-validity tests end",
+      ]);
+      const rawText = rawLines.join("\n");
+      const summary = buildSummary({ root, files, testEntries, fileRecords, requirements, command, range });
+      const result = summary.every((entry) => entry.classification === "expected_fail") ? "pass" : "block";
+      const artifact = {
+        version: "1",
         raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
-        completed: result === "pass",
-        artifact_version: "1",
+        command,
+        process: {
+          started: scenarioProcess.started,
+          exitCode: scenarioProcess.exitCode,
+          signal: scenarioProcess.signal,
+          timedOut: scenarioProcess.timedOut,
+          spawnError: scenarioProcess.spawnError,
+        },
         result,
-      },
-      next: result === "pass" ? "test-review" : null,
-    };
+        summary,
+      };
+      await fs.promises.writeFile(rawOutputPath, rawText + "\n");
+      validateScenarioValidityResult(artifact, { root, specDir, requirements, rawText, rawLines, testFileSources });
+      await fs.promises.writeFile(resultPath, JSON.stringify(artifact, null, 2) + "\n");
+
+      const output = {
+        result,
+        changed: [
+          normalizePath(path.relative(root, resultPath)),
+          normalizePath(path.relative(root, rawOutputPath)),
+        ],
+        artifacts: {
+          result_path: normalizePath(path.relative(root, resultPath)),
+          raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
+          completed: result === "pass",
+          artifact_version: "1",
+          result,
+        },
+        next: result === "pass" ? "test-review" : null,
+      };
       if (result !== "pass") {
         const err = new Error(`scenario-validity blocked: ${summary.map((entry) => `${entry.id}=${entry.classification}`).join(", ")}`);
         err.code = "SCENARIO_VALIDITY_BLOCKED";

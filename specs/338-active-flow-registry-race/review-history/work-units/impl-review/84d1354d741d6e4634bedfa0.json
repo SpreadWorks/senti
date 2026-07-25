@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "84d1354d741d6e4634bedfa0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-d902ea103c010395",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+      "src/flow/definition.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/set-step.js",
+      "src/lib/active-flow-registry.js",
+      "src/lib/flow-manager.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "d902ea103c0103956cf7c57b083fd90b7b90d57507d150d112f9d96c306b5618",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "84d1354d741d6e4634bedfa0"
+  },
+  "targetFiles": [
+    "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+    "src/flow/definition.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/set-step.js",
+    "src/lib/active-flow-registry.js",
+    "src/lib/flow-manager.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "d902ea103c0103956cf7c57b083fd90b7b90d57507d150d112f9d96c306b5618",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:53:27.403Z",
+  "finishedAt": "2026-07-25T08:53:27.403Z",
+  "rawResponse": "### 1. Standardize Exact Target Naming and Validation\n**File:** `src/lib/flow-manager.js`\n**Requirement:** R1\n**Issue:** Multiple files now discuss exact-target mutation semantics, but naming and validation appear inconsistent across `flow-manager.js` and `acceptance-review-artifacts.js`. `captureExactTarget()` requires a spec, while `mutateExactTarget()` may allow weaker expectations, and acceptance decision code branches on snapshot presence to choose mutation behavior.\n**Suggestion:** Introduce one shared exact-target contract in `flow-manager.js`, for example `assertExactFlowTargetWithSpec()`, and have acceptance decision mutation paths call through that same interface rather than locally branching on target mode.\n\n### 2. Unify Bounded Resource Limits Across Registry, Logs, and Review History\n**File:** `src/lib/active-flow-registry.js`\n**Requirement:** R5\n**Issue:** Several files introduce or rely on bulk scans without explicit bounds: active-flow registry snapshots, review convergence history, issue-log entries, repair source finding IDs, reset step IDs, and changed paths. Adding separate ad hoc limits in each file risks inconsistent failure behavior and unclear ownership.\n**Suggestion:** Define shared bounded-resource constants or helper validators for registry entries, issue-log entries, review convergence records, evidence history entries, repair finding IDs, reset steps, and changed paths. Reuse them from `active-flow-registry.js`, `acceptance-review-artifacts.js`, `impl-repair-artifacts.js`, and `set-step.js`.\n\n### 3. Align “Repair Evidence” Terminology Across Source and Tests\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R2\n**Issue:** Naming around repair evidence differs across files: `WORKFLOW_ARTIFACT_PATH_PREFIXES` in source, “missing repair evidence” naming suggestions in tests, and “gate-observed unrepaired findings” naming in `set-step.js`. These refer to related concepts but use different vocabulary.\n**Suggestion:** Pick one domain phrase, such as `repair evidence`, and apply it consistently: rename source constants to `REPAIR_EVIDENCE_EXCLUDED_PATH_PREFIXES`, helper outputs to `unrepaired...FindingIds`, and test constants to scenario-specific repair evidence names.\n\n### 4. Consolidate Repair Recovery Fixture and Transaction Concepts\n**File:** `src/flow/lib/set-step.js`\n**Requirement:** R1\n**Issue:** Repair recovery behavior is spread across `set-step.js`, `impl-repair-artifacts.js`, and multiple unit tests, with duplicated setup and inline transaction construction. This makes the recovery flow harder to compare across implementation and tests.\n**Suggestion:** Extract a source helper for building late repair transactions, and mirror that with test fixture helpers for repaired/unrepaired finding scenarios. Keep naming aligned between source helpers and tests so the test setup maps directly to the production recovery path.\n\n### 5. Normalize Review Convergence “Current Record” Naming Across Callers\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R2\n**Issue:** `readCurrent()` performs validation, while other files and tests describe convergence recovery in terms of resolving, resetting, or recovering records. The current method name is weaker than the behavior and does not match surrounding recovery terminology.\n**Suggestion:** Rename `readCurrent()` to `validateAndReadCurrent()` or `resolveCurrentRecord()`, then update call sites and tests to use the same “current record” language when describing convergence recovery.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize Exact Target Naming and Validation",
+        "body": "**File:** `src/lib/flow-manager.js`\n**Requirement:** R1\n**Issue:** Multiple files now discuss exact-target mutation semantics, but naming and validation appear inconsistent across `flow-manager.js` and `acceptance-review-artifacts.js`. `captureExactTarget()` requires a spec, while `mutateExactTarget()` may allow weaker expectations, and acceptance decision code branches on snapshot presence to choose mutation behavior.\n**Suggestion:** Introduce one shared exact-target contract in `flow-manager.js`, for example `assertExactFlowTargetWithSpec()`, and have acceptance decision mutation paths call through that same interface rather than locally branching on target mode.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Unify Bounded Resource Limits Across Registry, Logs, and Review History",
+        "body": "**File:** `src/lib/active-flow-registry.js`\n**Requirement:** R5\n**Issue:** Several files introduce or rely on bulk scans without explicit bounds: active-flow registry snapshots, review convergence history, issue-log entries, repair source finding IDs, reset step IDs, and changed paths. Adding separate ad hoc limits in each file risks inconsistent failure behavior and unclear ownership.\n**Suggestion:** Define shared bounded-resource constants or helper validators for registry entries, issue-log entries, review convergence records, evidence history entries, repair finding IDs, reset steps, and changed paths. Reuse them from `active-flow-registry.js`, `acceptance-review-artifacts.js`, `impl-repair-artifacts.js`, and `set-step.js`.",
+        "file": "src/lib/active-flow-registry.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Align “Repair Evidence” Terminology Across Source and Tests",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R2\n**Issue:** Naming around repair evidence differs across files: `WORKFLOW_ARTIFACT_PATH_PREFIXES` in source, “missing repair evidence” naming suggestions in tests, and “gate-observed unrepaired findings” naming in `set-step.js`. These refer to related concepts but use different vocabulary.\n**Suggestion:** Pick one domain phrase, such as `repair evidence`, and apply it consistently: rename source constants to `REPAIR_EVIDENCE_EXCLUDED_PATH_PREFIXES`, helper outputs to `unrepaired...FindingIds`, and test constants to scenario-specific repair evidence names.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Consolidate Repair Recovery Fixture and Transaction Concepts",
+        "body": "**File:** `src/flow/lib/set-step.js`\n**Requirement:** R1\n**Issue:** Repair recovery behavior is spread across `set-step.js`, `impl-repair-artifacts.js`, and multiple unit tests, with duplicated setup and inline transaction construction. This makes the recovery flow harder to compare across implementation and tests.\n**Suggestion:** Extract a source helper for building late repair transactions, and mirror that with test fixture helpers for repaired/unrepaired finding scenarios. Keep naming aligned between source helpers and tests so the test setup maps directly to the production recovery path.",
+        "file": "src/flow/lib/set-step.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Normalize Review Convergence “Current Record” Naming Across Callers",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R2\n**Issue:** `readCurrent()` performs validation, while other files and tests describe convergence recovery in terms of resolving, resetting, or recovering records. The current method name is weaker than the behavior and does not match surrounding recovery terminology.\n**Suggestion:** Rename `readCurrent()` to `validateAndReadCurrent()` or `resolveCurrentRecord()`, then update call sites and tests to use the same “current record” language when describing convergence recovery.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

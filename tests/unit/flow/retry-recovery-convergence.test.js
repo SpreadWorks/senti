@@ -12,7 +12,10 @@ import {
   persistRecoveryBaseline,
   resolveRecoveryMaxAttempts,
 } from "../../../src/flow/lib/retry-recovery.js";
-import { ReviewToolingRecoveryMutation } from "../../../src/flow/lib/review-convergence.js";
+import {
+  ReviewSemanticRecoveryMutation,
+  ReviewToolingRecoveryMutation,
+} from "../../../src/flow/lib/review-convergence.js";
 import { checkReviewRetryBelowMax } from "../../../src/flow/lib/run-review.js";
 import GetStatusCommand from "../../../src/flow/lib/get-status.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
@@ -254,6 +257,97 @@ describe("retry recovery authority convergence", () => {
     assert.equal(recovered.reviewConvergence.records[0].toolingMaxAttempts, 1);
     assert.equal(recovered.reviewConvergence.records[0].semanticAttempts, 2);
     assert.equal(recovered.reviewConvergence.records[0].provider, "independent-reviewer");
+  });
+
+  it("commits a changed-tree review grant and semantic reset in one flow mutation", () => {
+    const root = createTmpDir("retry-convergence-review-semantic-");
+    roots.push(root);
+    const spec = "specs/review-semantic/spec.json";
+    const specDir = path.join(root, path.dirname(spec));
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(root, spec), '{"revision":1}\n');
+    const previousTreeSha = "4".repeat(40);
+    const nextTreeSha = "5".repeat(40);
+    const state = makeFlowState({
+      spec,
+      runId: "run-review-semantic",
+      metrics: [{ phase: "spec", counter: "reviewRetry", delta: 1, taskId: null }],
+      reviewConvergence: {
+        version: 1,
+        records: [{
+          phase: "spec",
+          taskId: null,
+          treeSha: previousTreeSha,
+          semanticAttempts: 1,
+          semanticMaxAttempts: 1,
+          toolingAttempts: 0,
+          toolingMaxAttempts: 1,
+          evidence: { evidenceId: "6".repeat(64), disposition: "REJECTED" },
+          finalizedEvidenceAvailable: true,
+          handoffFindings: [],
+          blocker: null,
+          toolingOutcome: null,
+          provider: "independent-reviewer",
+          targetStateDigest: "7".repeat(64),
+        }],
+      },
+    });
+    setOnlyInProgress(state, "spec-review");
+    const baseline = buildCurrentRecoveryFingerprint({
+      root,
+      flowState: state,
+      kind: "review",
+      canonicalPhase: "spec",
+      baseline: null,
+    });
+    persistRecoveryBaseline(state, {
+      kind: "review",
+      phase: "spec",
+      fingerprint: baseline,
+      createdAt: "2026-07-24T00:00:00.000Z",
+    });
+    const flowManager = makeFlowManager(root);
+    flowManager.create(state);
+    fs.writeFileSync(path.join(root, spec), '{"revision":2}\n');
+
+    applyRetryReset({
+      root,
+      spec,
+      flowManager,
+      input: {
+        action: "reset",
+        kind: "review",
+        phase: "spec",
+        reason: "changed review evidence",
+        yes: true,
+      },
+      expectedAttempts: 1,
+      expectedMaxAttempts: 1,
+      expectedRunId: state.runId,
+      expectedHasIssue: false,
+      createdAt: "2026-07-24T00:01:00.000Z",
+      resolveConfiguredMaxAttempts: () => 1,
+      afterReset(flowState) {
+        new ReviewSemanticRecoveryMutation({
+          phase: "spec",
+          taskId: null,
+          previousTreeSha,
+          nextTreeSha,
+          expectedRunId: state.runId,
+          expectedSpec: spec,
+        }).apply(flowState);
+      },
+    });
+
+    const recovered = flowManager.load().reviewConvergence.records[0];
+    assert.equal(recovered.treeSha, nextTreeSha);
+    assert.equal(recovered.semanticAttempts, 0);
+    assert.equal(recovered.toolingAttempts, 0);
+    assert.equal(recovered.evidence, null);
+    assert.equal(recovered.finalizedEvidenceAvailable, false);
+    assert.deepEqual(recovered.handoffFindings, []);
+    assert.equal(recovered.blocker, null);
+    assert.equal(recovered.toolingOutcome, null);
   });
 
   for (const scenario of ["flow-payload", "flow-duplicate", "public-payload", "issue-payload"]) {

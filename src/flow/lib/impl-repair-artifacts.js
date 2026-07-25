@@ -39,6 +39,12 @@ const IMPL_REPAIR_ENTRY_LIMIT = 100;
 const IMPL_REPAIR_LEDGER_SIZE_LIMIT = 1024 * 1024;
 const CHANGED_PATH_PREVIEW_LIMIT = 20;
 const CHANGED_PATH_GROUP_LIMIT = 20;
+const WORKFLOW_ARTIFACT_PATH_PREFIXES = Object.freeze([
+  ".senti/",
+  ".tmp/",
+  "docs/",
+  "specs/",
+]);
 
 export const EVIDENCE_FILE_BY_STEP = Object.freeze({
   "test-execute": "test-execute-result.json",
@@ -1377,6 +1383,109 @@ export function completeTestEvidenceRefresh({
   }
 }
 
+export function completeLateAppliedFindingRepair({
+  root,
+  state,
+  flowManager,
+  specDir,
+  sourceStep,
+  sourceFindingIds,
+  resetStepIds = flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+  specId = null,
+}) {
+  if (!flowManager || typeof flowManager.updateStepStatus !== "function") {
+    throw new Error("late applied-finding repair requires the impl-repair lifecycle authority");
+  }
+  const activeState = state || flowManager.load();
+  const resolvedSpecDir = path.resolve(specDir || path.dirname(path.resolve(root, activeState.spec)));
+  const appliedFindingIds = requireStringArray(sourceFindingIds, "sourceFindingIds");
+  const previous = readRepairFingerprintManifest(resolvedSpecDir);
+  const current = buildRepairFingerprint({
+    root,
+    specPath: activeState.spec,
+    state: activeState,
+  });
+  const existing = readImplRepairLedger(resolvedSpecDir) || new ImplRepairLedger({ version: 2, entries: [] });
+  const ledgerPreviousHash = existing.entries.at(-1)?.currentHash || previous.hash;
+  if (ledgerPreviousHash === current.hash) {
+    throw new Error("late applied-finding repair requires a repair fingerprint change");
+  }
+  const changedPaths = ledgerPreviousHash === previous.hash
+    ? changedRepairPaths(previous, current)
+    : current.entries.map((entry) => entry.path);
+  if (changedPaths.length === 0) {
+    throw new Error("late applied-finding repair changed paths must be non-empty");
+  }
+  const reason = `Late repair evidence recorded for findings ${appliedFindingIds.join(", ")}.`;
+  const invalidations = planRepairInvalidation({
+    specDir: resolvedSpecDir,
+    currentFingerprint: current,
+    previousFingerprint: previous,
+    reason,
+  });
+  if (invalidations.length === 0) {
+    throw new Error("late applied-finding repair must invalidate stale test evidence");
+  }
+  const id = `repair-${String(existing.entries.length + 1).padStart(3, "0")}`;
+  const delta = ledgerPreviousHash === previous.hash
+    ? repairDeltaArtifact({ id, previous, current, changedPaths })
+    : new RepairDeltaArtifact({
+        version: 1,
+        id,
+        previousHash: ledgerPreviousHash,
+        currentHash: current.hash,
+        changedPaths,
+      });
+  const entry = new ImplRepairEntry({
+    id,
+    sourceFindingIds: appliedFindingIds,
+    reason,
+    previousHash: ledgerPreviousHash,
+    currentHash: current.hash,
+    changedPathCount: changedPaths.length,
+    changedPathsRef: `${REPAIR_DELTA_DIR}/${id}.json`,
+    changedPathsDigest: delta.digest,
+    changedPathsPreview: changedPaths.slice(0, CHANGED_PATH_PREVIEW_LIMIT),
+    changedPathGroups: changedPathGroups(changedPaths),
+    invalidations,
+    createdAt: new Date().toISOString(),
+  });
+  const transaction = new ImplRepairTransaction({
+    version: 2,
+    id,
+    sourceStep: requireString(sourceStep, "sourceStep"),
+    target: ImplRepairTargetIdentity.fromState(activeState),
+    resetStepIds,
+    entry,
+    ledger: existing.append(entry),
+    currentManifest: current,
+    delta,
+    invalidations,
+  });
+  const changes = plannedRepairStepChanges(activeState, transaction.resetStepIds);
+  if (changes.length === 0) {
+    throw new Error("late applied-finding repair requires downstream lifecycle invalidations");
+  }
+  flowManager.updateStepStatus(new ExplicitRecoveryTransition({
+    stepId: changes[0].stepId,
+    currentStatus: changes[0].currentStatus,
+    requestedStatus: changes[0].requestedStatus,
+    entrypoint: "impl-repair-invalidation",
+    changes,
+  }), {
+    ...(specId == null ? {} : { specId }),
+    taskId: null,
+    expectedOriginal: activeState,
+  }, new ImplRepairTransitionIntent(transaction));
+  return commitImplRepairEffects({
+    root,
+    state: activeState,
+    flowManager,
+    transaction,
+    specId,
+  });
+}
+
 export function appendImplRepairEntry({ specDir, entry }) {
   const normalized = entry instanceof ImplRepairEntry ? entry : new ImplRepairEntry(entry);
   const file = path.join(specDir, IMPL_REPAIR_ARTIFACT_FILE);
@@ -1386,8 +1495,41 @@ export function appendImplRepairEntry({ specDir, entry }) {
   return { path: file, artifact };
 }
 
+function isDurableRepairEvidencePath(root, relativePath) {
+  if (WORKFLOW_ARTIFACT_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix))) return false;
+  const repositoryRoot = path.resolve(root);
+  const candidate = path.resolve(repositoryRoot, relativePath);
+  const relative = path.relative(repositoryRoot, candidate);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) return false;
+  try {
+    const stat = fs.lstatSync(candidate);
+    return stat.isFile() && !stat.isSymbolicLink();
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw new Error(`failed to inspect repair evidence path: ${relativePath}`, { cause: error });
+  }
+}
+
+function repairEvidenceFile({ root, specPath, entry }) {
+  const specDir = path.dirname(path.resolve(root, specPath));
+  const delta = new RepairDeltaArtifact(readJson(path.join(specDir, entry.changedPathsRef)));
+  if (
+    delta.id !== entry.id
+    || delta.previousHash !== entry.previousHash
+    || delta.currentHash !== entry.currentHash
+    || delta.digest !== entry.changedPathsDigest
+  ) {
+    throw new Error(`repair evidence delta does not match entry ${entry.id}`);
+  }
+  const file = delta.changedPaths.find((candidate) => isDurableRepairEvidencePath(root, candidate));
+  if (!file) {
+    throw new Error(`repair evidence for ${entry.id} requires a materialized repository file`);
+  }
+  return file;
+}
+
 function recordAppliedFindingRepairEvidence({ root, specPath, sourceStep, entry }) {
-  const repairFile = entry.changedPathsPreview[0];
+  const repairFile = repairEvidenceFile({ root, specPath, entry });
   for (const findingId of entry.sourceFindingIds) {
     appendIssueLogEntry(root, specPath, {
       step: sourceStep,

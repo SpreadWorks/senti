@@ -37,6 +37,7 @@ import {
   formatImplReviewJson,
   buildImplReviewPrompt,
   runImplReview,
+  resolveReviewTarget,
   collectTestFiles,
   filterProposalsByScope,
   collectTouchedFiles,
@@ -290,6 +291,8 @@ describe("draft repair target canonical classification", () => {
       value: "REJECTED",
       ...canonical,
     }).blockingFindings.length, 2);
+    assert.notEqual(canonical.blockingFindings[0].findingId, canonical.blockingFindings[1].findingId);
+    assert.notEqual(canonical.blockingFindings[0].fingerprint, canonical.blockingFindings[1].fingerprint);
   });
 });
 
@@ -1990,6 +1993,40 @@ describe("collectTouchedFiles (spec 201 R-P4)", () => {
 
     const touched = collectTouchedFiles(tmp, baseSha);
     assert.ok(touched.has("c.js"), "includes staged file");
+  });
+});
+
+describe("resolveReviewTarget untracked spec tests", () => {
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
+
+  it("includes an active spec's untracked test source without flow artifacts", async () => {
+    tmp = createTmpDir();
+    fs.mkdirSync(join(tmp, "src"), { recursive: true });
+    initTestRepo(tmp, { "src/base.js": "export const base = true;\n" });
+    const baseSha = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    fs.mkdirSync(join(tmp, "specs/demo/tests"), { recursive: true });
+    fs.writeFileSync(join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
+      goal: "Review untracked spec tests.",
+      scope: { in: [], out: [] },
+      constraints: [],
+      design_principles: [],
+      overview: { modules: [], data_flow: [], decisions: [] },
+      background: "Test fixture.",
+      requirements: [],
+      acceptance_criteria: [],
+      clarifications: [],
+      alternatives_considered: [],
+      open_questions: [],
+    })}\n`);
+    fs.writeFileSync(join(tmp, "specs/demo/tests/bounded-recovery.test.js"), "// spec: R1\n");
+    fs.writeFileSync(join(tmp, "specs/demo/issue-log.json"), '{"entries":[]}\n');
+
+    const target = await resolveReviewTarget(tmp, { spec: "specs/demo/spec.json" }, baseSha);
+
+    assert.ok(target.untrackedFiles.has("specs/demo/tests/bounded-recovery.test.js"));
+    assert.match(target.diff, /bounded-recovery\.test\.js/);
+    assert.doesNotMatch(target.diff, /issue-log\.json/);
   });
 });
 

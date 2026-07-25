@@ -1,0 +1,2603 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../tests/acceptance-decision-registry.test.js     | 489 +++++++++++++++++++++\n src/flow/definition.js                             |   5 +\n src/flow/lib/acceptance-review-artifacts.js        | 453 ++++++++++++++++---\n src/flow/lib/impl-repair-artifacts.js              | 143 +++++-\n src/flow/lib/review-convergence.js                 |  74 +++-\n src/flow/lib/set-retry.js                          |   4 +-\n src/flow/lib/set-step.js                           | 174 +++++++-\n src/lib/active-flow-registry.js                    |  30 ++\n src/lib/flow-manager.js                            |  43 ++\n tests/unit/flow/retry-exhaustion-defer.test.js     |  90 ++++\n tests/unit/flow/retry-recovery-convergence.test.js |  96 +++-\n tests/unit/flow/run-review-advisory.test.js        |  23 +-\n tests/unit/flow/set-step-impl-repair.test.js       | 184 ++++++++\n 13 files changed, 1710 insertions(+), 98 deletions(-)",
+      "commits": [
+        "Inline implementation repair completion",
+        "Fix historical review evidence fixture",
+        "Recover historical deferred review evidence",
+        "Consolidate acceptance rollback errors",
+        "Recover materialized repair evidence",
+        "Recover exhausted semantic reviews",
+        "Preserve issue log metadata on rollback",
+        "Fix active flow decision recovery"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "For a managed-worktree acceptance-decision, the lifecycle operation shall retain the selected binding's runId, Issue, and spec identity through its flow-state write and shall mutate only that bound flow.json.",
+          "status": "done",
+          "note": "R1: acceptance-decision persists only the exact bound worktree flow identity"
+        },
+        {
+          "desc": "The acceptance-decision success path shall not call an active-flow registry remove, park, or document-replacement operation, and it shall verify that the target entry and every entry present before the operation remain registered with their original modes.",
+          "status": "done",
+          "note": "R2: success preserves registry document identity and cannot remove, park, or replace it"
+        },
+        {
+          "desc": "After a successful managed-worktree acceptance-decision, guarded flow resolution shall return the same runId, Issue, and spec and the flow state shall mark acceptance-decision done and final-regression in progress only for accept_risk_and_continue.",
+          "status": "done",
+          "note": "R3: guarded resolution retains identity and only continue advances final regression"
+        },
+        {
+          "desc": "A worktree binding mismatch, registry operation lock failure, registry revision conflict, or registry identity verification failure shall return an explicit failure without reporting a successful acceptance-decision transition and without losing any pre-operation registry entry.",
+          "status": "done",
+          "note": "R4: every binding and registry failure leaves flow state and pointers unchanged"
+        },
+        {
+          "desc": "Regression coverage shall prove registry preservation and guarded target resolution with at least two managed-worktree flows, inject each R4 failure boundary without entry loss, prove that a one-entry registry retains its entry after accept_risk_and_continue, and prove that flow resume --parked restores a parked target's active entry and exact target resolution.",
+          "status": "done",
+          "note": "R5: two-flow, single-flow, and parked-resume regressions preserve exact pointers"
+        },
+        {
+          "desc": "For one current flow and one mechanically blocked gate attempt, missing materialized repair evidence may invoke the existing impl-repair authority at most once, invalidate only leaf steps from test-execute through finalize-cleanup, and permit one subsequent test-review-gate evaluation; a further failure shall not invoke the recovery again. For one exhausted rejected review record with a changed tree, the existing review-convergence authority shall clear only that record's stale fields and permit exactly one semantic re-evaluation without mutating unrelated flow state.",
+          "status": "done",
+          "note": "R6: bounded repair and semantic review recovery invalidate only stale current-flow evidence"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 101,
+      "fullLogPath": "specs/338-active-flow-registry-race/issue-log.json",
+      "importantTotal": 60,
+      "importantShown": 10,
+      "importantOmitted": 50,
+      "recentOtherTotal": 41,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 36,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-coverage-review",
+          "reason": "Draft coverage review PASS artifact was written, but its post-hook reported a repository operation lock failure.",
+          "resolution": "Preserved the generated review artifact and followed the guarded next-action state after the post-hook warning."
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The requirement says to fix the lifecycle so one flow update does not lose registry entries, but leaves the exact lifecycle boundary and implementation behavior to later investigation, so two reviewers could disagree on what implementati...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate found the lifecycle boundary and failure criteria too deferred for reproducible implementation review.",
+          "resolution": "Will replace deferred investigation language with verified module ownership and explicit success and failure behavior."
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Scenario validity was blocked before tests ran because git diff against base branch reports pre-existing implementation-target paths; the spec-local test process did not start.",
+          "resolution": "Inspect branch/base divergence and resolve the flow preflight baseline without altering unrelated source changes."
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Rebasing the worktree branch onto main was blocked because flow artifacts and the new spec-local test are intentionally uncommitted; no rebase was applied.",
+          "resolution": "Use the worktree-local autostash rebase path so the active-flow artifacts are restored automatically."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review reached a tooling error while recording duplicate findingId values; a contemporaneous issue-log write transiently returned NO_FLOW, while guarded status immediately afterward resolved the intended flow.",
+          "resolution": "Inspect the generated review findings for duplicated identifiers, preserve the transient registry evidence, and repair tooling before the one permitted retry."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Test review rejected R4 because lock/revision faults were injected through a manager facade and failure persistence did not assert the absence of a successful decision record.",
+          "resolution": "Inject errors at ActiveFlowRegistry.load and snapshot decision artifact plus issue log to prove no successful transition is reported."
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Add a locked active-flow snapshot with a revision receipt so acceptance-decision can fail closed on lock and revision failures.",
+          "resolution": "Pending implementation repair."
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Bind rollback to the same captured FlowTargetExpectation so verification failures cannot restore the original state into a different flow.",
+          "resolution": "Pending implementation repair."
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Reused the captured exact-target mutation closure for rollback, which now fails closed if the original target no longer resolves.",
+          "resolution": "Rollback is bound to the same runId, Issue, and spec as the forward mutation."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: match the acceptance target against the full registry identity key",
+          "resolution": "Target presence now compares runId, Issue, spec, and mode together, matching the preserved entry-set invariant."
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-review",
+          "reason": "fix: exclude canonical impl review evidence from stale fingerprint refresh",
+          "resolution": "Canonical typed review evidence already validates the phase artifact, so its older fingerprint must not trigger a test evidence refresh."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff adds a non-trivial baseline worktree execution layer for scenario-validity, but the provided spec and acknowledgment evidence do not confirm this architecture or data-flow direction.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: remove unrelated scenario-validity baseline worktree execution",
+          "resolution": "The baseline worktree path was outside the active specification and triggered the no-overengineering guardrail, so the scenario-validity preflight remains unchanged."
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-decision",
+          "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+          "resolution": "continue to final-regression with accepted risk"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 3,
+      "srcRead": 21,
+      "question": 0,
+      "issueLog": 71
+    },
+    "tokenMetrics": {
+      "input": 2368112,
+      "output": 99202,
+      "cacheRead": 1812992,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 134,
+      "durationMs": 2737921,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 18618
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 31334
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 28433
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 120033
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 95517
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 182029
+        },
+        {
+          "phase": "implement",
+          "durationMs": 195698
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 1253176
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 449550
+        },
+        {
+          "phase": "acceptance-review",
+          "durationMs": 363533
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/338-active-flow-registry-race/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/commands/review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/review-convergence.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-scenario-validity.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-retry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/active-flow-registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/commands/review.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "ce2eb16b9aee685f30d061ba0dbf5a70379b74dd6955a395e7ac18ba682d76ad"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "fbc039702ba247cf60a1c6fea86624981ee2ef86749475062d9fe9b991ec043f"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "fingerprint": "0c42e05b92b67de1bbd9f31806c542ac635270b792843f036ad57bcf23d7132a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "5a7d4bd715906f4202149e7cd55a1c45ea7281909a17a4780e037b2f63af5aa6"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "44b8e9d332cd99db7337371a12e19fbae4f5932f8be873e174223da0a277f562"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "4bd4b46173c428c3a7e65fbbfb261b1af71d99b752f17589d70f9beb46d88163"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-scenario-validity.js",
+            "fingerprint": "dff0ea7a8efd40ea6ab66ebe19134105d9d8803bd62f9e36f4398702fff631c0"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js",
+            "fingerprint": "629e7f3e2b6db6ea6b449725baaf540bac1fb3336f00ff3a3520f23282387921"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "0a0509f68b606f9e0dbca1e2b870c14a37e1fbd2448c6d62fc3bf9099a4eb448"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/active-flow-registry.js",
+            "fingerprint": "a378f9632ff1dd366aa00f16e2a2f9df90b8f74ce72e6d14e7516fbfef60d5b4"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "73b86a6c0b6461df05604ff8a9af88ad00aaa69da34086ee3e538ee0bbb30154"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js",
+            "fingerprint": "eda1f04c1ff95c52645fbf00ca3d5d8341a368dc30d00c759c83bf3d64698eea"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "109f6cd2694ab05dd1ff0121b5cbe144378fc6dce9f8bf91ab063ce0042acb86"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "d4663c57db70f056744843f39aea0fa97dce4a6b0f49c48d3fb0761f25fc9e63"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "b6ca6147c85a507e54ca24dba9c794f10fd1a1dc75e0d6233eb6618bf49131f7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "af38c15f4b754c0bc427915d428d1d3493aa402bce473d7db8578259ea07da40"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "fingerprint": "3b770185802eb0fc392301a56dfd9aa58a0536e6a93d50b8d38fddd3d76de55f"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "ce2eb16b9aee685f30d061ba0dbf5a70379b74dd6955a395e7ac18ba682d76ad"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "fbc039702ba247cf60a1c6fea86624981ee2ef86749475062d9fe9b991ec043f"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "fingerprint": "0c42e05b92b67de1bbd9f31806c542ac635270b792843f036ad57bcf23d7132a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "5a7d4bd715906f4202149e7cd55a1c45ea7281909a17a4780e037b2f63af5aa6"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "44b8e9d332cd99db7337371a12e19fbae4f5932f8be873e174223da0a277f562"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "4bd4b46173c428c3a7e65fbbfb261b1af71d99b752f17589d70f9beb46d88163"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-scenario-validity.js",
+            "fingerprint": "dff0ea7a8efd40ea6ab66ebe19134105d9d8803bd62f9e36f4398702fff631c0"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js",
+            "fingerprint": "629e7f3e2b6db6ea6b449725baaf540bac1fb3336f00ff3a3520f23282387921"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "0a0509f68b606f9e0dbca1e2b870c14a37e1fbd2448c6d62fc3bf9099a4eb448"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/active-flow-registry.js",
+            "fingerprint": "a378f9632ff1dd366aa00f16e2a2f9df90b8f74ce72e6d14e7516fbfef60d5b4"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "73b86a6c0b6461df05604ff8a9af88ad00aaa69da34086ee3e538ee0bbb30154"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js",
+            "fingerprint": "eda1f04c1ff95c52645fbf00ca3d5d8341a368dc30d00c759c83bf3d64698eea"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "109f6cd2694ab05dd1ff0121b5cbe144378fc6dce9f8bf91ab063ce0042acb86"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "d4663c57db70f056744843f39aea0fa97dce4a6b0f49c48d3fb0761f25fc9e63"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "b6ca6147c85a507e54ca24dba9c794f10fd1a1dc75e0d6233eb6618bf49131f7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "af38c15f4b754c0bc427915d428d1d3493aa402bce473d7db8578259ea07da40"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "fingerprint": "3b770185802eb0fc392301a56dfd9aa58a0536e6a93d50b8d38fddd3d76de55f"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "dependency_failure",
+        "failureCategory": "dependency",
+        "failureNature": "execution",
+        "skipKind": null,
+        "rawOutputPath": "specs/338-active-flow-registry-race/tests/.raw/final-regression-attempt-002.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 1,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 1,
+        "failureSummary": "not ok 6 - records multiple repair targets with unique fallback IDs and rejects true duplicates\n      ---\n      duration_ms: 1.422047\n      type: 'test'\n      location: '/home/nakano/workspace/senti/.senti/worktree/feature-338-active-flow-registry-race/tests/unit/flow/commands/review.test.js:226:3'\n      failureType: 'testCodeFailure'\n      error: 'Missing expected exception.'\n      code: 'ERR_ASSERTION'",
+        "currentDiffRelationship": "non-current-diff",
+        "changedFiles": [
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/.retry-recovery.transaction.json",
+            "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/acceptance-review.json",
+            "fingerprint": "e62f7f01131ccd4154e1f5d92f5d1b39cc47936f66364479fb621450b31a6452"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/draft-coverage-repair.json",
+            "fingerprint": "b9529975b5f09790ff0d5c843cac74e5613110b5effbe8271b6e9d80458d1491"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/draft-coverage-triage.json",
+            "fingerprint": "9cf660835d8ad7b97107dd6add926a1b9ac5ea718767209591cb6c282eda99be"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/draft-gate-source.json",
+            "fingerprint": "a2b8400d0e21baa6058a98dacd7cae46a4b9b4d937592065a959f496b484c3d3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/draft-questions-repair.json",
+            "fingerprint": "3a0fdbabccf0eb24edea0fcfd9918271e2ee0498d3abc420067c9caf9763e6fa"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/draft-questions-triage.json",
+            "fingerprint": "099ee22f50a8cdab31391668a536091b4e3499f4bd5d17aa69258f4b2dcfc2fa"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/draft-review-coverage.json",
+            "fingerprint": "33fd17786446f3c124f27be4dab8205579499149381057993d3cd8eb7654232f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/draft-review-questions.json",
+            "fingerprint": "15fad066a7c3fe10cd8d264b7108be1368563c68c0719d5a85114f0eb3564726"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/draft.json",
+            "fingerprint": "33099eb979f250c367b5a132c86a6c32baee68cc5f8f1eefefcd9e0ede5d4339"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/file-map.json",
+            "fingerprint": "1113ac8372155e6b27a0da4dfdfb9406e48f45841d500a80c516d2899eedd137"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/flow-findings.json",
+            "fingerprint": "5736544369f6f3e523be16e7131b34626c3463e3feba7638c17065574fdd1e27"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/impl-gate-result.json",
+            "fingerprint": "7812750f446bca6b20f81e64372f8d3ac1b65eed36e6b0d58229e75d68f8d193"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/impl-repair.json",
+            "fingerprint": "5b638ea623d20134a4bd8ccef8a75dad15425fe70946a3f21cbc8ef8b2906440"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/impl-review.json",
+            "fingerprint": "66f6f2bd11d15d03488fa48727871c32e136dc4b2f5719eeaa1ff6b5d6b83deb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/impl-triage.json",
+            "fingerprint": "618fa3c158fbfe1bf6045e6e9c952880fe4e0f922de495f3800ee9cf4f74301c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/issue.md",
+            "fingerprint": "05856408dc61e2469fef2ed281ba4ce41d3bc137c4a94fa67a57fa63d52c721e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "8d22544637d247f3197c2cf640cb940427638b6d81907a80a882cc16922e83d0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-001.json",
+            "fingerprint": "ae17100dc2af0691b022d2e2b079ded0214a496473c80d291794c16959878ad1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-002.json",
+            "fingerprint": "1217b8cd6a0361cb6cda7b4fd13fef38f8a4e0e8ecdde33a479cefeb648cf7d1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-003.json",
+            "fingerprint": "6c0e5d23cbb1ae22502f9dedc2d6d4a6aa7aa4231d2cab196e773a7a50da9dfa"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-004.json",
+            "fingerprint": "247d9647f8573a098acbf1b0179da34258fb1b10bca8295de5c1a58479c5f51d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-005.json",
+            "fingerprint": "1c4ed029d63a0a8f6145bd796be532ed6683472728429fafebcb9b4f36035c38"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-006.json",
+            "fingerprint": "acad6f49bc94490e56d45fde54cd5edc5966eef0261b68c2b2bec096dd025735"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-007.json",
+            "fingerprint": "75874a01665a98ea5ce5c795acf564a4743d7ceeaf1f1d1a07d7ba67c5084e88"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-008.json",
+            "fingerprint": "fbfb78a58eedd075265c6cea34bc4cf490839bbe0e8bcde902f1c70db051feff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-009.json",
+            "fingerprint": "428f2cf8dc82c971e18dee7581aa04a909c7883442c6f466cbeff9d86a87e3ff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-010.json",
+            "fingerprint": "dcf2de37d34466977141491728b4a772078dde5c8dfa6dcb054ebd2a0ba74a5a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-011.json",
+            "fingerprint": "5bf8bda0b192d4e4ef7dab02a60b0996d6528b7daacb5bd25d6de90347dfe2b1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-012.json",
+            "fingerprint": "c6423871fd18347c346dbbb0162a58f9175354a9d04d24053351f1929b5c6242"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-013.json",
+            "fingerprint": "b6855b8e27970869efe8880fd099836b6e1f306962eba8abe8832786fb0762b3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-014.json",
+            "fingerprint": "f2118e57cf001f3ee444247fc02a91e7a32f86272ab7b162c9ea667cb1acbdde"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-015.json",
+            "fingerprint": "83cdca827d952febdc237e5ffa663ad55f5db44bd0225137c10619bb77e20b90"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-016.json",
+            "fingerprint": "dbc7afd5463564613e4332e8f431483735dfb52399474541a5a43af0980b5de9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-017.json",
+            "fingerprint": "61750d6c65a52ea9682389d54d906a6637a194e850ebfee33928009a29ff951c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/repair-fingerprint.json",
+            "fingerprint": "b715642c84aae22106063e41f8d70e16af1dac280d689c9f96715b544a6341d9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/retro.json",
+            "fingerprint": "b5bc6225db2755efe8a87f2e3eaab0575fb781cc61d4bf315e7f74e4ebffadc2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/retry-recovery.json",
+            "fingerprint": "dd6254a6e797c5639f187052d15cc6c6c5868ca1d62241e389bbe198f545b64c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/0d850935d9f910be0b04fb60ced2f84a62b08c5c209915ecb3942901a41665ec.json",
+            "fingerprint": "67d93f2e05bcb32bd260b82c6ac1c883c1582fcc2f3555e2df919a6ee535bbfd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/11a4f11564599b3bd6ffa90b2413aa76a81e511c7a32e90ebeacc362c9966e15.json",
+            "fingerprint": "459aebcc134b5aa01a0b7f266306fe3b4d9f8432556bd91e0f2dcfa8e0cda8dc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/14e825448aa8f0b164d04149c54fc87e5025bbbb88cb040c4df55f88c99ef219.json",
+            "fingerprint": "19bf39533d778a760da660e78d17c1e6274f3a54a3ddfd0129aa66744b54a525"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/17a95bf414b7e5b4c103b189aaf64d9b5989919a680b24bc3908b026e23a5e46.json",
+            "fingerprint": "6591601e7ad3442aac3d9b6e540f2076bae908b0ba6e63ffcbe0b395382ab972"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/190514dfcc53c699e7aa35797be1b84dd8af3b53cfc2d6a72c2127e2455d4c5c.json",
+            "fingerprint": "59943b04841f4d8efede46719c0236d0f451241c8ba74c68c78663385792a892"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/1a3c8bc8384506535d44033a461ace24a771d1770dd33490bf803b2c2501274e.json",
+            "fingerprint": "fd69d05165ff509733d4f32e5811228ada927b353ea2aa739fb54b3ae1004657"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/23624facf4166a6bff651a1b9425bbe1154878c0d9a0eae6ebebabd9ffcdf8de.json",
+            "fingerprint": "00ea421003cc023ba23d2d828ea80d6b53a0fb48125d4c3db6c1e2e8fac9490c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/277beea6e89879955457c6e5b5476bdb3b859b0a310848434613db54d4e22dff.json",
+            "fingerprint": "cbd531f5c4cf6ed2d88dca00c1dde551f59a4022551acb0b7bf37506124d1956"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/334057289e7a199bcec3193850d546f1f8bd1f8559c15584d1e478bbefc2aa35.json",
+            "fingerprint": "2300a6a8eb93c6dd5fad6738ab8494f4b7a2c2dcf7f4352f1602eb3d5a08ce2b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/35c3596a57b2b0de815d1214bfe85535d9cfaf486447eb7d861166836c917a5a.json",
+            "fingerprint": "4e1ad72ec104ffef7a8cafabeb78b6c174f456684236cedae75b670407b3d839"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/39c5d29be68002e3030333d1162ffab466883bc1c4c76d2616d57384035e00c4.json",
+            "fingerprint": "f19cd6585c0e648128b63efa84dfbbe639cbc0a606994df4f65e86de0176e639"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/3c73d9d64fae7a6846102a7ae0485e9f35c1207df6e93e14cfc1d2b6419c65b3.json",
+            "fingerprint": "c9c5211747be73cc2433b035586a41a9eeaf3c15b522769017fd8b58a7a47861"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/41396daca24833862e37e1e2b32f83b25fb4c88147e320444ccdfcc66d96de48.json",
+            "fingerprint": "8ee4b3b672e34aa8d09387ccd4a78bf38af75f4b9118c58ba4ab1ebe2ace7b9c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/44ac9fdaccf7c0b3efb799fddeb7129e815b58e4e6643446a74c3ef414f72f9f.json",
+            "fingerprint": "279b14d7507993db3e8827a38a352dd9fdcb41968d329f2b4c1b6a3e4b06b72b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/4bc0a07d3a06ca2a9508ed190fdaac87f72cf2753fa0b6ff412d76080534f2fe.json",
+            "fingerprint": "01f9dd3c1cb1ed20df0064a08e315848e05d52aa39688eb564c38a0c66a2351e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/4debb3f628583df920f1851d1ab8bc69d180e735dc157657e9c0cd60892e13ab.json",
+            "fingerprint": "eec90f1fd005000139f71b751ae1e29dca5c733a97c718eaef1924d25685eee0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/5a6f56db321ec4d444374eb24d05475650912afb0a3154b6c14eeb59715bacd4.json",
+            "fingerprint": "4e590384198a3eee645bbf4428441354ad15a4bb2d84a4ab09524b3cbae335e2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/645411f72956e1b1913b8f717b0f0d817877b4c8f7143737e8a0a4df4d7a8574.json",
+            "fingerprint": "340cfebc949386456a5b541cf5eb8fa0077ffdae91d0ca3df3e9df7113a78e51"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/6b6ee00d5857b213a0e12c1d5aeb5d72b652f0de1fe9db1d7c5c2b5407713cc6.json",
+            "fingerprint": "07341d4921cfde8f7826f62374d06b9d4e763ec8d13ef19e49ecfb8323d73008"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/6b839762de13f66eb78c8d38443272f59414fc91e99adeae8ee53567f059379b.json",
+            "fingerprint": "e414bcd1b6a653209d7390595ac3f69cc4cb86ca17c3756909d9fb5b81a98d91"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/6d6d08317aad6a1a7c4cc810cbad73597f50428d9ec3a64a49c116eb2c465a24.json",
+            "fingerprint": "0a5e8afec42b11b0c1cdf039449e9a02a6cd834f632d77754fc3f0709ef890ea"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/7de1e8b7eb1e93024f7d77a22f1815cbe836f771cc5c4c31751a27daa4e45331.json",
+            "fingerprint": "e8840ef1259175deeca807a4b66ea1ac39801d4a7a8f81936774c00b91c72104"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/85c78154cf119c6c350797c444386017e987cd16d059651a932deb268c24e0ad.json",
+            "fingerprint": "33b1e4ae9b577b50e162a154474e7559cc45b64f0b5a21b5bc8ecacdd8648e07"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/9957ba14780fcf2490120c6c9c1bb17c226c229ee99349839737e0f7241f84eb.json",
+            "fingerprint": "645aa1dd43b765ea7511fd867cc042fe368b18ae74fbd9466ec46405544aed31"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/9fa83df66d0e2e592f59afee8742d1642a6549d90837af710828ebec5f694938.json",
+            "fingerprint": "d6f8573369a1bbf78b3abd5bd06a53adab647a80fe80f6579694711f432a3a14"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/a21b46f90afe4c5818ce09a615183660f3eed78084e34f738c3136942869770e.json",
+            "fingerprint": "16dc21fc347bd46d220fc1ef91b52728ccd83a370c800234d774c86527012f05"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/a4458a498ae243c84f17faa93ff4f156a1a9b6219a0d0a90e27eef51bb836efe.json",
+            "fingerprint": "55fa66b5fce989bd9e4dbd3372243559335eef96f3938a42d378d246988e3155"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/ae070b7291149f2e81feee537da9d63bea8e849311bf08b91132d0e3fdee19f5.json",
+            "fingerprint": "3454d8540b246b96464d0a464477b24fc48802462f136cbd95654d9869e33a50"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/b08192e8b1fda80caa00c68097df4ab12851075f22dd1bea9ffcf081e63df60e.json",
+            "fingerprint": "265beb41fd81170aeae15b0e8647429ed703dd6dae20b89b3dfe825107f3529d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/b46e26b8d59fd285c87ae843522bd6b793ed316a57e6d6034875ba01945e94e5.json",
+            "fingerprint": "c686f699d3e1335f1bb8e4805ec8e50a28660133375a64fd952be0e83fac92a4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/c164e440073523dbb56f9b9a8298ba36081bea770c27354a3e8e718e190fb9b0.json",
+            "fingerprint": "ac216ef3a41381698d7bf428b7aa5c60a8cb0a6ce3fa3471ac827027232f3cff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/cbd6619ad6648537ddbb324a4459e2d8edbe21508e52c4c87832d990e4e51794.json",
+            "fingerprint": "7f5a30a5eca18c96505f9f676897d22e9357b72bdb669933d226ce199220c67c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/d04fbd15fa0ce28c43571fefa9c6544888884245782e1d476bad73e25d4e752b.json",
+            "fingerprint": "17e526d77b5443b013c26dd5241159d291f619fab244b3e3ab7f60f36eafc228"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/d8926e2c837c8be065459aec73deb80c5fd9dc63763ac1a64a2bfeb8944fbaf7.json",
+            "fingerprint": "ce9e3545234bf15db234a7c7bf1d2f49226451d4daeebfa18d6123974b893067"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/dd73826bd2dc152c56733647b997f5dff7902d7fcb35a629712ca1f28cd523cf.json",
+            "fingerprint": "72a799e87e9d3d491a831cd6b18e5d991e6bae5dd1226315fc0018b2aa314790"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/ddb208725d8a457b520726be9ecafc650e0894211e96c0f64b133ce9bcdd8655.json",
+            "fingerprint": "1db7bf9de4d67ed68e17abf214909cced8f297aa77695b4891159eed8a848264"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/f1bb204652ccbfb3b405456b3ad0a0912b70d1ea81c46b613c5b6faf5d0f4f04.json",
+            "fingerprint": "d8eafb6403939e65823db20f3750ce15a2aec3542fd2746366680247809a0117"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/f67f4e8d6e0a91ec1e614aa5354db024be4397839f31f8539de1e24cd3db313c.json",
+            "fingerprint": "d71e66630079751a119a2b87e5ee7c0e30ca41b94b33ef23ecdc71a8a5ad8b9e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/fbefddd84173f4de519fe0bd1394449b385c8439e5f6656feca75126a7bf351b.json",
+            "fingerprint": "7672fba5f8871bcb488a9d5e7de0d07f13bf24f5332cb43bd895b07f9af39c16"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-evidence/ff2ab1d35237b0ded876732294029025f0d70925343f1938af8bbea0d7ba999c.json",
+            "fingerprint": "33ad2b2532f4e65265b9160c8778c792f9e58749bbaff120a4b3f580bf81100e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "c26d9811a9bcb5c06952fe3b4edb4f4a99d07f0473dfb45dca26b7a4bd5fb67e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/draft-coverage-attempt-002.json",
+            "fingerprint": "e706742499f33c3cd46539dbfab6f0da0bc0c75787cd08383d680e1d4f0ee065"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "dd4825c0ef7f4bce20facd2ab64abd6a764186cfdd76b1d052e72f4b8dda41ba"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/draft-questions-attempt-002.json",
+            "fingerprint": "fe4b2bf4a1db7f93ce68c77638d75c82f869bfc81313a6b83e5deacebc1af953"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-001.json",
+            "fingerprint": "5240699b5d47f8073808360f3903a84cd7672f98b05dc65ba1b84e141a14fdfc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-001.md",
+            "fingerprint": "ec4348e4aa10d8ecfa777434602be373e4a8521883319abbacce38c5b912ef44"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-002.json",
+            "fingerprint": "c0d5f8e39a36d71bca32e7ce1d13a9284a0af99c3ad7dfdf8b83176fa5f8bc70"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-002.md",
+            "fingerprint": "b2b1cca90ff1b83662ad7ce18c9a40abd111b5181f6f336885427b9be1736d0d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-003.json",
+            "fingerprint": "bc1b633df38af8ec035a8cb1897ee66aa6d61bcbdf6cb129a6bf4438e046f7c5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-003.md",
+            "fingerprint": "beb426c236320d93786a67fa1afb32805ded87f5376dff4dad75ab233752247c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-004.json",
+            "fingerprint": "0f549367cd05a47ea075c9304082aa1a4759a4b9cd43dbb489148d75f464e047"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-004.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-005.json",
+            "fingerprint": "bffe724f77e7d5aaf14004066c185b92f07df92370b864815b143b8d8dad2c7c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-005.md",
+            "fingerprint": "123f2966df263f90fcd48cc5f41ffd429b1669556123406e9d1e6ff8671a1be1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-006.json",
+            "fingerprint": "163e510e9369a9e8d0fbcdb556a42ec6239e63ce219f9b85aba4ba72bb58e210"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-006.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-007.json",
+            "fingerprint": "60a54b9db39c04deb81b25e62cad7a51d9111f047fa3e1dda2b336b8b4b2d014"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-007.md",
+            "fingerprint": "582f82647098620307d554bc8e5e630225766e6d023fe7097ead693e0b3d6e56"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-008.json",
+            "fingerprint": "c14bb17d47171e3ca5e25edb3b346a709b61613b46a039707304f4f6384e35aa"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-008.md",
+            "fingerprint": "4639e5de6dd99750b10f5adc08f32255d2227a01b1612a5c25dca36458dfba7b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-009.json",
+            "fingerprint": "caf06af98a72a8431af36247c5b202d3b33a765afd886f06158e5e977668ff9f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-009.md",
+            "fingerprint": "5b050739664e2957458d641530de6c28efc13194df3459bd637684dd8896b9e7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-010.json",
+            "fingerprint": "8831e942f36a0ea40e2c7ef0ef1a7d72892251c0986ccbb90fb9588048f4feff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-010.md",
+            "fingerprint": "71097c08b2f7acbdee37b008cd07907a3607c23326a681e449ca4529c8cdc203"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-011.json",
+            "fingerprint": "71b00c846577c2732f2e5ca4f4e88edb7378333af7fa8e05d34c52ad2a8d1693"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-011.md",
+            "fingerprint": "966d1eff71e334e20ca808d246ca9dfe0fb99b20e2c105e7100b88d4dbd0b816"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-012.json",
+            "fingerprint": "2c4963da0529e6b873d0f980963af31881c818d0bebe4596082e1d8673ad82a8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-012.md",
+            "fingerprint": "1a7fa99daab8592b93fe6e3860833f16c6f0edc91af6db4d351df806bdf9941c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-013.json",
+            "fingerprint": "4490c7c0b0f8cf082ad0b1e7a01e64b8f0c474cf44d3b830f73b11e7e254a5ef"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-013.md",
+            "fingerprint": "1cf77b254425d27d86879b8fa5881141f54bd4318fea1a2753933c9dc3d223d8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-014.json",
+            "fingerprint": "aa0edd4aae5a51803a84b3468f29eae032071a1b446b131bc863cf3aeabf01ae"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-014.md",
+            "fingerprint": "872feec733bc291bdf8d43f7da88fc9e3f75b3275b0380dc1aa319316401fe51"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-015.json",
+            "fingerprint": "609ebb36aac645a0b267ca573c6c2fdee2b787dbe85ce75ac80a5f2e156410d9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-015.md",
+            "fingerprint": "22cef0b34ce8117a1c085c2acd8b7b4e277a85933af0f73dbc7b2dba1132b47f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-016.json",
+            "fingerprint": "f5d4a42979783456245ebbd01a787a2751737b27667fd193d30d9725010b0d72"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-016.md",
+            "fingerprint": "fcb562b212367f367570e0448efe25c09c2dbca680764821ec3db20431754af3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-017.json",
+            "fingerprint": "f9c7f85ba585973b6ea8f1a77e0def60db7e3a4569c4a748e362d2cde4ad92d9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-017.md",
+            "fingerprint": "ee33ce2af31ed3aac52f25a590dc8b2c54f5a34067bd54587e529e889a86b5c8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-018.json",
+            "fingerprint": "21bc4072dd012b086f7886e19d6227e4648eac0d65dba7c22e05d1c26e09daea"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-018.md",
+            "fingerprint": "ee33ce2af31ed3aac52f25a590dc8b2c54f5a34067bd54587e529e889a86b5c8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-019.json",
+            "fingerprint": "c807055b7c6da2d285196e2a2f1f1209d92933e26eb7faf44e252a5b4177835c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-019.md",
+            "fingerprint": "2fea2d1acefe678a754363004dbd2fb497c3fb53fec77ce544943651bc786020"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-020.json",
+            "fingerprint": "7c4de4eb5d923bf63a398e9027aee0b54dfc9f2cb573c8a45a07776caf69b3c7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-020.md",
+            "fingerprint": "2fea2d1acefe678a754363004dbd2fb497c3fb53fec77ce544943651bc786020"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-021.json",
+            "fingerprint": "0c5eefea6ffa4ab08c22aca472659a9e3e0fa0e17d36d6fd4f4fd8f9f08d5a1e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-021.md",
+            "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-022.json",
+            "fingerprint": "72721acbcc26ad1a488f84ae9e8db3604399c43df929767743d8bcd6845e2365"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-022.md",
+            "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-023.json",
+            "fingerprint": "af8745bde18a935b14d9421b9db40e11ecdc617bc42e2334226a69bdfec19844"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-023.md",
+            "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-024.json",
+            "fingerprint": "618ecfde9e0d67a8032633916b48a36fc4a7c1a337b1befe4ed8b7c5bc47bc3c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-024.md",
+            "fingerprint": "1591aba6e76dc597b0739171f259c5bd870f187d246fac7e755d973d20b89edf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-025.json",
+            "fingerprint": "1c263d55a7242bf17f70f281b665eb6e7be613de4e48c0262b6ef016406887ff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-025.md",
+            "fingerprint": "3ba37c30b89fc80c034ce7a0aaf2983540c76ce7d6765bdd17229eb5b9514073"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-026.json",
+            "fingerprint": "00ae46a46664fe1379d8bac1ebafb4916ab1e064454833c603051fe3c149b40d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-026.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-027.json",
+            "fingerprint": "8742792aa1a3990c547de49ce99898c6b4d15d113ae2fce21a6bf190d5316fd3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-027.md",
+            "fingerprint": "f38729439804e42d37c58e1f11fd6528404a37e929200ae90cec59fb76f39a9c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-028.json",
+            "fingerprint": "38bb9e2677f444b508706fb00f3c7430866721ec236c3a287d7a509b6e033c82"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-028.md",
+            "fingerprint": "f3c2701ddd2dc11e4e5c68e8a00e799b00743919a937ba82650130f86e5b7612"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-029.json",
+            "fingerprint": "eab489cde851d5c63ba81837788f52df39a5e81c3e2d2b85bf483a801d9cc789"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-029.md",
+            "fingerprint": "42f39f15112949b5fbbfe601934d02f4f943c9eceb9091e866a7888bfa2339db"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-001.json",
+            "fingerprint": "3373df482a7932944999d697e5612cc9ee76f2b7837ddaa0a54b6eddf6906e81"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-002.json",
+            "fingerprint": "d2944ba65612247ee093b5669ad74e2997bc81763cdc30f39d1c8e7c4e232626"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-001.json",
+            "fingerprint": "73ced6dbf4679a634bed6fe7bc6310a54088807413fc246caacdd86df0781dcf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-001.md",
+            "fingerprint": "dbc6aaf8bd1f1344f44b17bb04f28549bde21932e982bb19e1486c17081ad7ba"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-002.json",
+            "fingerprint": "77518df83418e710974f95d65661a84c35cf7cf7b25a28213f18d63f927941ae"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-002.md",
+            "fingerprint": "54fc08fbb9389c82138eaf3607e2ecf7d604b05d602f062328cdd335b714ef9c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-003.json",
+            "fingerprint": "20ed2cdc7f81082f1a6e4d7be1ac7071fb42cfcaaa5a8387741331b81f2cae68"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-003.md",
+            "fingerprint": "a1b5d747e0be44b3380ea3ccb2638c51b765f4d4f61e3ed2993f589663ea0705"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-004.json",
+            "fingerprint": "f839a84ead5d3a56e93fa95f00b11484a0ed4f8426aa1557b9e0b86ef185db27"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-004.md",
+            "fingerprint": "b1373c926ca52ad89eea8daca8ebb4a2692796d9ae6c12918d36c4a43c420984"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-005.json",
+            "fingerprint": "e0a439eb8f78c26724b2d433553770f3c0d0bebf4021b442ae697bc38497959d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-005.md",
+            "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-006.json",
+            "fingerprint": "244eb25a506eeb3f81eb3f516dcbad095d407e97856d539f87b425712fc58f07"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-006.md",
+            "fingerprint": "e10750570eeba2e2c9d8c0e85a13d3e3b11742f0f420d7c86ae8293aea3efde8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-007.json",
+            "fingerprint": "d51ce108622db5e440f9ba931051adb33c0ad3c7272580c0c3cc26259321acac"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-007.md",
+            "fingerprint": "4770440ad6c87ddc0312212a78527b3c9fa5b3476aff7daeeb8f183182864763"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-008.json",
+            "fingerprint": "0d1317bfd87bca8915d6783ffeb286748afdc48d5e597aadbb8f3e33465185db"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-008.md",
+            "fingerprint": "088e889f5b28f30d36bd6e932fedeac6455942fba74a00ee7760f0cc34321929"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-009.json",
+            "fingerprint": "319664d9b55d9ab6e3d99a5109919b2c44979f790f6012696f649987477d3de0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-009.md",
+            "fingerprint": "ca571a0710bf8ee04dd20798928a1d74fe06b4ee56d49aef87d54078282bdb2a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-010.json",
+            "fingerprint": "25cba7b9c4243092d344b380f6eb38dfdd87fa244ed0e17469f2bedaedec26a0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-010.md",
+            "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "ebee3c721d06935696e77a701d2f10907cad23f3e7bf0954267a409a3ee3bec0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/0532f26e350398f1a09a36c3.json",
+            "fingerprint": "e894d8eb6e2e8a74dcea6c727bf9ff7a18eebb0aa6390ba85c9c62bc5b8650a9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "8792664ff0556886b4ce3f6aefb8d077cf7c0b404117a26451452566f88958c8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "79c33a24f1a3aecdb80c4c68a66be130d2bfca9051b97ef2a55449df23ec0b38"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "41aaec51d9a3c6ffd628a496a6dcdcd4ac80c164a2b1787de20f9f1fa994de56"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "a14d0b284ccbecaf03d617e406c563fe0a1001ef8f4baf41e5f3c771cc798668"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "dea1a32b15a7a63b471717c0a2a97b084e687453650072ed399aa71f134e214a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/5809398a540fad2e32e02a12.json",
+            "fingerprint": "d552bf57661b420534a5ca373f7c3eb875fa7cb87d31afb22769abc9adcbc900"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "7c2cee8296df1d8a4f139f5ae96cb2cfcfa83bea7680dec11be60a95dcd8e751"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "4450038904085f5040e64ab60722bf70d142486b41809cb8e66c7f531f1af83a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/61c5266b243b8767e12fca70.json",
+            "fingerprint": "3d505e76c97063701c484b34bdc3cc969178dc6e4228087f82d312b4ddc82a77"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "0567492cf1005e364f6da52608850d1abfc9d26fc0b8464cd588c1b8793a3871"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/6ded46e92e4d8541a05af6d7.json",
+            "fingerprint": "0ee6f8d66374a8153238648161956846ff3b5ccc9eefbb5c322b0593cbedb047"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "1d57ec873cad44489e18283b99cf27961398a5968f7e559edc12eb18849176f0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/84d1354d741d6e4634bedfa0.json",
+            "fingerprint": "6041505cc8dbd15441878bfaba289ec6376a933af02703393391d2607dd6e8d1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/8551e7c3be95cfbf8482b783.json",
+            "fingerprint": "fdfb05bc99eea3a3c1e3c3378d25e2b044299a64f5da28bc679932be0addaa00"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/8a64958f5f1861ac39ecfd24.json",
+            "fingerprint": "794a20d1eb717212a66e162e0de50b9715697554e6eb0a16825233fa0c01b27e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/968f0ffe8ebcd43106d90929.json",
+            "fingerprint": "250011b4bcae096fc69f42d62cb9dc4231cf1eca9588d1729f570317eac97c83"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/99dcd86c2054dcbfeaf6c0ca.json",
+            "fingerprint": "ddb1c8c66902e9c9ac773257b51c99ba980fa09ed4c99978b5708c9c995ce601"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/a8381a453cb0a3725d3096a9.json",
+            "fingerprint": "95b20b256fe35b6728ed0c8cf72cf8e5fbade4f1229cb9b61bcae88374fe57ba"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "b6b51625329a95e7866abaf4915d214b4dff91f3b6f33a2ac44324e34fb71432"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "9374485495343ef7c7e2d2b373388cbca056276f120f3bc5ac7df8ea508f9904"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "c63207dfe7534613f7d3ae7006f56f855d7a2abce21703f225d5b524a37f9bf2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/deadae53192b50a07f845e48.json",
+            "fingerprint": "a06fac5e7d4bbb64ce4c9d8516461e1bce75048754f42dba45fa6a5168d549a3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/e79a47f9aebb55488ef87b04.json",
+            "fingerprint": "411afc2f6a9b3305f279ddb5c2e81dfdef206b3cd22e631e15a65ca6e287acf7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/review.md",
+            "fingerprint": "42f39f15112949b5fbbfe601934d02f4f943c9eceb9091e866a7888bfa2339db"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/scenario-validity-result.json",
+            "fingerprint": "4d019fa52c679e78af1f8bedcb6240f639d37c58c8a8d1cd8c6c031efc8f84c0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/spec-gate-source.json",
+            "fingerprint": "2022b23564a744eb0e0f483d46f619864855b4d95ed3ba5d650543f32556e215"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/spec-review.json",
+            "fingerprint": "1ed2373571afa57b138774a4573ba541d38d83bd4ca0183fcab29a4bed99cd03"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/spec.json",
+            "fingerprint": "0527c20fe6583e561dbe7873819c202b47b7d540ba7fd7aedff91f641306b6d2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/spec.md",
+            "fingerprint": "dae6d7b13c75e9308df50a5130709738a5f0f0b1d53212f2b1c8acb4d6e6e830"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/task-impl-gate-source.json",
+            "fingerprint": "1c8fb69553f50ceed3233c1289d81f721bb3c38254f64510893f9126d07b9842"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/tasks/T-1.md",
+            "fingerprint": "087b945adda18787ada1816608c60ab8b2ad875a46bdfe7c5f0b397ef653a238"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/tasks/T-2.md",
+            "fingerprint": "9f6df8586ae99f82c55224ace39bfd9cfde7cd93df0c2bb6c5d1f5292eee5074"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/tasks/T-3.md",
+            "fingerprint": "a2fb381bc4c1e0114693e8ab50740b7212f77973b63ece3c7130bafcdfc013ab"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/test-coverage.json",
+            "fingerprint": "1edc9b26a8d720f5417ce10ccdb31266a17f5411f25f5496f0e83dc42954bad9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/test-execute-result.json",
+            "fingerprint": "af71a736258a2f8b6e48f9642a9d17281d24a288ddc5c98917dbecc8addb9109"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/test-result-review.json",
+            "fingerprint": "e13b858e3fd3ce907fe47ee256a9864afe3451971fcf1cade5c2292ce8f86e59"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/test-result-review.md",
+            "fingerprint": "fabfe6c94c652af0bda378c5bb3f00b57eec0d2c8073fe728ceb8f157d1eb6db"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/test-review.json",
+            "fingerprint": "17d19b331ac845a5b9e58f5a2a7e74ed235d88346aa1b08def42b03978aac4a4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/test-review.md",
+            "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/tests/.raw/scenario-validity.log",
+            "fingerprint": "3bd89a86d7ab8774fc35171fe1d2c603dda32abd7ba779a6c14e7debe88ce7b1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/tests/.raw/test-execution.log",
+            "fingerprint": "0deea0e5865110ce2e6fac67d73fe0736e51202408cce8b23f8f426fc9e0ab89"
+          },
+          {
+            "status": "added",
+            "path": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+            "fingerprint": "e6009f7d7c82cfb58578dc8a5b56d6326f831e7abad5d4dccbc01663cbf9c5ec"
+          },
+          {
+            "status": "modified",
+            "path": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+            "fingerprint": "e6009f7d7c82cfb58578dc8a5b56d6326f831e7abad5d4dccbc01663cbf9c5ec"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+            "fingerprint": "494e57ad2a6178a627f6b41e33efdf13454f2aecfa18b2bdf4e5047df55214c8"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "ce2eb16b9aee685f30d061ba0dbf5a70379b74dd6955a395e7ac18ba682d76ad"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "fbc039702ba247cf60a1c6fea86624981ee2ef86749475062d9fe9b991ec043f"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "fingerprint": "0c42e05b92b67de1bbd9f31806c542ac635270b792843f036ad57bcf23d7132a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "5a7d4bd715906f4202149e7cd55a1c45ea7281909a17a4780e037b2f63af5aa6"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "44b8e9d332cd99db7337371a12e19fbae4f5932f8be873e174223da0a277f562"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "4bd4b46173c428c3a7e65fbbfb261b1af71d99b752f17589d70f9beb46d88163"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-scenario-validity.js",
+            "fingerprint": "dff0ea7a8efd40ea6ab66ebe19134105d9d8803bd62f9e36f4398702fff631c0"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js",
+            "fingerprint": "629e7f3e2b6db6ea6b449725baaf540bac1fb3336f00ff3a3520f23282387921"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "0a0509f68b606f9e0dbca1e2b870c14a37e1fbd2448c6d62fc3bf9099a4eb448"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/active-flow-registry.js",
+            "fingerprint": "a378f9632ff1dd366aa00f16e2a2f9df90b8f74ce72e6d14e7516fbfef60d5b4"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "73b86a6c0b6461df05604ff8a9af88ad00aaa69da34086ee3e538ee0bbb30154"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js",
+            "fingerprint": "eda1f04c1ff95c52645fbf00ca3d5d8341a368dc30d00c759c83bf3d64698eea"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "109f6cd2694ab05dd1ff0121b5cbe144378fc6dce9f8bf91ab063ce0042acb86"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "d4663c57db70f056744843f39aea0fa97dce4a6b0f49c48d3fb0761f25fc9e63"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "b6ca6147c85a507e54ca24dba9c794f10fd1a1dc75e0d6233eb6618bf49131f7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "af38c15f4b754c0bc427915d428d1d3493aa402bce473d7db8578259ea07da40"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "fingerprint": "3b770185802eb0fc392301a56dfd9aa58a0536e6a93d50b8d38fddd3d76de55f"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": "specs/338-active-flow-registry-race/.retry-recovery.transaction.json",
+            "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/acceptance-review.json",
+            "fingerprint": "e62f7f01131ccd4154e1f5d92f5d1b39cc47936f66364479fb621450b31a6452"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/draft-coverage-repair.json",
+            "fingerprint": "b9529975b5f09790ff0d5c843cac74e5613110b5effbe8271b6e9d80458d1491"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/draft-coverage-triage.json",
+            "fingerprint": "9cf660835d8ad7b97107dd6add926a1b9ac5ea718767209591cb6c282eda99be"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/draft-gate-source.json",
+            "fingerprint": "a2b8400d0e21baa6058a98dacd7cae46a4b9b4d937592065a959f496b484c3d3"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/draft-questions-repair.json",
+            "fingerprint": "3a0fdbabccf0eb24edea0fcfd9918271e2ee0498d3abc420067c9caf9763e6fa"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/draft-questions-triage.json",
+            "fingerprint": "099ee22f50a8cdab31391668a536091b4e3499f4bd5d17aa69258f4b2dcfc2fa"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/draft-review-coverage.json",
+            "fingerprint": "33fd17786446f3c124f27be4dab8205579499149381057993d3cd8eb7654232f"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/draft-review-questions.json",
+            "fingerprint": "15fad066a7c3fe10cd8d264b7108be1368563c68c0719d5a85114f0eb3564726"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/draft.json",
+            "fingerprint": "33099eb979f250c367b5a132c86a6c32baee68cc5f8f1eefefcd9e0ede5d4339"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/file-map.json",
+            "fingerprint": "1113ac8372155e6b27a0da4dfdfb9406e48f45841d500a80c516d2899eedd137"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/flow-findings.json",
+            "fingerprint": "5736544369f6f3e523be16e7131b34626c3463e3feba7638c17065574fdd1e27"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/impl-gate-result.json",
+            "fingerprint": "7812750f446bca6b20f81e64372f8d3ac1b65eed36e6b0d58229e75d68f8d193"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/impl-repair.json",
+            "fingerprint": "5b638ea623d20134a4bd8ccef8a75dad15425fe70946a3f21cbc8ef8b2906440"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/impl-review.json",
+            "fingerprint": "66f6f2bd11d15d03488fa48727871c32e136dc4b2f5719eeaa1ff6b5d6b83deb"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/impl-triage.json",
+            "fingerprint": "618fa3c158fbfe1bf6045e6e9c952880fe4e0f922de495f3800ee9cf4f74301c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/issue.md",
+            "fingerprint": "05856408dc61e2469fef2ed281ba4ce41d3bc137c4a94fa67a57fa63d52c721e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "8d22544637d247f3197c2cf640cb940427638b6d81907a80a882cc16922e83d0"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-001.json",
+            "fingerprint": "ae17100dc2af0691b022d2e2b079ded0214a496473c80d291794c16959878ad1"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-002.json",
+            "fingerprint": "1217b8cd6a0361cb6cda7b4fd13fef38f8a4e0e8ecdde33a479cefeb648cf7d1"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-003.json",
+            "fingerprint": "6c0e5d23cbb1ae22502f9dedc2d6d4a6aa7aa4231d2cab196e773a7a50da9dfa"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-004.json",
+            "fingerprint": "247d9647f8573a098acbf1b0179da34258fb1b10bca8295de5c1a58479c5f51d"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-005.json",
+            "fingerprint": "1c4ed029d63a0a8f6145bd796be532ed6683472728429fafebcb9b4f36035c38"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-006.json",
+            "fingerprint": "acad6f49bc94490e56d45fde54cd5edc5966eef0261b68c2b2bec096dd025735"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-007.json",
+            "fingerprint": "75874a01665a98ea5ce5c795acf564a4743d7ceeaf1f1d1a07d7ba67c5084e88"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-008.json",
+            "fingerprint": "fbfb78a58eedd075265c6cea34bc4cf490839bbe0e8bcde902f1c70db051feff"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-009.json",
+            "fingerprint": "428f2cf8dc82c971e18dee7581aa04a909c7883442c6f466cbeff9d86a87e3ff"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-010.json",
+            "fingerprint": "dcf2de37d34466977141491728b4a772078dde5c8dfa6dcb054ebd2a0ba74a5a"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-011.json",
+            "fingerprint": "5bf8bda0b192d4e4ef7dab02a60b0996d6528b7daacb5bd25d6de90347dfe2b1"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-012.json",
+            "fingerprint": "c6423871fd18347c346dbbb0162a58f9175354a9d04d24053351f1929b5c6242"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-013.json",
+            "fingerprint": "b6855b8e27970869efe8880fd099836b6e1f306962eba8abe8832786fb0762b3"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-014.json",
+            "fingerprint": "f2118e57cf001f3ee444247fc02a91e7a32f86272ab7b162c9ea667cb1acbdde"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-015.json",
+            "fingerprint": "83cdca827d952febdc237e5ffa663ad55f5db44bd0225137c10619bb77e20b90"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-016.json",
+            "fingerprint": "dbc7afd5463564613e4332e8f431483735dfb52399474541a5a43af0980b5de9"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-deltas/repair-017.json",
+            "fingerprint": "61750d6c65a52ea9682389d54d906a6637a194e850ebfee33928009a29ff951c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/repair-fingerprint.json",
+            "fingerprint": "b715642c84aae22106063e41f8d70e16af1dac280d689c9f96715b544a6341d9"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/retro.json",
+            "fingerprint": "b5bc6225db2755efe8a87f2e3eaab0575fb781cc61d4bf315e7f74e4ebffadc2"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/retry-recovery.json",
+            "fingerprint": "dd6254a6e797c5639f187052d15cc6c6c5868ca1d62241e389bbe198f545b64c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/0d850935d9f910be0b04fb60ced2f84a62b08c5c209915ecb3942901a41665ec.json",
+            "fingerprint": "67d93f2e05bcb32bd260b82c6ac1c883c1582fcc2f3555e2df919a6ee535bbfd"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/11a4f11564599b3bd6ffa90b2413aa76a81e511c7a32e90ebeacc362c9966e15.json",
+            "fingerprint": "459aebcc134b5aa01a0b7f266306fe3b4d9f8432556bd91e0f2dcfa8e0cda8dc"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/14e825448aa8f0b164d04149c54fc87e5025bbbb88cb040c4df55f88c99ef219.json",
+            "fingerprint": "19bf39533d778a760da660e78d17c1e6274f3a54a3ddfd0129aa66744b54a525"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/17a95bf414b7e5b4c103b189aaf64d9b5989919a680b24bc3908b026e23a5e46.json",
+            "fingerprint": "6591601e7ad3442aac3d9b6e540f2076bae908b0ba6e63ffcbe0b395382ab972"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/190514dfcc53c699e7aa35797be1b84dd8af3b53cfc2d6a72c2127e2455d4c5c.json",
+            "fingerprint": "59943b04841f4d8efede46719c0236d0f451241c8ba74c68c78663385792a892"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/1a3c8bc8384506535d44033a461ace24a771d1770dd33490bf803b2c2501274e.json",
+            "fingerprint": "fd69d05165ff509733d4f32e5811228ada927b353ea2aa739fb54b3ae1004657"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/23624facf4166a6bff651a1b9425bbe1154878c0d9a0eae6ebebabd9ffcdf8de.json",
+            "fingerprint": "00ea421003cc023ba23d2d828ea80d6b53a0fb48125d4c3db6c1e2e8fac9490c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/277beea6e89879955457c6e5b5476bdb3b859b0a310848434613db54d4e22dff.json",
+            "fingerprint": "cbd531f5c4cf6ed2d88dca00c1dde551f59a4022551acb0b7bf37506124d1956"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/334057289e7a199bcec3193850d546f1f8bd1f8559c15584d1e478bbefc2aa35.json",
+            "fingerprint": "2300a6a8eb93c6dd5fad6738ab8494f4b7a2c2dcf7f4352f1602eb3d5a08ce2b"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/35c3596a57b2b0de815d1214bfe85535d9cfaf486447eb7d861166836c917a5a.json",
+            "fingerprint": "4e1ad72ec104ffef7a8cafabeb78b6c174f456684236cedae75b670407b3d839"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/39c5d29be68002e3030333d1162ffab466883bc1c4c76d2616d57384035e00c4.json",
+            "fingerprint": "f19cd6585c0e648128b63efa84dfbbe639cbc0a606994df4f65e86de0176e639"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/3c73d9d64fae7a6846102a7ae0485e9f35c1207df6e93e14cfc1d2b6419c65b3.json",
+            "fingerprint": "c9c5211747be73cc2433b035586a41a9eeaf3c15b522769017fd8b58a7a47861"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/41396daca24833862e37e1e2b32f83b25fb4c88147e320444ccdfcc66d96de48.json",
+            "fingerprint": "8ee4b3b672e34aa8d09387ccd4a78bf38af75f4b9118c58ba4ab1ebe2ace7b9c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/44ac9fdaccf7c0b3efb799fddeb7129e815b58e4e6643446a74c3ef414f72f9f.json",
+            "fingerprint": "279b14d7507993db3e8827a38a352dd9fdcb41968d329f2b4c1b6a3e4b06b72b"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/4bc0a07d3a06ca2a9508ed190fdaac87f72cf2753fa0b6ff412d76080534f2fe.json",
+            "fingerprint": "01f9dd3c1cb1ed20df0064a08e315848e05d52aa39688eb564c38a0c66a2351e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/4debb3f628583df920f1851d1ab8bc69d180e735dc157657e9c0cd60892e13ab.json",
+            "fingerprint": "eec90f1fd005000139f71b751ae1e29dca5c733a97c718eaef1924d25685eee0"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/5a6f56db321ec4d444374eb24d05475650912afb0a3154b6c14eeb59715bacd4.json",
+            "fingerprint": "4e590384198a3eee645bbf4428441354ad15a4bb2d84a4ab09524b3cbae335e2"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/645411f72956e1b1913b8f717b0f0d817877b4c8f7143737e8a0a4df4d7a8574.json",
+            "fingerprint": "340cfebc949386456a5b541cf5eb8fa0077ffdae91d0ca3df3e9df7113a78e51"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/6b6ee00d5857b213a0e12c1d5aeb5d72b652f0de1fe9db1d7c5c2b5407713cc6.json",
+            "fingerprint": "07341d4921cfde8f7826f62374d06b9d4e763ec8d13ef19e49ecfb8323d73008"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/6b839762de13f66eb78c8d38443272f59414fc91e99adeae8ee53567f059379b.json",
+            "fingerprint": "e414bcd1b6a653209d7390595ac3f69cc4cb86ca17c3756909d9fb5b81a98d91"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/6d6d08317aad6a1a7c4cc810cbad73597f50428d9ec3a64a49c116eb2c465a24.json",
+            "fingerprint": "0a5e8afec42b11b0c1cdf039449e9a02a6cd834f632d77754fc3f0709ef890ea"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/7de1e8b7eb1e93024f7d77a22f1815cbe836f771cc5c4c31751a27daa4e45331.json",
+            "fingerprint": "e8840ef1259175deeca807a4b66ea1ac39801d4a7a8f81936774c00b91c72104"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/85c78154cf119c6c350797c444386017e987cd16d059651a932deb268c24e0ad.json",
+            "fingerprint": "33b1e4ae9b577b50e162a154474e7559cc45b64f0b5a21b5bc8ecacdd8648e07"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/9957ba14780fcf2490120c6c9c1bb17c226c229ee99349839737e0f7241f84eb.json",
+            "fingerprint": "645aa1dd43b765ea7511fd867cc042fe368b18ae74fbd9466ec46405544aed31"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/9fa83df66d0e2e592f59afee8742d1642a6549d90837af710828ebec5f694938.json",
+            "fingerprint": "d6f8573369a1bbf78b3abd5bd06a53adab647a80fe80f6579694711f432a3a14"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/a21b46f90afe4c5818ce09a615183660f3eed78084e34f738c3136942869770e.json",
+            "fingerprint": "16dc21fc347bd46d220fc1ef91b52728ccd83a370c800234d774c86527012f05"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/a4458a498ae243c84f17faa93ff4f156a1a9b6219a0d0a90e27eef51bb836efe.json",
+            "fingerprint": "55fa66b5fce989bd9e4dbd3372243559335eef96f3938a42d378d246988e3155"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/ae070b7291149f2e81feee537da9d63bea8e849311bf08b91132d0e3fdee19f5.json",
+            "fingerprint": "3454d8540b246b96464d0a464477b24fc48802462f136cbd95654d9869e33a50"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/b08192e8b1fda80caa00c68097df4ab12851075f22dd1bea9ffcf081e63df60e.json",
+            "fingerprint": "265beb41fd81170aeae15b0e8647429ed703dd6dae20b89b3dfe825107f3529d"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/b46e26b8d59fd285c87ae843522bd6b793ed316a57e6d6034875ba01945e94e5.json",
+            "fingerprint": "c686f699d3e1335f1bb8e4805ec8e50a28660133375a64fd952be0e83fac92a4"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/c164e440073523dbb56f9b9a8298ba36081bea770c27354a3e8e718e190fb9b0.json",
+            "fingerprint": "ac216ef3a41381698d7bf428b7aa5c60a8cb0a6ce3fa3471ac827027232f3cff"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/cbd6619ad6648537ddbb324a4459e2d8edbe21508e52c4c87832d990e4e51794.json",
+            "fingerprint": "7f5a30a5eca18c96505f9f676897d22e9357b72bdb669933d226ce199220c67c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/d04fbd15fa0ce28c43571fefa9c6544888884245782e1d476bad73e25d4e752b.json",
+            "fingerprint": "17e526d77b5443b013c26dd5241159d291f619fab244b3e3ab7f60f36eafc228"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/d8926e2c837c8be065459aec73deb80c5fd9dc63763ac1a64a2bfeb8944fbaf7.json",
+            "fingerprint": "ce9e3545234bf15db234a7c7bf1d2f49226451d4daeebfa18d6123974b893067"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/dd73826bd2dc152c56733647b997f5dff7902d7fcb35a629712ca1f28cd523cf.json",
+            "fingerprint": "72a799e87e9d3d491a831cd6b18e5d991e6bae5dd1226315fc0018b2aa314790"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/ddb208725d8a457b520726be9ecafc650e0894211e96c0f64b133ce9bcdd8655.json",
+            "fingerprint": "1db7bf9de4d67ed68e17abf214909cced8f297aa77695b4891159eed8a848264"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/f1bb204652ccbfb3b405456b3ad0a0912b70d1ea81c46b613c5b6faf5d0f4f04.json",
+            "fingerprint": "d8eafb6403939e65823db20f3750ce15a2aec3542fd2746366680247809a0117"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/f67f4e8d6e0a91ec1e614aa5354db024be4397839f31f8539de1e24cd3db313c.json",
+            "fingerprint": "d71e66630079751a119a2b87e5ee7c0e30ca41b94b33ef23ecdc71a8a5ad8b9e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/fbefddd84173f4de519fe0bd1394449b385c8439e5f6656feca75126a7bf351b.json",
+            "fingerprint": "7672fba5f8871bcb488a9d5e7de0d07f13bf24f5332cb43bd895b07f9af39c16"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-evidence/ff2ab1d35237b0ded876732294029025f0d70925343f1938af8bbea0d7ba999c.json",
+            "fingerprint": "33ad2b2532f4e65265b9160c8778c792f9e58749bbaff120a4b3f580bf81100e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "c26d9811a9bcb5c06952fe3b4edb4f4a99d07f0473dfb45dca26b7a4bd5fb67e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/draft-coverage-attempt-002.json",
+            "fingerprint": "e706742499f33c3cd46539dbfab6f0da0bc0c75787cd08383d680e1d4f0ee065"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "dd4825c0ef7f4bce20facd2ab64abd6a764186cfdd76b1d052e72f4b8dda41ba"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/draft-questions-attempt-002.json",
+            "fingerprint": "fe4b2bf4a1db7f93ce68c77638d75c82f869bfc81313a6b83e5deacebc1af953"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-001.json",
+            "fingerprint": "5240699b5d47f8073808360f3903a84cd7672f98b05dc65ba1b84e141a14fdfc"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-001.md",
+            "fingerprint": "ec4348e4aa10d8ecfa777434602be373e4a8521883319abbacce38c5b912ef44"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-002.json",
+            "fingerprint": "c0d5f8e39a36d71bca32e7ce1d13a9284a0af99c3ad7dfdf8b83176fa5f8bc70"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-002.md",
+            "fingerprint": "b2b1cca90ff1b83662ad7ce18c9a40abd111b5181f6f336885427b9be1736d0d"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-003.json",
+            "fingerprint": "bc1b633df38af8ec035a8cb1897ee66aa6d61bcbdf6cb129a6bf4438e046f7c5"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-003.md",
+            "fingerprint": "beb426c236320d93786a67fa1afb32805ded87f5376dff4dad75ab233752247c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-004.json",
+            "fingerprint": "0f549367cd05a47ea075c9304082aa1a4759a4b9cd43dbb489148d75f464e047"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-004.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-005.json",
+            "fingerprint": "bffe724f77e7d5aaf14004066c185b92f07df92370b864815b143b8d8dad2c7c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-005.md",
+            "fingerprint": "123f2966df263f90fcd48cc5f41ffd429b1669556123406e9d1e6ff8671a1be1"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-006.json",
+            "fingerprint": "163e510e9369a9e8d0fbcdb556a42ec6239e63ce219f9b85aba4ba72bb58e210"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-006.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-007.json",
+            "fingerprint": "60a54b9db39c04deb81b25e62cad7a51d9111f047fa3e1dda2b336b8b4b2d014"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-007.md",
+            "fingerprint": "582f82647098620307d554bc8e5e630225766e6d023fe7097ead693e0b3d6e56"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-008.json",
+            "fingerprint": "c14bb17d47171e3ca5e25edb3b346a709b61613b46a039707304f4f6384e35aa"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-008.md",
+            "fingerprint": "4639e5de6dd99750b10f5adc08f32255d2227a01b1612a5c25dca36458dfba7b"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-009.json",
+            "fingerprint": "caf06af98a72a8431af36247c5b202d3b33a765afd886f06158e5e977668ff9f"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-009.md",
+            "fingerprint": "5b050739664e2957458d641530de6c28efc13194df3459bd637684dd8896b9e7"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-010.json",
+            "fingerprint": "8831e942f36a0ea40e2c7ef0ef1a7d72892251c0986ccbb90fb9588048f4feff"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-010.md",
+            "fingerprint": "71097c08b2f7acbdee37b008cd07907a3607c23326a681e449ca4529c8cdc203"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-011.json",
+            "fingerprint": "71b00c846577c2732f2e5ca4f4e88edb7378333af7fa8e05d34c52ad2a8d1693"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-011.md",
+            "fingerprint": "966d1eff71e334e20ca808d246ca9dfe0fb99b20e2c105e7100b88d4dbd0b816"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-012.json",
+            "fingerprint": "2c4963da0529e6b873d0f980963af31881c818d0bebe4596082e1d8673ad82a8"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-012.md",
+            "fingerprint": "1a7fa99daab8592b93fe6e3860833f16c6f0edc91af6db4d351df806bdf9941c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-013.json",
+            "fingerprint": "4490c7c0b0f8cf082ad0b1e7a01e64b8f0c474cf44d3b830f73b11e7e254a5ef"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-013.md",
+            "fingerprint": "1cf77b254425d27d86879b8fa5881141f54bd4318fea1a2753933c9dc3d223d8"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-014.json",
+            "fingerprint": "aa0edd4aae5a51803a84b3468f29eae032071a1b446b131bc863cf3aeabf01ae"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-014.md",
+            "fingerprint": "872feec733bc291bdf8d43f7da88fc9e3f75b3275b0380dc1aa319316401fe51"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-015.json",
+            "fingerprint": "609ebb36aac645a0b267ca573c6c2fdee2b787dbe85ce75ac80a5f2e156410d9"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-015.md",
+            "fingerprint": "22cef0b34ce8117a1c085c2acd8b7b4e277a85933af0f73dbc7b2dba1132b47f"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-016.json",
+            "fingerprint": "f5d4a42979783456245ebbd01a787a2751737b27667fd193d30d9725010b0d72"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-016.md",
+            "fingerprint": "fcb562b212367f367570e0448efe25c09c2dbca680764821ec3db20431754af3"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-017.json",
+            "fingerprint": "f9c7f85ba585973b6ea8f1a77e0def60db7e3a4569c4a748e362d2cde4ad92d9"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-017.md",
+            "fingerprint": "ee33ce2af31ed3aac52f25a590dc8b2c54f5a34067bd54587e529e889a86b5c8"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-018.json",
+            "fingerprint": "21bc4072dd012b086f7886e19d6227e4648eac0d65dba7c22e05d1c26e09daea"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-018.md",
+            "fingerprint": "ee33ce2af31ed3aac52f25a590dc8b2c54f5a34067bd54587e529e889a86b5c8"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-019.json",
+            "fingerprint": "c807055b7c6da2d285196e2a2f1f1209d92933e26eb7faf44e252a5b4177835c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-019.md",
+            "fingerprint": "2fea2d1acefe678a754363004dbd2fb497c3fb53fec77ce544943651bc786020"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-020.json",
+            "fingerprint": "7c4de4eb5d923bf63a398e9027aee0b54dfc9f2cb573c8a45a07776caf69b3c7"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-020.md",
+            "fingerprint": "2fea2d1acefe678a754363004dbd2fb497c3fb53fec77ce544943651bc786020"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-021.json",
+            "fingerprint": "0c5eefea6ffa4ab08c22aca472659a9e3e0fa0e17d36d6fd4f4fd8f9f08d5a1e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-021.md",
+            "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-022.json",
+            "fingerprint": "72721acbcc26ad1a488f84ae9e8db3604399c43df929767743d8bcd6845e2365"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-022.md",
+            "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-023.json",
+            "fingerprint": "af8745bde18a935b14d9421b9db40e11ecdc617bc42e2334226a69bdfec19844"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-023.md",
+            "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-024.json",
+            "fingerprint": "618ecfde9e0d67a8032633916b48a36fc4a7c1a337b1befe4ed8b7c5bc47bc3c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-024.md",
+            "fingerprint": "1591aba6e76dc597b0739171f259c5bd870f187d246fac7e755d973d20b89edf"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-025.json",
+            "fingerprint": "1c263d55a7242bf17f70f281b665eb6e7be613de4e48c0262b6ef016406887ff"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-025.md",
+            "fingerprint": "3ba37c30b89fc80c034ce7a0aaf2983540c76ce7d6765bdd17229eb5b9514073"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-026.json",
+            "fingerprint": "00ae46a46664fe1379d8bac1ebafb4916ab1e064454833c603051fe3c149b40d"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-026.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-027.json",
+            "fingerprint": "8742792aa1a3990c547de49ce99898c6b4d15d113ae2fce21a6bf190d5316fd3"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-027.md",
+            "fingerprint": "f38729439804e42d37c58e1f11fd6528404a37e929200ae90cec59fb76f39a9c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-028.json",
+            "fingerprint": "38bb9e2677f444b508706fb00f3c7430866721ec236c3a287d7a509b6e033c82"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-028.md",
+            "fingerprint": "f3c2701ddd2dc11e4e5c68e8a00e799b00743919a937ba82650130f86e5b7612"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-029.json",
+            "fingerprint": "eab489cde851d5c63ba81837788f52df39a5e81c3e2d2b85bf483a801d9cc789"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-029.md",
+            "fingerprint": "42f39f15112949b5fbbfe601934d02f4f943c9eceb9091e866a7888bfa2339db"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-001.json",
+            "fingerprint": "3373df482a7932944999d697e5612cc9ee76f2b7837ddaa0a54b6eddf6906e81"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-002.json",
+            "fingerprint": "d2944ba65612247ee093b5669ad74e2997bc81763cdc30f39d1c8e7c4e232626"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-001.json",
+            "fingerprint": "73ced6dbf4679a634bed6fe7bc6310a54088807413fc246caacdd86df0781dcf"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-001.md",
+            "fingerprint": "dbc6aaf8bd1f1344f44b17bb04f28549bde21932e982bb19e1486c17081ad7ba"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-002.json",
+            "fingerprint": "77518df83418e710974f95d65661a84c35cf7cf7b25a28213f18d63f927941ae"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-002.md",
+            "fingerprint": "54fc08fbb9389c82138eaf3607e2ecf7d604b05d602f062328cdd335b714ef9c"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-003.json",
+            "fingerprint": "20ed2cdc7f81082f1a6e4d7be1ac7071fb42cfcaaa5a8387741331b81f2cae68"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-003.md",
+            "fingerprint": "a1b5d747e0be44b3380ea3ccb2638c51b765f4d4f61e3ed2993f589663ea0705"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-004.json",
+            "fingerprint": "f839a84ead5d3a56e93fa95f00b11484a0ed4f8426aa1557b9e0b86ef185db27"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-004.md",
+            "fingerprint": "b1373c926ca52ad89eea8daca8ebb4a2692796d9ae6c12918d36c4a43c420984"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-005.json",
+            "fingerprint": "e0a439eb8f78c26724b2d433553770f3c0d0bebf4021b442ae697bc38497959d"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-005.md",
+            "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-006.json",
+            "fingerprint": "244eb25a506eeb3f81eb3f516dcbad095d407e97856d539f87b425712fc58f07"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-006.md",
+            "fingerprint": "e10750570eeba2e2c9d8c0e85a13d3e3b11742f0f420d7c86ae8293aea3efde8"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-007.json",
+            "fingerprint": "d51ce108622db5e440f9ba931051adb33c0ad3c7272580c0c3cc26259321acac"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-007.md",
+            "fingerprint": "4770440ad6c87ddc0312212a78527b3c9fa5b3476aff7daeeb8f183182864763"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-008.json",
+            "fingerprint": "0d1317bfd87bca8915d6783ffeb286748afdc48d5e597aadbb8f3e33465185db"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-008.md",
+            "fingerprint": "088e889f5b28f30d36bd6e932fedeac6455942fba74a00ee7760f0cc34321929"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-009.json",
+            "fingerprint": "319664d9b55d9ab6e3d99a5109919b2c44979f790f6012696f649987477d3de0"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-009.md",
+            "fingerprint": "ca571a0710bf8ee04dd20798928a1d74fe06b4ee56d49aef87d54078282bdb2a"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-010.json",
+            "fingerprint": "25cba7b9c4243092d344b380f6eb38dfdd87fa244ed0e17469f2bedaedec26a0"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/test-attempt-010.md",
+            "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "ebee3c721d06935696e77a701d2f10907cad23f3e7bf0954267a409a3ee3bec0"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/0532f26e350398f1a09a36c3.json",
+            "fingerprint": "e894d8eb6e2e8a74dcea6c727bf9ff7a18eebb0aa6390ba85c9c62bc5b8650a9"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "8792664ff0556886b4ce3f6aefb8d077cf7c0b404117a26451452566f88958c8"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "79c33a24f1a3aecdb80c4c68a66be130d2bfca9051b97ef2a55449df23ec0b38"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "41aaec51d9a3c6ffd628a496a6dcdcd4ac80c164a2b1787de20f9f1fa994de56"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "a14d0b284ccbecaf03d617e406c563fe0a1001ef8f4baf41e5f3c771cc798668"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "dea1a32b15a7a63b471717c0a2a97b084e687453650072ed399aa71f134e214a"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/5809398a540fad2e32e02a12.json",
+            "fingerprint": "d552bf57661b420534a5ca373f7c3eb875fa7cb87d31afb22769abc9adcbc900"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "7c2cee8296df1d8a4f139f5ae96cb2cfcfa83bea7680dec11be60a95dcd8e751"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "4450038904085f5040e64ab60722bf70d142486b41809cb8e66c7f531f1af83a"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/61c5266b243b8767e12fca70.json",
+            "fingerprint": "3d505e76c97063701c484b34bdc3cc969178dc6e4228087f82d312b4ddc82a77"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "0567492cf1005e364f6da52608850d1abfc9d26fc0b8464cd588c1b8793a3871"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/6ded46e92e4d8541a05af6d7.json",
+            "fingerprint": "0ee6f8d66374a8153238648161956846ff3b5ccc9eefbb5c322b0593cbedb047"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "1d57ec873cad44489e18283b99cf27961398a5968f7e559edc12eb18849176f0"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/84d1354d741d6e4634bedfa0.json",
+            "fingerprint": "6041505cc8dbd15441878bfaba289ec6376a933af02703393391d2607dd6e8d1"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/8551e7c3be95cfbf8482b783.json",
+            "fingerprint": "fdfb05bc99eea3a3c1e3c3378d25e2b044299a64f5da28bc679932be0addaa00"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/8a64958f5f1861ac39ecfd24.json",
+            "fingerprint": "794a20d1eb717212a66e162e0de50b9715697554e6eb0a16825233fa0c01b27e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/968f0ffe8ebcd43106d90929.json",
+            "fingerprint": "250011b4bcae096fc69f42d62cb9dc4231cf1eca9588d1729f570317eac97c83"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/99dcd86c2054dcbfeaf6c0ca.json",
+            "fingerprint": "ddb1c8c66902e9c9ac773257b51c99ba980fa09ed4c99978b5708c9c995ce601"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/a8381a453cb0a3725d3096a9.json",
+            "fingerprint": "95b20b256fe35b6728ed0c8cf72cf8e5fbade4f1229cb9b61bcae88374fe57ba"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "b6b51625329a95e7866abaf4915d214b4dff91f3b6f33a2ac44324e34fb71432"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "9374485495343ef7c7e2d2b373388cbca056276f120f3bc5ac7df8ea508f9904"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "c63207dfe7534613f7d3ae7006f56f855d7a2abce21703f225d5b524a37f9bf2"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/deadae53192b50a07f845e48.json",
+            "fingerprint": "a06fac5e7d4bbb64ce4c9d8516461e1bce75048754f42dba45fa6a5168d549a3"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/e79a47f9aebb55488ef87b04.json",
+            "fingerprint": "411afc2f6a9b3305f279ddb5c2e81dfdef206b3cd22e631e15a65ca6e287acf7"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/review.md",
+            "fingerprint": "42f39f15112949b5fbbfe601934d02f4f943c9eceb9091e866a7888bfa2339db"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/scenario-validity-result.json",
+            "fingerprint": "4d019fa52c679e78af1f8bedcb6240f639d37c58c8a8d1cd8c6c031efc8f84c0"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/spec-gate-source.json",
+            "fingerprint": "2022b23564a744eb0e0f483d46f619864855b4d95ed3ba5d650543f32556e215"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/spec-review.json",
+            "fingerprint": "1ed2373571afa57b138774a4573ba541d38d83bd4ca0183fcab29a4bed99cd03"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/spec.json",
+            "fingerprint": "0527c20fe6583e561dbe7873819c202b47b7d540ba7fd7aedff91f641306b6d2"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/spec.md",
+            "fingerprint": "dae6d7b13c75e9308df50a5130709738a5f0f0b1d53212f2b1c8acb4d6e6e830"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/task-impl-gate-source.json",
+            "fingerprint": "1c8fb69553f50ceed3233c1289d81f721bb3c38254f64510893f9126d07b9842"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/tasks/T-1.md",
+            "fingerprint": "087b945adda18787ada1816608c60ab8b2ad875a46bdfe7c5f0b397ef653a238"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/tasks/T-2.md",
+            "fingerprint": "9f6df8586ae99f82c55224ace39bfd9cfde7cd93df0c2bb6c5d1f5292eee5074"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/tasks/T-3.md",
+            "fingerprint": "a2fb381bc4c1e0114693e8ab50740b7212f77973b63ece3c7130bafcdfc013ab"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/test-coverage.json",
+            "fingerprint": "1edc9b26a8d720f5417ce10ccdb31266a17f5411f25f5496f0e83dc42954bad9"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/test-execute-result.json",
+            "fingerprint": "af71a736258a2f8b6e48f9642a9d17281d24a288ddc5c98917dbecc8addb9109"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/test-result-review.json",
+            "fingerprint": "e13b858e3fd3ce907fe47ee256a9864afe3451971fcf1cade5c2292ce8f86e59"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/test-result-review.md",
+            "fingerprint": "fabfe6c94c652af0bda378c5bb3f00b57eec0d2c8073fe728ceb8f157d1eb6db"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/test-review.json",
+            "fingerprint": "17d19b331ac845a5b9e58f5a2a7e74ed235d88346aa1b08def42b03978aac4a4"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/test-review.md",
+            "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/tests/.raw/scenario-validity.log",
+            "fingerprint": "3bd89a86d7ab8774fc35171fe1d2c603dda32abd7ba779a6c14e7debe88ce7b1"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/tests/.raw/test-execution.log",
+            "fingerprint": "0deea0e5865110ce2e6fac67d73fe0736e51202408cce8b23f8f426fc9e0ab89"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+            "fingerprint": "e6009f7d7c82cfb58578dc8a5b56d6326f831e7abad5d4dccbc01663cbf9c5ec"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+            "fingerprint": "e6009f7d7c82cfb58578dc8a5b56d6326f831e7abad5d4dccbc01663cbf9c5ec"
+          },
+          {
+            "path": "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+            "fingerprint": "494e57ad2a6178a627f6b41e33efdf13454f2aecfa18b2bdf4e5047df55214c8"
+          },
+          {
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "ce2eb16b9aee685f30d061ba0dbf5a70379b74dd6955a395e7ac18ba682d76ad"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "fingerprint": "fbc039702ba247cf60a1c6fea86624981ee2ef86749475062d9fe9b991ec043f"
+          },
+          {
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "fingerprint": "0c42e05b92b67de1bbd9f31806c542ac635270b792843f036ad57bcf23d7132a"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "5a7d4bd715906f4202149e7cd55a1c45ea7281909a17a4780e037b2f63af5aa6"
+          },
+          {
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "44b8e9d332cd99db7337371a12e19fbae4f5932f8be873e174223da0a277f562"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "fingerprint": "4bd4b46173c428c3a7e65fbbfb261b1af71d99b752f17589d70f9beb46d88163"
+          },
+          {
+            "path": "src/flow/lib/run-scenario-validity.js",
+            "fingerprint": "dff0ea7a8efd40ea6ab66ebe19134105d9d8803bd62f9e36f4398702fff631c0"
+          },
+          {
+            "path": "src/flow/lib/set-retry.js",
+            "fingerprint": "629e7f3e2b6db6ea6b449725baaf540bac1fb3336f00ff3a3520f23282387921"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "0a0509f68b606f9e0dbca1e2b870c14a37e1fbd2448c6d62fc3bf9099a4eb448"
+          },
+          {
+            "path": "src/lib/active-flow-registry.js",
+            "fingerprint": "a378f9632ff1dd366aa00f16e2a2f9df90b8f74ce72e6d14e7516fbfef60d5b4"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "73b86a6c0b6461df05604ff8a9af88ad00aaa69da34086ee3e538ee0bbb30154"
+          },
+          {
+            "path": "tests/unit/flow/commands/review.test.js",
+            "fingerprint": "eda1f04c1ff95c52645fbf00ca3d5d8341a368dc30d00c759c83bf3d64698eea"
+          },
+          {
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "109f6cd2694ab05dd1ff0121b5cbe144378fc6dce9f8bf91ab063ce0042acb86"
+          },
+          {
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "d4663c57db70f056744843f39aea0fa97dce4a6b0f49c48d3fb0761f25fc9e63"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "b6ca6147c85a507e54ca24dba9c794f10fd1a1dc75e0d6233eb6618bf49131f7"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "af38c15f4b754c0bc427915d428d1d3493aa402bce473d7db8578259ea07da40"
+          },
+          {
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "fingerprint": "3b770185802eb0fc392301a56dfd9aa58a0536e6a93d50b8d38fddd3d76de55f"
+          }
+        ],
+        "fixAttempts": 1,
+        "selectedAction": "record-and-proceed",
+        "remainingRisk": "final-regression remains failed; category=dependency",
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": "record-and-proceed",
+        "recordAndProceed": {
+          "eligible": true,
+          "validated": true,
+          "evidence": "autoApprove selected record-and-proceed for dependency"
+        },
+        "humanSummary": "result=fail failureCategory=dependency failureKind=dependency_failure raw_output=specs/338-active-flow-registry-race/tests/.raw/final-regression-attempt-002.log fixAttempts=1 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=dependency"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-2",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-3",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 3,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Inline implementation repair completion\n    Fix historical review evidence fixture\n    Recover historical deferred review evidence\n    Consolidate acceptance rollback errors\n    Recover materialized repair evidence\n    Recover exhausted semantic reviews\n    Preserve issue log metadata on rollback\n    Fix active flow decision recovery\n    13 files changed, 1710 insertions(+), 98 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 3\n    src read .................... 21\n    Q&A ......................... 0\n    issue-log ................... 71\n    agent calls ................. 134\n    input tokens ................ 2,368,112\n    output tokens ............... 99,202\n    cache-read tokens ........... 1,812,992\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2737.9s\n      draft-questions-review .... 18.6s\n      draft-coverage-review ..... 31.3s\n      draft-gate ................ 28.4s\n      spec-review ............... 120.0s\n      spec-gate ................. 95.5s\n      test-review ............... 182.0s\n      implement ................. 195.7s\n      impl-review ............... 1253.2s\n      impl-gate ................. 449.6s\n      acceptance-review ......... 363.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/338-active-flow-registry-race/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=dependency_failure failureCategory=dependency raw_output=specs/338-active-flow-registry-race/tests/.raw/final-regression-attempt-002.log fixAttempts=1 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=dependency\n\n  Tasks (3/3)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n    T-3 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (101 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/338-active-flow-registry-race/issue-log.json\n\n    Important (10 of 60)\n    - [draft-coverage-review] Draft coverage review PASS artifact was written, but its post-hook reported a repository operation lock failure.\n    - [draft-gate] The requirement says to fix the lifecycle so one flow update does not lose registry entries, but leaves the exact lifecycle boundary and implementation behavior to later investigation, so two reviewers could disagree on what implementati...\n    - [draft-gate] Draft gate found the lifecycle boundary and failure criteria too deferred for reproducible implementation review.\n    - [scenario-validity] Scenario validity was blocked before tests ran because git diff against base branch reports pre-existing implementation-target paths; the spec-local test process did not start.\n    - [scenario-validity] Rebasing the worktree branch onto main was blocked because flow artifacts and the new spec-local test are intentionally uncommitted; no rebase was applied.\n    - [test-review] Static test review reached a tooling error while recording duplicate findingId values; a contemporaneous issue-log write transiently returned NO_FLOW, while guarded status immediately afterward resolved the intended flow.\n    - [test-review] Test review rejected R4 because lock/revision faults were injected through a manager facade and failure persistence did not assert the absence of a successful decision record.\n    - [task-review] Add a locked active-flow snapshot with a revision receipt so acceptance-decision can fail closed on lock and revision failures.\n    - [task-review] Bind rollback to the same captured FlowTargetExpectation so verification failures cannot restore the original state into a different flow.\n    - [task-review] Reused the captured exact-target mutation closure for rollback, which now fails closed if the original target no longer resolves.\n    ... 50 important issue-log entries omitted\n\n    Recent Other (5 of 41)\n    - [impl-gate] fix: match the acceptance target against the full registry identity key\n    - [acceptance-review] fix: exclude canonical impl review evidence from stale fingerprint refresh\n    - [spec-gate] The diff adds a non-trivial baseline worktree execution layer for scenario-validity, but the provided spec and acknowledgment evidence do not confirm this architecture or data-flow direction.\n    - [impl-gate] fix: remove unrelated scenario-validity baseline worktree execution\n    - [acceptance-decision] User explicitly selected accept_risk_and_continue for unresolved acceptance risk.\n    ... 36 other issue-log entries omitted"
+}

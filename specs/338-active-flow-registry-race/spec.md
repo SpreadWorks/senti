@@ -1,0 +1,131 @@
+# Feature Specification: 338-active-flow-registry-race
+
+**Feature Branch**: `feature/338-active-flow-registry-race`
+**Created**: 2026-07-25
+**Status**: Draft
+**Input**: GitHub Issue #461
+
+## Goal
+active flow の identity と継続可能性を維持する。managed worktree の `acceptance-decision` は shared registry の entry を失わず、current flow の mechanical recovery は既存 authority だけで stale evidence を限定的に再評価する。
+
+## Background
+Issue #461 records a managed worktree whose flow.json and exact run identity survive acceptance-decision while its shared .senti/.active-flow entry disappears. The loss prevents ordinary target resolution even though flow data is healthy and requires a guarded flow resume --parked recovery. Acceptance decision currently persists an artifact and uses FlowManager for the flow-state transition, whereas the shared registry has separate locked, revision-checked mutation APIs. The fix must preserve that ownership boundary, bind the selected worktree identity through the lifecycle write, and make registry preservation an observable success condition. Current-flow evidence recovery follows the same integrity boundary: it may clear stale evidence only after the current flow satisfies the existing impl-repair or review-convergence authority's conditions.
+
+## Scope
+- `acceptance-decision` の target-bound lifecycle mutation と active-flow registry identity verification。
+- 複数 managed-worktree flow が同時に active なときの registry entry preservation。
+- registry revision conflict、operation lock failure、worktree binding mismatch の fail-closed behavior。
+- active-flow registry と acceptance-decision lifecycle をまたぐ spec-local および shared regression coverage。
+- current flow の機械的 evidence block に対する、既存 authority を使う bounded impl-repair および review recovery。
+
+## Out of Scope
+- `flow resume --parked` の command name、exact guard contract、recovery interface の変更。
+- Issue #461 と無関係な finalize、park、resume、または一般的な flow lifecycle の redesign。
+- pointer loss 防止に直接必要でない registry performance optimization。
+- 外部 dependency の追加。
+
+## Constraints
+- Node.js 組み込みモジュールだけを使用し、外部 dependency を追加しない。
+- managed worktree の binding が保持する runId、Issue、spec identity を acceptance-decision の mutation target とする。
+- `acceptance-decision` は `.senti/.active-flow` を再構築、削除、park、または別 flow の entry で置換してはならない。
+- registry entry を変更する既存 operation は ActiveFlowRegistry の lock、snapshot、revision check、atomic write contract を維持する。
+- binding、registry lock、または revision validation が失敗した場合、command success や partial lifecycle transition を返さない。
+- alpha 版ポリシーに従い、旧 format や deprecated path の互換コードを追加しない。
+- registry validation は操作前後の entry set（runId、Issue、spec、mode）を比較し、identity snapshot と validation result はその必須フィールドを constructor で検証する既存の専用クラスで表す。object literal の擬似 union を導入しない。
+- no-overengineering: mechanical gate が current flow の未記録 repair evidence を検出した場合だけ、既存の ImplRepairTransaction、FlowManager lifecycle authority、ReviewRecoveryMutation を用いて同じ flow の stale evidence を無効化して再検証する。任意の step 遷移、cross-flow mutation、または汎用 recovery framework を導入しない。
+- bounded-resource-usage: Issue #461 の entry-loss を検出するには、単一の `.senti/.active-flow` authority snapshot に含まれる全 entry を操作前後で比較する必要がある。registry format には entry-count cap がなく、sampled comparison は同時 active flow の消失を見逃すため、この locked snapshot 1 件に限る全件比較を意図的に許容する。
+
+## Design Principles
+- flow state mutation の owner と shared registry mutation の owner を分離し、acceptance-decision が registry を暗黙に書き換えないようにする。
+- 成功判定には durable flow state の transition だけでなく、同じ runId、Issue、spec を解決できる shared registry の postcondition を含める。
+- 共有 registry の整合性を確認できない場合は、entry loss を伴う回復より explicit failure を優先する。
+
+## Overview
+### Modules
+- src/flow/lib/set-acceptance-decision.js is the CLI adapter that delegates the selected decision to the shared acceptance lifecycle owner.
+- src/flow/lib/acceptance-review-artifacts.js owns acceptance-decision artifact persistence and the state transition from acceptance-decision to final-regression.
+- src/lib/flow-manager.js binds a managed worktree to its flow identity and exposes target-bound flow-state mutation separately from active-flow registry operations.
+- src/lib/active-flow-registry.js owns locked snapshot, revision-checked, atomic mutations of the shared .senti/.active-flow document.
+- spec-local and shared unit tests exercise acceptance-decision with multiple active worktree entries and injected registry failure boundaries.
+- AcceptanceDecisionRegistrySnapshot in src/flow/lib/acceptance-review-artifacts.js owns managed-worktree target and active-flow registry preservation verification for acceptance decisions.
+- specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js exercises the managed-worktree acceptance decision through real FlowManager, ActiveFlowRegistry, and RunResumeCommand surfaces.
+- src/flow/lib/run-scenario-validity.js runs pre-implementation scenario tests in a temporary detached base-branch worktree after a plan rewind, while preserving the active spec-local test inputs.
+
+### Data Flow
+- The guarded acceptance-decision command resolves the managed-worktree binding, validates the selected runId, Issue, and spec, and retains that target for the complete lifecycle operation.
+- The lifecycle owner records the acceptance decision and mutates only the bound flow.json step state; it does not invoke registry remove, park, or document replacement operations.
+- Before a success envelope is returned, the active-flow registry is read through its authority checks and confirms that the target entry and every entry present before the operation remain registered with their original modes.
+- A binding, lock, revision, or identity verification failure returns an explicit error without a successful acceptance-decision transition and without registry entry loss.
+- Managed-worktree acceptance decisions resolve the exact target and snapshot registry entries before writing; after the bound flow transition they re-resolve the target and require the same registry document entries and modes before success.
+- The regression suite snapshots paired worktree flow files and the shared registry before each success or injected failure, then asserts exact resolution and no pointer loss.
+- A plan rewind with implementation targets routes scenario-validity through the isolated base worktree so expected failures are measured against base code rather than current feature changes.
+
+### Decisions
+- [VERIFY] applyAcceptanceDecision writes the reviewed decision artifact, then calls one FlowManager.mutate operation to mark acceptance-decision done and final-regression in progress for continue; result=match.
+- [VERIFY] managed worktree FlowManager.load validates the binding identity, while FlowManager.mutate passes its bound spec to FlowStore; result=match.
+- [VERIFY] ActiveFlowRegistry add, remove, and park take a mutation lock, mutate a snapshot, then reject a changed revision before atomic write; result=match.
+- Keep flow-state and registry mutation ownership separate: acceptance-decision verifies registry identity as a postcondition rather than using resume --parked or a destructive registry rewrite as its normal path.
+- Existing-feature impact is limited to acceptance-decision success validation and its failure behavior; single-flow, multi-flow, and parked-resume public behavior remain unchanged.
+- Registry verification failures roll back the bound flow state and acceptance decision artifact before returning an error; acceptance-decision never repairs the registry through remove, park, or replacement operations.
+- Lock and revision failures are injected at ActiveFlowRegistry.snapshot so the test suite follows the same locked authority boundary used by production verification.
+- [VERIFY] The R6 missing-repair-evidence recovery is restricted to a mechanically blocked flow-level impl-gate for the current run, verifies fresh evidence and the ledger finding, then uses the existing impl-repair transaction to invalidate downstream evidence; result=match.
+- [VERIFY] The R6 changed-tree review recovery reuses ReviewSemanticRecoveryMutation, requires exhausted rejected semantic evidence, grants one re-evaluation, and clears only stale review fields on the current convergence record; result=match.
+- Use the existing impl-repair and review-convergence authorities for one-shot bounded recovery; tests drive their lifecycle transitions and verify repeat recovery is denied.
+
+## Clarifications (Q&A)
+- Q: Does acceptance-decision normally repair a missing active-flow entry?
+  - A: No. A normal success preserves an existing entry and verifies it. flow resume --parked remains the existing manual recovery path for a separately missing pointer.
+- Q: May acceptance-decision rebuild the registry from its own target to guarantee presence?
+  - A: No. Rebuilding from a single target can delete concurrent entries. Shared registry writes remain owned by ActiveFlowRegistry snapshot and revision-checked operations.
+- Q: What does fail closed mean for this lifecycle?
+  - A: The command returns an explicit failure rather than a success envelope, does not complete the selected acceptance-decision transition, and keeps every registry entry that existed before the attempted operation.
+- Q: How does a mechanical gate recover an applied finding whose historical repair reference is not a materialized repository file?
+  - A: The recovery remains bounded to the current flow: it requires a mechanically blocked impl-gate observation naming the ledger finding, fresh test evidence, and the existing impl-repair transaction authority. It re-records evidence from a materialized repair-delta file, invalidates downstream evidence, and resumes the normal test, review, and gate sequence without changing unrelated lifecycle behavior.
+
+## Alternatives Considered
+- Automatically invoke flow resume --parked after every acceptance-decision. — Rejected because it hides pointer loss, changes the normal lifecycle, and violates the requirement that parked resume remain a recovery interface.
+- Rewrite .senti/.active-flow from only the selected worktree binding after acceptance-decision. — Rejected because it can discard entries for concurrent managed worktrees and bypasses ActiveFlowRegistry revision and lock ownership.
+- Treat registry verification failure as a warning after completing the acceptance transition. — Rejected because the command would report partial success while ordinary guarded target resolution is broken.
+- Add a generic late-repair or arbitrary-step recovery framework. — Rejected under no-overengineering. The needed continuation is restricted to one mechanically blocked flow-level gate with a ledger-named finding, fresh test evidence, and the already-owned impl-repair transaction; any broader recovery surface would make unrelated lifecycle mutations possible.
+- Reuse exhausted review evidence after the implementation tree changes. — Rejected because evidence tied to the previous tree cannot justify a new review. The bounded semantic mutation keeps the existing record and grants one changed-tree re-evaluation while invalidating only stale review fields.
+
+## User Confirmation
+- [x] User approved this spec
+- Confirmed at: 2026-07-25T10:33:37.033Z
+- Notes: Auto-approved after R6 planning evidence refresh and gate pass.
+
+## Requirements
+- R1 [must]: For a managed-worktree acceptance-decision, the lifecycle operation shall retain the selected binding's runId, Issue, and spec identity through its flow-state write and shall mutate only that bound flow.json.
+- R2 [must]: The acceptance-decision success path shall not call an active-flow registry remove, park, or document-replacement operation, and it shall verify that the target entry and every entry present before the operation remain registered with their original modes.
+- R3 [must]: After a successful managed-worktree acceptance-decision, guarded flow resolution shall return the same runId, Issue, and spec and the flow state shall mark acceptance-decision done and final-regression in progress only for accept_risk_and_continue.
+- R4 [must]: A worktree binding mismatch, registry operation lock failure, registry revision conflict, or registry identity verification failure shall return an explicit failure without reporting a successful acceptance-decision transition and without losing any pre-operation registry entry.
+- R5 [must]: Regression coverage shall prove registry preservation and guarded target resolution with at least two managed-worktree flows, inject each R4 failure boundary without entry loss, prove that a one-entry registry retains its entry after accept_risk_and_continue, and prove that flow resume --parked restores a parked target's active entry and exact target resolution.
+- R6 [must]: For one current flow and one mechanically blocked gate attempt, missing materialized repair evidence may invoke the existing impl-repair authority at most once, invalidate only leaf steps from test-execute through finalize-cleanup, and permit one subsequent test-review-gate evaluation; a further failure shall not invoke the recovery again. For one exhausted rejected review record with a changed tree, the existing review-convergence authority shall clear only that record's stale fields and permit exactly one semantic re-evaluation without mutating unrelated flow state.
+
+## Acceptance Criteria
+- [AC1/R1] A managed-worktree acceptance-decision writes the selected flow's acceptance decision and does not write another active worktree's flow.json.
+- [AC2/R2] Given two or more active registry entries before accept_risk_and_continue, the registry contains the same spec/mode entry set after the command and includes the selected flow.
+- [AC3/R3] A guarded flow get next-action after accept_risk_and_continue resolves the original runId, Issue, and spec; the selected flow has acceptance-decision=done and final-regression=in_progress.
+- [AC4/R4] Injected binding, lock, revision, and identity verification failures return their explicit error path, do not return a success envelope, do not complete acceptance-decision, and preserve the pre-operation registry entry set.
+- [AC5/R5] Spec-local testsと、変更された acceptance lifecycle または registry authority を直接呼ぶ shared tests は、multi-flow success、全 R4 failure、single-flow、guarded flow resume --parked recovery を対象にする。
+- [AC6/R6] Spec-local tests drive a mechanically blocked impl-gate through the existing impl-repair transaction and apply the changed-tree semantic review recovery, proving stale evidence is cleared only within the current flow.
+
+## Implementation Targets
+-
+
+## Open Questions
+- [ ]
+
+## Tasks
+### Round 0
+- **T-1** [pending]: Guard acceptance decision identity
+  - Make the acceptance-decision lifecycle retain its managed-worktree identity and require active-flow registry preservation before it reports success.
+  - see `tasks/T-1.md` for full spec
+- **T-2** [pending]: Cover registry preservation regression
+  - Add requirement-mapped regression coverage for concurrent active flows so pointer preservation and existing recovery behavior are protected from future lifecycle changes.
+  - see `tasks/T-2.md` for full spec
+
+### Round 1
+- **T-3** [pending]: Verify bounded recovery evidence
+  - Add R6 coverage proving that the current flow can recover stale evidence only through its existing lifecycle authorities and only for one bounded re-evaluation.
+  - see `tasks/T-3.md` for full spec

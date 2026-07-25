@@ -1,0 +1,3489 @@
+{
+  "entries": [
+    {
+      "step": "draft-questions-triage",
+      "reason": "Guarded step completion returned transient NO_FLOW although the immediate guarded refresh resolved the same target.",
+      "trigger": "senti flow set step draft-questions-triage done with the bound run, Issue, and spec guards",
+      "resolution": "Recorded the inconsistency and retried only after confirming target identity through guarded next-action.",
+      "guardrailCandidate": "A guarded flow mutation must not lose target resolution between consecutive operations.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:47:53.030Z",
+      "issueLogId": "issue-log-ac57a45b-d17d-491d-87e7-3b4a21fcd364"
+    },
+    {
+      "step": "draft-coverage-review",
+      "reason": "Draft coverage review PASS artifact was written, but its post-hook reported a repository operation lock failure.",
+      "trigger": "senti flow run review --phase draft during draft-coverage-review",
+      "resolution": "Preserved the generated review artifact and followed the guarded next-action state after the post-hook warning.",
+      "guardrailCandidate": "Review post-hooks must coordinate repository locks without turning a completed evidence write into a transient failure.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:49:33.309Z",
+      "issueLogId": "issue-log-3db8d0a2-5434-4bc0-a5f2-37edcdd422d3"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement says to fix the lifecycle so one flow update does not lose registry entries, but leaves the exact lifecycle boundary and implementation behavior to later investigation, so two reviewers could disagree on what implementation satisfies it.; This item defers determining the exact lifecycle boundary and target module to the spec, leaving the current draft without enough specificity for reviewers to agree on satisfaction criteria.; This item defers the race, revision mismatch, and lock failure reproduction boundary to later investigation, leaving the requirement without specific behavior-level criteria reviewers can consistently evaluate.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:50:40.537Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement says to fix the lifecycle so one flow update does not lose registry entries, but leaves the exact lifecycle boundary and implementation behavior to later investigation, so two reviewers could disagree on what implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "This item defers determining the exact lifecycle boundary and target module to the spec, leaving the current draft without enough specificity for reviewers to agree on satisfaction criteria.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.deferredToSpec[1]"
+          },
+          "observed": "This item defers the race, revision mismatch, and lock failure reproduction boundary to later investigation, leaving the requirement without specific behavior-level criteria reviewers can consistently evaluate.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says to fix the lifecycle so one flow update does not lose registry entries, but leaves the exact lifecycle boundary and implementation behavior to later investigation, so two reviewers could disagree on what implementation satisfies it."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "This item defers determining the exact lifecycle boundary and target module to the spec, leaving the current draft without enough specificity for reviewers to agree on satisfaction criteria."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "This item defers the race, revision mismatch, and lock failure reproduction boundary to later investigation, leaving the requirement without specific behavior-level criteria reviewers can consistently evaluate."
+        }
+      ],
+      "issueLogId": "issue-log-19373978-66c9-4ab9-9000-a446697eb0b6"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found the lifecycle boundary and failure criteria too deferred for reproducible implementation review.",
+      "trigger": "draft gate complete-context evaluations for analysis.proposedApproach and decisionMap.deferredToSpec",
+      "resolution": "Will replace deferred investigation language with verified module ownership and explicit success and failure behavior.",
+      "guardrailCandidate": "Draft requirements must name the lifecycle boundary and observable failure behavior before spec writing.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:50:58.928Z",
+      "issueLogId": "issue-log-57972b02-ff2b-491c-975d-ee252cc3f907"
+    },
+    {
+      "step": "test",
+      "reason": "Used unsupported command 'senti flow get next --json'; no flow state or source files changed.",
+      "trigger": "flow next-action lookup",
+      "resolution": "Use the documented next-action command.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:20:31.151Z",
+      "issueLogId": "issue-log-5e0fb5dc-81f8-4ff8-b689-7a3f72773d9f"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Scenario validity was blocked before tests ran because git diff against base branch reports pre-existing implementation-target paths; the spec-local test process did not start.",
+      "trigger": "flow run scenario-validity",
+      "resolution": "Inspect branch/base divergence and resolve the flow preflight baseline without altering unrelated source changes.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:21:20.963Z",
+      "issueLogId": "issue-log-868af498-6702-4f7f-84dc-fe27048c553e"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Rebasing the worktree branch onto main was blocked because flow artifacts and the new spec-local test are intentionally uncommitted; no rebase was applied.",
+      "trigger": "git rebase main",
+      "resolution": "Use the worktree-local autostash rebase path so the active-flow artifacts are restored automatically.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:22:27.511Z",
+      "issueLogId": "issue-log-d5f0896e-1514-402b-ae45-ae7867d5e601"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Worktree-local autostash rebase aligned the feature branch with main but restoration conflicted in generated .senti/output/analysis.json; source and test files remain untouched.",
+      "trigger": "git rebase --autostash main",
+      "resolution": "Resolve only the generated analysis artifact within the worktree, then rerun scenario validity.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:22:47.075Z",
+      "issueLogId": "issue-log-95b5ef6f-94c3-4ff5-b532-5979a13c38b6"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review reached a tooling error while recording duplicate findingId values; a contemporaneous issue-log write transiently returned NO_FLOW, while guarded status immediately afterward resolved the intended flow.",
+      "trigger": "flow run review --phase test",
+      "resolution": "Inspect the generated review findings for duplicated identifiers, preserve the transient registry evidence, and repair tooling before the one permitted retry.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:24:47.868Z",
+      "issueLogId": "issue-log-bb0d82a2-8438-4e74-8b67-79b740eb368f"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review rejected the revised suite for two remaining gaps: no explicit registry document-replacement guard and no command-level flow resume --parked coverage.",
+      "trigger": "flow run review --phase test",
+      "resolution": "Add a replacement-operation interceptor and exercise RunResumeCommand, then rerun review with changed evidence.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:28:47.493Z",
+      "issueLogId": "issue-log-0d3f03da-1245-4cfb-914f-30d22f1e70d2"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review rejected R2 because manager-level stubs do not observe direct ActiveFlowRegistry mutations.",
+      "trigger": "flow run review --phase test",
+      "resolution": "Instrument ActiveFlowRegistry remove/park and the conditional AtomicJsonFile active-flow document write path, then rerun review.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:30:17.244Z",
+      "issueLogId": "issue-log-94043b3e-1b79-416d-b9bd-8c5648df9698"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review rejected R4 because lock/revision faults were injected through a manager facade and failure persistence did not assert the absence of a successful decision record.",
+      "trigger": "flow run review --phase test",
+      "resolution": "Inject errors at ActiveFlowRegistry.load and snapshot decision artifact plus issue log to prove no successful transition is reported.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:31:42.799Z",
+      "issueLogId": "issue-log-dee0ed04-6c30-49e9-9d39-cf748fd79a2b"
+    },
+    {
+      "step": "task-review",
+      "reason": "Add a locked active-flow snapshot with a revision receipt so acceptance-decision can fail closed on lock and revision failures.",
+      "trigger": "task review must-fix",
+      "resolution": "Pending implementation repair.",
+      "normalizedFindingId": "a0096498d3aa85e53c67a15128b0de33799ce8d205d8de16b928240e8f3cdd3e",
+      "repairRef": {
+        "files": [
+          "src/lib/active-flow-registry.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:37:58.661Z",
+      "issueLogId": "issue-log-cb487b4f-58e7-425a-9a5a-2acac0a8347d"
+    },
+    {
+      "step": "task-review",
+      "reason": "Compare preserved active-flow registry entries as an identity set rather than their read order.",
+      "trigger": "task review must-fix",
+      "resolution": "Pending implementation repair.",
+      "normalizedFindingId": "61dc8147c616f9ac566f7d7ccfc49208eebb27caef5a59567c9c79d604ae07b7",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:38:07.991Z",
+      "issueLogId": "issue-log-d5435346-1825-4f3b-80cf-53babef5f55b"
+    },
+    {
+      "step": "task-review",
+      "reason": "Implemented ActiveFlowRegistry.snapshot and FlowManager.snapshotActiveFlows, then verify the locked revision before acceptance-decision success.",
+      "trigger": "task review repair",
+      "resolution": "Repaired locked registry read and typed revision conflict handling.",
+      "normalizedFindingId": "a0096498d3aa85e53c67a15128b0de33799ce8d205d8de16b928240e8f3cdd3e",
+      "repairRef": {
+        "files": [
+          "src/lib/active-flow-registry.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:39:25.986Z",
+      "issueLogId": "issue-log-8f68279c-0fc4-4907-9399-b7ecaef76a37"
+    },
+    {
+      "step": "task-review",
+      "reason": "Canonicalized active-flow entry identities before comparing snapshots so registry order does not affect preservation.",
+      "trigger": "task review repair",
+      "resolution": "Repaired order-sensitive registry preservation check.",
+      "normalizedFindingId": "61dc8147c616f9ac566f7d7ccfc49208eebb27caef5a59567c9c79d604ae07b7",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:39:32.468Z",
+      "issueLogId": "issue-log-5acaf0e8-80a9-4a9d-a2c1-f24e809686ff"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added FlowManager.mutateExactTarget to resolve the exact target and revalidate runId, Issue, and spec inside the FlowStore mutation callback.",
+      "trigger": "task review repair",
+      "resolution": "Acceptance-decision now uses exact target mutation for managed worktrees.",
+      "normalizedFindingId": "ade664ac56700c097b27633fab20aeea76e46b4d734e58ace7fef765be5241fe",
+      "repairRef": {
+        "files": [
+          "src/lib/flow-manager.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:41:16.461Z",
+      "issueLogId": "issue-log-d7348497-4252-4945-8d72-e10f665970ee"
+    },
+    {
+      "step": "task-review",
+      "reason": "Bind rollback to the same captured FlowTargetExpectation so verification failures cannot restore the original state into a different flow.",
+      "trigger": "task review must-fix",
+      "resolution": "Pending implementation repair.",
+      "normalizedFindingId": "019c00e587778f57497e615f098859987f678604992c1608d3cd4c098c7fe322",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:42:04.041Z",
+      "issueLogId": "issue-log-3bdc7265-9123-47f9-8b2f-fccb1f77d939"
+    },
+    {
+      "step": "task-review",
+      "reason": "Reused the captured exact-target mutation closure for rollback, which now fails closed if the original target no longer resolves.",
+      "trigger": "task review repair",
+      "resolution": "Rollback is bound to the same runId, Issue, and spec as the forward mutation.",
+      "normalizedFindingId": "019c00e587778f57497e615f098859987f678604992c1608d3cd4c098c7fe322",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:42:26.096Z",
+      "issueLogId": "issue-log-4a5be449-9195-4c7a-91db-72f703495b1a"
+    },
+    {
+      "step": "task-review",
+      "reason": "The spec-local regression test is untracked, so task review cannot include it in its diff evidence.",
+      "trigger": "task review must-fix",
+      "resolution": "Stage the new test file for diff-based review without executing it.",
+      "normalizedFindingId": "8ea6466e9892fd77c8061cc986a760cbb1962cee3c30562bfda3ab47664a2357",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T06:45:18.016Z",
+      "issueLogId": "issue-log-cb945c3d-8fd3-4767-8f7e-a08d49cb8d2d"
+    },
+    {
+      "step": "task-review",
+      "reason": "Staged the existing requirement-mapped spec-local test so the task review can inspect its R1-R5 coverage matrix.",
+      "trigger": "task review repair",
+      "resolution": "Regression test is now present in the review diff without test execution.",
+      "normalizedFindingId": "8ea6466e9892fd77c8061cc986a760cbb1962cee3c30562bfda3ab47664a2357",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T06:45:35.832Z",
+      "issueLogId": "issue-log-cefbbef6-b956-4200-b2fe-5ff229a68629"
+    },
+    {
+      "step": "task-review",
+      "reason": "Task review retry was rejected with REVIEW_EVIDENCE_CHANGE_REQUIRED because staging the pre-existing test file did not change the task target tree.",
+      "trigger": "flow run review",
+      "resolution": "Add a direct assertion that the injected ActiveFlowRegistry.snapshot failure boundary is exercised before retrying review.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T06:46:13.315Z",
+      "issueLogId": "issue-log-6c048fad-ae59-4287-9c7c-78204874669c"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "A source inspection referenced a nonexistent flow-state-store.js path.",
+      "trigger": "The flow-state search included an obsolete filename alongside flow-store.js.",
+      "resolution": "Used src/lib/flow-store.js, which owns the active mutation implementation.",
+      "guardrailCandidate": "Verify candidate paths before multi-file source inspection commands.",
+      "taskId": null,
+      "timestamp": "2026-07-25T06:52:25.343Z",
+      "issueLogId": "issue-log-52719a83-ee9c-4c85-a3ea-3ee99030e8d3"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "The first repair patch used stale source context and did not apply.",
+      "trigger": "Acceptance-decision identity code had additional guarded-resolution checks.",
+      "resolution": "Read the current implementation and applied the same change in smaller verified patches.",
+      "guardrailCandidate": "Refresh exact source context before applying a multi-hunk repair patch.",
+      "taskId": null,
+      "timestamp": "2026-07-25T06:56:32.287Z",
+      "issueLogId": "issue-log-d4ccd82c-9ec9-4832-ae05-13f7857a16e5"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 5a89699d8a40ea56e04c99ebab4ce2a4902b225d7371ba98d957e1e5b866840a.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-001; 3 changed path(s), delta repair-deltas/repair-001.json.",
+      "normalizedFindingId": "5a89699d8a40ea56e04c99ebab4ce2a4902b225d7371ba98d957e1e5b866840a",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:56:48.437Z",
+      "issueLogId": "impl-repair:repair-001:5a89699d8a40ea56e04c99ebab4ce2a4902b225d7371ba98d957e1e5b866840a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4, R5",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:58:53.398Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4, R5",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-3a8a1697-227f-4c83-86a4-ab638e64da4b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration gate rejected the v2 test artifact because R1 through R5 were recorded as failed.",
+      "trigger": "The flow-level impl-gate validated the post-repair test-execute artifact.",
+      "resolution": "Inspect the persisted test result and raw execution log before repairing the test or implementation.",
+      "guardrailCandidate": "Treat test-execute artifact status as authoritative before entering the integration gate.",
+      "taskId": null,
+      "timestamp": "2026-07-25T06:59:11.052Z",
+      "issueLogId": "issue-log-41990c6d-b1c9-4c83-8c45-b059e28257ee"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Spec-local test re-execution could not start because another flow holds the repository operation lock.",
+      "trigger": "RepositoryFlowOperationLock reports active owner pid 1731520 from a separate flow review.",
+      "resolution": "Wait for the separate flow to release its lock, then rerun test-execute.",
+      "guardrailCandidate": "Never interrupt another active flow solely to retry this flow's evidence command.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:04:16.587Z",
+      "issueLogId": "issue-log-35603a59-b109-411c-bc17-b6f135907c14"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: the acceptance registry fixture now creates a Git baseline, handles repair migration, and compares resumed registry entries by identity rather than order.",
+      "trigger": "Spec-local tests initially failed before exercising the acceptance-decision scenarios.",
+      "resolution": "All R1 through R5 now pass under test-execute, and test-result-review regenerated a passing v2 evidence artifact.",
+      "guardrailCandidate": "Test managed-worktree lifecycle paths with a real Git baseline and order-independent registry assertions.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:08:37.057Z",
+      "issueLogId": "issue-log-9a62111f-095d-4f25-b4ca-966405ad85fe"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T07:08:51.000Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-2e9979ad-455f-4bc9-b27f-21eb60b3ad0d"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration gate found that the second must-fix review finding lacks matching impl-repair evidence.",
+      "trigger": "The triage post-hook advanced directly to impl-gate after the second review.",
+      "resolution": "Inspect the current repair step state and record the repaired finding through the flow's repair ledger.",
+      "guardrailCandidate": "Every applied must-fix finding must create one matching repair ledger record before integration gate.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:09:08.320Z",
+      "issueLogId": "issue-log-d3f1ac04-8494-4572-a0b2-521bfaa1b1c6"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Repair-ledger source search included a nonexistent set command path.",
+      "trigger": "The source lookup combined set-step.js with a missing commands/set.js file.",
+      "resolution": "Used src/flow/lib/set-step.js, which owns the workflow step transition.",
+      "guardrailCandidate": "Verify source paths before combined repair workflow searches.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:10:52.903Z",
+      "issueLogId": "issue-log-844a0ede-6288-46aa-84d6-4852adaa9dd1"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Repair recovery source search included a nonexistent commands directory.",
+      "trigger": "The implementation recovery lookup targeted src/commands, which is not present in this repository.",
+      "resolution": "Located the registered rewind-test-evidence recovery command under src/flow/registry.js.",
+      "guardrailCandidate": "Search only confirmed source roots when tracing recovery commands.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:11:30.517Z",
+      "issueLogId": "issue-log-ad630b95-19a3-42e4-9e79-98b2ef819b64"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Recovery inspection expected an impl-gate artifact filename that is not produced for the current mechanical failure.",
+      "trigger": "The file is absent because this gate failure is represented by issue-log evidence instead.",
+      "resolution": "Use the stale-test-evidence recovery authority, which derives the blocked gate evidence from issue-log.json.",
+      "guardrailCandidate": "Read recovery artifact routing before assuming a gate result filename.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:11:59.095Z",
+      "issueLogId": "issue-log-a4010885-0ced-4402-9eb0-9539293dcb0e"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "The stale-test-evidence recovery rejected this gate failure because it lacks a repairFingerprint mismatch.",
+      "trigger": "senti flow run rewind-test-evidence with the exact flow target guards.",
+      "resolution": "The current blocker is a missing repair ledger entry, so stale-evidence recovery is not an authorized route.",
+      "guardrailCandidate": "Route gate recovery by the recorded mechanical failure kind before invoking stale-evidence recovery.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:12:36.119Z",
+      "issueLogId": "issue-log-9e36885d-06f0-42f7-bd9b-a476744606d2"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: rejected impl reviews now reset completed repair leaves, and a mechanically blocked gate can recover missing applied-finding repair evidence.",
+      "trigger": "A second impl review advanced through an already completed impl-repair step, leaving its applied must-fix finding without ledger evidence.",
+      "resolution": "The guarded impl-repair recovery records a new repair transaction and invalidates downstream test evidence before gate retry.",
+      "guardrailCandidate": "A rejected review must reopen repair and gate leaves before its triage can advance.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:33:27.865Z",
+      "issueLogId": "issue-log-65182820-e6d6-4d3e-9244-d2b4bf9c0a8d"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "The guarded impl-repair recovery did not activate because the set-step command resolved its stored target outside the flow-level repair leaf.",
+      "trigger": "senti flow set step impl-repair done returned FLOW_STEP_TRANSITION_INVALID while impl-gate is active.",
+      "resolution": "Inspect the active-node and step lookup shape, then align the recovery predicate with the dispatcher state model.",
+      "guardrailCandidate": "Recovery predicates must use the same active-scope resolution as normal step transitions.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:33:56.445Z",
+      "issueLogId": "issue-log-a4739127-a998-4055-92d6-d86bbb62036e"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "The guarded repair recovery rejected the stale impl-triage fingerprint after test evidence had already been regenerated.",
+      "trigger": "The second review artifact references the prior repair manifest while the current manifest reflects the repaired test changes.",
+      "resolution": "Extend recovery to audit the stale review and current evidence without weakening normal impl-repair validation.",
+      "guardrailCandidate": "A late repair recovery must distinguish a stale triage artifact from an unverified repair.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:35:03.784Z",
+      "issueLogId": "issue-log-d6bc59cf-c74b-45a3-9b12-8dea54a3bae6"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Late repair evidence recorded for findings a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-002; 320 changed path(s), delta repair-deltas/repair-002.json.",
+      "normalizedFindingId": "a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880",
+      "repairRef": {
+        "files": [
+          ".senti/config.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:38:03.721Z",
+      "issueLogId": "impl-repair:repair-002:a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "Acceptance decision now restores issue-log when its append operation fails.",
+      "trigger": "Impl review R4 identified a partial-success acceptance decision path.",
+      "resolution": "Issue-log writes now execute inside the rollback transaction.",
+      "normalizedFindingId": "5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:42:24.827Z",
+      "issueLogId": "issue-log-a923d0d5-175b-4f8b-81be-0ba4d364f495"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 2 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:42:33.298Z",
+      "issueLogId": "impl-repair:repair-003:5c980204a39535dcdf2b8427cc2f75e7b1e651cb5e6d76b0058f6beb22328185"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 03841a0836a1b7750383ec972a0fe31f1d183cb1d3c86cdb14a746eb718b15eb.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-004; 7 changed path(s), delta repair-deltas/repair-004.json.",
+      "normalizedFindingId": "03841a0836a1b7750383ec972a0fe31f1d183cb1d3c86cdb14a746eb718b15eb",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:44:43.018Z",
+      "issueLogId": "impl-repair:repair-004:03841a0836a1b7750383ec972a0fe31f1d183cb1d3c86cdb14a746eb718b15eb"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Review retry reset is required because the prior review read an unstaged rollback fix.",
+      "trigger": "Impl review exhausted its retry budget before the corrected staged diff was available.",
+      "resolution": "Record changed evidence and reset the review counter for one fresh evaluation.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:45:28.712Z",
+      "issueLogId": "issue-log-c10b55c8-573c-473e-8b52-86599b199af0"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Review retry reset rejected the staged change because it requires a new committed tree identity.",
+      "trigger": "The reset validator compares committed tree SHA rather than index state.",
+      "resolution": "Commit the reviewed implementation and retry the reset with the new tree identity.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:45:58.497Z",
+      "issueLogId": "issue-log-ca30c318-1c2e-4f06-8ecb-8807dbcb7848"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Acceptance rollback now restores both prior issue-log bytes and its file permissions.",
+      "trigger": "Retry recovery required new source evidence after the stale review result.",
+      "resolution": "Snapshot capture now includes mode and the partial-write test verifies complete restoration.",
+      "normalizedFindingId": "03841a0836a1b7750383ec972a0fe31f1d183cb1d3c86cdb14a746eb718b15eb",
+      "repairRef": {
+        "commit": "2556d2f4"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:48:53.510Z",
+      "issueLogId": "issue-log-27cc72b0-218a-41a7-bea1-87227def79e1"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Semantic review retry reset used a tooling-only mutation and could not recover exhausted review findings.",
+      "trigger": "The reset failed because the convergence record had semantic rather than tooling exhaustion.",
+      "resolution": "Use a semantic recovery mutation that clears stale rejected evidence and grants one review attempt.",
+      "repairRef": {
+        "commit": "5da15960"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:51:33.625Z",
+      "issueLogId": "issue-log-9a96fb15-1f3c-4bb9-b66b-09ddf226f60d"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-00a074cd-adfd-4e25-b26a-76c7c5e2b9e2",
+      "id": "recovery-00a074cd-adfd-4e25-b26a-76c7c5e2b9e2",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Semantic review recovery now clears stale rejected evidence and grants one verified re-evaluation.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "0fbdca832a06c915d4a303f46eb757fbfbd1f3a2af1252725ba5ffe6beea5431",
+        "currentHash": "f6933117969b9b37bf67aa9567fa2fc3ff0c72b18b0511f6e1b61fccb99b4f50",
+        "changedPaths": [
+          "specs/338-active-flow-registry-race/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/set-step.js",
+          "src/lib/active-flow-registry.js",
+          "src/lib/flow-manager.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Semantic review recovery now clears stale rejected evidence and grants one verified re-evaluation.\" --yes",
+      "createdAt": "2026-07-25T07:51:41.335Z",
+      "timestamp": "2026-07-25T07:51:41.335Z",
+      "issueLogId": "recovery-00a074cd-adfd-4e25-b26a-76c7c5e2b9e2"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T07:57:23.266Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-e43b077c-9737-41b0-b7a3-e240f4b55f82"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Late repair evidence selected a workflow artifact instead of a materialized repository file.",
+      "trigger": "Mechanical gate detected a missing repair evidence reference for an applied finding.",
+      "resolution": "Repair evidence now selects a validated repository file from the repair delta, then recovery replays stale evidence.",
+      "guardrailCandidate": "Repair evidence must point to a materialized repository file, never a workflow control artifact.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:04:46.908Z",
+      "issueLogId": "issue-log-f2d20b25-25cb-4819-816f-1d6b8c2c6e9c"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Late repair evidence recorded for findings a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-006; 3 changed path(s), delta repair-deltas/repair-006.json.",
+      "normalizedFindingId": "a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:05:04.708Z",
+      "issueLogId": "impl-repair:repair-006:a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The rollback branch repeats the same AggregateError accumulation shape used again for issue-log restoration; the duplicated production error-handling behavior could be factored into a local rollback helper.; The rollback branch repeats the same AggregateError accumulation shape used for acceptance artifact rollback; the duplicated production error-handling behavior could be factored into a local rollback helper.; The diff adds a non-trivial late applied-finding repair data flow, including fingerprint comparison, invalidation planning, transaction creation, lifecycle mutation, and effect commit, but the provided spec content does not include design-confirmation evidence for this architecture.; The diff adds a non-trivial blocked impl-repair recovery path that derives recovery eligibility from step attempts, triage artifacts, issue-log observations, and repair evidence freshness, but the provided spec content does not include design-confirmation evidence for this pattern choice.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:09:18.234Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/acceptance-review-artifacts.js",
+            "locator": "applyAcceptanceDecision catch block: writeAcceptanceReviewArtifact rollback"
+          },
+          "observed": "The rollback branch repeats the same AggregateError accumulation shape used again for issue-log restoration; the duplicated production error-handling behavior could be factored into a local rollback helper.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/acceptance-review-artifacts.js",
+            "locator": "applyAcceptanceDecision catch block: issueLogSnapshot.restore rollback"
+          },
+          "observed": "The rollback branch repeats the same AggregateError accumulation shape used for acceptance artifact rollback; the duplicated production error-handling behavior could be factored into a local rollback helper.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "completeLateAppliedFindingRepair"
+          },
+          "observed": "The diff adds a non-trivial late applied-finding repair data flow, including fingerprint comparison, invalidation planning, transaction creation, lifecycle mutation, and effect commit, but the provided spec content does not include design-confirmation evidence for this architecture.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/set-step.js",
+            "locator": "validateBlockedImplRepairRecovery and impl-repair recovery branch"
+          },
+          "observed": "The diff adds a non-trivial blocked impl-repair recovery path that derives recovery eligibility from step attempts, triage artifacts, issue-log observations, and repair evidence freshness, but the provided spec content does not include design-confirmation evidence for this pattern choice.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R4",
+        "R3",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The rollback branch repeats the same AggregateError accumulation shape used again for issue-log restoration; the duplicated production error-handling behavior could be factored into a local rollback helper."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The rollback branch repeats the same AggregateError accumulation shape used for acceptance artifact rollback; the duplicated production error-handling behavior could be factored into a local rollback helper."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial late applied-finding repair data flow, including fingerprint comparison, invalidation planning, transaction creation, lifecycle mutation, and effect commit, but the provided spec content does not include design-confirmation evidence for this architecture."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial blocked impl-repair recovery path that derives recovery eligibility from step attempts, triage artifacts, issue-log observations, and repair evidence freshness, but the provided spec content does not include design-confirmation evidence for this pattern choice."
+        }
+      ],
+      "issueLogId": "issue-log-34bfa19b-1028-41ef-92f7-5273f0c93382"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration gate found duplicated rollback aggregation and missing design evidence for bounded repair recovery.",
+      "trigger": "Gate attempt 1 reported four no-overengineering observations after the repair evidence recovery change.",
+      "resolution": "Extract shared rollback aggregation and add a spec clarification that bounds late repair recovery to observed mechanical evidence failures.",
+      "guardrailCandidate": "Recovery mechanisms must have explicit bounded eligibility, durable evidence, and spec-level design confirmation.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:10:33.965Z",
+      "issueLogId": "issue-log-9f742771-7a08-42ce-abe5-766e8e3857e5"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/338-active-flow-registry-race/.retry-recovery.transaction.json",
+          "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/acceptance-review.json",
+          "fingerprint": "ca1393a165a33d57ae51d9bfa37d7bc95aa0be866690f1f4ada3565101a3b743"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-coverage-repair.json",
+          "fingerprint": "d7e7af66c4d497d1aecac827c227c8c1a0489d0b954de9df9dc365a8fdf1d1a5"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-coverage-triage.json",
+          "fingerprint": "aeac64d3e4e599f92eb8e9921054892b1230142ff596bc77bc22a1f8d8b6d530"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-gate-source.json",
+          "fingerprint": "a2b8400d0e21baa6058a98dacd7cae46a4b9b4d937592065a959f496b484c3d3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-questions-repair.json",
+          "fingerprint": "ef582c0fb2458d58bb20c20f5de8b76475ab4b9c892cb5787b8f1bf89af3f9ab"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-questions-triage.json",
+          "fingerprint": "f3e0c67c8c12d034acfc58ad11750a655459f1d4527a6aeccbc5b048146ac166"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-review-coverage.json",
+          "fingerprint": "18f43193ad08fe17970e27a619975b274c85d80d8e5a8c848f3c6d3a447e1d57"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-review-questions.json",
+          "fingerprint": "039612dc19047ae13ce6255998c2e835fc7966c64ca3006afb35194a35543e37"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft.json",
+          "fingerprint": "bbfc4ea5bf11698f768db7ee48ca6d737eb8c4172cef07116032000cad7f834f"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/file-map.json",
+          "fingerprint": "7e014fa9f4b2eaeea66d61c0d8ab78010ce37e890653591a3fcfe5f3ef6c1e53"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/flow-findings.json",
+          "fingerprint": "fc463c4f99a48612fe9cb1efb3d940d9a690cc448665cb4733c90a144494621f"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/impl-gate-result.json",
+          "fingerprint": "0549fb532741dcdc6dbb660c39e04d3d77ed1976095d6f544fd6750d1c82bb4a"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/impl-repair.json",
+          "fingerprint": "217dbc2c61ca942119f551b973e0ac43635e4d96a88b6152b6caca75e3cdd1e0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/impl-review.json",
+          "fingerprint": "610e8b5ba08c6e991f96a82bfdd43d4f3898a3d843c51f6ae2a010a61c1cf2a7"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/impl-triage.json",
+          "fingerprint": "45d38ca8531faa9da284b1758eaec70225f2e416e79c9fce7522ffe771265d56"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/issue.md",
+          "fingerprint": "05856408dc61e2469fef2ed281ba4ce41d3bc137c4a94fa67a57fa63d52c721e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "8d22544637d247f3197c2cf640cb940427638b6d81907a80a882cc16922e83d0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-001.json",
+          "fingerprint": "ae17100dc2af0691b022d2e2b079ded0214a496473c80d291794c16959878ad1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-002.json",
+          "fingerprint": "1217b8cd6a0361cb6cda7b4fd13fef38f8a4e0e8ecdde33a479cefeb648cf7d1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-003.json",
+          "fingerprint": "6c0e5d23cbb1ae22502f9dedc2d6d4a6aa7aa4231d2cab196e773a7a50da9dfa"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-004.json",
+          "fingerprint": "247d9647f8573a098acbf1b0179da34258fb1b10bca8295de5c1a58479c5f51d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-005.json",
+          "fingerprint": "1c4ed029d63a0a8f6145bd796be532ed6683472728429fafebcb9b4f36035c38"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-006.json",
+          "fingerprint": "acad6f49bc94490e56d45fde54cd5edc5966eef0261b68c2b2bec096dd025735"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-007.json",
+          "fingerprint": "75874a01665a98ea5ce5c795acf564a4743d7ceeaf1f1d1a07d7ba67c5084e88"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-008.json",
+          "fingerprint": "fbfb78a58eedd075265c6cea34bc4cf490839bbe0e8bcde902f1c70db051feff"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-fingerprint.json",
+          "fingerprint": "f148a85cc6fcabe98733156e26cc1e29b3ab63bbf5bb4301f602807b75380598"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/retro.json",
+          "fingerprint": "32c6108fa5ea9fa55c15df831d472c885b2d71a0bc052ff58a99577f91ff3a71"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/retry-recovery.json",
+          "fingerprint": "dd6254a6e797c5639f187052d15cc6c6c5868ca1d62241e389bbe198f545b64c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/11a4f11564599b3bd6ffa90b2413aa76a81e511c7a32e90ebeacc362c9966e15.json",
+          "fingerprint": "459aebcc134b5aa01a0b7f266306fe3b4d9f8432556bd91e0f2dcfa8e0cda8dc"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/17a95bf414b7e5b4c103b189aaf64d9b5989919a680b24bc3908b026e23a5e46.json",
+          "fingerprint": "6591601e7ad3442aac3d9b6e540f2076bae908b0ba6e63ffcbe0b395382ab972"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/23624facf4166a6bff651a1b9425bbe1154878c0d9a0eae6ebebabd9ffcdf8de.json",
+          "fingerprint": "00ea421003cc023ba23d2d828ea80d6b53a0fb48125d4c3db6c1e2e8fac9490c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/3c73d9d64fae7a6846102a7ae0485e9f35c1207df6e93e14cfc1d2b6419c65b3.json",
+          "fingerprint": "c9c5211747be73cc2433b035586a41a9eeaf3c15b522769017fd8b58a7a47861"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/44ac9fdaccf7c0b3efb799fddeb7129e815b58e4e6643446a74c3ef414f72f9f.json",
+          "fingerprint": "279b14d7507993db3e8827a38a352dd9fdcb41968d329f2b4c1b6a3e4b06b72b"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/4bc0a07d3a06ca2a9508ed190fdaac87f72cf2753fa0b6ff412d76080534f2fe.json",
+          "fingerprint": "01f9dd3c1cb1ed20df0064a08e315848e05d52aa39688eb564c38a0c66a2351e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/5a6f56db321ec4d444374eb24d05475650912afb0a3154b6c14eeb59715bacd4.json",
+          "fingerprint": "4e590384198a3eee645bbf4428441354ad15a4bb2d84a4ab09524b3cbae335e2"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/645411f72956e1b1913b8f717b0f0d817877b4c8f7143737e8a0a4df4d7a8574.json",
+          "fingerprint": "340cfebc949386456a5b541cf5eb8fa0077ffdae91d0ca3df3e9df7113a78e51"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/6b839762de13f66eb78c8d38443272f59414fc91e99adeae8ee53567f059379b.json",
+          "fingerprint": "e414bcd1b6a653209d7390595ac3f69cc4cb86ca17c3756909d9fb5b81a98d91"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/85c78154cf119c6c350797c444386017e987cd16d059651a932deb268c24e0ad.json",
+          "fingerprint": "33b1e4ae9b577b50e162a154474e7559cc45b64f0b5a21b5bc8ecacdd8648e07"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/9957ba14780fcf2490120c6c9c1bb17c226c229ee99349839737e0f7241f84eb.json",
+          "fingerprint": "645aa1dd43b765ea7511fd867cc042fe368b18ae74fbd9466ec46405544aed31"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/9fa83df66d0e2e592f59afee8742d1642a6549d90837af710828ebec5f694938.json",
+          "fingerprint": "d6f8573369a1bbf78b3abd5bd06a53adab647a80fe80f6579694711f432a3a14"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/a4458a498ae243c84f17faa93ff4f156a1a9b6219a0d0a90e27eef51bb836efe.json",
+          "fingerprint": "55fa66b5fce989bd9e4dbd3372243559335eef96f3938a42d378d246988e3155"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/b46e26b8d59fd285c87ae843522bd6b793ed316a57e6d6034875ba01945e94e5.json",
+          "fingerprint": "c686f699d3e1335f1bb8e4805ec8e50a28660133375a64fd952be0e83fac92a4"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/c164e440073523dbb56f9b9a8298ba36081bea770c27354a3e8e718e190fb9b0.json",
+          "fingerprint": "ac216ef3a41381698d7bf428b7aa5c60a8cb0a6ce3fa3471ac827027232f3cff"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/cbd6619ad6648537ddbb324a4459e2d8edbe21508e52c4c87832d990e4e51794.json",
+          "fingerprint": "7f5a30a5eca18c96505f9f676897d22e9357b72bdb669933d226ce199220c67c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/d8926e2c837c8be065459aec73deb80c5fd9dc63763ac1a64a2bfeb8944fbaf7.json",
+          "fingerprint": "ce9e3545234bf15db234a7c7bf1d2f49226451d4daeebfa18d6123974b893067"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/dd73826bd2dc152c56733647b997f5dff7902d7fcb35a629712ca1f28cd523cf.json",
+          "fingerprint": "72a799e87e9d3d491a831cd6b18e5d991e6bae5dd1226315fc0018b2aa314790"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/ddb208725d8a457b520726be9ecafc650e0894211e96c0f64b133ce9bcdd8655.json",
+          "fingerprint": "1db7bf9de4d67ed68e17abf214909cced8f297aa77695b4891159eed8a848264"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/f1bb204652ccbfb3b405456b3ad0a0912b70d1ea81c46b613c5b6faf5d0f4f04.json",
+          "fingerprint": "d8eafb6403939e65823db20f3750ce15a2aec3542fd2746366680247809a0117"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/ff2ab1d35237b0ded876732294029025f0d70925343f1938af8bbea0d7ba999c.json",
+          "fingerprint": "33ad2b2532f4e65265b9160c8778c792f9e58749bbaff120a4b3f580bf81100e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "c26d9811a9bcb5c06952fe3b4edb4f4a99d07f0473dfb45dca26b7a4bd5fb67e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "dd4825c0ef7f4bce20facd2ab64abd6a764186cfdd76b1d052e72f4b8dda41ba"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-001.json",
+          "fingerprint": "5240699b5d47f8073808360f3903a84cd7672f98b05dc65ba1b84e141a14fdfc"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-001.md",
+          "fingerprint": "ec4348e4aa10d8ecfa777434602be373e4a8521883319abbacce38c5b912ef44"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-002.json",
+          "fingerprint": "c0d5f8e39a36d71bca32e7ce1d13a9284a0af99c3ad7dfdf8b83176fa5f8bc70"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-002.md",
+          "fingerprint": "b2b1cca90ff1b83662ad7ce18c9a40abd111b5181f6f336885427b9be1736d0d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-003.json",
+          "fingerprint": "bc1b633df38af8ec035a8cb1897ee66aa6d61bcbdf6cb129a6bf4438e046f7c5"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-003.md",
+          "fingerprint": "beb426c236320d93786a67fa1afb32805ded87f5376dff4dad75ab233752247c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-004.json",
+          "fingerprint": "0f549367cd05a47ea075c9304082aa1a4759a4b9cd43dbb489148d75f464e047"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-004.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-005.json",
+          "fingerprint": "bffe724f77e7d5aaf14004066c185b92f07df92370b864815b143b8d8dad2c7c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-005.md",
+          "fingerprint": "123f2966df263f90fcd48cc5f41ffd429b1669556123406e9d1e6ff8671a1be1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-006.json",
+          "fingerprint": "163e510e9369a9e8d0fbcdb556a42ec6239e63ce219f9b85aba4ba72bb58e210"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-006.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-007.json",
+          "fingerprint": "60a54b9db39c04deb81b25e62cad7a51d9111f047fa3e1dda2b336b8b4b2d014"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-007.md",
+          "fingerprint": "582f82647098620307d554bc8e5e630225766e6d023fe7097ead693e0b3d6e56"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-008.json",
+          "fingerprint": "c14bb17d47171e3ca5e25edb3b346a709b61613b46a039707304f4f6384e35aa"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-008.md",
+          "fingerprint": "4639e5de6dd99750b10f5adc08f32255d2227a01b1612a5c25dca36458dfba7b"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-009.json",
+          "fingerprint": "caf06af98a72a8431af36247c5b202d3b33a765afd886f06158e5e977668ff9f"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-009.md",
+          "fingerprint": "5b050739664e2957458d641530de6c28efc13194df3459bd637684dd8896b9e7"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-010.json",
+          "fingerprint": "8831e942f36a0ea40e2c7ef0ef1a7d72892251c0986ccbb90fb9588048f4feff"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-010.md",
+          "fingerprint": "71097c08b2f7acbdee37b008cd07907a3607c23326a681e449ca4529c8cdc203"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-011.json",
+          "fingerprint": "71b00c846577c2732f2e5ca4f4e88edb7378333af7fa8e05d34c52ad2a8d1693"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-011.md",
+          "fingerprint": "966d1eff71e334e20ca808d246ca9dfe0fb99b20e2c105e7100b88d4dbd0b816"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-012.json",
+          "fingerprint": "2c4963da0529e6b873d0f980963af31881c818d0bebe4596082e1d8673ad82a8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-012.md",
+          "fingerprint": "1a7fa99daab8592b93fe6e3860833f16c6f0edc91af6db4d351df806bdf9941c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-013.json",
+          "fingerprint": "4490c7c0b0f8cf082ad0b1e7a01e64b8f0c474cf44d3b830f73b11e7e254a5ef"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-013.md",
+          "fingerprint": "1cf77b254425d27d86879b8fa5881141f54bd4318fea1a2753933c9dc3d223d8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-014.json",
+          "fingerprint": "aa0edd4aae5a51803a84b3468f29eae032071a1b446b131bc863cf3aeabf01ae"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-014.md",
+          "fingerprint": "872feec733bc291bdf8d43f7da88fc9e3f75b3275b0380dc1aa319316401fe51"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-015.json",
+          "fingerprint": "609ebb36aac645a0b267ca573c6c2fdee2b787dbe85ce75ac80a5f2e156410d9"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-015.md",
+          "fingerprint": "22cef0b34ce8117a1c085c2acd8b7b4e277a85933af0f73dbc7b2dba1132b47f"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-016.json",
+          "fingerprint": "f5d4a42979783456245ebbd01a787a2751737b27667fd193d30d9725010b0d72"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-016.md",
+          "fingerprint": "fcb562b212367f367570e0448efe25c09c2dbca680764821ec3db20431754af3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-001.json",
+          "fingerprint": "3373df482a7932944999d697e5612cc9ee76f2b7837ddaa0a54b6eddf6906e81"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-001.json",
+          "fingerprint": "73ced6dbf4679a634bed6fe7bc6310a54088807413fc246caacdd86df0781dcf"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-001.md",
+          "fingerprint": "dbc6aaf8bd1f1344f44b17bb04f28549bde21932e982bb19e1486c17081ad7ba"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-002.json",
+          "fingerprint": "77518df83418e710974f95d65661a84c35cf7cf7b25a28213f18d63f927941ae"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-002.md",
+          "fingerprint": "54fc08fbb9389c82138eaf3607e2ecf7d604b05d602f062328cdd335b714ef9c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-003.json",
+          "fingerprint": "20ed2cdc7f81082f1a6e4d7be1ac7071fb42cfcaaa5a8387741331b81f2cae68"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-003.md",
+          "fingerprint": "a1b5d747e0be44b3380ea3ccb2638c51b765f4d4f61e3ed2993f589663ea0705"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-004.json",
+          "fingerprint": "f839a84ead5d3a56e93fa95f00b11484a0ed4f8426aa1557b9e0b86ef185db27"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-004.md",
+          "fingerprint": "b1373c926ca52ad89eea8daca8ebb4a2692796d9ae6c12918d36c4a43c420984"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-005.json",
+          "fingerprint": "e0a439eb8f78c26724b2d433553770f3c0d0bebf4021b442ae697bc38497959d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-005.md",
+          "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "4704c37c25a1bb2385cfd3b9cdf81c529fe78bc45c017be97994090832db9d65"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "c865a0da5ae67c4aa7fa44cd074e0e4e9325f77b9a123deb5e7733acb5125104"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "1e2fb5475ff675a5f488ade6db0dac1210251650fe7b360394032dbfa01a6ae5"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "41aaec51d9a3c6ffd628a496a6dcdcd4ac80c164a2b1787de20f9f1fa994de56"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "6880bb0b8b2f263f95947196544b140228a1bc4feb491ff15636372969676159"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "dea1a32b15a7a63b471717c0a2a97b084e687453650072ed399aa71f134e214a"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/5809398a540fad2e32e02a12.json",
+          "fingerprint": "d552bf57661b420534a5ca373f7c3eb875fa7cb87d31afb22769abc9adcbc900"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "e4debd86624a070c0a48ba07abf824c7b585de86a7d85df90d7db9269a0976bc"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "2a9323ca6871661f0ae460d8047db4294bb5c5327bc50a636c613d42db8edbd1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "7d81f5857c9a34a2a2bbebc1fa8ef7403496b6cb11e6ec165d5f00926bf94da0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/6ded46e92e4d8541a05af6d7.json",
+          "fingerprint": "0ee6f8d66374a8153238648161956846ff3b5ccc9eefbb5c322b0593cbedb047"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "5d274390baa17ffeebf5f1448b27975b4545cb301f76b3c7b88cf99909eca576"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/8551e7c3be95cfbf8482b783.json",
+          "fingerprint": "fdfb05bc99eea3a3c1e3c3378d25e2b044299a64f5da28bc679932be0addaa00"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/968f0ffe8ebcd43106d90929.json",
+          "fingerprint": "250011b4bcae096fc69f42d62cb9dc4231cf1eca9588d1729f570317eac97c83"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/a8381a453cb0a3725d3096a9.json",
+          "fingerprint": "95b20b256fe35b6728ed0c8cf72cf8e5fbade4f1229cb9b61bcae88374fe57ba"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "b30846b67ac2fba2432a469624d41194cf654bf058f559d433e373b1ecac71ce"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "9374485495343ef7c7e2d2b373388cbca056276f120f3bc5ac7df8ea508f9904"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "39592fdd852f9d22d5e3faae05daa7f6975ebe4cc49b42a0aba93f4565e2a299"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/deadae53192b50a07f845e48.json",
+          "fingerprint": "a06fac5e7d4bbb64ce4c9d8516461e1bce75048754f42dba45fa6a5168d549a3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review.md",
+          "fingerprint": "fcb562b212367f367570e0448efe25c09c2dbca680764821ec3db20431754af3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/scenario-validity-result.json",
+          "fingerprint": "70b766a17d6a2b0d204036aa304fc934bc947bfd3a91dd38e1430a143e0f3d0a"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec-review.json",
+          "fingerprint": "a0f79aaebdf18fa326f6e5a7b92046007449ee87a396c265ba50a0debe3fbea6"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec.json",
+          "fingerprint": "8f783ca7f3a2c4b805aece9eb5d9b1f5e9e4971244b7fc387c09921db26389f5"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec.md",
+          "fingerprint": "8e6e97a95acf3ca62e4f025b5600a5c07a02a3da0829658b9cafe0b391140827"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tasks/T-1.md",
+          "fingerprint": "cbabe174ed2cd82c196135b52558670bb571ed3c960db6e55236335f704a8a6d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tasks/T-2.md",
+          "fingerprint": "042c8efc40181e058c734e3cf0a6c9dd51b8be780435c4c1eef8e67ec0905516"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-coverage.json",
+          "fingerprint": "14efcd4e90f2426c608382fb2426f0258cb0ab852a9b31739a0215aeb155a10f"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-execute-result.json",
+          "fingerprint": "c2514adbea54c19afadd5a2531cd67fa1674029b1862fb6fbb1ff6c152d5357d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-result-review.json",
+          "fingerprint": "fa227f47659d1b49d4975702eb1ea869dcc5e82c0c1b57837ead17a41951a385"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-result-review.md",
+          "fingerprint": "fabfe6c94c652af0bda378c5bb3f00b57eec0d2c8073fe728ceb8f157d1eb6db"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-review.json",
+          "fingerprint": "f7816fbde435c146af046c4bbb6a4be89d9ee5db70c59ee2f71c79aa84ad2061"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-review.md",
+          "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/.raw/scenario-validity.log",
+          "fingerprint": "acf9ad65f6e5452798910e2dc10adb0539c661ae5d94506189839874138c9e68"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/.raw/test-execution.log",
+          "fingerprint": "e8accee37447e687f5981499b62c6772ba69315e59dac2125cea8c317540b9c5"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+          "fingerprint": "5e981b81948442141ed15c6f47d70d78f0959fe589bb4eb04fed24877a780794"
+        },
+        {
+          "path": "src/flow/definition.js",
+          "fingerprint": "fbc039702ba247cf60a1c6fea86624981ee2ef86749475062d9fe9b991ec043f"
+        },
+        {
+          "path": "src/flow/lib/acceptance-review-artifacts.js",
+          "fingerprint": "abe854647141d76e8f975dac63addd0eb3059dea72ae1e1e8c1d830443c0bd4f"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "0e4163286fdab116dc1646abc11352b617c3ec926f383d8efce320acbb169fb3"
+        },
+        {
+          "path": "src/flow/lib/review-convergence.js",
+          "fingerprint": "44b8e9d332cd99db7337371a12e19fbae4f5932f8be873e174223da0a277f562"
+        },
+        {
+          "path": "src/flow/lib/set-retry.js",
+          "fingerprint": "629e7f3e2b6db6ea6b449725baaf540bac1fb3336f00ff3a3520f23282387921"
+        },
+        {
+          "path": "src/flow/lib/set-step.js",
+          "fingerprint": "789fa597d96cedad8691e7ae95371ae9a8797fc7a5fc59f19a82816394dc0d2b"
+        },
+        {
+          "path": "src/lib/active-flow-registry.js",
+          "fingerprint": "a378f9632ff1dd366aa00f16e2a2f9df90b8f74ce72e6d14e7516fbfef60d5b4"
+        },
+        {
+          "path": "src/lib/flow-manager.js",
+          "fingerprint": "fa08a67276178935c1a823bee2a49efed391c8d61f25bb8f9e8f518edabdf516"
+        },
+        {
+          "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+          "fingerprint": "6862df3020d8a8796901f3f1a1efe5049c12758f989bbc02081c7071d8df51d3"
+        },
+        {
+          "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+          "fingerprint": "d4663c57db70f056744843f39aea0fa97dce4a6b0f49c48d3fb0761f25fc9e63"
+        },
+        {
+          "path": "tests/unit/flow/run-review-advisory.test.js",
+          "fingerprint": "b6ca6147c85a507e54ca24dba9c794f10fd1a1dc75e0d6233eb6618bf49131f7"
+        },
+        {
+          "path": "tests/unit/flow/set-step-impl-repair.test.js",
+          "fingerprint": "af38c15f4b754c0bc427915d428d1d3493aa402bce473d7db8578259ea07da40"
+        }
+      ],
+      "rawOutputPath": "specs/338-active-flow-registry-race/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-25T08:35:54.085Z",
+      "issueLogId": "issue-log-2ee656ad-8922-47ed-9ea0-818adc0a7ab2"
+    },
+    {
+      "step": "final-regression",
+      "reason": "fix: replaced the invalid empty ADVISORY test fixture with a PASS review fixture",
+      "resolution": "A PASS review has no findings and preserves the test's superseded-evidence scenario without violating the review disposition contract.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:46:39.992Z",
+      "issueLogId": "issue-log-6a431ff7-9534-4c7e-a9ef-9700e340209d"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds the production helper `completeImplRepairStep`, and the only added production caller is the `id === \"impl-repair\"` branch in `SetStepCommand.execute`. The helper wraps a single existing flow of calls without adding a shared behavior boundary or enforcing a new invariant, so it introduces single-caller indirection.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:49:38.386Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/set-step.js",
+            "locator": "completeImplRepairStep"
+          },
+          "observed": "The diff adds the production helper `completeImplRepairStep`, and the only added production caller is the `id === \"impl-repair\"` branch in `SetStepCommand.execute`. The helper wraps a single existing flow of calls without adding a shared behavior boundary or enforcing a new invariant, so it introduces single-caller indirection.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds the production helper `completeImplRepairStep`, and the only added production caller is the `id === \"impl-repair\"` branch in `SetStepCommand.execute`. The helper wraps a single existing flow of calls without adding a shared behavior boundary or enforcing a new invariant, so it introduces single-caller indirection."
+        }
+      ],
+      "issueLogId": "issue-log-f86cb378-d7ec-4eef-ba3b-92a31c3fe655"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: inlined the single-call impl-repair completion helper",
+      "resolution": "The impl-repair branch now owns its one-off transition and repair-effect sequence directly, removing the no-overengineering violation.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:50:41.955Z",
+      "issueLogId": "issue-log-64ba12a7-4e35-42ef-8318-3cbedb2609c1"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a non-trivial late impl-repair recovery data flow from mechanically blocked impl-gate attempts into repair ledger recording and downstream invalidation, but the listed spec only contains a clarification-style note and does not provide design-confirmation evidence for committing this recovery architecture.; The diff adds a broad exported recovery transaction path for late applied-finding repairs, including fingerprint comparison, ledger entries, invalidation planning, lifecycle transition authority, and effect commits, but the listed spec does not provide design-confirmation evidence for this architecture.; The diff adds a new semantic review recovery mutation pattern that rewrites review convergence state after retry reset, but the listed spec does not provide design-confirmation evidence for this new review recovery architecture.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:54:09.132Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/set-step.js",
+            "locator": "validateBlockedImplRepairRecovery / impl-repair recovery path"
+          },
+          "observed": "The diff adds a non-trivial late impl-repair recovery data flow from mechanically blocked impl-gate attempts into repair ledger recording and downstream invalidation, but the listed spec only contains a clarification-style note and does not provide design-confirmation evidence for committing this recovery architecture.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "completeLateAppliedFindingRepair"
+          },
+          "observed": "The diff adds a broad exported recovery transaction path for late applied-finding repairs, including fingerprint comparison, ledger entries, invalidation planning, lifecycle transition authority, and effect commits, but the listed spec does not provide design-confirmation evidence for this architecture.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/review-convergence.js",
+            "locator": "ReviewSemanticRecoveryMutation"
+          },
+          "observed": "The diff adds a new semantic review recovery mutation pattern that rewrites review convergence state after retry reset, but the listed spec does not provide design-confirmation evidence for this new review recovery architecture.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial late impl-repair recovery data flow from mechanically blocked impl-gate attempts into repair ledger recording and downstream invalidation, but the listed spec only contains a clarification-style note and does not provide design-confirmation evidence for committing this recovery architecture."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a broad exported recovery transaction path for late applied-finding repairs, including fingerprint comparison, ledger entries, invalidation planning, lifecycle transition authority, and effect commits, but the listed spec does not provide design-confirmation evidence for this architecture."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a new semantic review recovery mutation pattern that rewrites review convergence state after retry reset, but the listed spec does not provide design-confirmation evidence for this new review recovery architecture."
+        }
+      ],
+      "issueLogId": "issue-log-1244cfcd-692a-48c3-82d6-ab9be4c058fc"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: documented the bounded recovery architecture and rejected broader alternatives",
+      "resolution": "The specification now explicitly confines the late repair and semantic review continuations to existing transaction and convergence authorities, with exact entry conditions and no generic recovery surface.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:55:31.768Z",
+      "issueLogId": "issue-log-48437d38-8bd5-470f-a90c-dac28c73eae8"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds new mechanical impl-repair recovery behavior, but the only added spec-local test file is declared for R1-R5 active-flow registry behavior and does not provide spec-local coverage for this new recovery behavior; shared regression tests under tests/ do not substitute for required spec-local coverage.; The diff adds late applied-finding repair completion behavior, but no added spec-local test under specs/338-active-flow-registry-race/tests/ declares or covers this behavior; the added coverage appears only in shared tests.; The diff adds semantic review recovery mutation behavior, but no added spec-local test under specs/338-active-flow-registry-race/tests/ declares or covers this behavior; the added coverage appears only in shared tests.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:58:51.892Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "src/flow/lib/set-step.js",
+            "locator": "validateBlockedImplRepairRecovery / impl-repair recovery branch"
+          },
+          "observed": "The diff adds new mechanical impl-repair recovery behavior, but the only added spec-local test file is declared for R1-R5 active-flow registry behavior and does not provide spec-local coverage for this new recovery behavior; shared regression tests under tests/ do not substitute for required spec-local coverage.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "completeLateAppliedFindingRepair"
+          },
+          "observed": "The diff adds late applied-finding repair completion behavior, but no added spec-local test under specs/338-active-flow-registry-race/tests/ declares or covers this behavior; the added coverage appears only in shared tests.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "src/flow/lib/review-convergence.js",
+            "locator": "ReviewSemanticRecoveryMutation"
+          },
+          "observed": "The diff adds semantic review recovery mutation behavior, but no added spec-local test under specs/338-active-flow-registry-race/tests/ declares or covers this behavior; the added coverage appears only in shared tests.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The diff adds new mechanical impl-repair recovery behavior, but the only added spec-local test file is declared for R1-R5 active-flow registry behavior and does not provide spec-local coverage for this new recovery behavior; shared regression tests under tests/ do not substitute for required spec-local coverage."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The diff adds late applied-finding repair completion behavior, but no added spec-local test under specs/338-active-flow-registry-race/tests/ declares or covers this behavior; the added coverage appears only in shared tests."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The diff adds semantic review recovery mutation behavior, but no added spec-local test under specs/338-active-flow-registry-race/tests/ declares or covers this behavior; the added coverage appears only in shared tests."
+        }
+      ],
+      "issueLogId": "issue-log-4b49590e-6787-4f16-88d8-f0d3aee4c88f"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added R6 spec-local coverage for bounded repair and review recovery",
+      "resolution": "The new R6 test drives the mechanically blocked impl-repair path and changed-tree semantic review reset, while the file map ties all three recovery owners to the requirement.",
+      "taskId": null,
+      "timestamp": "2026-07-25T09:02:24.844Z",
+      "issueLogId": "issue-log-85c9e6e7-3fde-42ce-8222-999221230a08"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R6",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T09:04:52.569Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R6",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-96256933-2119-41f0-b69b-38919e8195dd"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: asserted bounded recovery through durable lifecycle and ledger effects",
+      "resolution": "R6 now verifies the returned step identity together with the recovery transition, invalidated test evidence, repair ledger entry, and semantic convergence reset instead of a non-contract helper flag.",
+      "taskId": null,
+      "timestamp": "2026-07-25T09:05:37.645Z",
+      "issueLogId": "issue-log-0bc26436-3a7a-45ed-b3fd-b3ecf4bef95a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R6",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T10:10:51.275Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R6",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-5ba586f5-26f3-4857-884b-891d9943670e"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: completed the R6 recovery fixture lifecycle authority",
+      "trigger": "R6 test failed because its flowManager lacked updateStepStatus",
+      "resolution": "Added the explicit recovery transition method so the fixture exercises the bounded recovery path.",
+      "guardrailCandidate": "Recovery tests must supply every lifecycle authority required by the production transition.",
+      "taskId": null,
+      "timestamp": "2026-07-25T10:12:30.513Z",
+      "issueLogId": "issue-log-59b71465-3bdd-4963-bc1f-8a2b86f10eba"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "fix: reopen the plan to refresh R6 scenario-validity evidence",
+      "trigger": "Acceptance review rejected the old scenario-validity artifact after R6 was added",
+      "resolution": "Return through the guarded spec-correction route so scenario validity and downstream evidence are regenerated.",
+      "guardrailCandidate": "Adding a testable requirement after planning requires regenerating its scenario-validity evidence.",
+      "taskId": null,
+      "timestamp": "2026-07-25T10:16:21.863Z",
+      "issueLogId": "issue-log-23f5322b-7c40-49d0-96e5-b7eac33c528a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The constraint requires \"meaningful registry validation\" without defining verifiable conditions for what makes validation meaningful.; The implementation notes say to add or extend \"focused classes\" without stating verifiable criteria for what qualifies as focused.; The test strategy requires \"focused unit tests\" without stating verifiable criteria for what qualifies as focused.; The test strategy requires \"production-shaped managed-worktree fixtures\" without specifying the fixture characteristics needed for reviewers to agree whether the requirement is satisfied.; The implementation notes allow extending \"existing active-flow registry or acceptance-decision shared tests only where production contracts change\" but do not specify how to determine which shared tests are affected by a production contract change.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T10:26:57.572Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[6]"
+          },
+          "observed": "The constraint requires \"meaningful registry validation\" without defining verifiable conditions for what makes validation meaningful.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].implementation_notes"
+          },
+          "observed": "The implementation notes say to add or extend \"focused classes\" without stating verifiable criteria for what qualifies as focused.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "The test strategy requires \"focused unit tests\" without stating verifiable criteria for what qualifies as focused.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "The test strategy requires \"production-shaped managed-worktree fixtures\" without specifying the fixture characteristics needed for reviewers to agree whether the requirement is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[1].implementation_notes"
+          },
+          "observed": "The implementation notes allow extending \"existing active-flow registry or acceptance-decision shared tests only where production contracts change\" but do not specify how to determine which shared tests are affected by a production contract change.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The constraint requires \"meaningful registry validation\" without defining verifiable conditions for what makes validation meaningful."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The implementation notes say to add or extend \"focused classes\" without stating verifiable criteria for what qualifies as focused."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The test strategy requires \"focused unit tests\" without stating verifiable criteria for what qualifies as focused."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The test strategy requires \"production-shaped managed-worktree fixtures\" without specifying the fixture characteristics needed for reviewers to agree whether the requirement is satisfied."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The implementation notes allow extending \"existing active-flow registry or acceptance-decision shared tests only where production contracts change\" but do not specify how to determine which shared tests are affected by a production contract change."
+        }
+      ],
+      "issueLogId": "issue-log-5bdc92b0-d1be-4040-af08-5f5f7f8b2037"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "fix: specified registry validation and test fixture conditions",
+      "trigger": "Spec gate rejected ambiguous validation, fixture, and shared-test terms.",
+      "resolution": "Defined the compared entry fields, two-worktree fixture invariants, and source-module criteria for shared test updates.",
+      "taskId": null,
+      "timestamp": "2026-07-25T10:27:56.149Z",
+      "issueLogId": "issue-log-4d8ec610-e512-4bc4-9872-867ba08e7f20"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R6 introduces mechanically blocked impl-repair and changed-tree review recovery behavior, which is a separate concern from the managed-worktree acceptance-decision active-flow registry preservation goal.; The task acceptance combines registry preservation coverage with R6 bounded recovery path coverage, spanning unrelated concerns in one task.; The requirement uses the vague phrase \"existing single-flow and flow resume --parked behavior\" without stating the verifiable behavior that must be preserved.; The requirement says to \"preserve existing single-flow and flow resume --parked behavior\" without measurable criteria for two independent reviewers to determine satisfaction.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T10:28:28.092Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "single-responsibility",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "R6 introduces mechanically blocked impl-repair and changed-tree review recovery behavior, which is a separate concern from the managed-worktree acceptance-decision active-flow registry preservation goal.",
+          "severity": "blocking",
+          "refs": [
+            "single-responsibility"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "task-single-responsibility",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[1].acceptance[1]"
+          },
+          "observed": "The task acceptance combines registry preservation coverage with R6 bounded recovery path coverage, spanning unrelated concerns in one task.",
+          "severity": "blocking",
+          "refs": [
+            "task-single-responsibility"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[4].desc"
+          },
+          "observed": "The requirement uses the vague phrase \"existing single-flow and flow resume --parked behavior\" without stating the verifiable behavior that must be preserved.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[4].desc"
+          },
+          "observed": "The requirement says to \"preserve existing single-flow and flow resume --parked behavior\" without measurable criteria for two independent reviewers to determine satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "R6 introduces mechanically blocked impl-repair and changed-tree review recovery behavior, which is a separate concern from the managed-worktree acceptance-decision active-flow registry preservation goal."
+        },
+        {
+          "guardrail_id": "task-single-responsibility",
+          "reason": "The task acceptance combines registry preservation coverage with R6 bounded recovery path coverage, spanning unrelated concerns in one task."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague phrase \"existing single-flow and flow resume --parked behavior\" without stating the verifiable behavior that must be preserved."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says to \"preserve existing single-flow and flow resume --parked behavior\" without measurable criteria for two independent reviewers to determine satisfaction."
+        }
+      ],
+      "issueLogId": "issue-log-e839bd94-bd86-4bb9-8f99-11dcebc73000"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "fix: unified active-flow integrity scope and split R6 verification",
+      "trigger": "Spec gate found R6 detached from the goal and combined with registry coverage in one task.",
+      "resolution": "Defined active-flow integrity as the shared goal, made R5's preserved behaviors observable, and moved R6 into its own bounded-recovery test task.",
+      "taskId": null,
+      "timestamp": "2026-07-25T10:29:26.400Z",
+      "issueLogId": "issue-log-400a9c01-a282-4766-b932-0685b43e2f38"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "fix: assigned the new R6 task to planning revision one",
+      "trigger": "Spec gate required added_round=1 for task T-3 introduced after the original plan.",
+      "resolution": "Kept original tasks at revision zero and recorded T-3 as the first post-plan task addition.",
+      "taskId": null,
+      "timestamp": "2026-07-25T10:30:14.027Z",
+      "issueLogId": "issue-log-221228b3-3651-4dec-b706-38a0f2e47e99"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R6 requires resuming one bounded re-evaluation but does not state an explicit upper bound for the recovery processing itself, such as retry count, re-evaluation count per flow, or maximum affected records.; The acceptance item says the impl-gate recovery returns to test-execute, but it does not define an explicit upper bound for the recursive or retry-like recovery path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T10:30:31.495Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "R6 requires resuming one bounded re-evaluation but does not state an explicit upper bound for the recovery processing itself, such as retry count, re-evaluation count per flow, or maximum affected records.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[T-3].acceptance[0]"
+          },
+          "observed": "The acceptance item says the impl-gate recovery returns to test-execute, but it does not define an explicit upper bound for the recursive or retry-like recovery path.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R6 requires resuming one bounded re-evaluation but does not state an explicit upper bound for the recovery processing itself, such as retry count, re-evaluation count per flow, or maximum affected records."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The acceptance item says the impl-gate recovery returns to test-execute, but it does not define an explicit upper bound for the recursive or retry-like recovery path."
+        }
+      ],
+      "issueLogId": "issue-log-7d932b06-454b-47e5-b68d-c0e1b67353cc"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "fix: set explicit R6 recovery bounds",
+      "trigger": "Spec gate required measurable limits for the impl-gate and review recovery paths.",
+      "resolution": "Bounded recovery to one current flow, one gate attempt, one leaf-step interval, one subsequent evaluation, and one semantic review re-evaluation.",
+      "taskId": null,
+      "timestamp": "2026-07-25T10:31:06.466Z",
+      "issueLogId": "issue-log-3256952b-125b-4155-829d-ec82891c4411"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R2 requires verifying \"every entry present before the operation\" remains registered, but does not state an explicit upper bound on the number of registry entries processed.; AC2 requires preserving the same registry entry set for \"two or more active registry entries\" without an explicit upper bound on the number of entries processed.; AC4 requires preserving the pre-operation registry entry set during failure cases, but does not state an explicit upper bound on the number of registry entries processed.; T-1 acceptance requires verifying the original active registry entry set without an explicit upper bound on the number of registry entries processed.; T-1 test strategy asserts the full registry entry set without an explicit upper bound on the number of entries processed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T10:31:40.291Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1].desc"
+          },
+          "observed": "R2 requires verifying \"every entry present before the operation\" remains registered, but does not state an explicit upper bound on the number of registry entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[1]"
+          },
+          "observed": "AC2 requires preserving the same registry entry set for \"two or more active registry entries\" without an explicit upper bound on the number of entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[3]"
+          },
+          "observed": "AC4 requires preserving the pre-operation registry entry set during failure cases, but does not state an explicit upper bound on the number of registry entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].acceptance[1]"
+          },
+          "observed": "T-1 acceptance requires verifying the original active registry entry set without an explicit upper bound on the number of registry entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "T-1 test strategy asserts the full registry entry set without an explicit upper bound on the number of entries processed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R2 requires verifying \"every entry present before the operation\" remains registered, but does not state an explicit upper bound on the number of registry entries processed."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "AC2 requires preserving the same registry entry set for \"two or more active registry entries\" without an explicit upper bound on the number of entries processed."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "AC4 requires preserving the pre-operation registry entry set during failure cases, but does not state an explicit upper bound on the number of registry entries processed."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "T-1 acceptance requires verifying the original active registry entry set without an explicit upper bound on the number of registry entries processed."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "T-1 test strategy asserts the full registry entry set without an explicit upper bound on the number of entries processed."
+        }
+      ],
+      "issueLogId": "issue-log-28f2f394-3a5e-4c89-ad1e-f185692f94b9"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "fix: acknowledge whole-registry comparison boundary",
+      "trigger": "Spec gate required an entry-count bound for the full registry preservation check.",
+      "resolution": "Recorded the bounded-resource-usage exception: one locked authoritative snapshot must be compared in full because sampling cannot prove concurrent entry preservation.",
+      "taskId": null,
+      "timestamp": "2026-07-25T10:32:43.972Z",
+      "issueLogId": "issue-log-aa3524b7-4f98-434b-9664-6f6d82e87928"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "blocked: plan rewind cannot run pre-implementation validity against existing implementation diff",
+      "trigger": "scenario-validity rejects the active branch's pre-existing src/ and tests/ changes before it runs spec-local evidence.",
+      "resolution": "Inspect the workflow's supported recovery path; do not remove committed implementation or bypass the pre-implementation check.",
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T10:35:51.134Z",
+      "issueLogId": "issue-log-f5e5d79f-da56-4d0d-b23b-3795a48347ef"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "fix: run post-rewind scenario validity in an isolated base-branch worktree",
+      "trigger": "Pre-implementation scenario validity rejected committed implementation changes after a supported post-implementation plan rewind.",
+      "resolution": "For supported rewinds only, overlay spec.json and spec-local tests onto a temporary detached base worktree, capture expected failures there, and remove the worktree after execution; normal changes remain blocked.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-scenario-validity.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T10:42:39.596Z",
+      "issueLogId": "issue-log-4523059a-00f5-4857-936c-15bd2d0c3b52"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "fix: make the R6 baseline failure observable",
+      "trigger": "The R6 test's named import would make the base-branch scenario test invalid instead of recording the missing recovery behavior as an expected failure.",
+      "resolution": "Use a module namespace import and assert the recovery class exists at runtime so the baseline records an ordinary assertion failure.",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T10:43:18.508Z",
+      "issueLogId": "issue-log-9d6dbb01-ebcc-4aca-8d02-c40016368348"
+    },
+    {
+      "step": "test-review",
+      "reason": "fix: cover R6 one-shot recovery bounds",
+      "trigger": "Test review required coverage for one permitted post-recovery evaluation and rejection of repeated recovery.",
+      "resolution": "Exercise the post-recovery lifecycle once, assert repeated impl-repair leaves materialized evidence unchanged, and assert semantic recovery grants one remaining attempt then rejects a second reset.",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T10:48:15.455Z",
+      "issueLogId": "issue-log-c6c7e445-b239-4860-8c78-59d7681744a0"
+    },
+    {
+      "step": "test-review",
+      "reason": "fix: preserve distinct canonical review findings",
+      "trigger": "The test-review result recorder rejected two distinct R6 findings because the reviewer reused one finding identity.",
+      "resolution": "Canonicalize colliding non-draft review finding identities deterministically, and cover the full R6 reset interval plus the permitted post-recovery test-execute action.",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T10:53:19.322Z",
+      "issueLogId": "issue-log-f0354d09-2a0f-4bce-b90f-ea1de5861b4a"
+    },
+    {
+      "step": "test-review",
+      "reason": "fix: assert parked-resume target identity",
+      "trigger": "Test review found R5 only checked registry membership after parked resume.",
+      "resolution": "Assert guarded target resolution returns the resumed flow's exact runId, issue, and spec for both paired and single-flow parked-resume cases.",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T10:54:46.776Z",
+      "issueLogId": "issue-log-e3cd18f3-3f0e-4d11-a02f-20e28a3a3fef"
+    },
+    {
+      "step": "test-review",
+      "reason": "fix: drive the recovered test-review-gate path",
+      "trigger": "Test review required executable coverage beyond the first post-recovery test-execute action.",
+      "resolution": "Complete test-execute and test-result-review through SetStepCommand, then resolve impl-review as the one permitted downstream review-gate evaluation before asserting repeated recovery denial.",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T10:57:14.177Z",
+      "issueLogId": "issue-log-79d2ecd4-3ad7-44e5-a1af-a6c0c08f9689"
+    },
+    {
+      "step": "task-review",
+      "reason": "R6 spec-local bounded recovery coverage is present and now drives the full recovered test-review-gate path.",
+      "trigger": "Task review omitted the untracked flow-owned spec-local test from its Git diff.",
+      "resolution": "Keep the R6 scenario as flow-owned spec-local coverage and record its exact repair reference for the task gate.",
+      "normalizedFindingId": "ac086bf7ea26a317896a2039787f3b202ec78779e331720677c33bd5a997eef4",
+      "repairRef": {
+        "files": [
+          "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T11:02:16.926Z",
+      "issueLogId": "issue-log-dbcb2aeb-7f53-4d1d-879a-821befb29490"
+    },
+    {
+      "step": "task-review",
+      "reason": "Gate-observed recovery now rejects any current-flow ledger containing a prior late applied-finding recovery.",
+      "trigger": "Task review showed the gate-observed fallback could reuse the same finding after a changed fingerprint.",
+      "resolution": "Use the durable late-recovery ledger entry as the one-shot authority boundary and cover the reused issue-log path in the R6 scenario.",
+      "normalizedFindingId": "c73e87e50dbd2fbfb885a08d2a7736ee5c7c3b03e09632d1c3e3a4148663fcd9",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/set-step.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T11:02:34.033Z",
+      "issueLogId": "issue-log-33c9c26d-6ba1-42df-9e0f-7aa01d2db099"
+    },
+    {
+      "step": "task-review",
+      "reason": "Task review now synthesizes untracked active-spec test diffs, so the R6 test remains review-visible without manual staging.",
+      "trigger": "The committed-and-staged-only review input omitted flow-owned spec-local tests and caused a false R6 coverage finding.",
+      "resolution": "Append only active-spec test sources to the review diff, exclude generated flow artifacts, and register those paths as touched review files.",
+      "normalizedFindingId": "ac086bf7ea26a317896a2039787f3b202ec78779e331720677c33bd5a997eef4",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T11:06:43.570Z",
+      "issueLogId": "issue-log-f0880e13-8e77-4331-ba5e-baea048ca5de"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added `catch (_)` block discards missing or malformed historical artifact errors without logging or re-throwing them.; The added `catch` block silently converts filesystem errors into `false` without logging or re-throwing the error.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T11:07:49.960Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/flow/lib/acceptance-review-artifacts.js",
+            "locator": "historicalReviewHandoffs catch block"
+          },
+          "observed": "The added `catch (_)` block discards missing or malformed historical artifact errors without logging or re-throwing them.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "isDurableRepairEvidencePath catch block"
+          },
+          "observed": "The added `catch` block silently converts filesystem errors into `false` without logging or re-throwing the error.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added `catch (_)` block discards missing or malformed historical artifact errors without logging or re-throwing them."
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added `catch` block silently converts filesystem errors into `false` without logging or re-throwing the error."
+        }
+      ],
+      "issueLogId": "issue-log-3b33447f-9c41-47a4-9dee-ac5992167786"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: preserve acceptance and repair-evidence filesystem errors",
+      "trigger": "Task gate found two no-silent-error-swallowing violations in bounded recovery support paths.",
+      "resolution": "Historical review evidence now propagates invalid-artifact errors, while repair evidence treats only an absent file as non-materialized and rethrows other inspection failures.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/acceptance-review-artifacts.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T11:09:06.588Z",
+      "issueLogId": "issue-log-151dce79-1b5c-45a6-869b-e6a60e8616e8"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R6",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T11:16:20.495Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R6",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-0088aba6-d794-451b-a068-0d583da418ff"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: corrected the R6 recovery test to preserve the completed impl-repair source step",
+      "resolution": "The late-repair authority intentionally completes impl-repair while invalidating only its downstream test-execute-to-finalize leaves.",
+      "taskId": null,
+      "timestamp": "2026-07-25T11:18:58.273Z",
+      "issueLogId": "issue-log-c4a66b5e-4185-47a5-96d3-85de5d9dfc79"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R6",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T11:21:14.469Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R6",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-80dc126d-543a-4718-a774-8a9a20ad95d3"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: completed the R6 fixture's v2 test evidence with raw output and regression fields",
+      "resolution": "The fixture now satisfies the same artifact contract required before test-execute can complete after recovery.",
+      "taskId": null,
+      "timestamp": "2026-07-25T11:22:29.961Z",
+      "issueLogId": "issue-log-a39f56ca-d2d8-414b-817b-b1a3ff409c37"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R6",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T11:23:29.415Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R6",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-00d9d514-f4df-409a-8140-f71f361fc4ac"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed manual completion of lifecycle-owned test steps from the R6 recovery fixture",
+      "resolution": "The fixture now validates the recovery boundary and later integration-gate reachability without bypassing post-hook ownership.",
+      "taskId": null,
+      "timestamp": "2026-07-25T11:24:59.990Z",
+      "issueLogId": "issue-log-443d102c-e533-4c23-ba2f-3c9c74904efa"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires the success path to verify the target entry and every pre-operation entry remain registered with original modes, and [CONSTRAINT:7] requires registry validation to compare the pre/post entry set using runId, Issue, spec, and mode. The implementation evidence in [FILE-MAP:R2:2] adds AcceptanceDecisionTargetIdentity with runId/issue/spec only for the selected target, but AcceptanceDecisionRegistryEntry stores and compares only spec and mode; other pre-existing registry entries are not validated with runId or Issue. This omits exact required fields from the required all-entry comparison. The diff does avoid remove/park/document replacement on the success path and compares spec/mode keys, but that is incomplete against [CONSTRAINT:7].; [REQ:R6] requires both recoveries to be one-shot and bounded: impl-repair recovery may be invoked at most once for the current mechanically blocked flow, and changed-tree review recovery must permit exactly one semantic re-evaluation. The diff only checks the late-repair one-shot ledger marker in missingGateObservedFindingIds, not in missingCurrentAppliedFindingIds, so a later mechanically blocked attempt with current triage/review artifacts can still reach completeLateAppliedFindingRepair again. The review recovery also does not enforce that nextTreeSha differs from previousTreeSha; ReviewSemanticRecoveryMutation accepts nextTreeSha and grants a semantic attempt without validating a changed tree. Sources: src/flow/lib/set-step.js hasLateAppliedFindingRecovery check only in missingGateObservedFindingIds; src/flow/lib/review-convergence.js ReviewSemanticRecoveryMutation.apply; [DECISION:8]; [DECISION:9].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T11:27:04.766Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires the success path to verify the target entry and every pre-operation entry remain registered with original modes, and [CONSTRAINT:7] requires registry validation to compare the pre/post entry set using runId, Issue, spec, and mode. The implementation evidence in [FILE-MAP:R2:2] adds AcceptanceDecisionTargetIdentity with runId/issue/spec only for the selected target, but AcceptanceDecisionRegistryEntry stores and compares only spec and mode; other pre-existing registry entries are not validated with runId or Issue. This omits exact required fields from the required all-entry comparison. The diff does avoid remove/park/document replacement on the success path and compares spec/mode keys, but that is incomplete against [CONSTRAINT:7].",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires both recoveries to be one-shot and bounded: impl-repair recovery may be invoked at most once for the current mechanically blocked flow, and changed-tree review recovery must permit exactly one semantic re-evaluation. The diff only checks the late-repair one-shot ledger marker in missingGateObservedFindingIds, not in missingCurrentAppliedFindingIds, so a later mechanically blocked attempt with current triage/review artifacts can still reach completeLateAppliedFindingRepair again. The review recovery also does not enforce that nextTreeSha differs from previousTreeSha; ReviewSemanticRecoveryMutation accepts nextTreeSha and grants a semantic attempt without validating a changed tree. Sources: src/flow/lib/set-step.js hasLateAppliedFindingRecovery check only in missingGateObservedFindingIds; src/flow/lib/review-convergence.js ReviewSemanticRecoveryMutation.apply; [DECISION:8]; [DECISION:9].",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R4",
+        "R3",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires the success path to verify the target entry and every pre-operation entry remain registered with original modes, and [CONSTRAINT:7] requires registry validation to compare the pre/post entry set using runId, Issue, spec, and mode. The implementation evidence in [FILE-MAP:R2:2] adds AcceptanceDecisionTargetIdentity with runId/issue/spec only for the selected target, but AcceptanceDecisionRegistryEntry stores and compares only spec and mode; other pre-existing registry entries are not validated with runId or Issue. This omits exact required fields from the required all-entry comparison. The diff does avoid remove/park/document replacement on the success path and compares spec/mode keys, but that is incomplete against [CONSTRAINT:7]."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires both recoveries to be one-shot and bounded: impl-repair recovery may be invoked at most once for the current mechanically blocked flow, and changed-tree review recovery must permit exactly one semantic re-evaluation. The diff only checks the late-repair one-shot ledger marker in missingGateObservedFindingIds, not in missingCurrentAppliedFindingIds, so a later mechanically blocked attempt with current triage/review artifacts can still reach completeLateAppliedFindingRepair again. The review recovery also does not enforce that nextTreeSha differs from previousTreeSha; ReviewSemanticRecoveryMutation accepts nextTreeSha and grants a semantic attempt without validating a changed tree. Sources: src/flow/lib/set-step.js hasLateAppliedFindingRecovery check only in missingGateObservedFindingIds; src/flow/lib/review-convergence.js ReviewSemanticRecoveryMutation.apply; [DECISION:8]; [DECISION:9]."
+        }
+      ],
+      "issueLogId": "issue-log-1542c1ee-11cc-473d-98b4-4c425ded54f7"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: verify every locked registry entry with runId, Issue, spec, and mode; enforce the R6 recovery boundary across triage and gate observations",
+      "resolution": "Registry identity snapshots now resolve all active flow identities, while one-shot recovery is checked before either recovery path and same-tree review recovery is rejected.",
+      "taskId": null,
+      "timestamp": "2026-07-25T11:33:39.381Z",
+      "issueLogId": "issue-log-bc586dd7-b684-4ff5-b5b7-ebd4fc512f1e"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] requires the acceptance-decision success path to verify the target entry and every pre-operation entry remain registered with original modes. The diff adds full-entry comparison using runId, issue, spec, and mode in AcceptanceDecisionRegistryEntry and verifies unchanged entry keys after mutation, but the target-entry presence check still selects with entries.find(entry => entry.spec === target.specId) before checking runId/issue/mode, so a registry containing another entry for the same spec can falsely miss the selected flow instead of verifying the actual target identity. [FILE-MAP:R2:2] [EVIDENCE:R2]",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T11:35:06.926Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires the acceptance-decision success path to verify the target entry and every pre-operation entry remain registered with original modes. The diff adds full-entry comparison using runId, issue, spec, and mode in AcceptanceDecisionRegistryEntry and verifies unchanged entry keys after mutation, but the target-entry presence check still selects with entries.find(entry => entry.spec === target.specId) before checking runId/issue/mode, so a registry containing another entry for the same spec can falsely miss the selected flow instead of verifying the actual target identity. [FILE-MAP:R2:2] [EVIDENCE:R2]",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires the acceptance-decision success path to verify the target entry and every pre-operation entry remain registered with original modes. The diff adds full-entry comparison using runId, issue, spec, and mode in AcceptanceDecisionRegistryEntry and verifies unchanged entry keys after mutation, but the target-entry presence check still selects with entries.find(entry => entry.spec === target.specId) before checking runId/issue/mode, so a registry containing another entry for the same spec can falsely miss the selected flow instead of verifying the actual target identity. [FILE-MAP:R2:2] [EVIDENCE:R2]"
+        }
+      ],
+      "issueLogId": "issue-log-c88c3671-f435-45da-ae4d-304977b54fcb"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: match the acceptance target against the full registry identity key",
+      "resolution": "Target presence now compares runId, Issue, spec, and mode together, matching the preserved entry-set invariant.",
+      "taskId": null,
+      "timestamp": "2026-07-25T11:35:46.115Z",
+      "issueLogId": "issue-log-9adacc62-e9a3-416e-af41-878f5b203775"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "fix: exclude canonical impl review evidence from stale fingerprint refresh",
+      "resolution": "Canonical typed review evidence already validates the phase artifact, so its older fingerprint must not trigger a test evidence refresh.",
+      "taskId": null,
+      "timestamp": "2026-07-25T11:41:12.483Z",
+      "issueLogId": "issue-log-bb4300e7-3873-45de-8ec9-1f9f6d9dfb94"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a non-trivial baseline worktree execution layer for scenario-validity, but the provided spec and acknowledgment evidence do not confirm this architecture or data-flow direction.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T11:45:13.571Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-scenario-validity.js",
+            "locator": "BaselineScenarioWorktree"
+          },
+          "observed": "The diff adds a non-trivial baseline worktree execution layer for scenario-validity, but the provided spec and acknowledgment evidence do not confirm this architecture or data-flow direction.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R2"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial baseline worktree execution layer for scenario-validity, but the provided spec and acknowledgment evidence do not confirm this architecture or data-flow direction."
+        }
+      ],
+      "issueLogId": "issue-log-8135a4c9-d9f4-4b6e-8876-45158ab257ee"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: remove unrelated scenario-validity baseline worktree execution",
+      "resolution": "The baseline worktree path was outside the active specification and triggered the no-overengineering guardrail, so the scenario-validity preflight remains unchanged.",
+      "taskId": null,
+      "timestamp": "2026-07-25T11:46:38.324Z",
+      "issueLogId": "issue-log-5a37984f-a672-484c-8671-42664c1ca27e"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T12:48:23.960Z",
+      "issueLogId": "issue-log-2a70f392-6603-4886-bec1-86b3046ec672"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/338-active-flow-registry-race/.retry-recovery.transaction.json",
+          "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/acceptance-review.json",
+          "fingerprint": "e62f7f01131ccd4154e1f5d92f5d1b39cc47936f66364479fb621450b31a6452"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-coverage-repair.json",
+          "fingerprint": "b9529975b5f09790ff0d5c843cac74e5613110b5effbe8271b6e9d80458d1491"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-coverage-triage.json",
+          "fingerprint": "9cf660835d8ad7b97107dd6add926a1b9ac5ea718767209591cb6c282eda99be"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-gate-source.json",
+          "fingerprint": "a2b8400d0e21baa6058a98dacd7cae46a4b9b4d937592065a959f496b484c3d3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-questions-repair.json",
+          "fingerprint": "3a0fdbabccf0eb24edea0fcfd9918271e2ee0498d3abc420067c9caf9763e6fa"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-questions-triage.json",
+          "fingerprint": "099ee22f50a8cdab31391668a536091b4e3499f4bd5d17aa69258f4b2dcfc2fa"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-review-coverage.json",
+          "fingerprint": "33fd17786446f3c124f27be4dab8205579499149381057993d3cd8eb7654232f"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft-review-questions.json",
+          "fingerprint": "15fad066a7c3fe10cd8d264b7108be1368563c68c0719d5a85114f0eb3564726"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/draft.json",
+          "fingerprint": "33099eb979f250c367b5a132c86a6c32baee68cc5f8f1eefefcd9e0ede5d4339"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/file-map.json",
+          "fingerprint": "1113ac8372155e6b27a0da4dfdfb9406e48f45841d500a80c516d2899eedd137"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/flow-findings.json",
+          "fingerprint": "5736544369f6f3e523be16e7131b34626c3463e3feba7638c17065574fdd1e27"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/impl-gate-result.json",
+          "fingerprint": "7812750f446bca6b20f81e64372f8d3ac1b65eed36e6b0d58229e75d68f8d193"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/impl-repair.json",
+          "fingerprint": "5b638ea623d20134a4bd8ccef8a75dad15425fe70946a3f21cbc8ef8b2906440"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/impl-review.json",
+          "fingerprint": "66f6f2bd11d15d03488fa48727871c32e136dc4b2f5719eeaa1ff6b5d6b83deb"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/impl-triage.json",
+          "fingerprint": "618fa3c158fbfe1bf6045e6e9c952880fe4e0f922de495f3800ee9cf4f74301c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/issue.md",
+          "fingerprint": "05856408dc61e2469fef2ed281ba4ce41d3bc137c4a94fa67a57fa63d52c721e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "8d22544637d247f3197c2cf640cb940427638b6d81907a80a882cc16922e83d0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-001.json",
+          "fingerprint": "ae17100dc2af0691b022d2e2b079ded0214a496473c80d291794c16959878ad1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-002.json",
+          "fingerprint": "1217b8cd6a0361cb6cda7b4fd13fef38f8a4e0e8ecdde33a479cefeb648cf7d1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-003.json",
+          "fingerprint": "6c0e5d23cbb1ae22502f9dedc2d6d4a6aa7aa4231d2cab196e773a7a50da9dfa"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-004.json",
+          "fingerprint": "247d9647f8573a098acbf1b0179da34258fb1b10bca8295de5c1a58479c5f51d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-005.json",
+          "fingerprint": "1c4ed029d63a0a8f6145bd796be532ed6683472728429fafebcb9b4f36035c38"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-006.json",
+          "fingerprint": "acad6f49bc94490e56d45fde54cd5edc5966eef0261b68c2b2bec096dd025735"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-007.json",
+          "fingerprint": "75874a01665a98ea5ce5c795acf564a4743d7ceeaf1f1d1a07d7ba67c5084e88"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-008.json",
+          "fingerprint": "fbfb78a58eedd075265c6cea34bc4cf490839bbe0e8bcde902f1c70db051feff"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-009.json",
+          "fingerprint": "428f2cf8dc82c971e18dee7581aa04a909c7883442c6f466cbeff9d86a87e3ff"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-010.json",
+          "fingerprint": "dcf2de37d34466977141491728b4a772078dde5c8dfa6dcb054ebd2a0ba74a5a"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-011.json",
+          "fingerprint": "5bf8bda0b192d4e4ef7dab02a60b0996d6528b7daacb5bd25d6de90347dfe2b1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-012.json",
+          "fingerprint": "c6423871fd18347c346dbbb0162a58f9175354a9d04d24053351f1929b5c6242"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-013.json",
+          "fingerprint": "b6855b8e27970869efe8880fd099836b6e1f306962eba8abe8832786fb0762b3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-014.json",
+          "fingerprint": "f2118e57cf001f3ee444247fc02a91e7a32f86272ab7b162c9ea667cb1acbdde"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-015.json",
+          "fingerprint": "83cdca827d952febdc237e5ffa663ad55f5db44bd0225137c10619bb77e20b90"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-016.json",
+          "fingerprint": "dbc7afd5463564613e4332e8f431483735dfb52399474541a5a43af0980b5de9"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-deltas/repair-017.json",
+          "fingerprint": "61750d6c65a52ea9682389d54d906a6637a194e850ebfee33928009a29ff951c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/repair-fingerprint.json",
+          "fingerprint": "b715642c84aae22106063e41f8d70e16af1dac280d689c9f96715b544a6341d9"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/retro.json",
+          "fingerprint": "b5bc6225db2755efe8a87f2e3eaab0575fb781cc61d4bf315e7f74e4ebffadc2"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/retry-recovery.json",
+          "fingerprint": "dd6254a6e797c5639f187052d15cc6c6c5868ca1d62241e389bbe198f545b64c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/0d850935d9f910be0b04fb60ced2f84a62b08c5c209915ecb3942901a41665ec.json",
+          "fingerprint": "67d93f2e05bcb32bd260b82c6ac1c883c1582fcc2f3555e2df919a6ee535bbfd"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/11a4f11564599b3bd6ffa90b2413aa76a81e511c7a32e90ebeacc362c9966e15.json",
+          "fingerprint": "459aebcc134b5aa01a0b7f266306fe3b4d9f8432556bd91e0f2dcfa8e0cda8dc"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/14e825448aa8f0b164d04149c54fc87e5025bbbb88cb040c4df55f88c99ef219.json",
+          "fingerprint": "19bf39533d778a760da660e78d17c1e6274f3a54a3ddfd0129aa66744b54a525"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/17a95bf414b7e5b4c103b189aaf64d9b5989919a680b24bc3908b026e23a5e46.json",
+          "fingerprint": "6591601e7ad3442aac3d9b6e540f2076bae908b0ba6e63ffcbe0b395382ab972"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/190514dfcc53c699e7aa35797be1b84dd8af3b53cfc2d6a72c2127e2455d4c5c.json",
+          "fingerprint": "59943b04841f4d8efede46719c0236d0f451241c8ba74c68c78663385792a892"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/1a3c8bc8384506535d44033a461ace24a771d1770dd33490bf803b2c2501274e.json",
+          "fingerprint": "fd69d05165ff509733d4f32e5811228ada927b353ea2aa739fb54b3ae1004657"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/23624facf4166a6bff651a1b9425bbe1154878c0d9a0eae6ebebabd9ffcdf8de.json",
+          "fingerprint": "00ea421003cc023ba23d2d828ea80d6b53a0fb48125d4c3db6c1e2e8fac9490c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/277beea6e89879955457c6e5b5476bdb3b859b0a310848434613db54d4e22dff.json",
+          "fingerprint": "cbd531f5c4cf6ed2d88dca00c1dde551f59a4022551acb0b7bf37506124d1956"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/334057289e7a199bcec3193850d546f1f8bd1f8559c15584d1e478bbefc2aa35.json",
+          "fingerprint": "2300a6a8eb93c6dd5fad6738ab8494f4b7a2c2dcf7f4352f1602eb3d5a08ce2b"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/35c3596a57b2b0de815d1214bfe85535d9cfaf486447eb7d861166836c917a5a.json",
+          "fingerprint": "4e1ad72ec104ffef7a8cafabeb78b6c174f456684236cedae75b670407b3d839"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/39c5d29be68002e3030333d1162ffab466883bc1c4c76d2616d57384035e00c4.json",
+          "fingerprint": "f19cd6585c0e648128b63efa84dfbbe639cbc0a606994df4f65e86de0176e639"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/3c73d9d64fae7a6846102a7ae0485e9f35c1207df6e93e14cfc1d2b6419c65b3.json",
+          "fingerprint": "c9c5211747be73cc2433b035586a41a9eeaf3c15b522769017fd8b58a7a47861"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/41396daca24833862e37e1e2b32f83b25fb4c88147e320444ccdfcc66d96de48.json",
+          "fingerprint": "8ee4b3b672e34aa8d09387ccd4a78bf38af75f4b9118c58ba4ab1ebe2ace7b9c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/44ac9fdaccf7c0b3efb799fddeb7129e815b58e4e6643446a74c3ef414f72f9f.json",
+          "fingerprint": "279b14d7507993db3e8827a38a352dd9fdcb41968d329f2b4c1b6a3e4b06b72b"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/4bc0a07d3a06ca2a9508ed190fdaac87f72cf2753fa0b6ff412d76080534f2fe.json",
+          "fingerprint": "01f9dd3c1cb1ed20df0064a08e315848e05d52aa39688eb564c38a0c66a2351e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/4debb3f628583df920f1851d1ab8bc69d180e735dc157657e9c0cd60892e13ab.json",
+          "fingerprint": "eec90f1fd005000139f71b751ae1e29dca5c733a97c718eaef1924d25685eee0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/5a6f56db321ec4d444374eb24d05475650912afb0a3154b6c14eeb59715bacd4.json",
+          "fingerprint": "4e590384198a3eee645bbf4428441354ad15a4bb2d84a4ab09524b3cbae335e2"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/645411f72956e1b1913b8f717b0f0d817877b4c8f7143737e8a0a4df4d7a8574.json",
+          "fingerprint": "340cfebc949386456a5b541cf5eb8fa0077ffdae91d0ca3df3e9df7113a78e51"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/6b6ee00d5857b213a0e12c1d5aeb5d72b652f0de1fe9db1d7c5c2b5407713cc6.json",
+          "fingerprint": "07341d4921cfde8f7826f62374d06b9d4e763ec8d13ef19e49ecfb8323d73008"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/6b839762de13f66eb78c8d38443272f59414fc91e99adeae8ee53567f059379b.json",
+          "fingerprint": "e414bcd1b6a653209d7390595ac3f69cc4cb86ca17c3756909d9fb5b81a98d91"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/6d6d08317aad6a1a7c4cc810cbad73597f50428d9ec3a64a49c116eb2c465a24.json",
+          "fingerprint": "0a5e8afec42b11b0c1cdf039449e9a02a6cd834f632d77754fc3f0709ef890ea"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/7de1e8b7eb1e93024f7d77a22f1815cbe836f771cc5c4c31751a27daa4e45331.json",
+          "fingerprint": "e8840ef1259175deeca807a4b66ea1ac39801d4a7a8f81936774c00b91c72104"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/85c78154cf119c6c350797c444386017e987cd16d059651a932deb268c24e0ad.json",
+          "fingerprint": "33b1e4ae9b577b50e162a154474e7559cc45b64f0b5a21b5bc8ecacdd8648e07"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/9957ba14780fcf2490120c6c9c1bb17c226c229ee99349839737e0f7241f84eb.json",
+          "fingerprint": "645aa1dd43b765ea7511fd867cc042fe368b18ae74fbd9466ec46405544aed31"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/9fa83df66d0e2e592f59afee8742d1642a6549d90837af710828ebec5f694938.json",
+          "fingerprint": "d6f8573369a1bbf78b3abd5bd06a53adab647a80fe80f6579694711f432a3a14"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/a21b46f90afe4c5818ce09a615183660f3eed78084e34f738c3136942869770e.json",
+          "fingerprint": "16dc21fc347bd46d220fc1ef91b52728ccd83a370c800234d774c86527012f05"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/a4458a498ae243c84f17faa93ff4f156a1a9b6219a0d0a90e27eef51bb836efe.json",
+          "fingerprint": "55fa66b5fce989bd9e4dbd3372243559335eef96f3938a42d378d246988e3155"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/ae070b7291149f2e81feee537da9d63bea8e849311bf08b91132d0e3fdee19f5.json",
+          "fingerprint": "3454d8540b246b96464d0a464477b24fc48802462f136cbd95654d9869e33a50"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/b08192e8b1fda80caa00c68097df4ab12851075f22dd1bea9ffcf081e63df60e.json",
+          "fingerprint": "265beb41fd81170aeae15b0e8647429ed703dd6dae20b89b3dfe825107f3529d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/b46e26b8d59fd285c87ae843522bd6b793ed316a57e6d6034875ba01945e94e5.json",
+          "fingerprint": "c686f699d3e1335f1bb8e4805ec8e50a28660133375a64fd952be0e83fac92a4"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/c164e440073523dbb56f9b9a8298ba36081bea770c27354a3e8e718e190fb9b0.json",
+          "fingerprint": "ac216ef3a41381698d7bf428b7aa5c60a8cb0a6ce3fa3471ac827027232f3cff"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/cbd6619ad6648537ddbb324a4459e2d8edbe21508e52c4c87832d990e4e51794.json",
+          "fingerprint": "7f5a30a5eca18c96505f9f676897d22e9357b72bdb669933d226ce199220c67c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/d04fbd15fa0ce28c43571fefa9c6544888884245782e1d476bad73e25d4e752b.json",
+          "fingerprint": "17e526d77b5443b013c26dd5241159d291f619fab244b3e3ab7f60f36eafc228"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/d8926e2c837c8be065459aec73deb80c5fd9dc63763ac1a64a2bfeb8944fbaf7.json",
+          "fingerprint": "ce9e3545234bf15db234a7c7bf1d2f49226451d4daeebfa18d6123974b893067"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/dd73826bd2dc152c56733647b997f5dff7902d7fcb35a629712ca1f28cd523cf.json",
+          "fingerprint": "72a799e87e9d3d491a831cd6b18e5d991e6bae5dd1226315fc0018b2aa314790"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/ddb208725d8a457b520726be9ecafc650e0894211e96c0f64b133ce9bcdd8655.json",
+          "fingerprint": "1db7bf9de4d67ed68e17abf214909cced8f297aa77695b4891159eed8a848264"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/f1bb204652ccbfb3b405456b3ad0a0912b70d1ea81c46b613c5b6faf5d0f4f04.json",
+          "fingerprint": "d8eafb6403939e65823db20f3750ce15a2aec3542fd2746366680247809a0117"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/f67f4e8d6e0a91ec1e614aa5354db024be4397839f31f8539de1e24cd3db313c.json",
+          "fingerprint": "d71e66630079751a119a2b87e5ee7c0e30ca41b94b33ef23ecdc71a8a5ad8b9e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/fbefddd84173f4de519fe0bd1394449b385c8439e5f6656feca75126a7bf351b.json",
+          "fingerprint": "7672fba5f8871bcb488a9d5e7de0d07f13bf24f5332cb43bd895b07f9af39c16"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-evidence/ff2ab1d35237b0ded876732294029025f0d70925343f1938af8bbea0d7ba999c.json",
+          "fingerprint": "33ad2b2532f4e65265b9160c8778c792f9e58749bbaff120a4b3f580bf81100e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "c26d9811a9bcb5c06952fe3b4edb4f4a99d07f0473dfb45dca26b7a4bd5fb67e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/draft-coverage-attempt-002.json",
+          "fingerprint": "e706742499f33c3cd46539dbfab6f0da0bc0c75787cd08383d680e1d4f0ee065"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "dd4825c0ef7f4bce20facd2ab64abd6a764186cfdd76b1d052e72f4b8dda41ba"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/draft-questions-attempt-002.json",
+          "fingerprint": "fe4b2bf4a1db7f93ce68c77638d75c82f869bfc81313a6b83e5deacebc1af953"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-001.json",
+          "fingerprint": "5240699b5d47f8073808360f3903a84cd7672f98b05dc65ba1b84e141a14fdfc"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-001.md",
+          "fingerprint": "ec4348e4aa10d8ecfa777434602be373e4a8521883319abbacce38c5b912ef44"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-002.json",
+          "fingerprint": "c0d5f8e39a36d71bca32e7ce1d13a9284a0af99c3ad7dfdf8b83176fa5f8bc70"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-002.md",
+          "fingerprint": "b2b1cca90ff1b83662ad7ce18c9a40abd111b5181f6f336885427b9be1736d0d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-003.json",
+          "fingerprint": "bc1b633df38af8ec035a8cb1897ee66aa6d61bcbdf6cb129a6bf4438e046f7c5"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-003.md",
+          "fingerprint": "beb426c236320d93786a67fa1afb32805ded87f5376dff4dad75ab233752247c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-004.json",
+          "fingerprint": "0f549367cd05a47ea075c9304082aa1a4759a4b9cd43dbb489148d75f464e047"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-004.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-005.json",
+          "fingerprint": "bffe724f77e7d5aaf14004066c185b92f07df92370b864815b143b8d8dad2c7c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-005.md",
+          "fingerprint": "123f2966df263f90fcd48cc5f41ffd429b1669556123406e9d1e6ff8671a1be1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-006.json",
+          "fingerprint": "163e510e9369a9e8d0fbcdb556a42ec6239e63ce219f9b85aba4ba72bb58e210"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-006.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-007.json",
+          "fingerprint": "60a54b9db39c04deb81b25e62cad7a51d9111f047fa3e1dda2b336b8b4b2d014"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-007.md",
+          "fingerprint": "582f82647098620307d554bc8e5e630225766e6d023fe7097ead693e0b3d6e56"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-008.json",
+          "fingerprint": "c14bb17d47171e3ca5e25edb3b346a709b61613b46a039707304f4f6384e35aa"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-008.md",
+          "fingerprint": "4639e5de6dd99750b10f5adc08f32255d2227a01b1612a5c25dca36458dfba7b"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-009.json",
+          "fingerprint": "caf06af98a72a8431af36247c5b202d3b33a765afd886f06158e5e977668ff9f"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-009.md",
+          "fingerprint": "5b050739664e2957458d641530de6c28efc13194df3459bd637684dd8896b9e7"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-010.json",
+          "fingerprint": "8831e942f36a0ea40e2c7ef0ef1a7d72892251c0986ccbb90fb9588048f4feff"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-010.md",
+          "fingerprint": "71097c08b2f7acbdee37b008cd07907a3607c23326a681e449ca4529c8cdc203"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-011.json",
+          "fingerprint": "71b00c846577c2732f2e5ca4f4e88edb7378333af7fa8e05d34c52ad2a8d1693"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-011.md",
+          "fingerprint": "966d1eff71e334e20ca808d246ca9dfe0fb99b20e2c105e7100b88d4dbd0b816"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-012.json",
+          "fingerprint": "2c4963da0529e6b873d0f980963af31881c818d0bebe4596082e1d8673ad82a8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-012.md",
+          "fingerprint": "1a7fa99daab8592b93fe6e3860833f16c6f0edc91af6db4d351df806bdf9941c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-013.json",
+          "fingerprint": "4490c7c0b0f8cf082ad0b1e7a01e64b8f0c474cf44d3b830f73b11e7e254a5ef"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-013.md",
+          "fingerprint": "1cf77b254425d27d86879b8fa5881141f54bd4318fea1a2753933c9dc3d223d8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-014.json",
+          "fingerprint": "aa0edd4aae5a51803a84b3468f29eae032071a1b446b131bc863cf3aeabf01ae"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-014.md",
+          "fingerprint": "872feec733bc291bdf8d43f7da88fc9e3f75b3275b0380dc1aa319316401fe51"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-015.json",
+          "fingerprint": "609ebb36aac645a0b267ca573c6c2fdee2b787dbe85ce75ac80a5f2e156410d9"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-015.md",
+          "fingerprint": "22cef0b34ce8117a1c085c2acd8b7b4e277a85933af0f73dbc7b2dba1132b47f"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-016.json",
+          "fingerprint": "f5d4a42979783456245ebbd01a787a2751737b27667fd193d30d9725010b0d72"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-016.md",
+          "fingerprint": "fcb562b212367f367570e0448efe25c09c2dbca680764821ec3db20431754af3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-017.json",
+          "fingerprint": "f9c7f85ba585973b6ea8f1a77e0def60db7e3a4569c4a748e362d2cde4ad92d9"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-017.md",
+          "fingerprint": "ee33ce2af31ed3aac52f25a590dc8b2c54f5a34067bd54587e529e889a86b5c8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-018.json",
+          "fingerprint": "21bc4072dd012b086f7886e19d6227e4648eac0d65dba7c22e05d1c26e09daea"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-018.md",
+          "fingerprint": "ee33ce2af31ed3aac52f25a590dc8b2c54f5a34067bd54587e529e889a86b5c8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-019.json",
+          "fingerprint": "c807055b7c6da2d285196e2a2f1f1209d92933e26eb7faf44e252a5b4177835c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-019.md",
+          "fingerprint": "2fea2d1acefe678a754363004dbd2fb497c3fb53fec77ce544943651bc786020"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-020.json",
+          "fingerprint": "7c4de4eb5d923bf63a398e9027aee0b54dfc9f2cb573c8a45a07776caf69b3c7"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-020.md",
+          "fingerprint": "2fea2d1acefe678a754363004dbd2fb497c3fb53fec77ce544943651bc786020"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-021.json",
+          "fingerprint": "0c5eefea6ffa4ab08c22aca472659a9e3e0fa0e17d36d6fd4f4fd8f9f08d5a1e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-021.md",
+          "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-022.json",
+          "fingerprint": "72721acbcc26ad1a488f84ae9e8db3604399c43df929767743d8bcd6845e2365"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-022.md",
+          "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-023.json",
+          "fingerprint": "af8745bde18a935b14d9421b9db40e11ecdc617bc42e2334226a69bdfec19844"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-023.md",
+          "fingerprint": "08719545658941b78205f26a02c74d24c9589e8ba2b5081dcf23f7bea35c0d1b"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-024.json",
+          "fingerprint": "618ecfde9e0d67a8032633916b48a36fc4a7c1a337b1befe4ed8b7c5bc47bc3c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-024.md",
+          "fingerprint": "1591aba6e76dc597b0739171f259c5bd870f187d246fac7e755d973d20b89edf"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-025.json",
+          "fingerprint": "1c263d55a7242bf17f70f281b665eb6e7be613de4e48c0262b6ef016406887ff"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-025.md",
+          "fingerprint": "3ba37c30b89fc80c034ce7a0aaf2983540c76ce7d6765bdd17229eb5b9514073"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-026.json",
+          "fingerprint": "00ae46a46664fe1379d8bac1ebafb4916ab1e064454833c603051fe3c149b40d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-026.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-027.json",
+          "fingerprint": "8742792aa1a3990c547de49ce99898c6b4d15d113ae2fce21a6bf190d5316fd3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-027.md",
+          "fingerprint": "f38729439804e42d37c58e1f11fd6528404a37e929200ae90cec59fb76f39a9c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-028.json",
+          "fingerprint": "38bb9e2677f444b508706fb00f3c7430866721ec236c3a287d7a509b6e033c82"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-028.md",
+          "fingerprint": "f3c2701ddd2dc11e4e5c68e8a00e799b00743919a937ba82650130f86e5b7612"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-029.json",
+          "fingerprint": "eab489cde851d5c63ba81837788f52df39a5e81c3e2d2b85bf483a801d9cc789"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/impl-attempt-029.md",
+          "fingerprint": "42f39f15112949b5fbbfe601934d02f4f943c9eceb9091e866a7888bfa2339db"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-001.json",
+          "fingerprint": "3373df482a7932944999d697e5612cc9ee76f2b7837ddaa0a54b6eddf6906e81"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-002.json",
+          "fingerprint": "d2944ba65612247ee093b5669ad74e2997bc81763cdc30f39d1c8e7c4e232626"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/spec-attempt-002.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-001.json",
+          "fingerprint": "73ced6dbf4679a634bed6fe7bc6310a54088807413fc246caacdd86df0781dcf"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-001.md",
+          "fingerprint": "dbc6aaf8bd1f1344f44b17bb04f28549bde21932e982bb19e1486c17081ad7ba"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-002.json",
+          "fingerprint": "77518df83418e710974f95d65661a84c35cf7cf7b25a28213f18d63f927941ae"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-002.md",
+          "fingerprint": "54fc08fbb9389c82138eaf3607e2ecf7d604b05d602f062328cdd335b714ef9c"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-003.json",
+          "fingerprint": "20ed2cdc7f81082f1a6e4d7be1ac7071fb42cfcaaa5a8387741331b81f2cae68"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-003.md",
+          "fingerprint": "a1b5d747e0be44b3380ea3ccb2638c51b765f4d4f61e3ed2993f589663ea0705"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-004.json",
+          "fingerprint": "f839a84ead5d3a56e93fa95f00b11484a0ed4f8426aa1557b9e0b86ef185db27"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-004.md",
+          "fingerprint": "b1373c926ca52ad89eea8daca8ebb4a2692796d9ae6c12918d36c4a43c420984"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-005.json",
+          "fingerprint": "e0a439eb8f78c26724b2d433553770f3c0d0bebf4021b442ae697bc38497959d"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-005.md",
+          "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-006.json",
+          "fingerprint": "244eb25a506eeb3f81eb3f516dcbad095d407e97856d539f87b425712fc58f07"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-006.md",
+          "fingerprint": "e10750570eeba2e2c9d8c0e85a13d3e3b11742f0f420d7c86ae8293aea3efde8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-007.json",
+          "fingerprint": "d51ce108622db5e440f9ba931051adb33c0ad3c7272580c0c3cc26259321acac"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-007.md",
+          "fingerprint": "4770440ad6c87ddc0312212a78527b3c9fa5b3476aff7daeeb8f183182864763"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-008.json",
+          "fingerprint": "0d1317bfd87bca8915d6783ffeb286748afdc48d5e597aadbb8f3e33465185db"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-008.md",
+          "fingerprint": "088e889f5b28f30d36bd6e932fedeac6455942fba74a00ee7760f0cc34321929"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-009.json",
+          "fingerprint": "319664d9b55d9ab6e3d99a5109919b2c44979f790f6012696f649987477d3de0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-009.md",
+          "fingerprint": "ca571a0710bf8ee04dd20798928a1d74fe06b4ee56d49aef87d54078282bdb2a"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-010.json",
+          "fingerprint": "25cba7b9c4243092d344b380f6eb38dfdd87fa244ed0e17469f2bedaedec26a0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/test-attempt-010.md",
+          "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "ebee3c721d06935696e77a701d2f10907cad23f3e7bf0954267a409a3ee3bec0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/0532f26e350398f1a09a36c3.json",
+          "fingerprint": "e894d8eb6e2e8a74dcea6c727bf9ff7a18eebb0aa6390ba85c9c62bc5b8650a9"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "8792664ff0556886b4ce3f6aefb8d077cf7c0b404117a26451452566f88958c8"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "79c33a24f1a3aecdb80c4c68a66be130d2bfca9051b97ef2a55449df23ec0b38"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "41aaec51d9a3c6ffd628a496a6dcdcd4ac80c164a2b1787de20f9f1fa994de56"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "a14d0b284ccbecaf03d617e406c563fe0a1001ef8f4baf41e5f3c771cc798668"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "dea1a32b15a7a63b471717c0a2a97b084e687453650072ed399aa71f134e214a"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/5809398a540fad2e32e02a12.json",
+          "fingerprint": "d552bf57661b420534a5ca373f7c3eb875fa7cb87d31afb22769abc9adcbc900"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "7c2cee8296df1d8a4f139f5ae96cb2cfcfa83bea7680dec11be60a95dcd8e751"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "4450038904085f5040e64ab60722bf70d142486b41809cb8e66c7f531f1af83a"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/61c5266b243b8767e12fca70.json",
+          "fingerprint": "3d505e76c97063701c484b34bdc3cc969178dc6e4228087f82d312b4ddc82a77"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "0567492cf1005e364f6da52608850d1abfc9d26fc0b8464cd588c1b8793a3871"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/6ded46e92e4d8541a05af6d7.json",
+          "fingerprint": "0ee6f8d66374a8153238648161956846ff3b5ccc9eefbb5c322b0593cbedb047"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "1d57ec873cad44489e18283b99cf27961398a5968f7e559edc12eb18849176f0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/84d1354d741d6e4634bedfa0.json",
+          "fingerprint": "6041505cc8dbd15441878bfaba289ec6376a933af02703393391d2607dd6e8d1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/8551e7c3be95cfbf8482b783.json",
+          "fingerprint": "fdfb05bc99eea3a3c1e3c3378d25e2b044299a64f5da28bc679932be0addaa00"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/8a64958f5f1861ac39ecfd24.json",
+          "fingerprint": "794a20d1eb717212a66e162e0de50b9715697554e6eb0a16825233fa0c01b27e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/968f0ffe8ebcd43106d90929.json",
+          "fingerprint": "250011b4bcae096fc69f42d62cb9dc4231cf1eca9588d1729f570317eac97c83"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/99dcd86c2054dcbfeaf6c0ca.json",
+          "fingerprint": "ddb1c8c66902e9c9ac773257b51c99ba980fa09ed4c99978b5708c9c995ce601"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/a8381a453cb0a3725d3096a9.json",
+          "fingerprint": "95b20b256fe35b6728ed0c8cf72cf8e5fbade4f1229cb9b61bcae88374fe57ba"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "b6b51625329a95e7866abaf4915d214b4dff91f3b6f33a2ac44324e34fb71432"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "9374485495343ef7c7e2d2b373388cbca056276f120f3bc5ac7df8ea508f9904"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "c63207dfe7534613f7d3ae7006f56f855d7a2abce21703f225d5b524a37f9bf2"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/deadae53192b50a07f845e48.json",
+          "fingerprint": "a06fac5e7d4bbb64ce4c9d8516461e1bce75048754f42dba45fa6a5168d549a3"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review-history/work-units/impl-review/e79a47f9aebb55488ef87b04.json",
+          "fingerprint": "411afc2f6a9b3305f279ddb5c2e81dfdef206b3cd22e631e15a65ca6e287acf7"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/review.md",
+          "fingerprint": "42f39f15112949b5fbbfe601934d02f4f943c9eceb9091e866a7888bfa2339db"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/scenario-validity-result.json",
+          "fingerprint": "4d019fa52c679e78af1f8bedcb6240f639d37c58c8a8d1cd8c6c031efc8f84c0"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec-gate-source.json",
+          "fingerprint": "2022b23564a744eb0e0f483d46f619864855b4d95ed3ba5d650543f32556e215"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec-review.json",
+          "fingerprint": "1ed2373571afa57b138774a4573ba541d38d83bd4ca0183fcab29a4bed99cd03"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec.json",
+          "fingerprint": "0527c20fe6583e561dbe7873819c202b47b7d540ba7fd7aedff91f641306b6d2"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/spec.md",
+          "fingerprint": "dae6d7b13c75e9308df50a5130709738a5f0f0b1d53212f2b1c8acb4d6e6e830"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/task-impl-gate-source.json",
+          "fingerprint": "1c8fb69553f50ceed3233c1289d81f721bb3c38254f64510893f9126d07b9842"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tasks/T-1.md",
+          "fingerprint": "087b945adda18787ada1816608c60ab8b2ad875a46bdfe7c5f0b397ef653a238"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tasks/T-2.md",
+          "fingerprint": "9f6df8586ae99f82c55224ace39bfd9cfde7cd93df0c2bb6c5d1f5292eee5074"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tasks/T-3.md",
+          "fingerprint": "a2fb381bc4c1e0114693e8ab50740b7212f77973b63ece3c7130bafcdfc013ab"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-coverage.json",
+          "fingerprint": "1edc9b26a8d720f5417ce10ccdb31266a17f5411f25f5496f0e83dc42954bad9"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-execute-result.json",
+          "fingerprint": "af71a736258a2f8b6e48f9642a9d17281d24a288ddc5c98917dbecc8addb9109"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-result-review.json",
+          "fingerprint": "e13b858e3fd3ce907fe47ee256a9864afe3451971fcf1cade5c2292ce8f86e59"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-result-review.md",
+          "fingerprint": "fabfe6c94c652af0bda378c5bb3f00b57eec0d2c8073fe728ceb8f157d1eb6db"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-review.json",
+          "fingerprint": "17d19b331ac845a5b9e58f5a2a7e74ed235d88346aa1b08def42b03978aac4a4"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/test-review.md",
+          "fingerprint": "f099f271740a8a0cfb1193eaad01f4fab20eaec0489deb952e27299bdeaa7e43"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/.raw/scenario-validity.log",
+          "fingerprint": "3bd89a86d7ab8774fc35171fe1d2c603dda32abd7ba779a6c14e7debe88ce7b1"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/.raw/test-execution.log",
+          "fingerprint": "0deea0e5865110ce2e6fac67d73fe0736e51202408cce8b23f8f426fc9e0ab89"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+          "fingerprint": "e6009f7d7c82cfb58578dc8a5b56d6326f831e7abad5d4dccbc01663cbf9c5ec"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+          "fingerprint": "e6009f7d7c82cfb58578dc8a5b56d6326f831e7abad5d4dccbc01663cbf9c5ec"
+        },
+        {
+          "path": "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+          "fingerprint": "494e57ad2a6178a627f6b41e33efdf13454f2aecfa18b2bdf4e5047df55214c8"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "ce2eb16b9aee685f30d061ba0dbf5a70379b74dd6955a395e7ac18ba682d76ad"
+        },
+        {
+          "path": "src/flow/definition.js",
+          "fingerprint": "fbc039702ba247cf60a1c6fea86624981ee2ef86749475062d9fe9b991ec043f"
+        },
+        {
+          "path": "src/flow/lib/acceptance-review-artifacts.js",
+          "fingerprint": "0c42e05b92b67de1bbd9f31806c542ac635270b792843f036ad57bcf23d7132a"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "5a7d4bd715906f4202149e7cd55a1c45ea7281909a17a4780e037b2f63af5aa6"
+        },
+        {
+          "path": "src/flow/lib/review-convergence.js",
+          "fingerprint": "44b8e9d332cd99db7337371a12e19fbae4f5932f8be873e174223da0a277f562"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "fingerprint": "4bd4b46173c428c3a7e65fbbfb261b1af71d99b752f17589d70f9beb46d88163"
+        },
+        {
+          "path": "src/flow/lib/run-scenario-validity.js",
+          "fingerprint": "dff0ea7a8efd40ea6ab66ebe19134105d9d8803bd62f9e36f4398702fff631c0"
+        },
+        {
+          "path": "src/flow/lib/set-retry.js",
+          "fingerprint": "629e7f3e2b6db6ea6b449725baaf540bac1fb3336f00ff3a3520f23282387921"
+        },
+        {
+          "path": "src/flow/lib/set-step.js",
+          "fingerprint": "0a0509f68b606f9e0dbca1e2b870c14a37e1fbd2448c6d62fc3bf9099a4eb448"
+        },
+        {
+          "path": "src/lib/active-flow-registry.js",
+          "fingerprint": "a378f9632ff1dd366aa00f16e2a2f9df90b8f74ce72e6d14e7516fbfef60d5b4"
+        },
+        {
+          "path": "src/lib/flow-manager.js",
+          "fingerprint": "73b86a6c0b6461df05604ff8a9af88ad00aaa69da34086ee3e538ee0bbb30154"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "eda1f04c1ff95c52645fbf00ca3d5d8341a368dc30d00c759c83bf3d64698eea"
+        },
+        {
+          "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+          "fingerprint": "109f6cd2694ab05dd1ff0121b5cbe144378fc6dce9f8bf91ab063ce0042acb86"
+        },
+        {
+          "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+          "fingerprint": "d4663c57db70f056744843f39aea0fa97dce4a6b0f49c48d3fb0761f25fc9e63"
+        },
+        {
+          "path": "tests/unit/flow/run-review-advisory.test.js",
+          "fingerprint": "b6ca6147c85a507e54ca24dba9c794f10fd1a1dc75e0d6233eb6618bf49131f7"
+        },
+        {
+          "path": "tests/unit/flow/set-step-impl-repair.test.js",
+          "fingerprint": "af38c15f4b754c0bc427915d428d1d3493aa402bce473d7db8578259ea07da40"
+        },
+        {
+          "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+          "fingerprint": "3b770185802eb0fc392301a56dfd9aa58a0536e6a93d50b8d38fddd3d76de55f"
+        }
+      ],
+      "rawOutputPath": "specs/338-active-flow-registry-race/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "report",
+      "nextRecommendedAction": "record-and-proceed",
+      "timestamp": "2026-07-25T12:54:45.796Z",
+      "issueLogId": "issue-log-63439fa6-5109-4f73-9bc9-8fbdc60b766e"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in src/flow/lib/run-review.js, tests/unit/flow/commands/review.test.js. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.",
+      "timestamp": "2026-07-25T12:55:46.666Z",
+      "issueLogId": "issue-log-a53dc947-722a-443a-a22e-b5692551cfed"
+    }
+  ]
+}

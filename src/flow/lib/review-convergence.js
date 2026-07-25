@@ -696,7 +696,7 @@ function replaceTargetRecord(flowState, target, record) {
   flowState.reviewConvergence = { version: 1, records: nextRecords };
 }
 
-export class ReviewToolingRecoveryMutation {
+class ReviewRecoveryMutation {
   constructor(input = {}) {
     this.phase = requireString(input.phase, "phase");
     this.taskId = requireNullableTaskId(input.taskId);
@@ -706,10 +706,9 @@ export class ReviewToolingRecoveryMutation {
     this.expectedSpec = requireString(input.expectedSpec, "expectedSpec");
     this.expectedHasIssue = Object.hasOwn(input, "expectedIssue");
     this.expectedIssue = input.expectedIssue;
-    Object.freeze(this);
   }
 
-  apply(flowState) {
+  readCurrent(flowState) {
     requireObject(flowState, "flow state");
     if (
       flowState.runId !== this.expectedRunId
@@ -731,9 +730,35 @@ export class ReviewToolingRecoveryMutation {
     const records = convergenceRecords(flowState);
     const index = records.findIndex((record) => targetMatches(record, target));
     if (index === -1) {
-      throw new Error("review tooling recovery previous target no longer exists");
+      throw new Error("review recovery previous target no longer exists");
     }
     const current = storedConvergenceState(records[index]);
+    return { records, index, current };
+  }
+
+  replace(flowState, records, index, recovered) {
+    const nextRecords = records.map((record) => structuredClone(record));
+    nextRecords[index] = {
+      ...structuredClone(records[index]),
+      ...recovered.toJSON(),
+    };
+    flowState.reviewConvergence = {
+      ...structuredClone(flowState.reviewConvergence),
+      version: 1,
+      records: nextRecords,
+    };
+    return recovered;
+  }
+}
+
+export class ReviewToolingRecoveryMutation extends ReviewRecoveryMutation {
+  constructor(input = {}) {
+    super(input);
+    Object.freeze(this);
+  }
+
+  apply(flowState) {
+    const { records, index, current } = this.readCurrent(flowState);
     if (current.toolingMaxAttempts !== REVIEW_TOOLING_MAX_ATTEMPTS) {
       throw new Error(`review tooling recovery requires toolingMaxAttempts=${REVIEW_TOOLING_MAX_ATTEMPTS}`);
     }
@@ -746,17 +771,36 @@ export class ReviewToolingRecoveryMutation {
       treeSha: this.nextTreeSha,
       toolingAttempts: 0,
     });
-    const nextRecords = records.map((record) => structuredClone(record));
-    nextRecords[index] = {
-      ...structuredClone(records[index]),
-      ...recovered.toJSON(),
-    };
-    flowState.reviewConvergence = {
-      ...structuredClone(flowState.reviewConvergence),
-      version: 1,
-      records: nextRecords,
-    };
-    return recovered;
+    return this.replace(flowState, records, index, recovered);
+  }
+}
+
+export class ReviewSemanticRecoveryMutation extends ReviewRecoveryMutation {
+  constructor(input = {}) {
+    super(input);
+    Object.freeze(this);
+  }
+
+  apply(flowState) {
+    const { records, index, current } = this.readCurrent(flowState);
+    if (current.disposition !== "REJECTED") {
+      throw new Error("review semantic recovery requires rejected evidence");
+    }
+    if (current.semanticAttempts !== current.semanticMaxAttempts) {
+      throw new Error("review semantic recovery requires exhausted semantic attempts");
+    }
+    const recovered = new ReviewConvergenceState({
+      ...current.toJSON(),
+      treeSha: this.nextTreeSha,
+      semanticAttempts: current.semanticMaxAttempts - 1,
+      toolingAttempts: 0,
+      evidence: null,
+      finalizedEvidenceAvailable: false,
+      handoffFindings: [],
+      blocker: null,
+      toolingOutcome: null,
+    });
+    return this.replace(flowState, records, index, recovered);
   }
 }
 

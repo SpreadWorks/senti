@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T10:48:47.084Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/338-active-flow-registry-race/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 bounded repair recovery does not cover the permitted test-review-gate retry",
+      "target": "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+      "findingId": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "fingerprint": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires permitting one subsequent test-review-gate evaluation; the current executable test does not cover that acceptance requirement.",
+      "issue": "The R6 test exercises the first impl-repair recovery and then manually moves the flow back to impl-gate, but it never proves that the recovery permits exactly one subsequent test-review-gate evaluation. No test-review-gate transition or second evaluation boundary is asserted.",
+      "requiredChange": "Add spec-local coverage that, after the one allowed impl-repair recovery, drives the flow through the subsequent test-review-gate evaluation and asserts exactly one retry is permitted before further recovery/evaluation is rejected.",
+      "whyBlocking": "R6 explicitly requires permitting one subsequent test-review-gate evaluation; the current executable test does not cover that acceptance requirement.",
+      "origin": "R6",
+      "failureKind": "missing spec-local coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 repair recovery does not prove only leaf steps from test-execute through finalize-cleanup are invalidated",
+      "target": "specs/338-active-flow-registry-race/tests/bounded-recovery.test.js",
+      "findingId": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "fingerprint": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "disposition": "must-fix",
+      "rationale": "R6 requires precise invalidation scope; partial spot checks can pass while recovery mutates too much or too little of the flow.",
+      "issue": "The test checks that draft is unchanged and a few downstream statuses/artifacts change, but it does not enumerate the full affected leaf-step range from test-execute through finalize-cleanup or assert that steps outside that range remain untouched.",
+      "requiredChange": "Add assertions comparing pre/post statuses for every relevant leaf step, proving only the intended test-execute through finalize-cleanup leaf steps are invalidated and unrelated flow state is unchanged.",
+      "whyBlocking": "R6 requires precise invalidation scope; partial spot checks can pass while recovery mutates too much or too little of the flow.",
+      "origin": "R6",
+      "failureKind": "missing spec-local coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/338-active-flow-registry-race/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "055023c9ef91f836d6e270e53843f6d8515fba9e81d52825f9bb614ad2513b43"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "findingId": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "R6 bounded repair recovery does not cover the permitted test-review-gate retry",
+      "body": "The R6 test exercises the first impl-repair recovery and then manually moves the flow back to impl-gate, but it never proves that the recovery permits exactly one subsequent test-review-gate evaluation. No test-review-gate transition or second evaluation boundary is asserted.",
+      "category": "unknown",
+      "fingerprint": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires permitting one subsequent test-review-gate evaluation; the current executable test does not cover that acceptance requirement."
+    },
+    {
+      "id": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "findingId": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "R6 repair recovery does not prove only leaf steps from test-execute through finalize-cleanup are invalidated",
+      "body": "The test checks that draft is unchanged and a few downstream statuses/artifacts change, but it does not enumerate the full affected leaf-step range from test-execute through finalize-cleanup or assert that steps outside that range remain untouched.",
+      "category": "unknown",
+      "fingerprint": "3b0cf08046548074928d8d5fc5f40f3a52a2da8a89bb46f578df82869f4d32db",
+      "disposition": "must-fix",
+      "rationale": "R6 requires precise invalidation scope; partial spot checks can pass while recovery mutates too much or too little of the flow."
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/run-scenario-validity.js"
+    ],
+    "inputHash": "bc71c4a20a2298f8d189eee6dcd1e3124485ea27f52c8619c4001c56c395a993",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/run-scenario-validity.js"
+  ],
+  "inputHash": "bc71c4a20a2298f8d189eee6dcd1e3124485ea27f52c8619c4001c56c395a993",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T11:47:56.953Z",
+  "finishedAt": "2026-07-25T11:47:56.953Z",
+  "rawResponse": "### 1. Restore Phase-Gated Review Finding IDs\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** `canonicalFindingList` now always passes a phase/bucket/index ID seed into `canonicalFinding`, removing the previous `DRAFT_REPAIR_TARGET_PHASES.has(phase)` gate. That changes behavior for phases that previously shared the stable `\"review-finding\"` target, and the collision-handling code then depends on the new per-index IDs.  \n**Suggestion:** Preserve the old target selection in a named helper, then apply collision handling only after canonicalization:\n\n```js\nfunction reviewFindingTarget(phase, bucket, index) {\n  return DRAFT_REPAIR_TARGET_PHASES.has(phase)\n    ? `${phase}-${bucket}-${String(index + 1).padStart(3, \"0\")}`\n    : \"review-finding\";\n}\n```\n\n### 2. Extract Collision Repair Helper\n**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R2  \n**Issue:** `canonicalFindingList` now mixes three responsibilities: canonicalizing findings, tracking seen IDs/fingerprints, and repairing collisions. The inline hash/suffix logic makes the mapping harder to scan and harder to reuse or test independently.  \n**Suggestion:** Move the collision logic into a small helper such as `dedupeCanonicalFinding(canonical, finding, context, seen)` or `repairFindingCollision(...)`. Keep `canonicalFindingList` as the high-level map over findings.\n\n### 3. Simplify Scenario Process Summary Construction\n**File:** `src/flow/lib/run-scenario-validity.js`  \n**Requirement:** R3  \n**Issue:** The changed block appears to be mostly indentation churn, but `scenarioProcess` construction remains bulky inline logic inside the command flow. It duplicates aggregation concerns already implied by `fileRecords`, `failedRecords`, and `spawnErrors`, making the main execution path harder to follow.  \n**Suggestion:** Extract this into a helper such as `buildScenarioProcess(fileRecords)`, returning the same process-shaped object. This would make the command flow read as test execution, raw output construction, validation, and result writing.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Restore Phase-Gated Review Finding IDs",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** `canonicalFindingList` now always passes a phase/bucket/index ID seed into `canonicalFinding`, removing the previous `DRAFT_REPAIR_TARGET_PHASES.has(phase)` gate. That changes behavior for phases that previously shared the stable `\"review-finding\"` target, and the collision-handling code then depends on the new per-index IDs.  \n**Suggestion:** Preserve the old target selection in a named helper, then apply collision handling only after canonicalization:\n\n```js\nfunction reviewFindingTarget(phase, bucket, index) {\n  return DRAFT_REPAIR_TARGET_PHASES.has(phase)\n    ? `${phase}-${bucket}-${String(index + 1).padStart(3, \"0\")}`\n    : \"review-finding\";\n}\n```",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Extract Collision Repair Helper",
+        "body": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R2  \n**Issue:** `canonicalFindingList` now mixes three responsibilities: canonicalizing findings, tracking seen IDs/fingerprints, and repairing collisions. The inline hash/suffix logic makes the mapping harder to scan and harder to reuse or test independently.  \n**Suggestion:** Move the collision logic into a small helper such as `dedupeCanonicalFinding(canonical, finding, context, seen)` or `repairFindingCollision(...)`. Keep `canonicalFindingList` as the high-level map over findings.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Simplify Scenario Process Summary Construction",
+        "body": "**File:** `src/flow/lib/run-scenario-validity.js`  \n**Requirement:** R3  \n**Issue:** The changed block appears to be mostly indentation churn, but `scenarioProcess` construction remains bulky inline logic inside the command flow. It duplicates aggregation concerns already implied by `fileRecords`, `failedRecords`, and `spawnErrors`, making the main execution path harder to follow.  \n**Suggestion:** Extract this into a helper such as `buildScenarioProcess(fileRecords)`, returning the same process-shaped object. This would make the command flow read as test execution, raw output construction, validation, and result writing.",
+        "file": "src/flow/lib/run-scenario-validity.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

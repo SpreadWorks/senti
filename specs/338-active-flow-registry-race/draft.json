@@ -1,0 +1,105 @@
+{
+  "devType": "bugfix",
+  "goal": "must: managed worktree の flow で `acceptance-decision` を記録しても、対象を含むすべての active-flow registry entry と target identity を保持する。",
+  "analysis": {
+    "problem": "managed worktree の durable な flow state、runId、Issue、spec identity が有効なまま、`acceptance-decision` 成功後に共有 `.senti/.active-flow` の対象 entry が失われることがある。このため通常の target resolution が不能になり、`flow resume --parked` と exact guards による手動復旧が必要になる。",
+    "proposedApproach": "must: `applyAcceptanceDecision()` は、managed worktree binding で確定した対象の `FlowManager` を用いて、その flow.json だけを更新する。同処理は `.active-flow` を再構築・削除・park せず、成功前後で対象と同時登録 entry の runId / Issue / spec identity を guarded resolution で照合する。さらに mechanical gate が current flow の未記録 repair evidence を検出した場合は、既存の impl-repair と review-convergence authority だけで stale evidence を無効化して 1 回の再評価へ戻す。",
+    "validation": "must: 複数 managed worktree を登録した状態で acceptance-decision を実行し、全 entry の保持と同一 runId / Issue / spec の guarded resolution を確認する。競合、revision mismatch、lock failure の注入時には entry を失わず明示的に失敗すること、および single-flow と `flow resume --parked` の既存動作を確認する。must: mechanical gate の repair evidence 欠落と exhausted rejected review の changed-tree reset では、current flow の stale evidence だけが無効化され 1 回の再評価へ戻ることを確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #461 は acceptance-decision 後に managed worktree の active-flow pointer が消失し、durable な flow state と exact identity は残る事象を記録している。",
+      "must: `set-acceptance-decision.js` は `applyAcceptanceDecision()` に委譲し、同処理は acceptance artifact を保存した後に `flowManager.mutate()` で step と decision state を更新する。",
+      "must: `ActiveFlowRegistry` は registry mutation を repository operation lock と registry lock の下で行い、write / remove 前に revision を再検証する。",
+      "must: `FlowManager` は managed worktree の binding と flow.json の identity を照合し、exact target guards による resolution を提供する。",
+      "must: `FlowStore.mutate()` は flow state の atomic mutation を担当し、registry entry の add / remove は別の registry API が担当する。",
+      "must: `applyAcceptanceDecision()` は acceptance artifact を保存した後、同じ FlowManager の `mutate()` で acceptance-decision と final-regression の step state を更新する。",
+      "must: `flow resume --parked` は pointer 消失時の recovery interface として維持する。",
+      "must: impl-repair transaction と review-convergence mutation は current flow の stale evidence を無効化する既存 authority である。"
+    ],
+    "decisionPoints": [
+      "must: acceptance-decision が成功した後も、対象 flow と同時に登録されていた他 flow の active-flow registry entry を保持する。",
+      "must: success path は same runId、Issue、spec を持つ guarded next-action resolution を可能にする。",
+      "must: registry revision conflict、registry lock failure、または mutation race は partial success や entry loss を起こさず、原因を示して fail-closed にする。",
+      "must: acceptance-decision の observable outcome は、対象 flow の step transition と registry identity verification がともに成功するか、両者を変更しない failure のいずれかである。",
+      "must: 回帰テストは multi-flow registry mutation と acceptance-decision lifecycle をまたいで検証する。",
+      "must: mechanical gate の repair evidence recovery と exhausted review の changed-tree reset は、existing authority を再利用して current flow だけを 1 回再評価へ戻す。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加せず、Node.js 組み込みモジュールと既存 test runner を利用する。",
+      "must: alpha 版ポリシーに従い、旧 format または deprecated path の互換コードを追加しない。",
+      "must: `src/` には Issue 固有情報を埋め込まず、再利用可能な flow registry と lifecycle の振る舞いとして実装する。",
+      "must: 意味のある構造は専用クラスで表現し、既存のクラス設計と module pattern に従う。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: `src/flow/lib/acceptance-review-artifacts.js` の `applyAcceptanceDecision()` を lifecycle boundary として、bound FlowManager による target-only mutation と registry identity postcondition を実装する。",
+      "must: `ActiveFlowRegistry` の operation lock と revision check を fault-injection boundary として、multi-flow acceptance-decision の race、revision mismatch、lock failure を behavior-level regression test にする。",
+      "must: `SetStepCommand` の impl-repair recovery と `ReviewSemanticRecoveryMutation` を、current-flow の bounded recovery として spec-local test で検証する。",
+      "must: requirement IDs、task 分割、acceptance criteria の詳細は spec 作成時に Issue #461 の完了条件へ写像する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: 2 つ以上の managed-worktree flow が active-flow registry に存在する状態で、1 flow の acceptance-decision が全 entry を保持する。",
+      "must: acceptance-decision 後の guarded `flow get next-action` が同じ runId、Issue、spec を解決する。",
+      "must: registry mutation race、revision mismatch、lock failure は registry entry を失わせず、partial success ではない明示的な失敗として返る。",
+      "must: command success は durable flow state と active-flow registry の target identity 一貫性を確認する。",
+      "must: single-flow、multi-flow、`flow resume --parked` の既存動作を維持する。",
+      "must: active-flow registry と acceptance-decision lifecycle をまたぐ regression test を追加する。",
+      "must: current flow の missing repair evidence と changed-tree review recovery の bounded re-evaluation を検証する。"
+    ],
+    "out": [
+      "must: `flow resume --parked` の command name、exact guard contract、recovery workflow を変更しない。",
+      "must: Issue #461 と無関係な flow lifecycle、finalize behavior、CLI output envelope を変更しない。",
+      "must: registry と flow state の一般的な performance optimization は、pointer loss 防止に必要でない限り対象に含めない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: active managed-worktree flow は registry entry と worktree-local flow.json の両方から発見・解決できる現行契約を維持する。",
+    "must: registry conflict または lock failure は、成功として step transition や acceptance decision を返さず、利用者が原因を確認できる failure を返す。",
+    "must: `flow resume --parked` は通常経路では不要なまま、既存の recovery 手段として利用可能に保つ。",
+    "must: single-flow の registry add / remove と multi-flow の他 entry 保持を behavior-level test で確認する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: managed worktree（分離した作業ディレクトリ）での通常の acceptance-decision は、対象を含むすべての active-flow registry entry を保持し、`flow resume --parked` を通常手順にしない要件で進めますか？",
+      "answer": "must: はい。通常の acceptance-decision は registry entry を保持し、`flow resume --parked` は pointer 消失時だけの既存 recovery とする。",
+      "evidence": "Issue #461 の完了条件、draft.json#analysis.problem、src/lib/flow-manager.js の managed-worktree binding 契約。",
+      "why": "must: pointer loss を通常経路で解消しつつ、既存 recovery interface の互換性を保つため。",
+      "considered": "registry を対象 entry から再構築する案は、同時 active flow を失わせるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: binding mismatch、registry lock failure、revision conflict、identity verification failure の各境界で、成功 transition や registry entry の喪失を許さない要件で進めますか？",
+      "answer": "must: はい。各 failure boundary は明示的な failure を返し、成功 transition と registry entry の喪失を起こさない。",
+      "evidence": "Issue #461 の R4 完了条件、src/lib/active-flow-registry.js の lock と revision check、draft.json#scopeVerification.in。",
+      "why": "must: shared registry の partial mutation は別 flow を破壊するため、失敗を可観測かつ非破壊にする必要がある。",
+      "considered": "失敗後に registry を再構築する案は concurrent entry を失う危険があるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "must: current flow の repair evidence 欠落または changed-tree review recovery は、既存 authority を使って stale evidence を無効化し、1 回だけ再評価する範囲に限定しますか？",
+      "answer": "must: はい。current flow の stale evidence だけを無効化し、既存 lifecycle authority による 1 回の bounded re-evaluation に限定する。",
+      "evidence": "Issue #461 の R6、src/flow/lib/set-step.js の impl-repair recovery、src/flow/lib/review-convergence.js の semantic recovery。",
+      "why": "must: mechanical evidence failure を回復可能にしながら、arbitrary transition や cross-flow mutation を導入しないため。",
+      "considered": "汎用 recovery framework は Issue #461 の scope を超え、任意の lifecycle mutation を許すため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T19:23:12+09:00",
+    "notes": "Re-approved after the R6 planning evidence refresh."
+  }
+}

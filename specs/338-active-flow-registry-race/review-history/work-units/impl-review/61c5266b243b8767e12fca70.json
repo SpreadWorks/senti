@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "61c5266b243b8767e12fca70",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-15e352ff1e32a87c",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+      "src/flow/definition.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/set-step.js",
+      "src/lib/active-flow-registry.js",
+      "src/lib/flow-manager.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "15e352ff1e32a87ce67c38d54954b10580d327da691c4844ac6fc945c6b47707",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "61c5266b243b8767e12fca70"
+  },
+  "targetFiles": [
+    "specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+    "src/flow/definition.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/set-step.js",
+    "src/lib/active-flow-registry.js",
+    "src/lib/flow-manager.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "15e352ff1e32a87ce67c38d54954b10580d327da691c4844ac6fc945c6b47707",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T09:04:36.828Z",
+  "finishedAt": "2026-07-25T09:04:36.828Z",
+  "rawResponse": "### 1. Centralize Bounded Scan Limits\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R5  \n**Issue:** Multiple files introduce bulk scans or snapshot copies without consistent limit handling: `historicalReviewHandoffs()` scans convergence history, `repairEvidenceFile()` scans delta paths in `src/flow/lib/impl-repair-artifacts.js`, and `ActiveFlowRegistrySnapshot` copies registry entries in `src/lib/active-flow-registry.js`. Each proposal suggests a local cap, but independent caps risk inconsistent error semantics and naming.\n**Suggestion:** Add a shared bounded-collection helper or shared constants module for artifact/registry scan limits, with consistent mechanical-blocker errors. Use it from acceptance review artifacts, impl repair artifact scanning, and active-flow registry snapshot creation.\n\n### 2. Align Exact-Target Mutation Interfaces\n**File:** `src/lib/flow-manager.js`  \n**Requirement:** R1  \n**Issue:** `flow-manager.js` has inconsistent exact-target validation between `captureExactTarget()` and `mutateExactTarget()`, while `src/flow/lib/acceptance-review-artifacts.js` builds mutation/rollback closures around `registrySnapshot == null`. Together, these create two layers of target-selection logic with slightly different assumptions about whether a spec identity is required.\n**Suggestion:** Expose one authoritative exact-target capture/mutation API from `flow-manager.js` that always validates the required spec/run identity, then have acceptance decision mutation and rollback paths consume that captured target instead of branching independently on registry snapshot presence.\n\n### 3. Normalize Repair/Recovery Naming Across Flow Files\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** Recovery-related names vary across files: `ReviewRecoveryMutation` sounds like a concrete mutation, `REJECTED_IMPL_REVIEW_RESET_STEPS` in `src/flow/definition.js` describes reset behavior from a different angle, and `set-step.js` uses broad `missing*FindingIds` names for repair recovery paths. The concepts are related, but naming does not consistently distinguish recovery trigger, reset action, and unrepaired finding selection.\n**Suggestion:** Adopt a common naming pattern: use `*Recovery*` for recovery authority objects, `*RejectionReset*` for reset-step constants, and `unrepaired*FindingIds` for finding sets that still require repair evidence. Rename the affected symbols together to keep the R6 lifecycle vocabulary consistent.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Bounded Scan Limits",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R5  \n**Issue:** Multiple files introduce bulk scans or snapshot copies without consistent limit handling: `historicalReviewHandoffs()` scans convergence history, `repairEvidenceFile()` scans delta paths in `src/flow/lib/impl-repair-artifacts.js`, and `ActiveFlowRegistrySnapshot` copies registry entries in `src/lib/active-flow-registry.js`. Each proposal suggests a local cap, but independent caps risk inconsistent error semantics and naming.\n**Suggestion:** Add a shared bounded-collection helper or shared constants module for artifact/registry scan limits, with consistent mechanical-blocker errors. Use it from acceptance review artifacts, impl repair artifact scanning, and active-flow registry snapshot creation.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Align Exact-Target Mutation Interfaces",
+        "body": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R1  \n**Issue:** `flow-manager.js` has inconsistent exact-target validation between `captureExactTarget()` and `mutateExactTarget()`, while `src/flow/lib/acceptance-review-artifacts.js` builds mutation/rollback closures around `registrySnapshot == null`. Together, these create two layers of target-selection logic with slightly different assumptions about whether a spec identity is required.\n**Suggestion:** Expose one authoritative exact-target capture/mutation API from `flow-manager.js` that always validates the required spec/run identity, then have acceptance decision mutation and rollback paths consume that captured target instead of branching independently on registry snapshot presence.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Normalize Repair/Recovery Naming Across Flow Files",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** Recovery-related names vary across files: `ReviewRecoveryMutation` sounds like a concrete mutation, `REJECTED_IMPL_REVIEW_RESET_STEPS` in `src/flow/definition.js` describes reset behavior from a different angle, and `set-step.js` uses broad `missing*FindingIds` names for repair recovery paths. The concepts are related, but naming does not consistently distinguish recovery trigger, reset action, and unrepaired finding selection.\n**Suggestion:** Adopt a common naming pattern: use `*Recovery*` for recovery authority objects, `*RejectionReset*` for reset-step constants, and `unrepaired*FindingIds` for finding sets that still require repair evidence. Rename the affected symbols together to keep the R6 lifecycle vocabulary consistent.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

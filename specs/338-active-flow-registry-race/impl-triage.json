@@ -1,0 +1,401 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 2,
+    "hash": "7bea6358606d130b81e8be43643f286f317a7c09b3ed793b0d63693b3d027195",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-25T11:48:16.849Z",
+  "items": [
+    {
+      "findingId": "18e79da26cc45b773d42ebb451d66f3c1e03f35248792ac77bb5ef55dba8e23a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R5  \n**Issue:** `loadAcceptanceModule()` and `repairFingerprint()` use `Date.now()` in dynamic import query strings. If multiple imports happen in the same millisecond, the cache key can collide, which makes the test isolation mechanism weaker than intended.  \n**Suggestion:** Replace `Date.now()` with a monotonic counter or `crypto.randomUUID()` helper, for example `nextImportUrl(modulePath)`, and reuse it for both dynamic imports.",
+      "evidenceRefs": [
+        "impl-review.json#18e79da26cc45b773d42ebb451d66f3c1e03f35248792ac77bb5ef55dba8e23a"
+      ]
+    },
+    {
+      "findingId": "e42277df472ee0a1570d1c91657827bd1c5cc32a7aae491cf5c5d54dbbd6e0ed",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R4  \n**Issue:** The R4 failure-boundary test and the issue-log rollback test repeat the same assertions for registry entries, flow file bytes, acceptance-review bytes, issue-log bytes, and step statuses. This makes future rollback coverage easy to update inconsistently.  \n**Suggestion:** Introduce a helper such as `snapshotAcceptanceDecisionTransaction(context)` returning an assertion function, or `assertTransactionRolledBack(context, snapshot)`, and use it in both tests.",
+      "evidenceRefs": [
+        "impl-review.json#e42277df472ee0a1570d1c91657827bd1c5cc32a7aae491cf5c5d54dbbd6e0ed"
+      ]
+    },
+    {
+      "findingId": "acf1191d943bf6b7ff26a5468942e2f64d0f2f096b599aaeb47ad1d5c922f8e4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R4  \n**Issue:** The `cases` array uses positional tuple entries like `[name, inject, expectedCode, expectedCalls]`. The `null` and numeric fields are not self-describing, and the loop relies on unpacking order.  \n**Suggestion:** Change the cases to objects with named fields: `{ name, inject, expectedCode, expectedSnapshotCalls }`. This makes each boundary easier to read and reduces accidental misordering.",
+      "evidenceRefs": [
+        "impl-review.json#acf1191d943bf6b7ff26a5468942e2f64d0f2f096b599aaeb47ad1d5c922f8e4"
+      ]
+    },
+    {
+      "findingId": "5bb442dbbef0f29c8b763b97fd58b080f10e0502b113e64b86f7e7885b1994df",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R5  \n**Issue:** The helper `repairFingerprint(root, state)` has the same conceptual name as the `repairFingerprint` value passed into `decisionArtifact(repairFingerprint)`, which makes call sites slightly ambiguous.  \n**Suggestion:** Rename the helper to `buildCurrentRepairFingerprint` or `loadRepairFingerprintHash`, and rename the `decisionArtifact` parameter to `fingerprintHash`.",
+      "evidenceRefs": [
+        "impl-review.json#5bb442dbbef0f29c8b763b97fd58b080f10e0502b113e64b86f7e7885b1994df"
+      ]
+    },
+    {
+      "findingId": "1e425dadeedbed72ac64aa3cb49e1450dbdbf37391bd2a6ba66a798d910ce013",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`  \n**Requirement:** R2  \n**Issue:** The first test asserts the target flow file changes and the other flow file does not, while later tests assert detailed state transitions and registry preservation. This mixes exact identity persistence with unrelated file-byte mutation checks.  \n**Suggestion:** Replace the byte-level target mutation assertion with explicit step/status assertions, or move byte rollback checks into the rollback helper proposed above.",
+      "evidenceRefs": [
+        "impl-review.json#1e425dadeedbed72ac64aa3cb49e1450dbdbf37391bd2a6ba66a798d910ce013"
+      ]
+    },
+    {
+      "findingId": "d565ef756d8e92e17cb51ac3010c92acafc0fdfd978d9c731f82c9635dc26d1e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R5  \n**Issue:** `resolveReviewTarget()` now handles scope parsing, tracked diff collection, spec-test path policy, exclusion matching, untracked diff collection, and diff-file parsing. The embedded `excludeFile` callback is doing enough path policy work to obscure the main flow.  \n**Suggestion:** Extract a helper like `createReviewUntrackedExclude({ flow, scopeFiles, excludeMatcher })` and keep `resolveReviewTarget()` focused on composing tracked and untracked diffs.",
+      "evidenceRefs": [
+        "impl-review.json#d565ef756d8e92e17cb51ac3010c92acafc0fdfd978d9c731f82c9635dc26d1e"
+      ]
+    },
+    {
+      "findingId": "629bc16d36d2d488c9ae8a8fa2f1c16349c4905799b7f2a5aa9a2c64dcfd9d2e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R5  \n**Issue:** Path normalization is repeated with `String(...).split(path.sep).join(\"/\")` for both `flow.spec` and each untracked file.  \n**Suggestion:** Add a small local helper such as `toPosixPath(value)` and use it in `resolveReviewTarget()` and the untracked exclusion callback. This improves readability and keeps path handling consistent.",
+      "evidenceRefs": [
+        "impl-review.json#629bc16d36d2d488c9ae8a8fa2f1c16349c4905799b7f2a5aa9a2c64dcfd9d2e"
+      ]
+    },
+    {
+      "findingId": "f0bf85c6cfc9db331b5e2e08ebfb945dde38145f156d0430a9315804ff60ab53",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/definition.js`  \n**Requirement:** R3  \n**Issue:** `REJECTED_IMPL_REVIEW_RESET_STEPS` is verdict-oriented, while nearby lifecycle constants such as `IMPL_REVIEW_RESET_RANGE` are step/lifecycle-oriented. The naming style is slightly inconsistent.  \n**Suggestion:** Rename it to `IMPL_REVIEW_REJECTED_RESET_STEPS` or `IMPL_REVIEW_REJECTION_RESET_STEPS` so related impl-review lifecycle constants group together naturally.",
+      "evidenceRefs": [
+        "impl-review.json#f0bf85c6cfc9db331b5e2e08ebfb945dde38145f156d0430a9315804ff60ab53"
+      ]
+    },
+    {
+      "findingId": "4a90f9dcca4a6ed0cb7038b8c3f7b9abffe240fcf5d9ad8ae4ece7eb3cd72133",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R6  \n**Issue:** `historicalReviewHandoffs()` iterates every `reviewConvergence.records` entry and every `evidenceHistory` item, reading one evidence file per unique digest with no explicit count or size bound on the collection. The matched bounded-resource rationale only covers full comparison of one active-flow registry snapshot, not unbounded historical evidence replay.  \n**Suggestion:** Add explicit caps for records, evidence history entries, and total evidence files processed, or reuse an existing project cap if one exists in this file. Throw a clear error when exceeded.",
+      "evidenceRefs": [
+        "impl-review.json#4a90f9dcca4a6ed0cb7038b8c3f7b9abffe240fcf5d9ad8ae4ece7eb3cd72133"
+      ]
+    },
+    {
+      "findingId": "077378a9277dfdbbb51c108af3ff313058b5b9664fc6e1fa3be615547a4b65ee",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `requireNullableIssue()` validates positive integer issue identities, but `AcceptanceDecisionTargetIdentity` reimplements similar parsing and validation inline. This duplicates identity validation rules and increases the chance of drift.  \n**Suggestion:** Use `requireNullableIssue(state?.issue, \"active flow issue\")` inside `AcceptanceDecisionTargetIdentity`, then keep only the managed-worktree-specific null rejection there.",
+      "evidenceRefs": [
+        "impl-review.json#077378a9277dfdbbb51c108af3ff313058b5b9664fc6e1fa3be615547a4b65ee"
+      ]
+    },
+    {
+      "findingId": "243db3d38b3ced1f0ee708f47b635a313d78db7b96456029558311ff59363a3b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `CanonicalReviewEvidenceProjection` calls `requireString(record.canonicalEvidenceRef, ...)` and immediately passes the result to `readCanonicalReviewEvidence()`, which validates the same value again.  \n**Suggestion:** Pass `record.canonicalEvidenceRef` directly to `readCanonicalReviewEvidence()` and let that helper own canonical evidence reference validation.",
+      "evidenceRefs": [
+        "impl-review.json#243db3d38b3ced1f0ee708f47b635a313d78db7b96456029558311ff59363a3b"
+      ]
+    },
+    {
+      "findingId": "6d2d7eee2654d23119e32f3074ed3e8326eaab02c310ce186f2b9a562db43414",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `appendRollbackError()` sounds like it mutates a collection, but it actually returns either the new cause or an `AggregateError`. The current name makes the rollback path harder to scan.  \n**Suggestion:** Rename it to something like `combineRollbackError()` or `mergeRollbackError()` to reflect that it returns the combined error value.",
+      "evidenceRefs": [
+        "impl-review.json#6d2d7eee2654d23119e32f3074ed3e8326eaab02c310ce186f2b9a562db43414"
+      ]
+    },
+    {
+      "findingId": "9245369a21421455ca702ddd76a43ce421f17c171783c8217ca61ba96e284a73",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R6  \n**Issue:** `completeLateAppliedFindingRepair` appears to duplicate the existing repair flow pattern: read previous/current fingerprints, compute changed paths, build delta, create ledger entry, construct `ImplRepairTransaction`, plan step changes, apply `ExplicitRecoveryTransition`, then commit effects.  \n**Suggestion:** Extract the common ledger/delta/transaction construction into a helper such as `buildImplRepairTransaction(...)`, with small strategy inputs for `sourceStep`, `sourceFindingIds`, and `reason`. That would make the “at most once” recovery behavior easier to audit and reduce drift between repair paths.",
+      "evidenceRefs": [
+        "impl-review.json#9245369a21421455ca702ddd76a43ce421f17c171783c8217ca61ba96e284a73"
+      ]
+    },
+    {
+      "findingId": "0241235e4d332c278bfe4b398c92c3d65702b85855072970a557d1e005517cc1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R6  \n**Issue:** `WORKFLOW_ARTIFACT_PATH_PREFIXES` includes `docs/` and `specs/`, which are broader than workflow artifact paths. The name understates what the filter excludes.  \n**Suggestion:** Rename it to something behavior-focused, for example `NON_DURABLE_REPAIR_EVIDENCE_PREFIXES` or `REPAIR_EVIDENCE_EXCLUDED_PREFIXES`, so future readers do not accidentally treat docs/specs exclusions as incidental workflow cleanup.",
+      "evidenceRefs": [
+        "impl-review.json#0241235e4d332c278bfe4b398c92c3d65702b85855072970a557d1e005517cc1"
+      ]
+    },
+    {
+      "findingId": "8ebc0e0a1b93f213f3f27c7d62f9393bbba4f5b5ff5f81d53004d474991eafb7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R6  \n**Issue:** `repairEvidenceFile` scans `delta.changedPaths` with `.find(...)` without an explicit bound. The guardrail acknowledgment covers full snapshot comparison, but this is a later evidence-selection pass and currently has no local cap.  \n**Suggestion:** Add an explicit upper bound for evidence candidate inspection, or persist a bounded durable-evidence candidate when creating the repair delta. If the full scan is intentionally required, add a matched rationale tied to this specific pass so the bounded-resource exception is explicit.",
+      "evidenceRefs": [
+        "impl-review.json#8ebc0e0a1b93f213f3f27c7d62f9393bbba4f5b5ff5f81d53004d474991eafb7"
+      ]
+    },
+    {
+      "findingId": "b9676167b8245babfba5ea27b021dabf2c546cea3ac184860b67484fb4a3f0b3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R6  \n**Issue:** `ReviewToolingRecoveryMutation.apply` and `ReviewSemanticRecoveryMutation.apply` both encode “attempts must be exhausted” checks with slightly different field names and error strings.  \n**Suggestion:** Introduce a small helper such as `requireExhaustedAttempts(current, \"tooling\")` / `requireExhaustedAttempts(current, \"semantic\")`. This keeps recovery semantics consistent and makes the “exactly one re-evaluation” rule easier to verify.",
+      "evidenceRefs": [
+        "impl-review.json#b9676167b8245babfba5ea27b021dabf2c546cea3ac184860b67484fb4a3f0b3"
+      ]
+    },
+    {
+      "findingId": "6e5a791b55ad87a95beb4d487e205e44f512bfe8e5d6276c64bd3cec8cd8fb06",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** `canonicalFindingList` now always passes a phase/bucket/index ID seed into `canonicalFinding`, removing the previous `DRAFT_REPAIR_TARGET_PHASES.has(phase)` gate. That changes behavior for phases that previously shared the stable `\"review-finding\"` target, and the collision-handling code then depends on the new per-index IDs.  \n**Suggestion:** Preserve the old target selection in a named helper, then apply collision handling only after canonicalization:\n\n```js\nfunction reviewFindingTarget(phase, bucket, index) {\n  return DRAFT_REPAIR_TARGET_PHASES.has(phase)\n    ? `${phase}-${bucket}-${String(index + 1).padStart(3, \"0\")}`\n    : \"review-finding\";\n}\n```",
+      "evidenceRefs": [
+        "impl-review.json#6e5a791b55ad87a95beb4d487e205e44f512bfe8e5d6276c64bd3cec8cd8fb06"
+      ]
+    },
+    {
+      "findingId": "2c664bbc2fcf1a9cf3b6014b4f7dc128904a6239d54edd7318e3399ce96cddbd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R2  \n**Issue:** `canonicalFindingList` now mixes three responsibilities: canonicalizing findings, tracking seen IDs/fingerprints, and repairing collisions. The inline hash/suffix logic makes the mapping harder to scan and harder to reuse or test independently.  \n**Suggestion:** Move the collision logic into a small helper such as `dedupeCanonicalFinding(canonical, finding, context, seen)` or `repairFindingCollision(...)`. Keep `canonicalFindingList` as the high-level map over findings.",
+      "evidenceRefs": [
+        "impl-review.json#2c664bbc2fcf1a9cf3b6014b4f7dc128904a6239d54edd7318e3399ce96cddbd"
+      ]
+    },
+    {
+      "findingId": "503f3eb67049d84d053205864c2a34973f057c62f1d46e4f183c54c8d6fc2dae",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-scenario-validity.js`  \n**Requirement:** R3  \n**Issue:** The changed block appears to be mostly indentation churn, but `scenarioProcess` construction remains bulky inline logic inside the command flow. It duplicates aggregation concerns already implied by `fileRecords`, `failedRecords`, and `spawnErrors`, making the main execution path harder to follow.  \n**Suggestion:** Extract this into a helper such as `buildScenarioProcess(fileRecords)`, returning the same process-shaped object. This would make the command flow read as test execution, raw output construction, validation, and result writing.",
+      "evidenceRefs": [
+        "impl-review.json#503f3eb67049d84d053205864c2a34973f057c62f1d46e4f183c54c8d6fc2dae"
+      ]
+    },
+    {
+      "findingId": "ad70a48f0934ebfd27085ae715e8e744076c2aa82281b8092c723dc88e1d1a73",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R6  \n**Issue:** `JSON.parse(fs.readFileSync(path.join(specDir, ...), \"utf8\"))` is repeated for multiple artifacts, which makes error handling and intent noisier.  \n**Suggestion:** Add a small local helper such as `readSpecJson(specDir, artifactName)` and use it for `impl-triage.json`, `impl-review.json`, `test-execute-result.json`, and `test-result-review.json`.",
+      "evidenceRefs": [
+        "impl-review.json#ad70a48f0934ebfd27085ae715e8e744076c2aa82281b8092c723dc88e1d1a73"
+      ]
+    },
+    {
+      "findingId": "4995c505f9c91a1ccf7d3ee92d1e57f95ffe3d572b21a0f4fc48ed4c45f1b4d6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R6  \n**Issue:** `missingCurrentAppliedFindingIds` is vague; the function specifically validates current impl-review triage and returns applied findings that lack repair ledger evidence.  \n**Suggestion:** Rename it to something like `missingAppliedTriageRepairEvidenceFindingIds` or `unrepairedAppliedTriageFindingIds` to reflect the source and condition.",
+      "evidenceRefs": [
+        "impl-review.json#4995c505f9c91a1ccf7d3ee92d1e57f95ffe3d572b21a0f4fc48ed4c45f1b4d6"
+      ]
+    },
+    {
+      "findingId": "9717344210f6f641b4d3f835f0c502ececba82cf464c9f9b2b0b15b9ba95522a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R6  \n**Issue:** `validateBlockedImplRepairRecovery` uses nested `try/catch` blocks to attempt triage-based recovery, then gate-observed recovery. This makes the success path harder to scan.  \n**Suggestion:** Extract the two strategies into named validator functions and iterate them, collecting error messages. That keeps the “try triage, then gate issue log” design explicit without deeply nested control flow.",
+      "evidenceRefs": [
+        "impl-review.json#9717344210f6f641b4d3f835f0c502ececba82cf464c9f9b2b0b15b9ba95522a"
+      ]
+    },
+    {
+      "findingId": "0664fe1a8b1c9580b828e352af7b702f72fd8dde1671f1c959957dd9c4cddf2a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R6  \n**Issue:** `new Set(ledger?.entries.flatMap((entry) => entry.sourceFindingIds) || [])` appears in both `missingCurrentAppliedFindingIds` and `missingGateObservedFindingIds`.  \n**Suggestion:** Extract a helper like `repairedFindingIdSet(ledger)` to remove duplication and make ledger interpretation consistent.",
+      "evidenceRefs": [
+        "impl-review.json#0664fe1a8b1c9580b828e352af7b702f72fd8dde1671f1c959957dd9c4cddf2a"
+      ]
+    },
+    {
+      "findingId": "346e0e08d6be141433d3bf179c1d32fe173b1314b0a5c359a40a17b00a26c5cb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/active-flow-registry.js`  \n**Requirement:** R2  \n**Issue:** `ActiveFlowRegistrySnapshot` converts entries through `toJSON()`, then freezes plain objects, while `toJSON()` later clones them again. The nested conversion expression is harder to read than necessary.  \n**Suggestion:** Extract a helper like `snapshotEntry(entry)` or normalize through `new ActiveFlowDocument(entries).toJSON()` before freezing. This keeps snapshot serialization behavior explicit and easier to audit.",
+      "evidenceRefs": [
+        "impl-review.json#346e0e08d6be141433d3bf179c1d32fe173b1314b0a5c359a40a17b00a26c5cb"
+      ]
+    },
+    {
+      "findingId": "c6adaf876f3c9c781d598882adfe2c0e5a9bb9f3ab37443160b819e33280e5ee",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R1  \n**Issue:** `CapturedFlowTargetMutation`, `captureExactTarget`, and `mutateExactTarget` repeat similar `FlowTargetExpectation` validation, with slight differences around requiring `expectation.spec`.  \n**Suggestion:** Add a small helper such as `assertExactFlowTargetExpectation(expectation, { requireSpec = true, label })` and reuse it in all three places. This reduces drift risk in managed-worktree mutation guards.",
+      "evidenceRefs": [
+        "impl-review.json#c6adaf876f3c9c781d598882adfe2c0e5a9bb9f3ab37443160b819e33280e5ee"
+      ]
+    },
+    {
+      "findingId": "19ed8935c72f2f7015ca0aaa3044084357ac01533fa78bdd467f95dc042a7d9d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R3  \n**Issue:** `resolveExplicitFlowTarget` and `resolveExplicitFlowTargetForRead` currently have identical implementations.  \n**Suggestion:** Keep one implementation and make the other a simple alias, or remove the redundant method if no API compatibility requires it.",
+      "evidenceRefs": [
+        "impl-review.json#19ed8935c72f2f7015ca0aaa3044084357ac01533fa78bdd467f95dc042a7d9d"
+      ]
+    },
+    {
+      "findingId": "54272e42a151b40ab51e8f710e678b7bfd3a2d2097eb26e94baff8e631dfa875",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R4  \n**Issue:** `ACTIVE_FLOW_MODES` duplicates the mode set already maintained in `active-flow-registry.js` as `VALID_MODES`. This creates a maintenance risk if registry modes change.  \n**Suggestion:** Export a shared mode validator or constant from `active-flow-registry.js`, then use it in `ActiveFlowIdentityEntry` instead of defining a second mode set.",
+      "evidenceRefs": [
+        "impl-review.json#54272e42a151b40ab51e8f710e678b7bfd3a2d2097eb26e94baff8e631dfa875"
+      ]
+    },
+    {
+      "findingId": "e8a0eea67bf900bd376fb354d52c3d1ef1f8705d4bf6ad603fb5bcb369bb628c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R1  \n**Issue:** The new `resolveReviewTarget` test inlines a full minimal `spec.json` object, which is verbose and likely to be repeated by future tests covering spec-local files.  \n**Suggestion:** Add a small local helper such as `writeMinimalSpec(tmp, \"specs/demo/spec.json\", overrides)` or reuse an existing fixture helper if present in this file. Keep the test focused on the untracked test-source behavior.",
+      "evidenceRefs": [
+        "impl-review.json#e8a0eea67bf900bd376fb354d52c3d1ef1f8705d4bf6ad603fb5bcb369bb628c"
+      ]
+    },
+    {
+      "findingId": "62b6059b0253314ff09151c3d4690a2a9801e4960ae438993ac4563125da964d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R2  \n**Issue:** `advisoryEvidence` has `disposition.value: \"PASS\"`, so the name suggests advisory findings even though the fixture represents a later superseding passing review.  \n**Suggestion:** Rename it to `passingEvidence`, `replacementEvidence`, or `supersedingPassEvidence` to match the role it plays in the test.",
+      "evidenceRefs": [
+        "impl-review.json#62b6059b0253314ff09151c3d4690a2a9801e4960ae438993ac4563125da964d"
+      ]
+    },
+    {
+      "findingId": "40d0db8f6a88f7f9b5c1430c2be962aef71cbec80277cca2532bc81187c65824",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R3  \n**Issue:** The new test repeats substantial `ReviewEvidence` construction and artifact writing boilerplate. This makes the behavior under test harder to see.  \n**Suggestion:** Introduce a local helper such as `makeImplReviewEvidence({ treeSha, invocationId, capturedAt, disposition })` and optionally `writeReviewEvidence(fixture.specDir, evidence)`. The test would then emphasize the deferred-finding resolution scenario instead of setup mechanics.",
+      "evidenceRefs": [
+        "impl-review.json#40d0db8f6a88f7f9b5c1430c2be962aef71cbec80277cca2532bc81187c65824"
+      ]
+    },
+    {
+      "findingId": "18f208d6ad9152951b25f78ae6d669c828b5de66d84c80346d58369c1bdbc9b0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** The new test repeats a large amount of setup for review convergence state, temporary spec creation, baseline persistence, and flow manager creation. This makes future convergence tests harder to scan and maintain.  \n**Suggestion:** Extract focused helpers such as `createReviewConvergenceState(...)` or `setupReviewRecoveryBaseline(...)` within this test file, keeping only the scenario-specific values in the test body.",
+      "evidenceRefs": [
+        "impl-review.json#18f208d6ad9152951b25f78ae6d669c828b5de66d84c80346d58369c1bdbc9b0"
+      ]
+    },
+    {
+      "findingId": "9c6fdd98e03b2184f632319a8f67375dd9c0c0abc1ae98a26e144143e4e3411b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R2  \n**Issue:** `priorStatuses` uses camelCase keys like `implRepair` and `implGate`, while the actual step IDs are kebab-case strings: `impl-repair` and `impl-gate`. This creates a small translation layer that is easy to misuse.  \n**Suggestion:** Rename the argument to something like `initialStepStatusesById` and access it with step IDs: `initialStepStatusesById[\"impl-repair\"] || \"pending\"`.",
+      "evidenceRefs": [
+        "impl-review.json#9c6fdd98e03b2184f632319a8f67375dd9c0c0abc1ae98a26e144143e4e3411b"
+      ]
+    },
+    {
+      "findingId": "ffc8518beb16abc39f0e849f87dc06f77e26dc570419c2bf7d24cc40b54a2d9f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R5  \n**Issue:** `updatesFor` now returns `{ updates, flowState }`, but most callers only need `updates`. This adds noise to the existing PASS and ADVISORY assertions.  \n**Suggestion:** Either keep `updatesFor` returning only updates and add a second helper for scenarios that need final state inspection, or rename it to reflect the broader return value, such as `runPostHookScenario`.",
+      "evidenceRefs": [
+        "impl-review.json#ffc8518beb16abc39f0e849f87dc06f77e26dc570419c2bf7d24cc40b54a2d9f"
+      ]
+    },
+    {
+      "findingId": "86967c87a223bc9dd649f38a5dedbfabf84f030d9553410ce0cc30a2ab89a0b2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R4  \n**Issue:** The inline `flowManager` test double now implements both `mutate` and `updateStepStatus`. As post-hook behavior grows, this mock can drift from the real manager contract across tests.  \n**Suggestion:** Extract a local helper like `makeRecordingFlowManager(flowState, updates)` in this file so the mocked behavior is centralized and easier to update consistently.",
+      "evidenceRefs": [
+        "impl-review.json#86967c87a223bc9dd649f38a5dedbfabf84f030d9553410ce0cc30a2ab89a0b2"
+      ]
+    },
+    {
+      "findingId": "0cab9c5e2de02769b5a500d7c2c931512bc4de795c0a53445dd310dc564db0be",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R1  \n**Issue:** The two new gate recovery tests duplicate most of the same setup: temp dir, spec/artifact writes, repair fingerprint, triage artifact, stale test artifacts, source mutation, and flow state creation. This makes the tests harder to maintain and increases the chance that future changes update one scenario but not the other.  \n**Suggestion:** Add a local helper such as `setupGateRepairEvidenceFixture({ runId })` that returns `{ tmp, specDir, state, previousFingerprint }`, then keep only the scenario-specific mutations inside each test.",
+      "evidenceRefs": [
+        "impl-review.json#0cab9c5e2de02769b5a500d7c2c931512bc4de795c0a53445dd310dc564db0be"
+      ]
+    },
+    {
+      "findingId": "915d1ff6b1200de967cb359cb63c0b3f4de42c9e453018518e79788f8c8fce3b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R1  \n**Issue:** The new tests both hand-roll a `flowManager` with nearly identical `load` / `updateStepStatuses` behavior, including the same loop that applies transition changes to `state.steps`.  \n**Suggestion:** Add a small helper like `makeRepairRecoveryFlowManager(state, { transitions } = {})` in this test file. Include optional methods such as `loadReadOnly`, `mutate`, and `completeStepTransitionIntent` only when needed by a scenario.",
+      "evidenceRefs": [
+        "impl-review.json#915d1ff6b1200de967cb359cb63c0b3f4de42c9e453018518e79788f8c8fce3b"
+      ]
+    },
+    {
+      "findingId": "2ec00a9ace098991c4869d47af433db406c3131feb86ce5cbbbd25bf13f2bb04",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R2  \n**Issue:** `GATE_FINDING_ID` describes where the finding appears, but not why this specific ID matters in these tests. The tests are specifically exercising missing repair evidence for a must-fix finding.  \n**Suggestion:** Rename it to something more intent-revealing, for example `MISSING_REPAIR_EVIDENCE_FINDING_ID` or `MUST_FIX_FINDING_ID`.",
+      "evidenceRefs": [
+        "impl-review.json#2ec00a9ace098991c4869d47af433db406c3131feb86ce5cbbbd25bf13f2bb04"
+      ]
+    },
+    {
+      "findingId": "ed7dd6f8cdf1e82271eb096f14ab67f6fe2ac7947fd207d79358f05b5f622ff0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R5  \n**Issue:** The second new test writes `timestamp: new Date().toISOString()` into `issue-log.json`. The timestamp is not relevant to the assertion and adds unnecessary nondeterminism to the fixture.  \n**Suggestion:** Use a fixed timestamp string such as `\"2026-01-01T00:00:00.000Z\"` to keep the test data deterministic.",
+      "evidenceRefs": [
+        "impl-review.json#ed7dd6f8cdf1e82271eb096f14ab67f6fe2ac7947fd207d79358f05b5f622ff0"
+      ]
+    },
+    {
+      "findingId": "4f0eba1046fd76c19f708bb9d0d72f65aa7aad92425f4c776862d788a0d40b68",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-manager.js`\n**Requirement:** R4\n**Issue:** `ACTIVE_FLOW_MODES` in `src/lib/flow-manager.js` duplicates the active-flow mode set maintained as `VALID_MODES` in `src/lib/active-flow-registry.js`. This is a cross-file interface consistency risk if registry-supported modes change.\n**Suggestion:** Export a shared mode constant or validator from `src/lib/active-flow-registry.js` and consume it from `src/lib/flow-manager.js`.",
+      "evidenceRefs": [
+        "impl-review.json#4f0eba1046fd76c19f708bb9d0d72f65aa7aad92425f4c776862d788a0d40b68"
+      ]
+    },
+    {
+      "findingId": "f15d924631b212c720175e9e1d84516af9a812088a2d69ec586d121c640f2765",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js`\n**Requirement:** R5\n**Issue:** The test helper `repairFingerprint(root, state)` uses the same domain phrase as repair fingerprint values passed through acceptance decision artifacts, while related implementation files also use repair fingerprint terminology for persisted artifact identity. This creates cross-file ambiguity between “compute/load fingerprint” helpers and the fingerprint value itself.\n**Suggestion:** Rename the test helper to an action-oriented name such as `loadRepairFingerprintHash` or `buildCurrentRepairFingerprint`, and use value names like `fingerprintHash` for parameters.",
+      "evidenceRefs": [
+        "impl-review.json#f15d924631b212c720175e9e1d84516af9a812088a2d69ec586d121c640f2765"
+      ]
+    },
+    {
+      "findingId": "820b0a218a2fe78b3b4138f0cc3744958e65db4c68f79276baeaaf1eec17152b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`\n**Requirement:** R3\n**Issue:** Multiple review-related tests introduce local evidence/artifact fixture setup helpers or inline boilerplate independently, including retry exhaustion, recovery convergence, and advisory review tests. The duplicated fixture shape can drift from the canonical review evidence contract.\n**Suggestion:** Add a shared test helper for constructing and writing review evidence artifacts, then use it across the affected unit tests.",
+      "evidenceRefs": [
+        "impl-review.json#820b0a218a2fe78b3b4138f0cc3744958e65db4c68f79276baeaaf1eec17152b"
+      ]
+    },
+    {
+      "findingId": "9528ca5caeb746e04f8aca9ad3bc716a3ae3bf543aa42a5d018bd2f9f52280bf",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`\n**Requirement:** R1\n**Issue:** Several tests hand-roll partial `flowManager` mocks with overlapping methods such as `load`, `mutate`, `updateStepStatus`, and `updateStepStatuses`. These mocks encode the manager interface differently across files, increasing the chance of inconsistent expectations.\n**Suggestion:** Introduce a shared or per-suite factory such as `makeRecordingFlowManager(state, options)` that models the common flow-manager behavior used by review, advisory, and repair-recovery tests.",
+      "evidenceRefs": [
+        "impl-review.json#9528ca5caeb746e04f8aca9ad3bc716a3ae3bf543aa42a5d018bd2f9f52280bf"
+      ]
+    },
+    {
+      "findingId": "42602604e52265eae4edf8f1a01f236ad7a3d1e5a930b0439a551215642e324d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`\n**Requirement:** R6\n**Issue:** `src/flow/lib/set-step.js` repeats direct artifact JSON reads, while nearby artifact modules such as acceptance and repair artifact code appear to centralize validation and loading logic in domain helpers. This creates inconsistent artifact IO boundaries across files.\n**Suggestion:** Add or reuse a small artifact reader helper, for example `readSpecJson(specDir, artifactName)`, and align callers with the existing artifact-library pattern where possible.",
+      "evidenceRefs": [
+        "impl-review.json#42602604e52265eae4edf8f1a01f236ad7a3d1e5a930b0439a551215642e324d"
+      ]
+    }
+  ]
+}
