@@ -1,0 +1,113 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/341-finite-agent-termination-v2/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R1: final deadline settles a stubborn POSIX process tree",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R2: parenthesized comm parsing keeps zombie state and pgrp aligned",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R3: a PID-reused member is not kept as an original live member",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R4: final deadline reports each unfinished original non-zombie member",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R5: normal close settles without timeout signals",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/lib/agent.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/process-identity.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js",
+        "fingerprint": "9cad427ca83b4f0a796134a0a602b04ba8bbc041dec304be23b81c4d0e335ddd"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/process-identity.js",
+        "fingerprint": "ec85ce9cf829bcb7a7bb7f2865e082d5a9db708abd38ce3b0e993003a0deba48"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js",
+        "fingerprint": "9cad427ca83b4f0a796134a0a602b04ba8bbc041dec304be23b81c4d0e335ddd"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/process-identity.js",
+        "fingerprint": "ec85ce9cf829bcb7a7bb7f2865e082d5a9db708abd38ce3b0e993003a0deba48"
+      }
+    ]
+  },
+  "repairFingerprint": "f7387c6f41adf131fc8dbeae05eb59bdd678e375eeac922afcc0c5aa99d4a007"
+}

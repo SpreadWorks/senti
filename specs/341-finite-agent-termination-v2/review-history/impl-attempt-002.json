@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T07:45:06.762Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "liveness-shared-stat-parser-missing",
+      "title": "Liveness path does not use the shared Linux stat parser",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/agent.js",
+      "requirementId": "R2",
+      "issue": "T-2 requires src/lib/process-identity.js and the liveness path to use the same Linux stat field mapping, and the implementation notes call for removing the agent path's local split/index parsing. The diff adds LinuxProcessStat in src/lib/process-identity.js, but src/lib/agent.js does not import or use it and only changes timer handling, so the liveness parsing path remains outside the shared value object.",
+      "suggestion": "Update the liveness parsing in src/lib/agent.js to call LinuxProcessStat.parse for /proc stat records and consume its state, pgrp, and startFingerprint fields instead of maintaining local parsing/index logic.",
+      "disposition": "must-fix",
+      "rationale": "This is a mandatory acceptance criterion for T-2: process identity and liveness must share the same field mapping. Leaving the liveness path unconverted means the requirement is not implemented and future parser fixes can still diverge between the two paths.",
+      "findingId": "768e4ec1dfd19119f3a7b05c9e78c08cda3c20841bb13a86cf39b8155bc836d5",
+      "fingerprint": "768e4ec1dfd19119f3a7b05c9e78c08cda3c20841bb13a86cf39b8155bc836d5",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "dc2cc3a5cc288fbe0d76eab8fcffc77a9e9699818b60d2d81fc8fb7bdbd13fa3",
+  "runId": "83254fae-37f4-4d76-9963-7fdda3132eeb",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/341-finite-agent-termination-v2/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/341-finite-agent-termination-v2/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "bdca749fffcb69e144c91175a5d827a45d6aa08afc862dd291f1d59caa812be6"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "768e4ec1dfd19119f3a7b05c9e78c08cda3c20841bb13a86cf39b8155bc836d5",
+      "findingId": "768e4ec1dfd19119f3a7b05c9e78c08cda3c20841bb13a86cf39b8155bc836d5",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Liveness path does not use the shared Linux stat parser",
+      "body": "T-2 requires src/lib/process-identity.js and the liveness path to use the same Linux stat field mapping, and the implementation notes call for removing the agent path's local split/index parsing. The diff adds LinuxProcessStat in src/lib/process-identity.js, but src/lib/agent.js does not import or use it and only changes timer handling, so the liveness parsing path remains outside the shared value object.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "768e4ec1dfd19119f3a7b05c9e78c08cda3c20841bb13a86cf39b8155bc836d5",
+      "disposition": "must-fix",
+      "rationale": "This is a mandatory acceptance criterion for T-2: process identity and liveness must share the same field mapping. Leaving the liveness path unconverted means the requirement is not implemented and future parser fixes can still diverge between the two paths.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

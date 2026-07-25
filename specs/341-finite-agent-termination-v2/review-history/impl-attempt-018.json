@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T08:42:07.390Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "late-live-members-excluded-from-diagnostics",
+      "title": "Late live POSIX members are omitted from timeout diagnostics",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/agent.js",
+      "requirementId": "R4",
+      "issue": "`_collectUnterminatedPosixMembers()` filters diagnostics to members whose PID and start fingerprint match `originalPosixMembers`. Any live process that joins or is forked into the process group after the original capture is excluded from `AgentTimeoutError.unterminatedMembers`, even when it remains non-zombie at the final deadline.",
+      "suggestion": "Update `_collectUnterminatedPosixMembers()` to include every current non-zombie process-group member at final deadline while still using `PosixProcessMemberIdentity.matches()` only to avoid attributing PID-reused original members as the original process. Add or correct the R4 assertion in `posix-timeout-settlement.test.js` so a late live member is reported.",
+      "disposition": "must-fix",
+      "rationale": "R4 requires the final deadline to report each unfinished non-zombie member. The current implementation and test explicitly drop a late live member, so the acceptance behavior is incomplete and timeout diagnostics can hide a still-running descendant.",
+      "findingId": "c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812",
+      "fingerprint": "c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "79b76fca59b6cdf53c4ea3091188cd696247f0b608207878fda39815feb3b5b9",
+  "runId": "83254fae-37f4-4d76-9963-7fdda3132eeb",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/341-finite-agent-termination-v2/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "f437d85ccf07d795924d87a8bf5560665823600a0da4c366726f322d7b2e904f"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 18,
+  "findings": [
+    {
+      "id": "c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812",
+      "findingId": "c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 18,
+      "severity": "blocking",
+      "title": "Late live POSIX members are omitted from timeout diagnostics",
+      "body": "`_collectUnterminatedPosixMembers()` filters diagnostics to members whose PID and start fingerprint match `originalPosixMembers`. Any live process that joins or is forked into the process group after the original capture is excluded from `AgentTimeoutError.unterminatedMembers`, even when it remains non-zombie at the final deadline.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812",
+      "disposition": "must-fix",
+      "rationale": "R4 requires the final deadline to report each unfinished non-zombie member. The current implementation and test explicitly drop a late live member, so the acceptance behavior is incomplete and timeout diagnostics can hide a still-running descendant.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    }
+  ]
+}

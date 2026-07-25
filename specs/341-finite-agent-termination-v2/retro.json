@@ -1,0 +1,45 @@
+{
+  "spec": "specs/341-finite-agent-termination-v2/spec.json",
+  "date": "2026-07-25T08:47:04.118Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "POSIX の SIGKILL 後 polling は明示的な final deadline を持ち、deadline 到達時は一度だけ AGENT_TIMEOUT で settle して全 timer を cleanup する。",
+      "status": "done",
+      "note": "R1: final deadline settles a stubborn POSIX process tree"
+    },
+    {
+      "desc": "共有 Linux stat parser は parenthesized comm の終端から state、pgrp、numeric startFingerprint を正しく抽出し、comm 内の空白で field mapping をずらさない。",
+      "status": "done",
+      "note": "R2: parenthesized comm parsing keeps zombie state and pgrp aligned"
+    },
+    {
+      "desc": "POSIX process-group liveness は original member の PID と startFingerprint を照合し、zombie-only group と reused PID を original live member と扱わない。",
+      "status": "done",
+      "note": "R3: a PID-reused member is not kept as an original live member"
+    },
+    {
+      "desc": "final deadline の AgentTimeoutError は original かつ non-zombie の unfinished member ごとに pid、state、pgrp、startFingerprint を unterminatedMembers へ保持する。",
+      "status": "done",
+      "note": "R4: final deadline reports each unfinished original non-zombie member"
+    },
+    {
+      "desc": "normal close、SIGTERM、SIGKILL の既存 escalation order と Windows timeout path の behavior を維持する。",
+      "status": "done",
+      "note": "R5: normal close settles without timeout signals"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "f7387c6f41adf131fc8dbeae05eb59bdd678e375eeac922afcc0c5aa99d4a007"
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T08:04:01.912Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "pid-reuse-test-race",
+      "title": "PID reuse regression is not deterministically covered",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+      "requirementId": "R3",
+      "issue": "The PID reuse test still flips `reused` in a `setTimeout(..., 1)` after queuing the child `close` event in a microtask. `_settleTimeout()` runs from the close microtask and collects `unterminatedMembers` before the timer is expected to run, so the test can pass without ever exercising the reused-start-fingerprint path required by R3.",
+      "suggestion": "In the R3 test's `onSignal` branch for `SIGKILL`, set `reused = true` before emitting `close`, or otherwise delay the close event until after the fixture returns the reused stat, so `_collectUnterminatedPosixMembers()` observes the changed `startFingerprint`.",
+      "disposition": "must-fix",
+      "rationale": "R3 requires automated coverage for PID reuse behavior. Because this test is race-prone and normally settles before the reused fingerprint is visible, it does not reliably cover the mandatory acceptance requirement.",
+      "findingId": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "fingerprint": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "e5f54f374dc12c238a4eb48b273e714b57d6a95f7a01b3ed8a138d0f442b6059",
+  "runId": "83254fae-37f4-4d76-9963-7fdda3132eeb",
+  "planRewindAt": null,
+  "taskId": "T-5",
+  "target": "specs/341-finite-agent-termination-v2/tasks/T-5.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/341-finite-agent-termination-v2/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "da496b9afd10944869481115b43f95394cb55b52bec846be9678e9de09970845"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 10,
+  "findings": [
+    {
+      "id": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "findingId": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 10,
+      "severity": "blocking",
+      "title": "PID reuse regression is not deterministically covered",
+      "body": "The PID reuse test still flips `reused` in a `setTimeout(..., 1)` after queuing the child `close` event in a microtask. `_settleTimeout()` runs from the close microtask and collects `unterminatedMembers` before the timer is expected to run, so the test can pass without ever exercising the reused-start-fingerprint path required by R3.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "disposition": "must-fix",
+      "rationale": "R3 requires automated coverage for PID reuse behavior. Because this test is race-prone and normally settles before the reused fingerprint is visible, it does not reliably cover the mandatory acceptance requirement.",
+      "requirementId": "R3",
+      "repeatCount": 2
+    }
+  ]
+}

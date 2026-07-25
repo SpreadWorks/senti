@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "q2 の質問文から診断項目の受入詳細を除き、質問だけにします。",
+  "items": [
+    {
+      "title": "1. Question embeds acceptance detail",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "質問文は追加要件の有無だけを尋ね、受入詳細は回答または draft の要件側に置く必要があります。",
+      "evidence": "draft-review-questions.json の repairTargets[0] が q2 を対象にし、draft.json の qa[1].question に診断項目の詳細が含まれています。"
+    }
+  ]
+}

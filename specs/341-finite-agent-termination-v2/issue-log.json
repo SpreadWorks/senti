@@ -1,0 +1,738 @@
+{
+  "entries": [
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected.; The spec extracts/replaces existing Linux stat parsing and process-group liveness behavior, but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.; The spec does not map each retained behavior from the existing stat parsing, process identity, timeout escalation, and liveness paths to its new owner or an explicit removal decision.; The implementation targets list only tests/unit/lib/agent.test.js for test changes and do not include required spec-local coverage under specs/<specid>/tests/ with // spec: R<N> headers.; T-5 directs new focused helper and scenario tests to tests/unit/lib/agent.test.js instead of requiring new spec behavior coverage under specs/<specid>/tests/ with // spec: R<N> headers.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:33:37.330Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "document"
+          },
+          "observed": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements R2/R3/R5"
+          },
+          "observed": "The spec extracts/replaces existing Linux stat parsing and process-group liveness behavior, but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements R2/R3/R5"
+          },
+          "observed": "The spec does not map each retained behavior from the existing stat parsing, process identity, timeout escalation, and liveness paths to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "implementationTargets"
+          },
+          "observed": "The implementation targets list only tests/unit/lib/agent.test.js for test changes and do not include required spec-local coverage under specs/<specid>/tests/ with // spec: R<N> headers.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks T-5 implementation_notes"
+          },
+          "observed": "T-5 directs new focused helper and scenario tests to tests/unit/lib/agent.test.js instead of requiring new spec behavior coverage under specs/<specid>/tests/ with // spec: R<N> headers.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec extracts/replaces existing Linux stat parsing and process-group liveness behavior, but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec does not map each retained behavior from the existing stat parsing, process identity, timeout escalation, and liveness paths to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The implementation targets list only tests/unit/lib/agent.test.js for test changes and do not include required spec-local coverage under specs/<specid>/tests/ with // spec: R<N> headers."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-5 directs new focused helper and scenario tests to tests/unit/lib/agent.test.js instead of requiring new spec behavior coverage under specs/<specid>/tests/ with // spec: R<N> headers."
+        }
+      ],
+      "issueLogId": "issue-log-c0cbfd55-f5f2-4ed5-a6e6-f30e480d37ff"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate: impact-on-existing-features requires an explicit existing-behavior impact inventory",
+      "trigger": "spec gate attempt 1",
+      "resolution": "add retained behavior and unchanged-surface mapping to spec.json overview decisions",
+      "guardrailCandidate": "impact-on-existing-features",
+      "normalizedFindingId": "232f221695a18a60bd189956b6f34451582201c1dfdf207156d5f5970b1f64c7",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:34:00.931Z",
+      "issueLogId": "issue-log-a38da40f-78ab-4d61-9214-85e6a80f787e"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate: migration-parity requires retained stat parsing, process identity, timeout escalation, and liveness behavior mapped to their owner or removal decision",
+      "trigger": "spec gate attempt 1",
+      "resolution": "add explicit parity inventory and ownership mapping to spec.json overview decisions",
+      "guardrailCandidate": "migration-parity",
+      "normalizedFindingId": "84f746184b5b1a87fa1a37544e1c4ef6af2ac013c43c7fec8107800fc1ece7bc",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:34:08.381Z",
+      "issueLogId": "issue-log-42201894-4b5d-4896-8547-9795024c5655"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate: spec-test-coverage requires spec-local tests with requirement headers",
+      "trigger": "spec gate attempt 1",
+      "resolution": "target specs/341-finite-agent-termination-v2/tests and require // spec: R<N> coverage headers",
+      "guardrailCandidate": "spec-test-coverage",
+      "normalizedFindingId": "8f494674a0f65fc9835edc3c6fabd28a9998001fc21b8de52017da527bf71aff",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:34:32.750Z",
+      "issueLogId": "issue-log-fff39cb2-7d6c-4c5d-8c9b-54158b3aa567"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity baseline mismatch: main advanced by two unrelated committed flow-recovery changes after this feature branch was created",
+      "trigger": "scenario-validity pre-implementation diff check",
+      "resolution": "fast-forward the uncommitted feature branch to main, then rerun scenario-validity without changing this spec scope",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/spec.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T07:31:02.801Z",
+      "issueLogId": "issue-log-433f5c98-d6e6-454c-9ef0-a90241029951"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review: R5 lacks spec-local Windows timeout-path coverage",
+      "trigger": "test review attempt 1",
+      "resolution": "add an R5 Windows supervisor timeout test that asserts taskkill and timeout settlement",
+      "normalizedFindingId": "7503c37415af6f894231a02b250654be1f7a6b5c7efa0b385548ed585b49d4c2",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T07:34:36.837Z",
+      "issueLogId": "issue-log-16689d87-ac5a-4288-8872-ddd414737328"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review: timeout test helper rethrows the expected rejection",
+      "trigger": "test review attempt 2",
+      "resolution": "capture the expected rejection as the helper result before asserting its AgentTimeoutError fields",
+      "normalizedFindingId": "c5cffeca2fd621b60781cdbab90e3ec79608489ebc0f59e5843715af43e1d784",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T07:36:11.069Z",
+      "issueLogId": "issue-log-e1dbc059-055b-40be-93e5-929ee1964a13"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review: R1 cleanup evidence is produced by test-forced cleanup",
+      "trigger": "test review attempt 3",
+      "resolution": "assert the natural timeout settlement cleanup event before deferred test cleanup",
+      "normalizedFindingId": "cc25ef92f9441093d201e690dfe70a78d094738f29d06c9ad67048025a2b9283",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T07:37:30.033Z",
+      "issueLogId": "issue-log-1614b416-4abe-4c35-9b8d-3c0af7297bfc"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review: R4 expects a string startFingerprint despite R2's numeric contract",
+      "trigger": "test review attempt 3",
+      "resolution": "assert the numeric startFingerprint returned by the shared Linux stat parser",
+      "normalizedFindingId": "3e2e9d5c49bdb8f25e17cd4539bc18b29fb8113fce4e3d91466ebdd2191fc429",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T07:37:36.656Z",
+      "issueLogId": "issue-log-59de2b71-e9b8-4072-8ca2-25fc2d7901be"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-2 review: liveness still uses local Linux stat split/index parsing",
+      "trigger": "task review attempt 1",
+      "resolution": "make process-group liveness parse each stat record through LinuxProcessStat",
+      "normalizedFindingId": "768e4ec1dfd19119f3a7b05c9e78c08cda3c20841bb13a86cf39b8155bc836d5",
+      "repairRef": {
+        "files": [
+          "src/lib/agent.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T07:45:26.874Z",
+      "issueLogId": "issue-log-4def5e43-14dc-443b-bccb-9f7c50c57706"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-2 review: LinuxProcessStat rejects valid pgrp zero records scanned by liveness",
+      "trigger": "task review attempt 2",
+      "resolution": "permit non-negative pgrp values so unrelated kernel stat records do not abort group classification",
+      "normalizedFindingId": "91a055d32882c9c63f431a3e446fc5e26a331405731948c73ca0a48d8dbb1d18",
+      "repairRef": {
+        "files": [
+          "src/lib/process-identity.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T07:46:42.882Z",
+      "issueLogId": "issue-log-6fb92ab1-08cb-4633-9e60-b951efd0520e"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added catch block discards the caught error object and only emits a generic tree-members-unavailable event; the error is not logged or re-thrown.; The added ENOENT branch silently converts the caught error to an empty result without logging or re-throwing the error.; The added catch block discards the caught error and returns false without logging or re-throwing the error.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T07:50:58.329Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/lib/agent.js",
+            "locator": "_captureOriginalPosixMembers catch (_)"
+          },
+          "observed": "The added catch block discards the caught error object and only emits a generic tree-members-unavailable event; the error is not logged or re-thrown.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/lib/agent.js",
+            "locator": "readLinuxProcessGroupMembers catch (error) ENOENT branch"
+          },
+          "observed": "The added ENOENT branch silently converts the caught error to an empty result without logging or re-throwing the error.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/lib/agent.js",
+            "locator": "processGroupHasNoLiveOriginalMembers catch (_)"
+          },
+          "observed": "The added catch block discards the caught error and returns false without logging or re-throwing the error.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added catch block discards the caught error object and only emits a generic tree-members-unavailable event; the error is not logged or re-thrown."
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added ENOENT branch silently converts the caught error to an empty result without logging or re-throwing the error."
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added catch block discards the caught error and returns false without logging or re-throwing the error."
+        }
+      ],
+      "issueLogId": "issue-log-64248934-a65f-4ca5-afd3-7647b9c15309"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: preserve proc read error codes in liveness events instead of silently discarding them",
+      "trigger": "task gate attempt 1",
+      "resolution": "propagate stat-read errors to ChildProcessSupervisor, emit their code, and keep the bounded timeout fallback",
+      "normalizedFindingId": "646441702f65b722c65ee2df7c5b14b45b4d015aa38ece6f4a4e97528371df43",
+      "repairRef": {
+        "files": [
+          "src/lib/agent.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T07:51:25.162Z",
+      "issueLogId": "issue-log-a742c995-5b70-4be5-9051-f947491c4d2d"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-4 review: timeout diagnostics test omits legacy fields and immutable member assertions",
+      "trigger": "task review attempt 1",
+      "resolution": "assert AgentTimeoutError legacy fields plus immutable diagnostic member fields",
+      "normalizedFindingId": "25a8c42febc03234d03e201363dba20f44cc99dd5ed4ca766e87957f68b0761e",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-25T07:54:56.708Z",
+      "issueLogId": "issue-log-caed3012-a978-4dcf-b515-901fa18b1ab5"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-4 review: malformed or unreadable proc stat entry can suppress all timeout diagnostics",
+      "trigger": "task review attempt 1",
+      "resolution": "validate stat field shape and skip individual failed entries while emitting their error code",
+      "normalizedFindingId": "124ba56c1539d14dbbe8c9d771f40e44ed9ec640cfa1ef5c7cc1c0d2dd8dbb05",
+      "repairRef": {
+        "files": [
+          "src/lib/agent.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-25T07:55:03.449Z",
+      "issueLogId": "issue-log-0608eac5-6afd-4398-8a10-cf819df2a28a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "must-fix finding 25a8c42febc03234d03e201363dba20f44cc99dd5ed4ca766e87957f68b0761e is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T07:58:52.410Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 25a8c42febc03234d03e201363dba20f44cc99dd5ed4ca766e87957f68b0761e is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-e164ece7-9210-4d18-b4ca-99798bf411bb"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-4 review: make immutable timeout diagnostics inspectable through a stable public projection",
+      "trigger": "task review attempt 3",
+      "resolution": "add UnterminatedProcessMember.toJSON and pair it with the staged R4 timeout diagnostics assertions",
+      "normalizedFindingId": "25a8c42febc03234d03e201363dba20f44cc99dd5ed4ca766e87957f68b0761e",
+      "repairRef": {
+        "files": [
+          "src/lib/agent.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-25T08:00:29.605Z",
+      "issueLogId": "issue-log-37fb7495-fff5-497f-9126-4a3dbb6a237b"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-5 review: PID reuse fixture changed after SIGKILL to deterministically exercise original-member identity matching",
+      "trigger": "task review attempt 1",
+      "resolution": "set reused start fingerprint before the close event so the final diagnostics scan observes a reused PID",
+      "normalizedFindingId": "2f3a5530d2d4a3ed2ce07b10885760df12e0896ed5c7a7e26734eb1b41c0e165",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": "T-5",
+      "timestamp": "2026-07-25T08:03:33.603Z",
+      "issueLogId": "issue-log-469ac295-5ebf-49c0-b1f4-ac7258517a5a"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-5 review: PID reuse fixture changed after SIGKILL to deterministically exercise original-member identity matching",
+      "trigger": "task review attempt 1",
+      "resolution": "set reused start fingerprint before the close event so the final diagnostics scan observes a reused PID",
+      "normalizedFindingId": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": "T-5",
+      "timestamp": "2026-07-25T08:03:44.289Z",
+      "issueLogId": "issue-log-5c7f76ba-0160-4175-a7d9-0bb122e15f20"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-5 review: make the reused-PID liveness assertion explicit at the SIGKILL boundary",
+      "trigger": "task review attempt 2",
+      "resolution": "record the post-reuse _isPosixTreeDead result before close and assert that the reused start fingerprint cannot keep the original member live",
+      "normalizedFindingId": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": "T-5",
+      "timestamp": "2026-07-25T08:06:33.550Z",
+      "issueLogId": "issue-log-67f10280-7412-4d82-96e8-80723a0a20b4"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-5 review: bind the staged PID-reuse regression to the production liveness decision it exercises",
+      "trigger": "task review attempt 3",
+      "resolution": "the staged test asserts _isPosixTreeDead after a reused start fingerprint; src/lib/agent.js processGroupHasNoLiveOriginalMembers is the repaired production decision under test",
+      "normalizedFindingId": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "repairRef": {
+        "files": [
+          "src/lib/agent.js"
+        ]
+      },
+      "taskId": "T-5",
+      "timestamp": "2026-07-25T08:08:29.607Z",
+      "issueLogId": "issue-log-54af79b8-4392-4298-86bd-0bbf0640f492"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "must-fix finding b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:09:42.747Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-4e1d5ceb-a972-458d-a588-5ebe19827d2e"
+    },
+    {
+      "step": "task-review",
+      "reason": "T-5 review: record the committed deterministic PID-reuse regression as the repair evidence",
+      "trigger": "task gate mechanical evidence",
+      "resolution": "commit 036d63b8 contains the staged R3 assertion and the production liveness implementation it verifies",
+      "normalizedFindingId": "b357b02b5140dc3021bd6decb8ed36bdf6a9e3f84bc9953e70703c9c6da9f3d2",
+      "repairRef": {
+        "commit": "036d63b8"
+      },
+      "taskId": "T-5",
+      "timestamp": "2026-07-25T08:10:22.642Z",
+      "issueLogId": "issue-log-eddc7790-55b3-432e-a930-56d82f59d166"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 871a636c61ea991f737c71bab1a8ab627c02fe3b087358661d05ac0e6f76f1d0, 788a29e144120646734eb34a00ee7405d4c356801fe395ca86fa8d181479b888.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-001; 2 changed path(s), delta repair-deltas/repair-001.json.",
+      "normalizedFindingId": "871a636c61ea991f737c71bab1a8ab627c02fe3b087358661d05ac0e6f76f1d0",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:14:36.231Z",
+      "issueLogId": "impl-repair:repair-001:871a636c61ea991f737c71bab1a8ab627c02fe3b087358661d05ac0e6f76f1d0"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 871a636c61ea991f737c71bab1a8ab627c02fe3b087358661d05ac0e6f76f1d0, 788a29e144120646734eb34a00ee7405d4c356801fe395ca86fa8d181479b888.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-001; 2 changed path(s), delta repair-deltas/repair-001.json.",
+      "normalizedFindingId": "788a29e144120646734eb34a00ee7405d4c356801fe395ca86fa8d181479b888",
+      "repairRef": {
+        "files": [
+          "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:14:36.231Z",
+      "issueLogId": "impl-repair:repair-001:788a29e144120646734eb34a00ee7405d4c356801fe395ca86fa8d181479b888"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R1",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:26:39.167Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R1",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-833ea598-93f0-4a1b-9d26-6c0768f24fb5"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: exclude process-group liveness probes from R1 escalation assertions",
+      "resolution": "SIGTERM and SIGKILL remain the only asserted escalation actions; probe signal 0 is now ignored, allowing fresh spec-local evidence to validate the implemented liveness behavior.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:27:50.868Z",
+      "issueLogId": "issue-log-b6e9c90a-0d7e-4aa9-a80e-d4af5a96ab8b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding 08394787f173f4c7d29402d61fb746af6783dc3e761f1c1a144c29d5c58418d7 is missing matching repair evidence; must-fix finding 4e745f23380ef6d60d7f5aab146bb29c30925af3f43515ed8b9751a0f2c34781 is missing matching repair evidence; must-fix finding 486c7497acc281daeb3675d99ea29634a191e9806aa60ec2c4350bdf41a5d9bd is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:28:32.015Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 08394787f173f4c7d29402d61fb746af6783dc3e761f1c1a144c29d5c58418d7 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 4e745f23380ef6d60d7f5aab146bb29c30925af3f43515ed8b9751a0f2c34781 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 486c7497acc281daeb3675d99ea29634a191e9806aa60ec2c4350bdf41a5d9bd is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-89763960-6e94-46e9-a89a-acaea20bb500"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: tolerate unrelated /proc member read failures during POSIX liveness checks",
+      "resolution": "The current-group scan continues after failures for uncaptured PIDs while unreadable original identities remain liveness-unknown; the committed change implements this distinction.",
+      "normalizedFindingId": "08394787f173f4c7d29402d61fb746af6783dc3e761f1c1a144c29d5c58418d7",
+      "repairRef": {
+        "commit": "a6b9995b378da3b073fe43cc2406446f8d10a115"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:29:36.570Z",
+      "issueLogId": "issue-log-c44e784d-f8ee-4a72-898b-bd5f2bb1ecc8"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: keep live post-capture process-group members in POSIX liveness evaluation",
+      "resolution": "The committed scan evaluates current group members, treats uncaptured non-zombies as live, and keeps start-fingerprint mismatches excluded as PID reuse.",
+      "normalizedFindingId": "4e745f23380ef6d60d7f5aab146bb29c30925af3f43515ed8b9751a0f2c34781",
+      "repairRef": {
+        "commit": "a6b9995b378da3b073fe43cc2406446f8d10a115"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:29:43.428Z",
+      "issueLogId": "issue-log-940c1cbe-a2d8-4739-a2cc-b4a8aaefbee1"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: preserve R4 original-member diagnostics with an explicit late-member regression fixture",
+      "resolution": "R4 requires original non-zombie members only. The committed test adds a post-snapshot member and verifies it remains excluded from unterminatedMembers while liveness still observes it.",
+      "normalizedFindingId": "486c7497acc281daeb3675d99ea29634a191e9806aa60ec2c4350bdf41a5d9bd",
+      "repairRef": {
+        "commit": "a6b9995b378da3b073fe43cc2406446f8d10a115"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:29:50.299Z",
+      "issueLogId": "issue-log-72730950-d77a-461e-a652-ccee87173569"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: assert that post-snapshot forks are excluded from R4 original-member diagnostics",
+      "resolution": "The added regression assertion preserves R4's explicit original non-zombie scope while R1 liveness continues to treat the late fork as active until final deadline.",
+      "normalizedFindingId": "29bc40da800d3a415d0962773dbd81bd616c17cf08510626a4a80e99a631f7db",
+      "repairRef": {
+        "commit": "603828531a7cda76803a715b383e92e4f7151f72"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:39:54.000Z",
+      "issueLogId": "issue-log-c683837b-a5fd-46f7-9eaf-03cd5186de38"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: clarify R4 original-member timeout diagnostics",
+      "resolution": "The collector and executable R4 assertion now state the spec's original non-zombie diagnostic boundary; R1 remains responsible for liveness of late process-group members.",
+      "normalizedFindingId": "c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812",
+      "repairRef": {
+        "commit": "5381198ea70ba555ee19346531bfe68ab39f5e47"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:43:31.580Z",
+      "issueLogId": "issue-log-09013a84-3117-4274-8a3b-776de966e702"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding 29bc40da800d3a415d0962773dbd81bd616c17cf08510626a4a80e99a631f7db is missing matching repair evidence; must-fix finding c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:44:45.958Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 29bc40da800d3a415d0962773dbd81bd616c17cf08510626a4a80e99a631f7db is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-f25249ff-9aec-4401-921a-a3fcd82e4cf2"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: correct repair evidence reference for R4 diagnostic assertion",
+      "resolution": "The commit after the review finding asserts R4's original non-zombie diagnostic boundary; the prior ledger entry used a non-existent full hash.",
+      "normalizedFindingId": "29bc40da800d3a415d0962773dbd81bd616c17cf08510626a4a80e99a631f7db",
+      "repairRef": {
+        "commit": "60382853a6aa756758f44e4f782b11bb50b6551c"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:45:55.068Z",
+      "issueLogId": "issue-log-56338db2-3a15-4abe-86f9-a55a244ab408"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: correct repair evidence reference for R4 diagnostic boundary",
+      "resolution": "The commit after the review finding names the collector and test according to R4's original non-zombie scope; the prior ledger entry used a non-existent full hash.",
+      "normalizedFindingId": "c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812",
+      "repairRef": {
+        "commit": "5381198ed536a0cca98043e9409c2650c6793267"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:46:01.635Z",
+      "issueLogId": "issue-log-fbfd90fc-565f-4354-bb3f-e5f7b90c6ac4"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:48:00.610Z",
+      "issueLogId": "issue-log-734ad1d0-a453-47a9-a8e5-fc079c242de8"
+    }
+  ]
+}

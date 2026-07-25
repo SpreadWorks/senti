@@ -1,0 +1,80 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/341-finite-agent-termination-v2/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R1: final deadline settles a stubborn POSIX process tree",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 97
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R2: parenthesized comm parsing keeps zombie state and pgrp aligned",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 97
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R3: a PID-reused member is not kept as an original live member",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 97
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R4: final deadline reports each unfinished non-zombie member",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 97
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "test_name": "R5: normal close settles without timeout signals",
+        "command": "node --test specs/341-finite-agent-termination-v2/tests/posix-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 97
+        }
+      }
+    }
+  ]
+}

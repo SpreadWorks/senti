@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T08:17:50.637Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "proc-scan-aborts-on-unrelated-entry",
+      "title": "Process-group liveness aborts on unrelated /proc read failures",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/lib/agent.js",
+      "requirementId": "R2",
+      "issue": "readLinuxProcessGroupMembers() returns null when reading or parsing any numeric /proc/<pid>/stat fails, before it knows whether that process belongs to the supervised process group. A transient ENOENT/EACCES or malformed stat for an unrelated process makes _isPosixTreeDead() report false, so the supervisor can keep waiting until the final timeout even when all original group members are gone or zombies.",
+      "suggestion": "In readLinuxProcessGroupMembers(), tolerate per-entry failures until the entry is known to be relevant. For ENOENT/ESRCH, skip the entry. For parse/read failures where pgrp cannot be determined, do not make unrelated entries authoritative; either continue for transient disappearance or only report unavailable for captured/original member paths that must be verified.",
+      "disposition": "must-fix",
+      "rationale": "R2 maps to src/lib/agent.js and requires reliable POSIX process identity/liveness handling. Treating an arbitrary unrelated /proc race as unknown liveness is a behavioral blocker because it can falsely prevent finite settlement and contradicts the requirement that only original process-tree members drive timeout settlement.",
+      "findingId": "08394787f173f4c7d29402d61fb746af6783dc3e761f1c1a144c29d5c58418d7",
+      "fingerprint": "08394787f173f4c7d29402d61fb746af6783dc3e761f1c1a144c29d5c58418d7",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "57655dbd8aeb14c1f1d316bf013242eb9320adde47cf6992aea0cd11b4f1f5c9",
+  "runId": "83254fae-37f4-4d76-9963-7fdda3132eeb",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/341-finite-agent-termination-v2/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "99dda3ebe3fea482483d942bf49cdcefbe2498345a516ccbcaa878c65149ae3d"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 14,
+  "findings": [
+    {
+      "id": "08394787f173f4c7d29402d61fb746af6783dc3e761f1c1a144c29d5c58418d7",
+      "findingId": "08394787f173f4c7d29402d61fb746af6783dc3e761f1c1a144c29d5c58418d7",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 14,
+      "severity": "blocking",
+      "title": "Process-group liveness aborts on unrelated /proc read failures",
+      "body": "readLinuxProcessGroupMembers() returns null when reading or parsing any numeric /proc/<pid>/stat fails, before it knows whether that process belongs to the supervised process group. A transient ENOENT/EACCES or malformed stat for an unrelated process makes _isPosixTreeDead() report false, so the supervisor can keep waiting until the final timeout even when all original group members are gone or zombies.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "08394787f173f4c7d29402d61fb746af6783dc3e761f1c1a144c29d5c58418d7",
+      "disposition": "must-fix",
+      "rationale": "R2 maps to src/lib/agent.js and requires reliable POSIX process identity/liveness handling. Treating an arbitrary unrelated /proc race as unknown liveness is a behavioral blocker because it can falsely prevent finite settlement and contradicts the requirement that only original process-tree members drive timeout settlement.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

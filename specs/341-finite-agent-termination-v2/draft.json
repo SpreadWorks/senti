@@ -1,0 +1,89 @@
+{
+  "devType": "bugfix",
+  "goal": "must: POSIX agent process-tree timeout は SIGKILL 後も有限時間で settle し、Linux /proc/<pid>/stat の parenthesized comm から state、pgrp、start fingerprint を正しく取得して zombie と PID reuse を live member と誤認しない。",
+  "analysis": {
+    "problem": "must: src/lib/agent.js は SIGKILL 後の process-tree polling に最終 deadline がないため、tree liveness が false のままなら timeout cleanup が終了しない。must: 同じ file の stat whitespace split は comm に space があると state と pgrp の位置を誤認し、zombie と reused PID の判定を誤らせる。",
+    "proposedApproach": "must: SIGKILL 後の polling に最終 deadline を設け、deadline 到達時に AgentTimeoutError を1回だけ reject する。must: Linux stat parsing は parenthesized comm の終端を基準に state、pgrp、start fingerprint を読み、liveness は PID の存在ではなく PID と start fingerprint の組で判定する。",
+    "validation": "must: automated tests は stubborn child が final deadline で AGENT_TIMEOUT になること、zombie-only group が settlement を妨げないこと、reused PID が stale identity になること、spaced comm から state/pgrp/start fingerprint を取得することをそれぞれ assert する。must: existing normal close -> SIGTERM -> SIGKILL order の test は引き続き pass する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #462 は SIGTERM -> SIGKILL 後の polling を明示的な最終 deadline で終了させることを要求している。",
+      "must: Issue #462 は parenthesized comm を含む Linux stat から state、pgrp、process identity fingerprint に必要な情報を取得することを要求している。",
+      "must: Issue #462 は同じ PID の存在と同じ process identity の継続を区別し、zombie と PID reuse を元の live process と誤認しないことを要求している。",
+      "must: src/lib/process-identity.js は parenthesized comm の終端より後の field から numeric start fingerprint を取得する。",
+      "must: AgentTimeoutError は src/lib/agent.js が export する typed timeout outcome である。",
+      "must: Issue #462 の Goal、Scope、Verification は auto mode entry でユーザーに承認済みである。"
+    ],
+    "decisionPoints": [
+      "must: SIGKILL 後の final deadline で timeout outcome を settle する条件を定義する。",
+      "must: Linux stat record の comm、state、pgrp、start fingerprint の field contract を定義する。",
+      "must: PID reuse と zombie-only group の liveness outcome を定義する。",
+      "must: final deadline の AgentTimeoutError が持つ unterminatedMembers record の field contract を定義する。",
+      "must: normal close -> SIGTERM -> SIGKILL order の retained behavior を定義する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 新しい外部依存を追加しない。",
+      "must: src/ の値構造は class で表現し、constructor が invariant を強制する。",
+      "must: Windows-specific implementation を変更しない。",
+      "must: Issue #462 は1つの concern として扱い、spec を分割しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: AgentTimeoutError.unterminatedMembers の各 record は pid、state、pgrp、startFingerprint を持つことを requirement と acceptance criteria にする。",
+      "must: final deadline に達した stubborn child は AGENT_TIMEOUT で settle し、その後に tree-death polling timer を残さないことを requirement と acceptance criteria にする。",
+      "must: zombie-only group、reused PID、spaced comm、normal escalation order の各 assertion を task と test plan に展開する。",
+      "must: ProcessIdentitySource の numeric start fingerprint と stale/live assessment behavior を保持する verification を task と test plan に展開する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/lib/agent.js の POSIX SIGTERM/SIGKILL escalation と post-SIGKILL polling を変更する。",
+      "must: agent liveness に使う Linux stat parsing で parenthesized comm、state、pgrp、start fingerprint を正しく扱う。",
+      "must: AgentTimeoutError.unterminatedMembers に non-zombie unfinished member の pid、state、pgrp、startFingerprint を格納する。",
+      "must: stubborn child、zombie-only group、PID reuse、spaced comm、normal escalation order の automated tests を追加または更新する。"
+    ],
+    "out": [
+      "must: platform === \"win32\" branch と taskkill invocation を変更しない。",
+      "must: agent profile resolution、prompt cache、retry count、metrics accumulation を変更しない。",
+      "must: AgentTimeoutError.timeoutMs、graceMs、finalAction、killed の既存意味を変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: POSIX timeout path は final deadline 後に tree-death polling を停止し、AGENT_TIMEOUT outcome を1回だけ返す。",
+    "must: comm に space がある stat record は state、pgrp、start fingerprint の値を shift させない。",
+    "must: zombie-only group は process tree を live と扱わず、reused PID は original process identity を live と扱わない。",
+    "must: final deadline の AgentTimeoutError.unterminatedMembers から non-zombie unfinished member の pid、state、pgrp、startFingerprint を取得できる。",
+    "must: normal close -> SIGTERM -> SIGKILL order は維持する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "POSIX timeout の有限化、Linux stat parsing、zombie/PID reuse 判定を対象とする今回の Goal または Scope に変更はありますか？",
+      "answer": "ありません。POSIX timeout の有限化、Linux stat parsing、zombie/PID reuse 判定を対象とします。",
+      "evidence": "Issue #462 の Goal、Scope、Verification と、auto mode entry で承認された request に同じ対象が記載されています。",
+      "why": "承認済みの issue/request と、その後のユーザー入力に scope 変更がないためです。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "timeout diagnostics について追加要件はありますか？",
+      "answer": "ありません。final deadline の timeout outcome で unfinished non-zombie member を識別できれば足ります。",
+      "evidence": "Issue #462 は timeout diagnostics として original member identity/state を求め、draft の scopeVerification.in と deferredToSpec は pid、state、pgrp、startFingerprint をその識別情報として記録しています。",
+      "why": "Issue #462 の diagnostics 要求を満たし、scopeVerification.out の既存 AgentTimeoutError outcome fields を変更しないためです。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T06:28:08Z",
+    "notes": "Issue #462 の Goal、Scope、Verification は、ユーザーが選択した auto mode で承認済みです。"
+  }
+}

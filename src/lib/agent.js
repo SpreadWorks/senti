@@ -25,6 +25,7 @@ import { formatPreview } from "./error-preview.js";
 import { defaultAgentProfiles } from "./agent-defaults.js";
 import { normalizeAgentMetricDimension } from "./agent-metrics.js";
 import { AgentTimeout } from "./agent-timeout.js";
+import { LinuxProcessStat } from "./process-identity.js";
 
 const DEFAULT_AGENT_TIMEOUT_GRACE_MS = 100;
 const PROCESS_DEATH_POLL_MS = 10;
@@ -440,9 +441,12 @@ class Agent {
 }
 
 class AgentTimeoutError extends Error {
-  constructor({ timeoutMs, graceMs, finalAction }) {
+  constructor({ timeoutMs, graceMs, finalAction, unterminatedMembers = [] }) {
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("timeoutMs must be a positive number");
     if (!Number.isFinite(graceMs) || graceMs <= 0) throw new Error("graceMs must be a positive number");
+    if (!Array.isArray(unterminatedMembers) || !unterminatedMembers.every((member) => member instanceof UnterminatedProcessMember)) {
+      throw new Error("unterminatedMembers must be process member diagnostics");
+    }
     super(`Agent timed out after ${timeoutMs}ms; final action=${finalAction}`);
     this.name = "AgentTimeoutError";
     this.code = "AGENT_TIMEOUT";
@@ -450,6 +454,43 @@ class AgentTimeoutError extends Error {
     this.graceMs = graceMs;
     this.finalAction = finalAction;
     this.killed = true;
+    this.unterminatedMembers = Object.freeze([...unterminatedMembers]);
+  }
+}
+
+class PosixProcessMemberIdentity {
+  constructor(stat) {
+    if (!(stat instanceof LinuxProcessStat)) throw new Error("POSIX process member requires Linux process stat");
+    this.pid = stat.pid;
+    this.startFingerprint = stat.startFingerprint;
+    Object.freeze(this);
+  }
+
+  matches(stat) {
+    return stat instanceof LinuxProcessStat
+      && stat.pid === this.pid
+      && stat.startFingerprint === this.startFingerprint;
+  }
+}
+
+class UnterminatedProcessMember {
+  constructor(stat) {
+    if (!(stat instanceof LinuxProcessStat)) throw new Error("unterminated process member requires Linux process stat");
+    if (stat.state === "Z") throw new Error("unterminated process member cannot be a zombie");
+    this.pid = stat.pid;
+    this.state = stat.state;
+    this.pgrp = stat.pgrp;
+    this.startFingerprint = stat.startFingerprint;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      pid: this.pid,
+      state: this.state,
+      pgrp: this.pgrp,
+      startFingerprint: this.startFingerprint,
+    };
   }
 }
 
@@ -467,6 +508,8 @@ class ChildProcessSupervisor {
     this.deadlineTimer = null;
     this.graceTimer = null;
     this.treeDeathPollTimer = null;
+    this.finalDeadlineTimer = null;
+    this.originalPosixMembers = null;
     this.timeoutOwned = false;
     this.directChildClosed = false;
     this.treeDeadObserved = false;
@@ -511,6 +554,7 @@ class ChildProcessSupervisor {
     if (this.platform === "win32") {
       this._signalDirectChild("SIGTERM");
     } else {
+      this._captureOriginalPosixMembers();
       this._signalProcessGroup("SIGTERM");
     }
     this.graceTimer = setTimeout(() => this._handleGraceExpiry(), this.graceMs);
@@ -571,10 +615,41 @@ class ChildProcessSupervisor {
     if (!this.child.pid) return true;
     try {
       process.kill(-this.child.pid, 0);
-      return processGroupContainsOnlyZombies(this.child.pid);
+      return processGroupHasNoLiveMembers(
+        this.child.pid,
+        this.originalPosixMembers,
+        this._reportTreeMembersUnavailable.bind(this),
+      );
     } catch (error) {
+      if (error?.code !== "ESRCH") {
+        this._emit({ type: "tree-members-unavailable", code: error?.code || "UNKNOWN" });
+      }
       return error?.code === "ESRCH";
     }
+  }
+
+  _captureOriginalPosixMembers() {
+    const members = readLinuxProcessGroupMembers(this.child.pid, this._reportTreeMembersUnavailable.bind(this));
+    this.originalPosixMembers = members == null
+      ? null
+      : new Map(members.map((stat) => [stat.pid, new PosixProcessMemberIdentity(stat)]));
+  }
+
+  _collectOriginalUnterminatedPosixMembers() {
+    if (!(this.originalPosixMembers instanceof Map)) return [];
+    const members = readLinuxProcessGroupMembers(
+      this.child.pid,
+      this._reportTreeMembersUnavailable.bind(this),
+      this.originalPosixMembers,
+    );
+    if (members == null) return [];
+    return members
+      .filter((member) => this.originalPosixMembers.get(member.pid)?.matches(member) && member.state !== "Z")
+      .map((member) => new UnterminatedProcessMember(member));
+  }
+
+  _reportTreeMembersUnavailable(error) {
+    this._emit({ type: "tree-members-unavailable", code: error?.code || "UNKNOWN" });
   }
 
   _markPosixTreeDead() {
@@ -584,6 +659,9 @@ class ChildProcessSupervisor {
   }
 
   _waitForPosixTreeDeath() {
+    this.finalDeadlineTimer = setTimeout(() => {
+      if (!this.settled) this._settleTimeout();
+    }, this.graceMs);
     const poll = () => {
       if (this.settled) return;
       if (this._isPosixTreeDead()) {
@@ -615,6 +693,7 @@ class ChildProcessSupervisor {
       timeoutMs: this.timeoutMs,
       graceMs: this.graceMs,
       finalAction: this.finalAction || "SIGTERM",
+      unterminatedMembers: this._collectOriginalUnterminatedPosixMembers(),
     }));
   }
 
@@ -624,9 +703,11 @@ class ChildProcessSupervisor {
     if (this.deadlineTimer) clearTimeout(this.deadlineTimer);
     if (this.graceTimer) clearTimeout(this.graceTimer);
     if (this.treeDeathPollTimer) clearTimeout(this.treeDeathPollTimer);
+    if (this.finalDeadlineTimer) clearTimeout(this.finalDeadlineTimer);
     this.deadlineTimer = null;
     this.graceTimer = null;
     this.treeDeathPollTimer = null;
+    this.finalDeadlineTimer = null;
     this.child.removeListener("close", this._onClose);
     this.child.removeListener("error", this._onError);
     this._emit({
@@ -638,7 +719,7 @@ class ChildProcessSupervisor {
   }
 
   _activeTimerCount() {
-    return [this.deadlineTimer, this.graceTimer, this.treeDeathPollTimer]
+    return [this.deadlineTimer, this.graceTimer, this.treeDeathPollTimer, this.finalDeadlineTimer]
       .filter((timer) => timer !== null)
       .length;
   }
@@ -648,19 +729,36 @@ class ChildProcessSupervisor {
   }
 }
 
-function processGroupContainsOnlyZombies(groupId) {
+function readLinuxProcessGroupMembers(groupId, reportUnavailable, originalMembers = null) {
+  let entries;
   try {
-    const members = fs.readdirSync("/proc").filter((entry) => /^\d+$/.test(entry)).filter((pid) => {
-      const fields = fs.readFileSync(path.join("/proc", pid, "stat"), "utf8").split(" ");
-      return Number(fields[4]) === groupId;
-    });
-    return members.length > 0 && members.every((pid) => {
-      const fields = fs.readFileSync(path.join("/proc", pid, "stat"), "utf8").split(" ");
-      return fields[2] === "Z";
-    });
-  } catch (_) {
-    return false;
+    entries = fs.readdirSync("/proc");
+  } catch (error) {
+    reportUnavailable(error);
+    return null;
   }
+  const members = [];
+  for (const entry of entries) {
+    if (!/^\d+$/.test(entry)) continue;
+    try {
+      const member = LinuxProcessStat.parse(fs.readFileSync(path.join("/proc", entry, "stat"), "utf8"));
+      if (member.pgrp === groupId) members.push(member);
+    } catch (error) {
+      if (error?.code === "ENOENT" || error?.code === "ESRCH") continue;
+      reportUnavailable(error);
+      if (!(originalMembers instanceof Map) || originalMembers.has(Number(entry))) return null;
+    }
+  }
+  return members;
+}
+
+function processGroupHasNoLiveMembers(groupId, originalMembers, reportUnavailable) {
+  const members = readLinuxProcessGroupMembers(groupId, reportUnavailable, originalMembers);
+  if (members == null) return false;
+  return members.length > 0 && members.every((member) => {
+    const original = originalMembers?.get(member.pid);
+    return member.state === "Z" || (original && !original.matches(member));
+  });
 }
 
 function runWindowsTaskkill(args) {

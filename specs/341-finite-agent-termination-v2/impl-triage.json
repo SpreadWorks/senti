@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 2,
+    "hash": "79b76fca59b6cdf53c4ea3091188cd696247f0b608207878fda39815feb3b5b9",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-25T08:42:07.815Z",
+  "items": [
+    {
+      "findingId": "c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812",
+      "sourceStep": "impl-review",
+      "decision": "apply",
+      "rationale": "Clarify the R4 boundary in the collector and executable assertion: diagnostics retain only original non-zombie members, while R1 liveness continues to observe a late process-group member until settlement. The source finding conflicts with spec.json R4, its final-deadline data flow, and T-4's stated original-member diagnostic scope.",
+      "evidenceRefs": [
+        "impl-review.json#c7a768c3ecc11c9c43357fe8a4b88980690fef9127cd2a767429cee518aa1812"
+      ]
+    }
+  ]
+}
