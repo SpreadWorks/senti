@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T23:10:53.967Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/333-failure-atomic-gate/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 lower-level commit test encodes selected gate non-commit as expected behavior",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js:278",
+      "findingId": "cb8a95247f4ca5b6d41f31201dc86a83d8cdad8381e790fee89b58b92298055e",
+      "fingerprint": "cb8a95247f4ca5b6d41f31201dc86a83d8cdad8381e790fee89b58b92298055e",
+      "disposition": "must-fix",
+      "rationale": "The test encodes an incorrect implementation premise for the commit boundary and could pass without exercising the required atomic selected gate ownership behavior.",
+      "issue": "The R4 test asserts that `impl-gate` remains `in_progress` after a persisted PASS and comments that selected gate completion is left to the registry post-hook. That premise contradicts R4's requirement that, after a valid semantic PASS/FAIL and successful artifact persistence, the pending inferred transition commits through the selected lifecycle ownership exactly once. This would allow an implementation that only recovers the stale `spec-gate` in `runGatePhaseWithDependencies` and defers selected ownership outside the atomic operation.",
+      "requiredChange": "Change the R4 assertion to verify the selected gate ownership transition is committed by the atomic gate operation according to PASS/FAIL routing, while still asserting stale recovery is explicit and not duplicated.",
+      "whyBlocking": "The test encodes an incorrect implementation premise for the commit boundary and could pass without exercising the required atomic selected gate ownership behavior.",
+      "origin": "R4",
+      "failureKind": "incorrect_implementation_premise"
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 lacks side-effect coverage for transition construction and inspection",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js:211",
+      "findingId": "c40c74c510978224996dab90618e71dd6e167dcf266dc3530837aee904613a60",
+      "fingerprint": "c40c74c510978224996dab90618e71dd6e167dcf266dc3530837aee904613a60",
+      "disposition": "must-fix",
+      "rationale": "R2 explicitly requires construction and inspection to be side-effect free; without this spec-local coverage, a core acceptance requirement is untested.",
+      "issue": "The R2 test validates constructor errors but does not snapshot the input flow state or other observable state before constructing and inspecting `InferredGateTransition`. A constructor could mutate `flowState.steps`, normalize stale step IDs in place, or mutate the owner/state identity and still satisfy the current assertions.",
+      "requiredChange": "Add a pre/post snapshot around valid construction, property inspection, and failed construction cases to assert the supplied flow state remains unchanged.",
+      "whyBlocking": "R2 explicitly requires construction and inspection to be side-effect free; without this spec-local coverage, a core acceptance requirement is untested.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 does not cover diagnostic artifact mutation",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js:181",
+      "findingId": "1c29dde0863ca06017acd5b555b5aa9e01094573003d48fad9e4f6bbf2f5f4ac",
+      "fingerprint": "1c29dde0863ca06017acd5b555b5aa9e01094573003d48fad9e4f6bbf2f5f4ac",
+      "disposition": "must-fix",
+      "rationale": "R1 explicitly includes diagnostics that claim a committed transition among the surfaces that must not mutate; the current spec-local test coverage omits that acceptance surface.",
+      "issue": "The R1 purity test snapshots `flow.json`, issue log, findings, and gate artifacts, and intercepts `stderr`, but it does not create or snapshot any persisted diagnostics/log artifact that could claim a committed transition. An implementation could write a durable diagnostic transition claim during inference and this test would not detect it.",
+      "requiredChange": "Include the relevant diagnostics/log file or directory used by the gate flow in the durable surface snapshot, seeded with a sentinel where appropriate, and assert it is unchanged after inference and transition construction.",
+      "whyBlocking": "R1 explicitly includes diagnostics that claim a committed transition among the surfaces that must not mutate; the current spec-local test coverage omits that acceptance surface.",
+      "origin": "R1",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/333-failure-atomic-gate/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "82ebcda22f0247aa50e357691b5194919377ac682cfcdbe169f83ac76688d8d1"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 10,
+  "findings": [
+    {
+      "id": "cb8a95247f4ca5b6d41f31201dc86a83d8cdad8381e790fee89b58b92298055e",
+      "findingId": "cb8a95247f4ca5b6d41f31201dc86a83d8cdad8381e790fee89b58b92298055e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 10,
+      "severity": "blocking",
+      "title": "R4 lower-level commit test encodes selected gate non-commit as expected behavior",
+      "body": "The R4 test asserts that `impl-gate` remains `in_progress` after a persisted PASS and comments that selected gate completion is left to the registry post-hook. That premise contradicts R4's requirement that, after a valid semantic PASS/FAIL and successful artifact persistence, the pending inferred transition commits through the selected lifecycle ownership exactly once. This would allow an implementation that only recovers the stale `spec-gate` in `runGatePhaseWithDependencies` and defers selected ownership outside the atomic operation.",
+      "category": "unknown",
+      "fingerprint": "cb8a95247f4ca5b6d41f31201dc86a83d8cdad8381e790fee89b58b92298055e",
+      "disposition": "must-fix",
+      "rationale": "The test encodes an incorrect implementation premise for the commit boundary and could pass without exercising the required atomic selected gate ownership behavior."
+    },
+    {
+      "id": "c40c74c510978224996dab90618e71dd6e167dcf266dc3530837aee904613a60",
+      "findingId": "c40c74c510978224996dab90618e71dd6e167dcf266dc3530837aee904613a60",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 10,
+      "severity": "blocking",
+      "title": "R2 lacks side-effect coverage for transition construction and inspection",
+      "body": "The R2 test validates constructor errors but does not snapshot the input flow state or other observable state before constructing and inspecting `InferredGateTransition`. A constructor could mutate `flowState.steps`, normalize stale step IDs in place, or mutate the owner/state identity and still satisfy the current assertions.",
+      "category": "unknown",
+      "fingerprint": "c40c74c510978224996dab90618e71dd6e167dcf266dc3530837aee904613a60",
+      "disposition": "must-fix",
+      "rationale": "R2 explicitly requires construction and inspection to be side-effect free; without this spec-local coverage, a core acceptance requirement is untested."
+    },
+    {
+      "id": "1c29dde0863ca06017acd5b555b5aa9e01094573003d48fad9e4f6bbf2f5f4ac",
+      "findingId": "1c29dde0863ca06017acd5b555b5aa9e01094573003d48fad9e4f6bbf2f5f4ac",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 10,
+      "severity": "blocking",
+      "title": "R1 does not cover diagnostic artifact mutation",
+      "body": "The R1 purity test snapshots `flow.json`, issue log, findings, and gate artifacts, and intercepts `stderr`, but it does not create or snapshot any persisted diagnostics/log artifact that could claim a committed transition. An implementation could write a durable diagnostic transition claim during inference and this test would not detect it.",
+      "category": "unknown",
+      "fingerprint": "1c29dde0863ca06017acd5b555b5aa9e01094573003d48fad9e4f6bbf2f5f4ac",
+      "disposition": "must-fix",
+      "rationale": "R1 explicitly includes diagnostics that claim a committed transition among the surfaces that must not mutate; the current spec-local test coverage omits that acceptance surface."
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T22:53:42.492Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/333-failure-atomic-gate/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 parity inventory is not spec-locally covered",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+      "findingId": "16efdec7a7321d88b630034334ed78759c1b5852b54625a7002c5e017ada574d",
+      "fingerprint": "16efdec7a7321d88b630034334ed78759c1b5852b54625a7002c5e017ada574d",
+      "disposition": "must-fix",
+      "rationale": "R6 is marked covered, but several acceptance requirements have no corresponding spec-local test coverage in the provided test file.",
+      "issue": "The R6 test only directly checks a small subset of the required parity inventory: default export, explicit effective phase, inferred effective phase, resolveGateStepId, and two CLI option registrations. The remaining R6 requirements are delegated to spawning retained non-spec test suites without spec-local assertions for the required behaviors, including provider config selection, PASS/FAIL result fields, registry hook sequencing, semantic vs tooling retry consumption, artifact path stability, and PASS/FAIL routing.",
+      "requiredChange": "Add spec-local assertions that directly exercise each missing R6 parity item, or replace the retained-suite smoke test with targeted checks for those required behaviors.",
+      "whyBlocking": "R6 is marked covered, but several acceptance requirements have no corresponding spec-local test coverage in the provided test file.",
+      "origin": "R6",
+      "failureKind": "missing_spec_local_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/333-failure-atomic-gate/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "ebd7326eae79157749ce2a6a4d7f3500fb7af5fd2c96d48020f3b0c3d1106987"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "16efdec7a7321d88b630034334ed78759c1b5852b54625a7002c5e017ada574d",
+      "findingId": "16efdec7a7321d88b630034334ed78759c1b5852b54625a7002c5e017ada574d",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R6 parity inventory is not spec-locally covered",
+      "body": "The R6 test only directly checks a small subset of the required parity inventory: default export, explicit effective phase, inferred effective phase, resolveGateStepId, and two CLI option registrations. The remaining R6 requirements are delegated to spawning retained non-spec test suites without spec-local assertions for the required behaviors, including provider config selection, PASS/FAIL result fields, registry hook sequencing, semantic vs tooling retry consumption, artifact path stability, and PASS/FAIL routing.",
+      "category": "unknown",
+      "fingerprint": "16efdec7a7321d88b630034334ed78759c1b5852b54625a7002c5e017ada574d",
+      "disposition": "must-fix",
+      "rationale": "R6 is marked covered, but several acceptance requirements have no corresponding spec-local test coverage in the provided test file."
+    }
+  ]
+}

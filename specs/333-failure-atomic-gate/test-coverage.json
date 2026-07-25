@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Gate phase inference shall return the effective phase, stale step IDs, and selected gate ownership without mutating FlowManager state, flow.json, issue-log, findings, gate artifacts, or diagnostics that claim a committed transition.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-failure-atomicity.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The inferred lifecycle change shall be represented by a dedicated class that validates one non-empty effective phase, a pre-transition flow-state identity, unique stale step IDs, and the selected GateMutationOwner; constructing and inspecting this value shall be side-effect free.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-failure-atomicity.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "A validation failure, agent execution or output-protocol failure, or required gate artifact-write failure shall occur before transition commit and shall leave persisted step state byte-identical to the pre-transition snapshot, including every stale and selected gate step.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-failure-atomicity.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "After a valid semantic PASS or FAIL judgment and successful required artifact persistence, the pending inferred transition shall commit through existing definition-aware lifecycle ownership exactly once; stale-step recovery shall be recorded as an explicit transition rather than an inferred completion side effect.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-failure-atomicity.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "For each pre-commit failure boundary, a sequence bounded to two command attempts—one injected failure followed by one retry after fault removal—shall begin the retry from the unchanged original step state, create no duplicate lifecycle transitions, findings, successful-judgment issue-log entries, or gate artifacts, and produce one durable result on the retry; production retry limits remain unchanged.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-failure-atomicity.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Parity tests shall verify this finite inventory: explicit `--phase` selects its supplied phase without inferred recovery; multi-step inference selects integration and reports the earlier spec gate stale; the default RunGateCommand, `resolveEffectiveGatePhase`, and `resolveGateStepId` exports remain importable; the existing config key selects the same provider stub; semantic PASS/FAIL retain their result fields; completed judgments call registry pre/post but not onError while validation, agent, and persistence exceptions call pre/onError but not post; semantic failure consumes one existing retry unit while tooling failure consumes none; existing phase source/result artifact paths remain unchanged; PASS advances to the configured next step while FAIL/retry retains its configured active-step route.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/gate-failure-atomicity.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Shared help for `senti flow resume --help` shall state that `--parked` restores one exact inactive managed-worktree pointer with no discovery, while retaining existing usage and target-guard option output.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/parked-resume-help.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "This flow's repair fingerprint history shall be reconciled by appending exactly one bridge entry whose previous hash equals the unchanged preexisting ledger tail and whose current hash equals the expected manifest; the authority shall bind the exact run, spec, Issue, changed-path inventory, and delta digest, preserve every earlier entry, and perform no write when any identity, hash, or evidence value differs.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/repair-ledger-reconciliation.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/gate-failure-atomicity.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    },
+    {
+      "file": "tests/parked-resume-help.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R7"
+      ],
+      "testNameIds": [
+        "R7"
+      ]
+    },
+    {
+      "file": "tests/repair-ledger-reconciliation.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R8"
+      ],
+      "testNameIds": [
+        "R8"
+      ]
+    }
+  ]
+}

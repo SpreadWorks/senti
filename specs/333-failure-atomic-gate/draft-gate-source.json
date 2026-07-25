@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+  "planRewindAt": "2026-07-24T22:37:39.394Z",
+  "generatedAt": "2026-07-24T22:43:00.320Z",
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft lists retained public surfaces such as explicit phase input, inferred phase priority, direct-import export, agent/config resolution, PASS/FAIL envelope, registry hooks, retry accounting, artifact ownership, and post-gate routing, but the validation text only says existing unit/integration tests verify retained public contracts. It does not include at least one behavior-level verification for each retained public surface through the new path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The draft lists retained public surfaces such as explicit phase input, inferred phase priority, direct-import export, agent/config resolution, PASS/FAIL envelope, registry hooks, retry accounting, artifact ownership, and post-gate routing, but the validation text only says existing unit/integration tests verify retained public contracts. It does not include at least one behavior-level verification for each retained public surface through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "findingId": "a60c9670cabdad1f5a0138e5eb0071aeaf12fc0ff134c0b5ec7f186bb6aec8bd",
+      "fingerprint": "a60c9670cabdad1f5a0138e5eb0071aeaf12fc0ff134c0b5ec7f186bb6aec8bd",
+      "disposition": "must-fix",
+      "rationale": "The draft lists retained public surfaces such as explicit phase input, inferred phase priority, direct-import export, agent/config resolution, PASS/FAIL envelope, registry hooks, retry accounting, artifact ownership, and post-gate routing, but the validation text only says existing unit/integration tests verify retained public contracts. It does not include at least one behavior-level verification for each retained public surface through the new path.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-24T22:41:41.068Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content.json",
+        "locator": "analysis.validation"
+      },
+      "observed": "The draft lists retained public surfaces such as explicit phase input, inferred phase priority, direct-import export, agent/config resolution, PASS/FAIL envelope, registry hooks, retry accounting, artifact ownership, and post-gate routing, but the validation text only says existing unit/integration tests verify retained public contracts. It does not include at least one behavior-level verification for each retained public surface through the new path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ],
+      "result": "fail",
+      "guardrail_id": "migration-parity",
+      "category": "guardrail",
+      "findingId": "23e1b9c0e0ca6332d2b82b880d5fb3691fa8d593fb54c72e82d71bccf97110f7",
+      "fingerprint": "23e1b9c0e0ca6332d2b82b880d5fb3691fa8d593fb54c72e82d71bccf97110f7",
+      "disposition": "must-fix",
+      "rationale": "The draft lists retained public surfaces such as explicit phase input, inferred phase priority, direct-import export, agent/config resolution, PASS/FAIL envelope, registry hooks, retry accounting, artifact ownership, and post-gate routing, but the validation text only says existing unit/integration tests verify retained public contracts. It does not include at least one behavior-level verification for each retained public surface through the new path.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-24T22:43:00.320Z",
+      "repeatCount": 1
+    }
+  ]
+}

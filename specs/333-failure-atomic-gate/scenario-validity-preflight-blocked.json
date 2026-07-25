@@ -1,0 +1,127 @@
+{
+  "archivedReason": "Spec-correction replay encountered already-committed R1-R7 implementation targets before the new R8 scenario could execute.",
+  "version": "1",
+  "raw_output_path": "specs/333-failure-atomic-gate/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+  "process": {
+    "started": false,
+    "exitCode": null,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "block",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R1: inferred phase resolution and transition construction are pure",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R2: inferred transition validates identity, stale steps, and GateMutationOwner",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R3: validation, agent, output-protocol, and artifact failures are pre-commit",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R4: persisted PASS and FAIL judgments commit explicit recovery exactly once",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R5: every pre-commit boundary retries once without duplicate durable effects",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R6: direct exports preserve explicit and inferred phase behavior",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "test_name": "R7: parked resume shared help retains its no-discovery guarantee and guards",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "test_name": "R8: preserves the existing ledger and verifies one applied bridge",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 12
+        }
+      }
+    }
+  ],
+  "preflight": {
+    "invalid_paths": [
+      "src/flow/lib/run-gate.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/gate-phase-inference.test.js"
+    ]
+  }
+}

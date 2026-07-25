@@ -55,6 +55,7 @@ import { contractFromGateArtifact, repoRelative } from "./flow-judgment-contract
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
 import {
   IMPL_GATE_RESULT_FILE,
+  readJsonStrict,
   validateIntegrationArtifactTrust,
 } from "./test-artifacts.js";
 import {
@@ -103,10 +104,12 @@ import {
   assertRepairFingerprint,
   buildRepairFingerprint,
   ensureRepairFingerprintContract,
+  stampRepairFingerprint,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import { GateMutationOwner } from "./gate-mutation-owner.js";
+import { flattenSteps } from "./step-tree.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 
 export { resolveGateStepId };
@@ -219,6 +222,25 @@ class StaleIntegrationTestEvidence {
 export function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
   const specPath = state.spec;
   const specDir = path.dirname(path.resolve(root, specPath));
+  const fingerprint = buildRepairFingerprint({ root, specPath, state });
+  const artifacts = new Map();
+  let identityProbeError = null;
+  try {
+    for (const file of ["test-execute-result.json", "test-result-review.json"]) {
+      const artifactPath = path.join(specDir, file);
+      artifacts.set(file, readJsonStrict(artifactPath));
+    }
+    const mismatch = StaleTestEvidenceMismatch.detect({
+      artifacts,
+      currentFingerprint: fingerprint.hash,
+    });
+    if (mismatch) return new StaleIntegrationTestEvidence(mismatch);
+  } catch (error) {
+    // Full trust validation below owns malformed, missing, and oversized
+    // artifact diagnostics. Identity probing only enables stale-evidence
+    // refresh before obsolete semantic results can block regeneration.
+    identityProbeError = error;
+  }
   const result = validateIntegrationArtifactTrust({
     root,
     specDir,
@@ -232,14 +254,14 @@ export function checkIntegrationTestArtifacts(root, state, level, phase, config 
       `test artifact validation failed: ${result.reason}`,
     ], { phase, level, spec: specPath });
   }
-  const fingerprint = buildRepairFingerprint({ root, specPath, state });
-  const artifacts = result.fingerprintAuthority.toArtifactMap();
-  const mismatch = StaleTestEvidenceMismatch.detect({
-    artifacts,
+  if (identityProbeError) throw identityProbeError;
+  const trustedArtifacts = result.fingerprintAuthority.toArtifactMap();
+  const trustedMismatch = StaleTestEvidenceMismatch.detect({
+    artifacts: trustedArtifacts,
     currentFingerprint: fingerprint.hash,
   });
-  if (mismatch) return new StaleIntegrationTestEvidence(mismatch, state);
-  for (const [file, artifact] of artifacts) {
+  if (trustedMismatch) return new StaleIntegrationTestEvidence(trustedMismatch, state);
+  for (const [file, artifact] of trustedArtifacts) {
     assertRepairFingerprint({
       artifact,
       fingerprint,
@@ -4755,36 +4777,140 @@ async function runGateFlow(args) {
 // Command
 // ---------------------------------------------------------------------------
 
-/**
- * Update a step's status during gate phase inference. When flow.json has not
- * been created yet (ERR_MISSING_FILE), the update is skipped with a warning —
- * any other error is re-thrown so the dispatcher can surface it to the user.
- *
- * Mirrors registry.js's `tryUpdateStepStatus` helper; kept inline here to
- * avoid exporting internal registry plumbing.
- */
-function updateStepStatusDuringInference(flowManager, flowState, stepId, status) {
-  try {
-    const transition = createLifecycleStepTransition({
-      flowState,
-      stepId,
-      status,
-      event: "gate:phase-inference",
-      taskId: null,
-    });
-    if (transition) flowManager.updateStepStatus(transition, {
-      ...(flowState.spec && { specId: getSpecName(flowState) }),
-      taskId: null,
-    });
-  } catch (err) {
-    if (err?.code === "ERR_MISSING_FILE") {
-      process.stderr.write(
-        `[senti] gate: step-status update skipped (${stepId}=${status}): ${err.message}\n`,
-      );
-      return;
+export class InferredGateTransition {
+  #committed = false;
+  #runId;
+  #spec;
+  #expectedStepStatuses;
+
+  constructor({ flowState, resolution, owner } = {}) {
+    if (!flowState || typeof flowState !== "object" || Array.isArray(flowState)) {
+      throw new Error("flowState must be an object");
     }
-    throw err;
+    if (!resolution || typeof resolution !== "object" || Array.isArray(resolution)) {
+      throw new Error("resolution must be an object");
+    }
+    const phase = typeof resolution.phase === "string" ? resolution.phase.trim() : "";
+    if (!phase) throw new Error("resolution phase must be a non-empty string");
+    if (!Array.isArray(resolution.staleSteps)) {
+      throw new Error("resolution staleSteps must be an array");
+    }
+    const staleStepIds = resolution.staleSteps.map((stepId) => {
+      if (typeof stepId !== "string" || stepId.trim() === "") {
+        throw new Error("stale step ids must be non-empty strings");
+      }
+      return stepId.trim();
+    });
+    if (new Set(staleStepIds).size !== staleStepIds.length) {
+      throw new Error("stale step ids must be unique");
+    }
+    if (!(owner instanceof GateMutationOwner)) {
+      throw new Error("owner must be a GateMutationOwner");
+    }
+    if (owner.flowState !== flowState) {
+      throw new Error("owner flowState identity must match the transition flowState");
+    }
+    if (owner.phase !== phase) {
+      throw new Error("owner phase must match the inferred phase");
+    }
+    const runId = typeof flowState.runId === "string" ? flowState.runId.trim() : "";
+    const spec = typeof flowState.spec === "string" ? flowState.spec.trim() : "";
+    if (!runId || !spec) {
+      throw new Error("pre-transition flowState identity requires runId and spec");
+    }
+
+    this.phase = phase;
+    this.staleStepIds = Object.freeze(staleStepIds);
+    this.owner = owner;
+    this.#runId = runId;
+    this.#spec = spec;
+    this.#expectedStepStatuses = owner.captureTransitionStatuses({ flowState, staleStepIds });
+    Object.freeze(this);
   }
+
+  commit(flowManager) {
+    if (this.#committed) return [];
+    if (typeof flowManager?.load !== "function" || typeof flowManager?.updateStepStatuses !== "function") {
+      throw new Error("flowManager load and updateStepStatuses are required");
+    }
+    const current = flowManager.load();
+    if (current?.runId !== this.#runId || current?.spec !== this.#spec) {
+      throw new Error("pre-transition flowState identity changed before commit");
+    }
+    this.owner.assertTransitionStatuses({
+      flowState: current,
+      expectedStatuses: this.#expectedStepStatuses,
+    });
+
+    const transitions = this.staleStepIds.map((stepId) => {
+      const transition = createLifecycleStepTransition({
+        flowState: current,
+        stepId,
+        status: "done",
+        event: "gate:phase-inference",
+        taskId: null,
+      });
+      if (!transition) throw new Error(`stale recovery transition was not created: ${stepId}`);
+      return transition;
+    });
+    const selectedTransition = this.owner.createTransition({
+      status: "in_progress",
+      event: "gate:phase-inference",
+    });
+    if (selectedTransition) {
+      throw new Error("selected gate owner unexpectedly requires a state transition");
+    }
+    if (transitions.length > 0) {
+      flowManager.updateStepStatuses(transitions, {
+        specId: getSpecName(current),
+        taskId: null,
+      });
+    }
+    this.#committed = true;
+    return transitions;
+  }
+}
+
+class GateArtifactCheckpoint {
+  constructor(file) {
+    this.file = file;
+    this.existed = fs.existsSync(file);
+    this.content = this.existed ? fs.readFileSync(file) : null;
+  }
+
+  restore() {
+    if (this.existed) {
+      fs.writeFileSync(this.file, this.content);
+    } else {
+      fs.rmSync(this.file, { force: true });
+    }
+  }
+}
+
+class GateDurableSurfaceCheckpoint {
+  constructor({ specDir, phase }) {
+    const files = new Set([
+      "issue-log.json",
+      "flow-findings.json",
+      "gate-impl-memory.json",
+      "impl-gate-source.json",
+      GATE_SOURCE_ARTIFACT_BY_PHASE[phase],
+      GATE_RESULT_ARTIFACT_BY_PHASE[phase],
+    ].filter(Boolean));
+    this.checkpoints = Object.freeze(
+      [...files].map((file) => new GateArtifactCheckpoint(path.join(specDir, file))),
+    );
+    Object.freeze(this);
+  }
+
+  restore() {
+    for (const checkpoint of this.checkpoints) checkpoint.restore();
+  }
+}
+
+function completedSemanticGateResult(result) {
+  if (result?.result === "pass") return true;
+  return result?.result === "fail" && result?.artifacts?.failureKind === "ai_semantic_fail";
 }
 
 export function resolveEffectiveGatePhase(ctx, inferredResolution = null) {
@@ -4812,31 +4938,6 @@ export class RunGateCommand extends FlowCommand {
         );
       }
     }
-    if (inferPhase) {
-      const flowManager = ctx.flowManager || container.get("flowManager");
-      for (const staleId of resolution.staleSteps) {
-        updateStepStatusDuringInference(flowManager, flowManager.load(), staleId, "done");
-        process.stderr.write(
-          `[senti] gate: stale in_progress step "${staleId}" ` +
-            `transitioned to done (auto-resolved phase=${phase})\n`,
-        );
-      }
-      const owner = new GateMutationOwner({ flowState: flowManager.load(), phase });
-      try {
-        owner.updateStepStatus(flowManager, {
-          status: "in_progress",
-          event: "gate:phase-inference",
-        });
-      } catch (err) {
-        if (err?.code === "ERR_MISSING_FILE") {
-          process.stderr.write(
-            `[senti] gate: step-status update skipped (${owner.stepId}=in_progress): ${err.message}\n`,
-          );
-        } else {
-          throw err;
-        }
-      }
-    }
 
     if (!VALID_GATE_PHASES.includes(phase)) {
       throw new Error(
@@ -4850,20 +4951,61 @@ export class RunGateCommand extends FlowCommand {
 
     const skipGuardrail = ctx.skipGuardrail || false;
     const level = PHASE_TO_LEVEL[phase];
+    const flowManager = inferPhase ? (ctx.flowManager || container.get("flowManager")) : null;
+    const inferredTransition = inferPhase
+      ? new InferredGateTransition({
+          flowState: ctx.flowState,
+          resolution,
+          owner: new GateMutationOwner({ flowState: ctx.flowState, phase }),
+        })
+      : null;
+    const durableCheckpoint = inferredTransition
+      ? new GateDurableSurfaceCheckpoint({
+          specDir: resolveSpecDir(path.resolve(root, ctx.flowState.spec)),
+          phase,
+        })
+      : null;
+    let transitionCommitted = false;
 
     try {
+      let result;
       if (phase === "draft") {
-        return await this.executeDraft(ctx, root, level, skipGuardrail);
+        result = await this.executeDraft(ctx, root, level, skipGuardrail);
+      } else if (phase === "task-impl" || phase === "integration") {
+        result = await this.executeDiffBasedGate(
+          ctx,
+          root,
+          level,
+          phase,
+          skipGuardrail,
+          { deferIntegrationPersistence: inferPhase },
+        );
+      } else if (phase === "task-spec") {
+        result = await this.executeTaskSpec(ctx, root, level, skipGuardrail);
+      } else {
+        // "spec" — parent spec.json
+        result = await this.executeSpec(ctx, root, level, skipGuardrail);
       }
-      if (phase === "task-impl" || phase === "integration") {
-        return await this.executeDiffBasedGate(ctx, root, level, phase, skipGuardrail);
+      if (!inferredTransition) return result;
+      if (!completedSemanticGateResult(result)) {
+        durableCheckpoint.restore();
+        return result;
       }
-      if (phase === "task-spec") {
-        return await this.executeTaskSpec(ctx, root, level, skipGuardrail);
+      const persisted = phase === "integration"
+        ? persistIntegrationGateResult({ root, state: ctx.flowState, result })
+        : result;
+      const committed = inferredTransition.commit(flowManager);
+      transitionCommitted = true;
+      ctx.flowState = flowManager.load();
+      for (const transition of committed) {
+        process.stderr.write(
+          `[senti] gate: stale in_progress step "${transition.stepId}" ` +
+            `transitioned to done (committed phase=${phase})\n`,
+        );
       }
-      // "spec" — parent spec.json
-      return await this.executeSpec(ctx, root, level, skipGuardrail);
+      return persisted;
     } catch (err) {
+      if (!transitionCommitted) durableCheckpoint?.restore();
       if (err instanceof EvaluationSchemaError) {
         throw new GateOutputProtocolFailure({
           phase,
@@ -5044,11 +5186,18 @@ export class RunGateCommand extends FlowCommand {
     });
   }
 
-  async executeDiffBasedGate(ctx, root, level, phase, skipGuardrail) {
+  async executeDiffBasedGate(
+    ctx,
+    root,
+    level,
+    phase,
+    skipGuardrail,
+    { deferIntegrationPersistence = false } = {},
+  ) {
     const state = ctx.flowState;
     if (!state?.spec) throw new Error("no active flow found");
     if (!state.baseBranch) throw new Error("baseBranch not set in flow.json");
-    const finish = (result) => phase === "integration"
+    const finish = (result) => phase === "integration" && !deferIntegrationPersistence
       ? persistIntegrationGateResult({ root, state, result })
       : result;
 
@@ -5086,7 +5235,21 @@ export class RunGateCommand extends FlowCommand {
           specDir: path.dirname(path.resolve(root, state.spec)),
         });
       }
-      if (integrationCheck) return finish(integrationCheck);
+      if (integrationCheck) {
+        const messages = (integrationCheck.errors || [])
+          .flatMap((entry) => entry?.messages || [])
+          .filter((message) => typeof message === "string" && message.trim() !== "");
+        const blocked = gateFail(
+          level,
+          phase,
+          state.spec,
+          [],
+          messages.length > 0 ? messages : ["integration test artifact trust validation failed"],
+        );
+        blocked.artifacts.failureKind = "artifact_trust_failure";
+        blocked.artifacts.failureCode = integrationCheck.errors?.[0]?.code || null;
+        return finish(blocked);
+      }
       const findingReadiness = reviewFindingGateFailure({
         root,
         state,
@@ -5359,15 +5522,70 @@ export class RunGateCommand extends FlowCommand {
 }
 
 export default RunGateCommand;
-async function runGatePhaseWithDependencies({ phase, specDir, gateResult, fingerprint = null }) {
-  const basename = phase === "integration" ? "impl-gate-result.json" : `${phase}-gate-result.json`;
-  fs.mkdirSync(specDir, { recursive: true });
-  if (phase === "integration" && fingerprint) {
-    writeRepairEvidenceArtifact({ specDir, stepId: "impl-gate", artifact: gateResult, fingerprint });
-  } else {
-    fs.writeFileSync(path.join(specDir, basename), `${JSON.stringify(gateResult, null, 2)}\n`);
+async function runGatePhaseWithDependencies({
+  phase,
+  specDir,
+  gateResult,
+  fingerprint = null,
+  transition = null,
+  flowManager = null,
+  executeGate = null,
+  writeArtifact = null,
+  onCommitted = null,
+}) {
+  const result = typeof executeGate === "function" ? await executeGate() : gateResult;
+  if (transition) {
+    if (!(transition instanceof InferredGateTransition)) {
+      throw new Error("transition must be an InferredGateTransition");
+    }
+    if (!completedSemanticGateResult(result)) {
+      throw new Error("gate result validation requires a completed semantic pass or fail");
+    }
   }
-  return { changed: [basename] };
+  const basename = phase === "integration" ? "impl-gate-result.json" : `${phase}-gate-result.json`;
+  const artifactPath = path.join(specDir, basename);
+  const durableCheckpoint = new GateDurableSurfaceCheckpoint({ specDir, phase });
+  const inferredFingerprint = phase === "integration" && transition && fingerprint == null
+    ? buildRepairFingerprint({
+        root: path.dirname(path.dirname(specDir)),
+        specPath: transition.owner.flowState.spec,
+        state: transition.owner.flowState,
+      })
+    : null;
+  const effectiveFingerprint = fingerprint || inferredFingerprint;
+  const artifact = effectiveFingerprint
+    ? stampRepairFingerprint({ artifact: result, fingerprint: effectiveFingerprint })
+    : result;
+  let committed = [];
+  try {
+    fs.mkdirSync(specDir, { recursive: true });
+    if (typeof writeArtifact === "function") {
+      writeArtifact(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
+    } else if (phase === "integration" && effectiveFingerprint) {
+      writeRepairEvidenceArtifact({
+        specDir,
+        stepId: "impl-gate",
+        artifact,
+        fingerprint: effectiveFingerprint,
+      });
+    } else {
+      fs.writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
+    }
+    committed = transition ? transition.commit(flowManager) : [];
+  } catch (err) {
+    durableCheckpoint.restore();
+    throw err;
+  }
+  if (transition) {
+    if (typeof onCommitted === "function") onCommitted(committed, result);
+  }
+  return {
+    ...result,
+    changed: Array.from(new Set([
+      ...(Array.isArray(result?.changed) ? result.changed : []),
+      basename,
+    ])),
+  };
 }
 
 export {
@@ -5390,6 +5608,7 @@ export {
 };
 
 export function appendIssueLogFromGateResult(ctx, result) {
+  if (result?.result !== "pass" && result?.result !== "fail") return;
   const observations = result?.artifacts?.nextAction?.diagnosis?.observations || [];
   const reasons = result?.artifacts?.issues?.length
     ? result.artifacts.issues.join("; ")

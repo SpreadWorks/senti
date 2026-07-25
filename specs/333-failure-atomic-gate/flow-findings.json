@@ -1,0 +1,80 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "task-review",
+      "sourceArtifact": "review-evidence/0f0cb90c9319ec5d8a09e6d13f44ce42b45d683486a873a83ab7a63889afcecc.json",
+      "sourceFindingId": "ed1c55a7f1ebdffe54747006e4052b62535edcc35f0fbd59f4f2c714d41925a9",
+      "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+      "fingerprint": "ed1c55a7f1ebdffe54747006e4052b62535edcc35f0fbd59f4f2c714d41925a9",
+      "disposition": "deferred",
+      "rationale": "R2 requires the inferred transition to validate stale steps and the `GateMutationOwner` relationship before any commit. Allowing the stale set to include the selected owner breaks that mandatory authority boundary and can persist an incorrect lifecycle transition.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "96b1d45fbacb8857b5ab2c1a8be8893a8efdb6ffa67a53e5306efa5f00e78d69",
+      "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+      "fingerprint": "96b1d45fbacb8857b5ab2c1a8be8893a8efdb6ffa67a53e5306efa5f00e78d69",
+      "disposition": "deferred",
+      "rationale": "The task explicitly requires no behavior change for parked resume and gives a narrow implementation instruction. Large unrelated gate runtime changes are not needed to satisfy R7 and create behavioral risk outside the accepted task scope.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "not_needed"
+    },
+    {
+      "findingId": "DF-3",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "4db13bb451e26817fd72fce1793d21d33501c3a159c78b7f06b6c6b542b2b47e",
+      "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+      "fingerprint": "4db13bb451e26817fd72fce1793d21d33501c3a159c78b7f06b6c6b542b2b47e",
+      "disposition": "deferred",
+      "rationale": "These code changes are outside the mandatory R7 scope and contradict the task instruction to update only the resume help summary line.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "not_needed"
+    },
+    {
+      "findingId": "DF-4",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "d505894fefcbc055e6e90eb489ef3bbea95fe8d79e30b2910b8cb368f7901f59",
+      "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+      "fingerprint": "d505894fefcbc055e6e90eb489ef3bbea95fe8d79e30b2910b8cb368f7901f59",
+      "disposition": "deferred",
+      "rationale": "The added tests document and enforce behavior outside R7, expanding the task surface beyond the mandatory parked-resume help change.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "not_needed"
+    },
+    {
+      "findingId": "DF-5",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "fc54321033d29415347b620064ff7d7f785f12e3e32ebf2d91b5e49906d18d38",
+      "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+      "fingerprint": "fc54321033d29415347b620064ff7d7f785f12e3e32ebf2d91b5e49906d18d38",
+      "disposition": "deferred",
+      "rationale": "Changing gate inference expectations is outside the R7 acceptance criteria and conflicts with the task's narrow implementation notes.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "not_needed"
+    }
+  ]
+}

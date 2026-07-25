@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js"
+    ],
+    "inputHash": "31b9626bd64da92d21f74f80560fd85969290f580d958d992cb8ee0d0f760a25",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js"
+  ],
+  "inputHash": "31b9626bd64da92d21f74f80560fd85969290f580d958d992cb8ee0d0f760a25",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T01:51:42.585Z",
+  "finishedAt": "2026-07-25T01:51:42.585Z",
+  "rawResponse": "I’ll review only the touched test file and keep proposals scoped to quality/design plus the bounded-resource guardrail. Since you asked for proposals rather than edits, I’ll avoid changing the workspace.### 1. Extract Shared Boundary Lists\n**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R5  \n**Issue:** The boundary inventory `[\"validation\", \"agent\", \"output-protocol\", \"artifact-write\"]` is duplicated across several tests and helpers. If the retry/failure boundary matrix changes, it is easy for tests to drift.  \n**Suggestion:** Define a shared constant such as `const PRE_COMMIT_BOUNDARIES = [...]` near the fixture helpers and reuse it in all boundary loops.\n\n### 2. Extract Shared Semantic Result Lists\n**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R4  \n**Issue:** The semantic result set `[\"pass\", \"fail\"]` is repeated in multiple tests. This duplicates the PASS/FAIL parity contract and makes additions or renames error-prone.  \n**Suggestion:** Add `const SEMANTIC_GATE_RESULTS = [\"pass\", \"fail\"];` and reuse it in the R4/R6 loops.\n\n### 3. Simplify Repeated JSON File Reads\n**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R6  \n**Issue:** The test repeatedly performs `JSON.parse(fs.readFileSync(path.join(...), \"utf8\"))`, which adds noise and obscures the assertions.  \n**Suggestion:** Add small helpers like `readJson(file)` and `readSpecJson(specDir, name)` to make assertions focus on behavior rather than file plumbing.\n\n### 4. Rename `serialized` for Intent\n**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R1  \n**Issue:** `serialized(value)` is vague; the tests use it specifically to capture byte-comparable JSON state snapshots.  \n**Suggestion:** Rename it to something more intent-revealing, such as `jsonSnapshot(value)` or `serializeState(value)`.\n\n### 5. Collapse Artifact Path Parity Data Shape\n**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R6  \n**Issue:** `nonIntegrationArtifactPaths` repeats derived filenames for each phase, which makes the table longer than the behavior being tested.  \n**Suggestion:** Store only phases and derive `${phase}-gate-source.json` / `${phase}-gate-result.json` in the loop, unless the explicit filenames are intentionally documenting a non-obvious compatibility contract.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Shared Boundary Lists",
+        "body": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R5  \n**Issue:** The boundary inventory `[\"validation\", \"agent\", \"output-protocol\", \"artifact-write\"]` is duplicated across several tests and helpers. If the retry/failure boundary matrix changes, it is easy for tests to drift.  \n**Suggestion:** Define a shared constant such as `const PRE_COMMIT_BOUNDARIES = [...]` near the fixture helpers and reuse it in all boundary loops.",
+        "file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Extract Shared Semantic Result Lists",
+        "body": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R4  \n**Issue:** The semantic result set `[\"pass\", \"fail\"]` is repeated in multiple tests. This duplicates the PASS/FAIL parity contract and makes additions or renames error-prone.  \n**Suggestion:** Add `const SEMANTIC_GATE_RESULTS = [\"pass\", \"fail\"];` and reuse it in the R4/R6 loops.",
+        "file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Simplify Repeated JSON File Reads",
+        "body": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R6  \n**Issue:** The test repeatedly performs `JSON.parse(fs.readFileSync(path.join(...), \"utf8\"))`, which adds noise and obscures the assertions.  \n**Suggestion:** Add small helpers like `readJson(file)` and `readSpecJson(specDir, name)` to make assertions focus on behavior rather than file plumbing.",
+        "file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Rename `serialized` for Intent",
+        "body": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R1  \n**Issue:** `serialized(value)` is vague; the tests use it specifically to capture byte-comparable JSON state snapshots.  \n**Suggestion:** Rename it to something more intent-revealing, such as `jsonSnapshot(value)` or `serializeState(value)`.",
+        "file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Collapse Artifact Path Parity Data Shape",
+        "body": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R6  \n**Issue:** `nonIntegrationArtifactPaths` repeats derived filenames for each phase, which makes the table longer than the behavior being tested.  \n**Suggestion:** Store only phases and derive `${phase}-gate-source.json` / `${phase}-gate-result.json` in the loop, unless the explicit filenames are intentionally documenting a non-obvious compatibility contract.",
+        "file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

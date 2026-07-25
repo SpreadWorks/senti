@@ -661,7 +661,7 @@ export const FLOW_COMMANDS = {
     help: [
       `Usage: senti flow resume [--spec <specId>] [--parked] ${FLOW_TARGET_GUARD_USAGE}`,
       "",
-      "Show active flow context; --parked restores one exact inactive pointer with no discovery.",
+      "Show active flow context; --parked restores one exact inactive managed-worktree pointer with no discovery.",
       "When multiple flows are active concurrently, pass --spec to select one.",
       "With --parked, restore one exact managed-worktree pointer from its saved execution root.",
       "Parked resume requires runId, spec, and Issue identity guards and performs no discovery.",

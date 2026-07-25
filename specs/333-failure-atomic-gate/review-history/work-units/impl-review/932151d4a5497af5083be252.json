@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "932151d4a5497af5083be252",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-5b9ae222f206e2ca",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/333-failure-atomic-gate/impl-repair.json",
+      "specs/333-failure-atomic-gate/repair-deltas/repair-006.json",
+      "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+      "specs/333-failure-atomic-gate/repair-ledger-reconciliation.json",
+      "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+      "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+      "specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+      "src/flow/lib/gate-mutation-owner.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/gate-phase-inference.test.js"
+    ],
+    "inputHash": "5b9ae222f206e2cabd564dba9471a5b6b04c3d1d9458bf89ac6d1c2a9fcee854",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "932151d4a5497af5083be252"
+  },
+  "targetFiles": [
+    "specs/333-failure-atomic-gate/impl-repair.json",
+    "specs/333-failure-atomic-gate/repair-deltas/repair-006.json",
+    "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+    "specs/333-failure-atomic-gate/repair-ledger-reconciliation.json",
+    "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+    "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+    "specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+    "src/flow/lib/gate-mutation-owner.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/gate-phase-inference.test.js"
+  ],
+  "inputHash": "5b9ae222f206e2cabd564dba9471a5b6b04c3d1d9458bf89ac6d1c2a9fcee854",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T01:20:22.538Z",
+  "finishedAt": "2026-07-25T01:20:22.538Z",
+  "rawResponse": "### 1. Standardize Authority Metadata Shape\n**File:** `specs/333-failure-atomic-gate/impl-repair.json`\n**Requirement:** R8\n**Issue:** Both `impl-repair.json` and `repair-deltas/repair-006.json` are proposed to add explicit authority binding metadata, but the summaries suggest different possible field shapes: top-level `runId/specId/issueId` versus an `authority` or `evidence` object. Introducing these independently could create inconsistent authority interfaces across the ledger and delta artifact.\n**Suggestion:** Define one shared schema, preferably a nested `authority` object with the same required keys in both files, then update tests and reconciliation code to read that exact shape.\n\n### 2. Align Delta Digest Naming Across Artifacts\n**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.json`\n**Requirement:** R8\n**Issue:** The reconciliation fixture uses `changedPathsDigest`, while other proposals refer to binding a full `delta digest`. If `impl-repair.json`, `repair-deltas/repair-006.json`, and `repair-ledger-reconciliation.json` use different names or meanings for the same integrity value, validation code can drift or bind the wrong evidence.\n**Suggestion:** Use distinct, consistent names everywhere, such as `changedPathsDigest` for the path inventory hash and `deltaDigest` for the full delta artifact hash, and require both fields wherever R8 authority binding is represented.\n\n### 3. Consolidate JSON Serialization Helper Naming\n**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`\n**Requirement:** R8\n**Issue:** Both `repair-ledger-reconciliation.js` and `tests/gate-failure-atomicity.test.js` have a broadly named `serialized` helper and separate proposals to rename it. Renaming them independently to different concepts could preserve cross-file naming drift for the same byte/comparable JSON purpose.\n**Suggestion:** Pick one convention for deterministic JSON comparison helpers, such as `serializeForExactComparison`, and reuse that naming across production reconciliation code and tests unless the semantics truly differ.\n\n### 4. Reuse Gate Artifact Inventory Between Runtime And Tests\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R3\n**Issue:** `run-gate.js` has duplicated gate artifact filename construction, while `gate-failure-atomicity.test.js` also repeatedly reads and writes gate result artifacts directly. If runtime artifact names are centralized but tests keep their own implicit inventory, rollback coverage and assertions can still drift from write paths.\n**Suggestion:** Export or locally share a small artifact inventory helper, then have both checkpoint/write logic and relevant tests derive gate result paths from the same source.\n\n### 5. Normalize Predicate Naming For Gate Result Semantics\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R4\n**Issue:** `completedSemanticGateResult(result)` is proposed to become a predicate, while tests use repeated semantic result lists such as `[\"pass\", \"fail\"]`. Without a shared naming pattern, boolean helpers and semantic-result fixtures may describe the same concept differently across files.\n**Suggestion:** Rename the runtime helper to `isCompletedSemanticGateResult` and consider reusing that semantic terminology in test constants, for example `COMPLETED_SEMANTIC_GATE_RESULTS`, so result-state naming is consistent across runtime and tests.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize Authority Metadata Shape",
+        "body": "**File:** `specs/333-failure-atomic-gate/impl-repair.json`\n**Requirement:** R8\n**Issue:** Both `impl-repair.json` and `repair-deltas/repair-006.json` are proposed to add explicit authority binding metadata, but the summaries suggest different possible field shapes: top-level `runId/specId/issueId` versus an `authority` or `evidence` object. Introducing these independently could create inconsistent authority interfaces across the ledger and delta artifact.\n**Suggestion:** Define one shared schema, preferably a nested `authority` object with the same required keys in both files, then update tests and reconciliation code to read that exact shape.",
+        "file": "specs/333-failure-atomic-gate/impl-repair.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Align Delta Digest Naming Across Artifacts",
+        "body": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.json`\n**Requirement:** R8\n**Issue:** The reconciliation fixture uses `changedPathsDigest`, while other proposals refer to binding a full `delta digest`. If `impl-repair.json`, `repair-deltas/repair-006.json`, and `repair-ledger-reconciliation.json` use different names or meanings for the same integrity value, validation code can drift or bind the wrong evidence.\n**Suggestion:** Use distinct, consistent names everywhere, such as `changedPathsDigest` for the path inventory hash and `deltaDigest` for the full delta artifact hash, and require both fields wherever R8 authority binding is represented.",
+        "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Consolidate JSON Serialization Helper Naming",
+        "body": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`\n**Requirement:** R8\n**Issue:** Both `repair-ledger-reconciliation.js` and `tests/gate-failure-atomicity.test.js` have a broadly named `serialized` helper and separate proposals to rename it. Renaming them independently to different concepts could preserve cross-file naming drift for the same byte/comparable JSON purpose.\n**Suggestion:** Pick one convention for deterministic JSON comparison helpers, such as `serializeForExactComparison`, and reuse that naming across production reconciliation code and tests unless the semantics truly differ.",
+        "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Reuse Gate Artifact Inventory Between Runtime And Tests",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R3\n**Issue:** `run-gate.js` has duplicated gate artifact filename construction, while `gate-failure-atomicity.test.js` also repeatedly reads and writes gate result artifacts directly. If runtime artifact names are centralized but tests keep their own implicit inventory, rollback coverage and assertions can still drift from write paths.\n**Suggestion:** Export or locally share a small artifact inventory helper, then have both checkpoint/write logic and relevant tests derive gate result paths from the same source.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Normalize Predicate Naming For Gate Result Semantics",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R4\n**Issue:** `completedSemanticGateResult(result)` is proposed to become a predicate, while tests use repeated semantic result lists such as `[\"pass\", \"fail\"]`. Without a shared naming pattern, boolean helpers and semantic-result fixtures may describe the same concept differently across files.\n**Suggestion:** Rename the runtime helper to `isCompletedSemanticGateResult` and consider reusing that semantic terminology in test constants, for example `COMPLETED_SEMANTIC_GATE_RESULTS`, so result-state naming is consistent across runtime and tests.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

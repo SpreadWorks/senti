@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "4d5234a41b2fe84bdfc0189f",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-54a240862851b849",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/333-failure-atomic-gate/impl-repair.json",
+      "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+      "specs/333-failure-atomic-gate/spec.json",
+      "specs/333-failure-atomic-gate/spec.md",
+      "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+      "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+      "specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+      "src/flow/lib/gate-mutation-owner.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/gate-phase-inference.test.js"
+    ],
+    "inputHash": "54a240862851b8496f160eec55f7db8a06e8ffc9966794260c02a569732d862a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "4d5234a41b2fe84bdfc0189f"
+  },
+  "targetFiles": [
+    "specs/333-failure-atomic-gate/impl-repair.json",
+    "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+    "specs/333-failure-atomic-gate/spec.json",
+    "specs/333-failure-atomic-gate/spec.md",
+    "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+    "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+    "specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+    "src/flow/lib/gate-mutation-owner.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/gate-phase-inference.test.js"
+  ],
+  "inputHash": "54a240862851b8496f160eec55f7db8a06e8ffc9966794260c02a569732d862a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T01:40:01.959Z",
+  "finishedAt": "2026-07-25T01:40:01.959Z",
+  "rawResponse": "### 1. Consolidate duplicated inferred-transition atomic persistence logic\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R3\n**Issue:** Multiple summaries point to the same atomic gate flow being duplicated or repeated across files: `run-gate.js` has two implementations of checkpoint/artifact/commit sequencing, while `spec.md` and `spec.json` also duplicate the same deferred-transition/data-flow description. This creates a cross-file drift risk between implementation and spec artifacts for the core atomicity behavior.\n**Suggestion:** Extract one implementation helper in `run-gate.js`, then update `spec.md` and `spec.json` to describe that single canonical sequence once.\n\n### 2. Normalize issue identity naming across spec and repair artifacts\n**File:** `specs/333-failure-atomic-gate/spec.json`\n**Requirement:** R8\n**Issue:** The spec uses mixed “Issue” / “issue” phrasing while the repair ledger uses fields such as `issue`, `previousHash`, and `previousFingerprint`. The summaries also note fingerprint/hash ambiguity in `impl-repair.json`, so inconsistent identity terminology across files weakens the authority/evidence contract.\n**Suggestion:** Standardize on one identity vocabulary across `spec.json`, `spec.md`, `impl-repair.json`, and reconciliation tests, such as `issue_id` for tracker identity and explicit `previousFingerprint` / `previousHash` meanings for artifact evidence.\n\n### 3. Use shared bridge authority values instead of duplicating repair constants\n**File:** `specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js`\n**Requirement:** R8\n**Issue:** The repair test hard-codes bridge values like `repair-006` and `5`, while `impl-repair.json` is also expected to preserve exactly one bridge append. This creates duplicate sources of truth across the ledger artifact and tests.\n**Suggestion:** Drive test expectations from the fixture authority values and keep the bridge ledger entry as the single canonical artifact value.\n\n### 4. Align bounded traversal/resource checks across reconciliation and gate mutation code\n**File:** `src/flow/lib/gate-mutation-owner.js`\n**Requirement:** R8\n**Issue:** Both `gate-mutation-owner.js` and `repair-ledger-reconciliation.js` introduce unbounded grouping/traversal over user/spec-derived structures. The same bounded-resource guardrail is being handled inconsistently across files.\n**Suggestion:** Define or reuse a common bounded traversal policy/helper for step flattening and changed-path grouping, with explicit limits and consistent failure behavior.\n\n### 5. Normalize semantic gate result constants across implementation and tests\n**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`\n**Requirement:** R6\n**Issue:** Tests repeat string literals `\"pass\"` and `\"fail\"`, while `run-gate.js` has commit eligibility logic around semantic pass/fail results. This duplicates protocol literals across implementation and tests.\n**Suggestion:** Centralize semantic result constants or import the production protocol values into tests where appropriate, then use those constants in both commit eligibility checks and test assertions.\n\n### 6. Align requirement naming in tests with spec requirement IDs\n**File:** `tests/unit/flow/gate-phase-inference.test.js`\n**Requirement:** R6\n**Issue:** One test still uses `AC3` naming while the spec and other review summaries use `R1` through `R8`. This creates cross-file naming drift between the test suite and requirement documents.\n**Suggestion:** Rename the test to use requirement IDs, for example `R3/R6: preserves inferred gate steps when downstream integration validation does not complete`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate duplicated inferred-transition atomic persistence logic",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R3\n**Issue:** Multiple summaries point to the same atomic gate flow being duplicated or repeated across files: `run-gate.js` has two implementations of checkpoint/artifact/commit sequencing, while `spec.md` and `spec.json` also duplicate the same deferred-transition/data-flow description. This creates a cross-file drift risk between implementation and spec artifacts for the core atomicity behavior.\n**Suggestion:** Extract one implementation helper in `run-gate.js`, then update `spec.md` and `spec.json` to describe that single canonical sequence once.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Normalize issue identity naming across spec and repair artifacts",
+        "body": "**File:** `specs/333-failure-atomic-gate/spec.json`\n**Requirement:** R8\n**Issue:** The spec uses mixed “Issue” / “issue” phrasing while the repair ledger uses fields such as `issue`, `previousHash`, and `previousFingerprint`. The summaries also note fingerprint/hash ambiguity in `impl-repair.json`, so inconsistent identity terminology across files weakens the authority/evidence contract.\n**Suggestion:** Standardize on one identity vocabulary across `spec.json`, `spec.md`, `impl-repair.json`, and reconciliation tests, such as `issue_id` for tracker identity and explicit `previousFingerprint` / `previousHash` meanings for artifact evidence.",
+        "file": "specs/333-failure-atomic-gate/spec.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Use shared bridge authority values instead of duplicating repair constants",
+        "body": "**File:** `specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js`\n**Requirement:** R8\n**Issue:** The repair test hard-codes bridge values like `repair-006` and `5`, while `impl-repair.json` is also expected to preserve exactly one bridge append. This creates duplicate sources of truth across the ledger artifact and tests.\n**Suggestion:** Drive test expectations from the fixture authority values and keep the bridge ledger entry as the single canonical artifact value.",
+        "file": "specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Align bounded traversal/resource checks across reconciliation and gate mutation code",
+        "body": "**File:** `src/flow/lib/gate-mutation-owner.js`\n**Requirement:** R8\n**Issue:** Both `gate-mutation-owner.js` and `repair-ledger-reconciliation.js` introduce unbounded grouping/traversal over user/spec-derived structures. The same bounded-resource guardrail is being handled inconsistently across files.\n**Suggestion:** Define or reuse a common bounded traversal policy/helper for step flattening and changed-path grouping, with explicit limits and consistent failure behavior.",
+        "file": "src/flow/lib/gate-mutation-owner.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "5. Normalize semantic gate result constants across implementation and tests",
+        "body": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`\n**Requirement:** R6\n**Issue:** Tests repeat string literals `\"pass\"` and `\"fail\"`, while `run-gate.js` has commit eligibility logic around semantic pass/fail results. This duplicates protocol literals across implementation and tests.\n**Suggestion:** Centralize semantic result constants or import the production protocol values into tests where appropriate, then use those constants in both commit eligibility checks and test assertions.",
+        "file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "6. Align requirement naming in tests with spec requirement IDs",
+        "body": "**File:** `tests/unit/flow/gate-phase-inference.test.js`\n**Requirement:** R6\n**Issue:** One test still uses `AC3` naming while the spec and other review summaries use `R1` through `R8`. This creates cross-file naming drift between the test suite and requirement documents.\n**Suggestion:** Rename the test to use requirement IDs, for example `R3/R6: preserves inferred gate steps when downstream integration validation does not complete`.",
+        "file": "tests/unit/flow/gate-phase-inference.test.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

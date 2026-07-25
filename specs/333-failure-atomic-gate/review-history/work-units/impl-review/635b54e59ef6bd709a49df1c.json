@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js"
+    ],
+    "inputHash": "fda6dd634af9aeafaf751daaf8a159401a7ab89514bc1304453a64b64c41abc8",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js"
+  ],
+  "inputHash": "fda6dd634af9aeafaf751daaf8a159401a7ab89514bc1304453a64b64c41abc8",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T01:46:19.644Z",
+  "finishedAt": "2026-07-25T01:46:19.644Z",
+  "rawResponse": "I’ll review only the touched file in the supplied diff and keep each proposal tied to R8 as required.### 1. Extract Repeated Positive Integer Validation\n**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `preservedEntryCount` positive integer validation is duplicated in both `RepairLedgerReconciliationResult` and `RepairLedgerReconciliationAuthority`.  \n**Suggestion:** Add a small helper such as `requirePositiveSafeInteger(value, field)` and use it for `issue` and `preservedEntryCount`. This keeps validation wording consistent and reduces repeated guard logic.\n\n### 2. Extract Bridge Delta Construction\n**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** The same `RepairDeltaArtifact` construction appears in the constructor and again in `prepare()`, with identical fields. This creates a maintenance risk if the bridge identity fields change.  \n**Suggestion:** Store the validated delta created in the constructor, or add a private/helper method like `createBridgeDelta()` that returns the canonical bridge delta. Then `prepare()` can reuse that single source of truth.\n\n### 3. Replace JSON String Comparison With Named Equality Helper\n**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `serialized(appliedBridgeLedger.toJSON()) !== serialized(plan.appliedLedger.toJSON())` and the delta comparison rely on ad hoc JSON serialization. The helper name `serialized` is also vague about why serialization is being used for equality.  \n**Suggestion:** Rename or replace it with a purpose-specific helper such as `jsonEqual(left, right)` or `canonicalJson(value)`. That makes the exact-comparison intent clearer and keeps the comparison pattern consistent.\n\n### 4. Simplify Changed Path Grouping\n**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** Prefix calculation for `changedPathGroups` is embedded inside `prepare()`, making the method do validation, delta creation, grouping, and entry creation all at once.  \n**Suggestion:** Extract the grouping logic into `buildChangedPathGroups(changedPaths)`. This makes `prepare()` easier to scan and isolates the path-prefix policy for future changes.\n\n### 5. Clarify Manifest Evidence Naming\n**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `RepairLedgerManifestEvidence` only validates and stores a historical manifest hash, but the class name sounds broader than its actual responsibility.  \n**Suggestion:** Rename it to something narrower, such as `RepairLedgerManifestHashEvidence` or `HistoricalManifestHashEvidence`, if this file is not yet consumed externally. This better communicates that R8 is binding to a specific manifest hash value, not a full manifest object.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Repeated Positive Integer Validation",
+        "body": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `preservedEntryCount` positive integer validation is duplicated in both `RepairLedgerReconciliationResult` and `RepairLedgerReconciliationAuthority`.  \n**Suggestion:** Add a small helper such as `requirePositiveSafeInteger(value, field)` and use it for `issue` and `preservedEntryCount`. This keeps validation wording consistent and reduces repeated guard logic.",
+        "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Extract Bridge Delta Construction",
+        "body": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** The same `RepairDeltaArtifact` construction appears in the constructor and again in `prepare()`, with identical fields. This creates a maintenance risk if the bridge identity fields change.  \n**Suggestion:** Store the validated delta created in the constructor, or add a private/helper method like `createBridgeDelta()` that returns the canonical bridge delta. Then `prepare()` can reuse that single source of truth.",
+        "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Replace JSON String Comparison With Named Equality Helper",
+        "body": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `serialized(appliedBridgeLedger.toJSON()) !== serialized(plan.appliedLedger.toJSON())` and the delta comparison rely on ad hoc JSON serialization. The helper name `serialized` is also vague about why serialization is being used for equality.  \n**Suggestion:** Rename or replace it with a purpose-specific helper such as `jsonEqual(left, right)` or `canonicalJson(value)`. That makes the exact-comparison intent clearer and keeps the comparison pattern consistent.",
+        "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Simplify Changed Path Grouping",
+        "body": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** Prefix calculation for `changedPathGroups` is embedded inside `prepare()`, making the method do validation, delta creation, grouping, and entry creation all at once.  \n**Suggestion:** Extract the grouping logic into `buildChangedPathGroups(changedPaths)`. This makes `prepare()` easier to scan and isolates the path-prefix policy for future changes.",
+        "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "5. Clarify Manifest Evidence Naming",
+        "body": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `RepairLedgerManifestEvidence` only validates and stores a historical manifest hash, but the class name sounds broader than its actual responsibility.  \n**Suggestion:** Rename it to something narrower, such as `RepairLedgerManifestHashEvidence` or `HistoricalManifestHashEvidence`, if this file is not yet consumed externally. This better communicates that R8 is binding to a specific manifest hash value, not a full manifest object.",
+        "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

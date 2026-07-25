@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T01:13:19.003Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "code-placement",
+      "result": "fail",
+      "reason": "The diff adds a new spec-local reconciliation module that derives and validates repair ledger state from ImplRepairLedger and RepairFingerprintManifest data, including ledger entry count, ledger tail hash, manifest hash, changed path grouping, and bridge entry construction, while the existing repair ledger/fingerprint owner modules are unchanged.",
+      "category": "code-quality",
+      "title": "Code Placement",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "code-placement",
+          "where": {
+            "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+            "locator": "RepairLedgerReconciliationAuthority.prepare"
+          },
+          "observed": "The diff adds a new spec-local reconciliation module that derives and validates repair ledger state from ImplRepairLedger and RepairFingerprintManifest data, including ledger entry count, ledger tail hash, manifest hash, changed path grouping, and bridge entry construction, while the existing repair ledger/fingerprint owner modules are unchanged.",
+          "severity": "blocking",
+          "refs": [
+            "code-placement"
+          ]
+        }
+      ],
+      "findingId": "b5b82905b28920a04371d5c65e0615f508044ad19240bf41564589ee25c4fab5",
+      "fingerprint": "b5b82905b28920a04371d5c65e0615f508044ad19240bf41564589ee25c4fab5",
+      "disposition": "must-fix",
+      "rationale": "The diff adds a new spec-local reconciliation module that derives and validates repair ledger state from ImplRepairLedger and RepairFingerprintManifest data, including ledger entry count, ledger tail hash, manifest hash, changed path grouping, and bridge entry construction, while the existing repair ledger/fingerprint owner modules are unchanged.",
+      "requirementId": null,
+      "guardrailId": "code-placement",
+      "reportedAt": "2026-07-25T01:13:19.003Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "code-placement",
+      "where": {
+        "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+        "locator": "RepairLedgerReconciliationAuthority.prepare"
+      },
+      "observed": "The diff adds a new spec-local reconciliation module that derives and validates repair ledger state from ImplRepairLedger and RepairFingerprintManifest data, including ledger entry count, ledger tail hash, manifest hash, changed path grouping, and bridge entry construction, while the existing repair ledger/fingerprint owner modules are unchanged.",
+      "severity": "blocking",
+      "refs": [
+        "code-placement"
+      ],
+      "result": "fail",
+      "guardrail_id": "code-placement",
+      "category": "guardrail",
+      "findingId": "b4babd4d51eb06330a8f5e483428123b641119fb29dbbe910b11f8d8f36a306e",
+      "fingerprint": "b4babd4d51eb06330a8f5e483428123b641119fb29dbbe910b11f8d8f36a306e",
+      "disposition": "must-fix",
+      "rationale": "The diff adds a new spec-local reconciliation module that derives and validates repair ledger state from ImplRepairLedger and RepairFingerprintManifest data, including ledger entry count, ledger tail hash, manifest hash, changed path grouping, and bridge entry construction, while the existing repair ledger/fingerprint owner modules are unchanged.",
+      "requirementId": null,
+      "guardrailId": "code-placement",
+      "reportedAt": "2026-07-25T01:13:19.003Z",
+      "repeatCount": 1
+    }
+  ]
+}

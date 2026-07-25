@@ -1,0 +1,383 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 2,
+    "hash": "d2a1909fd6a64923f256d548e63ab45fa74aa861b961855d38bcc30684dc108c",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-25T01:52:05.713Z",
+  "items": [
+    {
+      "findingId": "8ffc319db880d85588adf41d9638a1bc7f9bdacf6ad0287e207624efd5915a2c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/impl-repair.json`  \n**Requirement:** R8  \n**Issue:** Each entry stores both `invalidatedArtifacts` and `invalidations[*].path`, which duplicate the same path inventory and can drift if one list is updated without the other.  \n**Suggestion:** Prefer a single authoritative representation, ideally `invalidations`, since it already carries `path`, `reason`, and `previousFingerprint`. If the schema requires `invalidatedArtifacts`, add validation that it is derived exactly from `invalidations[*].path`.",
+      "evidenceRefs": [
+        "impl-review.json#8ffc319db880d85588adf41d9638a1bc7f9bdacf6ad0287e207624efd5915a2c"
+      ]
+    },
+    {
+      "findingId": "7ac11a7d02672523abd3b95458cb78a05b795de449d82dbf258891cbad4cd85a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/impl-repair.json`  \n**Requirement:** R8  \n**Issue:** Many `invalidations` repeat the same long reason string within a single repair entry, differing only by the suffix such as `repair_fingerprint_mismatch` or `associated_repair_fingerprint_mismatch`. This makes the ledger noisy and increases the chance of inconsistent edits.  \n**Suggestion:** Store the shared reason once at the entry level and use a smaller per-invalidation field such as `cause` or `mismatchType` for the suffix. If the current artifact contract requires the expanded string, generate it during ledger writing rather than hand-maintaining repeated text.",
+      "evidenceRefs": [
+        "impl-review.json#7ac11a7d02672523abd3b95458cb78a05b795de449d82dbf258891cbad4cd85a"
+      ]
+    },
+    {
+      "findingId": "118cf967eaa09dae6d0921ddaf7cd9806e97da1d975f71134afb75d003c67600",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/impl-repair.json`  \n**Requirement:** R8  \n**Issue:** The R8 requirement describes appending exactly one “bridge entry”, but the file uses the generic id `repair-006`. Readers must infer from `sourceFindingIds` and `reason` that this is the bridge.  \n**Suggestion:** Add an explicit discriminator such as `\"type\": \"bridge\"` or `\"bridge\": true` to the R8 reconciliation entry, while preserving the existing `id` if it is part of the ledger identity contract. This makes append-only bridge verification easier and less dependent on reason-string matching.",
+      "evidenceRefs": [
+        "impl-review.json#118cf967eaa09dae6d0921ddaf7cd9806e97da1d975f71134afb75d003c67600"
+      ]
+    },
+    {
+      "findingId": "0b633b4b466a7592b1a12ad68ee76d1e724f730d6c88eebcef077fbc60c5bfcf",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `preservedEntryCount` positive integer validation is duplicated in both `RepairLedgerReconciliationResult` and `RepairLedgerReconciliationAuthority`.  \n**Suggestion:** Add a small helper such as `requirePositiveSafeInteger(value, field)` and use it for `issue` and `preservedEntryCount`. This keeps validation wording consistent and reduces repeated guard logic.",
+      "evidenceRefs": [
+        "impl-review.json#0b633b4b466a7592b1a12ad68ee76d1e724f730d6c88eebcef077fbc60c5bfcf"
+      ]
+    },
+    {
+      "findingId": "1b43c2beb59a89cc9926e86a7f4f124c46670ac3dcb549c55fe65a8e9c9220b6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** The same `RepairDeltaArtifact` construction appears in the constructor and again in `prepare()`, with identical fields. This creates a maintenance risk if the bridge identity fields change.  \n**Suggestion:** Store the validated delta created in the constructor, or add a private/helper method like `createBridgeDelta()` that returns the canonical bridge delta. Then `prepare()` can reuse that single source of truth.",
+      "evidenceRefs": [
+        "impl-review.json#1b43c2beb59a89cc9926e86a7f4f124c46670ac3dcb549c55fe65a8e9c9220b6"
+      ]
+    },
+    {
+      "findingId": "c793de4db796347964dabd697fc0c2879d60edea544284436d72ea5f0bb6c004",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `serialized(appliedBridgeLedger.toJSON()) !== serialized(plan.appliedLedger.toJSON())` and the delta comparison rely on ad hoc JSON serialization. The helper name `serialized` is also vague about why serialization is being used for equality.  \n**Suggestion:** Rename or replace it with a purpose-specific helper such as `jsonEqual(left, right)` or `canonicalJson(value)`. That makes the exact-comparison intent clearer and keeps the comparison pattern consistent.",
+      "evidenceRefs": [
+        "impl-review.json#c793de4db796347964dabd697fc0c2879d60edea544284436d72ea5f0bb6c004"
+      ]
+    },
+    {
+      "findingId": "2585de3c41c98aaa72ed5288bbc605d3a606f8429131b282537c09fa072c70c1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** Prefix calculation for `changedPathGroups` is embedded inside `prepare()`, making the method do validation, delta creation, grouping, and entry creation all at once.  \n**Suggestion:** Extract the grouping logic into `buildChangedPathGroups(changedPaths)`. This makes `prepare()` easier to scan and isolates the path-prefix policy for future changes.",
+      "evidenceRefs": [
+        "impl-review.json#2585de3c41c98aaa72ed5288bbc605d3a606f8429131b282537c09fa072c70c1"
+      ]
+    },
+    {
+      "findingId": "e8a115e5986259a6a294d8c5cef0644d932fd16b4b2ce90d006cc0c234d8fd7a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`  \n**Requirement:** R8  \n**Issue:** `RepairLedgerManifestEvidence` only validates and stores a historical manifest hash, but the class name sounds broader than its actual responsibility.  \n**Suggestion:** Rename it to something narrower, such as `RepairLedgerManifestHashEvidence` or `HistoricalManifestHashEvidence`, if this file is not yet consumed externally. This better communicates that R8 is binding to a specific manifest hash value, not a full manifest object.",
+      "evidenceRefs": [
+        "impl-review.json#e8a115e5986259a6a294d8c5cef0644d932fd16b4b2ce90d006cc0c234d8fd7a"
+      ]
+    },
+    {
+      "findingId": "25b18303d9461f152c5975c565937ace4970e797e0815a9d52c7ee5ef2387f29",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R1  \n**Issue:** The `overview.modules` and `overview.data_flow` sections repeat the same deferred-transition concept in both original entries and `added_by_task: T-1` entries. This makes the spec harder to maintain and increases the chance that future edits update one description but not the other.  \n**Suggestion:** Merge the T-1 additions into the existing `run-gate.js` module and data-flow entries, preserving any task attribution only where it adds distinct information.",
+      "evidenceRefs": [
+        "impl-review.json#25b18303d9461f152c5975c565937ace4970e797e0815a9d52c7ee5ef2387f29"
+      ]
+    },
+    {
+      "findingId": "88ed99f8ad442dd38a8d0ac74036b72f13786e68f4c62db6dcd0f307b61321bf",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R8  \n**Issue:** The spec uses both `Issue` and `issue`-style phrasing, for example “Issue 456” and “issue-log”. The capitalized `Issue` reads like a proper schema field in some places but not others.  \n**Suggestion:** Use a consistent term for the identity field, such as `issue_id` in authority/evidence descriptions, while keeping prose references like “Issue #456” only where referring to the external tracker item.",
+      "evidenceRefs": [
+        "impl-review.json#88ed99f8ad442dd38a8d0ac74036b72f13786e68f4c62db6dcd0f307b61321bf"
+      ]
+    },
+    {
+      "findingId": "d80f7c2678f29e48a9bccfe6484e011ae8afe557b58db5d32711a14de3e50cde",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R1  \n**Issue:** All requirements are marked `\"status\": \"done\"`, but every task still has `\"status\": \"pending\"`. That internal contradiction makes the spec ambiguous for automation and reviewers.  \n**Suggestion:** Either update task statuses to match the completed requirements or remove task status fields if this file is meant to describe the approved plan rather than execution state.",
+      "evidenceRefs": [
+        "impl-review.json#d80f7c2678f29e48a9bccfe6484e011ae8afe557b58db5d32711a14de3e50cde"
+      ]
+    },
+    {
+      "findingId": "2df538d7080376b7fa90e0c707da71e157f5d73e2464d9dc937cff54543436a2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R6  \n**Issue:** R6 contains a long finite inventory in a single string. It mixes export stability, phase behavior, config behavior, semantic envelope behavior, hook behavior, retry accounting, artifact paths, and routing. This is difficult to scan and easy to partially satisfy by mistake.  \n**Suggestion:** Split R6 into a structured list field such as `\"checks\": [...]` while keeping the requirement ID unchanged. That would make each parity expectation independently reviewable without changing the requirement semantics.",
+      "evidenceRefs": [
+        "impl-review.json#2df538d7080376b7fa90e0c707da71e157f5d73e2464d9dc937cff54543436a2"
+      ]
+    },
+    {
+      "findingId": "1baccd95b7f25c1dc7380e414c3007068cec951cf0b09729e2eb84fd1f0dbc0b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/spec.md`  \n**Requirement:** R1  \n**Issue:** The `Overview` repeats the `run-gate.js` responsibility twice, and `Data Flow` repeats the inferred gate execution flow in near-identical terms. This makes the spec harder to maintain and increases the chance that later edits update one copy but not the other.  \n**Suggestion:** Keep one canonical bullet for `src/flow/lib/run-gate.js` in `Overview`, and one canonical sequence in `Data Flow`. Fold the repeated “validated pending transition / semantic evaluation / artifact persistence / commit” wording into the first occurrence.",
+      "evidenceRefs": [
+        "impl-review.json#1baccd95b7f25c1dc7380e414c3007068cec951cf0b09729e2eb84fd1f0dbc0b"
+      ]
+    },
+    {
+      "findingId": "6118d516f064a98dcc68242afd692041e1f8a692da5b6599da21df72564434e0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/spec.md`  \n**Requirement:** R6  \n**Issue:** `Clarifications (Q&A)` and `Open Questions` contain only empty placeholders. They add noise without preserving any decision or review context.  \n**Suggestion:** Delete these sections until they contain actual content, or replace them with explicit “None” text if the project template requires the headings.",
+      "evidenceRefs": [
+        "impl-review.json#6118d516f064a98dcc68242afd692041e1f8a692da5b6599da21df72564434e0"
+      ]
+    },
+    {
+      "findingId": "4d78c17892e4f43b3b9496d21d7919c0bfac795a9a1e90f7a00ca310dfd7be46",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/spec.md`  \n**Requirement:** R8  \n**Issue:** The `Tasks` section references `tasks/T-1.md`, `tasks/T-2.md`, and `tasks/T-3.md`, but those files are not part of this diff. For a new spec file, this creates references that may be stale or absent in the submitted change set.  \n**Suggestion:** Either include the referenced task files in the change set or remove the `see tasks/...` lines until those files exist.",
+      "evidenceRefs": [
+        "impl-review.json#4d78c17892e4f43b3b9496d21d7919c0bfac795a9a1e90f7a00ca310dfd7be46"
+      ]
+    },
+    {
+      "findingId": "ff6013f712c81d62fc138e0daf8a40e51b8b985006a1257b02c0dcd2d409a6d6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R5  \n**Issue:** The boundary inventory `[\"validation\", \"agent\", \"output-protocol\", \"artifact-write\"]` is duplicated across several tests and helpers. If the retry/failure boundary matrix changes, it is easy for tests to drift.  \n**Suggestion:** Define a shared constant such as `const PRE_COMMIT_BOUNDARIES = [...]` near the fixture helpers and reuse it in all boundary loops.",
+      "evidenceRefs": [
+        "impl-review.json#ff6013f712c81d62fc138e0daf8a40e51b8b985006a1257b02c0dcd2d409a6d6"
+      ]
+    },
+    {
+      "findingId": "c4d362f2f42253ab68350954c499f9f6e7d435697a1b15ebeef9bf82f80da191",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R4  \n**Issue:** The semantic result set `[\"pass\", \"fail\"]` is repeated in multiple tests. This duplicates the PASS/FAIL parity contract and makes additions or renames error-prone.  \n**Suggestion:** Add `const SEMANTIC_GATE_RESULTS = [\"pass\", \"fail\"];` and reuse it in the R4/R6 loops.",
+      "evidenceRefs": [
+        "impl-review.json#c4d362f2f42253ab68350954c499f9f6e7d435697a1b15ebeef9bf82f80da191"
+      ]
+    },
+    {
+      "findingId": "bed6e81685e311fd7f6a73f6f2e47b20cf8b07bd2a0e81b6f9fe528f73f169d7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R6  \n**Issue:** The test repeatedly performs `JSON.parse(fs.readFileSync(path.join(...), \"utf8\"))`, which adds noise and obscures the assertions.  \n**Suggestion:** Add small helpers like `readJson(file)` and `readSpecJson(specDir, name)` to make assertions focus on behavior rather than file plumbing.",
+      "evidenceRefs": [
+        "impl-review.json#bed6e81685e311fd7f6a73f6f2e47b20cf8b07bd2a0e81b6f9fe528f73f169d7"
+      ]
+    },
+    {
+      "findingId": "3280628f7021e220d0a938ae47065632be7d7a8650c4a68dd441e670e689b1d7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R1  \n**Issue:** `serialized(value)` is vague; the tests use it specifically to capture byte-comparable JSON state snapshots.  \n**Suggestion:** Rename it to something more intent-revealing, such as `jsonSnapshot(value)` or `serializeState(value)`.",
+      "evidenceRefs": [
+        "impl-review.json#3280628f7021e220d0a938ae47065632be7d7a8650c4a68dd441e670e689b1d7"
+      ]
+    },
+    {
+      "findingId": "59089d0f95315315599898da3153f9368a7e669492c432b398a138f7adf0bf11",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`  \n**Requirement:** R6  \n**Issue:** `nonIntegrationArtifactPaths` repeats derived filenames for each phase, which makes the table longer than the behavior being tested.  \n**Suggestion:** Store only phases and derive `${phase}-gate-source.json` / `${phase}-gate-result.json` in the loop, unless the explicit filenames are intentionally documenting a non-obvious compatibility contract.",
+      "evidenceRefs": [
+        "impl-review.json#59089d0f95315315599898da3153f9368a7e669492c432b398a138f7adf0bf11"
+      ]
+    },
+    {
+      "findingId": "178570fc23ef3482cc2b7c3b0605315b98e700e5958dd1d318458c388ebe5a8d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/parked-resume-help.test.js`  \n**Requirement:** R7  \n**Issue:** The final assertion uses `/--expect-issue|--expect-no-issue/`, so the test passes if only one of the two guard options is present. That weakens coverage for “retaining existing usage and target-guard option output.”  \n**Suggestion:** Replace it with two explicit assertions:\n\n```js\nassert.match(help, /--expect-issue/);\nassert.match(help, /--expect-no-issue/);\n```",
+      "evidenceRefs": [
+        "impl-review.json#178570fc23ef3482cc2b7c3b0605315b98e700e5958dd1d318458c388ebe5a8d"
+      ]
+    },
+    {
+      "findingId": "d038f03e96738f9e7a4e26b76b46083f02c5ab84173209d1cbc2c02d9babeb0d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js`  \n**Requirement:** R8  \n**Issue:** The test mixes fixture-driven expectations with hard-coded values like `\"repair-006\"` and `5`, even though those values already exist as `authority.bridgeEntryId` and `authority.preservedEntryCount`. This creates duplicate sources of truth and makes the test more brittle if the fixture changes.  \n**Suggestion:** Replace hard-coded assertions with `fixture.authority.bridgeEntryId` and `fixture.authority.preservedEntryCount`, including the ledger slice length.",
+      "evidenceRefs": [
+        "impl-review.json#d038f03e96738f9e7a4e26b76b46083f02c5ab84173209d1cbc2c02d9babeb0d"
+      ]
+    },
+    {
+      "findingId": "0d805f2a6e6dfa3e147cd0dc9b789434ee783ffd24492763303fb69057265d82",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js`  \n**Requirement:** R8  \n**Issue:** The mismatch test repeats ledger and delta byte checks inside every variant loop. The repeated read/assert pattern obscures the core purpose of each authority mismatch case.  \n**Suggestion:** Add a small helper such as `assertArtifactBytesUnchanged({ ledgerPath, deltaPath, beforeLedger, beforeDelta }, name)` and call it from the loop.",
+      "evidenceRefs": [
+        "impl-review.json#0d805f2a6e6dfa3e147cd0dc9b789434ee783ffd24492763303fb69057265d82"
+      ]
+    },
+    {
+      "findingId": "5d1a220aa51154c29ed3f9e114de860baa39b4a134e134507e1b4258dc0ef38d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js`  \n**Requirement:** R8  \n**Issue:** The variant mutation callbacks use the generic parameter name `value`, but the object being mutated is specifically reconciliation authority input. The vague name makes the table slightly harder to scan.  \n**Suggestion:** Rename the callback parameter to `authorityInput` or `authorityJson` in each variant entry.",
+      "evidenceRefs": [
+        "impl-review.json#5d1a220aa51154c29ed3f9e114de860baa39b4a134e134507e1b4258dc0ef38d"
+      ]
+    },
+    {
+      "findingId": "74ef0bfcbcd8716905fc3f1db142751920b83f0b5bc47403ea76f48fe5a25861",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js`  \n**Requirement:** R8  \n**Issue:** `RepairDeltaArtifact` is imported using a multi-line named import even though it is the only imported symbol from that module. This is inconsistent with the compact import style used elsewhere in the file.  \n**Suggestion:** Change it to `import { RepairDeltaArtifact } from \"../../../src/flow/lib/repair-state-identity.js\";`.",
+      "evidenceRefs": [
+        "impl-review.json#74ef0bfcbcd8716905fc3f1db142751920b83f0b5bc47403ea76f48fe5a25861"
+      ]
+    },
+    {
+      "findingId": "1c710873005dadc17648b3f1380ab03559e4aaa4ef5b7d9d120975f9f841d19c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/gate-mutation-owner.js`  \n**Requirement:** R1  \n**Issue:** `captureTransitionStatuses()` and `assertTransitionStatuses()` both rebuild the transition step map with `transitionStepMap(state, this.taskId)`. In the intended atomic gate flow, these methods are likely called as a pair around a commit, so the same lookup structure is repeatedly reconstructed.  \n**Suggestion:** Consider returning the captured step lookup context from `captureTransitionStatuses()` or extracting a small transition guard object that owns both the `expectedStatuses` and the resolved lookup scope. This would reduce duplicate traversal and make the capture/assert lifecycle clearer.",
+      "evidenceRefs": [
+        "impl-review.json#1c710873005dadc17648b3f1380ab03559e4aaa4ef5b7d9d120975f9f841d19c"
+      ]
+    },
+    {
+      "findingId": "69097f5902e2e211c08c7aa14db3bdbae86b8ecde36f10922d797b0c5fbcce61",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/gate-mutation-owner.js`  \n**Requirement:** R2  \n**Issue:** `transitionStepMap` sounds like a map of transitions, but it actually builds a map of steps visible to a transition, combining root flow steps and selected task steps.  \n**Suggestion:** Rename it to something like `buildTransitionStepLookup`, `scopedStepMap`, or `buildScopedStepMap` to better describe the behavior.",
+      "evidenceRefs": [
+        "impl-review.json#69097f5902e2e211c08c7aa14db3bdbae86b8ecde36f10922d797b0c5fbcce61"
+      ]
+    },
+    {
+      "findingId": "09c2d089a759ffc6562bbb663098990960748f8681c3c0277ebb224172390d75",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/gate-mutation-owner.js`  \n**Requirement:** R8  \n**Issue:** The new `transitionStepMap()` eagerly flattens `flowState.steps` and optionally `task.steps` without an explicit upper bound. This may violate the `bounded-resource-usage` guardrail if step trees can grow with user/spec input.  \n**Suggestion:** Add an explicit maximum step count/depth check around this traversal, reuse an existing bounded traversal helper if available, or document an acknowledged exception tied to the spec constraints if the step tree size is already bounded elsewhere.",
+      "evidenceRefs": [
+        "impl-review.json#09c2d089a759ffc6562bbb663098990960748f8681c3c0277ebb224172390d75"
+      ]
+    },
+    {
+      "findingId": "cd12f3a4d98e059f4352911c0de618d77d52054342251b5cae4d073617ce847a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R1  \n**Issue:** `flattenSteps` is imported from `./step-tree.js` but is not used anywhere in the diff.  \n**Suggestion:** Remove the unused import to keep the module clean and avoid lint noise.",
+      "evidenceRefs": [
+        "impl-review.json#cd12f3a4d98e059f4352911c0de618d77d52054342251b5cae4d073617ce847a"
+      ]
+    },
+    {
+      "findingId": "4639612f5dc7396f998a37451f01e4167dce83c4e3ddb204ee063ca1a5bceb09",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** The checkpoint, artifact persistence, semantic-result validation, and inferred-transition commit sequence now exists in two places: `RunGateCommand.execute()` and `runGatePhaseWithDependencies()`. This duplicates failure-boundary logic that must remain byte-identical and atomic.  \n**Suggestion:** Extract a shared helper for “persist required gate artifacts, then commit inferred transition, rollback durable surfaces on pre-commit failure” and have both call sites use it.",
+      "evidenceRefs": [
+        "impl-review.json#4639612f5dc7396f998a37451f01e4167dce83c4e3ddb204ee063ca1a5bceb09"
+      ]
+    },
+    {
+      "findingId": "16ba75b4441c03c234faade8ed46e91f830391ed8f0241f18a7f0c8fbf51f9d3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R6  \n**Issue:** `identityProbeError` is vague; the code is specifically probing stale integration test evidence before full trust validation.  \n**Suggestion:** Rename it to `staleEvidenceProbeError` or `artifactIdentityProbeError` so the delayed throw is easier to understand.",
+      "evidenceRefs": [
+        "impl-review.json#16ba75b4441c03c234faade8ed46e91f830391ed8f0241f18a7f0c8fbf51f9d3"
+      ]
+    },
+    {
+      "findingId": "2798243713eee3fa167d7fc3dcae8179cdd405721c44ab59c18a407e08f37343",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `runGatePhaseWithDependencies()` derives `root` with `path.dirname(path.dirname(specDir))`, which assumes a fixed spec directory depth. That makes the helper fragile if spec layout changes.  \n**Suggestion:** Pass `root` explicitly into `runGatePhaseWithDependencies()` when fingerprint construction may be needed.",
+      "evidenceRefs": [
+        "impl-review.json#2798243713eee3fa167d7fc3dcae8179cdd405721c44ab59c18a407e08f37343"
+      ]
+    },
+    {
+      "findingId": "c38351a69a57c1656f434b5bc622ee00539e42e62ad0095472d04bcd78115dc6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** `completedSemanticGateResult()` encodes `\"pass\"` and semantic `\"fail\"` as a custom boolean, but callers use it to decide whether commit is allowed. The function name does not communicate that tooling/artifact failures are intentionally excluded.  \n**Suggestion:** Rename it to something more precise, such as `isCommitEligibleSemanticGateResult()`, and keep the PASS/AI semantic FAIL criteria centralized there.",
+      "evidenceRefs": [
+        "impl-review.json#c38351a69a57c1656f434b5bc622ee00539e42e62ad0095472d04bcd78115dc6"
+      ]
+    },
+    {
+      "findingId": "438a1019f57ae13ad661179db836972608d3d667f305b9a46b7c3599fd670eeb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`  \n**Requirement:** R7  \n**Issue:** The updated summary line and the following `With --parked...` line now both say that parked resume restores one exact managed-worktree pointer. This makes the help text repetitive.  \n**Suggestion:** Keep the new R7-compliant summary line, and simplify the next line to only add the distinct detail, for example: `With --parked, restore from the pointer's saved execution root.`",
+      "evidenceRefs": [
+        "impl-review.json#438a1019f57ae13ad661179db836972608d3d667f305b9a46b7c3599fd670eeb"
+      ]
+    },
+    {
+      "findingId": "6fe995b5386bac0500a34d8e00b9d4d9f21d4863f854af3873b0fa01f4c23f00",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/gate-phase-inference.test.js`  \n**Requirement:** R3  \n**Issue:** The variable name `before` is vague for a test whose core assertion is atomic preservation of persisted step state.  \n**Suggestion:** Rename `before` to something like `preTransitionSnapshot` or `preCommitSnapshot` so the assertion reads directly against the requirement.",
+      "evidenceRefs": [
+        "impl-review.json#6fe995b5386bac0500a34d8e00b9d4d9f21d4863f854af3873b0fa01f4c23f00"
+      ]
+    },
+    {
+      "findingId": "8cb80f004e6f9020cde548350dbdb821c442c3ba707d1a8a9a19f67cb6c89e73",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/gate-phase-inference.test.js`  \n**Requirement:** R6  \n**Issue:** The test name still starts with `AC3`, while the review context and related requirements are expressed as `R3`/`R6`. This creates naming drift in the test suite.  \n**Suggestion:** Rename the test to reference the requirement-oriented behavior directly, for example: `R3/R6: preserves inferred gate steps when downstream integration validation does not complete`.",
+      "evidenceRefs": [
+        "impl-review.json#8cb80f004e6f9020cde548350dbdb821c442c3ba707d1a8a9a19f67cb6c89e73"
+      ]
+    },
+    {
+      "findingId": "3f2b9c53c6062f51f3b8605ed3acb2a8486ecc6e2c59f89bfd4bc257c6111f5b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/repair-ledger-reconciliation.js`\n**Requirement:** R8\n**Issue:** Both `repair-ledger-reconciliation.js` and `tests/gate-failure-atomicity.test.js` introduce a vague `serialized` helper for JSON-based comparisons/snapshots. This creates cross-file naming drift around the same concept.\n**Suggestion:** Use one consistent name across implementation and tests, such as `canonicalJson`, `jsonEqual`, or `jsonSnapshot`, depending on whether the helper returns a string or performs comparison.",
+      "evidenceRefs": [
+        "impl-review.json#3f2b9c53c6062f51f3b8605ed3acb2a8486ecc6e2c59f89bfd4bc257c6111f5b"
+      ]
+    },
+    {
+      "findingId": "8941332b32419893fda274a8328648c47e85bafc7ffa86b8d67b1bb49c2e3630",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/impl-repair.json`\n**Requirement:** R8\n**Issue:** The bridge entry identity is represented generically as `repair-006` in the ledger, constructed in `repair-ledger-reconciliation.js`, and hard-coded again in `tests/repair-ledger-reconciliation.test.js`. This creates duplicate sources of truth across fixture, implementation, and tests.\n**Suggestion:** Add or reuse a single authority/fixture source for bridge identity fields, then have implementation construction and tests derive expected values from that source instead of repeating literals.",
+      "evidenceRefs": [
+        "impl-review.json#8941332b32419893fda274a8328648c47e85bafc7ffa86b8d67b1bb49c2e3630"
+      ]
+    },
+    {
+      "findingId": "30681063d88b4450d01cd6ec4c91ffb43c59427359969e28b7d36dbc85b91577",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/gate-phase-inference.test.js`\n**Requirement:** R6\n**Issue:** The test suite still uses `AC3` naming while related specs and review context use `R3`/`R6`. This cross-file terminology drift makes it harder to trace tests back to current requirements.\n**Suggestion:** Rename test titles and related comments to use requirement IDs consistently, for example `R3/R6`, while avoiding legacy `AC*` labels unless the spec still defines them.",
+      "evidenceRefs": [
+        "impl-review.json#30681063d88b4450d01cd6ec4c91ffb43c59427359969e28b7d36dbc85b91577"
+      ]
+    },
+    {
+      "findingId": "ca85119e0103d2df72b1c335effe69a61c7d01e2dd25addc444be77db6840fd5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/spec.json`\n**Requirement:** R1\n**Issue:** Both `spec.json` and `spec.md` repeat the same deferred or inferred gate transition flow in overview/data-flow sections. The duplicated prose can drift between machine-readable and human-readable spec files.\n**Suggestion:** Keep one canonical description per file section, and ensure `spec.md` mirrors `spec.json` intentionally rather than restating near-identical entries multiple times.",
+      "evidenceRefs": [
+        "impl-review.json#ca85119e0103d2df72b1c335effe69a61c7d01e2dd25addc444be77db6840fd5"
+      ]
+    },
+    {
+      "findingId": "7755c89fab84c8c7e77e89677df610fd6332f862eb87ee41c561b45dddb991b3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`\n**Requirement:** R4\n**Issue:** Tests repeat semantic result values like `\"pass\"` and `\"fail\"` while `run-gate.js` also encodes commit eligibility around those same values. This duplicates a cross-file interface contract.\n**Suggestion:** Export or centralize the semantic gate result constants/predicate where appropriate, then have tests use that shared contract or a clearly named fixture constant that mirrors it deliberately.",
+      "evidenceRefs": [
+        "impl-review.json#7755c89fab84c8c7e77e89677df610fd6332f862eb87ee41c561b45dddb991b3"
+      ]
+    }
+  ]
+}

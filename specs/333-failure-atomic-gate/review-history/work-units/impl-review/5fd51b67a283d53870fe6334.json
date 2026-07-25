@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "5fd51b67a283d53870fe6334",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-2e83f790a21da0a1",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+      "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+      "src/flow/commands/review.js",
+      "src/flow/lib/gate-mutation-owner.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/lib/task-scope.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/gate-phase-inference.test.js",
+      "tests/unit/flow/set-step.test.js"
+    ],
+    "inputHash": "2e83f790a21da0a10f596ad9dae7eb81f8ad0a1c6d11d0de9e01e9e01068ddf6",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "5fd51b67a283d53870fe6334"
+  },
+  "targetFiles": [
+    "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+    "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+    "src/flow/commands/review.js",
+    "src/flow/lib/gate-mutation-owner.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/set-step.js",
+    "src/flow/lib/task-scope.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/gate-phase-inference.test.js",
+    "tests/unit/flow/set-step.test.js"
+  ],
+  "inputHash": "2e83f790a21da0a10f596ad9dae7eb81f8ad0a1c6d11d0de9e01e9e01068ddf6",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-24T23:52:56.909Z",
+  "finishedAt": "2026-07-24T23:52:56.909Z",
+  "rawResponse": "### 1. Centralize Shared JSON Fixture Helpers\n**File:** `tests/unit/flow/set-step.test.js`\n**Requirement:** R1\n**Issue:** Multiple test files introduce repeated JSON fixture/read/write patterns: `gate-failure-atomicity.test.js` repeats JSON reads, while `set-step.test.js` repeats and mixes JSON fixture writes. This creates cross-file inconsistency in test fixture handling.\n**Suggestion:** Add or reuse a shared test helper for `readJson`/`writeJson` fixture operations, then use it consistently in both files.\n\n### 2. Align Requirement Naming In Test Titles\n**File:** `tests/unit/flow/gate-phase-inference.test.js`\n**Requirement:** R6\n**Issue:** One test still uses `AC3` terminology while adjacent new tests and review summaries consistently use `R3`/`R6`. This creates cross-file naming drift in the requirement language.\n**Suggestion:** Rename the test title to use the same `R*` requirement terminology used elsewhere, such as `R3/R6: preserves inferred gate steps when downstream integration validation does not complete`.\n\n### 3. Consolidate Bounded Traversal Guardrails\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R2\n**Issue:** Both `run-gate.js` and `gate-mutation-owner.js` introduce or rely on recursive step traversal helpers (`flattenSteps`, `findStepById`) without explicit bounds. Addressing these independently could produce inconsistent limits and error behavior.\n**Suggestion:** Define shared traversal bounds for step-tree helpers, such as max depth and max node count, and apply them consistently through `flattenSteps` and `findStepById` call paths.\n\n### 4. Use Consistent “Owned Step” Naming\n**File:** `src/flow/lib/gate-mutation-owner.js`\n**Requirement:** R1\n**Issue:** `resolveStep()` is proposed for rename because it resolves a step within ownership scope, while related files use broader step lookup naming. Without a consistent naming convention, call sites may obscure whether resolution is global, scoped, or ownership-aware.\n**Suggestion:** Rename this method to `resolveOwnedStep()` or `findOwnedStep()`, and use that convention anywhere ownership-scoped step resolution is introduced.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Shared JSON Fixture Helpers",
+        "body": "**File:** `tests/unit/flow/set-step.test.js`\n**Requirement:** R1\n**Issue:** Multiple test files introduce repeated JSON fixture/read/write patterns: `gate-failure-atomicity.test.js` repeats JSON reads, while `set-step.test.js` repeats and mixes JSON fixture writes. This creates cross-file inconsistency in test fixture handling.\n**Suggestion:** Add or reuse a shared test helper for `readJson`/`writeJson` fixture operations, then use it consistently in both files.",
+        "file": "tests/unit/flow/set-step.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Align Requirement Naming In Test Titles",
+        "body": "**File:** `tests/unit/flow/gate-phase-inference.test.js`\n**Requirement:** R6\n**Issue:** One test still uses `AC3` terminology while adjacent new tests and review summaries consistently use `R3`/`R6`. This creates cross-file naming drift in the requirement language.\n**Suggestion:** Rename the test title to use the same `R*` requirement terminology used elsewhere, such as `R3/R6: preserves inferred gate steps when downstream integration validation does not complete`.",
+        "file": "tests/unit/flow/gate-phase-inference.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Consolidate Bounded Traversal Guardrails",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R2\n**Issue:** Both `run-gate.js` and `gate-mutation-owner.js` introduce or rely on recursive step traversal helpers (`flattenSteps`, `findStepById`) without explicit bounds. Addressing these independently could produce inconsistent limits and error behavior.\n**Suggestion:** Define shared traversal bounds for step-tree helpers, such as max depth and max node count, and apply them consistently through `flattenSteps` and `findStepById` call paths.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Use Consistent “Owned Step” Naming",
+        "body": "**File:** `src/flow/lib/gate-mutation-owner.js`\n**Requirement:** R1\n**Issue:** `resolveStep()` is proposed for rename because it resolves a step within ownership scope, while related files use broader step lookup naming. Without a consistent naming convention, call sites may obscure whether resolution is global, scoped, or ownership-aware.\n**Suggestion:** Rename this method to `resolveOwnedStep()` or `findOwnedStep()`, and use that convention anywhere ownership-scoped step resolution is introduced.",
+        "file": "src/flow/lib/gate-mutation-owner.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

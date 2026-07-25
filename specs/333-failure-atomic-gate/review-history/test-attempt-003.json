@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T15:01:47.661Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/333-failure-atomic-gate/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing persisted-state atomicity coverage",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js R3/R5",
+      "findingId": "84d82297bde2eb6e92de5f4bdb5833114ae8e0712ada6a59d1318c51c9e88104",
+      "fingerprint": "84d82297bde2eb6e92de5f4bdb5833114ae8e0712ada6a59d1318c51c9e88104",
+      "disposition": "must-fix",
+      "rationale": "R3 and R5 explicitly require persisted step state and durable artifacts/logs to remain unchanged across failure boundaries; current tests can pass while production writes partial state to disk.",
+      "issue": "The tests only compare the in-memory `state` object and a mock transition list after pre-commit failures. They do not create or snapshot `flow.json`, persisted step state, issue-log, findings, or existing gate artifacts, so they cannot verify the byte-identical persisted rollback requirement.",
+      "requiredChange": "Add spec-local coverage that initializes persisted flow/gate state, snapshots the relevant files before each injected failure, and asserts those persisted files remain byte-identical after the failed attempt and before retry.",
+      "whyBlocking": "R3 and R5 explicitly require persisted step state and durable artifacts/logs to remain unchanged across failure boundaries; current tests can pass while production writes partial state to disk.",
+      "origin": "R3, R5",
+      "failureKind": "missing-regression-test"
+    },
+    {
+      "kind": "blocking",
+      "title": "Transition-count assertion encodes an incomplete lifecycle premise",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js R4 test",
+      "findingId": "75d2ed969329f9b9090cc446a3eac6243577c6009f4ee0c2e748b9d598b4120a",
+      "fingerprint": "75d2ed969329f9b9090cc446a3eac6243577c6009f4ee0c2e748b9d598b4120a",
+      "disposition": "must-fix",
+      "rationale": "This test can force or accept an implementation that records stale recovery as an implicit side effect or skips one lifecycle update, contradicting R4.",
+      "issue": "The R4 test expects `commit:1` and `manager.transitions.length === 1` while also requiring stale-step recovery to be recorded as an explicit transition. With both a stale gate step and a selected gate owner present, a single transition cannot demonstrate both selected gate commit and explicit stale-step recovery.",
+      "requiredChange": "Adjust the R4 test to assert the actual required transition semantics: selected gate ownership commits once and stale-step recovery is represented explicitly, without collapsing both effects into one ambiguous transition count.",
+      "whyBlocking": "This test can force or accept an implementation that records stale recovery as an implicit side effect or skips one lifecycle update, contradicting R4.",
+      "origin": "R4",
+      "failureKind": "incorrect-implementation-premise"
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 side-effect surface is under-tested",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js R1 test",
+      "findingId": "dfc79a3b9b3b263a62cb8f6688a143b4de8839a76651e804be0ccc797f5849ce",
+      "fingerprint": "dfc79a3b9b3b263a62cb8f6688a143b4de8839a76651e804be0ccc797f5849ce",
+      "disposition": "must-fix",
+      "rationale": "R1’s acceptance surface includes multiple persisted side-effect channels; current coverage can pass even if inference writes diagnostics, artifacts, findings, or flow state.",
+      "issue": "The R1 test verifies only that `resolveGatePhaseFromState` and transition construction do not mutate the local state object. It does not cover the required absence of mutations to `flow.json`, issue-log, findings, gate artifacts, or committed-transition diagnostics.",
+      "requiredChange": "Add a spec-local test that runs phase inference in a fixture with those persisted surfaces present and asserts no file/content changes and no committed-transition diagnostics are produced.",
+      "whyBlocking": "R1’s acceptance surface includes multiple persisted side-effect channels; current coverage can pass even if inference writes diagnostics, artifacts, findings, or flow state.",
+      "origin": "R1",
+      "failureKind": "missing-regression-test"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/333-failure-atomic-gate/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "13c7bb9872742e8987e69ce1b06906f13dc55d6edb7b0614f64a983c77d4de57"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "84d82297bde2eb6e92de5f4bdb5833114ae8e0712ada6a59d1318c51c9e88104",
+      "findingId": "84d82297bde2eb6e92de5f4bdb5833114ae8e0712ada6a59d1318c51c9e88104",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Missing persisted-state atomicity coverage",
+      "body": "The tests only compare the in-memory `state` object and a mock transition list after pre-commit failures. They do not create or snapshot `flow.json`, persisted step state, issue-log, findings, or existing gate artifacts, so they cannot verify the byte-identical persisted rollback requirement.",
+      "category": "unknown",
+      "fingerprint": "84d82297bde2eb6e92de5f4bdb5833114ae8e0712ada6a59d1318c51c9e88104",
+      "disposition": "must-fix",
+      "rationale": "R3 and R5 explicitly require persisted step state and durable artifacts/logs to remain unchanged across failure boundaries; current tests can pass while production writes partial state to disk."
+    },
+    {
+      "id": "75d2ed969329f9b9090cc446a3eac6243577c6009f4ee0c2e748b9d598b4120a",
+      "findingId": "75d2ed969329f9b9090cc446a3eac6243577c6009f4ee0c2e748b9d598b4120a",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Transition-count assertion encodes an incomplete lifecycle premise",
+      "body": "The R4 test expects `commit:1` and `manager.transitions.length === 1` while also requiring stale-step recovery to be recorded as an explicit transition. With both a stale gate step and a selected gate owner present, a single transition cannot demonstrate both selected gate commit and explicit stale-step recovery.",
+      "category": "unknown",
+      "fingerprint": "75d2ed969329f9b9090cc446a3eac6243577c6009f4ee0c2e748b9d598b4120a",
+      "disposition": "must-fix",
+      "rationale": "This test can force or accept an implementation that records stale recovery as an implicit side effect or skips one lifecycle update, contradicting R4."
+    },
+    {
+      "id": "dfc79a3b9b3b263a62cb8f6688a143b4de8839a76651e804be0ccc797f5849ce",
+      "findingId": "dfc79a3b9b3b263a62cb8f6688a143b4de8839a76651e804be0ccc797f5849ce",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R1 side-effect surface is under-tested",
+      "body": "The R1 test verifies only that `resolveGatePhaseFromState` and transition construction do not mutate the local state object. It does not cover the required absence of mutations to `flow.json`, issue-log, findings, gate artifacts, or committed-transition diagnostics.",
+      "category": "unknown",
+      "fingerprint": "dfc79a3b9b3b263a62cb8f6688a143b4de8839a76651e804be0ccc797f5849ce",
+      "disposition": "must-fix",
+      "rationale": "R1’s acceptance surface includes multiple persisted side-effect channels; current coverage can pass even if inference writes diagnostics, artifacts, findings, or flow state."
+    }
+  ]
+}

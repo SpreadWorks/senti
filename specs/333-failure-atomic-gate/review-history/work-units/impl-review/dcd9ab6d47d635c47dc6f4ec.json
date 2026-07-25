@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "dcd9ab6d47d635c47dc6f4ec",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-ce94f5204a2bad68",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+      "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+      "src/flow/commands/review.js",
+      "src/flow/lib/gate-mutation-owner.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/set-retry.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/lib/task-scope.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/gate-phase-inference.test.js",
+      "tests/unit/flow/set-step.test.js"
+    ],
+    "inputHash": "ce94f5204a2bad6820a8832ed8f3556869d000b12477424906d390818acb90aa",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "dcd9ab6d47d635c47dc6f4ec"
+  },
+  "targetFiles": [
+    "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+    "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+    "src/flow/commands/review.js",
+    "src/flow/lib/gate-mutation-owner.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/set-retry.js",
+    "src/flow/lib/set-step.js",
+    "src/flow/lib/task-scope.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/gate-phase-inference.test.js",
+    "tests/unit/flow/set-step.test.js"
+  ],
+  "inputHash": "ce94f5204a2bad6820a8832ed8f3556869d000b12477424906d390818acb90aa",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T00:18:20.132Z",
+  "finishedAt": "2026-07-25T00:18:20.133Z",
+  "rawResponse": "### 1. Gate Artifact Name Source Drift\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R6\n**Issue:** Artifact/result names are repeated across `src/flow/lib/run-gate.js` and `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`, while `run-gate.js` also has `GATE_RESULT_ARTIFACT_BY_PHASE`. This creates cross-file drift risk between production artifact naming and test fixture expectations.\n**Suggestion:** Reuse the same exported artifact mapping in tests where feasible, or centralize canonical artifact names in one module imported by both runtime code and tests.\n\n### 2. Review Tooling Recovery Naming Is Inconsistent Across Callers\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R4\n**Issue:** `applyReviewToolingRecovery` mutates convergence state like `applyReviewEvidenceTransition`, but the transition-style naming is not followed. `src/flow/lib/set-retry.js` then builds retry behavior around that recovery API, so the naming inconsistency crosses module boundaries.\n**Suggestion:** Rename the exported helper to `applyReviewToolingRecoveryTransition`, or provide that alias and migrate `set-retry.js` callers to it.\n\n### 3. Requirement Scope Bounds Need One Shared Contract\n**File:** `src/flow/lib/task-scope.js`\n**Requirement:** R7\n**Issue:** Both `TaskRequirementFileScope` and `src/flow/commands/review.js` have proposals about bounding scoped file expansion. If each file adds independent limits, the review command and task-scope abstraction may disagree about what is allowed.\n**Suggestion:** Define bounds at the `TaskRequirementFileScope` boundary and have `review.js` consume that bounded result, with any command-level fallback keyed off the same constants or error type.\n\n### 4. Step Lookup Bounds Should Be Centralized\n**File:** `src/flow/lib/gate-mutation-owner.js`\n**Requirement:** R7\n**Issue:** `gate-mutation-owner.js` and `set-step.js` both rely on `findStepById` paths over flow/spec step data. Bounding or wrapping only one use would leave inconsistent traversal behavior across gate ownership and artifact-completion validation.\n**Suggestion:** Add bounded lookup behavior to the shared step lookup helper or introduce a common wrapper, then use it from both gate ownership resolution and set-step validation paths.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Gate Artifact Name Source Drift",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R6\n**Issue:** Artifact/result names are repeated across `src/flow/lib/run-gate.js` and `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js`, while `run-gate.js` also has `GATE_RESULT_ARTIFACT_BY_PHASE`. This creates cross-file drift risk between production artifact naming and test fixture expectations.\n**Suggestion:** Reuse the same exported artifact mapping in tests where feasible, or centralize canonical artifact names in one module imported by both runtime code and tests.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Review Tooling Recovery Naming Is Inconsistent Across Callers",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R4\n**Issue:** `applyReviewToolingRecovery` mutates convergence state like `applyReviewEvidenceTransition`, but the transition-style naming is not followed. `src/flow/lib/set-retry.js` then builds retry behavior around that recovery API, so the naming inconsistency crosses module boundaries.\n**Suggestion:** Rename the exported helper to `applyReviewToolingRecoveryTransition`, or provide that alias and migrate `set-retry.js` callers to it.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Requirement Scope Bounds Need One Shared Contract",
+        "body": "**File:** `src/flow/lib/task-scope.js`\n**Requirement:** R7\n**Issue:** Both `TaskRequirementFileScope` and `src/flow/commands/review.js` have proposals about bounding scoped file expansion. If each file adds independent limits, the review command and task-scope abstraction may disagree about what is allowed.\n**Suggestion:** Define bounds at the `TaskRequirementFileScope` boundary and have `review.js` consume that bounded result, with any command-level fallback keyed off the same constants or error type.",
+        "file": "src/flow/lib/task-scope.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Step Lookup Bounds Should Be Centralized",
+        "body": "**File:** `src/flow/lib/gate-mutation-owner.js`\n**Requirement:** R7\n**Issue:** `gate-mutation-owner.js` and `set-step.js` both rely on `findStepById` paths over flow/spec step data. Bounding or wrapping only one use would leave inconsistent traversal behavior across gate ownership and artifact-completion validation.\n**Suggestion:** Add bounded lookup behavior to the shared step lookup helper or introduce a common wrapper, then use it from both gate ownership resolution and set-step validation paths.",
+        "file": "src/flow/lib/gate-mutation-owner.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

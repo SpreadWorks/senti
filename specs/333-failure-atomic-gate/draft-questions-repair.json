@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "generatedAt": "2026-07-25T00:40:40.000Z",
+  "summary": "Rewrote q6 as a neutral migration-policy question while retaining the selected policy in non-question draft evidence.",
+  "items": [
+    {
+      "title": "1. Question Includes Proposed Policy",
+      "target": "q6",
+      "rationale": "Removed the proposed bridge-entry and fail-closed answer from the question text and asked only which migration policy should apply.",
+      "evidence": "draft.json qa[5].question is now neutral; decisionMap.knownFacts and deferredToSpec retain the user-selected policy.",
+      "changedFieldPaths": [
+        "qa[5].question"
+      ]
+    }
+  ]
+}

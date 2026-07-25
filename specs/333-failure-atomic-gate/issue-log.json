@@ -1,0 +1,3032 @@
+{
+  "entries": [
+    {
+      "step": "draft-questions-repair",
+      "reason": "Draft question review found instruction-style priority prefixes in all four question texts.",
+      "trigger": "draft-questions-review returned four repair targets for leading must: prefixes",
+      "resolution": "Moved each required priority marker into natural question prose and recorded the exact field mutations.",
+      "guardrailCandidate": "Keep required priority markers in natural-language question bodies instead of instruction-like prefixes.",
+      "taskId": null,
+      "timestamp": "2026-07-24T14:26:35.680Z",
+      "issueLogId": "issue-log-ac836da4-2520-4395-abe3-bf2daf290fd0"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement says `rewind が必要な回復経路` without defining which recovery paths require rewind, so two reviewers may not agree on whether the implementation satisfies this requirement.; The draft intentionally removes the existing behavior where a failed gate execution can leave a stale step marked `done`, but it does not state the user-visible impact and compatibility expectation for that removal.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T14:28:24.822Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft content",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement says `rewind が必要な回復経路` without defining which recovery paths require rewind, so two reviewers may not agree on whether the implementation satisfies this requirement.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft content",
+            "locator": "impactOnExisting[0]"
+          },
+          "observed": "The draft intentionally removes the existing behavior where a failed gate execution can leave a stale step marked `done`, but it does not state the user-visible impact and compatibility expectation for that removal.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says `rewind が必要な回復経路` without defining which recovery paths require rewind, so two reviewers may not agree on whether the implementation satisfies this requirement."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft intentionally removes the existing behavior where a failed gate execution can leave a stale step marked `done`, but it does not state the user-visible impact and compatibility expectation for that removal."
+        }
+      ],
+      "issueLogId": "issue-log-2f4afa51-56ab-472e-913e-fa5df76353f1"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found ambiguous stale-step recovery scope and missing compatibility expectations for failed gate behavior.",
+      "trigger": "complete-context and migration-parity guardrails failed on the first draft-gate attempt",
+      "resolution": "Defined the exact multiple-in-progress stale-step recovery case and documented unchanged CLI failure/success behavior with retry from the original state.",
+      "guardrailCandidate": "State exact recovery triggers and observable compatibility expectations whenever removing partial state mutation.",
+      "taskId": null,
+      "timestamp": "2026-07-24T14:29:00.789Z",
+      "issueLogId": "issue-log-44bbbaee-637e-4e6e-b78b-507fd0300907"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R5 specifies retrying after any pre-commit failure but does not state an explicit retry upper bound such as count or attempt limit.; The spec states that migration parity keeps effective phase selection, PASS/FAIL envelopes, and routing unchanged while removing partial-mutation compatibility, but it does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.; The migration parity statement does not map each retained behavior to its new owner or state an explicit removal decision for each moved or replaced public behavior.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T14:35:28.660Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[4].desc"
+          },
+          "observed": "R5 specifies retrying after any pre-commit failure but does not state an explicit retry upper bound such as count or attempt limit.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4].text"
+          },
+          "observed": "The spec states that migration parity keeps effective phase selection, PASS/FAIL envelopes, and routing unchanged while removing partial-mutation compatibility, but it does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4].text"
+          },
+          "observed": "The migration parity statement does not map each retained behavior to its new owner or state an explicit removal decision for each moved or replaced public behavior.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R5 specifies retrying after any pre-commit failure but does not state an explicit retry upper bound such as count or attempt limit."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec states that migration parity keeps effective phase selection, PASS/FAIL envelopes, and routing unchanged while removing partial-mutation compatibility, but it does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration parity statement does not map each retained behavior to its new owner or state an explicit removal decision for each moved or replaced public behavior."
+        }
+      ],
+      "issueLogId": "issue-log-d600be6d-c4f7-44a7-b1a5-40462bad0739"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found an unbounded retry requirement and incomplete migration inventory and ownership mapping.",
+      "trigger": "bounded-resource-usage and migration-parity guardrails failed on the first spec-gate attempt",
+      "resolution": "Bounded each fault scenario to two attempts and inventoried retained command, API, hook, config, artifact, routing, and lifecycle owners plus the explicitly removed eager mutation.",
+      "guardrailCandidate": "Every retry requirement needs an explicit attempt bound and every behavior migration needs a public-surface inventory with owner mapping.",
+      "taskId": null,
+      "timestamp": "2026-07-24T14:36:17.166Z",
+      "issueLogId": "issue-log-c93f26c0-aa9f-4697-b54d-ccc0692d3f77"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The migration inventory retains `RunGateCommand` exports as a public surface, but the spec does not include behavior-level verification proving the retained export behavior still works through the new path.; The migration inventory retains registry gate pre/post/onError hooks as public surfaces, but the spec does not include behavior-level verification proving the retained hook behavior still works through the new path.; The migration inventory retains existing configuration keys as public surfaces, but the spec does not include behavior-level verification proving the retained configuration behavior still works through the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T14:36:48.180Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4]"
+          },
+          "observed": "The migration inventory retains `RunGateCommand` exports as a public surface, but the spec does not include behavior-level verification proving the retained export behavior still works through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4]"
+          },
+          "observed": "The migration inventory retains registry gate pre/post/onError hooks as public surfaces, but the spec does not include behavior-level verification proving the retained hook behavior still works through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4]"
+          },
+          "observed": "The migration inventory retains existing configuration keys as public surfaces, but the spec does not include behavior-level verification proving the retained configuration behavior still works through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration inventory retains `RunGateCommand` exports as a public surface, but the spec does not include behavior-level verification proving the retained export behavior still works through the new path."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration inventory retains registry gate pre/post/onError hooks as public surfaces, but the spec does not include behavior-level verification proving the retained hook behavior still works through the new path."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration inventory retains existing configuration keys as public surfaces, but the spec does not include behavior-level verification proving the retained configuration behavior still works through the new path."
+        }
+      ],
+      "issueLogId": "issue-log-9e469763-56b7-4bf3-9653-e0ad6d255744"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate required behavior-level parity tests for retained exports, registry hooks, and configuration resolution.",
+      "trigger": "migration-parity guardrail failed on the second spec-gate attempt despite the completed surface inventory",
+      "resolution": "Added direct-export, pre/post/onError routing, existing agent/config resolution, artifact ownership, retry accounting, and routing acceptance tests.",
+      "guardrailCandidate": "A migration inventory must pair every retained public surface with observable behavior-level verification.",
+      "taskId": null,
+      "timestamp": "2026-07-24T14:37:21.637Z",
+      "issueLogId": "issue-log-16389ec4-56c8-410e-8825-3cc1d03159d0"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "spec.json contains invalid JSON: Expected ',' or '}' after property value in JSON at position 17789 (line 199 column 7)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T14:37:26.195Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "spec.json contains invalid JSON: Expected ',' or '}' after property value in JSON at position 17789 (line 199 column 7)",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-9b7f2d43-9576-4262-9988-4a150efbe370"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "A missing comma in the spec task object caused mechanical JSON validation to stop the third gate attempt.",
+      "trigger": "manual acceptance and test-strategy edit introduced adjacent JSON properties without a separator",
+      "resolution": "Inserted the missing comma and validated spec.json with JSON.parse before resuming the guarded gate.",
+      "guardrailCandidate": "Parse edited JSON artifacts locally before every gate invocation.",
+      "taskId": null,
+      "timestamp": "2026-07-24T14:37:58.682Z",
+      "issueLogId": "issue-log-dbc9cb57-600f-451a-87ae-63c0c73059eb"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "The generic mechanical recovery guidance suggested a gate retry reset, but plan-phase spec resets are not supported.",
+      "trigger": "flow set retry reset gate spec returned INVALID_RECOVERY_INPUT because only task-impl and integration are recoverable",
+      "resolution": "Verified the mechanical attempt did not consume semantic retry budget and resumed the corrected spec gate without a reset.",
+      "guardrailCandidate": "Plan-gate mechanical recovery guidance should not instruct unsupported gate retry reset phases.",
+      "taskId": null,
+      "timestamp": "2026-07-24T14:38:42.391Z",
+      "issueLogId": "issue-log-03dedea7-61ab-44c5-8b73-5586aeb576ba"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review failed during result recording because the reviewer emitted duplicate findingId values.",
+      "trigger": "first test-review invocation returned REVIEW_TOOLING_ERROR at result_recording",
+      "resolution": "Followed the dispatcher retry_review action using the remaining tooling attempt without changing test evidence.",
+      "guardrailCandidate": "Review result recording should deterministically deduplicate repeated finding identities before validation.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T14:42:50.214Z",
+      "issueLogId": "issue-log-d8b3c2d4-c609-4bb5-9fbb-6f4679688631"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review produced distinct R3 and R5 findings with the same normalized findingId, exhausting tooling retries during result recording.",
+      "trigger": "resume blocker diagnosis for Issue #456",
+      "resolution": "Expanded the spec-local tests to cover all four R3 pre-commit boundaries, the complete R5 two-attempt retry matrix, explicit GateMutationOwner validation, and executable R6 retained-behavior suites before requesting an audited retry reset.",
+      "guardrailCandidate": "Test-review finding identity must distinguish separate requirement origins, while recovery should require materially changed test evidence before retry.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T14:56:42.804Z",
+      "issueLogId": "issue-log-54e88c81-6072-460b-8b58-45ac687c251c"
+    },
+    {
+      "step": "test-review",
+      "reason": "Semantic test review found that R1/R3/R5 only observed in-memory state and that R4 collapsed stale recovery and selected-owner completion into one transition count.",
+      "trigger": "test-review attempt after finding identity recovery",
+      "resolution": "Reworked the spec-local fixture to use the production FlowManager and byte-snapshot flow.json, issue-log, findings, source, and result artifacts; separated stale recovery from selected-owner completion for PASS while retaining FAIL ownership.",
+      "guardrailCandidate": "Failure-atomic tests must snapshot durable surfaces, and lifecycle assertions must distinguish recovery transitions from selected-owner completion.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T15:04:54.103Z",
+      "issueLogId": "issue-log-7e4cd626-3b9b-4a87-9bca-fb6ad8b0fab1"
+    },
+    {
+      "step": "task-review",
+      "reason": "Expanded completed semantic FAIL detection to accept fail evaluations as authoritative evidence instead of requiring the derived failureKind field, and reused the same predicate in the injected gate pipeline.",
+      "normalizedFindingId": "a6a45628ceb42e827e5364280bde8dda07b39e9e3e28eaef77a9ec5748d8df6d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T15:15:05.859Z",
+      "issueLogId": "issue-log-33e2963d-18d8-4cad-9151-1283de3fc81f"
+    },
+    {
+      "step": "task-review",
+      "reason": "Narrowed semantic FAIL completion so explicit non-semantic failureKind values and structural issues cannot commit inferred recovery; evaluation fallback is used only when failureKind is absent.",
+      "normalizedFindingId": "f995f66e0c1a004225bbb62650e4d5f9fa951209a7c9b0275d1a98cb3a3e3d9b",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T15:17:14.751Z",
+      "issueLogId": "issue-log-9bb33e1b-a63d-41b6-8113-bf58fb1fee99"
+    },
+    {
+      "step": "task-review",
+      "reason": "The spec-local valid FAIL fixture omitted the production ai_semantic_fail classification emitted by gateFail(), forcing the implementation toward an unsafe classification fallback.",
+      "trigger": "third task-review pass for mechanical-fail-commits-inferred-transition",
+      "resolution": "Restore strict production classification and align the spec-local valid FAIL fixture with gateFail() output; do not execute tests during task-review.",
+      "guardrailCandidate": "Test fixtures for typed result envelopes must include the production discriminator fields used at commit boundaries.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T15:18:43.829Z",
+      "issueLogId": "issue-log-45b059bc-e24b-4077-af3d-d2f4725dd4b7"
+    },
+    {
+      "step": "task-review",
+      "reason": "Restored strict ai_semantic_fail eligibility for inferred FAIL commit and aligned the spec-local FAIL fixture with the production gateFail envelope contract.",
+      "normalizedFindingId": "f995f66e0c1a004225bbb62650e4d5f9fa951209a7c9b0275d1a98cb3a3e3d9b",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-24T15:19:16.084Z",
+      "issueLogId": "issue-log-1b74292c-b0ca-4223-b143-e3ee345cd960"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 7b53966b821ea1ff426529c8efdd0ae768672e7b2dbe67350b42512685da36cd.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-001; 1 changed path(s), delta repair-deltas/repair-001.json.",
+      "normalizedFindingId": "7b53966b821ea1ff426529c8efdd0ae768672e7b2dbe67350b42512685da36cd",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:24:54.433Z",
+      "issueLogId": "impl-repair:repair-001:7b53966b821ea1ff426529c8efdd0ae768672e7b2dbe67350b42512685da36cd"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: make artifact persistence rollback-safe and repair the stale-state test fixture",
+      "resolution": "The gate artifact is written before one batched lifecycle commit, restored if that commit fails, and the test now persists the intentionally stale legacy state through a boundary-specific manager instead of asking FlowManager.create to accept a state forbidden by the current schema.",
+      "taskId": null,
+      "timestamp": "2026-07-24T15:29:58.648Z",
+      "issueLogId": "issue-log-068cfa70-07c4-4862-86c1-f0ae19a6435b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding d1fba20f92af2864aa4a4a9ee68b78047b8170a55a764756efffd3a9ed8b42df is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T15:34:06.637Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding d1fba20f92af2864aa4a4a9ee68b78047b8170a55a764756efffd3a9ed8b42df is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-d0dff635-a67f-4aab-952f-78ef167057a4"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: record the missing second implementation repair audit",
+      "resolution": "The implementation and tests already address finding d1fba20f92af2864aa4a4a9ee68b78047b8170a55a764756efffd3a9ed8b42df; reapplying the official impl-repair completion will bind that finding to the current repair fingerprint without editing evidence artifacts directly.",
+      "taskId": null,
+      "timestamp": "2026-07-24T15:34:25.495Z",
+      "issueLogId": "issue-log-6d2e5a7f-a605-4bc9-9638-2b6e4591e893"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings d1fba20f92af2864aa4a4a9ee68b78047b8170a55a764756efffd3a9ed8b42df.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-002; 2 changed path(s), delta repair-deltas/repair-002.json.",
+      "normalizedFindingId": "d1fba20f92af2864aa4a4a9ee68b78047b8170a55a764756efffd3a9ed8b42df",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:37:53.557Z",
+      "issueLogId": "impl-repair:repair-002:d1fba20f92af2864aa4a4a9ee68b78047b8170a55a764756efffd3a9ed8b42df"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R1] requires gate phase inference to return effective phase, stale step IDs, and selected gate ownership without mutation, and [CONSTRAINT:2] keeps production changes within src/flow/lib/run-gate.js unless needed for the same transition concern. The diff includes unrelated production edits in src/flow/commands/review.js and .senti/output/analysis.json, which are not supporting modules for the gate transition concern. Source: Git Diff src/flow/commands/review.js; Git Diff .senti/output/analysis.json.; [REQ:R4] requires the pending inferred transition to commit through existing definition-aware lifecycle ownership exactly once and record stale-step recovery as explicit transitions after successful artifact persistence. The implementation commits stale steps via createLifecycleStepTransition and flowManager.updateStepStatuses, but never calls the selected GateMutationOwner during commit; owner is only validated and stored. This omits the required selected gate ownership commit through the existing owner. Source: Git Diff src/flow/lib/run-gate.js InferredGateTransition.commit; Same-Spec Contract overview.decisions[2].; [REQ:R5] requires retry preservation without duplicate durable effects while production retry limits remain unchanged, and [CONSTRAINT:2] limits production changes to run-gate.js for this concern. The diff includes unrelated production changes in src/flow/commands/review.js and generated analysis metadata, which intercept preserved scope outside the gate retry boundary and are not justified by the mapped implementation evidence. Source: Git Diff src/flow/commands/review.js; Git Diff .senti/output/analysis.json.; [REQ:R3] requires preservation/non-interference for the failure-atomic gate change, and [OUT:3] forbids changing flow commands other than gate. The diff includes an unrelated production change in `src/flow/commands/review.js`, changing `ReviewFindingFingerprint.fromFinding({ requirementId })` from `this.target` to `this.origin`, plus a review test update; that is outside the gate transition boundary and contradicts the non-interference scope. Source: Git Diff `src/flow/commands/review.js`.; [REQ:R6] requires existing behavior outside the corrected failed-inferred-execution boundary to be preserved, and [OUT:3] forbids changing flow commands other than gate. The mapped diff changes review command fingerprint behavior in `src/flow/commands/review.js` from target-based to origin-based IDs, which is an unrelated flow-command behavior change and not supported by the R6 preservation exception. Source: Git Diff `src/flow/commands/review.js`.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T15:40:17.393Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "[REQ:R1] requires gate phase inference to return effective phase, stale step IDs, and selected gate ownership without mutation, and [CONSTRAINT:2] keeps production changes within src/flow/lib/run-gate.js unless needed for the same transition concern. The diff includes unrelated production edits in src/flow/commands/review.js and .senti/output/analysis.json, which are not supporting modules for the gate transition concern. Source: Git Diff src/flow/commands/review.js; Git Diff .senti/output/analysis.json.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires the pending inferred transition to commit through existing definition-aware lifecycle ownership exactly once and record stale-step recovery as explicit transitions after successful artifact persistence. The implementation commits stale steps via createLifecycleStepTransition and flowManager.updateStepStatuses, but never calls the selected GateMutationOwner during commit; owner is only validated and stored. This omits the required selected gate ownership commit through the existing owner. Source: Git Diff src/flow/lib/run-gate.js InferredGateTransition.commit; Same-Spec Contract overview.decisions[2].",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "[REQ:R5] requires retry preservation without duplicate durable effects while production retry limits remain unchanged, and [CONSTRAINT:2] limits production changes to run-gate.js for this concern. The diff includes unrelated production changes in src/flow/commands/review.js and generated analysis metadata, which intercept preserved scope outside the gate retry boundary and are not justified by the mapped implementation evidence. Source: Git Diff src/flow/commands/review.js; Git Diff .senti/output/analysis.json.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "[REQ:R3] requires preservation/non-interference for the failure-atomic gate change, and [OUT:3] forbids changing flow commands other than gate. The diff includes an unrelated production change in `src/flow/commands/review.js`, changing `ReviewFindingFingerprint.fromFinding({ requirementId })` from `this.target` to `this.origin`, plus a review test update; that is outside the gate transition boundary and contradicts the non-interference scope. Source: Git Diff `src/flow/commands/review.js`.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires existing behavior outside the corrected failed-inferred-execution boundary to be preserved, and [OUT:3] forbids changing flow commands other than gate. The mapped diff changes review command fingerprint behavior in `src/flow/commands/review.js` from target-based to origin-based IDs, which is an unrelated flow-command behavior change and not supported by the R6 preservation exception. Source: Git Diff `src/flow/commands/review.js`.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "[REQ:R1] requires gate phase inference to return effective phase, stale step IDs, and selected gate ownership without mutation, and [CONSTRAINT:2] keeps production changes within src/flow/lib/run-gate.js unless needed for the same transition concern. The diff includes unrelated production edits in src/flow/commands/review.js and .senti/output/analysis.json, which are not supporting modules for the gate transition concern. Source: Git Diff src/flow/commands/review.js; Git Diff .senti/output/analysis.json."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires the pending inferred transition to commit through existing definition-aware lifecycle ownership exactly once and record stale-step recovery as explicit transitions after successful artifact persistence. The implementation commits stale steps via createLifecycleStepTransition and flowManager.updateStepStatuses, but never calls the selected GateMutationOwner during commit; owner is only validated and stored. This omits the required selected gate ownership commit through the existing owner. Source: Git Diff src/flow/lib/run-gate.js InferredGateTransition.commit; Same-Spec Contract overview.decisions[2]."
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "[REQ:R5] requires retry preservation without duplicate durable effects while production retry limits remain unchanged, and [CONSTRAINT:2] limits production changes to run-gate.js for this concern. The diff includes unrelated production changes in src/flow/commands/review.js and generated analysis metadata, which intercept preserved scope outside the gate retry boundary and are not justified by the mapped implementation evidence. Source: Git Diff src/flow/commands/review.js; Git Diff .senti/output/analysis.json."
+        },
+        {
+          "guardrail_id": "R3",
+          "reason": "[REQ:R3] requires preservation/non-interference for the failure-atomic gate change, and [OUT:3] forbids changing flow commands other than gate. The diff includes an unrelated production change in `src/flow/commands/review.js`, changing `ReviewFindingFingerprint.fromFinding({ requirementId })` from `this.target` to `this.origin`, plus a review test update; that is outside the gate transition boundary and contradicts the non-interference scope. Source: Git Diff `src/flow/commands/review.js`."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires existing behavior outside the corrected failed-inferred-execution boundary to be preserved, and [OUT:3] forbids changing flow commands other than gate. The mapped diff changes review command fingerprint behavior in `src/flow/commands/review.js` from target-based to origin-based IDs, which is an unrelated flow-command behavior change and not supported by the R6 preservation exception. Source: Git Diff `src/flow/commands/review.js`."
+        }
+      ],
+      "issueLogId": "issue-log-84ea2835-bc00-42cd-b642-d75b1c35af3d"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: remove out-of-scope review changes and preserve selected gate ownership",
+      "resolution": "The branch diff now excludes the temporary review-fingerprint workaround and generated analysis cache, while InferredGateTransition validates the selected in-progress gate through GateMutationOwner before atomically batching stale recovery transitions.",
+      "taskId": null,
+      "timestamp": "2026-07-24T15:41:47.983Z",
+      "issueLogId": "issue-log-05c9ccc9-6faa-4e22-b65d-2656cc5504af"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R5] The mapped implementation does not supply the required non-duplication and byte-identical retry behavior for every pre-commit failure boundary in the actual gate pipeline. The added rollback checkpoint in `RunGateCommand.execute` only snapshots `impl-gate-result.json` around deferred integration persistence, and `runGatePhaseWithDependencies` only checkpoints the result artifact path; neither implementation evidence restores `issue-log.json`, `flow-findings.json`, source artifacts, or other gate artifacts if they were written before a later pre-commit failure. The tests assert those files remain unchanged only through a helper path that never writes them, so the evidence omits the required durable-surface protection for actual pre-commit failures. Source references: [EVIDENCE:R5], [CONSTRAINT:5], [TASK:T-1].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T15:44:04.512Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "[REQ:R5] The mapped implementation does not supply the required non-duplication and byte-identical retry behavior for every pre-commit failure boundary in the actual gate pipeline. The added rollback checkpoint in `RunGateCommand.execute` only snapshots `impl-gate-result.json` around deferred integration persistence, and `runGatePhaseWithDependencies` only checkpoints the result artifact path; neither implementation evidence restores `issue-log.json`, `flow-findings.json`, source artifacts, or other gate artifacts if they were written before a later pre-commit failure. The tests assert those files remain unchanged only through a helper path that never writes them, so the evidence omits the required durable-surface protection for actual pre-commit failures. Source references: [EVIDENCE:R5], [CONSTRAINT:5], [TASK:T-1].",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R1",
+        "R4",
+        "R3"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "[REQ:R5] The mapped implementation does not supply the required non-duplication and byte-identical retry behavior for every pre-commit failure boundary in the actual gate pipeline. The added rollback checkpoint in `RunGateCommand.execute` only snapshots `impl-gate-result.json` around deferred integration persistence, and `runGatePhaseWithDependencies` only checkpoints the result artifact path; neither implementation evidence restores `issue-log.json`, `flow-findings.json`, source artifacts, or other gate artifacts if they were written before a later pre-commit failure. The tests assert those files remain unchanged only through a helper path that never writes them, so the evidence omits the required durable-surface protection for actual pre-commit failures. Source references: [EVIDENCE:R5], [CONSTRAINT:5], [TASK:T-1]."
+        }
+      ],
+      "issueLogId": "issue-log-7163b51c-0988-49dc-b76a-11424993be5b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: checkpoint every inferred gate durable surface",
+      "resolution": "A GateDurableSurfaceCheckpoint now restores issue-log, findings, source/result artifacts, and gate memory on every pre-commit exception or non-semantic result; the artifact-failure test dirties those side files before throwing and verifies byte-identical recovery.",
+      "taskId": null,
+      "timestamp": "2026-07-24T15:45:45.844Z",
+      "issueLogId": "issue-log-a58b9ee1-b711-40a5-9f21-5641742cd93e"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration-gate repair removed out-of-scope review changes and preserved selected gate ownership.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 3 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "9ecbb287bc45692ec4172cbefbcb7403098e2435f1a61862b91c84d2b7b0ebe9",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:41:47.983Z",
+      "issueLogId": "impl-repair:repair-003:9ecbb287bc45692ec4172cbefbcb7403098e2435f1a61862b91c84d2b7b0ebe9"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration-gate repair removed out-of-scope review changes and preserved selected gate ownership.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 3 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "7047d9599db612beb6cbe9e072923b7dfb44198a2e4d9ed88521135b18a8fdd8",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:41:47.983Z",
+      "issueLogId": "impl-repair:repair-003:7047d9599db612beb6cbe9e072923b7dfb44198a2e4d9ed88521135b18a8fdd8"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration-gate repair removed out-of-scope review changes and preserved selected gate ownership.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 3 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "1f1cee950001fb530f38fa54078204e0976f7bf588258e3b76425f71ee4f5867",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:41:47.983Z",
+      "issueLogId": "impl-repair:repair-003:1f1cee950001fb530f38fa54078204e0976f7bf588258e3b76425f71ee4f5867"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration-gate repair removed out-of-scope review changes and preserved selected gate ownership.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 3 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "6ca7b77bf4d6352e640ca5d7e20a81814e54e76f830656e7755d140eb383e223",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:41:47.983Z",
+      "issueLogId": "impl-repair:repair-003:6ca7b77bf4d6352e640ca5d7e20a81814e54e76f830656e7755d140eb383e223"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration-gate repair removed out-of-scope review changes and preserved selected gate ownership.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-003; 3 changed path(s), delta repair-deltas/repair-003.json.",
+      "normalizedFindingId": "3a035924b62536797a92790b4672f8979787d4c918440df9ebdd8a11dd770c37",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:41:47.983Z",
+      "issueLogId": "impl-repair:repair-003:3a035924b62536797a92790b4672f8979787d4c918440df9ebdd8a11dd770c37"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration-gate repair checkpointed every inferred gate durable surface.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-004; 2 changed path(s), delta repair-deltas/repair-004.json.",
+      "normalizedFindingId": "1f1cee950001fb530f38fa54078204e0976f7bf588258e3b76425f71ee4f5867",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:45:45.844Z",
+      "issueLogId": "impl-repair:repair-004:1f1cee950001fb530f38fa54078204e0976f7bf588258e3b76425f71ee4f5867"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 1920eaeeb823d976a08f5a767742e7fd04cf6762a2becd7867fb560fc13f200f.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-005; 1 changed path(s), delta repair-deltas/repair-005.json.",
+      "normalizedFindingId": "1920eaeeb823d976a08f5a767742e7fd04cf6762a2becd7867fb560fc13f200f",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T15:50:31.181Z",
+      "issueLogId": "impl-repair:repair-005:1920eaeeb823d976a08f5a767742e7fd04cf6762a2becd7867fb560fc13f200f"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-24T22:14:12.100Z",
+      "issueLogId": "issue-log-4115587c-eba0-4fbf-8642-97eaf0394467"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "failureCategory": "existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/333-failure-atomic-gate/acceptance-review.json",
+          "fingerprint": "10a9b0ea41f601d5823bd97e362084462847d11da731e9759af1f673ac8d2f5e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-coverage-repair.json",
+          "fingerprint": "dbb988eb4cec00a7accacb5040c74c05c3179099557629ba5de474773f0518a4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-coverage-triage.json",
+          "fingerprint": "2d184495c0db4c0c88d032c4cf8de52d51d7ab40a6293db1cf6f2152d282401f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-gate-source.json",
+          "fingerprint": "addd0082253d0043f53bad7606982a26af71e7bed1f9f6e69db2365d11b66700"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-questions-repair.json",
+          "fingerprint": "fb3ee59a1885f99f5340a7cfcfc808d4c2346d7084bdb917fe67e25498c16d4f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-questions-triage.json",
+          "fingerprint": "fd57026fb74ca03144f9ea089cdf76c5695547cbfe88e6bf51c12a720417f1cc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-review-coverage.json",
+          "fingerprint": "e48636ef19ea34231dc1855828a659cc8fc0c12579f5c986f3720051b855e2ed"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-review-questions.json",
+          "fingerprint": "1d6d9c75a82d4a8c66c865b47646d2588b74099e1e7571eea206e784597c6cab"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft.json",
+          "fingerprint": "a24417f4a368e97e9fad920b09dc1c36a8b3175cb3bbfa87c8d3e959f3b40d7e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/file-map.json",
+          "fingerprint": "3bdb38dc2e49a68f6543c825ca807bd19d19de499e48f3145ca4c3c9c26b5e88"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/flow-findings.json",
+          "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/impl-gate-result.json",
+          "fingerprint": "9ef2b68032841c87bfd02e3f0fc96c04836d7c36226bd691cbb42ae2ce90e292"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/impl-repair.json",
+          "fingerprint": "47fb2e94666d25ad2cfa0bc9c673e8d5a6d569aa6dace7df91a4d4342ecfa567"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/impl-review.json",
+          "fingerprint": "69256e847c7fd3bb57ae866ad189920324759e448eff5dbb853775ff93412ae2"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/impl-triage.json",
+          "fingerprint": "932ebc633308e06c801ce84be2721e3ecb2c28ab731cfc34ee715b83f567b585"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/issue.md",
+          "fingerprint": "00a9d0a3d21146057c70d0a8989feebb71f9f65a6be87aea9b80646d9e906a22"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "0983f9017fcb957557b1a19b85f2356d0d745fbd0391ec91ce2a9b37494f12eb"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-001.json",
+          "fingerprint": "7732f623ee54cd2cb40e5a582fc487ab383f36960ea560519df51733d740a32b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-002.json",
+          "fingerprint": "5e6c87dea13567fcb09c0e32e0ba1d830769d9ca7bc363044218638949348e74"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-003.json",
+          "fingerprint": "7e0374deeeed68c9fedf1c4cb15161bac44e63ec5a78bdfaba7348f886e2f83b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-004.json",
+          "fingerprint": "ef615ab8f4cb3ad504f1481839c9e8ffb2582543760aca03085a7f9a90d611fe"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-005.json",
+          "fingerprint": "ca78a539b13eecefa1ecd4d88f73f2f7e3c2ee7f1b94910d15c271718dbd01ce"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-fingerprint.json",
+          "fingerprint": "35eb8a24983d5695c5860434d27ec3ea196f8ce3cba140e83921f66733709115"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/retro.json",
+          "fingerprint": "bf9ced39f556d38afc6e10542ede3973bbe16fbed6265ac75a0c427417c7e2c2"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/07ab387068643f8e531f0a85c20f8390a9a72319f7a9e80ae054dde0dff87976.json",
+          "fingerprint": "bb9fcfd54832d7590dd8c54e4d034dc1783f9f91d1f156beed6cc37dc723704f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/145e9308a1f9390d3adc5b0f77fa9fb7cd72653d372396096792e01bf317aa7f.json",
+          "fingerprint": "8667c9e1637b2ff2b0f07de31fff1e427e43f8d4a320ccf8a78f48ae0a418122"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/31bd4182ed4d31ca1d46534fd2534d24d645f52cd13998261dc2cafb997559f9.json",
+          "fingerprint": "6ae6dd10cb2dc09f176f9ca4655745eb2eca74b6b19c9031207d1490efb40435"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/412e15363783be7e6bffc6e22e5b29d68d6f3b131643465857f03cc90debaa1c.json",
+          "fingerprint": "e30704effcc97a3791cda18885b3398be2221af5addc8609c5781b8c03c63e57"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/56652b75b726c30ecf14b9da8a51970986448c230229fca78851b9f0169b6c45.json",
+          "fingerprint": "2fac5d2295eaab4176237a05ed4dbeda4703aea4ff128e51a4eda1dff57e810b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/7786743005190182c2319129c693c5ec682e6a06ccb892cb57b4696e19142b7f.json",
+          "fingerprint": "37594b4441bd707071283a09a7801a0d671a288e6e6d40b4f1598734e52465a8"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/798c4e4a5f0e6534d91c9539e19cd2c66cee381d4a4727ff1ddc25094b9e21fd.json",
+          "fingerprint": "155d8c95f62840ff6bd0d569205b1d908540d965590266806fde5b819a60ce02"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/b5d7d9bbcc1270708e15c5d15777ce3380d908e97ea36b5c215c55b783822a54.json",
+          "fingerprint": "cb398dda0c5605b93cff38166692b52438508c19eeb9b36c727f729240eecde9"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/bb307a699ac80ca479f08c18dc8a246a59b8520234b9da6c099bf64297d725b7.json",
+          "fingerprint": "da7198719f671c92b87972ad590858785a223bda708d8aae59042556dce700b3"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/d3bc2a4c9b68df1860ccff05761e8b8d96846363662d3ff817c225ce8c1f7758.json",
+          "fingerprint": "ab9d3a9ff5be3630e5971415d401bf60387de266e5e9d94fc6d91f376e338360"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/d930b4734880b3a048ba970c335a0664f4f4c1d174318167967e679e4df4abe5.json",
+          "fingerprint": "182400309d3d4f221c73dd9ebe658710707ff094a42ac8654c27812e172de756"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/e45d84a7ac04f4b980b8a52728ca665f2ab6c00701cc267386d74c71571dfb8f.json",
+          "fingerprint": "399d86d8abf0b2bc7dc30ed9230d9ed4cfec318b2b1eda48ab41572a554a7ca7"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/e673cf6179181daedb715731122fffb14f1b625957ed1cce0160992c9e68da9c.json",
+          "fingerprint": "88fdaa0226379d4f1e2e5713d12c30c9a223c462963e88f2a8d516f16d83a19b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/e6dbad897fd5bd6c31108d0e73c9d3c7ff6057ed05cc11fff84627f0936de7eb.json",
+          "fingerprint": "88b95d42aefbd40b0d44f3e4b0cd0257fd017b1b0ad8fc9dcbdfe0339529b7f3"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/f51ad47decd1351313eb5ea642ba8a29ccbd573decc457a6390ba757976f8686.json",
+          "fingerprint": "c34a50bd0d645c98235d7b0ca8f1ce07f06c99804f5a8546af3dfff4bc4e1850"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "53e19cfd811e6447086c796c3c296ef352f89ec5015feeec4d40b3569f9d6dcc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "6741e8c707f2e74383ba276b00b0439ae368436c554806902cf427dad5835ec4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-001.json",
+          "fingerprint": "63a2e63730654fe5f0eef953a767c316021343ab28fccf087d77e4dcc9ccaa01"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-001.md",
+          "fingerprint": "afc8c1035cccf046df83389af130cc85c01a04b3c7349962d21fcd5db17d0094"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-002.json",
+          "fingerprint": "f721a5c50add2a7fcc65b3d109a7c7f1c58054eb1591def58353a27d666d072e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-002.md",
+          "fingerprint": "05c102d827758931fff5290f8b7726d89e25c38be8cb4f8c65eb6a3de920e99f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-003.json",
+          "fingerprint": "92b494ab13578c154f2586596b1afa3543209f14c643b7f64ac557a5db64b86f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-003.md",
+          "fingerprint": "208b53a12518235514e9cbb51efa7a10ce244621d9f9c95548ae318f83045b35"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-004.json",
+          "fingerprint": "59bef4170c905e2168e2b18af68550158e9d839ba715f2d8be5f5278d2966250"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-004.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-005.json",
+          "fingerprint": "2477f8f7be5bc39ffc85ba71d78adc45984ef83b26767a1372619c007cf636ea"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-005.md",
+          "fingerprint": "b7fc93c373faace14bceb10fe15662ccccd0cfb44af3cbb729a14ad52e86686b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-006.json",
+          "fingerprint": "6e708edab4df74dfe38dd3dd154d4d4bbe487f2cfdb0a6719f65a8d427443bb4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-006.md",
+          "fingerprint": "af1e8a257136aa52d4d4118335201a556db04ace77d46680c255581ba8863187"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-007.json",
+          "fingerprint": "fbde68da5291e27d62dd447b78bf2d2fb449ac22229382c1618db1774efcfd15"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-007.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-008.json",
+          "fingerprint": "0fb67a426a8f0a52c7ce14cc0eef842b9752ed0d4541da2a3e709dc4d83a0ebc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-008.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-009.json",
+          "fingerprint": "e51373f415611020b9786b299fc5ed128b08d180f2d2d52f2d3ed7f8a1f4f5e4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-009.md",
+          "fingerprint": "7244fef9d515ea5cf9ae1e056f5a6339b7ac671d29b67edb137f42eda5cfd055"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-010.json",
+          "fingerprint": "8ab04e0dc11c4e5e9a05d86e8d733c8095019d330ad213a4a785ebfd2180a6f4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-010.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/spec-attempt-001.json",
+          "fingerprint": "028c1307d94fc3c045b074060c7100e5b66fd4011f7d9e0075c4ac31095394b7"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-001.json",
+          "fingerprint": "97f9f7e89fbca18813032a7a35ef0461793e0ebb42052953e65bf82c68526f27"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-001.md",
+          "fingerprint": "39be30196f57797c0ff49846141094ecf826afd1b30b92c2fc3ad5228c922e5e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-002.json",
+          "fingerprint": "1e49ed3940524ed1e2170914ef856f0603c38ef44dd9ff677156201e1dc6899c"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-002.md",
+          "fingerprint": "39be30196f57797c0ff49846141094ecf826afd1b30b92c2fc3ad5228c922e5e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-003.json",
+          "fingerprint": "4a76eda8f37a4221e197c68e181a268132f38928813d723da25ffea08c5792cf"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-003.md",
+          "fingerprint": "1aed0c938ce4128a3089194e9045592b5e0d8bad2cf17d5cc79c08d445f3ac30"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-004.json",
+          "fingerprint": "40465af9be2e859e3858b834af8aa08728e784e46fda4352a7da0b2487426f5c"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-004.md",
+          "fingerprint": "df369d5539fd1065811a92ad6927d85ddc8e36dc5f71779650c1e8de69de1683"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/scenario-validity-result.json",
+          "fingerprint": "c78c21626bd264e9cd9fac066beba0604ce9b0c42eb169dab85c3f46f2d772f3"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec-gate-source.json",
+          "fingerprint": "e8a8ebb178dfd021e01366f017cb654399783d5452b642cce2e23a17770f1fd7"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec-review.json",
+          "fingerprint": "d914eba896b4cb773e91eb052b66c18fd9dcad0bab4a74bf501de6686838744f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec.json",
+          "fingerprint": "d79e1c9fc5a5c9d91f8cd1e0915cf9abe297ef9a31921bfe9a375e7147a8d718"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec.md",
+          "fingerprint": "e9993d58711b66c6b9d964bc2a45c13f13436d6430d2b5d3da0bcc593beb8d76"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/tasks/T-1.md",
+          "fingerprint": "a84b0348d76969d198b735cdc1277720d4df2e33c75c3def51dc519dc4b9e305"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-coverage.json",
+          "fingerprint": "a8115eb9969f58267547b0243baa63a92853e0c29ab17a786b9d678f14b4b6f8"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-execute-result.json",
+          "fingerprint": "5b42dd08e9d6a2eb39485f6034ca51460d9f1d595f6d55aaf6ea15028093698e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-result-review.json",
+          "fingerprint": "fb72ddff7cc0431b5d3b8b679c2e947476e008d99540e69c72a1acc86d22fd35"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-result-review.md",
+          "fingerprint": "c9c5a659db734226c8b2578fef16e9bb76f02b2e3b1effa14b78705b82b8cfcc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-review.json",
+          "fingerprint": "c1dce005e23b091506b0855de4848dd5d40a4c05268eadcc813395e239524bc6"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-review.md",
+          "fingerprint": "df369d5539fd1065811a92ad6927d85ddc8e36dc5f71779650c1e8de69de1683"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/tests/.raw/scenario-validity.log",
+          "fingerprint": "8692ae8c61401ea5fe21dfaf4754b024edf798a4ad14d73e4cc31035007952da"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/tests/.raw/test-execution.log",
+          "fingerprint": "f2e1184c910f374cbe51811db1c23ebc505c6b7906cafa8873ebeeb3db339ca9"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+          "fingerprint": "12f58ca230bcbf8159275102b5e468321a70f5694e372a04333bd4c76523388c"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "1f9458b91cde304e3586c8ed26a918644402523565d9b2e8a1b55075cd5ac9a2"
+        },
+        {
+          "path": "tests/unit/flow/gate-phase-inference.test.js",
+          "fingerprint": "184bef63cc5ccd0a6bd97944cabbcf973d2d04336317b6aa1f83cff80752ddb3"
+        }
+      ],
+      "rawOutputPath": "specs/333-failure-atomic-gate/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-24T22:21:25.754Z",
+      "issueLogId": "issue-log-79fea02a-8e81-4a46-8f8c-6bccb653c003"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "invalid_project_test",
+      "failureCategory": "environment",
+      "reason": "final-regression failed: invalid_project_test",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/333-failure-atomic-gate/acceptance-review.json",
+          "fingerprint": "10a9b0ea41f601d5823bd97e362084462847d11da731e9759af1f673ac8d2f5e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-coverage-repair.json",
+          "fingerprint": "dbb988eb4cec00a7accacb5040c74c05c3179099557629ba5de474773f0518a4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-coverage-triage.json",
+          "fingerprint": "2d184495c0db4c0c88d032c4cf8de52d51d7ab40a6293db1cf6f2152d282401f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-gate-source.json",
+          "fingerprint": "addd0082253d0043f53bad7606982a26af71e7bed1f9f6e69db2365d11b66700"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-questions-repair.json",
+          "fingerprint": "fb3ee59a1885f99f5340a7cfcfc808d4c2346d7084bdb917fe67e25498c16d4f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-questions-triage.json",
+          "fingerprint": "fd57026fb74ca03144f9ea089cdf76c5695547cbfe88e6bf51c12a720417f1cc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-review-coverage.json",
+          "fingerprint": "e48636ef19ea34231dc1855828a659cc8fc0c12579f5c986f3720051b855e2ed"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft-review-questions.json",
+          "fingerprint": "1d6d9c75a82d4a8c66c865b47646d2588b74099e1e7571eea206e784597c6cab"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/draft.json",
+          "fingerprint": "a24417f4a368e97e9fad920b09dc1c36a8b3175cb3bbfa87c8d3e959f3b40d7e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/file-map.json",
+          "fingerprint": "3bdb38dc2e49a68f6543c825ca807bd19d19de499e48f3145ca4c3c9c26b5e88"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/flow-findings.json",
+          "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/impl-gate-result.json",
+          "fingerprint": "9ef2b68032841c87bfd02e3f0fc96c04836d7c36226bd691cbb42ae2ce90e292"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/impl-repair.json",
+          "fingerprint": "47fb2e94666d25ad2cfa0bc9c673e8d5a6d569aa6dace7df91a4d4342ecfa567"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/impl-review.json",
+          "fingerprint": "69256e847c7fd3bb57ae866ad189920324759e448eff5dbb853775ff93412ae2"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/impl-triage.json",
+          "fingerprint": "932ebc633308e06c801ce84be2721e3ecb2c28ab731cfc34ee715b83f567b585"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/issue.md",
+          "fingerprint": "00a9d0a3d21146057c70d0a8989feebb71f9f65a6be87aea9b80646d9e906a22"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "0983f9017fcb957557b1a19b85f2356d0d745fbd0391ec91ce2a9b37494f12eb"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-001.json",
+          "fingerprint": "7732f623ee54cd2cb40e5a582fc487ab383f36960ea560519df51733d740a32b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-002.json",
+          "fingerprint": "5e6c87dea13567fcb09c0e32e0ba1d830769d9ca7bc363044218638949348e74"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-003.json",
+          "fingerprint": "7e0374deeeed68c9fedf1c4cb15161bac44e63ec5a78bdfaba7348f886e2f83b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-004.json",
+          "fingerprint": "ef615ab8f4cb3ad504f1481839c9e8ffb2582543760aca03085a7f9a90d611fe"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-deltas/repair-005.json",
+          "fingerprint": "ca78a539b13eecefa1ecd4d88f73f2f7e3c2ee7f1b94910d15c271718dbd01ce"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/repair-fingerprint.json",
+          "fingerprint": "35eb8a24983d5695c5860434d27ec3ea196f8ce3cba140e83921f66733709115"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/retro.json",
+          "fingerprint": "bf9ced39f556d38afc6e10542ede3973bbe16fbed6265ac75a0c427417c7e2c2"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/07ab387068643f8e531f0a85c20f8390a9a72319f7a9e80ae054dde0dff87976.json",
+          "fingerprint": "bb9fcfd54832d7590dd8c54e4d034dc1783f9f91d1f156beed6cc37dc723704f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/145e9308a1f9390d3adc5b0f77fa9fb7cd72653d372396096792e01bf317aa7f.json",
+          "fingerprint": "8667c9e1637b2ff2b0f07de31fff1e427e43f8d4a320ccf8a78f48ae0a418122"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/31bd4182ed4d31ca1d46534fd2534d24d645f52cd13998261dc2cafb997559f9.json",
+          "fingerprint": "6ae6dd10cb2dc09f176f9ca4655745eb2eca74b6b19c9031207d1490efb40435"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/412e15363783be7e6bffc6e22e5b29d68d6f3b131643465857f03cc90debaa1c.json",
+          "fingerprint": "e30704effcc97a3791cda18885b3398be2221af5addc8609c5781b8c03c63e57"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/56652b75b726c30ecf14b9da8a51970986448c230229fca78851b9f0169b6c45.json",
+          "fingerprint": "2fac5d2295eaab4176237a05ed4dbeda4703aea4ff128e51a4eda1dff57e810b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/7786743005190182c2319129c693c5ec682e6a06ccb892cb57b4696e19142b7f.json",
+          "fingerprint": "37594b4441bd707071283a09a7801a0d671a288e6e6d40b4f1598734e52465a8"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/798c4e4a5f0e6534d91c9539e19cd2c66cee381d4a4727ff1ddc25094b9e21fd.json",
+          "fingerprint": "155d8c95f62840ff6bd0d569205b1d908540d965590266806fde5b819a60ce02"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/b5d7d9bbcc1270708e15c5d15777ce3380d908e97ea36b5c215c55b783822a54.json",
+          "fingerprint": "cb398dda0c5605b93cff38166692b52438508c19eeb9b36c727f729240eecde9"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/bb307a699ac80ca479f08c18dc8a246a59b8520234b9da6c099bf64297d725b7.json",
+          "fingerprint": "da7198719f671c92b87972ad590858785a223bda708d8aae59042556dce700b3"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/d3bc2a4c9b68df1860ccff05761e8b8d96846363662d3ff817c225ce8c1f7758.json",
+          "fingerprint": "ab9d3a9ff5be3630e5971415d401bf60387de266e5e9d94fc6d91f376e338360"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/d930b4734880b3a048ba970c335a0664f4f4c1d174318167967e679e4df4abe5.json",
+          "fingerprint": "182400309d3d4f221c73dd9ebe658710707ff094a42ac8654c27812e172de756"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/e45d84a7ac04f4b980b8a52728ca665f2ab6c00701cc267386d74c71571dfb8f.json",
+          "fingerprint": "399d86d8abf0b2bc7dc30ed9230d9ed4cfec318b2b1eda48ab41572a554a7ca7"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/e673cf6179181daedb715731122fffb14f1b625957ed1cce0160992c9e68da9c.json",
+          "fingerprint": "88fdaa0226379d4f1e2e5713d12c30c9a223c462963e88f2a8d516f16d83a19b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/e6dbad897fd5bd6c31108d0e73c9d3c7ff6057ed05cc11fff84627f0936de7eb.json",
+          "fingerprint": "88b95d42aefbd40b0d44f3e4b0cd0257fd017b1b0ad8fc9dcbdfe0339529b7f3"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-evidence/f51ad47decd1351313eb5ea642ba8a29ccbd573decc457a6390ba757976f8686.json",
+          "fingerprint": "c34a50bd0d645c98235d7b0ca8f1ce07f06c99804f5a8546af3dfff4bc4e1850"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "53e19cfd811e6447086c796c3c296ef352f89ec5015feeec4d40b3569f9d6dcc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "6741e8c707f2e74383ba276b00b0439ae368436c554806902cf427dad5835ec4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-001.json",
+          "fingerprint": "63a2e63730654fe5f0eef953a767c316021343ab28fccf087d77e4dcc9ccaa01"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-001.md",
+          "fingerprint": "afc8c1035cccf046df83389af130cc85c01a04b3c7349962d21fcd5db17d0094"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-002.json",
+          "fingerprint": "f721a5c50add2a7fcc65b3d109a7c7f1c58054eb1591def58353a27d666d072e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-002.md",
+          "fingerprint": "05c102d827758931fff5290f8b7726d89e25c38be8cb4f8c65eb6a3de920e99f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-003.json",
+          "fingerprint": "92b494ab13578c154f2586596b1afa3543209f14c643b7f64ac557a5db64b86f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-003.md",
+          "fingerprint": "208b53a12518235514e9cbb51efa7a10ce244621d9f9c95548ae318f83045b35"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-004.json",
+          "fingerprint": "59bef4170c905e2168e2b18af68550158e9d839ba715f2d8be5f5278d2966250"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-004.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-005.json",
+          "fingerprint": "2477f8f7be5bc39ffc85ba71d78adc45984ef83b26767a1372619c007cf636ea"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-005.md",
+          "fingerprint": "b7fc93c373faace14bceb10fe15662ccccd0cfb44af3cbb729a14ad52e86686b"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-006.json",
+          "fingerprint": "6e708edab4df74dfe38dd3dd154d4d4bbe487f2cfdb0a6719f65a8d427443bb4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-006.md",
+          "fingerprint": "af1e8a257136aa52d4d4118335201a556db04ace77d46680c255581ba8863187"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-007.json",
+          "fingerprint": "fbde68da5291e27d62dd447b78bf2d2fb449ac22229382c1618db1774efcfd15"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-007.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-008.json",
+          "fingerprint": "0fb67a426a8f0a52c7ce14cc0eef842b9752ed0d4541da2a3e709dc4d83a0ebc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-008.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-009.json",
+          "fingerprint": "e51373f415611020b9786b299fc5ed128b08d180f2d2d52f2d3ed7f8a1f4f5e4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-009.md",
+          "fingerprint": "7244fef9d515ea5cf9ae1e056f5a6339b7ac671d29b67edb137f42eda5cfd055"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-010.json",
+          "fingerprint": "8ab04e0dc11c4e5e9a05d86e8d733c8095019d330ad213a4a785ebfd2180a6f4"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/impl-attempt-010.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/spec-attempt-001.json",
+          "fingerprint": "028c1307d94fc3c045b074060c7100e5b66fd4011f7d9e0075c4ac31095394b7"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-001.json",
+          "fingerprint": "97f9f7e89fbca18813032a7a35ef0461793e0ebb42052953e65bf82c68526f27"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-001.md",
+          "fingerprint": "39be30196f57797c0ff49846141094ecf826afd1b30b92c2fc3ad5228c922e5e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-002.json",
+          "fingerprint": "1e49ed3940524ed1e2170914ef856f0603c38ef44dd9ff677156201e1dc6899c"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-002.md",
+          "fingerprint": "39be30196f57797c0ff49846141094ecf826afd1b30b92c2fc3ad5228c922e5e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-003.json",
+          "fingerprint": "4a76eda8f37a4221e197c68e181a268132f38928813d723da25ffea08c5792cf"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-003.md",
+          "fingerprint": "1aed0c938ce4128a3089194e9045592b5e0d8bad2cf17d5cc79c08d445f3ac30"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-004.json",
+          "fingerprint": "40465af9be2e859e3858b834af8aa08728e784e46fda4352a7da0b2487426f5c"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review-history/test-attempt-004.md",
+          "fingerprint": "df369d5539fd1065811a92ad6927d85ddc8e36dc5f71779650c1e8de69de1683"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/scenario-validity-result.json",
+          "fingerprint": "c78c21626bd264e9cd9fac066beba0604ce9b0c42eb169dab85c3f46f2d772f3"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec-gate-source.json",
+          "fingerprint": "e8a8ebb178dfd021e01366f017cb654399783d5452b642cce2e23a17770f1fd7"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec-review.json",
+          "fingerprint": "d914eba896b4cb773e91eb052b66c18fd9dcad0bab4a74bf501de6686838744f"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec.json",
+          "fingerprint": "d79e1c9fc5a5c9d91f8cd1e0915cf9abe297ef9a31921bfe9a375e7147a8d718"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/spec.md",
+          "fingerprint": "e9993d58711b66c6b9d964bc2a45c13f13436d6430d2b5d3da0bcc593beb8d76"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/tasks/T-1.md",
+          "fingerprint": "a84b0348d76969d198b735cdc1277720d4df2e33c75c3def51dc519dc4b9e305"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-coverage.json",
+          "fingerprint": "a8115eb9969f58267547b0243baa63a92853e0c29ab17a786b9d678f14b4b6f8"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-execute-result.json",
+          "fingerprint": "5b42dd08e9d6a2eb39485f6034ca51460d9f1d595f6d55aaf6ea15028093698e"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-result-review.json",
+          "fingerprint": "fb72ddff7cc0431b5d3b8b679c2e947476e008d99540e69c72a1acc86d22fd35"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-result-review.md",
+          "fingerprint": "c9c5a659db734226c8b2578fef16e9bb76f02b2e3b1effa14b78705b82b8cfcc"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-review.json",
+          "fingerprint": "c1dce005e23b091506b0855de4848dd5d40a4c05268eadcc813395e239524bc6"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/test-review.md",
+          "fingerprint": "df369d5539fd1065811a92ad6927d85ddc8e36dc5f71779650c1e8de69de1683"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/tests/.raw/scenario-validity.log",
+          "fingerprint": "8692ae8c61401ea5fe21dfaf4754b024edf798a4ad14d73e4cc31035007952da"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/tests/.raw/test-execution.log",
+          "fingerprint": "f2e1184c910f374cbe51811db1c23ebc505c6b7906cafa8873ebeeb3db339ca9"
+        },
+        {
+          "path": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+          "fingerprint": "12f58ca230bcbf8159275102b5e468321a70f5694e372a04333bd4c76523388c"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "1f9458b91cde304e3586c8ed26a918644402523565d9b2e8a1b55075cd5ac9a2"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "153edcc458df13bfd29b33da530e11aac8a0ea4f9789da42f9c699fc6cbb43d4"
+        },
+        {
+          "path": "tests/unit/flow/gate-phase-inference.test.js",
+          "fingerprint": "184bef63cc5ccd0a6bd97944cabbcf973d2d04336317b6aa1f83cff80752ddb3"
+        }
+      ],
+      "rawOutputPath": "specs/333-failure-atomic-gate/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-24T22:23:50.881Z",
+      "issueLogId": "issue-log-80d5d7a1-4aee-4b84-bba6-4f53f05326c9"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft-questions-triage.json: items[0] must match a blocking finding or repair target from draft-review-questions.json; draft-questions-triage.json: items[1] must match a blocking finding or repair target from draft-review-questions.json; draft-questions-triage.json: items[2] must match a blocking finding or repair target from draft-review-questions.json; draft-questions-triage.json: items[3] must match a blocking finding or repair target from draft-review-questions.json",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T22:39:58.655Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-questions-triage.json: items[0] must match a blocking finding or repair target from draft-review-questions.json",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-questions-triage.json: items[1] must match a blocking finding or repair target from draft-review-questions.json",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-questions-triage.json: items[2] must match a blocking finding or repair target from draft-review-questions.json",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-questions-triage.json: items[3] must match a blocking finding or repair target from draft-review-questions.json",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-aba45632-d714-43ed-9f07-c601685132cb"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Flow-level draft rewind retained stale question triage items that no longer matched the new PASS review artifact.",
+      "trigger": "Draft gate mechanical validation after rerunning draft question and coverage reviews.",
+      "resolution": "Replaced retained question triage and repair bookkeeping with empty artifacts matching the current zero-finding review.",
+      "guardrailCandidate": "Flow-level rewind should regenerate or clear draft triage bookkeeping when a replacement review has zero findings.",
+      "taskId": null,
+      "timestamp": "2026-07-24T22:40:46.650Z",
+      "issueLogId": "issue-log-f1e241a0-7e59-4fc9-8a93-2eac025b69af"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The phrase \"必要な成果物保存\" uses an unspecified qualifier for which artifact saves are required; rewrite as verifiable conditions naming the artifact save operations or criteria.; The requirement says state changes should be handled as an \"明示的な recovery transition\" but does not define what makes the recovery transition explicit enough for two reviewers to agree on satisfaction.; The phrase \"全体回帰\" is vague because it does not identify the exact regression command, suite, or acceptance condition to run.; The validation requirement says to confirm persisted state is \"同一\" before and after failure, but does not specify which persisted state files/fields are compared, so independent reviewers may disagree on whether it is satisfied.; The phrase \"具体的な境界\" defers the actual fault-injection boundaries instead of stating verifiable boundaries in this draft.; The phrase \"各境界で比較する永続化状態\" is not verifiable because it does not list the persisted state files or fields to compare.; The phrase \"観測方法を定義する\" defers the measurable observation method rather than specifying it in this draft.; The requirement uses \"必要な状態変更\" without defining which state changes are required, leaving reviewers without a shared satisfaction criterion.; The requirement says \"通常の phase 進行\" is maintained but does not define the normal phase progression being preserved, so two reviewers may disagree on whether the implementation satisfies it.; The draft replaces/externalizes existing eager phase-transition behavior but does not inventory the existing public behavior being moved or replaced, map retained behavior to the new owner or explicit removals, or provide behavior-level verification through the new path; checks described focus on state snapshots, retry duplication, help output, and E2E coverage rather than a migration parity definition for each retained public surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T22:41:41.149Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The phrase \"必要な成果物保存\" uses an unspecified qualifier for which artifact saves are required; rewrite as verifiable conditions naming the artifact save operations or criteria.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement says state changes should be handled as an \"明示的な recovery transition\" but does not define what makes the recovery transition explicit enough for two reviewers to agree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The phrase \"全体回帰\" is vague because it does not identify the exact regression command, suite, or acceptance condition to run.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The validation requirement says to confirm persisted state is \"同一\" before and after failure, but does not specify which persisted state files/fields are compared, so independent reviewers may disagree on whether it is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "The phrase \"具体的な境界\" defers the actual fault-injection boundaries instead of stating verifiable boundaries in this draft.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "The phrase \"各境界で比較する永続化状態\" is not verifiable because it does not list the persisted state files or fields to compare.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "decisionMap.deferredToSpec[1]"
+          },
+          "observed": "The phrase \"観測方法を定義する\" defers the measurable observation method rather than specifying it in this draft.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "The requirement uses \"必要な状態変更\" without defining which state changes are required, leaving reviewers without a shared satisfaction criterion.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "impactOnExisting[1]"
+          },
+          "observed": "The requirement says \"通常の phase 進行\" is maintained but does not define the normal phase progression being preserved, so two reviewers may disagree on whether the implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The draft replaces/externalizes existing eager phase-transition behavior but does not inventory the existing public behavior being moved or replaced, map retained behavior to the new owner or explicit removals, or provide behavior-level verification through the new path; checks described focus on state snapshots, retry duplication, help output, and E2E coverage rather than a migration parity definition for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"必要な成果物保存\" uses an unspecified qualifier for which artifact saves are required; rewrite as verifiable conditions naming the artifact save operations or criteria."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says state changes should be handled as an \"明示的な recovery transition\" but does not define what makes the recovery transition explicit enough for two reviewers to agree on satisfaction."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"全体回帰\" is vague because it does not identify the exact regression command, suite, or acceptance condition to run."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The validation requirement says to confirm persisted state is \"同一\" before and after failure, but does not specify which persisted state files/fields are compared, so independent reviewers may disagree on whether it is satisfied."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"具体的な境界\" defers the actual fault-injection boundaries instead of stating verifiable boundaries in this draft."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"各境界で比較する永続化状態\" is not verifiable because it does not list the persisted state files or fields to compare."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"観測方法を定義する\" defers the measurable observation method rather than specifying it in this draft."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement uses \"必要な状態変更\" without defining which state changes are required, leaving reviewers without a shared satisfaction criterion."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says \"通常の phase 進行\" is maintained but does not define the normal phase progression being preserved, so two reviewers may disagree on whether the implementation satisfies it."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft replaces/externalizes existing eager phase-transition behavior but does not inventory the existing public behavior being moved or replaced, map retained behavior to the new owner or explicit removals, or provide behavior-level verification through the new path; checks described focus on state snapshots, retry duplication, help output, and E2E coverage rather than a migration parity definition for each retained public surface."
+        }
+      ],
+      "issueLogId": "issue-log-861dae22-ae95-4c5b-870a-6780a082004c"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found ambiguous artifact, transition, state-comparison, regression-command, and migration-parity requirements.",
+      "trigger": "Semantic draft gate revalidation after flow-level evidence rewind.",
+      "resolution": "Named every persisted surface and fault boundary, defined one-transition observability, specified node tests/run.js acceptance, and inventoried retained public behavior.",
+      "guardrailCandidate": "Reopened drafts should restate retained behavior and exact observable evidence before semantic gate revalidation.",
+      "taskId": null,
+      "timestamp": "2026-07-24T22:42:31.783Z",
+      "issueLogId": "issue-log-6636f335-91c7-471e-a67f-6390f1e36fa0"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft lists retained public surfaces such as explicit phase input, inferred phase priority, direct-import export, agent/config resolution, PASS/FAIL envelope, registry hooks, retry accounting, artifact ownership, and post-gate routing, but the validation text only says existing unit/integration tests verify retained public contracts. It does not include at least one behavior-level verification for each retained public surface through the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T22:43:00.393Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The draft lists retained public surfaces such as explicit phase input, inferred phase priority, direct-import export, agent/config resolution, PASS/FAIL envelope, registry hooks, retry accounting, artifact ownership, and post-gate routing, but the validation text only says existing unit/integration tests verify retained public contracts. It does not include at least one behavior-level verification for each retained public surface through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft lists retained public surfaces such as explicit phase input, inferred phase priority, direct-import export, agent/config resolution, PASS/FAIL envelope, registry hooks, retry accounting, artifact ownership, and post-gate routing, but the validation text only says existing unit/integration tests verify retained public contracts. It does not include at least one behavior-level verification for each retained public surface through the new path."
+        }
+      ],
+      "issueLogId": "issue-log-f3594858-f7b5-4cbb-9686-91c3eab18e47"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Migration parity remained underspecified because retained public surfaces lacked one behavior-level verification each.",
+      "trigger": "Second semantic draft gate attempt after replacing vague state and artifact requirements.",
+      "resolution": "Added explicit checks for phase selection, imports, agent/config resolution, envelopes, hooks, retry counts, artifact ownership, and routing.",
+      "guardrailCandidate": "Migration-parity drafts should pair every retained public surface with an independently observable verification.",
+      "taskId": null,
+      "timestamp": "2026-07-24T22:43:31.256Z",
+      "issueLogId": "issue-log-1528694c-312c-4b3d-ae35-0792fb859b29"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T22:47:30.407Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "tasks: new task 'T-2' added_round must be 1, got 0",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-0a516a0c-1d19-4c80-86c5-1e07139b0f9a"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "The newly added T-2 task used initial-round metadata even though it was introduced during a flow-level plan rewind.",
+      "trigger": "Spec gate task-origin mechanical validation.",
+      "resolution": "Set T-2 added_round to 1 while preserving T-1 origin and round metadata.",
+      "guardrailCandidate": "Tasks introduced after approval rewind must use max existing added_round plus one.",
+      "taskId": null,
+      "timestamp": "2026-07-24T22:47:53.989Z",
+      "issueLogId": "issue-log-bec940a6-4ba1-4810-946e-7cf37e1f7312"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requirement R6 uses broad preservation language such as \"existing behavior\" and \"normal post-gate routing\" without defining concrete criteria for two reviewers to agree which behaviors and routing outcomes must be checked.; Requirement R6 requires broad retained behavior for exports, agent/config resolution, hooks, retry accounting, artifact ownership, and routing, which is not fully decidable from a unified diff and test execution summary alone without an explicit finite behavior inventory in the requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T22:48:22.066Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "Requirement R6 uses broad preservation language such as \"existing behavior\" and \"normal post-gate routing\" without defining concrete criteria for two reviewers to agree which behaviors and routing outcomes must be checked.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "Requirement R6 requires broad retained behavior for exports, agent/config resolution, hooks, retry accounting, artifact ownership, and routing, which is not fully decidable from a unified diff and test execution summary alone without an explicit finite behavior inventory in the requirement.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement R6 uses broad preservation language such as \"existing behavior\" and \"normal post-gate routing\" without defining concrete criteria for two reviewers to agree which behaviors and routing outcomes must be checked."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Requirement R6 requires broad retained behavior for exports, agent/config resolution, hooks, retry accounting, artifact ownership, and routing, which is not fully decidable from a unified diff and test execution summary alone without an explicit finite behavior inventory in the requirement."
+        }
+      ],
+      "issueLogId": "issue-log-70d8fe56-bbb6-4bf5-825d-26fc6dadf6c5"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "R6 used broad parity language that did not let reviewers decide each retained behavior from the diff and test evidence.",
+      "trigger": "First semantic spec gate attempt after adding the regression repair requirement.",
+      "resolution": "Replaced R6 with a finite inventory covering phase selection, exports, provider resolution, envelopes, hooks, retry counts, artifact paths, and routing outcomes.",
+      "guardrailCandidate": "Parity requirements should enumerate each public surface and its observable before-and-after outcome.",
+      "taskId": null,
+      "timestamp": "2026-07-24T22:48:46.333Z",
+      "issueLogId": "issue-log-9563796d-5be2-4a0e-b9ab-f1cb03522b43"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Reopened flow already contained committed implementation changes, so pre-implementation validation classified target paths as invalid_test; temporarily commit the exact baseline tree, verify expected failures, then reapply the preserved implementation patch.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T22:52:52.602Z",
+      "issueLogId": "issue-log-67e203f2-1d7a-481d-947d-f55058dbc7af"
+    },
+    {
+      "step": "test-review",
+      "reason": "Distinct test-review findings for the same target collapsed to one fingerprint and exhausted result-recording tooling attempts.",
+      "trigger": "The reviewer emitted separate R6 callback and R5 retry findings against the same spec-local test file.",
+      "resolution": "Fingerprint identity now includes test-review kind, origin, failure kind, and title; exact duplicate findings are deduplicated before persistence. The review unit suite passes 74 tests.",
+      "guardrailCandidate": "Test-review finding identity must distinguish semantic findings sharing a target and normalize exact duplicates before uniqueness validation.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:03:13.049Z",
+      "issueLogId": "issue-log-48ea559d-5219-4220-8b23-969356e21ee4"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static review found R5 and R6 tests bypassed dispatcher-level attempt and callback behavior.",
+      "trigger": "Executable review distinguished direct helper assertions from actual gate command hook and retry boundaries.",
+      "resolution": "Added dispatcher-backed scenarios asserting PASS/FAIL pre-post, failure pre-onError, exactly two command invocations, and unchanged integration retry limit.",
+      "guardrailCandidate": "Command lifecycle acceptance criteria require dispatcher-level tests rather than only direct helper or lifecycle-plan assertions.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:07:44.596Z",
+      "issueLogId": "issue-log-729f7e30-1597-443b-b8bd-f62985b668bc"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static review found missing explicit-phase recovery suppression, FAIL routing, and source/result path parity assertions.",
+      "trigger": "The expanded R6 inventory was compared against executable assertions after dispatcher-level coverage was added.",
+      "resolution": "Added an explicit spec-phase command subclass proving zero inferred transitions, PASS versus FAIL active-step assertions, and exact impl-gate source/result filesystem path checks.",
+      "guardrailCandidate": "Finite parity inventories should map every named behavior to an executable assertion before static review.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:10:14.920Z",
+      "issueLogId": "issue-log-34e18c35-a20a-4308-902d-b33877553a10"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static review requested stronger R1/R2 purity surfaces and clearer R4 selected-owner commit evidence.",
+      "trigger": "Review compared transition construction, runtime diagnostics, and selected gate ownership against the amended requirements.",
+      "resolution": "Added state and runtime-log sentinels plus an observed GateMutationOwner proving one selected-owner transition request while dispatcher tests retain PASS/FAIL completion ownership.",
+      "guardrailCandidate": "Atomic transition tests should snapshot every named durable surface and observe idempotent owner invocation separately from dispatcher completion.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:12:14.941Z",
+      "issueLogId": "issue-log-7d3277ac-31d8-461c-b8a4-9791691a8037"
+    },
+    {
+      "step": "test-review",
+      "reason": "R5 retry coverage did not generate a durable semantic finding or successful-judgment issue-log entry.",
+      "trigger": "Static review observed that all retry success results used empty issues and only sentinel logs were compared.",
+      "resolution": "The dispatcher retry now completes with one semantic FAIL payload and asserts one canonical evaluation, one issue payload, one issue-log entry, and one stale recovery transition.",
+      "guardrailCandidate": "Duplicate-prevention tests must seed every durable collection whose cardinality they claim to verify.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:13:47.138Z",
+      "issueLogId": "issue-log-cde7c3a6-5660-4af1-bce4-42c51d2099dc"
+    },
+    {
+      "step": "task-review",
+      "reason": "Task review treated the cumulative spec diff as if every change belonged to T-2, so valid completed T-1 gate work was misclassified as R7 scope expansion.",
+      "trigger": "The first T-2 task review reported src/flow/lib/run-gate.js as unrelated even though that file implements the approved T-1 task.",
+      "resolution": "Added one shared typed task review target that labels base-branch diffs as cumulative, and used it in both task review and task gate prompts.",
+      "guardrailCandidate": "Task-scoped evaluators must distinguish cumulative spec diffs from per-task change attribution before reporting scope violations.",
+      "normalizedFindingId": "255c4541e044f7b1b52574944e3f7518eec26785aa46ea72b0821c28df08a0da",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/task-scope.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:19:22.022Z",
+      "issueLogId": "issue-log-b82385b3-160e-40cf-9e39-2dbc9e5741c8"
+    },
+    {
+      "step": "task-review",
+      "reason": "Prompt-only diff attribution guidance was insufficient because the task reviewer repeated the same cumulative-diff scope finding unchanged.",
+      "trigger": "The second T-2 review ignored the cumulative-diff guidance and again attributed approved T-1 gate changes to R7.",
+      "resolution": "Added requirement-to-file task scoping with complete-map fallback, wired it into task review and task gate, and recorded R7 file mappings.",
+      "guardrailCandidate": "Task review and task gate should mechanically scope cumulative diffs by mapped requirement files whenever the current task has complete requirement mappings.",
+      "normalizedFindingId": "255c4541e044f7b1b52574944e3f7518eec26785aa46ea72b0821c28df08a0da",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/task-scope.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:22:06.287Z",
+      "issueLogId": "issue-log-115eed95-2215-4c26-adae-5248cb25d3c9"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "task-impl",
+      "reason": "selected gate owner must be in_progress: task-gate",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-24T23:22:59.119Z",
+      "issueLogId": "issue-log-376ee96a-0bf2-4838-bd45-fb4fd599d218"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T23:22:59.226Z",
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-87f8c713-4d2c-43de-93d4-98cd8fcab08e"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "The first T-2 task-gate invocation observed the pre-hook's stale pending flow snapshot and rejected the selected owner before semantic evaluation.",
+      "trigger": "GateMutationOwner validation reported selected gate owner must be in_progress while the pre-hook had already persisted task-gate as in_progress.",
+      "resolution": "Retain the persisted in_progress lifecycle state and retry the guarded gate action from that synchronized state, without changing R7 implementation evidence.",
+      "guardrailCandidate": "Gate command contexts should refresh flow state after lifecycle pre-hooks before validating the selected gate owner.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:40:15.103Z",
+      "issueLogId": "issue-log-d3d1ad7a-6727-4428-b1f4-55b28ac3c2d7"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "task-impl",
+      "reason": "selected gate owner must be in_progress: task-gate",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-24T23:40:26.364Z",
+      "issueLogId": "issue-log-eb6d7dcb-54d3-4031-b35c-f5aa6afd0a05"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-24T23:40:26.537Z",
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-f838f1e4-e06f-4ab1-a81f-66115a546bac"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Repeated task-gate startup failures proved InferredGateTransition looked up task-gate only in the flow-level step tree, where task-owned steps cannot exist.",
+      "trigger": "A second guarded gate invocation failed with selected gate owner must be in_progress even though flow.json stored T-2 task-gate as in_progress.",
+      "resolution": "GateMutationOwner now resolves its selected step in the owning task scope, and InferredGateTransition validates that scoped owner separately from flow-level stale steps.",
+      "guardrailCandidate": "Lifecycle validation must resolve repeated step IDs through their explicit task owner instead of searching only the parent flow step tree.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/gate-mutation-owner.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-24T23:42:29.384Z",
+      "issueLogId": "issue-log-873cd354-e053-4968-a043-52c0a2421202"
+    },
+    {
+      "step": "implement",
+      "reason": "Implement completion validated a stale test-execute-result.json from an earlier rewind even though the test-execute lifecycle step was pending.",
+      "trigger": "flow set step implement done failed with requirement-summary-missing after all current requirements and file mappings were complete.",
+      "resolution": "Implement completion now validates downstream test-execute and test-result-review artifacts only when their owning lifecycle steps are done.",
+      "guardrailCandidate": "Artifact validation should be gated by the owning lifecycle step status so stale rewind artifacts cannot block an earlier phase.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/set-step.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:45:39.180Z",
+      "issueLogId": "issue-log-7beb8373-6928-4be2-a3a0-6c03cb20176e"
+    },
+    {
+      "step": "test-execute",
+      "reason": "Guarded test-execute returned NO_FLOW before starting tests because its registry entry accepted target guards without enabling explicit target authority resolution.",
+      "trigger": "The dispatcher wrote a no-flow runtime log even though the immediately adjacent guarded next-action resolved runId 8aff4832 successfully.",
+      "resolution": "Enabled explicitTargetResolution for test-execute so runId, spec, and Issue guards select the worktree flow before precondition validation.",
+      "guardrailCandidate": "Target-sensitive run commands that require a flow should use supplied guards for explicit authority resolution rather than relying on an implicit current pointer.",
+      "repairRef": {
+        "files": [
+          "src/flow/registry.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-24T23:48:54.546Z",
+      "issueLogId": "issue-log-edeb814b-2576-402e-b677-8f15546e1034"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: spec-local要件テストR5・R6・R7の失敗とgate証跡契約を修正",
+      "trigger": "impl-gateのARTIFACT_PLACEHOLDER検証がR5、R6、R7の失敗証跡を検出",
+      "resolution": "gate helperがsemantic resultとrepair fingerprintを保持するよう修正し、結果なしissue-logを抑止、help文と不正なテスト前提を訂正して11件すべてPASSを確認",
+      "guardrailCandidate": "gate統合テストは実際のcompletion contractと公開API契約に沿うfixtureとassertionを使用する",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:00:24.689Z",
+      "issueLogId": "issue-log-0fdae269-967c-464c-bcb9-21681687459c"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: artifact trust失敗がStepAttemptを残さず証跡再生成経路を塞ぐ問題を修正",
+      "trigger": "rewind-test-evidenceがSTALE_TEST_EVIDENCE_BLOCKER_MISMATCHで拒否",
+      "resolution": "integration artifact trust失敗をretry非消費のartifact_trust_failure判定としてpost-hookへ渡し、ExternalBlockedOutcomeを記録できるようにした",
+      "guardrailCandidate": "回復コマンドが要求するtyped outcomeは元の失敗経路で必ず永続化する",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:02:30.789Z",
+      "issueLogId": "issue-log-b06f082d-8884-4c92-aef2-e435a87710b1"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R5, R6, R7",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T00:02:47.189Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R5, R6, R7",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-8402fd09-4407-4ac3-bf24-43b3148fb7ff"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: 修正後も古いFAIL証跡の内容検証がfingerprint鮮度判定を先回りする問題を修正",
+      "trigger": "rewind-test-evidenceがFAIL証跡をfingerprint不一致として認識できず拒否",
+      "resolution": "bounded JSON読取でtest evidence fingerprintを先に比較し、古い意味結果を評価する前に既存のStaleTestEvidenceMismatch回復へ送るよう変更",
+      "guardrailCandidate": "再生成可能な派生証跡は内容判定より先に入力状態との同一性を検証する",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:04:25.052Z",
+      "issueLogId": "issue-log-e0dc3630-307a-4ce8-96e1-b245fdaef193"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fix: tooling review recoveryがrequiresChangedEvidence=falseでも不変identityを拒否する矛盾を修正",
+      "trigger": "flow set retry reset review implがREVIEW_IDENTITY_UNCHANGEDを返した",
+      "resolution": "latest review convergenceにtoolingOutcomeがある場合はtree/evidence変更を要求せず、semantic再評価だけ従来どおり変更証跡を必須にした",
+      "guardrailCandidate": "recovery commandの事前条件はnext-actionが公開するrequiresChangedEvidence契約と一致させる",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:08:46.593Z",
+      "issueLogId": "issue-log-fbf83944-cefa-46ee-9612-c566133efad8"
+    },
+    {
+      "step": "impl-review",
+      "reason": "legacy spec 253 retry CLI tests invoke removed src/sdd-forge.js and fail before exercising retry behavior",
+      "trigger": "targeted regression run of specs/253-review-max-attempts/tests/set-retry-cli.test.js",
+      "resolution": "left the legacy test unchanged and verified the current retry recovery through the guarded active-flow command",
+      "guardrailCandidate": "CLI regression tests must resolve the current public entrypoint instead of a removed historical executable",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:11:58.921Z",
+      "issueLogId": "issue-log-2ff10408-7745-4515-b2b6-c9b9a92dc03a"
+    },
+    {
+      "step": "impl-review",
+      "reason": "review retry reset cleared legacy retry metrics but left exhausted reviewConvergence tooling state active",
+      "trigger": "guarded retry reset returned ok while refreshed reviewAction remained stop_as_blocker",
+      "resolution": "added an atomic review tooling recovery transition and invoked it from the audited retry reset mutation",
+      "guardrailCandidate": "retry recovery must reset the authoritative convergence state that drives next-action, not only compatibility metrics",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:14:27.538Z",
+      "issueLogId": "issue-log-57b120ba-eae2-4b8b-aaf8-aad32f07df60"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R6] requires preservation/non-interference for the finite parity inventory, and [CONSTRAINT:2] limits production gate-transition changes to src/flow/lib/run-gate.js plus parked-resume help in src/flow/registry.js. The diff changes additional production modules outside that boundary, including src/flow/commands/review.js, src/flow/lib/review-convergence.js, src/flow/lib/set-retry.js, src/flow/lib/set-step.js, src/flow/lib/task-scope.js, and src/flow/lib/test-artifacts.js, so the mapped implementation evidence does not preserve the required non-interference boundary.; [REQ:R7] The parked-resume shared help summary itself is implemented in `src/flow/registry.js` by changing the first descriptive line to include “one exact inactive managed-worktree pointer with no discovery,” and the new spec-local test has the required `// spec: R7` header in `specs/333-failure-atomic-gate/tests/parked-resume-help.test.js`. However, the diff also changes another flow command in `src/flow/registry.js` by adding `explicitTargetResolution: true` to `test-execute`, which contradicts the R7 task scope to update only the resume summary line and not change other flow commands. [TASK:T-2] [OUT:3] [CONSTRAINT:2] [FILE-MAP:R7:1] [FILE-MAP:R7:2]",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T00:19:34.980Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires preservation/non-interference for the finite parity inventory, and [CONSTRAINT:2] limits production gate-transition changes to src/flow/lib/run-gate.js plus parked-resume help in src/flow/registry.js. The diff changes additional production modules outside that boundary, including src/flow/commands/review.js, src/flow/lib/review-convergence.js, src/flow/lib/set-retry.js, src/flow/lib/set-step.js, src/flow/lib/task-scope.js, and src/flow/lib/test-artifacts.js, so the mapped implementation evidence does not preserve the required non-interference boundary.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "[REQ:R7] The parked-resume shared help summary itself is implemented in `src/flow/registry.js` by changing the first descriptive line to include “one exact inactive managed-worktree pointer with no discovery,” and the new spec-local test has the required `// spec: R7` header in `specs/333-failure-atomic-gate/tests/parked-resume-help.test.js`. However, the diff also changes another flow command in `src/flow/registry.js` by adding `explicitTargetResolution: true` to `test-execute`, which contradicts the R7 task scope to update only the resume summary line and not change other flow commands. [TASK:T-2] [OUT:3] [CONSTRAINT:2] [FILE-MAP:R7:1] [FILE-MAP:R7:2]",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R4",
+        "R5",
+        "R3"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires preservation/non-interference for the finite parity inventory, and [CONSTRAINT:2] limits production gate-transition changes to src/flow/lib/run-gate.js plus parked-resume help in src/flow/registry.js. The diff changes additional production modules outside that boundary, including src/flow/commands/review.js, src/flow/lib/review-convergence.js, src/flow/lib/set-retry.js, src/flow/lib/set-step.js, src/flow/lib/task-scope.js, and src/flow/lib/test-artifacts.js, so the mapped implementation evidence does not preserve the required non-interference boundary."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "[REQ:R7] The parked-resume shared help summary itself is implemented in `src/flow/registry.js` by changing the first descriptive line to include “one exact inactive managed-worktree pointer with no discovery,” and the new spec-local test has the required `// spec: R7` header in `specs/333-failure-atomic-gate/tests/parked-resume-help.test.js`. However, the diff also changes another flow command in `src/flow/registry.js` by adding `explicitTargetResolution: true` to `test-execute`, which contradicts the R7 task scope to update only the resume summary line and not change other flow commands. [TASK:T-2] [OUT:3] [CONSTRAINT:2] [FILE-MAP:R7:1] [FILE-MAP:R7:2]"
+        }
+      ],
+      "issueLogId": "issue-log-48b5db45-f0c8-4e9c-82df-c8d569d0aa3b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "scope-repair revert conflicted with the atomic transition block in src/flow/lib/run-gate.js",
+      "trigger": "reversing ancillary commit ae10e35e after the integration gate reported out-of-scope production changes",
+      "resolution": "kept the selected-owner invariant required by Issue 456 and removed only the unrelated review-side change",
+      "guardrailCandidate": "when separating mixed recovery commits, preserve requirement-owned hunks and reverse ancillary hunks by provenance",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:23:21.713Z",
+      "issueLogId": "issue-log-1c935a05-dbc8-4f31-9dc4-039d31d43b6b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: integration gate found ancillary flow-recovery modules outside the approved R6 and R7 production boundary",
+      "trigger": "R6 and R7 spec-impl-mismatch observations from integration gate attempt one",
+      "resolution": "reverted ancillary review, retry, target-resolution, task-scope, and artifact-export changes; retained only run-gate atomicity, resume summary, and their tests",
+      "guardrailCandidate": "feature gate diffs must exclude operational self-repair changes when the approved spec defines a closed production-file boundary",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:24:21.713Z",
+      "issueLogId": "issue-log-4913f7d8-a671-4220-8e70-a85ef2c35dc8"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "review found that a malformed inferred resolution could list the selected gate owner as a stale step",
+      "trigger": "must-fix finding stale-owner-overlap from impl-review",
+      "resolution": "added a constructor invariant rejecting owner and stale-step overlap plus an R2 regression assertion",
+      "guardrailCandidate": "staged lifecycle transitions must validate that recovery targets and the selected active owner are disjoint",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:26:32.011Z",
+      "issueLogId": "issue-log-420090fe-4386-48e7-9e71-a8ed69859556"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "impl-repair completion rejected a discontinuity between the persisted repair fingerprint manifest and ledger tail",
+      "trigger": "set step impl-repair done failed after applying the stale-owner-overlap finding",
+      "resolution": "returning through the spec-correction route to add an audited fingerprint-chain recovery path instead of editing downstream evidence directly",
+      "guardrailCandidate": "material flow self-repairs must update the repair ledger and fingerprint manifest atomically before later repair cycles",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:29:50.062Z",
+      "issueLogId": "issue-log-f9e55bbc-1662-45cc-9a1f-9c8ad5d617fa"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "Legacy flow-level planRewinds used a schema incompatible with the sealed spec-correction audit chain.",
+      "trigger": "User approved audit-state migration choice [1] to resume flow #456.",
+      "resolution": "Archived 1 unchanged legacy rewind record(s) under legacyPlanRewinds; archive digest 9b4c0f5dd2a49689e12d388b65b1d9fab6507499d0e8febfb2f9bff09aa069a6; current planRewinds authority cleared for a new sealed chain.",
+      "normalizedFindingId": "legacy-plan-rewind-audit-schema-collision",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T00:35:25.406Z",
+      "issueLogId": "audit-state-migration:8aff4832-7b44-4d54-9e37-5e72db35e88e:legacy-flow-plan-rewind-v1"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "Both guarded reopen routes rejected impl-repair: spec-correction requires implement, while task-addition left impl-repair active.",
+      "trigger": "User-approved history-preserving audit-state migration for flow #456.",
+      "resolution": "Recorded exact before/after step snapshots and bridged impl-repair to implement so guarded spec-correction can perform the canonical rewind.",
+      "normalizedFindingId": "impl-repair-reopen-stage-gap",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T00:37:07.764Z",
+      "issueLogId": "audit-state-migration:8aff4832-7b44-4d54-9e37-5e72db35e88e:impl-repair-to-spec-correction-bridge-v1"
+    },
+    {
+      "step": "approval",
+      "reason": "Approval freshness reads flow-level rewoundAt while the sealed spec-correction audit records timestamp.",
+      "trigger": "STALE_PLAN_APPROVAL after a confirmed approval newer than the sealed spec-correction entry.",
+      "resolution": "Archived the completed sealed correction entry and chain unchanged under sealedSpecCorrectionRewindArchives; archive digest d02a8bb891d83f3574b1ba210a69a02a200dd3e7bd61baecb4dade4b089f0f88.",
+      "normalizedFindingId": "spec-correction-approval-freshness-field-mismatch",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T00:46:20.615Z",
+      "issueLogId": "audit-state-migration:8aff4832-7b44-4d54-9e37-5e72db35e88e:completed-spec-correction-audit-archive-v1"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "The mutable main endpoint advanced after flow start and made scenario-validity report unrelated main-only paths.",
+      "trigger": "SCENARIO_VALIDITY_BLOCKED implementation-target preflight",
+      "resolution": "Changed flow baseBranch from main to refs/senti/flows/8aff4832-7b44-4d54-9e37-5e72db35e88e/baseline; immutable baseline commit bd097e88acfadaf8934474518fdfb53c540ffe0d.",
+      "normalizedFindingId": "scenario-validity-baseline-pin",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T00:49:09.669Z",
+      "issueLogId": "audit-state-migration:8aff4832-7b44-4d54-9e37-5e72db35e88e:scenario-validity-baseline-pin-v1"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "The scenario-validity-only immutable baseline pin completed.",
+      "trigger": "Successful completion of the pinned scenario-validity comparison",
+      "resolution": "Changed flow baseBranch from refs/senti/flows/8aff4832-7b44-4d54-9e37-5e72db35e88e/baseline to main; immutable baseline commit bd097e88acfadaf8934474518fdfb53c540ffe0d.",
+      "normalizedFindingId": "scenario-validity-baseline-restore",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T00:49:36.058Z",
+      "issueLogId": "audit-state-migration:8aff4832-7b44-4d54-9e37-5e72db35e88e:scenario-validity-baseline-restore-v1"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Spec-correction replay occurred after R1-R7 implementation was already committed, so the normal pre-implementation preflight could not execute those scenarios again.",
+      "trigger": "SCENARIO_VALIDITY_BLOCKED after both mutable-main and immutable-baseline comparisons detected existing implementation targets.",
+      "resolution": "Preserved both blocked preflight artifacts, reused the sealed original R1-R7 expected-fail artifact digest and successful runtime record, directly observed the new R8 test fail before implementation, and wrote a composite recovery result.",
+      "normalizedFindingId": "scenario-validity-post-implementation-replay",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/spec.json",
+          "specs/333-failure-atomic-gate/scenario-validity-result.json",
+          "specs/333-failure-atomic-gate/scenario-validity-preflight-blocked.json",
+          "specs/333-failure-atomic-gate/tests/repair-ledger-reconciliation.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T00:51:35.218Z",
+      "issueLogId": "scenario-validity-recovery:8aff4832-7b44-4d54-9e37-5e72db35e88e:R8"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "The validated recovery artifact could not use the lifecycle-owned manual set-step route.",
+      "trigger": "FLOW_STEP_TRANSITION_INVALID after composite scenario validation",
+      "resolution": "Atomically advanced scenario-validity to test-review and bound the transition to artifact digest e7102f503157e341faf7f71f4498cb75238a669757fa9d06968e78fa474228d9.",
+      "normalizedFindingId": "scenario-validity-recovery-lifecycle-advance",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/spec.json",
+          "specs/333-failure-atomic-gate/scenario-validity-result.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T00:52:12.604Z",
+      "issueLogId": "audit-state-migration:8aff4832-7b44-4d54-9e37-5e72db35e88e:scenario-validity-recovery-advance-v1"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "task-impl",
+      "reason": "selected gate owner must be in_progress: task-gate",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-25T00:53:27.257Z",
+      "issueLogId": "issue-log-18f391b4-92e3-47a6-9924-3a702e2ff9ac"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: task-gate pre-hook persisted the selected owner after the first replayed gate invocation had already captured a pending owner snapshot.",
+      "trigger": "selected gate owner must be in_progress: task-gate",
+      "resolution": "The persisted T-1 task-gate is now in_progress, so the guarded retry evaluates the lifecycle-owned state required by InferredGateTransition.",
+      "normalizedFindingId": "replayed-task-gate-owner-prehook-race",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/flow.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T00:53:54.167Z",
+      "issueLogId": "task-gate-retry:8aff4832-7b44-4d54-9e37-5e72db35e88e:T-1"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "task-impl",
+      "reason": "selected gate owner must be in_progress: task-gate",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-25T00:53:58.719Z",
+      "issueLogId": "issue-log-f13dd363-db0c-446d-b211-9bdc6975e461"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: InferredGateTransition indexed only flow-level steps, so a valid task-scoped GateMutationOwner could never satisfy constructor or commit status checks.",
+      "trigger": "Repeated selected gate owner must be in_progress failure with persisted T-1 task-gate already in_progress.",
+      "resolution": "Added one shared transitionStepMap that indexes flow steps plus the owner's task steps and used it for both construction and commit revalidation.",
+      "normalizedFindingId": "task-scoped-inferred-gate-owner-index",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T00:54:52.964Z",
+      "issueLogId": "task-owner-index-fix:8aff4832-7b44-4d54-9e37-5e72db35e88e:T-1"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "review finding readiness: task-scoped implementation review artifact is missing for T-1",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T00:54:58.280Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "review finding readiness: task-scoped implementation review artifact is missing for T-1",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-aa081639-c777-49c7-b546-b6e6f797e5e9"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: restored the preserved task-scoped T-1 PASS review artifact after archiving the unrelated flow-scoped review artifact",
+      "resolution": "The task gate now receives the canonical same-run, same-cycle T-1 artifact required by review finding readiness without deleting either review result.",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/impl-review.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T00:57:46.090Z",
+      "issueLogId": "issue-log-2d8374bc-3a1a-49fa-968b-40b8f84b369c"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds transition derivation and step-status decision logic in the run-gate command module, including querying flattened flow/task steps and deciding stale/owner step validity, while the existing owner module `gate-mutation-owner.js` is unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T00:58:20.178Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "code-placement",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "InferredGateTransition / transitionStepMap"
+          },
+          "observed": "The diff adds transition derivation and step-status decision logic in the run-gate command module, including querying flattened flow/task steps and deciding stale/owner step validity, while the existing owner module `gate-mutation-owner.js` is unchanged.",
+          "severity": "blocking",
+          "refs": [
+            "code-placement"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "code-placement",
+          "reason": "The diff adds transition derivation and step-status decision logic in the run-gate command module, including querying flattened flow/task steps and deciding stale/owner step validity, while the existing owner module `gate-mutation-owner.js` is unchanged."
+        }
+      ],
+      "issueLogId": "issue-log-54873229-ce62-44ab-9ab9-3fcc5b352359"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: moved task-aware transition status capture and revalidation into GateMutationOwner",
+      "resolution": "GateMutationOwner now owns flow/task step lookup and transition status assertions; InferredGateTransition only composes that authority with run/spec identity and commit ordering.",
+      "normalizedFindingId": "217b91b098a6d7173a2cab6c6d8a0bd6b7ee8a200a276a609adf23ade3aa0ebf",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T00:59:26.542Z",
+      "issueLogId": "issue-log-4e22c192-5b29-4e62-a5b1-a9e1bdd68a4e"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: task-scoped gate owner lookup now resolves the active task step from persisted flow state",
+      "resolution": "GateMutationOwner captures task-aware statuses and InferredGateTransition revalidates them at commit, resolving the prior selected-owner recovery failure before the T-2 retry.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/gate-mutation-owner.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T01:01:23.797Z",
+      "issueLogId": "issue-log-5dddc843-cd63-4057-a927-0e6af8b08b23"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds a non-trivial inferred gate transition layer that captures flow identity, validates step status, commits stale-step recovery, and exposes a new exported API surface, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this broader architecture.; The diff adds a durable artifact checkpoint/restore layer for gate surfaces, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this broader persistence and rollback pattern.; The diff adds new transition-status capture and assertion responsibilities to GateMutationOwner as part of a broader inferred gate commit flow, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this data-flow change.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:01:54.095Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "export class InferredGateTransition"
+          },
+          "observed": "The diff adds a non-trivial inferred gate transition layer that captures flow identity, validates step status, commits stale-step recovery, and exposes a new exported API surface, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this broader architecture.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "class GateDurableSurfaceCheckpoint"
+          },
+          "observed": "The diff adds a durable artifact checkpoint/restore layer for gate surfaces, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this broader persistence and rollback pattern.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/gate-mutation-owner.js",
+            "locator": "captureTransitionStatuses"
+          },
+          "observed": "The diff adds new transition-status capture and assertion responsibilities to GateMutationOwner as part of a broader inferred gate commit flow, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this data-flow change.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial inferred gate transition layer that captures flow identity, validates step status, commits stale-step recovery, and exposes a new exported API surface, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this broader architecture."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a durable artifact checkpoint/restore layer for gate surfaces, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this broader persistence and rollback pattern."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds new transition-status capture and assertion responsibilities to GateMutationOwner as part of a broader inferred gate commit flow, but the provided spec only confirms a local resume-help summary-line change and contains no design-confirmation evidence for this data-flow change."
+        }
+      ],
+      "issueLogId": "issue-log-d3a9a7a8-34da-4e8c-bfed-ae39961f2387"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: documented cumulative task-gate diff ownership in T-2",
+      "resolution": "The rendered task specification now states that R1-R6 gate-transition changes belong to completed T-1 and that T-2 owns only the R7 resume-help summary line, so the cumulative diff can be evaluated against the approved task decomposition.",
+      "normalizedFindingId": "ff99d183c0a5dfc8cb688b4d6a0a372354b4a6d359fc624777ad669cbb0f8f50",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/tasks/T-2.md"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T01:03:16.901Z",
+      "issueLogId": "issue-log-14dd3526-15c6-4b45-84a7-3d95c2f491f7"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds a non-trivial inferred gate transition layer that captures pre-transition identity/statuses and commits stale-step recovery, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader architecture was confirmed before implementation.; The diff adds a durable-surface checkpoint/rollback abstraction for gate artifact writes, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader persistence/rollback pattern was confirmed before implementation.; The diff adds transition-status capture and assertion APIs to GateMutationOwner, extending the gate ownership data flow, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader design direction was confirmed before implementation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:03:46.611Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "InferredGateTransition"
+          },
+          "observed": "The diff adds a non-trivial inferred gate transition layer that captures pre-transition identity/statuses and commits stale-step recovery, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader architecture was confirmed before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "GateDurableSurfaceCheckpoint"
+          },
+          "observed": "The diff adds a durable-surface checkpoint/rollback abstraction for gate artifact writes, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader persistence/rollback pattern was confirmed before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/gate-mutation-owner.js",
+            "locator": "captureTransitionStatuses / assertTransitionStatuses"
+          },
+          "observed": "The diff adds transition-status capture and assertion APIs to GateMutationOwner, extending the gate ownership data flow, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader design direction was confirmed before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial inferred gate transition layer that captures pre-transition identity/statuses and commits stale-step recovery, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader architecture was confirmed before implementation."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a durable-surface checkpoint/rollback abstraction for gate artifact writes, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader persistence/rollback pattern was confirmed before implementation."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds transition-status capture and assertion APIs to GateMutationOwner, extending the gate ownership data flow, but the provided spec content only confirms the T-2 resume help summary change and does not include evidence that this broader design direction was confirmed before implementation."
+        }
+      ],
+      "issueLogId": "issue-log-01947967-285e-4ec4-80f8-4e4a5e139ac7"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: surfaced the approved T-1 design-confirmation evidence in the cumulative T-2 gate context",
+      "resolution": "The T-2 task artifact now records the parent-approved pending-transition, ownership-boundary, post-persistence commit, and bounded rollback design so the guardrail can distinguish approved T-1 architecture from T-2's local R7 change.",
+      "normalizedFindingId": "ff99d183c0a5dfc8cb688b4d6a0a372354b4a6d359fc624777ad669cbb0f8f50",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/tasks/T-2.md"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T01:04:21.718Z",
+      "issueLogId": "issue-log-bec8566c-d32c-4345-ad47-19a4c86942f1"
+    },
+    {
+      "step": "task.impl",
+      "reason": "fix: appended the user-approved history-preserving repair fingerprint bridge",
+      "resolution": "A spec-local reconciliation authority validated run/spec/Issue, the unchanged five-entry tail, manifest hash, changed-path inventory, and delta digest before repair-006 was added; the preserved-entry digest remains 2b9b8b1e241089a9b5d19789b0897387135120f8f0374ad856367531c0869e82.",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T01:09:15.075Z",
+      "issueLogId": "issue-log-5939553b-a2aa-4bb6-a339-0fae62277052"
+    },
+    {
+      "step": "task-review",
+      "reason": "fix: added the R8 reconciliation implementation and artifacts to the staged review surface",
+      "resolution": "The task-scoped review diff now includes the authority class, identity artifact, unchanged five-entry ledger plus repair-006, matching delta, and the prewritten R8 mismatch coverage that were previously untracked and therefore invisible to review.",
+      "normalizedFindingId": "55092e618d9f3cecc9145a6b74ba837807d7441ee3450e5a667957a265c21a21",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T01:11:37.121Z",
+      "issueLogId": "issue-log-a76825f4-69d6-44d4-9b86-4e9837bec1d8"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "must-fix finding 55092e618d9f3cecc9145a6b74ba837807d7441ee3450e5a667957a265c21a21 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:12:11.159Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 55092e618d9f3cecc9145a6b74ba837807d7441ee3450e5a667957a265c21a21 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-ae85af25-3b95-4505-ba8a-79d7f1b54cf3"
+    },
+    {
+      "step": "task-review",
+      "reason": "fix: made the staged R8 authority the post-finding repair evidence",
+      "resolution": "The authority now additionally enforces that preservedEntryCount 5 can only be followed by repair-006, and the staged file containing the full reconciliation implementation was materially updated after the finding.",
+      "normalizedFindingId": "55092e618d9f3cecc9145a6b74ba837807d7441ee3450e5a667957a265c21a21",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T01:12:49.932Z",
+      "issueLogId": "issue-log-90e30ed3-aaca-4926-9654-044e546da266"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds a new spec-local reconciliation module that derives and validates repair ledger state from ImplRepairLedger and RepairFingerprintManifest data, including ledger entry count, ledger tail hash, manifest hash, changed path grouping, and bridge entry construction, while the existing repair ledger/fingerprint owner modules are unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:13:19.278Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "code-placement",
+          "where": {
+            "file": "specs/333-failure-atomic-gate/repair-ledger-reconciliation.js",
+            "locator": "RepairLedgerReconciliationAuthority.prepare"
+          },
+          "observed": "The diff adds a new spec-local reconciliation module that derives and validates repair ledger state from ImplRepairLedger and RepairFingerprintManifest data, including ledger entry count, ledger tail hash, manifest hash, changed path grouping, and bridge entry construction, while the existing repair ledger/fingerprint owner modules are unchanged.",
+          "severity": "blocking",
+          "refs": [
+            "code-placement"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "code-placement",
+          "reason": "The diff adds a new spec-local reconciliation module that derives and validates repair ledger state from ImplRepairLedger and RepairFingerprintManifest data, including ledger entry count, ledger tail hash, manifest hash, changed path grouping, and bridge entry construction, while the existing repair ledger/fingerprint owner modules are unchanged."
+        }
+      ],
+      "issueLogId": "issue-log-f98e970d-a010-4ae8-8bde-f5abf63aa7a0"
+    },
+    {
+      "step": "task-gate",
+      "reason": "fix: documented the approved spec-local code-placement boundary for the one-time bridge",
+      "resolution": "The spec now acknowledges code-placement explicitly: exact run/spec/Issue authority cannot enter distributed src/, while the temporary adapter only composes existing ImplRepairLedger and RepairFingerprintManifest owners and adds no public command.",
+      "normalizedFindingId": "b5b82905b28920a04371d5c65e0615f508044ad19240bf41564589ee25c4fab5",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/spec.json"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-25T01:14:05.312Z",
+      "issueLogId": "issue-log-aaeee8fe-519f-4014-9052-69f9d8b601cb"
+    },
+    {
+      "step": "implement",
+      "reason": "fix: archived pre-R8 test evidence before centralized re-execution",
+      "resolution": "The prior R1-R7 test-execute and test-result-review artifacts were preserved under pre-r8 names so implement completion relies on the valid R1-R8 scenario artifact and the next test-execute step can create current evidence without rewriting history.",
+      "repairRef": {
+        "files": [
+          "specs/333-failure-atomic-gate/test-execute-result.pre-r8.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T01:15:53.198Z",
+      "issueLogId": "issue-log-5cf950a9-0e97-44e2-8829-20832e8c9e9c"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R4",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:20:46.771Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R4",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-9a7455e2-da4f-4f2b-8e04-198be19bf3a8"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: made transition status checks proxy-safe",
+      "resolution": "R4 observed GateMutationOwner methods through a Proxy; replacing the private helper receiver dependency with a module-local helper preserves owner behavior while avoiding the JavaScript private-field brand error before the persisted PASS/FAIL commit.",
+      "taskId": null,
+      "timestamp": "2026-07-25T01:21:34.206Z",
+      "issueLogId": "issue-log-7fcbaf11-5c59-4d5d-b8ac-8cda1b301dc9"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R8",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:22:28.040Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R8",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-e882ee34-ae64-471e-a91b-cbcb23dd8bb8"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: isolated the R8 historical manifest authority",
+      "resolution": "R8 verifies the immutable repair-006 bridge, but its fixture read the mutable latest repair-fingerprint.json; routine later review/repair activity therefore replaced the historical 704826... evidence. A dedicated typed historical manifest evidence now binds the authority hash without weakening mismatch rejection or rewriting any ledger entry.",
+      "taskId": null,
+      "timestamp": "2026-07-25T01:25:17.989Z",
+      "issueLogId": "issue-log-cd3aa80e-cd23-48fb-9db5-7ef7752ff918"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R1] requires the gate inference implementation to use the existing GateMutationOwner patterns while keeping gate transition production changes within src/flow/lib/run-gate.js per [CONSTRAINT:1] and [CONSTRAINT:2]. The diff adds production transition-status APIs and imports to src/flow/lib/gate-mutation-owner.js, so the mapped implementation evidence contradicts the required placement boundary. [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]; [REQ:R2] requires a dedicated side-effect-free class that validates the effective phase, pre-transition identity, unique stale IDs, and selected GateMutationOwner, but [CONSTRAINT:2] limits gate transition production changes to src/flow/lib/run-gate.js. The implementation moves part of constructor/commit validation into new production methods on GateMutationOwner in src/flow/lib/gate-mutation-owner.js, contradicting the placement constraint. [SOURCE:Git Diff src/flow/lib/run-gate.js] [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]; [REQ:R4] requires the pending inferred transition to commit through existing definition-aware lifecycle ownership exactly once after successful artifact persistence, while [CONSTRAINT:1] and [CONSTRAINT:2] require using existing GateMutationOwner/lifecycle patterns and keeping gate transition production changes in src/flow/lib/run-gate.js. The implementation adds new GateMutationOwner transition-status methods outside run-gate.js and uses those new APIs as part of commit validation, so the integration is not limited to the required existing production boundary. [SOURCE:Git Diff src/flow/lib/run-gate.js] [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]; [REQ:R5] is preservation/non-interception and requires production retry limits to remain unchanged with no duplicate durable effects, while [CONSTRAINT:2] limits related production changes to run-gate.js. The diff changes src/flow/lib/gate-mutation-owner.js by adding transition-status capture/assertion behavior used by the retry path, so mapped changes intercept preserved gate ownership behavior outside the allowed scope. [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]; [REQ:R3] requires preserved failure behavior within the stated non-interference constraints, including keeping gate transition production changes within `src/flow/lib/run-gate.js` [CONSTRAINT:2]. The diff adds production transition-status logic and imports to `src/flow/lib/gate-mutation-owner.js`, so the mapped implementation contradicts that placement constraint despite adding atomicity tests [Git Diff:src/flow/lib/gate-mutation-owner.js].; [REQ:R6] requires parity preservation without intercepting the finite inventory, and the same authoritative constraints limit gate transition production changes to `src/flow/lib/run-gate.js` [CONSTRAINT:2]. The diff moves new transition capture/assert behavior into `src/flow/lib/gate-mutation-owner.js`, which is outside the allowed production-change file and therefore contradicts the rendered context [Git Diff:src/flow/lib/gate-mutation-owner.js].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:27:06.549Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "[REQ:R1] requires the gate inference implementation to use the existing GateMutationOwner patterns while keeping gate transition production changes within src/flow/lib/run-gate.js per [CONSTRAINT:1] and [CONSTRAINT:2]. The diff adds production transition-status APIs and imports to src/flow/lib/gate-mutation-owner.js, so the mapped implementation evidence contradicts the required placement boundary. [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] requires a dedicated side-effect-free class that validates the effective phase, pre-transition identity, unique stale IDs, and selected GateMutationOwner, but [CONSTRAINT:2] limits gate transition production changes to src/flow/lib/run-gate.js. The implementation moves part of constructor/commit validation into new production methods on GateMutationOwner in src/flow/lib/gate-mutation-owner.js, contradicting the placement constraint. [SOURCE:Git Diff src/flow/lib/run-gate.js] [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] requires the pending inferred transition to commit through existing definition-aware lifecycle ownership exactly once after successful artifact persistence, while [CONSTRAINT:1] and [CONSTRAINT:2] require using existing GateMutationOwner/lifecycle patterns and keeping gate transition production changes in src/flow/lib/run-gate.js. The implementation adds new GateMutationOwner transition-status methods outside run-gate.js and uses those new APIs as part of commit validation, so the integration is not limited to the required existing production boundary. [SOURCE:Git Diff src/flow/lib/run-gate.js] [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "[REQ:R5] is preservation/non-interception and requires production retry limits to remain unchanged with no duplicate durable effects, while [CONSTRAINT:2] limits related production changes to run-gate.js. The diff changes src/flow/lib/gate-mutation-owner.js by adding transition-status capture/assertion behavior used by the retry path, so mapped changes intercept preserved gate ownership behavior outside the allowed scope. [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "[REQ:R3] requires preserved failure behavior within the stated non-interference constraints, including keeping gate transition production changes within `src/flow/lib/run-gate.js` [CONSTRAINT:2]. The diff adds production transition-status logic and imports to `src/flow/lib/gate-mutation-owner.js`, so the mapped implementation contradicts that placement constraint despite adding atomicity tests [Git Diff:src/flow/lib/gate-mutation-owner.js].",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires parity preservation without intercepting the finite inventory, and the same authoritative constraints limit gate transition production changes to `src/flow/lib/run-gate.js` [CONSTRAINT:2]. The diff moves new transition capture/assert behavior into `src/flow/lib/gate-mutation-owner.js`, which is outside the allowed production-change file and therefore contradicts the rendered context [Git Diff:src/flow/lib/gate-mutation-owner.js].",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "[REQ:R1] requires the gate inference implementation to use the existing GateMutationOwner patterns while keeping gate transition production changes within src/flow/lib/run-gate.js per [CONSTRAINT:1] and [CONSTRAINT:2]. The diff adds production transition-status APIs and imports to src/flow/lib/gate-mutation-owner.js, so the mapped implementation evidence contradicts the required placement boundary. [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]"
+        },
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] requires a dedicated side-effect-free class that validates the effective phase, pre-transition identity, unique stale IDs, and selected GateMutationOwner, but [CONSTRAINT:2] limits gate transition production changes to src/flow/lib/run-gate.js. The implementation moves part of constructor/commit validation into new production methods on GateMutationOwner in src/flow/lib/gate-mutation-owner.js, contradicting the placement constraint. [SOURCE:Git Diff src/flow/lib/run-gate.js] [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]"
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] requires the pending inferred transition to commit through existing definition-aware lifecycle ownership exactly once after successful artifact persistence, while [CONSTRAINT:1] and [CONSTRAINT:2] require using existing GateMutationOwner/lifecycle patterns and keeping gate transition production changes in src/flow/lib/run-gate.js. The implementation adds new GateMutationOwner transition-status methods outside run-gate.js and uses those new APIs as part of commit validation, so the integration is not limited to the required existing production boundary. [SOURCE:Git Diff src/flow/lib/run-gate.js] [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]"
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "[REQ:R5] is preservation/non-interception and requires production retry limits to remain unchanged with no duplicate durable effects, while [CONSTRAINT:2] limits related production changes to run-gate.js. The diff changes src/flow/lib/gate-mutation-owner.js by adding transition-status capture/assertion behavior used by the retry path, so mapped changes intercept preserved gate ownership behavior outside the allowed scope. [SOURCE:Git Diff src/flow/lib/gate-mutation-owner.js]"
+        },
+        {
+          "guardrail_id": "R3",
+          "reason": "[REQ:R3] requires preserved failure behavior within the stated non-interference constraints, including keeping gate transition production changes within `src/flow/lib/run-gate.js` [CONSTRAINT:2]. The diff adds production transition-status logic and imports to `src/flow/lib/gate-mutation-owner.js`, so the mapped implementation contradicts that placement constraint despite adding atomicity tests [Git Diff:src/flow/lib/gate-mutation-owner.js]."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires parity preservation without intercepting the finite inventory, and the same authoritative constraints limit gate transition production changes to `src/flow/lib/run-gate.js` [CONSTRAINT:2]. The diff moves new transition capture/assert behavior into `src/flow/lib/gate-mutation-owner.js`, which is outside the allowed production-change file and therefore contradicts the rendered context [Git Diff:src/flow/lib/gate-mutation-owner.js]."
+        }
+      ],
+      "issueLogId": "issue-log-22afc548-e6c0-45d7-8fbe-9eb724e78c91"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: corrected the gate ownership placement constraint",
+      "resolution": "All six observations came from one contradiction: orchestration belongs in run-gate.js, while task-aware state lookup belongs to the existing GateMutationOwner abstraction. The constraint now states that ownership boundary explicitly and retains the registry-only help limit.",
+      "taskId": null,
+      "timestamp": "2026-07-25T01:27:44.911Z",
+      "issueLogId": "issue-log-4dc16329-4c19-4d92-b8cd-36fd161dc300"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "fix: reconciled the repair ledger to the committed current fingerprint",
+      "resolution": "Appended typed repair-007 from the preserved repair-006 tail 704826... to current fingerprint 8ebde7..., recorded the ten-path delta and exact stale evidence invalidations, and verified the seven-entry ledger chain and delta evidence against the current fingerprint.",
+      "taskId": null,
+      "timestamp": "2026-07-25T01:36:16.015Z",
+      "issueLogId": "issue-log-e22331dc-2a04-4dfd-9903-03da5431c41f"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R8",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:40:16.890Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R8",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-7ba798dc-e8da-41f5-b0e4-f7263bd2c65e"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: allowed verified append-only repair entries after the historical repair-006 bridge",
+      "resolution": "R8 now validates the immutable five-entry prefix and exact sixth bridge while the typed ledger continues to enforce continuity for later repair entries such as repair-007.",
+      "taskId": null,
+      "timestamp": "2026-07-25T01:41:14.029Z",
+      "issueLogId": "issue-log-c4793901-f630-42ab-8650-c5760fe98812"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fix: reconciled the repair ledger after committing the R8 append-only verification correction",
+      "resolution": "Added repair-008 from the prior audited tail to the committed current fingerprint and invalidated the pre-commit test evidence for canonical replay.",
+      "taskId": null,
+      "timestamp": "2026-07-25T01:44:59.071Z",
+      "issueLogId": "issue-log-7f6b34eb-7465-4f2e-8888-91f70a612a3c"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R6] requires parity tests to verify the full finite preservation inventory, including that existing phase source/result artifact paths remain unchanged. The mapped R6 tests exercise importability, explicit/inferred phase selection, provider config, PASS/FAIL result fields, hooks, retry accounting, and routing, but the artifact-path parity assertion only covers integration files (`impl-gate-source.json` and `impl-gate-result.json`) and does not verify the existing source/result artifact paths for the other gate phases. This leaves required preservation evidence missing. Sources: [FILE-MAP:R6:1], [FILE-MAP:R6:2], `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js` R6 artifact parity test, `src/flow/lib/run-gate.js` diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T01:48:25.786Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires parity tests to verify the full finite preservation inventory, including that existing phase source/result artifact paths remain unchanged. The mapped R6 tests exercise importability, explicit/inferred phase selection, provider config, PASS/FAIL result fields, hooks, retry accounting, and routing, but the artifact-path parity assertion only covers integration files (`impl-gate-source.json` and `impl-gate-result.json`) and does not verify the existing source/result artifact paths for the other gate phases. This leaves required preservation evidence missing. Sources: [FILE-MAP:R6:1], [FILE-MAP:R6:2], `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js` R6 artifact parity test, `src/flow/lib/run-gate.js` diff.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R4",
+        "R5",
+        "R3",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires parity tests to verify the full finite preservation inventory, including that existing phase source/result artifact paths remain unchanged. The mapped R6 tests exercise importability, explicit/inferred phase selection, provider config, PASS/FAIL result fields, hooks, retry accounting, and routing, but the artifact-path parity assertion only covers integration files (`impl-gate-source.json` and `impl-gate-result.json`) and does not verify the existing source/result artifact paths for the other gate phases. This leaves required preservation evidence missing. Sources: [FILE-MAP:R6:1], [FILE-MAP:R6:2], `specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js` R6 artifact parity test, `src/flow/lib/run-gate.js` diff."
+        }
+      ],
+      "issueLogId": "issue-log-d35d4712-10f5-494f-9cd9-37119f6c541a"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added R6 artifact-path parity coverage for every non-integration gate phase",
+      "resolution": "The R6 test now verifies unchanged draft, spec, task-impl, and integration source/result filenames while preserving the existing semantic PASS and FAIL assertions.",
+      "taskId": null,
+      "timestamp": "2026-07-25T01:49:21.484Z",
+      "issueLogId": "issue-log-18758657-77df-4c3b-b79e-0046f092a1bc"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "fix: rebound the stale DF-1 source pointer to its immutable canonical review evidence",
+      "resolution": "The original finding exists in review-evidence/0f0cb90c... and is now referenced there instead of the mutable impl-review.json overwritten by later reviews.",
+      "taskId": null,
+      "timestamp": "2026-07-25T01:54:21.173Z",
+      "issueLogId": "issue-log-692856a6-9ce2-4f8c-a47e-e25d0ac544a9"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in src/flow/commands/review.js. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.",
+      "timestamp": "2026-07-25T02:06:40.943Z",
+      "issueLogId": "issue-log-5073c6d3-5b87-4301-afac-8abbf08e97d4"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "fix: resolved pre-merge rebase conflicts against current main",
+      "resolution": "Preserved current main review recovery ownership and trust validation while retaining requirement-aware finding identity and stale-evidence refresh semantics.",
+      "taskId": null,
+      "timestamp": "2026-07-25T02:14:50.780Z",
+      "issueLogId": "issue-log-0379599b-6716-43af-a1d1-d3155d0fc4e3"
+    }
+  ]
+}

@@ -390,7 +390,7 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
     assert.ok(json.errors?.[0]?.code === "NO_GATE_STEP_IN_PROGRESS", `unexpected code: ${errorMsg}`);
   });
 
-  it("AC3: transitions stale flow-level gate step to done and emits stderr warning when resolving integration from spec-gate+impl-gate both in_progress", async () => {
+  it("AC3: preserves inferred gate steps when downstream integration validation does not complete", async () => {
     // In-process test: drive RunGateCommand.execute directly with a mock
     // flow state and a stub flowManager. This verifies the stale-step
     // recovery side effect without spawning external processes.
@@ -398,6 +398,7 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
     setupFlowConfig(tmp, "ja");
 
     const state = {
+      runId: "run-001-test",
       spec: "specs/001-test/spec.json",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -431,6 +432,8 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
       },
     };
 
+    const before = structuredClone(state);
+
     // Replace container.get("flowManager") for this invocation. Use dynamic
     // import + module-level container ref.
     const containerMod = await import("../../../src/lib/container.js");
@@ -447,15 +450,12 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
     try {
       const { default: RunGateCommand } = await import("../../../src/flow/lib/run-gate.js");
       const cmd = new RunGateCommand();
-      // Minimal ctx: execute uses ctx.phase, ctx.flowState. Other fields
-      // (ctx.config, ctx.root) are not reached before the stale-step update.
+      // Minimal ctx: downstream integration validation fails before a valid
+      // semantic PASS/FAIL result can reach the transition commit boundary.
       const ctx = { flowState: state, phase: undefined, root: tmp, config: {} };
-      // The recovery side effects (stale-step transition, stderr warning)
-      // fire before execute() proceeds into the actual gate evaluation. The
-      // downstream path may either (a) throw because git/config are missing
-      // or (b) return a gateFail envelope when the integration precheck
-      // (spec 251 R17) detects the missing test artifacts. Either outcome
-      // exercises the same recovery path; record both.
+      // The downstream path may either throw because git/config are missing
+      // or return a mechanical gateFail when the integration precheck detects
+      // missing evidence. Neither outcome may commit inferred recovery.
       let downstreamError = null;
       let downstreamResult = null;
       try {
@@ -472,16 +472,13 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
       process.stderr.write = originalWrite;
     }
 
-    const doneTransition = transitions.find((transition) => (
-      transition.stepId === "spec-gate" && transition.requestedStatus === "done"
-    ));
-    assert.ok(doneTransition, `expected stale 'gate' step to be transitioned to done. transitions=${JSON.stringify(transitions)}`);
-
+    assert.deepEqual(transitions, []);
+    assert.deepEqual(state, before);
     const stderrText = errs.join("");
-    assert.match(
+    assert.doesNotMatch(
       stderrText,
-      /gate: stale in_progress step "spec-gate"/,
-      `expected stderr to warn about stale step, got: ${stderrText}`,
+      /gate: stale in_progress step|committed phase=/,
+      `failed inference must not claim a committed transition: ${stderrText}`,
     );
   });
 });

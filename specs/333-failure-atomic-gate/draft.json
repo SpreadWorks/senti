@@ -1,0 +1,130 @@
+{
+  "devType": "bugfix",
+  "goal": "gate の phase 推論に伴う遷移を failure-atomic にし、失敗した実行が永続化済み step 状態を変更しないようにする。最終回帰で発見された parked resume の安全説明欠落も修正し、監査済み運用変更で生じた repair fingerprint 台帳の gap を既存履歴を保持したまま整合させる。",
+  "analysis": {
+    "problem": "現在の gate 実行は、後続の検証・判定・成果物保存が成功する前に stale な in_progress step を done に更新するため、失敗した試行の部分的な状態変更が残る。また共有ヘルプ表示は flow resume の先頭要約行だけを採用するため、parked resume が discovery を行わないという既存の安全説明を出力から欠落させていた。さらに監査済みの運用回復変更が repair ledger を経由せず manifest を更新したため、内部的に連続な repair-001〜005 の末尾と現行 manifest の間に gap があり、通常の impl-repair 完了が fail-closed している。",
+    "proposedApproach": "推論と永続化を分離し、入力検証、agent の正常終了と構造化判定、phase source/result artifact、issue-log、findings、gate memory の保存が成功した場合だけ phase 遷移を確定する。複数の in_progress gate step から判定した stale step ID 群と選択 gate を推論中に変更せず、成功時に lifecycle event と対象 step 群を一つの transition として記録する。移行前の explicit phase 入力、inferred phase 優先順位、direct-import export、agent/config 解決、PASS/FAIL envelope、registry hook、retry accounting、artifact ownership、post-gate routing は同じ公開契約のまま新しい commit owner を通す。削除する公開挙動はない。parked resume の先頭要約行には no discovery 保証を保持する。repair ledger は既存 entry を変更せず、対象 identity、旧末尾 hash、現行 manifest hash、変更 path 証跡が一致した場合だけ明示的な bridge entry を追記する。",
+    "validation": "入力検証失敗、agent 実行・出力 protocol 失敗、phase source/result artifact 保存失敗の各境界で、flow.json の全 step status、issue-log.json、flow-findings.json、phase source/result artifact、gate memory、診断出力を試行前スナップショットと byte または構造比較する。成功時は stale step 群と選択 gate の lifecycle transition が一回だけ記録され、失敗後の再試行で issue-log、findings、phase artifact が重複しないことを確認する。explicit phase と複数 in_progress step を個別に実行して phase 入力と inferred 優先順位を確認し、RunGateCommand の direct import と公開 helper import を実行し、注入した agent/config resolver が選択した値で判定が走ることを確認する。semantic PASS と semantic FAIL の envelope shape、registry pre/post/onError hook の呼び出しと step status、semantic failure と tooling failure の retry count、phase source/result・issue-log・findings の一回限りの保存、PASS 後の次 step と FAIL/retry 後の active step をそれぞれ既存期待値と比較する。repair ledger は既存 5 entry の byte-equivalent な内容、bridge の previous/current hash、delta digest、対象 identity を検証し、不一致候補では書き込みがないことを確認する。dispatcher E2E で parked resume の no discovery 表示を検証する。最後に node tests/run.js を実行し、exit code 0 かつ失敗 test 0 件を受け入れ条件とする。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #456 は validation、agent 実行、成果物保存の失敗時に pre-transition state を保持することを要求している。",
+      "must: 現行実装は phase 推論時に stale な gate step を done へ更新してから現在の gate 評価を続行する。",
+      "must: 成功した実行は対象の gate 遷移を一度だけ適用し、再試行は findings と成果物を重複させない。",
+      "must: 最終回帰は parked resume の共有ヘルプから no discovery 保証が欠落する既存不整合を検出し、ユーザーはそのプロダクト修正を維持して再検証する方針を選択した。",
+      "must: impl-repair ledger の既存 5 entry は内部的に連続しており、末尾 hash と現行 repair fingerprint manifest の間だけが不連続で、ユーザーは既存履歴を保持する移行方針を選択した。"
+    ],
+    "decisionPoints": [
+      "must: 失敗時に状態不変とみなす永続化対象の範囲を spec で列挙する。",
+      "must: phase 推論が複数の in_progress gate step を検出し earlier step を stale と判定した場合、推論中は状態を変更せず、必要な変更を明示的な recovery transition として表す契約を spec で定義する。",
+      "must: 同一試行の再実行と失敗後の新規試行の双方について、重複防止の観測条件を spec で定義する。"
+      ,"must: repair fingerprint の gap は既存 entry の削除・再作成・上書きを禁止し、検証済み bridge entry の追記だけを許す条件を spec で定義する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 状態遷移を表す意味のある値は専用クラスで表現し、コンストラクタで invariant を強制する。",
+      "must: 外部依存を追加せず、Node.js 組み込みモジュールだけを使用する。",
+      "must: 既存の同種パターンが複数箇所に現れる場合は共通ヘルパーへ抽出する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: task-level test plan は入力検証失敗、agent 実行・出力 protocol 失敗、phase source/result artifact 保存失敗を fault-injection 境界とし、flow.json の全 step status、issue-log.json、flow-findings.json、phase source/result artifact、gate memory、診断出力を比較対象にする。",
+      "must: exactly-once 性は lifecycle transition event の件数、非重複性は issue-log entry、finding identity、phase artifact の件数と内容を失敗前・失敗後・再試行後で比較して検証する。",
+      "must: bridge entry は run/spec/Issue identity、期待する ledger tail、期待する manifest hash、変更 path と digest を証跡化し、いずれかが一致しなければ台帳を変更しない。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/flow/lib/run-gate.js の gate phase 推論と遷移順序を failure-atomic にする。",
+      "must: validation、agent 実行、成果物保存の各境界に対する fault-injection と再試行の回帰テストを追加する。",
+      "must: 複数の in_progress gate step のうち earlier step が stale と判定された回復経路では、推論中に step を done にせず、成功時に stale step ID 群と選択 gate の requested status を一つの lifecycle transition event として永続化する。",
+      "must: flow resume --help の共有要約に parked resume の no discovery 保証を表示し、既存 dispatcher E2E を通す。"
+      ,"must: 現在の repair fingerprint gap を、既存 ledger entry を変更せず検証済み bridge entry と delta 証跡の追記で整合させる。"
+    ],
+    "out": [
+      "must: parked resume の安全説明修正を除き、gate 以外の flow command の遷移モデルは変更しない。",
+      "must: 旧形式や非推奨経路の互換コードは追加しない。",
+      "must: Issue #456 と無関係な gate 判定基準や retry budget は変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: 失敗した gate 実行では stale step を done にせず、呼び出し元には従来どおり failure を返し、retry が同じ active gate state から再開できる挙動へ変更する。",
+    "must: 成功した gate 実行では explicit phase 入力、inferred phase 優先順位、direct-import export、agent/config 解決、PASS/FAIL envelope、registry pre/post/onError hook、retry accounting、artifact ownership、PASS 後の次 step 選択と FAIL/retry routing を維持し、失敗時の partial mutation との互換コードは持たない。",
+    "must: 部分的な状態変更を前提としている既存テストを、失敗前後の状態同一性を検証する期待値へ更新する。",
+    "must: flow resume --help は parked resume が discovery を行わないことを共有ヘルプ経由でも表示する。",
+    "must: repair ledger の整合化は既存 entry を保持し、bridge の identity または hash が不一致なら fail-closed する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "gate の validation・判定・成果物保存がすべて成功するまで phase 遷移を永続化せず、いずれかが失敗した場合は pre-transition state を保持する、という must 要件でよいか。",
+      "answer": "はい。must: gate 遷移は全必須処理の成功後にだけ確定し、途中失敗では永続化済み step 状態を試行前と同一に保つ。",
+      "evidence": "Issue #456 Required Invariants と Acceptance Criteria、および prelude でユーザーが承認した Goal/Scope 要約。",
+      "why": "失敗した試行の部分的な遷移が retry と phase 推論を曖昧にする根本原因を除くため。",
+      "considered": "推論直後の eager な遷移を維持して後段失敗時に戻す方式は、補償処理の失敗や見落としで部分状態が残るため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "validation、agent 実行、成果物保存の各失敗境界で、step 状態を含む永続化済み flow state が試行前と同一であることを must の受け入れ条件にするか。",
+      "answer": "はい。must: 3 境界の各 fault-injection 後に永続化済み step 状態を試行前スナップショットと比較する。",
+      "evidence": "Issue #456 Acceptance Criteria は validation、agent execution、artifact write の各失敗で persisted step state が変わらないことを明記している。",
+      "why": "境界ごとに不変性を検証しなければ、一部の失敗経路だけが premature transition を残す回帰を検出できないため。",
+      "considered": "最終的な status だけを確認する方式は、中間永続化や別 step の副作用を見逃すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "失敗後の再試行では gate 遷移を一度だけ適用し、findings と成果物の重複を発生させないことを must の回帰条件にするか。",
+      "answer": "はい。must: 失敗後の retry と成功済み実行の再呼び出しについて、遷移・findings・成果物の重複がないことを確認する。",
+      "evidence": "Issue #456 Acceptance Criteria は successful execution の exactly-once transition と retry 後の duplicate findings/artifacts 不在を要求している。",
+      "why": "failure-atomic な状態保存だけでは、再試行時の二重発行や二重遷移を防げるとは限らないため。",
+      "considered": "step status だけを重複防止の代理指標にする方式は、findings と成果物の重複を検出できないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "gate 以外の flow command、gate 判定基準、retry budget の変更を対象外とし、failure-atomic な遷移境界だけに限定することを must の制約にするか。",
+      "answer": "はい。must: 変更は gate phase inference、遷移順序、関連する fault-injection・retry coverage に限定する。",
+      "evidence": "Issue #456 Scope は src/flow/lib/run-gate.js、phase inference/transition ordering、fault-injection/retry coverage を列挙している。",
+      "why": "単一の failure-atomicity concern に変更を限定し、既存 gate 判定や他 command の挙動を不用意に変えないため。",
+      "considered": "flow 全体の汎用 transaction 基盤への拡張は Issue の範囲を超え、検証対象を不必要に広げるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "最終回帰で検出された parked resume の安全説明欠落を修正したまま、fingerprint に紐づく証跡を再検証することを must の対象にするか。",
+      "answer": "はい。must: 回帰テストで検出されたプロダクト側のヘルプ不整合修正を維持し、新しい fingerprint で全 flow 証跡と最終回帰を再検証する。",
+      "evidence": "ユーザーが「その方針で進めてください」と明示し、対象 dispatcher E2E は修正後に 16/16 PASS した。",
+      "why": "安全上重要な no discovery 保証を実際の共有ヘルプに表示し、失敗した回帰テストをプロダクト側で解消するため。",
+      "considered": "修正を取り消して既存失敗を record-and-proceed する案は、既知の表示不整合を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "監査済み運用変更によって repair fingerprint ledger の既存末尾と現行 manifest の間に生じた gap は、どの移行方針で整合させるか。",
+      "answer": "must: 既存履歴を変更せず、対象 identity・期待 ledger tail・期待 manifest hash・変更 path 証跡が一致した場合だけ bridge entry を追記し、不一致時は書き込みなしで停止する。",
+      "evidence": "ユーザーは監査状態を履歴保持で移行して flow を再開する選択肢 [1] を明示的に選択した。impl-repair.json は repair-001〜005 が連続し、repair-005.currentHash は edfb1316…、repair-fingerprint.json.hash は 704826e3… である。",
+      "why": "既存の監査履歴を保持しながら、証明可能な gap だけを明示的に連結し、別 flow や別 state への誤適用を防ぐため。",
+      "considered": "既存 ledger の削除・再生成、manifest の巻き戻し、hash 検証なしの強制継続は監査履歴または fail-closed 性を失うため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T00:41:40.000Z",
+    "notes": "Issue #456 の既存要件、parked resume 修正の維持、およびユーザーが選択した履歴保持型 repair fingerprint bridge 方針を反映した。"
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T23:08:21.309Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/333-failure-atomic-gate/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Explicit phase behavior does not verify recovery suppression",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js: R6 direct exports preserve explicit and inferred phase behavior",
+      "findingId": "d3bd90bc81bc94ca6a24f478806c66f8042c54a53ff4e3c16c5cce3c1c71e599",
+      "fingerprint": "d3bd90bc81bc94ca6a24f478806c66f8042c54a53ff4e3c16c5cce3c1c71e599",
+      "disposition": "must-fix",
+      "rationale": "This acceptance requirement has no corresponding coverage for the no-inferred-recovery half of the behavior; an implementation could still recover stale steps under explicit `--phase` and pass these tests.",
+      "issue": "R6 requires explicit `--phase` to select the supplied phase without inferred recovery, but the test only asserts `resolveEffectiveGatePhase({ phase: \"spec\" }) === \"spec\"`. It does not exercise the transition/recovery path or assert that stale inferred steps are not reported or committed when an explicit phase is supplied.",
+      "requiredChange": "Add a spec-local assertion or test that runs the explicit-phase path against a state with stale gates and verifies no inferred stale-step recovery is produced or committed.",
+      "whyBlocking": "This acceptance requirement has no corresponding coverage for the no-inferred-recovery half of the behavior; an implementation could still recover stale steps under explicit `--phase` and pass these tests.",
+      "origin": "R6",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "FAIL/retry active-step routing is not covered",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js: R6 provider, lifecycle, retry, artifact, and routing parity is exercised directly",
+      "findingId": "946c81f609d6796d6dda0e117cd9d933aad466d409bbad4a5308ae8ad3718a9b",
+      "fingerprint": "946c81f609d6796d6dda0e117cd9d933aad466d409bbad4a5308ae8ad3718a9b",
+      "disposition": "must-fix",
+      "rationale": "A required routing behavior could regress without detection because only the PASS side of the acceptance requirement is tested.",
+      "issue": "R6 requires PASS to advance to the configured next step while FAIL/retry retains its configured active-step route. The test asserts only the PASS route via `deriveNextAction(...)` returning `retro`; it does not assert the FAIL/retry route retention behavior.",
+      "requiredChange": "Add a spec-local test assertion covering the FAIL/retry route and verifying it retains the configured active step.",
+      "whyBlocking": "A required routing behavior could regress without detection because only the PASS side of the acceptance requirement is tested.",
+      "origin": "R6",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Phase source artifact path parity is not covered",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js: R6 provider, lifecycle, retry, artifact, and routing parity is exercised directly",
+      "findingId": "011744eba55633fb40bb3b87e24699f7565a7a08504382715f534ca5e8a48dbf",
+      "fingerprint": "011744eba55633fb40bb3b87e24699f7565a7a08504382715f534ca5e8a48dbf",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R6 covered, but one explicit artifact-path requirement is missing from the executable tests.",
+      "issue": "R6 requires existing phase source/result artifact paths to remain unchanged. The tests verify `impl-gate-result.json`, but they do not verify the source artifact path on the successful parity path.",
+      "requiredChange": "Add a spec-local assertion that the integration gate source artifact path remains `impl-gate-source.json` in the relevant path-writing behavior.",
+      "whyBlocking": "The coverage artifact marks R6 covered, but one explicit artifact-path requirement is missing from the executable tests.",
+      "origin": "R6",
+      "failureKind": "missing_requirement_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/333-failure-atomic-gate/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "d1927eed45b0dba0f23dc321da180f286e4b1e0e1054da247c96dbb4ac4be952"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "d3bd90bc81bc94ca6a24f478806c66f8042c54a53ff4e3c16c5cce3c1c71e599",
+      "findingId": "d3bd90bc81bc94ca6a24f478806c66f8042c54a53ff4e3c16c5cce3c1c71e599",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "Explicit phase behavior does not verify recovery suppression",
+      "body": "R6 requires explicit `--phase` to select the supplied phase without inferred recovery, but the test only asserts `resolveEffectiveGatePhase({ phase: \"spec\" }) === \"spec\"`. It does not exercise the transition/recovery path or assert that stale inferred steps are not reported or committed when an explicit phase is supplied.",
+      "category": "unknown",
+      "fingerprint": "d3bd90bc81bc94ca6a24f478806c66f8042c54a53ff4e3c16c5cce3c1c71e599",
+      "disposition": "must-fix",
+      "rationale": "This acceptance requirement has no corresponding coverage for the no-inferred-recovery half of the behavior; an implementation could still recover stale steps under explicit `--phase` and pass these tests."
+    },
+    {
+      "id": "946c81f609d6796d6dda0e117cd9d933aad466d409bbad4a5308ae8ad3718a9b",
+      "findingId": "946c81f609d6796d6dda0e117cd9d933aad466d409bbad4a5308ae8ad3718a9b",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "FAIL/retry active-step routing is not covered",
+      "body": "R6 requires PASS to advance to the configured next step while FAIL/retry retains its configured active-step route. The test asserts only the PASS route via `deriveNextAction(...)` returning `retro`; it does not assert the FAIL/retry route retention behavior.",
+      "category": "unknown",
+      "fingerprint": "946c81f609d6796d6dda0e117cd9d933aad466d409bbad4a5308ae8ad3718a9b",
+      "disposition": "must-fix",
+      "rationale": "A required routing behavior could regress without detection because only the PASS side of the acceptance requirement is tested."
+    },
+    {
+      "id": "011744eba55633fb40bb3b87e24699f7565a7a08504382715f534ca5e8a48dbf",
+      "findingId": "011744eba55633fb40bb3b87e24699f7565a7a08504382715f534ca5e8a48dbf",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "Phase source artifact path parity is not covered",
+      "body": "R6 requires existing phase source/result artifact paths to remain unchanged. The tests verify `impl-gate-result.json`, but they do not verify the source artifact path on the successful parity path.",
+      "category": "unknown",
+      "fingerprint": "011744eba55633fb40bb3b87e24699f7565a7a08504382715f534ca5e8a48dbf",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R6 covered, but one explicit artifact-path requirement is missing from the executable tests."
+    }
+  ]
+}

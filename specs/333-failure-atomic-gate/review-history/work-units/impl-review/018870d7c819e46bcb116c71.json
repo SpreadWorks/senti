@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/333-failure-atomic-gate/spec.json"
+    ],
+    "inputHash": "20a3129c5ee269857742bba16e70663960cfa40b1554586dffa8c8a9bb62d1e0",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "specs/333-failure-atomic-gate/spec.json"
+  ],
+  "inputHash": "20a3129c5ee269857742bba16e70663960cfa40b1554586dffa8c8a9bb62d1e0",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T01:38:58.321Z",
+  "finishedAt": "2026-07-25T01:38:58.321Z",
+  "rawResponse": "### 1. Consolidate Repeated Overview Entries\n**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R1  \n**Issue:** The `overview.modules` and `overview.data_flow` sections repeat the same deferred-transition concept in both original entries and `added_by_task: T-1` entries. This makes the spec harder to maintain and increases the chance that future edits update one description but not the other.  \n**Suggestion:** Merge the T-1 additions into the existing `run-gate.js` module and data-flow entries, preserving any task attribution only where it adds distinct information.\n\n### 2. Normalize Issue Naming\n**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R8  \n**Issue:** The spec uses both `Issue` and `issue`-style phrasing, for example “Issue 456” and “issue-log”. The capitalized `Issue` reads like a proper schema field in some places but not others.  \n**Suggestion:** Use a consistent term for the identity field, such as `issue_id` in authority/evidence descriptions, while keeping prose references like “Issue #456” only where referring to the external tracker item.\n\n### 3. Remove Status Drift From Tasks\n**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R1  \n**Issue:** All requirements are marked `\"status\": \"done\"`, but every task still has `\"status\": \"pending\"`. That internal contradiction makes the spec ambiguous for automation and reviewers.  \n**Suggestion:** Either update task statuses to match the completed requirements or remove task status fields if this file is meant to describe the approved plan rather than execution state.\n\n### 4. Simplify Long Requirement R6\n**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R6  \n**Issue:** R6 contains a long finite inventory in a single string. It mixes export stability, phase behavior, config behavior, semantic envelope behavior, hook behavior, retry accounting, artifact paths, and routing. This is difficult to scan and easy to partially satisfy by mistake.  \n**Suggestion:** Split R6 into a structured list field such as `\"checks\": [...]` while keeping the requirement ID unchanged. That would make each parity expectation independently reviewable without changing the requirement semantics.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate Repeated Overview Entries",
+        "body": "**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R1  \n**Issue:** The `overview.modules` and `overview.data_flow` sections repeat the same deferred-transition concept in both original entries and `added_by_task: T-1` entries. This makes the spec harder to maintain and increases the chance that future edits update one description but not the other.  \n**Suggestion:** Merge the T-1 additions into the existing `run-gate.js` module and data-flow entries, preserving any task attribution only where it adds distinct information.",
+        "file": "specs/333-failure-atomic-gate/spec.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Normalize Issue Naming",
+        "body": "**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R8  \n**Issue:** The spec uses both `Issue` and `issue`-style phrasing, for example “Issue 456” and “issue-log”. The capitalized `Issue` reads like a proper schema field in some places but not others.  \n**Suggestion:** Use a consistent term for the identity field, such as `issue_id` in authority/evidence descriptions, while keeping prose references like “Issue #456” only where referring to the external tracker item.",
+        "file": "specs/333-failure-atomic-gate/spec.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Remove Status Drift From Tasks",
+        "body": "**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R1  \n**Issue:** All requirements are marked `\"status\": \"done\"`, but every task still has `\"status\": \"pending\"`. That internal contradiction makes the spec ambiguous for automation and reviewers.  \n**Suggestion:** Either update task statuses to match the completed requirements or remove task status fields if this file is meant to describe the approved plan rather than execution state.",
+        "file": "specs/333-failure-atomic-gate/spec.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Simplify Long Requirement R6",
+        "body": "**File:** `specs/333-failure-atomic-gate/spec.json`  \n**Requirement:** R6  \n**Issue:** R6 contains a long finite inventory in a single string. It mixes export stability, phase behavior, config behavior, semantic envelope behavior, hook behavior, retry accounting, artifact paths, and routing. This is difficult to scan and easy to partially satisfy by mistake.  \n**Suggestion:** Split R6 into a structured list field such as `\"checks\": [...]` while keeping the requirement ID unchanged. That would make each parity expectation independently reviewable without changing the requirement semantics.",
+        "file": "specs/333-failure-atomic-gate/spec.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T00:25:35.204Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "stale-owner-overlap",
+      "title": "Inferred transition allows stale step to match selected owner",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R2",
+      "issue": "`InferredGateTransition` validates duplicate stale step IDs and owner identity, but it does not reject a stale step ID that is the same as `owner.stepId`. If an inferred resolution ever includes the selected gate owner in `staleSteps`, `commit()` will create a recovery transition that marks the active owner step `done`, while `owner.createTransition({ status: \"in_progress\" })` returns no transition because the expected pre-state is still `in_progress`. That silently commits the selected gate instead of only recovering stale prior gates.",
+      "suggestion": "In `InferredGateTransition` constructor, add an explicit assertion after `owner.stepId` is known, e.g. reject when `staleStepIds.includes(owner.stepId)`, and add a test assertion in the R2 validation test for this overlap case.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires the inferred transition to validate stale steps and the `GateMutationOwner` relationship before any commit. Allowing the stale set to include the selected owner breaks that mandatory authority boundary and can persist an incorrect lifecycle transition.",
+      "findingId": "ed1c55a7f1ebdffe54747006e4052b62535edcc35f0fbd59f4f2c714d41925a9",
+      "fingerprint": "ed1c55a7f1ebdffe54747006e4052b62535edcc35f0fbd59f4f2c714d41925a9",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "704826e3c8647b978e92c8c9acbd9dca5d522e1623cad511dcf898d4e00dd3e1",
+  "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+  "planRewindAt": "2026-07-24T22:37:39.394Z",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/333-failure-atomic-gate/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "f0d059173256c146104a31c13b246cea7196c2327e6fcb836cf297c98c48dcef"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 16,
+  "findings": [
+    {
+      "id": "ed1c55a7f1ebdffe54747006e4052b62535edcc35f0fbd59f4f2c714d41925a9",
+      "findingId": "ed1c55a7f1ebdffe54747006e4052b62535edcc35f0fbd59f4f2c714d41925a9",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 16,
+      "severity": "blocking",
+      "title": "Inferred transition allows stale step to match selected owner",
+      "body": "`InferredGateTransition` validates duplicate stale step IDs and owner identity, but it does not reject a stale step ID that is the same as `owner.stepId`. If an inferred resolution ever includes the selected gate owner in `staleSteps`, `commit()` will create a recovery transition that marks the active owner step `done`, while `owner.createTransition({ status: \"in_progress\" })` returns no transition because the expected pre-state is still `in_progress`. That silently commits the selected gate instead of only recovering stale prior gates.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "ed1c55a7f1ebdffe54747006e4052b62535edcc35f0fbd59f4f2c714d41925a9",
+      "disposition": "must-fix",
+      "rationale": "R2 requires the inferred transition to validate stale steps and the `GateMutationOwner` relationship before any commit. Allowing the stale set to include the selected owner breaks that mandatory authority boundary and can persist an incorrect lifecycle transition.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

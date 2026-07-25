@@ -2118,12 +2118,13 @@ class TestReviewFinding {
     }
     this.disposition = kind === "blocking" ? "must-fix" : "informational";
     this.rationale = kind === "blocking" ? this.whyBlocking : this.whyNonBlocking;
-    this.fingerprint = ReviewFindingFingerprint.fromCanonicalTuple([
-      this.target,
-      this.failureKind || kind,
-      this.title,
-      kind === "blocking" ? this.issue : this.improvement,
-    ]).value;
+    this.fingerprint = ReviewFindingFingerprint.fromFinding({
+      category: this.failureKind || kind,
+      requirementId: this.target,
+      file: this.target.includes("/") ? this.target : null,
+      title: this.title,
+      issue: kind === "blocking" ? this.issue : this.improvement,
+    }).value;
     this.findingId = this.fingerprint;
   }
 

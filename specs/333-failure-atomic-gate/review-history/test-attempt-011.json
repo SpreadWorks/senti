@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T23:12:44.229Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/333-failure-atomic-gate/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 duplicate durable-entry coverage uses empty judgment artifacts",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js:validGateResult and R5 retry tests",
+      "findingId": "e132156257cb536d08cde0a60b4c19cc1f7b923752a6887dcb18be8acfef9b05",
+      "fingerprint": "e132156257cb536d08cde0a60b4c19cc1f7b923752a6887dcb18be8acfef9b05",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires no duplicate lifecycle transitions, findings, successful-judgment issue-log entries, or gate artifacts across injected failure plus retry. The current tests do not exercise the findings or successful-judgment issue-log duplication surfaces.",
+      "issue": "The R5 retry tests always use `issues: []` and only assert that pre-existing `issue-log.json` and `flow-findings.json` remain unchanged. That cannot detect duplicate successful-judgment issue-log entries or findings on the retry path because the successful judgment never contains any issue/finding-producing payload.",
+      "requiredChange": "Add spec-local R5 retry coverage where the successful retry result contains at least one durable issue/finding-producing artifact, then assert exactly one persisted entry after the two-attempt sequence.",
+      "whyBlocking": "R5 explicitly requires no duplicate lifecycle transitions, findings, successful-judgment issue-log entries, or gate artifacts across injected failure plus retry. The current tests do not exercise the findings or successful-judgment issue-log duplication surfaces.",
+      "origin": "R5",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/333-failure-atomic-gate/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "975c0792d443630f7b6848fbba145d9f238ee149162171cf9df8b4fa742a8200"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 11,
+  "findings": [
+    {
+      "id": "e132156257cb536d08cde0a60b4c19cc1f7b923752a6887dcb18be8acfef9b05",
+      "findingId": "e132156257cb536d08cde0a60b4c19cc1f7b923752a6887dcb18be8acfef9b05",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 11,
+      "severity": "blocking",
+      "title": "R5 duplicate durable-entry coverage uses empty judgment artifacts",
+      "body": "The R5 retry tests always use `issues: []` and only assert that pre-existing `issue-log.json` and `flow-findings.json` remain unchanged. That cannot detect duplicate successful-judgment issue-log entries or findings on the retry path because the successful judgment never contains any issue/finding-producing payload.",
+      "category": "unknown",
+      "fingerprint": "e132156257cb536d08cde0a60b4c19cc1f7b923752a6887dcb18be8acfef9b05",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires no duplicate lifecycle transitions, findings, successful-judgment issue-log entries, or gate artifacts across injected failure plus retry. The current tests do not exercise the findings or successful-judgment issue-log duplication surfaces."
+    }
+  ]
+}

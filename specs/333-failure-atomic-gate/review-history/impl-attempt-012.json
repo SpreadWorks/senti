@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T23:20:08.962Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "out-of-scope-gate-atomicity-changes",
+      "title": "Unrelated gate atomicity changes violate the R7 task scope",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R7",
+      "issue": "T-2 is limited to exposing the parked resume no-discovery guarantee in rendered `senti flow resume --help` output, and the implementation notes say to update only the first descriptive summary line of the `resume` flow registry entry. The diff still rewrites gate phase inference, persistence, artifact checkpointing, and transition behavior in `src/flow/lib/run-gate.js`, which is unrelated to the parked-resume help requirement and changes behavior outside the allowed scope.",
+      "suggestion": "Remove the unrelated gate atomicity implementation and associated behavior changes from this task. Keep the R7 change scoped to the resume registry summary line in `src/flow/registry.js` plus help-output coverage for `senti flow resume --help`.",
+      "disposition": "must-fix",
+      "rationale": "R7's acceptance criteria require preserving parked-resume behavior and CLI options while exposing the no-discovery summary through shared help. The task's implementation note is a mandatory scope guardrail for this review: only the first resume registry summary line should change. Broad gate behavior changes exceed that guardrail and must be fixed before the R7 task can be accepted.",
+      "findingId": "255c4541e044f7b1b52574944e3f7518eec26785aa46ea72b0821c28df08a0da",
+      "fingerprint": "255c4541e044f7b1b52574944e3f7518eec26785aa46ea72b0821c28df08a0da",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "ad28490415250f10eebbcd3771bbd930af468f6d673cd88fd4326c8f31f436d0",
+  "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+  "planRewindAt": "2026-07-24T22:37:39.394Z",
+  "taskId": "T-2",
+  "target": "specs/333-failure-atomic-gate/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/333-failure-atomic-gate/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "9ea4fa268a066b9047a5fb150a13a25c0f574660270b941c38a8f9e5bc7abe44"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 12,
+  "findings": [
+    {
+      "id": "255c4541e044f7b1b52574944e3f7518eec26785aa46ea72b0821c28df08a0da",
+      "findingId": "255c4541e044f7b1b52574944e3f7518eec26785aa46ea72b0821c28df08a0da",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "Unrelated gate atomicity changes violate the R7 task scope",
+      "body": "T-2 is limited to exposing the parked resume no-discovery guarantee in rendered `senti flow resume --help` output, and the implementation notes say to update only the first descriptive summary line of the `resume` flow registry entry. The diff still rewrites gate phase inference, persistence, artifact checkpointing, and transition behavior in `src/flow/lib/run-gate.js`, which is unrelated to the parked-resume help requirement and changes behavior outside the allowed scope.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "255c4541e044f7b1b52574944e3f7518eec26785aa46ea72b0821c28df08a0da",
+      "disposition": "must-fix",
+      "rationale": "R7's acceptance criteria require preserving parked-resume behavior and CLI options while exposing the no-discovery summary through shared help. The task's implementation note is a mandatory scope guardrail for this review: only the first resume registry summary line should change. Broad gate behavior changes exceed that guardrail and must be fixed before the R7 task can be accepted.",
+      "requirementId": "R7",
+      "repeatCount": 2
+    }
+  ]
+}

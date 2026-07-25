@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T15:05:57.242Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/333-failure-atomic-gate/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R5 retry limit is represented by manual attempts",
+      "target": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+      "findingId": "7d401a70573e8f935acf1575230e5aeee753fa6b0d502cd2c0694448165ae956",
+      "fingerprint": "7d401a70573e8f935acf1575230e5aeee753fa6b0d502cd2c0694448165ae956",
+      "disposition": "informational",
+      "rationale": "The current test directly bounds the injected failure sequence to two calls and verifies durable effects; the remaining retry-limit preservation appears delegated to retained suites, so this is a useful strengthening rather than missing spec-local coverage.",
+      "improvement": "Consider adding a focused assertion around the production retry-limit/config path if that behavior is not already covered by the retained gate suites.",
+      "whyNonBlocking": "The current test directly bounds the injected failure sequence to two calls and verifies durable effects; the remaining retry-limit preservation appears delegated to retained suites, so this is a useful strengthening rather than missing spec-local coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/333-failure-atomic-gate/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "87c375d15ef92468cc5835e59b9fe11479fb2b4145526e6912bcd280d5c16dc1"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "7d401a70573e8f935acf1575230e5aeee753fa6b0d502cd2c0694448165ae956",
+      "findingId": "7d401a70573e8f935acf1575230e5aeee753fa6b0d502cd2c0694448165ae956",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "R5 retry limit is represented by manual attempts",
+      "body": "The current test directly bounds the injected failure sequence to two calls and verifies durable effects; the remaining retry-limit preservation appears delegated to retained suites, so this is a useful strengthening rather than missing spec-local coverage.",
+      "category": "unknown",
+      "fingerprint": "7d401a70573e8f935acf1575230e5aeee753fa6b0d502cd2c0694448165ae956",
+      "disposition": "informational",
+      "rationale": "The current test directly bounds the injected failure sequence to two calls and verifies durable effects; the remaining retry-limit preservation appears delegated to retained suites, so this is a useful strengthening rather than missing spec-local coverage."
+    }
+  ]
+}

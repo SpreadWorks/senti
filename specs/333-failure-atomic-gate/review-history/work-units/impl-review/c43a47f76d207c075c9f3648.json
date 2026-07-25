@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "c43a47f76d207c075c9f3648",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0010",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-gate.js"
+    ],
+    "inputHash": "d2a418219966b8e5b6343d8820693bdd1333c9394cab2b9420fbe2c4a0d41420",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c43a47f76d207c075c9f3648"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-gate.js"
+  ],
+  "inputHash": "d2a418219966b8e5b6343d8820693bdd1333c9394cab2b9420fbe2c4a0d41420",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T01:39:42.049Z",
+  "finishedAt": "2026-07-25T01:39:42.049Z",
+  "rawResponse": "### 1. Remove unused import\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R1  \n**Issue:** `flattenSteps` is imported from `./step-tree.js` but is not used anywhere in the diff.  \n**Suggestion:** Remove the unused import to keep the module clean and avoid lint noise.\n\n### 2. Consolidate inferred-transition persistence flow\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** The checkpoint, artifact persistence, semantic-result validation, and inferred-transition commit sequence now exists in two places: `RunGateCommand.execute()` and `runGatePhaseWithDependencies()`. This duplicates failure-boundary logic that must remain byte-identical and atomic.  \n**Suggestion:** Extract a shared helper for “persist required gate artifacts, then commit inferred transition, rollback durable surfaces on pre-commit failure” and have both call sites use it.\n\n### 3. Rename `identityProbeError`\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R6  \n**Issue:** `identityProbeError` is vague; the code is specifically probing stale integration test evidence before full trust validation.  \n**Suggestion:** Rename it to `staleEvidenceProbeError` or `artifactIdentityProbeError` so the delayed throw is easier to understand.\n\n### 4. Avoid brittle root reconstruction from `specDir`\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `runGatePhaseWithDependencies()` derives `root` with `path.dirname(path.dirname(specDir))`, which assumes a fixed spec directory depth. That makes the helper fragile if spec layout changes.  \n**Suggestion:** Pass `root` explicitly into `runGatePhaseWithDependencies()` when fingerprint construction may be needed.\n\n### 5. Simplify semantic result predicate\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** `completedSemanticGateResult()` encodes `\"pass\"` and semantic `\"fail\"` as a custom boolean, but callers use it to decide whether commit is allowed. The function name does not communicate that tooling/artifact failures are intentionally excluded.  \n**Suggestion:** Rename it to something more precise, such as `isCommitEligibleSemanticGateResult()`, and keep the PASS/AI semantic FAIL criteria centralized there.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove unused import",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R1  \n**Issue:** `flattenSteps` is imported from `./step-tree.js` but is not used anywhere in the diff.  \n**Suggestion:** Remove the unused import to keep the module clean and avoid lint noise.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Consolidate inferred-transition persistence flow",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** The checkpoint, artifact persistence, semantic-result validation, and inferred-transition commit sequence now exists in two places: `RunGateCommand.execute()` and `runGatePhaseWithDependencies()`. This duplicates failure-boundary logic that must remain byte-identical and atomic.  \n**Suggestion:** Extract a shared helper for “persist required gate artifacts, then commit inferred transition, rollback durable surfaces on pre-commit failure” and have both call sites use it.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Rename `identityProbeError`",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R6  \n**Issue:** `identityProbeError` is vague; the code is specifically probing stale integration test evidence before full trust validation.  \n**Suggestion:** Rename it to `staleEvidenceProbeError` or `artifactIdentityProbeError` so the delayed throw is easier to understand.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Avoid brittle root reconstruction from `specDir`",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `runGatePhaseWithDependencies()` derives `root` with `path.dirname(path.dirname(specDir))`, which assumes a fixed spec directory depth. That makes the helper fragile if spec layout changes.  \n**Suggestion:** Pass `root` explicitly into `runGatePhaseWithDependencies()` when fingerprint construction may be needed.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Simplify semantic result predicate",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** `completedSemanticGateResult()` encodes `\"pass\"` and semantic `\"fail\"` as a custom boolean, but callers use it to decide whether commit is allowed. The function name does not communicate that tooling/artifact failures are intentionally excluded.  \n**Suggestion:** Rename it to something more precise, such as `isCommitEligibleSemanticGateResult()`, and keep the PASS/AI semantic FAIL criteria centralized there.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T15:14:22.459Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "inferred-fail-not-committed",
+      "title": "Inferred FAIL results skip persistence and recovery commit",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R4",
+      "issue": "`RunGateCommand.execute` defers integration persistence for inferred phases, then only persists and commits when `completedSemanticGateResult(result)` returns true. That helper accepts `pass`, but it only accepts `fail` when `result.artifacts.failureKind === \"ai_semantic_fail\"`. A completed gate FAIL without that exact artifact field returns through the deferred path without writing `impl-gate-result.json` and without committing the inferred recovery transition.",
+      "suggestion": "Change `completedSemanticGateResult` to treat any schema-valid semantic `pass` or `fail` result as completed for the deferred commit path, or validate the same completed PASS/FAIL contract used by `runGatePhaseWithDependencies` before deciding to persist and commit.",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires persisted PASS and FAIL judgments to commit the explicit recovery exactly once after completed persistence. The current branch handles PASS but excludes ordinary FAIL results, so the required FAIL recovery behavior is missing in the main `RunGateCommand.execute` path.",
+      "findingId": "a6a45628ceb42e827e5364280bde8dda07b39e9e3e28eaef77a9ec5748d8df6d",
+      "fingerprint": "a6a45628ceb42e827e5364280bde8dda07b39e9e3e28eaef77a9ec5748d8df6d",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "1855c1d922cd78ab01caab30c355e652f6647d81ae499161fd0ec999dcc6d288",
+  "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/333-failure-atomic-gate/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/333-failure-atomic-gate/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "8988647285d462c2af841ac6f189862bac92dc5029b05baf58a2ad429aaf5b9e"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "a6a45628ceb42e827e5364280bde8dda07b39e9e3e28eaef77a9ec5748d8df6d",
+      "findingId": "a6a45628ceb42e827e5364280bde8dda07b39e9e3e28eaef77a9ec5748d8df6d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Inferred FAIL results skip persistence and recovery commit",
+      "body": "`RunGateCommand.execute` defers integration persistence for inferred phases, then only persists and commits when `completedSemanticGateResult(result)` returns true. That helper accepts `pass`, but it only accepts `fail` when `result.artifacts.failureKind === \"ai_semantic_fail\"`. A completed gate FAIL without that exact artifact field returns through the deferred path without writing `impl-gate-result.json` and without committing the inferred recovery transition.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "a6a45628ceb42e827e5364280bde8dda07b39e9e3e28eaef77a9ec5748d8df6d",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires persisted PASS and FAIL judgments to commit the explicit recovery exactly once after completed persistence. The current branch handles PASS but excludes ordinary FAIL results, so the required FAIL recovery behavior is missing in the main `RunGateCommand.execute` path.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    }
+  ]
+}

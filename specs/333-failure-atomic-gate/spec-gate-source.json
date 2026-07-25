@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+  "planRewindAt": "2026-07-24T22:37:39.394Z",
+  "generatedAt": "2026-07-24T22:48:21.989Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Requirement R6 uses broad preservation language such as \"existing behavior\" and \"normal post-gate routing\" without defining concrete criteria for two reviewers to agree which behaviors and routing outcomes must be checked.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "Requirement R6 uses broad preservation language such as \"existing behavior\" and \"normal post-gate routing\" without defining concrete criteria for two reviewers to agree which behaviors and routing outcomes must be checked.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "fingerprint": "d4f4c549248321262edd55b9799c2525b72357fc5c8279b14bf91649bedf5ca0",
+      "disposition": "must-fix",
+      "rationale": "Requirement R6 uses broad preservation language such as \"existing behavior\" and \"normal post-gate routing\" without defining concrete criteria for two reviewers to agree which behaviors and routing outcomes must be checked.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-24T22:48:21.989Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "req-diff-verifiability",
+      "result": "fail",
+      "reason": "Requirement R6 requires broad retained behavior for exports, agent/config resolution, hooks, retry accounting, artifact ownership, and routing, which is not fully decidable from a unified diff and test execution summary alone without an explicit finite behavior inventory in the requirement.",
+      "category": "process",
+      "title": "REQ Diff-Verifiability",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R6].desc"
+          },
+          "observed": "Requirement R6 requires broad retained behavior for exports, agent/config resolution, hooks, retry accounting, artifact ownership, and routing, which is not fully decidable from a unified diff and test execution summary alone without an explicit finite behavior inventory in the requirement.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ],
+      "findingId": "ca7e2b97b7914db4e04d84b72662ca3d8772dfe73e7b1466f7b5478e80e0813f",
+      "fingerprint": "ca7e2b97b7914db4e04d84b72662ca3d8772dfe73e7b1466f7b5478e80e0813f",
+      "disposition": "must-fix",
+      "rationale": "Requirement R6 requires broad retained behavior for exports, agent/config resolution, hooks, retry accounting, artifact ownership, and routing, which is not fully decidable from a unified diff and test execution summary alone without an explicit finite behavior inventory in the requirement.",
+      "requirementId": null,
+      "guardrailId": "req-diff-verifiability",
+      "reportedAt": "2026-07-24T22:48:21.989Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R6].desc"
+      },
+      "observed": "Requirement R6 uses broad preservation language such as \"existing behavior\" and \"normal post-gate routing\" without defining concrete criteria for two reviewers to agree which behaviors and routing outcomes must be checked.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "fingerprint": "7f628672661aaca40e3b315d5f4dc5cc15a9c7ff822a9acaadd20b6688f21bf6",
+      "disposition": "must-fix",
+      "rationale": "Requirement R6 uses broad preservation language such as \"existing behavior\" and \"normal post-gate routing\" without defining concrete criteria for two reviewers to agree which behaviors and routing outcomes must be checked.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-24T22:48:21.989Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "req-diff-verifiability",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R6].desc"
+      },
+      "observed": "Requirement R6 requires broad retained behavior for exports, agent/config resolution, hooks, retry accounting, artifact ownership, and routing, which is not fully decidable from a unified diff and test execution summary alone without an explicit finite behavior inventory in the requirement.",
+      "severity": "blocking",
+      "refs": [
+        "req-diff-verifiability"
+      ],
+      "result": "fail",
+      "guardrail_id": "req-diff-verifiability",
+      "category": "guardrail",
+      "findingId": "28961d33866c3428d0500c9d979dda395d94d5763030d129aeb5d3e260540f40",
+      "fingerprint": "28961d33866c3428d0500c9d979dda395d94d5763030d129aeb5d3e260540f40",
+      "disposition": "must-fix",
+      "rationale": "Requirement R6 requires broad retained behavior for exports, agent/config resolution, hooks, retry accounting, artifact ownership, and routing, which is not fully decidable from a unified diff and test execution summary alone without an explicit finite behavior inventory in the requirement.",
+      "requirementId": null,
+      "guardrailId": "req-diff-verifiability",
+      "reportedAt": "2026-07-24T22:48:21.989Z",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/333-failure-atomic-gate/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R1: inferred phase resolution and transition construction are pure",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 96
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R2: inferred transition validates identity, stale steps, and GateMutationOwner",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 96
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R3: validation, agent, output-protocol, and artifact failures are pre-commit",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 96
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R4: persisted PASS and FAIL judgments commit explicit recovery exactly once",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 96
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R5: every pre-commit boundary retries once without duplicate durable effects",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 96
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js",
+        "test_name": "R6: direct exports preserve explicit and inferred phase behavior",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 96
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "test_name": "R7: parked resume shared help retains its no-discovery guarantee and guards",
+        "command": "node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 96
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/lib/run-gate.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/gate-phase-inference.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "027d9e66fba36bea94c2f5c7e670feaaae0780f7a8373d8aacc9af67b4a46887"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "8f642d522577948a4b3ea21f6ea8e5186d63fb45d9eb05f85c8c4bee153c0ab1"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-phase-inference.test.js",
+        "fingerprint": "184bef63cc5ccd0a6bd97944cabbcf973d2d04336317b6aa1f83cff80752ddb3"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "027d9e66fba36bea94c2f5c7e670feaaae0780f7a8373d8aacc9af67b4a46887"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "8f642d522577948a4b3ea21f6ea8e5186d63fb45d9eb05f85c8c4bee153c0ab1"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-phase-inference.test.js",
+        "fingerprint": "184bef63cc5ccd0a6bd97944cabbcf973d2d04336317b6aa1f83cff80752ddb3"
+      }
+    ]
+  },
+  "repairFingerprint": "704826e3c8647b978e92c8c9acbd9dca5d522e1623cad511dcf898d4e00dd3e1"
+}

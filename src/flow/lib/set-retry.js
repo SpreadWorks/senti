@@ -106,7 +106,7 @@ export default class SetRetryCommand extends FlowCommand {
     const reviewTaskId = kind === "review"
       ? reviewRecoveryTaskId(ctx.flowState, normalizedReviewPhase)
       : null;
-
+    const resetPhases = kind === "review" ? resolveReviewResetPhases(ctx, phase) : [phase];
     if (
       kind === "review"
       && unchangedReviewConvergenceTarget(ctx, normalizedReviewPhase, reviewTaskId)
@@ -122,7 +122,6 @@ export default class SetRetryCommand extends FlowCommand {
     const counter = COUNTER_BY_KIND[kind];
     const countFn = COUNT_FN_BY_KIND[kind];
     const resolveConfiguredMaxAttempts = MAX_FN_BY_KIND[kind];
-    const resetPhases = kind === "review" ? resolveReviewResetPhases(ctx, phase) : [phase];
 
     const operations = [];
     for (const p of resetPhases) {

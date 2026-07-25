@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "8dd631de9065ac75b1dfdc57",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0014",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/set-step.test.js"
+    ],
+    "inputHash": "e9b40ebd58d854c507b05b494f0f0be06356a02b244baa5cde34fae5fadfa086",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8dd631de9065ac75b1dfdc57"
+  },
+  "targetFiles": [
+    "tests/unit/flow/set-step.test.js"
+  ],
+  "inputHash": "e9b40ebd58d854c507b05b494f0f0be06356a02b244baa5cde34fae5fadfa086",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T00:18:05.634Z",
+  "finishedAt": "2026-07-25T00:18:05.634Z",
+  "rawResponse": "### 1. Extract Fixture File Setup Helper\n**File:** `tests/unit/flow/set-step.test.js`  \n**Requirement:** R1  \n**Issue:** The new test inlines several `fs.writeFileSync` calls with nested JSON fixtures, making the test harder to scan and increasing maintenance cost if similar completion-validation fixtures are added later.  \n**Suggestion:** Extract small helpers such as `writeJson(path, value)` and possibly `writeSpecFixture(specDir, overrides)` within this test file. This would remove repeated `JSON.stringify(...)\\n` boilerplate and keep the test focused on the behavior being asserted.\n\n### 2. Use Consistent JSON Fixture Construction\n**File:** `tests/unit/flow/set-step.test.js`  \n**Requirement:** R1  \n**Issue:** The test mixes structured `JSON.stringify(...)` writes with raw JSON string literals, for example `file-map.json` and `test-execute-result.json`. That inconsistency makes fixtures easier to mistype and harder to refactor.  \n**Suggestion:** Use one style, preferably object literals passed through a local `writeJson` helper, for all JSON fixture files in this test.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Fixture File Setup Helper",
+        "body": "**File:** `tests/unit/flow/set-step.test.js`  \n**Requirement:** R1  \n**Issue:** The new test inlines several `fs.writeFileSync` calls with nested JSON fixtures, making the test harder to scan and increasing maintenance cost if similar completion-validation fixtures are added later.  \n**Suggestion:** Extract small helpers such as `writeJson(path, value)` and possibly `writeSpecFixture(specDir, overrides)` within this test file. This would remove repeated `JSON.stringify(...)\\n` boilerplate and keep the test focused on the behavior being asserted.",
+        "file": "tests/unit/flow/set-step.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Use Consistent JSON Fixture Construction",
+        "body": "**File:** `tests/unit/flow/set-step.test.js`  \n**Requirement:** R1  \n**Issue:** The test mixes structured `JSON.stringify(...)` writes with raw JSON string literals, for example `file-map.json` and `test-execute-result.json`. That inconsistency makes fixtures easier to mistype and harder to refactor.  \n**Suggestion:** Use one style, preferably object literals passed through a local `writeJson` helper, for all JSON fixture files in this test.",
+        "file": "tests/unit/flow/set-step.test.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

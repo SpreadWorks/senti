@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T15:18:06.771Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "mechanical-fail-commits-inferred-transition",
+      "title": "Mechanical validation FAIL can commit inferred recovery",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R3",
+      "issue": "`completedSemanticGateResult()` still accepts a `result: \"fail\"` as completed when there is no `failureKind`, no top-level `artifacts.issues`, and at least one failing `artifacts.evaluations[]` entry. In the inferred integration path, that still allows a structured mechanical validation or precheck failure envelope with failing evaluations to be persisted and followed by `inferredTransition.commit(flowManager)`, even though the gate did not reach a completed semantic PASS/FAIL judgment.",
+      "suggestion": "Narrow `completedSemanticGateResult()` so fail results are commit-eligible only when the artifact contract explicitly identifies a semantic AI gate failure, such as `failureKind === \"ai_semantic_fail\"`. Treat absent or mechanical failure classification as incomplete for the deferred inference commit boundary.",
+      "disposition": "must-fix",
+      "rationale": "R3 requires validation failures to preserve byte-identical state, and the task goal requires lifecycle recovery to commit only after gate evaluation and required persistence complete. A mechanical validation/precheck failure is inside the pre-commit failure boundary, so allowing it to commit stale-step recovery violates the mandatory atomicity requirement.",
+      "findingId": "f995f66e0c1a004225bbb62650e4d5f9fa951209a7c9b0275d1a98cb3a3e3d9b",
+      "fingerprint": "f995f66e0c1a004225bbb62650e4d5f9fa951209a7c9b0275d1a98cb3a3e3d9b",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "bb14a5da7aab1e7e4b382b34cd25fa14513d02a3f3d6d6a921ae47ed2118fc53",
+  "runId": "8aff4832-7b44-4d54-9e37-5e72db35e88e",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/333-failure-atomic-gate/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/333-failure-atomic-gate/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "a2ae75c345011ed7562cfc4fed3a0e586d57c4523e2801ccfd7ff1c15542fe21"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "f995f66e0c1a004225bbb62650e4d5f9fa951209a7c9b0275d1a98cb3a3e3d9b",
+      "findingId": "f995f66e0c1a004225bbb62650e4d5f9fa951209a7c9b0275d1a98cb3a3e3d9b",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Mechanical validation FAIL can commit inferred recovery",
+      "body": "`completedSemanticGateResult()` still accepts a `result: \"fail\"` as completed when there is no `failureKind`, no top-level `artifacts.issues`, and at least one failing `artifacts.evaluations[]` entry. In the inferred integration path, that still allows a structured mechanical validation or precheck failure envelope with failing evaluations to be persisted and followed by `inferredTransition.commit(flowManager)`, even though the gate did not reach a completed semantic PASS/FAIL judgment.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "f995f66e0c1a004225bbb62650e4d5f9fa951209a7c9b0275d1a98cb3a3e3d9b",
+      "disposition": "must-fix",
+      "rationale": "R3 requires validation failures to preserve byte-identical state, and the task goal requires lifecycle recovery to commit only after gate evaluation and required persistence complete. A mechanical validation/precheck failure is inside the pre-commit failure boundary, so allowing it to commit stale-step recovery violates the mandatory atomicity requirement.",
+      "requirementId": "R3",
+      "repeatCount": 2
+    }
+  ]
+}

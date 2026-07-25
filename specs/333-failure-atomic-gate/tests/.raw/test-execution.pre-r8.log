@@ -1,0 +1,96 @@
+[senti] spec-local tests start
+command: node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js
+process.kind: passed
+process.command: node --test specs/333-failure-atomic-gate/tests/gate-failure-atomicity.test.js specs/333-failure-atomic-gate/tests/parked-resume-help.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 2530
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 1117.279816
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=flow.spec.gate, profile=test/exec)
+# Subtest: R1: inferred phase resolution and transition construction are pure
+ok 1 - R1: inferred phase resolution and transition construction are pure
+  ---
+  duration_ms: 6.541434
+  type: 'test'
+  ...
+# Subtest: R2: inferred transition validates identity, stale steps, and GateMutationOwner
+ok 2 - R2: inferred transition validates identity, stale steps, and GateMutationOwner
+  ---
+  duration_ms: 0.975285
+  type: 'test'
+  ...
+# Subtest: R3: validation, agent, output-protocol, and artifact failures are pre-commit
+ok 3 - R3: validation, agent, output-protocol, and artifact failures are pre-commit
+  ---
+  duration_ms: 21.582993
+  type: 'test'
+  ...
+# Subtest: R4: persisted PASS and FAIL judgments commit explicit recovery exactly once
+ok 4 - R4: persisted PASS and FAIL judgments commit explicit recovery exactly once
+  ---
+  duration_ms: 16.211325
+  type: 'test'
+  ...
+# Subtest: R5: every pre-commit boundary retries once without duplicate durable effects
+ok 5 - R5: every pre-commit boundary retries once without duplicate durable effects
+  ---
+  duration_ms: 41.622337
+  type: 'test'
+  ...
+# Subtest: R5: dispatcher retry scenarios execute exactly one failed and one successful command attempt
+ok 6 - R5: dispatcher retry scenarios execute exactly one failed and one successful command attempt
+  ---
+  duration_ms: 240.158371
+  type: 'test'
+  ...
+# Subtest: R6: direct exports preserve explicit and inferred phase behavior
+ok 7 - R6: direct exports preserve explicit and inferred phase behavior
+  ---
+  duration_ms: 2.261012
+  type: 'test'
+  ...
+# Subtest: R6: provider, lifecycle, retry, artifact, and routing parity is exercised directly
+ok 8 - R6: provider, lifecycle, retry, artifact, and routing parity is exercised directly
+  ---
+  duration_ms: 44.681113
+  type: 'test'
+  ...
+# Subtest: R6: dispatcher executes pre/post for judgments and pre/onError for pre-commit failures
+ok 9 - R6: dispatcher executes pre/post for judgments and pre/onError for pre-commit failures
+  ---
+  duration_ms: 161.37988
+  type: 'test'
+  ...
+# Subtest: R7: parked resume shared help retains its no-discovery guarantee and guards
+ok 10 - R7: parked resume shared help retains its no-discovery guarantee and guards
+  ---
+  duration_ms: 344.038951
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1117.279816
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] spec-local tests end
