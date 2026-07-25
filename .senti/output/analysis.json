@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-25T06:22:06.559Z",
+  "analyzedAt": "2026-07-25T07:35:58.597Z",
   "package": {
     "entries": [
       {
@@ -7654,9 +7654,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "5cad793d52cce4671a7b20d55b323694",
-        "lines": 2009,
-        "mtime": "2026-07-24T23:50:11.055Z",
+        "hash": "8de02949ed152e347e2e156e086c5fef",
+        "lines": 2071,
+        "mtime": "2026-07-25T07:35:44.160Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -7713,6 +7713,9 @@
           "parseImplReviewOutput",
           "normalizeImplReviewSubprocessResult",
           "canonicalProviderVerdict",
+          "stableStringify",
+          "sha256Hex",
+          "canonicalFindingFallbackId",
           "canonicalFinding",
           "canonicalFindingList",
           "canonicalArtifactName",
@@ -7794,23 +7797,23 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Implements the flow review command and its multi-phase review execution pipeline. It normalizes reviewer output, persists canonical artifacts, and manages retries, deferrals, and recovery across draft, spec, test, and implementation reviews.",
-        "detail": "The module defines review-phase mappings, verdict and disposition validation, and helpers for counting retries, selecting retry actions, and resolving the next step after a review. It parses subprocess stdout and stderr for verdicts, tooling errors, counts, and artifact paths, with dedicated parsing logic for spec, test, draft, and implementation review modes. It canonicalizes findings and evidence, fingerprints review items, persists both source and normalized artifacts, and checks that the current tree and repair target still match the expected review scope. Execution is wrapped in a pipeline that records tooling failures, runs post-hooks, writes canonical evidence and projections, and converts failures into structured envelopes with recovery metadata.",
-        "chapter": "internal_design",
+        "summary": "Implements the flow run review command and the multi-phase review pipeline for draft, spec, test, and implementation stages. It standardizes verdict handling, retry behavior, and persistence of review evidence.",
+        "detail": "The module maps review phases to step IDs, retry scopes, and next-step routing, then records outcomes and deferrals in flow state. It parses reviewer subprocess output, detects tooling errors, and can reload implementation review artifacts from emitted JSON files. It canonicalizes findings with stable IDs and SHA-256 fingerprints, validates required dispositions and rationales, and writes normalized artifacts into the spec directory. Guard and pipeline classes verify the current tree and repair fingerprint before persisting evidence, projections, or failures, so stale or partial reviews become structured Envelope errors.",
+        "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-24T23:51:34.465Z",
+          "processedAt": "2026-07-25T07:37:40.848Z",
           "attempts": 1
         },
         "keywords": [
           "review pipeline",
-          "retry logic",
-          "artifact persistence",
-          "evidence normalization",
-          "flow command",
-          "tooling failure",
-          "review verdict",
-          "canonical findings"
+          "flow run review",
+          "phase routing",
+          "retry recovery",
+          "verdict parsing",
+          "canonical findings",
+          "evidence persistence",
+          "tooling failure"
         ]
       },
       {
@@ -8788,9 +8791,9 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "3802eadcd80234456b77d1d9632fc0c5",
-        "lines": 464,
-        "mtime": "2026-07-22T14:15:21.017Z",
+        "hash": "b1f6686e0b1f7ddc20504068ed429d08",
+        "lines": 499,
+        "mtime": "2026-07-25T07:35:44.161Z",
         "className": "set-step",
         "methods": [
           "preValidateImplementStepCompletion",
@@ -8829,23 +8832,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "summary": "Implements the `flow set step` command and coordinates validated step status changes in the flow state. It enforces transition rules, artifact checks, and follow-up workflow actions before persisting results.",
-        "detail": "This module centers the logic for changing a step's status through the `SetStepCommand` class, using `Envelope` failures for consistent CLI error reporting. Before allowing completion of specific step types, it performs targeted pre-validation against spec data and generated artifacts such as test headers, approval freshness, retro outputs, file maps, and test execution results. It also synchronizes spec-derived tasks, evaluates transition contracts, and integrates auto-check or repair-oriented follow-up intents when a completed step triggers extra workflow handling. Helper functions collect side effects and build lifecycle transitions so status changes remain coupled to the broader flow engine.",
+        "summary": "Implements the flow set step command that updates a plan step's status while enforcing transition rules. It performs step-specific validation, side-effect resolution, and repair or auto-check orchestration before accepting completion.",
+        "detail": "The module validates requested statuses against step definitions and lifecycle contracts, then derives transition objects and side effects from the flow plan. It includes dedicated prechecks for test, approval, post-hook-managed, and implementation steps by loading spec artifacts and rejecting stale or missing evidence with structured failure codes. Implementation completion checks inspect files such as file-map.json, scenario-validity-result.json, test-execute-result.json, and review artifacts to ensure durable evidence is present and current. When transitions succeed, the command can trigger task sync, auto-check input handling, implementation gate routing, or repair intents and returns a compact result payload for the next flow action.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-22T14:16:23.527Z",
+          "processedAt": "2026-07-25T07:37:40.848Z",
           "attempts": 1
         },
         "keywords": [
+          "step transition",
           "flow set step",
-          "step status transition",
-          "CLI command handler",
-          "workflow validation",
-          "artifact checks",
-          "auto check",
-          "state mutation",
-          "repair intent"
+          "preflight validation",
+          "artifact verification",
+          "auto-check",
+          "repair workflow",
+          "status update",
+          "lifecycle transition"
         ]
       },
       {
@@ -14537,9 +14540,9 @@
     ],
     "summary": {
       "total": 257,
-      "totalMethods": 2837
+      "totalMethods": 2840
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-25T06:23:55.270Z"
+  "enrichedAt": "2026-07-25T07:37:40.848Z"
 }
