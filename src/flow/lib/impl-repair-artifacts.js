@@ -735,8 +735,31 @@ export function completeImplTriage({ specDir }) {
 export function readRejectedImplReviewTriage(specDir) {
   const file = path.join(specDir, IMPL_TRIAGE_ARTIFACT_FILE);
   if (!fs.existsSync(file)) return null;
-  const triage = validateStoredImplTriageArtifact({ specDir });
+  const triage = readJson(file);
+  if (!triage || typeof triage !== "object") {
+    throw new Error("impl-triage artifact must be an object");
+  }
+  if (triage.version !== 2 || triage.phase !== "impl-triage") {
+    throw new Error("impl-triage artifact header is invalid");
+  }
+  if (typeof triage.sourceStep !== "string" || triage.sourceStep.length === 0) {
+    throw new Error("impl-triage sourceStep must be a non-empty string");
+  }
   if (triage.sourceStep !== "impl-review") return null;
+  const source = readJson(path.join(
+    specDir,
+    requireString(triage.sourceArtifact, "sourceArtifact"),
+  ));
+  validateImplTriageArtifact(triage, {
+    sourceFindingIds: sourceFindingIds(triage.sourceStep, source),
+  });
+  const previous = fingerprintReferenceFrom(triage.previousFingerprint, "previousFingerprint");
+  if (
+    previous.manifestRef !== REPAIR_FINGERPRINT_MANIFEST_FILE
+    || source.repairFingerprint !== previous.hash
+  ) {
+    throw new Error("impl-triage previousFingerprint must match its source artifact");
+  }
   return triage.items.every((item) => item.decision === "reject") ? triage : null;
 }
 

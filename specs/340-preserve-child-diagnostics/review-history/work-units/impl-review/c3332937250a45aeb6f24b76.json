@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "c3332937250a45aeb6f24b76",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-38a90ad5d59f8d5b",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+      "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/test-artifacts.js",
+      "src/flow/lib/test-regression.js",
+      "tests/unit/flow/final-regression-record-and-proceed.test.js",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/step-outcome.test.js"
+    ],
+    "inputHash": "38a90ad5d59f8d5baac00e2468bab310b56d517b1f38a323424ca4050f69e21c",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c3332937250a45aeb6f24b76"
+  },
+  "targetFiles": [
+    "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+    "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/test-artifacts.js",
+    "src/flow/lib/test-regression.js",
+    "tests/unit/flow/final-regression-record-and-proceed.test.js",
+    "tests/unit/flow/final-regression.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/step-outcome.test.js"
+  ],
+  "inputHash": "38a90ad5d59f8d5baac00e2468bab310b56d517b1f38a323424ca4050f69e21c",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:02:18.454Z",
+  "finishedAt": "2026-07-25T08:02:18.454Z",
+  "rawResponse": "### 1. Centralize Child Process Record Limits\n**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R8  \n**Issue:** The child-process record limit appears as a hard-coded `128` in validation and is also asserted indirectly in `specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js`. This creates cross-file drift risk between the artifact contract and regression coverage.  \n**Suggestion:** Define/export a named constant such as `FINAL_REGRESSION_CHILD_PROCESS_LIMIT` from the artifact/test-regression layer, use it in validation/writing code, and import or mirror it through a dedicated test helper instead of duplicating `128`.\n\n### 2. Share Synthetic Child Process Record Test Helpers\n**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R8  \n**Issue:** Multiple test files introduce similar child-process record fixture construction: encoded records, `shellPrintChildProcessRecord(...)`, assertion stderr payloads, and expected persisted child records. The same synthetic record shape is being recreated across spec and unit tests.  \n**Suggestion:** Add a shared test helper for encoded child execution records, for example `makeChildAssertionRecord(...)` / `printChildProcessRecordFixture(...)`, and reuse it across `specs/340-preserve-child-diagnostics/tests/*` and `tests/unit/flow/final-regression*.test.js`.\n\n### 3. Align Child Record Naming Across Implementation And Tests\n**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R5  \n**Issue:** Naming varies across files for the same concept: `marker`, `childRecord`, `encodedChildRecord`, `childRecordError`, `ChildProcessExecutionRecord`, and `childProcesses`. This makes it harder to distinguish encoded marker lines, decoded records, and decode failures.  \n**Suggestion:** Standardize names by role: use `encodedChildProcessRecord` for marker/log lines, `childProcessRecord` for decoded records, and `childProcessRecordDecodeError` for parsing failures. Apply the same convention in implementation and tests.\n\n### 4. Unify Rejected Impl Review Triage Loading\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R6  \n**Issue:** Rejected impl-review triage lookup appears in both acceptance-review and impl-repair artifact paths, while related tests in `retry-exhaustion-defer.test.js` construct inline triage artifacts. The predicate, source-step filtering, stale/current handling, and error behavior can drift across files.  \n**Suggestion:** Centralize rejected impl-review triage loading/validation in `src/flow/lib/impl-repair-artifacts.js` or a shared artifact helper, then have acceptance-review code and tests go through that helper or a matching fixture writer.\n\n### 5. Make Stream Capture Raw-Log References Consistent\n**File:** `src/flow/lib/test-regression.js`  \n**Requirement:** R3  \n**Issue:** `ProcessStreamCapture` stores truncation metadata and content, while durable raw-log references live on `ChildProcessExecutionRecord.rawOutputPath`. `src/flow/lib/test-artifacts.js` validates stream captures separately, so the stream-level truncation contract is split across two files and object levels.  \n**Suggestion:** Put the durable raw-log reference on the stream capture value object, or add a dedicated stream reference object, then update artifact validation to require it whenever a stream capture is truncated.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Child Process Record Limits",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R8  \n**Issue:** The child-process record limit appears as a hard-coded `128` in validation and is also asserted indirectly in `specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js`. This creates cross-file drift risk between the artifact contract and regression coverage.  \n**Suggestion:** Define/export a named constant such as `FINAL_REGRESSION_CHILD_PROCESS_LIMIT` from the artifact/test-regression layer, use it in validation/writing code, and import or mirror it through a dedicated test helper instead of duplicating `128`.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Share Synthetic Child Process Record Test Helpers",
+        "body": "**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R8  \n**Issue:** Multiple test files introduce similar child-process record fixture construction: encoded records, `shellPrintChildProcessRecord(...)`, assertion stderr payloads, and expected persisted child records. The same synthetic record shape is being recreated across spec and unit tests.  \n**Suggestion:** Add a shared test helper for encoded child execution records, for example `makeChildAssertionRecord(...)` / `printChildProcessRecordFixture(...)`, and reuse it across `specs/340-preserve-child-diagnostics/tests/*` and `tests/unit/flow/final-regression*.test.js`.",
+        "file": "tests/unit/flow/final-regression.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Align Child Record Naming Across Implementation And Tests",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R5  \n**Issue:** Naming varies across files for the same concept: `marker`, `childRecord`, `encodedChildRecord`, `childRecordError`, `ChildProcessExecutionRecord`, and `childProcesses`. This makes it harder to distinguish encoded marker lines, decoded records, and decode failures.  \n**Suggestion:** Standardize names by role: use `encodedChildProcessRecord` for marker/log lines, `childProcessRecord` for decoded records, and `childProcessRecordDecodeError` for parsing failures. Apply the same convention in implementation and tests.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Unify Rejected Impl Review Triage Loading",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R6  \n**Issue:** Rejected impl-review triage lookup appears in both acceptance-review and impl-repair artifact paths, while related tests in `retry-exhaustion-defer.test.js` construct inline triage artifacts. The predicate, source-step filtering, stale/current handling, and error behavior can drift across files.  \n**Suggestion:** Centralize rejected impl-review triage loading/validation in `src/flow/lib/impl-repair-artifacts.js` or a shared artifact helper, then have acceptance-review code and tests go through that helper or a matching fixture writer.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Make Stream Capture Raw-Log References Consistent",
+        "body": "**File:** `src/flow/lib/test-regression.js`  \n**Requirement:** R3  \n**Issue:** `ProcessStreamCapture` stores truncation metadata and content, while durable raw-log references live on `ChildProcessExecutionRecord.rawOutputPath`. `src/flow/lib/test-artifacts.js` validates stream captures separately, so the stream-level truncation contract is split across two files and object levels.  \n**Suggestion:** Put the durable raw-log reference on the stream capture value object, or add a dedicated stream reference object, then update artifact validation to require it whenever a stream capture is truncated.",
+        "file": "src/flow/lib/test-regression.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

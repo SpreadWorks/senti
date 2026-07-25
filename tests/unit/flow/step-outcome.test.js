@@ -320,12 +320,28 @@ describe("typed final-regression recovery policies", () => {
     },
     {
       name: "permission",
-      input: { result: { stderr: "permission denied", exitCode: 1 } },
+      input: {
+        result: {
+          kind: "spawn-error",
+          started: false,
+          exitCode: null,
+          errorCode: "EACCES",
+          spawnError: "permission denied",
+        },
+      },
       Failure: PermissionRegressionFailure,
     },
     {
       name: "sandbox",
-      input: { result: { stderr: "sandbox restriction", exitCode: 1 } },
+      input: {
+        result: {
+          kind: "spawn-error",
+          started: false,
+          exitCode: null,
+          errorCode: null,
+          spawnError: "sandbox restriction",
+        },
+      },
       Failure: SandboxRegressionFailure,
     },
     {

@@ -21,6 +21,8 @@ import {
 } from "./test-artifacts.js";
 import { contractFromFinalRegressionArtifact } from "./flow-judgment-contract.js";
 import {
+  ChildProcessExecutionRecord,
+  ChildProcessExecutionRecordCodec,
   classifyRegression,
   commandIdentityFor,
   DEFAULT_PROCESS_HEARTBEAT_MS,
@@ -45,6 +47,7 @@ import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
   UNATTRIBUTED_EXISTING: "unattributed_existing_failure",
+  UNATTRIBUTED_UNKNOWN: "unattributed_unknown_failure",
   INFRA: "infra_failure",
   TIMEOUT: "timeout",
   DEPENDENCY: "dependency_failure",
@@ -57,6 +60,7 @@ const FAILURE_KINDS = Object.freeze({
 const FAILURE_NEXT_ACTION = Object.freeze({
   [FAILURE_KINDS.CURRENT_CHANGE]: "regression-repair",
   [FAILURE_KINDS.UNATTRIBUTED_EXISTING]: "user-confirmation",
+  [FAILURE_KINDS.UNATTRIBUTED_UNKNOWN]: "stop",
   [FAILURE_KINDS.INFRA]: "stop",
   [FAILURE_KINDS.TIMEOUT]: "stop",
   [FAILURE_KINDS.DEPENDENCY]: "stop",
@@ -68,6 +72,7 @@ const FAILURE_NEXT_ACTION = Object.freeze({
 const FAILURE_CATEGORIES = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
   EXISTING: "existing_failure",
+  UNKNOWN: "unknown",
   ENVIRONMENT: "environment",
   SANDBOX: "sandbox",
   TIMEOUT: "timeout",
@@ -98,16 +103,9 @@ const FINAL_REGRESSION_ATTEMPT_FILE_RE = /^final-regression-attempt-(\d+)\.log$/
 const MAX_FINAL_REGRESSION_ATTEMPTS = 10_000;
 const MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES = 10_000;
 const ATTEMPT_LIMIT_MESSAGE = `final-regression attempt limit exceeded (max=${MAX_FINAL_REGRESSION_ATTEMPTS})`;
-const MAX_FAILURE_EVIDENCE_CHARS = 256 * 1024;
 const MAX_CHANGED_FILES_TO_MATCH = 1000;
-const FAILURE_EVIDENCE_INPUT_COUNT = 4;
-const FAILURE_EVIDENCE_JOINER_CHARS = FAILURE_EVIDENCE_INPUT_COUNT - 1;
-const MAX_FAILURE_EVIDENCE_SOURCE_CHARS = Math.floor(
-  (MAX_FAILURE_EVIDENCE_CHARS - FAILURE_EVIDENCE_JOINER_CHARS) / FAILURE_EVIDENCE_INPUT_COUNT,
-);
-const ZERO_TEST_SUMMARY_LINE = /^(?:unit|integration|acceptance):\s*0$|^#\s*(?:tests|suites|pass|fail|cancelled|skipped|todo)\s+0$/i;
-const GENERIC_COMMAND_FAILURE_LINE = /^command failed(?::|\s)/i;
 export const FINAL_REGRESSION_HEARTBEAT_MS = DEFAULT_PROCESS_HEARTBEAT_MS;
+const CHILD_PROCESS_RECORD_CODEC = new ChildProcessExecutionRecordCodec();
 
 class TextFailureClassifier {
   constructor(pattern, FailureClass) {
@@ -209,6 +207,17 @@ class CurrentChangeRegressionFailure extends FinalRegressionFailure {
 class ExistingRegressionFailure extends FinalRegressionFailure {
   constructor() {
     super({ kind: FAILURE_KINDS.UNATTRIBUTED_EXISTING, recoveryPolicy: new ConfirmationRecoveryPolicy() });
+  }
+}
+
+class UnknownRegressionFailure extends FinalRegressionFailure {
+  constructor() {
+    super({
+      kind: FAILURE_KINDS.UNATTRIBUTED_UNKNOWN,
+      recoveryPolicy: new ResumeRecoveryPolicy({
+        resumeInstruction: "Inspect the preserved child diagnostics and classify or repair the unknown regression failure before retrying.",
+      }),
+    });
   }
 }
 
@@ -338,12 +347,19 @@ class FinalRegressionDecision {
 }
 
 class FinalRegressionFailureProfile {
-  constructor({ failure, process, fixAttempts, autoApprove = false, canValidateProceed = true }) {
+  constructor({
+    failure,
+    process,
+    childProcesses = [],
+    fixAttempts,
+    autoApprove = false,
+    canValidateProceed = true,
+  }) {
     if (!(failure instanceof FinalRegressionFailure)) throw new Error("FinalRegressionFailure is required");
     this.failureKind = failure.kind;
     this.recoveryPolicy = failure.recoveryPolicy;
     this.failureCategory = failureCategoryFor(failure.kind);
-    this.failureNature = failureNatureFor(failure.kind, process);
+    this.failureNature = failureNatureFor(failure.kind, process, childProcesses);
     this.fixAttempts = fixAttempts;
     this.recordAndProceedEligible = canValidateProceed && recordAndProceedEligibleFor(this.failureCategory, failure.kind);
     this.nextRecommendedAction = nextRecommendedActionFor({
@@ -422,6 +438,7 @@ class FinalRegressionArtifact {
     changedFileFingerprints = [],
     failureProfile = null,
     failureSummary = null,
+    childProcesses = [],
     selectedAction = null,
     remainingRisk = null,
   }) {
@@ -440,6 +457,10 @@ class FinalRegressionArtifact {
     this.rawOutputPath = rawOutputPath;
     this.rawOutputLines = rawOutputLines;
     this.process = process;
+    if (childProcesses.some((entry) => !(entry instanceof ChildProcessExecutionRecord))) {
+      throw new Error("final-regression childProcesses must contain ChildProcessExecutionRecord values");
+    }
+    this.childProcesses = Object.freeze([...childProcesses]);
     this.changedFiles = Object.freeze([...(changedFiles || [])]);
     this.commandIdentity = commandIdentity;
     this.changedFileFingerprints = Object.freeze(fingerprintSet(changedFileFingerprints));
@@ -454,7 +475,11 @@ class FinalRegressionArtifact {
     this.selectedAction = selectedAction ?? failureProfile?.selectedAction ?? null;
     this.remainingRisk = remainingRisk || failureProfile?.remainingRisk() || null;
     this.failureSummary = failureSummary;
-    this.currentDiffRelationship = this.failureCategory === FAILURE_CATEGORIES.CURRENT_CHANGE ? "current-diff" : "non-current-diff";
+    this.currentDiffRelationship = this.failureCategory === FAILURE_CATEGORIES.CURRENT_CHANGE
+      ? "current-diff"
+      : this.failureCategory === FAILURE_CATEGORIES.EXISTING
+        ? "non-current-diff"
+        : "unknown";
     this.proof = proof;
     Object.freeze(this);
   }
@@ -472,6 +497,7 @@ class FinalRegressionArtifact {
       rawOutputPath: this.rawOutputPath,
       rawOutputLines: this.rawOutputLines,
       process: this.process.toJSON(),
+      childProcesses: this.childProcesses.map((entry) => entry.toJSON()),
       changedFiles: this.changedFiles,
       ...(this.commandIdentity ? { commandIdentity: this.commandIdentity } : {}),
       changedFileFingerprints: this.changedFileFingerprints,
@@ -622,6 +648,7 @@ function fingerprintSetsEqual(a, b) {
 function failureCategoryFor(failureKind) {
   if (failureKind === FAILURE_KINDS.CURRENT_CHANGE) return FAILURE_CATEGORIES.CURRENT_CHANGE;
   if (failureKind === FAILURE_KINDS.UNATTRIBUTED_EXISTING) return FAILURE_CATEGORIES.EXISTING;
+  if (failureKind === FAILURE_KINDS.UNATTRIBUTED_UNKNOWN) return FAILURE_CATEGORIES.UNKNOWN;
   if (failureKind === FAILURE_KINDS.TIMEOUT) return FAILURE_CATEGORIES.TIMEOUT;
   if (failureKind === FAILURE_KINDS.DEPENDENCY) return FAILURE_CATEGORIES.DEPENDENCY;
   if (failureKind === FAILURE_KINDS.SANDBOX || failureKind === FAILURE_KINDS.CHILD_PROCESS_EPERM) return FAILURE_CATEGORIES.SANDBOX;
@@ -631,8 +658,12 @@ function failureCategoryFor(failureKind) {
   return FAILURE_CATEGORIES.ENVIRONMENT;
 }
 
-function failureNatureFor(failureKind, process) {
-  if (failureKind === FAILURE_KINDS.UNATTRIBUTED_EXISTING || failureKind === FAILURE_KINDS.CURRENT_CHANGE) return "assertion";
+function failureNatureFor(failureKind, process, childProcesses = []) {
+  if (childProcesses.some((entry) => entry.kind === "assertion-failure")) return "assertion";
+  if (
+    childProcesses.length === 0
+    && (failureKind === FAILURE_KINDS.UNATTRIBUTED_EXISTING || failureKind === FAILURE_KINDS.CURRENT_CHANGE)
+  ) return "assertion";
   if (process?.started === false || process?.spawnError || process?.timedOut) return "execution";
   return "execution";
 }
@@ -642,6 +673,7 @@ function recordAndProceedEligibleFor(category, failureKind) {
     failureKind === FAILURE_KINDS.INVALID_PROJECT_TEST
     || failureKind === FAILURE_KINDS.CURRENT_CHANGE
     || failureKind === FAILURE_KINDS.INFRA
+    || failureKind === FAILURE_KINDS.UNATTRIBUTED_UNKNOWN
   ) return false;
   return RECORD_AND_PROCEED_CATEGORIES.has(category);
 }
@@ -890,12 +922,6 @@ function recoverStaleTestEvidence({ root, state, specDir, flowManager }) {
   };
 }
 
-function classifyChangeScope({ root, state, config, changedFiles }) {
-  const analysis = readAnalysisIfExists(root);
-  const classification = classifyRegression({ root, state, analysis, config, changedFiles });
-  return classification.required ? "current-change" : "pre-existing";
-}
-
 function boundedText(value, maxChars) {
   const text = String(value ?? "");
   if (text.length <= maxChars) return text;
@@ -903,37 +929,6 @@ function boundedText(value, maxChars) {
   const head = Math.floor((maxChars - 1) / 2);
   const tail = maxChars - 1 - head;
   return `${text.slice(0, head)}\n${text.slice(-tail)}`;
-}
-
-function boundedEvidenceSource(value) {
-  return boundedText(value, MAX_FAILURE_EVIDENCE_SOURCE_CHARS);
-}
-
-function failureEvidenceText(result, discoveryError) {
-  const text = [
-    discoveryError?.message,
-    result?.spawnError,
-    result?.stdout,
-    result?.stderr,
-  ].map(boundedEvidenceSource).join("\n");
-  return boundedText(text, MAX_FAILURE_EVIDENCE_CHARS);
-}
-
-function hasOnlyZeroTestSummary(result) {
-  const lines = [result?.stdout, result?.stderr]
-    .flatMap((value) => String(value ?? "").split(/\r?\n/))
-    .map((line) => line.trim())
-    .filter(Boolean);
-  let sawZeroSummary = false;
-  for (const line of lines) {
-    if (ZERO_TEST_SUMMARY_LINE.test(line)) {
-      sawZeroSummary = true;
-      continue;
-    }
-    if (GENERIC_COMMAND_FAILURE_LINE.test(line)) continue;
-    return false;
-  }
-  return sawZeroSummary;
 }
 
 function assertionFailureBlocks(result) {
@@ -957,10 +952,6 @@ function assertionFailureBlocks(result) {
 
 function firstAssertionFailureBlockLines(result) {
   return assertionFailureBlocks(result)?.[0] || null;
-}
-
-function allAssertionFailureBlockLines(result) {
-  return assertionFailureBlocks(result)?.flat() || null;
 }
 
 function normalizeFailureMatchText(text) {
@@ -1017,30 +1008,93 @@ function changedFilesWithinMatchLimit(changedFiles) {
   return files.length <= MAX_CHANGED_FILES_TO_MATCH ? files : null;
 }
 
-export function classifyFinalRegressionFailure({ result, discoveryError = null, root = null, state = null, config = {}, changedFiles = [] }) {
-  const assertionLines = discoveryError ? null : allAssertionFailureBlockLines(result);
-  const text = assertionLines ? assertionLines.join("\n") : failureEvidenceText(result, discoveryError);
-  const normalizedText = normalizeFailureMatchText(text);
-  if (discoveryError) return new InvalidCommandRegressionFailure();
-  if (result?.timedOut) return new TimeoutRegressionFailure();
-  if (normalizedText.trim() === "" && result?.exitCode) return new InfrastructureRegressionFailure();
-  if (result?.exitCode && hasOnlyZeroTestSummary(result)) return new InfrastructureRegressionFailure();
-  if (/^command failed:/.test(normalizedText.trim()) && result?.exitCode) return new InfrastructureRegressionFailure();
+function hasConcreteUnchangedFailurePath(normalizedText, changedFiles) {
+  const changed = new Set(
+    (changedFiles || [])
+      .map(changedFilePath)
+      .filter(Boolean)
+      .map((entry) => normalizeFailureMatchText(entry).replace(/^\.\//, "")),
+  );
+  const matches = normalizedText.matchAll(/\b(?:src|tests)\/[a-z0-9_.\-/]+/g);
+  for (const match of matches) {
+    const candidate = match[0].replace(/[.,;:)]+$/, "");
+    if (!changed.has(candidate)) return true;
+  }
+  return false;
+}
+
+function classifyChildProcessFailure(childProcesses, changedFiles) {
+  if (childProcesses.length === 0) return null;
+  const failures = childProcesses.filter((entry) => entry.kind !== "passed");
+  if (failures.length === 0) return new UnknownRegressionFailure();
+  if (failures.some((entry) => entry.kind === "timeout")) return new TimeoutRegressionFailure();
+  const executionFailureText = normalizeFailureMatchText(
+    failures
+      .flatMap((entry) => [entry.errorCode, entry.spawnError])
+      .filter(Boolean)
+      .join("\n"),
+  );
   for (const classifier of TEXT_FAILURE_CLASSIFIERS) {
-    const failure = classifier.classify(normalizedText);
+    const failure = classifier.classify(executionFailureText);
     if (failure) return failure;
   }
-  if (result?.signal) return new InfrastructureRegressionFailure();
-  if (result?.exitCode === 127) return new DependencyRegressionFailure();
+  const normalizedText = normalizeFailureMatchText(
+    failures
+      .flatMap((entry) => [entry.stdout.content, entry.stderr.content])
+      .filter(Boolean)
+      .join("\n"),
+  );
+  if (failures.some((entry) => entry.kind === "signal" || entry.kind === "max-buffer")) {
+    return new InfrastructureRegressionFailure();
+  }
   const changedFilesForMatching = changedFilesWithinMatchLimit(changedFiles);
-  if (!changedFilesForMatching || !root || !state) return new InfrastructureRegressionFailure();
-  if (classifyChangeScope({ root, state, config, changedFiles }) === "pre-existing") {
+  if (!changedFilesForMatching) return new UnknownRegressionFailure();
+  if (failureReferencesChangedFile(normalizedText, changedFilesForMatching)) {
+    return new CurrentChangeRegressionFailure();
+  }
+  if (
+    failures.some((entry) => entry.kind === "assertion-failure")
+    && hasConcreteUnchangedFailurePath(normalizedText, changedFilesForMatching)
+  ) {
     return new ExistingRegressionFailure();
   }
-  if (!failureReferencesChangedFile(normalizedText, changedFilesForMatching)) {
-    return new ExistingRegressionFailure();
+  return new UnknownRegressionFailure();
+}
+
+function decodeChildProcessRecords(result, rawOutputPath) {
+  const text = `${String(result?.stdout || "")}\n${String(result?.stderr || "")}`;
+  return CHILD_PROCESS_RECORD_CODEC.decodeAll(text)
+    .map((record) => record.withRawOutputPath(rawOutputPath));
+}
+
+export function classifyFinalRegressionFailure({
+  result,
+  discoveryError = null,
+  changedFiles = [],
+  childProcesses = [],
+  childRecordError = null,
+}) {
+  if (discoveryError) return new InvalidCommandRegressionFailure();
+  if (childRecordError) return new InfrastructureRegressionFailure();
+  if (result?.timedOut) return new TimeoutRegressionFailure();
+  const childFailure = classifyChildProcessFailure(childProcesses, changedFiles);
+  if (childProcesses.some((entry) => entry.kind !== "passed") && childFailure) {
+    return childFailure;
   }
-  return new CurrentChangeRegressionFailure();
+  if (result?.signal) return new InfrastructureRegressionFailure();
+  if (result?.kind === "spawn-error" || result?.kind === "max-buffer" || result?.started === false || result?.spawnError) {
+    const processFailureText = normalizeFailureMatchText(
+      [result?.errorCode, result?.spawnError].filter(Boolean).join("\n"),
+    );
+    for (const classifier of TEXT_FAILURE_CLASSIFIERS) {
+      const failure = classifier.classify(processFailureText);
+      if (failure) return failure;
+    }
+    return new InfrastructureRegressionFailure();
+  }
+  if (result?.exitCode === 127) return new DependencyRegressionFailure();
+  if (childFailure) return childFailure;
+  return new UnknownRegressionFailure();
 }
 
 function nextFinalRegressionAttempt(specDir) {
@@ -1225,6 +1279,8 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     let discoveryError = null;
     let skipDecision = null;
     let commandSource = null;
+    let childProcesses = [];
+    let childRecordError = null;
 
     if (rootOk) {
         changedFiles = finalRegressionFreshnessFiles(
@@ -1280,9 +1336,6 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       }
       if (!skipDecision) {
         resultStatus = !discoveryError && processPassed(result) ? "pass" : "fail";
-        failure = resultStatus === "pass"
-          ? null
-          : classifyFinalRegressionFailure({ result, discoveryError, root, state, config, changedFiles });
       }
     } else {
       result = FinalRegressionProcessResultFactory.rootMismatch(
@@ -1290,6 +1343,26 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       );
       resultStatus = "fail";
       failure = new InfrastructureRegressionFailure();
+    }
+
+    if (rootOk && !skipDecision) {
+      try {
+        childProcesses = decodeChildProcessRecords(result, rawOutputPathRelative);
+      } catch (err) {
+        childRecordError = err;
+      }
+      failure = resultStatus === "pass"
+        ? null
+        : classifyFinalRegressionFailure({
+          result,
+          discoveryError,
+          root,
+          state,
+          config,
+          changedFiles,
+          childProcesses,
+          childRecordError,
+        });
     }
 
     const failureKind = failure?.kind || null;
@@ -1303,6 +1376,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       ? new FinalRegressionFailureProfile({
         failure,
         process: new FinalRegressionProcess(result),
+        childProcesses,
         fixAttempts: countFixAttempts({
           failures: previousFailures,
           commandIdentity,
@@ -1332,6 +1406,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
         `command: ${commandText || "<unresolved>"}`,
         ...(commandSource ? [`commandSource: ${commandSource}`] : []),
         ...processOutputLines(result),
+        ...(childRecordError ? [`childRecordError: ${childRecordError.message}`] : []),
         `result: ${resultStatus}`,
         ...(failureKind ? [`failureKind: ${failureKind}`, `retryable: ${decision.retryable}`, `nextAction: ${decision.nextAction}`] : []),
         `[senti] final regression end result=${resultStatus}`,
@@ -1346,6 +1421,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       rawOutputPath: rawOutputPathRelative,
       rawOutputLines: range,
       process: new FinalRegressionProcess(result),
+      childProcesses,
       changedFiles: fingerprintedChangedFiles,
       decision,
       skipKind: skipDecision?.skipKind || null,

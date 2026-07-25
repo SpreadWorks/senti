@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/acceptance-review-artifacts.js"
+    ],
+    "inputHash": "ab72fe03ddbcfb8bbcc1e3434d4aff66e812c2471d11c5ecd3864f89d45f0895",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "src/flow/lib/acceptance-review-artifacts.js"
+  ],
+  "inputHash": "ab72fe03ddbcfb8bbcc1e3434d4aff66e812c2471d11c5ecd3864f89d45f0895",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:26:13.552Z",
+  "finishedAt": "2026-07-25T08:26:13.552Z",
+  "rawResponse": "### 1. Preserve repair-state gating in rejected triage helper\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `readRejectedImplReviewTriageForVerdict()` now reads `impl-triage.json` whenever the verdict is `\"REJECTED\"`, but the previous call sites only did this when `impl-repair.json` did not exist. This changes behavior and makes repaired reviews still load rejected triage.  \n**Suggestion:** Move the repair-existence check into the helper, e.g. `readRejectedImplReviewTriageForVerdict(specDir, verdict)` should return `null` unless `verdict === \"REJECTED\"` and `impl-repair.json` is absent. That preserves the old behavior while still removing duplication.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Preserve repair-state gating in rejected triage helper",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `readRejectedImplReviewTriageForVerdict()` now reads `impl-triage.json` whenever the verdict is `\"REJECTED\"`, but the previous call sites only did this when `impl-repair.json` did not exist. This changes behavior and makes repaired reviews still load rejected triage.  \n**Suggestion:** Move the repair-existence check into the helper, e.g. `readRejectedImplReviewTriageForVerdict(specDir, verdict)` should return `null` unless `verdict === \"REJECTED\"` and `impl-repair.json` is absent. That preserves the old behavior while still removing duplication.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

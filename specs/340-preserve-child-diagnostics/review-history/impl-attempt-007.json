@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T06:24:35.663Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-acceptance-tests",
+      "title": "Acceptance tests are not included",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R8",
+      "issue": "The implementation changes the final-regression artifact schema, child-process record codec, test runner emission, and failure classification behavior, but the touched file set does not include either acceptance test file listed for the feature. This leaves the typed disposition policy without executable evidence for the required end-to-end behavior.",
+      "suggestion": "Add or update the relevant acceptance coverage in `specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js` and/or `specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js` to assert the child diagnostic records, artifact fields, and classification outcomes introduced by this change.",
+      "disposition": "must-fix",
+      "rationale": "R8 maps to both implementation files and the feature acceptance tests. Because the change modifies the required observable contract but provides no touched acceptance test evidence, this is a mandatory missing acceptance requirement rather than an optional quality improvement.",
+      "findingId": "9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1",
+      "fingerprint": "9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "ba8fd1175e820dee58b4e8f388b02d8da4e01e7a738d46f3f8f30afd6cf66466",
+  "runId": "5a9e6405-9da2-43b9-8d4c-cbe629d4fbfb",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/340-preserve-child-diagnostics/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "62688026e81bf1db8a3365bf2e30cd36f5b8b45b98251e17b6c3e31994125635"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1",
+      "findingId": "9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Acceptance tests are not included",
+      "body": "The implementation changes the final-regression artifact schema, child-process record codec, test runner emission, and failure classification behavior, but the touched file set does not include either acceptance test file listed for the feature. This leaves the typed disposition policy without executable evidence for the required end-to-end behavior.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1",
+      "disposition": "must-fix",
+      "rationale": "R8 maps to both implementation files and the feature acceptance tests. Because the change modifies the required observable contract but provides no touched acceptance test evidence, this is a mandatory missing acceptance requirement rather than an optional quality improvement.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "5a9e6405-9da2-43b9-8d4c-cbe629d4fbfb",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T06:20:08.655Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added test expects `failureKind: \"infrastructure_failure\"`, but the implementation and final-regression artifact validator use `\"infra_failure\"` as the valid infrastructure failure kind, so this project test is inconsistent with the implemented enum and would fail.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+            "locator": "R8 typed timeout signal and spawn-error records drive classification without reruns: signal case failureKind"
+          },
+          "observed": "The added test expects `failureKind: \"infrastructure_failure\"`, but the implementation and final-regression artifact validator use `\"infra_failure\"` as the valid infrastructure failure kind, so this project test is inconsistent with the implemented enum and would fail.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "a2c177c8155332eb711b5a0732a7b68fccbb8aeca174eee062a9ef0313a44bc5",
+      "fingerprint": "a2c177c8155332eb711b5a0732a7b68fccbb8aeca174eee062a9ef0313a44bc5",
+      "disposition": "must-fix",
+      "rationale": "The added test expects `failureKind: \"infrastructure_failure\"`, but the implementation and final-regression artifact validator use `\"infra_failure\"` as the valid infrastructure failure kind, so this project test is inconsistent with the implemented enum and would fail.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-25T06:20:08.655Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+        "locator": "R8 typed timeout signal and spawn-error records drive classification without reruns: signal case failureKind"
+      },
+      "observed": "The added test expects `failureKind: \"infrastructure_failure\"`, but the implementation and final-regression artifact validator use `\"infra_failure\"` as the valid infrastructure failure kind, so this project test is inconsistent with the implemented enum and would fail.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "5bc094e32c5be962ef85cf46a6a3e86b463aa3a8e53991fc58f8760653240191",
+      "fingerprint": "5bc094e32c5be962ef85cf46a6a3e86b463aa3a8e53991fc58f8760653240191",
+      "disposition": "must-fix",
+      "rationale": "The added test expects `failureKind: \"infrastructure_failure\"`, but the implementation and final-regression artifact validator use `\"infra_failure\"` as the valid infrastructure failure kind, so this project test is inconsistent with the implemented enum and would fail.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-25T06:20:08.655Z",
+      "repeatCount": 1
+    }
+  ]
+}

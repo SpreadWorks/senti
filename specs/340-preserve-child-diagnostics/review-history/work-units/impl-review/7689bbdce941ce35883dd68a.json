@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "7689bbdce941ce35883dd68a",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-d98275af3cd1f9c3",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+      "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/test-artifacts.js",
+      "src/flow/lib/test-regression.js",
+      "tests/unit/flow/final-regression-record-and-proceed.test.js",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/step-outcome.test.js"
+    ],
+    "inputHash": "d98275af3cd1f9c303813b61fc1547443d17f983ca949c23a726306a520d6e5b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "7689bbdce941ce35883dd68a"
+  },
+  "targetFiles": [
+    "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+    "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/test-artifacts.js",
+    "src/flow/lib/test-regression.js",
+    "tests/unit/flow/final-regression-record-and-proceed.test.js",
+    "tests/unit/flow/final-regression.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/step-outcome.test.js"
+  ],
+  "inputHash": "d98275af3cd1f9c303813b61fc1547443d17f983ca949c23a726306a520d6e5b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:26:30.193Z",
+  "finishedAt": "2026-07-25T08:26:30.193Z",
+  "rawResponse": "### 1. Centralize Child Process Kind Constants\n**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** Child process kind strings are validated in `test-artifacts.js` while related completion/exit semantics are encoded separately in `test-regression.js`. This creates two cross-file sources of truth for the same child-process record interface.  \n**Suggestion:** Export shared constants or predicates from the child execution model module, such as `CHILD_PROCESS_KINDS` and `isCompletedExitKind(kind)`, and reuse them in artifact validation and result construction.\n\n### 2. Share Child Process Record Fixture Helpers\n**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R8  \n**Issue:** Multiple test files now build synthetic child-process records independently: `final-regression.test.js`, `final-regression-record-and-proceed.test.js`, `step-outcome.test.js`, and the spec evidence tests. These fixtures represent the same record interface but are duplicated with slightly different helper names and construction styles.  \n**Suggestion:** Add a shared test helper for child process records, for example `tests/helpers/child-process-records.js`, with focused builders like `childAssertionRecord(...)`, `spawnErrorRecord(...)`, and `shellPrintChildProcessRecord(...)`.\n\n### 3. Unify Impl Triage Artifact Reading Names\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `acceptance-review-artifacts.js` introduces `readRejectedImplReviewTriageForVerdict`, while `impl-repair-artifacts.js` has `readRejectedImplReviewTriage`. The names are close but encode different gating responsibilities, which makes the artifact interface ambiguous across files.  \n**Suggestion:** Consolidate the verdict/repair gating into one clearly named helper, such as `readRejectedImplReviewTriageForAcceptanceVerdict(...)`, or expose one lower-level reader plus one higher-level gated reader with distinct names.\n\n### 4. Centralize Final Regression Execution Test Helpers\n**File:** `specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js`  \n**Requirement:** R7  \n**Issue:** Final regression tests under both `specs/...` and `tests/unit/flow/...` repeat execution, artifact reading, invocation count checks, and current-change setup using local-only helpers or inline code. This duplicates workflow mechanics across test suites.  \n**Suggestion:** Move common final-regression fixture operations into a shared helper module so spec and unit tests use the same names for setup, execution, and artifact assertions.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Child Process Kind Constants",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** Child process kind strings are validated in `test-artifacts.js` while related completion/exit semantics are encoded separately in `test-regression.js`. This creates two cross-file sources of truth for the same child-process record interface.  \n**Suggestion:** Export shared constants or predicates from the child execution model module, such as `CHILD_PROCESS_KINDS` and `isCompletedExitKind(kind)`, and reuse them in artifact validation and result construction.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Share Child Process Record Fixture Helpers",
+        "body": "**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R8  \n**Issue:** Multiple test files now build synthetic child-process records independently: `final-regression.test.js`, `final-regression-record-and-proceed.test.js`, `step-outcome.test.js`, and the spec evidence tests. These fixtures represent the same record interface but are duplicated with slightly different helper names and construction styles.  \n**Suggestion:** Add a shared test helper for child process records, for example `tests/helpers/child-process-records.js`, with focused builders like `childAssertionRecord(...)`, `spawnErrorRecord(...)`, and `shellPrintChildProcessRecord(...)`.",
+        "file": "tests/unit/flow/final-regression.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Unify Impl Triage Artifact Reading Names",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `acceptance-review-artifacts.js` introduces `readRejectedImplReviewTriageForVerdict`, while `impl-repair-artifacts.js` has `readRejectedImplReviewTriage`. The names are close but encode different gating responsibilities, which makes the artifact interface ambiguous across files.  \n**Suggestion:** Consolidate the verdict/repair gating into one clearly named helper, such as `readRejectedImplReviewTriageForAcceptanceVerdict(...)`, or expose one lower-level reader plus one higher-level gated reader with distinct names.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Centralize Final Regression Execution Test Helpers",
+        "body": "**File:** `specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js`  \n**Requirement:** R7  \n**Issue:** Final regression tests under both `specs/...` and `tests/unit/flow/...` repeat execution, artifact reading, invocation count checks, and current-change setup using local-only helpers or inline code. This duplicates workflow mechanics across test suites.  \n**Suggestion:** Move common final-regression fixture operations into a shared helper module so spec and unit tests use the same names for setup, execution, and artifact assertions.",
+        "file": "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

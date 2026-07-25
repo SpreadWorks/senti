@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0bdf3b707356690edf741e13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0000",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js"
+    ],
+    "inputHash": "31c553915cc14385cd81802a38cccce40410c1d0585bba668e309b7e9c9143bf",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0bdf3b707356690edf741e13"
+  },
+  "targetFiles": [
+    "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js"
+  ],
+  "inputHash": "31c553915cc14385cd81802a38cccce40410c1d0585bba668e309b7e9c9143bf",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:58:47.134Z",
+  "finishedAt": "2026-07-25T07:58:47.134Z",
+  "rawResponse": "### 1. Rename misleading truncation case variable\n**File:** `specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js`  \n**Requirement:** R2  \n**Issue:** `truncatedPrefix` is misleading because the test verifies late `ERR_ASSERTION` evidence is retained under a byte limit, which appears to be suffix/tail-preserving behavior.  \n**Suggestion:** Rename it to something like `truncatedAssertionEvidence` or `tailPreservedAssertion` so the test intent matches the behavior being asserted.\n\n### 2. Add a helper for encoded diagnostic records\n**File:** `specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js`  \n**Requirement:** R8  \n**Issue:** Several codec tests repeat the same setup: load `ChildProcessExecutionRecordCodec`, instantiate it, build a child result, and encode it.  \n**Suggestion:** Extract a small helper such as `encodedRecord(spawnOptions, processOptions)` returning `{ codec, line, result }`. This would reduce duplication and make the overflow tests easier to scan.\n\n### 3. Make the spawn-count guard fail at the point of violation\n**File:** `specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js`  \n**Requirement:** R4  \n**Issue:** The runner test checks `spawnCount` only after execution. If an unexpected third spawn happens, `planned.shift()` returns `undefined`, producing an indirect failure.  \n**Suggestion:** In the fake `spawn`, assert or throw before shifting when `planned.length === 0`, e.g. `assert.ok(planned.length > 0, \"unexpected extra spawn\")`. This directly enforces the “zero additional spawns” behavior.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Rename misleading truncation case variable",
+        "body": "**File:** `specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js`  \n**Requirement:** R2  \n**Issue:** `truncatedPrefix` is misleading because the test verifies late `ERR_ASSERTION` evidence is retained under a byte limit, which appears to be suffix/tail-preserving behavior.  \n**Suggestion:** Rename it to something like `truncatedAssertionEvidence` or `tailPreservedAssertion` so the test intent matches the behavior being asserted.",
+        "file": "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Add a helper for encoded diagnostic records",
+        "body": "**File:** `specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js`  \n**Requirement:** R8  \n**Issue:** Several codec tests repeat the same setup: load `ChildProcessExecutionRecordCodec`, instantiate it, build a child result, and encode it.  \n**Suggestion:** Extract a small helper such as `encodedRecord(spawnOptions, processOptions)` returning `{ codec, line, result }`. This would reduce duplication and make the overflow tests easier to scan.",
+        "file": "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Make the spawn-count guard fail at the point of violation",
+        "body": "**File:** `specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js`  \n**Requirement:** R4  \n**Issue:** The runner test checks `spawnCount` only after execution. If an unexpected third spawn happens, `planned.shift()` returns `undefined`, producing an indirect failure.  \n**Suggestion:** In the fake `spawn`, assert or throw before shifting when `planned.length === 0`, e.g. `assert.ok(planned.length > 0, \"unexpected extra spawn\")`. This directly enforces the “zero additional spawns” behavior.",
+        "file": "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

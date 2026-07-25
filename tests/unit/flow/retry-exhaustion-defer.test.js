@@ -31,6 +31,7 @@ import {
 } from "../../../src/flow/lib/run-acceptance-review.js";
 import {
   buildRepairFingerprint,
+  readRejectedImplReviewTriage,
   writeRepairEvidenceArtifact,
 } from "../../../src/flow/lib/impl-repair-artifacts.js";
 import {
@@ -1002,6 +1003,101 @@ test("acceptance-review rewinds stale fingerprint evidence to test execution", (
     assert.equal(fs.existsSync(path.join(fixture.specDir, relativePath)), false, relativePath);
   }
   assert.equal(fs.existsSync(path.join(fixture.specDir, "scenario-validity-result.json")), true);
+});
+
+test("acceptance-review recognizes rejected latest triage after an earlier repair", () => {
+  const fixture = prepareSpecRoot();
+  const previousFingerprint = prepareAcceptanceEvidence(fixture);
+  const finding = semanticFinding("latest-rejected-finding");
+  writeRepairEvidenceArtifact({
+    specDir: fixture.specDir,
+    stepId: "impl-review",
+    fingerprint: previousFingerprint,
+    artifact: {
+      version: 1,
+      phase: "impl",
+      generatedAt: new Date().toISOString(),
+      verdict: "REJECTED",
+      summary: { blocking: 1, nonBlocking: 0, total: 1 },
+      blockingFindings: [finding],
+      nonBlockingImprovements: [],
+      excluded: { missingFile: 0, outOfScope: 0 },
+    },
+  });
+  writeJson(fixture.specDir, "impl-triage.json", {
+    version: 2,
+    phase: "impl-triage",
+    sourceStep: "impl-review",
+    sourceArtifact: "impl-review.json",
+    previousFingerprint: previousFingerprint.toReference(),
+    generatedAt: new Date().toISOString(),
+    items: [{
+      findingId: finding.findingId,
+      sourceStep: "impl-review",
+      decision: "reject",
+      rationale: "The approved specification requires the implemented behavior.",
+      evidenceRefs: [`impl-review.json#${finding.findingId}`],
+    }],
+  });
+  writeJson(fixture.specDir, "impl-repair.json", {});
+
+  writeFile(fixture.root, "src/demo.js", "export const demo = 'post-repair';\n");
+  const currentFingerprint = buildRepairFingerprint({
+    root: fixture.root,
+    specPath: fixture.specPath,
+  });
+  const testExecute = JSON.parse(fs.readFileSync(
+    path.join(fixture.specDir, "test-execute-result.json"),
+    "utf8",
+  ));
+  writeRepairEvidenceArtifact({
+    specDir: fixture.specDir,
+    stepId: "test-execute",
+    fingerprint: currentFingerprint,
+    artifact: testExecute,
+  });
+
+  const context = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state: {
+      spec: fixture.specPath,
+      runId: "run-test",
+      planRewindAt: null,
+      request: "Verify the latest rejected triage.",
+    },
+    diff: [
+      "diff --git a/src/demo.js b/src/demo.js",
+      "--- a/src/demo.js",
+      "+++ b/src/demo.js",
+      "@@ -1 +1 @@",
+      "-export const demo = true;",
+      "+export const demo = 'post-repair';",
+      "",
+    ].join("\n"),
+  });
+
+  assert.equal(
+    context.mechanicalBlockers.some((blocker) => blocker.kind === "failed_tests"),
+    false,
+  );
+  assert.equal(
+    context.mechanicalBlockers.some((blocker) => (
+      blocker.summary === "Required artifact is invalid: impl-repair.json."
+    )),
+    true,
+  );
+});
+
+test("rejected impl-review lookup ignores triage owned by another source step", () => {
+  const fixture = prepareSpecRoot();
+  writeJson(fixture.specDir, "impl-triage.json", {
+    version: 2,
+    phase: "impl-triage",
+    sourceStep: "acceptance-review",
+    sourceArtifact: "missing-acceptance-review.json",
+  });
+
+  assert.equal(readRejectedImplReviewTriage(fixture.specDir), null);
 });
 
 test("integration gate rewinds stale fingerprint evidence before semantic evaluation", () => {

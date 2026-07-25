@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T06:14:56.650Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-r8-coverage",
+      "title": "Required R8 proof is not implemented",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R8",
+      "issue": "The touched test surface only adds marker emission in tests/run.js; it does not add assertions or fixtures proving retained-surface behavior parity, artifact/classification behavior, malformed/absent marker handling, unknown recovery, truncation, or zero diagnostic reruns required by R8.",
+      "suggestion": "Add spec-local command-level tests for the R8 scenarios, including spies around runProcessDetailed and nested spawn execution counts, plus artifact validation/classification assertions for child assertion, silent non-zero, timeout, signal, spawn-error, truncation, and malformed/absent marker cases.",
+      "disposition": "must-fix",
+      "rationale": "R8 is an explicit acceptance criterion and the implementation changes final-regression classification and artifact shape without the required proof that existing behavior is preserved and no diagnostic reruns are introduced.",
+      "findingId": "8deb60c06e9295a2d7df3f4869f7306f6a31f3f8ec67443ddf732c0d5e79ca9a",
+      "fingerprint": "8deb60c06e9295a2d7df3f4869f7306f6a31f3f8ec67443ddf732c0d5e79ca9a",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "d695058f82ccd59c3366dfcdb3a76224bb7f8655b23ac17527e1d7f14afbbe25",
+  "runId": "5a9e6405-9da2-43b9-8d4c-cbe629d4fbfb",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/340-preserve-child-diagnostics/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/340-preserve-child-diagnostics/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "4f1be04fc5d367db610257ed86590f7b04f7c27addea2df6daf28314b1bcaba3"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "8deb60c06e9295a2d7df3f4869f7306f6a31f3f8ec67443ddf732c0d5e79ca9a",
+      "findingId": "8deb60c06e9295a2d7df3f4869f7306f6a31f3f8ec67443ddf732c0d5e79ca9a",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Required R8 proof is not implemented",
+      "body": "The touched test surface only adds marker emission in tests/run.js; it does not add assertions or fixtures proving retained-surface behavior parity, artifact/classification behavior, malformed/absent marker handling, unknown recovery, truncation, or zero diagnostic reruns required by R8.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "8deb60c06e9295a2d7df3f4869f7306f6a31f3f8ec67443ddf732c0d5e79ca9a",
+      "disposition": "must-fix",
+      "rationale": "R8 is an explicit acceptance criterion and the implementation changes final-regression classification and artifact shape without the required proof that existing behavior is preserved and no diagnostic reruns are introduced.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    }
+  ]
+}

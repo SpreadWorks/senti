@@ -1,0 +1,1597 @@
+{
+  "entries": [
+    {
+      "step": "draft-questions-repair",
+      "reason": "draft question six entries embedded recommendation text and required a review-driven correction",
+      "trigger": "draft-questions-review returned six Embedded Recommendation In Question repair targets",
+      "resolution": "removed recommendation sentences and preserved only self-contained pending question text",
+      "guardrailCandidate": "pending draft questions must contain only the question and keep recommendation evidence outside the question field",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:45:47.403Z",
+      "issueLogId": "issue-log-996bdf94-13ca-4b4a-9772-d9ecb83e9ec9"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Question q1 provides a recommended answer, but its stated basis is the approved preflight summary and Issue #463 scope rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.; Question q2 provides a recommended answer, but its stated basis is Issue #463 Proposed Change rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.; Question q3 provides a recommended answer, but its stated basis is Issue #463 Proposed Change and Acceptance Criteria rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.; Question q5 provides a recommended answer, but its stated basis is Issue #463 Acceptance Criteria rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.; Question q6 provides a recommended answer, but its stated basis is Issue #463 Scope, Acceptance Criteria, and Validation rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:47:46.479Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "Content",
+            "locator": "qa[0].evidence / qa[0].why"
+          },
+          "observed": "Question q1 provides a recommended answer, but its stated basis is the approved preflight summary and Issue #463 scope rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "Content",
+            "locator": "qa[1].evidence / qa[1].why"
+          },
+          "observed": "Question q2 provides a recommended answer, but its stated basis is Issue #463 Proposed Change rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "Content",
+            "locator": "qa[2].evidence / qa[2].why"
+          },
+          "observed": "Question q3 provides a recommended answer, but its stated basis is Issue #463 Proposed Change and Acceptance Criteria rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "Content",
+            "locator": "qa[4].evidence / qa[4].why"
+          },
+          "observed": "Question q5 provides a recommended answer, but its stated basis is Issue #463 Acceptance Criteria rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "Content",
+            "locator": "qa[5].evidence / qa[5].why"
+          },
+          "observed": "Question q6 provides a recommended answer, but its stated basis is Issue #463 Scope, Acceptance Criteria, and Validation rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q1 provides a recommended answer, but its stated basis is the approved preflight summary and Issue #463 scope rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q2 provides a recommended answer, but its stated basis is Issue #463 Proposed Change rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q3 provides a recommended answer, but its stated basis is Issue #463 Proposed Change and Acceptance Criteria rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q5 provides a recommended answer, but its stated basis is Issue #463 Acceptance Criteria rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q6 provides a recommended answer, but its stated basis is Issue #463 Scope, Acceptance Criteria, and Validation rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns."
+        }
+      ],
+      "issueLogId": "issue-log-8639bd2b-be06-40f7-b9aa-643fd6683756"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate rejected five QA recommendations because their reasoning cited only Issue content",
+      "trigger": "draft gate reported five draft-recommend-with-reasoning guardrail violations",
+      "resolution": "added guardrail or existing code pattern evidence to every QA recommendation and rescanned all entries",
+      "guardrailCandidate": "draft QA recommendations must tie Issue-derived answers to docs guardrails or verified existing code patterns",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:48:32.994Z",
+      "issueLogId": "issue-log-12f1e0fb-47fb-432c-891f-8f5cc18da68c"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft changes/replaces existing final-regression classification and artifact behavior, but does not inventory the existing public behavior being replaced across affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.; The draft states existing execution order, aggregate exit code, pass/skipped paths, and retry policy will be maintained, but does not map each retained public behavior to its new owner or explicitly decide removal.; The validation plan lists fixtures and artifact/raw-log assertions, but does not include behavior-level verification for each retained public surface affected by the replaced final-regression classification and artifact behavior.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:48:56.435Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft changes/replaces existing final-regression classification and artifact behavior, but does not inventory the existing public behavior being replaced across affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states existing execution order, aggregate exit code, pass/skipped paths, and retry policy will be maintained, but does not map each retained public behavior to its new owner or explicitly decide removal.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The validation plan lists fixtures and artifact/raw-log assertions, but does not include behavior-level verification for each retained public surface affected by the replaced final-regression classification and artifact behavior.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft changes/replaces existing final-regression classification and artifact behavior, but does not inventory the existing public behavior being replaced across affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states existing execution order, aggregate exit code, pass/skipped paths, and retry policy will be maintained, but does not map each retained public behavior to its new owner or explicitly decide removal."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The validation plan lists fixtures and artifact/raw-log assertions, but does not include behavior-level verification for each retained public surface affected by the replaced final-regression classification and artifact behavior."
+        }
+      ],
+      "issueLogId": "issue-log-5c080a62-5bbc-41dd-8658-b02834e36df8"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate found migration parity inventory owner mapping and per-surface verification were incomplete",
+      "trigger": "second draft gate reported three blocking migration-parity observations",
+      "resolution": "inventoried commands APIs hooks config artifacts and side effects with retained owners and behavior-level checks",
+      "guardrailCandidate": "behavior replacement drafts must map every retained public surface to an owner and explicit parity verification",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:49:35.353Z",
+      "issueLogId": "issue-log-ad59f992-e017-4db3-a36d-7a0d7270ee94"
+    },
+    {
+      "step": "test-review",
+      "reason": "static test review found missing stream forwarding and retained-surface parity assertions",
+      "trigger": "test-review returned three blocking findings for R4 R7 and R8 coverage",
+      "resolution": "added production-path forwarding retry skip proceed timeout issue-log config and invocation parity tests and clarified R8 wording",
+      "guardrailCandidate": "spec tests must exercise every retained public behavior named by migration parity instead of relying on one happy-path assertion",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:00:01.354Z",
+      "issueLogId": "issue-log-76d0c25b-5f3f-443f-9ccd-b5b8f85d9522"
+    },
+    {
+      "step": "task-review",
+      "reason": "aligned child result invariant validation with the same bounded stream captures used for outcome classification",
+      "normalizedFindingId": "7c122b0f17eb46989b866df48d6b1e15131acb7129e8923894de975ec35dc432",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/test-regression.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T06:05:21.496Z",
+      "issueLogId": "issue-log-441fbbf3-da66-488b-8674-9d664481ef3a"
+    },
+    {
+      "step": "task-review",
+      "reason": "Prioritize preserved failing child records before outer exit-code 127 dependency inference.",
+      "normalizedFindingId": "761c80fd84f04ecfb3db70b210e829cd6578a4da7e68de2ec8514b64e07e61a1",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-final-regression.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T06:13:13.301Z",
+      "issueLogId": "issue-log-c65afb4e-fdb0-4d3c-a985-49644c3eb73c"
+    },
+    {
+      "step": "task-review",
+      "reason": "Classify preserved failing child records before all non-authoritative outer text heuristics.",
+      "normalizedFindingId": "47c77e29ec0e5811d29da7670e9387aa4707575d51a78315d415a1036ba41afa",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-final-regression.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T06:14:22.142Z",
+      "issueLogId": "issue-log-ca832f85-e996-4721-be48-3cc14f092542"
+    },
+    {
+      "step": "task-review",
+      "reason": "Add command-level R8 fixtures for typed failures, malformed and absent markers, and single-invocation evidence.",
+      "normalizedFindingId": "8deb60c06e9295a2d7df3f4869f7306f6a31f3f8ec67443ddf732c0d5e79ca9a",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T06:16:20.689Z",
+      "issueLogId": "issue-log-dfe7855b-254f-4f98-8737-d5a29812d0c0"
+    },
+    {
+      "step": "task-review",
+      "reason": "Remove untyped outer-output attribution fallback and fail closed as unknown when typed child evidence is absent.",
+      "normalizedFindingId": "2c3d8607dce1c57e8220c1822de8043a895b4a7cf2cf6caf50715723704874c5",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-final-regression.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T06:19:44.451Z",
+      "issueLogId": "issue-log-0c24d9ce-d07c-4cbf-a08f-16d8d29570cd"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added test expects `failureKind: \"infrastructure_failure\"`, but the implementation and final-regression artifact validator use `\"infra_failure\"` as the valid infrastructure failure kind, so this project test is inconsistent with the implemented enum and would fail.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:20:08.830Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+            "locator": "R8 typed timeout signal and spawn-error records drive classification without reruns: signal case failureKind"
+          },
+          "observed": "The added test expects `failureKind: \"infrastructure_failure\"`, but the implementation and final-regression artifact validator use `\"infra_failure\"` as the valid infrastructure failure kind, so this project test is inconsistent with the implemented enum and would fail.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The added test expects `failureKind: \"infrastructure_failure\"`, but the implementation and final-regression artifact validator use `\"infra_failure\"` as the valid infrastructure failure kind, so this project test is inconsistent with the implemented enum and would fail."
+        }
+      ],
+      "issueLogId": "issue-log-cf3a9ed3-86ed-4848-9336-1820e9f48382"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: align the signal fixture with the canonical infra_failure enum value",
+      "resolution": "The assertion now matches FAILURE_KINDS.INFRA and the final-regression artifact validator contract.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T06:20:25.111Z",
+      "issueLogId": "issue-log-1963b60f-aa23-480d-b276-070f63078240"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-001; 2 changed path(s), delta repair-deltas/repair-001.json.",
+      "normalizedFindingId": "9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:25:50.650Z",
+      "issueLogId": "impl-repair:repair-001:9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1"
+    },
+    {
+      "step": "impl-triage",
+      "reason": "Pre-existing flow lifecycle conflict: a second all-reject triage tries to complete an already-done impl-repair step.",
+      "resolution": "Keep the R6/R7 evidence-based rejection and use the CLI recovery path rather than changing Issue 463 product behavior.",
+      "taskId": null,
+      "timestamp": "2026-07-25T06:28:29.848Z",
+      "issueLogId": "issue-log-f4f7f96f-0f30-48f0-95a3-52b199a816d5"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R7, R8",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:30:05.071Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R7, R8",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-77890a5b-1bf7-41d5-acd1-55ada87f9bbc"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: correct R7 retry/proceed fixture sequencing and the R8 infra_failure enum expectation",
+      "resolution": "The tests now model the retained first-attempt repair route followed by second-attempt record-and-proceed, and use the canonical failure kind.",
+      "taskId": null,
+      "timestamp": "2026-07-25T06:32:22.958Z",
+      "issueLogId": "issue-log-a2d4a3f2-e8fe-42cb-a29a-c8ee16deda23"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: model record-and-proceed after a material repair fingerprint change",
+      "resolution": "R7/R8 spec-local execution now passes all 18 tests and the independent artifact review verifies the refreshed evidence.",
+      "taskId": null,
+      "timestamp": "2026-07-25T06:34:50.212Z",
+      "issueLogId": "issue-log-d57c34f7-b5e3-4fed-b6e6-fd7221d12254"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding 9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1 is missing matching repair evidence; must-fix finding 83a4978074a939ea565abfd2951fd9329a932488605ef1a627cb884612e688aa is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:35:03.247Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 83a4978074a939ea565abfd2951fd9329a932488605ef1a627cb884612e688aa is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-b9094562-7da1-4738-a352-c75a44a6bc08"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Acceptance coverage now directly asserts child lifecycle fields, artifact attribution fields, retry sequencing, and classification outcomes.",
+      "normalizedFindingId": "9bd9ec324741c2278f043600a77b8a1cfe5dc7b8ce5f96faae093cd0b3a953d1",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:36:22.135Z",
+      "issueLogId": "issue-log-b094d6ea-0a35-4b6e-8d20-51d7527d7c12"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Reject change-scope attribution fallback because the clarified R6/R7 contract requires concrete preserved failure evidence.",
+      "normalizedFindingId": "83a4978074a939ea565abfd2951fd9329a932488605ef1a627cb884612e688aa",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:36:44.141Z",
+      "issueLogId": "issue-log-c1573443-c7e2-4440-a84f-9e1d7bdcdcd9"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R1] requires every nested test command to produce one typed execution record with command argv, lifecycle state, termination fields, timeout/spawn-error state, and bounded stdout/stderr captures; [EVIDENCE:R1] adds ChildProcessExecutionRecord with those fields and tests/run.js emits one codec line after each category spawn. However [CONSTRAINT:3] additionally requires stream captures to preserve a durable raw-log reference when bounded capture truncates content, and [EVIDENCE:R1] ProcessStreamCapture only serializes originalByteLength, capturedByteLength, truncated, and content, while ChildProcessExecutionRecord.rawOutputPath is optional, omitted by fromExecution(), and tests/run.js emits records without setting it. The mapped implementation therefore omits a required exact field/integration for bounded captures.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:39:07.076Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "[REQ:R1] requires every nested test command to produce one typed execution record with command argv, lifecycle state, termination fields, timeout/spawn-error state, and bounded stdout/stderr captures; [EVIDENCE:R1] adds ChildProcessExecutionRecord with those fields and tests/run.js emits one codec line after each category spawn. However [CONSTRAINT:3] additionally requires stream captures to preserve a durable raw-log reference when bounded capture truncates content, and [EVIDENCE:R1] ProcessStreamCapture only serializes originalByteLength, capturedByteLength, truncated, and content, while ChildProcessExecutionRecord.rawOutputPath is optional, omitted by fromExecution(), and tests/run.js emits records without setting it. The mapped implementation therefore omits a required exact field/integration for bounded captures.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "[REQ:R1] requires every nested test command to produce one typed execution record with command argv, lifecycle state, termination fields, timeout/spawn-error state, and bounded stdout/stderr captures; [EVIDENCE:R1] adds ChildProcessExecutionRecord with those fields and tests/run.js emits one codec line after each category spawn. However [CONSTRAINT:3] additionally requires stream captures to preserve a durable raw-log reference when bounded capture truncates content, and [EVIDENCE:R1] ProcessStreamCapture only serializes originalByteLength, capturedByteLength, truncated, and content, while ChildProcessExecutionRecord.rawOutputPath is optional, omitted by fromExecution(), and tests/run.js emits records without setting it. The mapped implementation therefore omits a required exact field/integration for bounded captures."
+        }
+      ],
+      "issueLogId": "issue-log-dab27f34-2720-4d0d-9c0d-c6b328c2adb0"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: clarify that the final-regression consumer attaches the durable attempt-log reference",
+      "resolution": "The producer marker cannot know the future attempt path; R1 owns typed record production while R3 and R5 own consumer-side durable linkage.",
+      "normalizedFindingId": "9ecbb287bc45692ec4172cbefbcb7403098e2435f1a61862b91c84d2b7b0ebe9",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:41:08.840Z",
+      "issueLogId": "issue-log-6167c514-922d-4897-9428-5766c1dde3ed"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R8] requires automated coverage for all child failure modes and [AC:8] requires affected shared unit/e2e tests to pass during test-execute plus downstream final-regression to run the full project command once without a diagnostic rerun. The mapped diff adds spec-local tests for pass/skipped/retry/timeout/issue-log/record-and-proceed/config/artifact/invocation-count behavior in specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js and child record coverage in specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js, but the provided evidence includes no test-execute or final-regression execution result proving the affected shared tests passed or that the downstream full project command ran once. Because the authoritative context explicitly requires that proof, implementation evidence is incomplete. [AC:8] [FILE-MAP:R8:1] [FILE-MAP:R8:2]",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:49:25.310Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "[REQ:R8] requires automated coverage for all child failure modes and [AC:8] requires affected shared unit/e2e tests to pass during test-execute plus downstream final-regression to run the full project command once without a diagnostic rerun. The mapped diff adds spec-local tests for pass/skipped/retry/timeout/issue-log/record-and-proceed/config/artifact/invocation-count behavior in specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js and child record coverage in specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js, but the provided evidence includes no test-execute or final-regression execution result proving the affected shared tests passed or that the downstream full project command ran once. Because the authoritative context explicitly requires that proof, implementation evidence is incomplete. [AC:8] [FILE-MAP:R8:1] [FILE-MAP:R8:2]",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R1"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "[REQ:R8] requires automated coverage for all child failure modes and [AC:8] requires affected shared unit/e2e tests to pass during test-execute plus downstream final-regression to run the full project command once without a diagnostic rerun. The mapped diff adds spec-local tests for pass/skipped/retry/timeout/issue-log/record-and-proceed/config/artifact/invocation-count behavior in specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js and child record coverage in specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js, but the provided evidence includes no test-execute or final-regression execution result proving the affected shared tests passed or that the downstream full project command ran once. Because the authoritative context explicitly requires that proof, implementation evidence is incomplete. [AC:8] [FILE-MAP:R8:1] [FILE-MAP:R8:2]"
+        }
+      ],
+      "issueLogId": "issue-log-67df651b-7e40-4fd2-8943-cd89987af863"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: clarify the gate-to-final-regression evidence boundary for R8",
+      "resolution": "Integration gate validates current spec-local evidence because final-regression runs only after gate and acceptance; final-regression remains responsible for proving the shared suite passes in one full-project invocation.",
+      "normalizedFindingId": "2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:50:13.930Z",
+      "issueLogId": "issue-log-4108496e-6048-4d7a-b104-5401b824e1fa"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R8] requires automated coverage for all child failure modes, bounded truncation/durable references, raw-log/artifact persistence, evidence-based classification, retained-surface parity, and zero additional test-process invocations; [AC:8] also requires downstream final-regression evidence from one full project command without diagnostic rerun. The mapped diff adds spec-local tests and implementation for many areas, but the R8-tagged final-regression coverage only exercises timeout, signal, and spawn-error child records, while max-buffer is only covered under an R2 test and not shown driving final-regression artifact/classification behavior. The diff also provides no execution evidence that the full project command ran once after the integration gate without a diagnostic rerun. Therefore the implementation evidence omits required R8 proof. [EVIDENCE:R8] [FILE-MAP:R8:2] [FILE-MAP:R8:5] [FILE-MAP:R8:6]",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:51:18.176Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "[REQ:R8] requires automated coverage for all child failure modes, bounded truncation/durable references, raw-log/artifact persistence, evidence-based classification, retained-surface parity, and zero additional test-process invocations; [AC:8] also requires downstream final-regression evidence from one full project command without diagnostic rerun. The mapped diff adds spec-local tests and implementation for many areas, but the R8-tagged final-regression coverage only exercises timeout, signal, and spawn-error child records, while max-buffer is only covered under an R2 test and not shown driving final-regression artifact/classification behavior. The diff also provides no execution evidence that the full project command ran once after the integration gate without a diagnostic rerun. Therefore the implementation evidence omits required R8 proof. [EVIDENCE:R8] [FILE-MAP:R8:2] [FILE-MAP:R8:5] [FILE-MAP:R8:6]",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "[REQ:R8] requires automated coverage for all child failure modes, bounded truncation/durable references, raw-log/artifact persistence, evidence-based classification, retained-surface parity, and zero additional test-process invocations; [AC:8] also requires downstream final-regression evidence from one full project command without diagnostic rerun. The mapped diff adds spec-local tests and implementation for many areas, but the R8-tagged final-regression coverage only exercises timeout, signal, and spawn-error child records, while max-buffer is only covered under an R2 test and not shown driving final-regression artifact/classification behavior. The diff also provides no execution evidence that the full project command ran once after the integration gate without a diagnostic rerun. Therefore the implementation evidence omits required R8 proof. [EVIDENCE:R8] [FILE-MAP:R8:2] [FILE-MAP:R8:5] [FILE-MAP:R8:6]"
+        }
+      ],
+      "issueLogId": "issue-log-8e5d5184-19b1-4269-a6cb-d4be52efa103"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: add max-buffer final-regression coverage and make the R8 gate boundary explicit",
+      "resolution": "The spec-local matrix now drives max-buffer through artifact persistence and infra classification with one invocation, while AC8 explicitly reserves the later full-project execution proof for final-regression.",
+      "normalizedFindingId": "2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:52:07.172Z",
+      "issueLogId": "issue-log-b94534ef-92f4-469b-9d0d-8076539ccd0f"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R8] requires automated coverage proving bounded truncation and durable references, retained-surface parity, all child failure modes, artifact/raw-log persistence, evidence-based classification, and zero extra invocations. The mapped tests cover child kinds, truncation metadata, rawOutputPath references, raw/artifact persistence, classification, parity routes, and invocation counts in specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js and specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js. However [CONSTRAINT:9] additionally requires stream, record count, and artifact evidence collection size/count upper bounds to be verifiable in code and tests; the evidence shows codec limits in src/flow/lib/test-regression.js and artifact childProcesses length validation in src/flow/lib/test-artifacts.js, but no mapped automated test exercises record-count overflow, marker line-byte overflow, or artifact childProcesses count overflow. Because required bounded-resource coverage is omitted, R8 is not fully implemented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T06:53:00.746Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "[REQ:R8] requires automated coverage proving bounded truncation and durable references, retained-surface parity, all child failure modes, artifact/raw-log persistence, evidence-based classification, and zero extra invocations. The mapped tests cover child kinds, truncation metadata, rawOutputPath references, raw/artifact persistence, classification, parity routes, and invocation counts in specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js and specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js. However [CONSTRAINT:9] additionally requires stream, record count, and artifact evidence collection size/count upper bounds to be verifiable in code and tests; the evidence shows codec limits in src/flow/lib/test-regression.js and artifact childProcesses length validation in src/flow/lib/test-artifacts.js, but no mapped automated test exercises record-count overflow, marker line-byte overflow, or artifact childProcesses count overflow. Because required bounded-resource coverage is omitted, R8 is not fully implemented.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "[REQ:R8] requires automated coverage proving bounded truncation and durable references, retained-surface parity, all child failure modes, artifact/raw-log persistence, evidence-based classification, and zero extra invocations. The mapped tests cover child kinds, truncation metadata, rawOutputPath references, raw/artifact persistence, classification, parity routes, and invocation counts in specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js and specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js. However [CONSTRAINT:9] additionally requires stream, record count, and artifact evidence collection size/count upper bounds to be verifiable in code and tests; the evidence shows codec limits in src/flow/lib/test-regression.js and artifact childProcesses length validation in src/flow/lib/test-artifacts.js, but no mapped automated test exercises record-count overflow, marker line-byte overflow, or artifact childProcesses count overflow. Because required bounded-resource coverage is omitted, R8 is not fully implemented."
+        }
+      ],
+      "issueLogId": "issue-log-a5fe9312-60d9-4978-8325-9a3188482e8b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: cover every bounded diagnostic collection overflow",
+      "resolution": "The spec-local tests now reject child record-count overflow, marker line-byte overflow, and final artifact childProcesses count overflow through the production codec and artifact validator.",
+      "normalizedFindingId": "2291fc46b2dc8b1e87f3ced0dd04b5f121946be79848de61dac6ab05be67171f",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:54:06.788Z",
+      "issueLogId": "issue-log-ec0c65be-27f7-4b33-8aff-3cf522d7d38d"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Repair applied for findings 5f8b660f77d55cd5ec6d55dd9057720b1e3a17a297d7b34a812c92a5be676810.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-004; 2 changed path(s), delta repair-deltas/repair-004.json.",
+      "normalizedFindingId": "5f8b660f77d55cd5ec6d55dd9057720b1e3a17a297d7b34a812c92a5be676810",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T06:58:03.006Z",
+      "issueLogId": "impl-repair:repair-004:5f8b660f77d55cd5ec6d55dd9057720b1e3a17a297d7b34a812c92a5be676810"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding 0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f is missing matching repair evidence; must-fix finding 4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T07:01:21.854Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-a82f0ab5-7849-452f-acd4-e8de857b3293"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "triage reject: assertion classification must use preserved bounded evidence",
+      "resolution": "R2 and R6 require concrete preserved assertion output and reject inference from text that is not retained in the typed child record.",
+      "normalizedFindingId": "0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/spec.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:01:38.608Z",
+      "issueLogId": "issue-log-6d2b83cd-6870-40bf-a645-fdddafe5fae3"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "triage reject: ENOENT already produces a pre-start spawn-error",
+      "resolution": "processResultFromSpawnSync sets started only for status, signal, timeout, or max-buffer outcomes; the R2 production-path test verifies generic ENOENT becomes spawn-error with started=false.",
+      "normalizedFindingId": "4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:01:50.680Z",
+      "issueLogId": "issue-log-bb193b82-43e8-41f6-84f9-774465243c1f"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding 0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f is missing matching repair evidence; must-fix finding 4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T07:02:03.424Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-de6d52bf-862d-4fa3-92bc-63ede3fe0993"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Reject assertion classification from evidence outside the preserved typed capture.",
+      "resolution": "R2 and R6 require concrete bounded evidence; impl-triage records the evidence-backed rejection after the review finding.",
+      "normalizedFindingId": "0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/impl-triage.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:02:56.500Z",
+      "issueLogId": "issue-log-1ce3c67e-ae7a-4975-9748-9c2af4796119"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Reject the spawn-error finding because it contradicts the current started calculation.",
+      "resolution": "Generic ENOENT has no status, signal, timeout, or max-buffer condition, so production sets started=false; impl-triage records this post-review evidence.",
+      "normalizedFindingId": "4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/impl-triage.json"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:03:09.699Z",
+      "issueLogId": "issue-log-7a273c4f-17d8-46a2-8f22-bc87765d0a8a"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Repair applied for findings acceptance:R1, acceptance:R2, acceptance:R8.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-005; 2 changed path(s), delta repair-deltas/repair-005.json.",
+      "normalizedFindingId": "acceptance:R1",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:12:35.026Z",
+      "issueLogId": "impl-repair:repair-005:acceptance:R1"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Repair applied for findings acceptance:R1, acceptance:R2, acceptance:R8.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-005; 2 changed path(s), delta repair-deltas/repair-005.json.",
+      "normalizedFindingId": "acceptance:R2",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:12:35.026Z",
+      "issueLogId": "impl-repair:repair-005:acceptance:R2"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Repair applied for findings acceptance:R1, acceptance:R2, acceptance:R8.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-005; 2 changed path(s), delta repair-deltas/repair-005.json.",
+      "normalizedFindingId": "acceptance:R8",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:12:35.026Z",
+      "issueLogId": "impl-repair:repair-005:acceptance:R8"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "must-fix finding 273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832 is missing matching repair evidence",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T07:24:38.554Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "must-fix finding 273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832 is missing matching repair evidence",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-aaa5c9bc-99b6-46ff-88bb-329944092dea"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fix: aligned assertion classification with bounded diagnostic capture",
+      "trigger": "Integration gate reported missing repair evidence for the applied review finding.",
+      "resolution": "The childProcessResult classifier now uses boundedDiagnosticContent for the same stdout and stderr content enforced by ChildProcessExecutionResult invariants.",
+      "normalizedFindingId": "273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/test-regression.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T07:25:56.897Z",
+      "issueLogId": "issue-log-84a6e9e1-9782-4514-823f-97b93ff875a5"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: recorded matching repair evidence for the applied implementation-review finding",
+      "trigger": "Integration gate blocked because finding 273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832 lacked a matching repair record.",
+      "resolution": "Issue-log now links the exact finding ID to src/flow/lib/test-regression.js, whose materialized change aligns assertion classification with bounded capture.",
+      "taskId": null,
+      "timestamp": "2026-07-25T07:26:14.520Z",
+      "issueLogId": "issue-log-a4bdff13-34b7-4ca0-b34d-d8c346bd7047"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "child_process_eperm",
+      "failureCategory": "sandbox",
+      "reason": "final-regression failed: child_process_eperm",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "0cc6ac5f6e98b8206fdedb79d90a54394b48f19f864af534e9c82b1da8b8e75d"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/acceptance-review.json",
+          "fingerprint": "937bc6c00f1385f41d7f21f6f35ada3b7a0639a140f89e4cfd568651c1e1083c"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/draft-coverage-repair.json",
+          "fingerprint": "a2710f0c579149f9b6ce688a81cba5e5bb35beee28bc8f84c29ef16a69579e84"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/draft-coverage-triage.json",
+          "fingerprint": "323721ead291f35e55818da7706377aa92c1a7569e42cbe745eedbacbdcf8c42"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/draft-gate-source.json",
+          "fingerprint": "5849b6aecd467a4f5dc9c7249e3eec217fdceab17bd6fc100c66adb517dc4ede"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/draft-questions-repair.json",
+          "fingerprint": "af08583be3f032c6bb36cb8e3326be3d81450e5c5172dedc3c68da078cad49f5"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/draft-questions-triage.json",
+          "fingerprint": "f6468978f3e27407cf7b76368078d8e985dd516dd378543ee7718d80fde7cc61"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/draft-review-coverage.json",
+          "fingerprint": "a317389ba8db29881b470f3ff6d21eec1090e30554e212e35f0721d0390dac3c"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/draft-review-questions.json",
+          "fingerprint": "c61f5df2f695f02d99009a10e626b880516809e87f7d5588ec12000004a2c863"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/draft.json",
+          "fingerprint": "2f76c966cf10d1b041f691dc87f5d97868b07a1f374bfa48f60d19b815924439"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/file-map.json",
+          "fingerprint": "35a7ebaeb2ec4212f99bce5449acf2a412c73dede9f744e31200266e0c0ec1e5"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/flow-findings.json",
+          "fingerprint": "f2459c3d08bcafda85830ff56d2b6347cb99181ec5daa1ba5104ce3b586b28f3"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/impl-gate-result.json",
+          "fingerprint": "71eacca87aaa50080c56d29017b0149c97905391b5b3633653098c8ab8945c0e"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/impl-repair.json",
+          "fingerprint": "3fa6b5a65dad1ad58b38b3f978c4ffe18dcc99bbead963aae6ce412d140d7ffe"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/impl-review.json",
+          "fingerprint": "64d8fa5e53fb39db419e74737c42a2023bd61e1babde4bc7bb57b4e6f245237f"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/impl-triage.json",
+          "fingerprint": "4c1757144f0ffd728a153a5a68db08bcc71443778c7c76270b26fda4f6f26c2f"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/issue.md",
+          "fingerprint": "2626e997b754fd0b50874641da8ae32894bd078f4634de33bdb063e2275bf404"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "4c8dfefcdce67015d1629cce8e5649103db3f92dbe0346759694d60108c46082"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/repair-deltas/repair-001.json",
+          "fingerprint": "0b6ecb94fbe8939dfdd0947e783b756ae6dcbaef782a2da13a3e871e5475cae9"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/repair-deltas/repair-002.json",
+          "fingerprint": "711c79ce889898227aab30eaf48097b5c34908531df02f4d755488f440bf0b0f"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/repair-deltas/repair-003.json",
+          "fingerprint": "a044badb5297fd7a867c648ff2d409ed2ab9201da1724c31fc4a705db7454214"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/repair-deltas/repair-004.json",
+          "fingerprint": "86d2ef0c522bc3d7050bd0c3df788b3c80e33fee066bbb3c5d16a33acd60b624"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/repair-deltas/repair-005.json",
+          "fingerprint": "e43486efaff2d1eb681fc5849975b29106139aff139bded2826ef201926e1fa5"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/repair-deltas/repair-006.json",
+          "fingerprint": "250be231099fceaa994de92fc76340da1aecee3b088972dba78aa87f6295b8f3"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/repair-fingerprint.json",
+          "fingerprint": "d28c5a1d9a21dadee7247a7d49c0ed0644f269a80e7ce6beae68027fe4eed958"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/retro.json",
+          "fingerprint": "db606904731ebfb2157a1f61d398041457c1048487be2184f86dc28b5948a42e"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/005b33fed14138aafe8847a3d7d1d59ae56111210fc3a84d7e5b7636ecf3d1b5.json",
+          "fingerprint": "99a825165d708acc7b7b1d000b126852b3b940c795b0a93c9bd608c2bff41539"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/06604d6f48708f666bc734af53ce413c2d5334b6da43d7ccdc7886785d4e111b.json",
+          "fingerprint": "4dde6b58f44145c7a9e754b8f35592ad95abede18ca201ae0cd53bad4a616992"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/0e1ead873309a859c3d4565e5452f7b19d5ada1f5e03aeb16946d8651cd34326.json",
+          "fingerprint": "2e3c6179752f59c03761827f81bdb48c39bbfe1abe45b3b41e3435b33c3a9c1e"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/38b50a7ea29adefbbc3e7abf12af7d0956fc62f4d8797fccb54e766915bc80f2.json",
+          "fingerprint": "bfd6f6344c45ff5e900561615ea6e7ff0c506f830970311956ec4376f6fc8cad"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/57e87a515fe5e4bd2a113119377f4ad21bea16fe9bb966ce749e381fbed22fe5.json",
+          "fingerprint": "3332f7524430837c548beea25aed4fdcdbc423979af0b5413a29eca003498857"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/588380b97eb18225608d0d581d482f05be67f1e6f1d2f4b99864712b5ebfc4c3.json",
+          "fingerprint": "cd5107eaab1b5f54827fa4c532ea59b11ea3589aed3ad3eded3de8b53d6b9576"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/6736c5167d644c6615362cc0c8fcc1fddf2fafca2da437666c944b513b29ccb1.json",
+          "fingerprint": "7f90da2ab62eb1b33683c4a1c377b2d8e935e859bd9ac4f2921611fe0fdfbdf7"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/8638c5e6272a33c8e6e858bca55eedffbe5d72acb7484a5956e1ecde260d7657.json",
+          "fingerprint": "028b2c16791d28d33c539ebf5657d0b324a4a16923c51c75b9c37279de06baeb"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/87b9128eb44147f684d157f3b4f5da84dcb11feb94ff3f0c93f30819fbeb8692.json",
+          "fingerprint": "14028d6cc2f12da9d1d04fa0fcf38f2c14669390c59e6de0ff32ae5395de3906"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/9bc10ec64a70187439bb766b34683a6c1a6ae640d9282037ad0b4463577922a6.json",
+          "fingerprint": "146d0688584840db1347acb0f3cc9da5d011299415fb5960490ddea315f04896"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/a3a347d0e840edb77d5196ef3ddeafe9a4acbebd7b93d57f23fdc523ac37a787.json",
+          "fingerprint": "62a59b1930dfc3f5d381d39d37002345207dd8c1601bf5b062abb12692395aa6"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/b28920220efe80df817f2147d81e3223116466143bf5785214916dd8a41fb39a.json",
+          "fingerprint": "c101c86905a5d1b0a7158d4bfc4f1bdaa61ead639d7f65079da5e36b7f339e66"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/b9946ed087613cdc3d0909979be5ca46e1e69394e55aa86bfb3e706bfb4c176e.json",
+          "fingerprint": "3f4bf5123f5d1aa3502e5bf1048c44e627e3f7ee290b66a5252036aec41546ca"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/d0f41de2327f724cba96a33ff48b01e1d8c90e1e44a4fe505b785493d1aac652.json",
+          "fingerprint": "1610a3cd222f0ff3f1871801c8cf27687a95cf51c9aca289415c749bd643bbe3"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/d11b26bbb2602aa9cf34f209b010e3b7784b8d8a082dcadd9ecbc096162fafbf.json",
+          "fingerprint": "9914b922daae0188c5254329a59529c8e1f2f2d41f77c2b77d703d0d960a3037"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/d355dc051b3243cd3bad46effd6c89c85756ed3c827a900cb05fcd6829d01cf3.json",
+          "fingerprint": "65bf112f1bdcf049f55ff80b548db5e6e54b4f21778a82478b71d371fd2e0a22"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/ecb4b63e9fdc4bf7ff75a87474aeb4ae3551d2cf62c3e68a357177c23e8c910b.json",
+          "fingerprint": "59320cd6be7df7613c3f5f3b0666d29508162176edea79f6572abed2c8b010b8"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-evidence/ff381a9a36ab354d6abb11130dc5c4c71bcfde620ed5de4fcd564c1f5d3db4fd.json",
+          "fingerprint": "34bdabdcd666a127fbaa969cf883c2bc0a57e33b6ba8d19481a69a471504375b"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "37c1668665b5719cc3d9c9759ae163c7e5d92baf1aa22e0fafc75c52593b8724"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "f080236090a12d49e856760634611fc52786e41bd5c472493453a9508c85000c"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-001.json",
+          "fingerprint": "0a09df0184d2fc29b2083c6da7ace54a50f568e442876bc6a06690161a15d5f2"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-001.md",
+          "fingerprint": "a80dca5c473eb60dcf3dc286870a425f10236496eae60615a3a8b0da917ae508"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-002.json",
+          "fingerprint": "1d4285e006d271cb4ca983d3aced01f06509b8737d1e114b2a70a9b2747ddef1"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-003.json",
+          "fingerprint": "821d7e734d669a25f8fe86598765845c3ebbd63f4bbefd2a2bb5b737a57b8936"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-003.md",
+          "fingerprint": "4217c15e9d7caa9f6da6f4565a82d1076d528978d985a76d38186456a583f66b"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-004.json",
+          "fingerprint": "c6ac0cd1faf9ebcaea3bb7e078f82cc3ab97e155793fd320cc5dd5f289340abc"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-004.md",
+          "fingerprint": "3fc0f0a4b4c5cdf644619b0212c56344b8456fa1422f2dffda0d8d226fda5d9c"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-005.json",
+          "fingerprint": "475b697e145eca75feeaa9a54659244e1e8d7e76455f146fa0da61687ab96459"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-005.md",
+          "fingerprint": "37b20e3ce9bbda116c59d63f88530f027a4af2aa8429ea8deea24af32a67954d"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-006.json",
+          "fingerprint": "96a8c8e0937d6821e98e97a2571191049586691f892407eeee756aa5f65ab8ba"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-006.md",
+          "fingerprint": "8ab9ff46801e7db8aacefba53f1463fcaa74bab960e0a9b9933694d10ac0ac94"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-007.json",
+          "fingerprint": "d7179fa57a56024988c04f72bfe7ef32a6cb79e463a679c5693e1c9713d19d1e"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-007.md",
+          "fingerprint": "f44eaed2bd65494eb90e9e3ffde638b444e89247b6b3f16298076df00326f9ca"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-008.json",
+          "fingerprint": "bd66efcec586d4ce40e30bfdf8da2e7067421cb8c207ca6c7ba70bfb611ecedc"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-008.md",
+          "fingerprint": "005b0062d18e5eaae4ea17aff76902413036f87af025f049b7bf7d6804976686"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-009.json",
+          "fingerprint": "099fec2decd8ab805a52682d9593b1582df309df32d8399613f901b977075e27"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-009.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-010.json",
+          "fingerprint": "ed28e8d37d31c52cc1ff675ce37c8ecbc7f17310361e3965ec7757afb430f8f3"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-010.md",
+          "fingerprint": "66af4f3bfc66787212c8bc6558cc9d57fc058b51f79b3c45708929485910c61e"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-011.json",
+          "fingerprint": "3aba649341e6fc21733630df687b025709152b59d1f3fa6519907592e8bfbf50"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-011.md",
+          "fingerprint": "48ffd7d1ae88642e085609bafc98f3f77485718598dc6440a153f032e242a907"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-012.json",
+          "fingerprint": "b4b5f6e066a02c38f232e586b9b9b056d0ea4c01767dbde6388fe9173448e907"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-012.md",
+          "fingerprint": "e861057e06b86450c04b5bc6fc52c70e5177238eba74104ad57466ea795fcd93"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-013.json",
+          "fingerprint": "ccbbe2a5614b40f27b192467dcf4f07eb0d8e357d7412a3ebffff29d781dfe1a"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-013.md",
+          "fingerprint": "9ae5e743aa5289371122ab828fdcb8f6fc8bf299c5ea2fb165c13a1ffbf5e216"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-014.json",
+          "fingerprint": "d58c9f76255ee489d3f2a45323a7a1e5c5b6c70c0f524d7e34c7b0fa0093f3c1"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-014.md",
+          "fingerprint": "ec1425451b6d35354d6d5985fe60575e77852ab97bf0625760b3e9edc424dbca"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-015.json",
+          "fingerprint": "59ce16121292afcbaa9de8b959613549f5c284311e29860f13785e021e56009c"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/impl-attempt-015.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/spec-attempt-001.json",
+          "fingerprint": "4a3e81108d0efbe5d201d9e479abdf99d6285c2fb197b6e3bc73c41dffa50668"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/test-attempt-001.json",
+          "fingerprint": "f28ef3a357dbd20b422e2e9382465a0711064d98b19b9f887da8de56ac5c5466"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/test-attempt-001.md",
+          "fingerprint": "087c9250a8fd70bc96165866aaafa3923b1edff554eb5953afeb465e04a061c3"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/test-attempt-002.json",
+          "fingerprint": "128937ffcb0ee20729c8b9d9c75b7b6d4560a7e3c9877d571253797082a3c8c3"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review-history/test-attempt-002.md",
+          "fingerprint": "aac3f06ed2879036a6c45cf391348ad951c795bea6e1e22dad182a44dcf3f604"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/scenario-validity-result.json",
+          "fingerprint": "149e83264fd1fe981b87f9eb2ddf92ce62d9d77278582074e8bd174b01c425fa"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/spec-review.json",
+          "fingerprint": "2691bf995f65d60c1d5ad3243cb1f16694d5ad74846f455b791c75230dadc4ba"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/spec.json",
+          "fingerprint": "f13430bb1f8cc8e03ada324e97372b789c956c848152105949f35292f583774d"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/spec.md",
+          "fingerprint": "2d7963eec4c0f8f723a29e29c80c959d21961639588e2a993f24b7784bd30bdf"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/task-impl-gate-source.json",
+          "fingerprint": "c3b164698ac62ecc3ab7ed249a1911e1792efae047f31b834851e7d014a9c10d"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/tasks/T-1.md",
+          "fingerprint": "35efcf93c8a44e990ac0efb1cf219537a99bf810f3c0c985279e1a2edf3b149e"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/tasks/T-2.md",
+          "fingerprint": "435c8089e9fb848db68cb367c7073d336d91082949eb06d69895332d1397cb78"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/test-coverage.json",
+          "fingerprint": "45955cfcbbb699c790f9192abe704e7d192ccd1b0e1466cc278ba399e95be391"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/test-execute-result.json",
+          "fingerprint": "92a042508410241de7a95ddaab62c0ae10d0492ee37367fab187263d3dc737e8"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/test-result-review.json",
+          "fingerprint": "e2fb04fb2dce499cdf4cd01761f583d20ab28194723da2598e69cdebf06a7439"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/test-result-review.md",
+          "fingerprint": "5c2d6b1e6273cce308af8c684721bfa4b9fb3c33797cea8db38514042fb37607"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/test-review.json",
+          "fingerprint": "9e0855749ade1ee8d4ea16298b863d829dae349cdc5f144174c7f059580f709d"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/test-review.md",
+          "fingerprint": "aac3f06ed2879036a6c45cf391348ad951c795bea6e1e22dad182a44dcf3f604"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/tests/.raw/scenario-validity.log",
+          "fingerprint": "ac98171548656305f24482e2ae2791e520191b370b40d98908e483c1f62340db"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/tests/.raw/test-execution.log",
+          "fingerprint": "0f78a9285e738cf7a1176de799ec7a6bc525542c47a41977459c485422c12500"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+          "fingerprint": "974c5a0c816b9f57f88ee0a57b9ed4645984f226e17c7bc35a8839b7583f3cd1"
+        },
+        {
+          "path": "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+          "fingerprint": "597dd27e38f7068d665fa2791fc67c08eac1d452e3b11e8101080f46e544113e"
+        },
+        {
+          "path": "src/flow/lib/acceptance-review-artifacts.js",
+          "fingerprint": "fa2795fc31d6da7f34a8019f1b1028dc6f5da6216604d2943fe371b83c6907c5"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "a8c2e8dec7217b5336b12e402e075133b3983dbcdb759d24fe18a119d2c7eb73"
+        },
+        {
+          "path": "src/flow/lib/run-final-regression.js",
+          "fingerprint": "d0bbfdbac0a0b226f0bf20a73c9eb3d3f3f73d4475e95fd12690ac0f0c327ae9"
+        },
+        {
+          "path": "src/flow/lib/test-artifacts.js",
+          "fingerprint": "2c7af9388871b112387de3baa6d18e9cd1b2a9351a61f80e4365a3825b7a467f"
+        },
+        {
+          "path": "src/flow/lib/test-regression.js",
+          "fingerprint": "59b1f2149b503fdf34902beed6d1436152f3cef45d1ab378e36c7ee839e6469d"
+        },
+        {
+          "path": "tests/run.js",
+          "fingerprint": "508de11c0df4e32c936844c752f4da87f88c91c924e111636666b650c92db0ee"
+        },
+        {
+          "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+          "fingerprint": "bace9c60adf65c507f4bffe3481cce8f7b40143d8f77b4dc6fc5be7921cb4b7c"
+        }
+      ],
+      "rawOutputPath": "specs/340-preserve-child-diagnostics/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-25T07:39:32.178Z",
+      "issueLogId": "issue-log-1dc73e43-a8f6-44dc-9e81-03b5d82e896a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R7] requires preserved final-regression execution count, pass/fail/skipped envelopes, retry behavior, record-and-proceed display, status/report transitions, config-derived command/timeout behavior, and issue-log side effects, with [AC:7] calling for existing behavior tests to pass. The mapped evidence adds parity tests in specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js, but provides no execution evidence that those tests or the existing final-regression/tests/run.js suites passed. Because the contract says to return FAIL when preservation evidence is missing, R7 is not demonstrated. Sources: [REQ:R7], [AC:7], [FILE-MAP:R7:1], [FILE-MAP:R7:2], [FILE-MAP:R7:3], [FILE-MAP:R7:4].",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:04:38.963Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "[REQ:R7] requires preserved final-regression execution count, pass/fail/skipped envelopes, retry behavior, record-and-proceed display, status/report transitions, config-derived command/timeout behavior, and issue-log side effects, with [AC:7] calling for existing behavior tests to pass. The mapped evidence adds parity tests in specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js, but provides no execution evidence that those tests or the existing final-regression/tests/run.js suites passed. Because the contract says to return FAIL when preservation evidence is missing, R7 is not demonstrated. Sources: [REQ:R7], [AC:7], [FILE-MAP:R7:1], [FILE-MAP:R7:2], [FILE-MAP:R7:3], [FILE-MAP:R7:4].",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R7",
+          "reason": "[REQ:R7] requires preserved final-regression execution count, pass/fail/skipped envelopes, retry behavior, record-and-proceed display, status/report transitions, config-derived command/timeout behavior, and issue-log side effects, with [AC:7] calling for existing behavior tests to pass. The mapped evidence adds parity tests in specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js, but provides no execution evidence that those tests or the existing final-regression/tests/run.js suites passed. Because the contract says to return FAIL when preservation evidence is missing, R7 is not demonstrated. Sources: [REQ:R7], [AC:7], [FILE-MAP:R7:1], [FILE-MAP:R7:2], [FILE-MAP:R7:3], [FILE-MAP:R7:4]."
+        }
+      ],
+      "issueLogId": "issue-log-61b79f94-5cfa-4538-a87e-52ced7435a4a"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: clarify R7/R8 integration-gate evidence boundary",
+      "resolution": "Aligned spec.json and spec.md so current spec-local production-path evidence is the integration-gate prerequisite, while affected shared suites remain owned by the later mandatory full final-regression run.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:06:36.763Z",
+      "issueLogId": "issue-log-ec2e3b37-91c0-49d6-9018-95fd56747ca2"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Repair applied for findings acceptance:R3, acceptance:R8.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-009; 3 changed path(s), delta repair-deltas/repair-009.json.",
+      "normalizedFindingId": "acceptance:R3",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:14:19.037Z",
+      "issueLogId": "impl-repair:repair-009:acceptance:R3"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Repair applied for findings acceptance:R3, acceptance:R8.",
+      "trigger": "impl-repair completed for an applied review finding",
+      "resolution": "Repair evidence recorded by repair-009; 3 changed path(s), delta repair-deltas/repair-009.json.",
+      "normalizedFindingId": "acceptance:R8",
+      "repairRef": {
+        "files": [
+          "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T08:14:19.037Z",
+      "issueLogId": "impl-repair:repair-009:acceptance:R8"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R7] requires preserving final-regression pass/fail/skipped envelopes and config-derived command behavior except for evidence-based failure fields. The implementation decodes child markers for every non-skipped final-regression result and, on any decode error, forces resultStatus to \"fail\" before classification; this can turn an otherwise passing configured command into a failed final-regression solely because stdout/stderr contains a malformed marker-like line, which intercepts the preserved pass envelope. Evidence: [FILE-MAP:R7:3] src/flow/lib/run-final-regression.js diff adds decodeChildProcessRecords(result, rawOutputPathRelative), catches errors into childRecordError, and sets resultStatus = \"fail\" inside the rootOk && !skipDecision path; [AC:7] says only evidence-supported diagnostic fields change.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:17:22.129Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "[REQ:R7] requires preserving final-regression pass/fail/skipped envelopes and config-derived command behavior except for evidence-based failure fields. The implementation decodes child markers for every non-skipped final-regression result and, on any decode error, forces resultStatus to \"fail\" before classification; this can turn an otherwise passing configured command into a failed final-regression solely because stdout/stderr contains a malformed marker-like line, which intercepts the preserved pass envelope. Evidence: [FILE-MAP:R7:3] src/flow/lib/run-final-regression.js diff adds decodeChildProcessRecords(result, rawOutputPathRelative), catches errors into childRecordError, and sets resultStatus = \"fail\" inside the rootOk && !skipDecision path; [AC:7] says only evidence-supported diagnostic fields change.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R7",
+          "reason": "[REQ:R7] requires preserving final-regression pass/fail/skipped envelopes and config-derived command behavior except for evidence-based failure fields. The implementation decodes child markers for every non-skipped final-regression result and, on any decode error, forces resultStatus to \"fail\" before classification; this can turn an otherwise passing configured command into a failed final-regression solely because stdout/stderr contains a malformed marker-like line, which intercepts the preserved pass envelope. Evidence: [FILE-MAP:R7:3] src/flow/lib/run-final-regression.js diff adds decodeChildProcessRecords(result, rawOutputPathRelative), catches errors into childRecordError, and sets resultStatus = \"fail\" inside the rootOk && !skipDecision path; [AC:7] says only evidence-supported diagnostic fields change."
+        }
+      ],
+      "issueLogId": "issue-log-e8a8792f-dfbb-40e7-8f82-b2c550a2a14a"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: preserve successful final-regression envelopes on marker decode errors",
+      "resolution": "Removed decoder-error PASS-to-FAIL promotion while retaining fail-closed classification for failed commands, and added R7 coverage for malformed marker-like output on a passing command.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:18:05.401Z",
+      "issueLogId": "issue-log-eb5ddfe2-e199-4d3d-9bbb-2b4f544931ec"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds the `childRecordStreamText` helper with a single production caller in `classifyChildProcessFailure`; it only joins stdout/stderr content and does not enforce an invariant, hide meaningful complexity, or define a clear ownership boundary.; The diff adds the `childRecordExecutionFailureText` helper with a single production caller in `classifyChildProcessFailure`; it only joins `errorCode` and `spawnError` and does not enforce an invariant, hide meaningful complexity, or define a clear ownership boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:21:47.751Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-final-regression.js",
+            "locator": "childRecordStreamText"
+          },
+          "observed": "The diff adds the `childRecordStreamText` helper with a single production caller in `classifyChildProcessFailure`; it only joins stdout/stderr content and does not enforce an invariant, hide meaningful complexity, or define a clear ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-final-regression.js",
+            "locator": "childRecordExecutionFailureText"
+          },
+          "observed": "The diff adds the `childRecordExecutionFailureText` helper with a single production caller in `classifyChildProcessFailure`; it only joins `errorCode` and `spawnError` and does not enforce an invariant, hide meaningful complexity, or define a clear ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds the `childRecordStreamText` helper with a single production caller in `classifyChildProcessFailure`; it only joins stdout/stderr content and does not enforce an invariant, hide meaningful complexity, or define a clear ownership boundary."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds the `childRecordExecutionFailureText` helper with a single production caller in `classifyChildProcessFailure`; it only joins `errorCode` and `spawnError` and does not enforce an invariant, hide meaningful complexity, or define a clear ownership boundary."
+        }
+      ],
+      "issueLogId": "issue-log-1b132e45-b582-4af0-aaa6-d9235620d48b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: inline single-use child failure text assembly",
+      "resolution": "Removed childRecordStreamText and childRecordExecutionFailureText, and assembled the structured execution fields and captured stream fields directly at their sole classification call sites without changing failure precedence or matching behavior.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:22:13.433Z",
+      "issueLogId": "issue-log-1085542d-357c-4603-bb76-3813ff149aad"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The changed `rejectedReviewTriage` condition duplicates the same rejected-impl-review triage lookup shape used elsewhere in the same production file; the repeated decision could be handled by a local helper without changing ownership.; The changed `rejectedReviewTriage` condition duplicates the same rejected-impl-review triage lookup shape used elsewhere in the same production file; the repeated decision could be handled by a local helper without changing ownership.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T08:24:26.385Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/acceptance-review-artifacts.js",
+            "locator": "mechanicalArtifactState rejectedReviewTriage assignment"
+          },
+          "observed": "The changed `rejectedReviewTriage` condition duplicates the same rejected-impl-review triage lookup shape used elsewhere in the same production file; the repeated decision could be handled by a local helper without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/acceptance-review-artifacts.js",
+            "locator": "buildAcceptanceReviewContext rejectedReviewTriage assignment"
+          },
+          "observed": "The changed `rejectedReviewTriage` condition duplicates the same rejected-impl-review triage lookup shape used elsewhere in the same production file; the repeated decision could be handled by a local helper without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The changed `rejectedReviewTriage` condition duplicates the same rejected-impl-review triage lookup shape used elsewhere in the same production file; the repeated decision could be handled by a local helper without changing ownership."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The changed `rejectedReviewTriage` condition duplicates the same rejected-impl-review triage lookup shape used elsewhere in the same production file; the repeated decision could be handled by a local helper without changing ownership."
+        }
+      ],
+      "issueLogId": "issue-log-d658cde2-149a-4df3-819e-39798f331c6e"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: centralize rejected impl-review triage selection",
+      "resolution": "Added a local readRejectedImplReviewTriageForVerdict helper and reused it in mechanical artifact validation and acceptance context construction, while preserving the mechanical path's invalid-schema handling.",
+      "taskId": null,
+      "timestamp": "2026-07-25T08:25:08.838Z",
+      "issueLogId": "issue-log-908e418e-9077-44e8-9acb-3be52a337a8e"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in .senti/output/analysis.json. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.",
+      "timestamp": "2026-07-25T08:45:08.982Z",
+      "issueLogId": "issue-log-c86930a2-beda-48af-afdd-596a5df1520d"
+    }
+  ]
+}

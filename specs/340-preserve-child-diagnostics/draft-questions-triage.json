@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "6件とも pending question に回答相当の推奨文が埋め込まれているため、question text から推奨文のみを削除する。",
+  "items": [
+    {
+      "title": "1. Embedded Recommendation In Question",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "pending question は問いのみを保持し、推奨回答や根拠は含めない。",
+      "evidence": "draft.json qa[0].question の末尾に「推奨は」で始まる回答相当の文がある。"
+    },
+    {
+      "title": "2. Embedded Recommendation In Question",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "pending question は contract の確認だけに限定する。",
+      "evidence": "draft.json qa[1].question の末尾に成功 record を含める推奨回答がある。"
+    },
+    {
+      "title": "3. Embedded Recommendation In Question",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "pending question は truncation contract の確認だけに限定する。",
+      "evidence": "draft.json qa[2].question の末尾に machine-readable 化を推奨する回答がある。"
+    },
+    {
+      "title": "4. Embedded Recommendation In Question",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "pending question は classification policy の確認だけに限定する。",
+      "evidence": "draft.json qa[3].question の末尾に preserved evidence のみを使う推奨回答がある。"
+    },
+    {
+      "title": "5. Embedded Recommendation In Question",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "pending question は unknown attribution policy の確認だけに限定する。",
+      "evidence": "draft.json qa[4].question の末尾に record-and-proceed eligibility の推奨回答がある。"
+    },
+    {
+      "title": "6. Embedded Recommendation In Question",
+      "target": "q6",
+      "decision": "apply",
+      "rationale": "pending question は non-goal と verification boundary の確認だけに限定する。",
+      "evidence": "draft.json qa[5].question の末尾に process spy と behavior assertions の推奨回答がある。"
+    }
+  ]
+}

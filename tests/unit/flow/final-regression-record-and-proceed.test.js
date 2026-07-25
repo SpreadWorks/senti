@@ -13,6 +13,10 @@ import { generateReport } from "../../../src/flow/commands/report.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import {
+  childProcessRecord,
+  shellPrintChildProcessRecord,
+} from "../../helpers/child-process-record.js";
 
 const SPEC_DIR = "specs/001-record-proceed";
 const FIXTURE_PATH = "final-regression-fixture.sh";
@@ -34,10 +38,6 @@ function setupProject(tmp, scriptBody) {
   };
 }
 
-function failingFixtureBody(message) {
-  return `printf '%s\\n' ${JSON.stringify(message)} >&2\nexit 1\n`;
-}
-
 function readArtifact(tmp) {
   return validateFinalRegressionResult(JSON.parse(
     fs.readFileSync(path.join(tmp, SPEC_DIR, "final-regression-result.json"), "utf8"),
@@ -45,6 +45,7 @@ function readArtifact(tmp) {
 }
 
 function failedRecordedArtifact(overrides = {}) {
+  const rawOutputPath = "specs/001/tests/.raw/final-regression-attempt-002.log";
   return {
     version: "1",
     completed: true,
@@ -54,9 +55,15 @@ function failedRecordedArtifact(overrides = {}) {
     failureNature: "assertion",
     command: "npm test --",
     commandSource: "package.json",
-    rawOutputPath: "specs/001/tests/.raw/final-regression-attempt-002.log",
+    rawOutputPath,
     rawOutputLines: { start_line: 1, end_line: 4 },
     process: { started: true, exitCode: 1, signal: null, timedOut: false, spawnError: null },
+    childProcesses: [{
+      ...childProcessRecord({
+        stderr: "ERR_ASSERTION\ntests/unit/existing.test.js: existing failure\n",
+      }).toJSON(),
+      rawOutputPath,
+    }],
     changedFiles: [],
     changedFileFingerprints: [],
     commandIdentity: {
@@ -89,7 +96,14 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
   test("runner records eligible existing failures with Issue 403 category and recommendation", async () => {
     const tmp = createTmpDir("unit-final-regression-record-proceed-runner-");
     try {
-      const ctx = setupProject(tmp, failingFixtureBody("existing failure"));
+      const ctx = setupProject(tmp, [
+        "printf '%s\\n' 'existing failure' >&2",
+        shellPrintChildProcessRecord({
+          stderr: "ERR_ASSERTION\ntests/unit/existing.test.js: existing failure\n",
+        }),
+        "exit 1",
+        "",
+      ].join("\n"));
 
       await new RunFinalRegressionCommand().execute(ctx);
       const artifact = readArtifact(tmp);

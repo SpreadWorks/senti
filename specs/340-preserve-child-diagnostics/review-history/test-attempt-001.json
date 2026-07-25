@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T05:58:20.912Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/340-preserve-child-diagnostics/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 stream forwarding preservation is not asserted",
+      "target": "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+      "findingId": "fe03cc22ea9e87a628c437c32969f142fbceec9e5770d6acaa89a7cff80dc33e",
+      "fingerprint": "fe03cc22ea9e87a628c437c32969f142fbceec9e5770d6acaa89a7cff80dc33e",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires preserving existing stream forwarding. Without this assertion, an implementation could emit markers and summaries while dropping child output and the test would still pass.",
+      "issue": "The coverage artifact marks R4 covered, but the R4 test only checks marker count, spawn count, aggregate exit code, and summary text. It does not assert that nested stdout/stderr content from each category is still forwarded to the parent streams.",
+      "requiredChange": "Add assertions in the R4 runner test that the planned child stdout and stderr payloads are present on the corresponding captured parent stdout/stderr streams while the execution marker is also emitted.",
+      "whyBlocking": "R4 explicitly requires preserving existing stream forwarding. Without this assertion, an implementation could emit markers and summaries while dropping child output and the test would still pass.",
+      "origin": "R4",
+      "failureKind": "missing_spec_local_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 preservation coverage is materially incomplete",
+      "target": "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+      "findingId": "4013f91930c825a1f1cefd927d17a44ca7f88d4bc0adaa60e6360545fd9b4bf7",
+      "fingerprint": "4013f91930c825a1f1cefd927d17a44ca7f88d4bc0adaa60e6360545fd9b4bf7",
+      "disposition": "must-fix",
+      "rationale": "R7 is a must requirement with multiple regression-sensitive behaviors. The artifact reports it as covered, but the executable tests leave several required behaviors untested.",
+      "issue": "The R7 test covers only pass envelope, report transition, and one outer invocation count. It does not cover the required preserved fail/skipped envelopes, retry behavior, record-and-proceed failed-state display, config-derived timeout behavior, or issue-log side effects.",
+      "requiredChange": "Add spec-local tests or assertions covering the missing R7 preservation points: fail and skipped envelopes, retry behavior, record-and-proceed failed-state display, config-derived timeout behavior, and issue-log side effects.",
+      "whyBlocking": "R7 is a must requirement with multiple regression-sensitive behaviors. The artifact reports it as covered, but the executable tests leave several required behaviors untested.",
+      "origin": "R7",
+      "failureKind": "missing_spec_local_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 migration parity has no executable coverage",
+      "target": "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+      "findingId": "b037b692d3161f02fc79f8be668fa27acb299bc2e2a8027136d60624f6c72a53",
+      "fingerprint": "b037b692d3161f02fc79f8be668fa27acb299bc2e2a8027136d60624f6c72a53",
+      "disposition": "must-fix",
+      "rationale": "R8 explicitly lists migration parity as required automated coverage. The coverage artifact marks R8 covered, but the actual tests do not cover this dimension.",
+      "issue": "R8 requires automated coverage for migration parity, but neither spec-local test file exercises migration behavior or compares old/new artifact handling across migration boundaries.",
+      "requiredChange": "Add a spec-local migration parity test that proves existing final-regression artifacts or migrated state remain compatible with the new bounded child-record evidence format.",
+      "whyBlocking": "R8 explicitly lists migration parity as required automated coverage. The coverage artifact marks R8 covered, but the actual tests do not cover this dimension.",
+      "origin": "R8",
+      "failureKind": "coverage_artifact_contradicts_tests"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/340-preserve-child-diagnostics/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "860941646785d28d827cc3abcae4dc3bfeb3c2ae0d4823f2a379a05d9a446588"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "fe03cc22ea9e87a628c437c32969f142fbceec9e5770d6acaa89a7cff80dc33e",
+      "findingId": "fe03cc22ea9e87a628c437c32969f142fbceec9e5770d6acaa89a7cff80dc33e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R4 stream forwarding preservation is not asserted",
+      "body": "The coverage artifact marks R4 covered, but the R4 test only checks marker count, spawn count, aggregate exit code, and summary text. It does not assert that nested stdout/stderr content from each category is still forwarded to the parent streams.",
+      "category": "unknown",
+      "fingerprint": "fe03cc22ea9e87a628c437c32969f142fbceec9e5770d6acaa89a7cff80dc33e",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires preserving existing stream forwarding. Without this assertion, an implementation could emit markers and summaries while dropping child output and the test would still pass."
+    },
+    {
+      "id": "4013f91930c825a1f1cefd927d17a44ca7f88d4bc0adaa60e6360545fd9b4bf7",
+      "findingId": "4013f91930c825a1f1cefd927d17a44ca7f88d4bc0adaa60e6360545fd9b4bf7",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R7 preservation coverage is materially incomplete",
+      "body": "The R7 test covers only pass envelope, report transition, and one outer invocation count. It does not cover the required preserved fail/skipped envelopes, retry behavior, record-and-proceed failed-state display, config-derived timeout behavior, or issue-log side effects.",
+      "category": "unknown",
+      "fingerprint": "4013f91930c825a1f1cefd927d17a44ca7f88d4bc0adaa60e6360545fd9b4bf7",
+      "disposition": "must-fix",
+      "rationale": "R7 is a must requirement with multiple regression-sensitive behaviors. The artifact reports it as covered, but the executable tests leave several required behaviors untested."
+    },
+    {
+      "id": "b037b692d3161f02fc79f8be668fa27acb299bc2e2a8027136d60624f6c72a53",
+      "findingId": "b037b692d3161f02fc79f8be668fa27acb299bc2e2a8027136d60624f6c72a53",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R8 migration parity has no executable coverage",
+      "body": "R8 requires automated coverage for migration parity, but neither spec-local test file exercises migration behavior or compares old/new artifact handling across migration boundaries.",
+      "category": "unknown",
+      "fingerprint": "b037b692d3161f02fc79f8be668fa27acb299bc2e2a8027136d60624f6c72a53",
+      "disposition": "must-fix",
+      "rationale": "R8 explicitly lists migration parity as required automated coverage. The coverage artifact marks R8 covered, but the actual tests do not cover this dimension."
+    }
+  ]
+}

@@ -10,17 +10,23 @@ import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 export const DEFAULT_TEST_TIMEOUT_SECONDS = 600;
 export const DEFAULT_PROCESS_HEARTBEAT_MS = 30_000;
 export const MIN_PROCESS_HEARTBEAT_MS = 1000;
+export const DEFAULT_CHILD_PROCESS_CAPTURE_BYTES = 64 * 1024;
+export const DEFAULT_CHILD_PROCESS_RECORD_LIMIT = 128;
+export const DEFAULT_CHILD_PROCESS_RECORD_LINE_BYTES = 512 * 1024;
 export const TEST_EXECUTE_REGRESSION_POLICIES = Object.freeze(["targeted", "full", "skip"]);
 export const NO_SUPPORTED_REGRESSION_COMMAND = "NO_SUPPORTED_REGRESSION_COMMAND";
 export const CHILD_PROCESS_RESULT_KINDS = Object.freeze([
   "passed",
   "assertion-failure",
+  "nonzero-exit",
   "spawn-error",
   "signal",
   "timeout",
   "max-buffer",
 ]);
 const MAX_BUFFER_ERROR_CODES = new Set(["ERR_CHILD_PROCESS_STDIO_MAXBUFFER", "ENOBUFS"]);
+const ASSERTION_EVIDENCE_PATTERN = /\bERR_ASSERTION\b|\bAssertionError\b|\bassert(?:ion)?(?:\s+(?:failed|failure|detail))\b/i;
+const CHILD_PROCESS_RECORD_PREFIX = "[senti] child process execution record ";
 export const REGRESSION_COMMAND_CHECKED_SOURCES = Object.freeze([
   "test.command",
   "package.json:scripts.test",
@@ -118,9 +124,157 @@ export class ProcessStreamSummary {
   }
 }
 
+function assertPositiveSafeInteger(value, name) {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive safe integer`);
+  }
+}
+
+function utf8Prefix(text, byteLimit) {
+  if (Buffer.byteLength(text, "utf8") <= byteLimit) return text;
+  let bytes = 0;
+  let end = 0;
+  for (const character of text) {
+    const characterBytes = Buffer.byteLength(character, "utf8");
+    if (bytes + characterBytes > byteLimit) break;
+    bytes += characterBytes;
+    end += character.length;
+  }
+  return text.slice(0, end);
+}
+
+function boundedDiagnosticContent(text, byteLimit) {
+  if (Buffer.byteLength(text, "utf8") <= byteLimit) return text;
+  const assertion = text.match(ASSERTION_EVIDENCE_PATTERN);
+  return utf8Prefix(assertion ? text.slice(assertion.index) : text, byteLimit);
+}
+
+export class ProcessStreamCapture {
+  constructor(text, {
+    captureLimitBytes = DEFAULT_CHILD_PROCESS_CAPTURE_BYTES,
+    rawOutputPath = null,
+  } = {}) {
+    if (typeof text !== "string") throw new Error("process stream capture text must be a string");
+    assertPositiveSafeInteger(captureLimitBytes, "process stream capture limit");
+    this.originalByteLength = Buffer.byteLength(text, "utf8");
+    this.content = boundedDiagnosticContent(text, captureLimitBytes);
+    this.capturedByteLength = Buffer.byteLength(this.content, "utf8");
+    this.truncated = this.capturedByteLength < this.originalByteLength;
+    if (rawOutputPath !== null && (typeof rawOutputPath !== "string" || rawOutputPath.length === 0)) {
+      throw new Error("process stream capture rawOutputPath must be a non-empty string or null");
+    }
+    if (rawOutputPath !== null && !this.truncated) {
+      throw new Error("untruncated process stream capture cannot reference raw output");
+    }
+    this.rawOutputPath = rawOutputPath;
+    Object.freeze(this);
+  }
+
+  static fromJSON(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("process stream capture must be an object");
+    }
+    if (typeof value.content !== "string") throw new Error("process stream capture content must be a string");
+    if (!Number.isSafeInteger(value.originalByteLength) || value.originalByteLength < 0) {
+      throw new Error("process stream capture originalByteLength must be a non-negative safe integer");
+    }
+    if (!Number.isSafeInteger(value.capturedByteLength) || value.capturedByteLength < 0) {
+      throw new Error("process stream capture capturedByteLength must be a non-negative safe integer");
+    }
+    if (typeof value.truncated !== "boolean") throw new Error("process stream capture truncated must be boolean");
+    const capturedByteLength = Buffer.byteLength(value.content, "utf8");
+    if (capturedByteLength !== value.capturedByteLength) {
+      throw new Error("process stream capture content byte length mismatch");
+    }
+    if (value.capturedByteLength > value.originalByteLength) {
+      throw new Error("process stream capture cannot exceed original byte length");
+    }
+    if (value.truncated !== (value.capturedByteLength < value.originalByteLength)) {
+      throw new Error("process stream capture truncated flag mismatch");
+    }
+    const rawOutputPath = value.rawOutputPath ?? null;
+    if (rawOutputPath !== null && (typeof rawOutputPath !== "string" || rawOutputPath.length === 0)) {
+      throw new Error("process stream capture rawOutputPath must be a non-empty string or null");
+    }
+    if (rawOutputPath !== null && !value.truncated) {
+      throw new Error("untruncated process stream capture cannot reference raw output");
+    }
+    const capture = Object.create(ProcessStreamCapture.prototype);
+    capture.originalByteLength = value.originalByteLength;
+    capture.capturedByteLength = value.capturedByteLength;
+    capture.truncated = value.truncated;
+    capture.content = value.content;
+    capture.rawOutputPath = rawOutputPath;
+    Object.freeze(capture);
+    return capture;
+  }
+
+  withRawOutputPath(rawOutputPath) {
+    if (typeof rawOutputPath !== "string" || rawOutputPath.length === 0) {
+      throw new Error("process stream capture rawOutputPath must be a non-empty string");
+    }
+    if (!this.truncated) return this;
+    return ProcessStreamCapture.fromJSON({
+      ...this.toJSON(),
+      rawOutputPath,
+    });
+  }
+
+  toJSON() {
+    return {
+      originalByteLength: this.originalByteLength,
+      capturedByteLength: this.capturedByteLength,
+      truncated: this.truncated,
+      content: this.content,
+      ...(this.rawOutputPath ? { rawOutputPath: this.rawOutputPath } : {}),
+    };
+  }
+}
+
 function assertOptionalString(value, name) {
   if (value !== null && typeof value !== "string") {
     throw new Error(`${name} must be a string or null`);
+  }
+}
+
+function assertChildProcessOutcomeInvariant({
+  kind,
+  started,
+  completed,
+  exitCode,
+  signal,
+  errorCode,
+  timedOut,
+  spawnError,
+  stdout,
+  stderr,
+}, label) {
+  if (kind === "passed" && (!started || !completed || exitCode !== 0 || signal || errorCode || timedOut || spawnError)) {
+    throw new Error(`passed ${label} must be completed with exit code 0 and no failure fields`);
+  }
+  if (kind === "assertion-failure" && (!started || !completed || !Number.isInteger(exitCode) || exitCode === 0 || signal || errorCode || timedOut || spawnError)) {
+    throw new Error(`assertion-failure ${label} must complete with a numeric non-zero exit code only`);
+  }
+  if (kind === "assertion-failure" && !hasAssertionEvidence(stdout, stderr)) {
+    throw new Error(`assertion-failure ${label} requires assertion evidence`);
+  }
+  if (kind === "nonzero-exit" && (!started || !completed || !Number.isInteger(exitCode) || exitCode === 0 || signal || errorCode || timedOut || spawnError)) {
+    throw new Error(`nonzero-exit ${label} must complete with a numeric non-zero exit code only`);
+  }
+  if (kind === "nonzero-exit" && hasAssertionEvidence(stdout, stderr)) {
+    throw new Error(`nonzero-exit ${label} cannot contain assertion evidence`);
+  }
+  if (kind === "spawn-error" && (started || completed || exitCode !== null || signal || !errorCode || timedOut || !spawnError)) {
+    throw new Error(`spawn-error ${label} must fail before started with errorCode and spawnError`);
+  }
+  if (kind === "signal" && (!started || completed || exitCode !== null || !signal || errorCode || timedOut || spawnError)) {
+    throw new Error(`signal ${label} must start and terminate with a signal`);
+  }
+  if (kind === "timeout" && (!started || completed || exitCode !== null || !timedOut || spawnError)) {
+    throw new Error(`timeout ${label} must start and remain incomplete with timedOut=true`);
+  }
+  if (kind === "max-buffer" && (!started || completed || exitCode !== null || !MAX_BUFFER_ERROR_CODES.has(errorCode) || timedOut || !spawnError)) {
+    throw new Error(`max-buffer ${label} must start and preserve a max-buffer error`);
   }
 }
 
@@ -137,6 +291,7 @@ export class ChildProcessExecutionResult {
     spawnError,
     stdout,
     stderr,
+    captureLimitBytes = DEFAULT_CHILD_PROCESS_CAPTURE_BYTES,
   }) {
     if (!CHILD_PROCESS_RESULT_KINDS.includes(kind)) throw new Error(`invalid child process result kind: ${kind}`);
     if (!Array.isArray(command) || command.length === 0 || command.some((token) => typeof token !== "string" || token.length === 0)) {
@@ -151,25 +306,21 @@ export class ChildProcessExecutionResult {
     assertOptionalString(spawnError, "child process result spawnError");
     if (typeof stdout !== "string") throw new Error("child process result stdout must be a string");
     if (typeof stderr !== "string") throw new Error("child process result stderr must be a string");
+    const stdoutCapture = new ProcessStreamCapture(stdout, { captureLimitBytes });
+    const stderrCapture = new ProcessStreamCapture(stderr, { captureLimitBytes });
 
-    if (kind === "passed" && (!started || !completed || exitCode !== 0 || signal || errorCode || timedOut || spawnError)) {
-      throw new Error("passed child process result must be completed with exit code 0 and no failure fields");
-    }
-    if (kind === "assertion-failure" && (!started || !completed || !Number.isInteger(exitCode) || exitCode === 0 || signal || errorCode || timedOut || spawnError)) {
-      throw new Error("assertion-failure child process result must complete with a numeric non-zero exit code only");
-    }
-    if (kind === "spawn-error" && (started || completed || exitCode !== null || signal || !errorCode || timedOut || !spawnError)) {
-      throw new Error("spawn-error child process result must fail before started with errorCode and spawnError");
-    }
-    if (kind === "signal" && (!started || completed || exitCode !== null || !signal || errorCode || timedOut || spawnError)) {
-      throw new Error("signal child process result must start and terminate with a signal");
-    }
-    if (kind === "timeout" && (!started || completed || exitCode !== null || !timedOut || spawnError)) {
-      throw new Error("timeout child process result must start and remain incomplete with timedOut=true");
-    }
-    if (kind === "max-buffer" && (!started || completed || exitCode !== null || !MAX_BUFFER_ERROR_CODES.has(errorCode) || timedOut || !spawnError)) {
-      throw new Error("max-buffer child process result must start and preserve a max-buffer error");
-    }
+    assertChildProcessOutcomeInvariant({
+      kind,
+      started,
+      completed,
+      exitCode,
+      signal,
+      errorCode,
+      timedOut,
+      spawnError,
+      stdout: stdoutCapture.content,
+      stderr: stderrCapture.content,
+    }, "child process result");
 
     this.kind = kind;
     this.command = Object.freeze([...command]);
@@ -184,7 +335,17 @@ export class ChildProcessExecutionResult {
     this.stderr = stderr;
     this.stdoutSummary = new ProcessStreamSummary(stdout);
     this.stderrSummary = new ProcessStreamSummary(stderr);
+    this.stdoutCapture = stdoutCapture;
+    this.stderrCapture = stderrCapture;
     Object.freeze(this);
+  }
+
+  toRecord() {
+    return ChildProcessExecutionRecord.fromExecution(this);
+  }
+
+  toJSON() {
+    return this.toRecord().toJSON();
   }
 
   diagnosticLines() {
@@ -203,6 +364,165 @@ export class ChildProcessExecutionResult {
   }
 }
 
+export class ChildProcessExecutionRecord {
+  constructor({
+    kind,
+    command,
+    started,
+    completed,
+    exitCode,
+    signal,
+    errorCode,
+    timedOut,
+    spawnError,
+    stdout,
+    stderr,
+    rawOutputPath = null,
+  }) {
+    if (!CHILD_PROCESS_RESULT_KINDS.includes(kind)) throw new Error(`invalid child process record kind: ${kind}`);
+    if (!Array.isArray(command) || command.length === 0 || command.some((token) => typeof token !== "string" || token.length === 0)) {
+      throw new Error("child process record command must contain non-empty argv strings");
+    }
+    if (typeof started !== "boolean") throw new Error("child process record started must be boolean");
+    if (typeof completed !== "boolean") throw new Error("child process record completed must be boolean");
+    if (exitCode !== null && !Number.isInteger(exitCode)) throw new Error("child process record exitCode must be an integer or null");
+    assertOptionalString(signal, "child process record signal");
+    assertOptionalString(errorCode, "child process record errorCode");
+    if (typeof timedOut !== "boolean") throw new Error("child process record timedOut must be boolean");
+    assertOptionalString(spawnError, "child process record spawnError");
+    if (!(stdout instanceof ProcessStreamCapture) || !(stderr instanceof ProcessStreamCapture)) {
+      throw new Error("child process record streams must be ProcessStreamCapture instances");
+    }
+    assertOptionalString(rawOutputPath, "child process record rawOutputPath");
+    assertChildProcessOutcomeInvariant({
+      kind,
+      started,
+      completed,
+      exitCode,
+      signal,
+      errorCode,
+      timedOut,
+      spawnError,
+      stdout: stdout.content,
+      stderr: stderr.content,
+    }, "child process record");
+    this.kind = kind;
+    this.command = Object.freeze([...command]);
+    this.started = started;
+    this.completed = completed;
+    this.exitCode = exitCode;
+    this.signal = signal;
+    this.errorCode = errorCode;
+    this.timedOut = timedOut;
+    this.spawnError = spawnError;
+    this.stdout = stdout;
+    this.stderr = stderr;
+    this.rawOutputPath = rawOutputPath;
+    Object.freeze(this);
+  }
+
+  static fromExecution(result) {
+    if (!(result instanceof ChildProcessExecutionResult)) {
+      throw new Error("child process execution result is required");
+    }
+    return new ChildProcessExecutionRecord({
+      kind: result.kind,
+      command: result.command,
+      started: result.started,
+      completed: result.completed,
+      exitCode: result.exitCode,
+      signal: result.signal,
+      errorCode: result.errorCode,
+      timedOut: result.timedOut,
+      spawnError: result.spawnError,
+      stdout: result.stdoutCapture,
+      stderr: result.stderrCapture,
+    });
+  }
+
+  static fromJSON(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("child process execution record must be an object");
+    }
+    return new ChildProcessExecutionRecord({
+      ...value,
+      stdout: ProcessStreamCapture.fromJSON(value.stdout),
+      stderr: ProcessStreamCapture.fromJSON(value.stderr),
+    });
+  }
+
+  withRawOutputPath(rawOutputPath) {
+    return new ChildProcessExecutionRecord({
+      ...this,
+      command: this.command,
+      stdout: this.stdout.withRawOutputPath(rawOutputPath),
+      stderr: this.stderr.withRawOutputPath(rawOutputPath),
+      rawOutputPath,
+    });
+  }
+
+  toJSON() {
+    return {
+      kind: this.kind,
+      command: [...this.command],
+      started: this.started,
+      completed: this.completed,
+      exitCode: this.exitCode,
+      signal: this.signal,
+      errorCode: this.errorCode,
+      timedOut: this.timedOut,
+      spawnError: this.spawnError,
+      stdout: this.stdout.toJSON(),
+      stderr: this.stderr.toJSON(),
+      ...(this.rawOutputPath ? { rawOutputPath: this.rawOutputPath } : {}),
+    };
+  }
+}
+
+export class ChildProcessExecutionRecordCodec {
+  constructor({
+    recordLimit = DEFAULT_CHILD_PROCESS_RECORD_LIMIT,
+    lineByteLimit = DEFAULT_CHILD_PROCESS_RECORD_LINE_BYTES,
+  } = {}) {
+    assertPositiveSafeInteger(recordLimit, "child process record limit");
+    assertPositiveSafeInteger(lineByteLimit, "child process record line byte limit");
+    this.recordLimit = recordLimit;
+    this.lineByteLimit = lineByteLimit;
+    Object.freeze(this);
+  }
+
+  encode(value) {
+    const record = value instanceof ChildProcessExecutionResult
+      ? value.toRecord()
+      : value;
+    if (!(record instanceof ChildProcessExecutionRecord)) {
+      throw new Error("child process execution record is required");
+    }
+    const line = `${CHILD_PROCESS_RECORD_PREFIX}${JSON.stringify(record.toJSON())}`;
+    if (Buffer.byteLength(line, "utf8") > this.lineByteLimit) {
+      throw new Error(`child process execution record line exceeds ${this.lineByteLimit} bytes`);
+    }
+    return line;
+  }
+
+  decodeAll(text) {
+    if (typeof text !== "string") throw new Error("child process execution record text must be a string");
+    const records = [];
+    for (const line of text.split(/\r?\n/)) {
+      if (!line.startsWith(CHILD_PROCESS_RECORD_PREFIX)) continue;
+      if (records.length >= this.recordLimit) {
+        throw new Error(`child process execution record count exceeds ${this.recordLimit}`);
+      }
+      if (Buffer.byteLength(line, "utf8") > this.lineByteLimit) {
+        throw new Error(`child process execution record line exceeds ${this.lineByteLimit} bytes`);
+      }
+      const json = JSON.parse(line.slice(CHILD_PROCESS_RECORD_PREFIX.length));
+      records.push(ChildProcessExecutionRecord.fromJSON(json));
+    }
+    return records;
+  }
+}
+
 function commandArgv(command) {
   if (Array.isArray(command?.argv)) return command.argv;
   if (Array.isArray(command)) return command;
@@ -214,12 +534,28 @@ function processErrorMessage(err, command, stderr) {
   return err?.code ? `${err.code}: ${message}` : message;
 }
 
-function childProcessResult({ command, err = null, stdout = "", stderr = "", started, exitCode, signal }) {
+function hasAssertionEvidence(stdout, stderr) {
+  const text = `${stdout}\n${stderr}`;
+  return ASSERTION_EVIDENCE_PATTERN.test(text);
+}
+
+function childProcessResult({
+  command,
+  err = null,
+  stdout = "",
+  stderr = "",
+  started,
+  exitCode,
+  signal,
+  captureLimitBytes = DEFAULT_CHILD_PROCESS_CAPTURE_BYTES,
+}) {
   const stdoutText = String(stdout || "");
   const stderrText = String(stderr || "");
   const errorCode = err && typeof err.code === "string" ? err.code : null;
   const timedOut = Boolean(err?.killed) || errorCode === "ETIMEDOUT";
   const maxBuffer = MAX_BUFFER_ERROR_CODES.has(errorCode);
+  const capturedStdout = boundedDiagnosticContent(stdoutText, captureLimitBytes);
+  const capturedStderr = boundedDiagnosticContent(stderrText, captureLimitBytes);
   const kind = timedOut
     ? "timeout"
     : maxBuffer
@@ -229,7 +565,9 @@ function childProcessResult({ command, err = null, stdout = "", stderr = "", sta
         : signal
           ? "signal"
           : exitCode !== 0
-            ? "assertion-failure"
+            ? hasAssertionEvidence(capturedStdout, capturedStderr)
+              ? "assertion-failure"
+              : "nonzero-exit"
             : "passed";
   const spawnError = kind === "spawn-error" || kind === "max-buffer"
     ? processErrorMessage(err, command, stderrText)
@@ -238,24 +576,29 @@ function childProcessResult({ command, err = null, stdout = "", stderr = "", sta
     kind,
     command: commandArgv(command),
     started,
-    completed: kind === "passed" || kind === "assertion-failure",
-    exitCode: kind === "passed" || kind === "assertion-failure" ? exitCode : null,
+    completed: kind === "passed" || kind === "assertion-failure" || kind === "nonzero-exit",
+    exitCode: kind === "passed" || kind === "assertion-failure" || kind === "nonzero-exit" ? exitCode : null,
     signal: signal ?? null,
     errorCode,
     timedOut,
     spawnError,
     stdout: stdoutText,
     stderr: stderrText,
+    captureLimitBytes,
   });
 }
 
-export function processResultFromSpawnSync(command, result) {
+function spawnSyncStarted(result) {
   const errorCode = typeof result?.error?.code === "string" ? result.error.code : null;
   const timedOut = Boolean(result?.error?.killed) || errorCode === "ETIMEDOUT";
-  const started = Number.isInteger(result?.status)
+  return Number.isInteger(result?.status)
     || typeof result?.signal === "string"
     || timedOut
     || MAX_BUFFER_ERROR_CODES.has(errorCode);
+}
+
+export function processResultFromSpawnSync(command, result, options = {}) {
+  const started = spawnSyncStarted(result);
   const exitCode = Number.isInteger(result?.status) ? result.status : result?.error ? null : 0;
   return childProcessResult({
     command,
@@ -265,6 +608,7 @@ export function processResultFromSpawnSync(command, result) {
     started,
     exitCode,
     signal: result?.signal ?? result?.error?.signal ?? null,
+    captureLimitBytes: options.captureLimitBytes,
   });
 }
 
@@ -663,6 +1007,7 @@ export async function runProcessDetailed(command, opts = {}) {
       started,
       exitCode: err ? (typeof err.code === "number" ? err.code : null) : 0,
       signal: err?.signal ?? null,
+      captureLimitBytes: opts.captureLimitBytes,
     });
     const finish = (result) => {
       if (heartbeat) clearInterval(heartbeat);

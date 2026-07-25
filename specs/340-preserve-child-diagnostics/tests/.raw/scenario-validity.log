@@ -1,0 +1,264 @@
+[senti] scenario-validity tests start
+command: node --test specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js
+[senti] scenario-validity file start command=node specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js
+TAP version 13
+# Subtest: R1: every child result serializes lifecycle termination and bounded stream fields
+not ok 1 - R1: every child result serializes lifecycle termination and bounded stream fields
+  ---
+  duration_ms: 1.617928
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:22:1'
+  failureType: 'testCodeFailure'
+  error: 'result.toJSON is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:29:23)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: numeric exits require assertion evidence before using assertion-failure
+not ok 2 - R2: numeric exits require assertion evidence before using assertion-failure
+  ---
+  duration_ms: 1.256686
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:47:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'assertion-failure'
+    - 'nonzero-exit'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'nonzero-exit'
+  actual: 'assertion-failure'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:52:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R2: signal timeout spawn-error and max-buffer keep distinct invariants
+ok 3 - R2: signal timeout spawn-error and max-buffer keep distinct invariants
+  ---
+  duration_ms: 0.513163
+  type: 'test'
+  ...
+# Subtest: R3: UTF-8 stream capture is byte-bounded and reports truncation metadata
+not ok 4 - R3: UTF-8 stream capture is byte-bounded and reports truncation metadata
+  ---
+  duration_ms: 0.296121
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:110:1'
+  failureType: 'testCodeFailure'
+  error: 'result.toJSON is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:116:25)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3: diagnostic record codec round-trips bounded typed records
+not ok 5 - R3: diagnostic record codec round-trips bounded typed records
+  ---
+  duration_ms: 1.302127
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:125:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ChildProcessExecutionRecordCodec must be exported
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    requiredExport (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:8:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:126:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: runner emits one record per category without additional spawns
+not ok 6 - R4: runner emits one record per category without additional spawns
+  ---
+  duration_ms: 0.324962
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:140:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ChildProcessExecutionRecordCodec must be exported
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    requiredExport (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:8:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js:141:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 1
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 29.010827
+Command failed: node specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js
+[senti] scenario-validity file start command=node specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js
+TAP version 13
+# Subtest: R5: final artifact and raw log preserve the nested typed record
+not ok 1 - R5: final artifact and raw log preserve the nested typed record
+  ---
+  duration_ms: 2.438812
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:78:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ChildProcessExecutionRecordCodec must be exported
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    requiredExport (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:14:10)
+    encodedRecord (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:49:17)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:79:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R6: unsupported assertion and attribution become a non-proceed unknown failure
+not ok 2 - R6: unsupported assertion and attribution become a non-proceed unknown failure
+  ---
+  duration_ms: 0.828205
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:98:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ChildProcessExecutionRecordCodec must be exported
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    requiredExport (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:14:10)
+    encodedRecord (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:49:17)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:99:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R7: pass behavior and outer invocation count remain unchanged
+ok 3 - R7: pass behavior and outer invocation count remain unchanged
+  ---
+  duration_ms: 92.71695
+  type: 'test'
+  ...
+# Subtest: R8: truncated nested evidence keeps exact metadata and a durable raw reference
+not ok 4 - R8: truncated nested evidence keeps exact metadata and a durable raw reference
+  ---
+  duration_ms: 0.612163
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:138:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ChildProcessExecutionRecordCodec must be exported
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    requiredExport (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:14:10)
+    encodedRecord (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:49:17)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-340-preserve-child-diagnostics/specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js:139:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 1
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 104.880171
+[senti] final-regression command: node nested-fixture.mjs
+[senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+exitCode: 1
+[senti] scenario-validity file end command=node specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: every child result serializes lifecycle termination and bounded stream fields
+[senti] requirement R2 observed: R2: numeric exits require assertion evidence before using assertion-failure
+[senti] requirement R3 observed: R3: UTF-8 stream capture is byte-bounded and reports truncation metadata
+[senti] requirement R4 observed: R4: runner emits one record per category without additional spawns
+[senti] requirement R5 observed: R5: final artifact and raw log preserve the nested typed record
+[senti] requirement R6 observed: R6: unsupported assertion and attribution become a non-proceed unknown failure
+[senti] requirement R7 observed: R7: pass behavior and outer invocation count remain unchanged
+[senti] requirement R8 observed: R8: truncated nested evidence keeps exact metadata and a durable raw reference
+[senti] scenario-validity tests end

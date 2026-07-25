@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "6件の pending question から回答相当の推奨文を削除し、問いのみを残した。",
+  "items": [
+    {
+      "title": "1. Embedded Recommendation In Question",
+      "target": "q1",
+      "rationale": "Goal と Scope の確認文を保持し、推奨回答を削除した。",
+      "evidence": "draft.json qa[0].question は質問のみで完結している。",
+      "changedFieldPaths": ["qa[0].question"]
+    },
+    {
+      "title": "2. Embedded Recommendation In Question",
+      "target": "q2",
+      "rationale": "nested child record contract の確認文を保持し、推奨回答を削除した。",
+      "evidence": "draft.json qa[1].question は質問のみで完結している。",
+      "changedFieldPaths": ["qa[1].question"]
+    },
+    {
+      "title": "3. Embedded Recommendation In Question",
+      "target": "q3",
+      "rationale": "truncation contract の確認文を保持し、推奨回答を削除した。",
+      "evidence": "draft.json qa[2].question は質問のみで完結している。",
+      "changedFieldPaths": ["qa[2].question"]
+    },
+    {
+      "title": "4. Embedded Recommendation In Question",
+      "target": "q4",
+      "rationale": "typed outcome と assertion classification の確認文を保持し、推奨回答を削除した。",
+      "evidence": "draft.json qa[3].question は質問のみで完結している。",
+      "changedFieldPaths": ["qa[3].question"]
+    },
+    {
+      "title": "5. Embedded Recommendation In Question",
+      "target": "q5",
+      "rationale": "unknown attribution policy の確認文を保持し、推奨回答を削除した。",
+      "evidence": "draft.json qa[4].question は質問のみで完結している。",
+      "changedFieldPaths": ["qa[4].question"]
+    },
+    {
+      "title": "6. Embedded Recommendation In Question",
+      "target": "q6",
+      "rationale": "non-goal と invocation count の確認文を保持し、推奨回答を削除した。",
+      "evidence": "draft.json qa[5].question は質問のみで完結している。",
+      "changedFieldPaths": ["qa[5].question"]
+    }
+  ]
+}

@@ -1,0 +1,242 @@
+[senti] spec-local tests start
+command: node --test specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js
+process.kind: passed
+process.command: node --test specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 11169
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 2473.495158
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R1: every child result serializes lifecycle termination and bounded stream fields
+ok 1 - R1: every child result serializes lifecycle termination and bounded stream fields
+  ---
+  duration_ms: 3.120496
+  type: 'test'
+  ...
+# Subtest: R2: numeric exits require assertion evidence before using assertion-failure
+ok 2 - R2: numeric exits require assertion evidence before using assertion-failure
+  ---
+  duration_ms: 1.165486
+  type: 'test'
+  ...
+# Subtest: R2: signal timeout spawn-error and max-buffer keep distinct invariants
+ok 3 - R2: signal timeout spawn-error and max-buffer keep distinct invariants
+  ---
+  duration_ms: 1.284446
+  type: 'test'
+  ...
+# Subtest: R3: UTF-8 stream capture is byte-bounded and reports truncation metadata
+ok 4 - R3: UTF-8 stream capture is byte-bounded and reports truncation metadata
+  ---
+  duration_ms: 0.546282
+  type: 'test'
+  ...
+# Subtest: R3: diagnostic record codec round-trips bounded typed records
+ok 5 - R3: diagnostic record codec round-trips bounded typed records
+  ---
+  duration_ms: 1.067685
+  type: 'test'
+  ...
+# Subtest: R8: diagnostic record codec rejects record-count overflow
+ok 6 - R8: diagnostic record codec rejects record-count overflow
+  ---
+  duration_ms: 0.886284
+  type: 'test'
+  ...
+# Subtest: R8: diagnostic record codec rejects marker line-byte overflow
+ok 7 - R8: diagnostic record codec rejects marker line-byte overflow
+  ---
+  duration_ms: 1.652169
+  type: 'test'
+  ...
+# Subtest: R4: runner emits one record per category without additional spawns
+ok 8 - R4: runner emits one record per category without additional spawns
+  ---
+  duration_ms: 1.674249
+  type: 'test'
+  ...
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R5: final artifact and raw log preserve the nested typed record
+ok 9 - R5: final artifact and raw log preserve the nested typed record
+  ---
+  duration_ms: 140.951003
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R6: unsupported assertion and attribution become a non-proceed unknown failure
+ok 10 - R6: unsupported assertion and attribution become a non-proceed unknown failure
+  ---
+  duration_ms: 110.875608
+  type: 'test'
+  ...
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R7: pass behavior and outer invocation count remain unchanged
+ok 11 - R7: pass behavior and outer invocation count remain unchanged
+  ---
+  duration_ms: 87.930331
+  type: 'test'
+  ...
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R7: malformed marker-like output cannot intercept a passing envelope
+ok 12 - R7: malformed marker-like output cannot intercept a passing envelope
+  ---
+  duration_ms: 81.350977
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R7: current-change failure keeps one repair retry and issue-log side effects
+ok 13 - R7: current-change failure keeps one repair retry and issue-log side effects
+  ---
+  duration_ms: 109.553321
+  type: 'test'
+  ...
+# Subtest: R7: docs-only changes keep the skipped report route without running the command
+ok 14 - R7: docs-only changes keep the skipped report route without running the command
+  ---
+  duration_ms: 45.604554
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-002.log
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-002.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R7: concrete unchanged assertion evidence keeps record-and-proceed display
+ok 15 - R7: concrete unchanged assertion evidence keeps record-and-proceed display
+  ---
+  duration_ms: 201.051031
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R7: config-derived timeout keeps timeout recovery and one issue-log record
+ok 16 - R7: config-derived timeout keeps timeout recovery and one issue-log record
+  ---
+  duration_ms: 108.277835
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R8: truncated nested evidence keeps exact metadata and a durable raw reference
+ok 17 - R8: truncated nested evidence keeps exact metadata and a durable raw reference
+  ---
+  duration_ms: 112.438377
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R8: typed timeout signal spawn-error and max-buffer records drive classification without reruns
+ok 18 - R8: typed timeout signal spawn-error and max-buffer records drive classification without reruns
+  ---
+  duration_ms: 430.474087
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R8: final artifact rejects child-process count overflow
+ok 19 - R8: final artifact rejects child-process count overflow
+  ---
+  duration_ms: 105.373541
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R8: malformed marker fails closed and preserves decoder evidence without reruns
+ok 20 - R8: malformed marker fails closed and preserves decoder evidence without reruns
+  ---
+  duration_ms: 107.854073
+  type: 'test'
+  ...
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# Subtest: R8: absent marker fails closed as unknown and keeps one invocation
+ok 21 - R8: absent marker fails closed as unknown and keeps one invocation
+  ---
+  duration_ms: 104.689737
+  type: 'test'
+  ...
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-001.log
+# [senti] final-regression command: node nested-fixture.mjs
+# [senti] final-regression raw log: specs/001-test/tests/.raw/final-regression-attempt-002.log
+# [senti] final-regression result artifact: specs/001-test/final-regression-result.json
+# [senti] final-regression wrote raw log: specs/001-test/tests/.raw/final-regression-attempt-002.log
+# Subtest: R8: retained surface matrix uses production pass skip retry and proceed routes
+ok 22 - R8: retained surface matrix uses production pass skip retry and proceed routes
+  ---
+  duration_ms: 415.71789
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2473.495158
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] spec-local tests end

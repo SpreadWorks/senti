@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T07:21:32.398Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "late-assertion-evidence-kind-mismatch",
+      "title": "Late assertion evidence can crash result construction",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/test-regression.js",
+      "requirementId": "R2",
+      "issue": "`childProcessResult()` still chooses `kind` from `utf8Prefix(stdoutText/stderrText, captureLimitBytes)`, but `ChildProcessExecutionResult` constructs `ProcessStreamCapture` with `boundedDiagnosticContent()`, which can relocate assertion evidence from later in the stream into the captured content. In that case `kind` becomes `nonzero-exit`, then the constructor sees assertion evidence in the captured stream and throws instead of returning an `assertion-failure` record.",
+      "suggestion": "In `childProcessResult()`, classify assertion evidence from the same bounded stream content used by `ProcessStreamCapture`, or build the `ProcessStreamCapture` values before selecting `kind` and pass their `.content` values into `hasAssertionEvidence()`.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires numeric exits with assertion evidence to be classified as `assertion-failure` while numeric exits without assertion evidence remain distinct. The current implementation can fail to produce any typed child result when assertion evidence is outside the simple UTF-8 prefix but inside the bounded diagnostic capture, so this remains a mandatory behavior violation.",
+      "findingId": "273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832",
+      "fingerprint": "273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832",
+      "repeatCount": 3
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "4e02e08536bd312fc73fb1d5b01523e6bcc62e077e9f2c5102cd98ab3b2f4b15",
+  "runId": "5a9e6405-9da2-43b9-8d4c-cbe629d4fbfb",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/340-preserve-child-diagnostics/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "ca6bbfd0e31477dbcf60bccc73ba29c4c30657268224186a483fc49c3d03d122"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 14,
+  "findings": [
+    {
+      "id": "273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832",
+      "findingId": "273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 14,
+      "severity": "blocking",
+      "title": "Late assertion evidence can crash result construction",
+      "body": "`childProcessResult()` still chooses `kind` from `utf8Prefix(stdoutText/stderrText, captureLimitBytes)`, but `ChildProcessExecutionResult` constructs `ProcessStreamCapture` with `boundedDiagnosticContent()`, which can relocate assertion evidence from later in the stream into the captured content. In that case `kind` becomes `nonzero-exit`, then the constructor sees assertion evidence in the captured stream and throws instead of returning an `assertion-failure` record.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "273319a329e69c0f6ff79cac2d2b43010da4e8dda8e6d57e8f702e6894f1e832",
+      "disposition": "must-fix",
+      "rationale": "R2 requires numeric exits with assertion evidence to be classified as `assertion-failure` while numeric exits without assertion evidence remain distinct. The current implementation can fail to produce any typed child result when assertion evidence is outside the simple UTF-8 prefix but inside the bounded diagnostic capture, so this remains a mandatory behavior violation.",
+      "requirementId": "R2",
+      "repeatCount": 3
+    }
+  ]
+}

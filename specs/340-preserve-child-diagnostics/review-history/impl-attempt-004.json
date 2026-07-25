@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T06:13:51.579Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "child-records-bypassed-by-outer-text-classifiers",
+      "title": "Outer text classifiers can override preserved child diagnostics",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-final-regression.js",
+      "requirementId": "R6",
+      "issue": "classifyFinalRegressionFailure still runs TEXT_FAILURE_CLASSIFIERS against the outer aggregate result text before classifying preserved childProcesses. When typed child records contain a non-assertion nested failure such as signal, timeout, or unknown nonzero exit, any matching text in the outer raw output can return a dependency, sandbox, invalid-project-test, or other outer classification before the child record classifier is consulted.",
+      "suggestion": "When childProcesses contains at least one non-passed record, classify from classifyChildProcessFailure before running outer text heuristics. Keep outer-process heuristics only for cases with no preserved failing child records, or for childRecordError/discovery/outer timeout cases that are explicitly authoritative.",
+      "disposition": "must-fix",
+      "rationale": "R6 requires removing unsupported assertion/existing inference and deriving attribution conservatively from preserved typed evidence. The current order can still derive the final failure kind from untyped outer text even though preserved typed child diagnostics are available.",
+      "findingId": "47c77e29ec0e5811d29da7670e9387aa4707575d51a78315d415a1036ba41afa",
+      "fingerprint": "47c77e29ec0e5811d29da7670e9387aa4707575d51a78315d415a1036ba41afa",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "0ed86238348cb9888a7e6656a0d8c5854f84df9646f7b724065c255ab0446fbf",
+  "runId": "5a9e6405-9da2-43b9-8d4c-cbe629d4fbfb",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/340-preserve-child-diagnostics/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/340-preserve-child-diagnostics/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "4c3789914f7047486c757da707d2f0ed9b18189101b5a702253eb5acc58e5281"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "47c77e29ec0e5811d29da7670e9387aa4707575d51a78315d415a1036ba41afa",
+      "findingId": "47c77e29ec0e5811d29da7670e9387aa4707575d51a78315d415a1036ba41afa",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Outer text classifiers can override preserved child diagnostics",
+      "body": "classifyFinalRegressionFailure still runs TEXT_FAILURE_CLASSIFIERS against the outer aggregate result text before classifying preserved childProcesses. When typed child records contain a non-assertion nested failure such as signal, timeout, or unknown nonzero exit, any matching text in the outer raw output can return a dependency, sandbox, invalid-project-test, or other outer classification before the child record classifier is consulted.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "47c77e29ec0e5811d29da7670e9387aa4707575d51a78315d415a1036ba41afa",
+      "disposition": "must-fix",
+      "rationale": "R6 requires removing unsupported assertion/existing inference and deriving attribution conservatively from preserved typed evidence. The current order can still derive the final failure kind from untyped outer text even though preserved typed child diagnostics are available.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -825,6 +825,7 @@ function validateFinalRegressionFailureKind(result) {
   const allowed = [
     "caused_by_current_change",
     "unattributed_existing_failure",
+    "unattributed_unknown_failure",
     "infra_failure",
     "timeout",
     "dependency_failure",
@@ -858,6 +859,7 @@ function validateFinalRegressionRecordAndProceed(result) {
   if (![
     "caused_by_current_change",
     "existing_failure",
+    "unknown",
     "environment",
     "sandbox",
     "timeout",
@@ -989,6 +991,76 @@ function validateFinalRegressionSkipKind(result) {
   }
 }
 
+function validateFinalRegressionStreamCapture(stream, label, rawOutputPath) {
+  if (!stream || typeof stream !== "object" || Array.isArray(stream)) {
+    throw new Error(`${label} must be an object`);
+  }
+  if (typeof stream.content !== "string") throw new Error(`${label}.content must be a string`);
+  if (!Number.isSafeInteger(stream.originalByteLength) || stream.originalByteLength < 0) {
+    throw new Error(`${label}.originalByteLength must be a non-negative safe integer`);
+  }
+  if (!Number.isSafeInteger(stream.capturedByteLength) || stream.capturedByteLength < 0) {
+    throw new Error(`${label}.capturedByteLength must be a non-negative safe integer`);
+  }
+  if (Buffer.byteLength(stream.content, "utf8") !== stream.capturedByteLength) {
+    throw new Error(`${label}.capturedByteLength does not match content`);
+  }
+  if (typeof stream.truncated !== "boolean") throw new Error(`${label}.truncated must be boolean`);
+  if (stream.truncated !== (stream.capturedByteLength < stream.originalByteLength)) {
+    throw new Error(`${label}.truncated does not match byte lengths`);
+  }
+  if (stream.truncated && stream.rawOutputPath !== rawOutputPath) {
+    throw new Error(`${label}.rawOutputPath must reference final-regression rawOutputPath when truncated`);
+  }
+  if (!stream.truncated && Object.hasOwn(stream, "rawOutputPath")) {
+    throw new Error(`${label}.rawOutputPath is only valid when truncated`);
+  }
+}
+
+function validateFinalRegressionChildProcesses(result) {
+  if (!Array.isArray(result.childProcesses)) {
+    throw new Error("final-regression childProcesses[] is required");
+  }
+  if (result.childProcesses.length > 128) {
+    throw new Error("final-regression childProcesses[] exceeds 128 entries");
+  }
+  const kinds = [
+    "passed",
+    "assertion-failure",
+    "nonzero-exit",
+    "spawn-error",
+    "signal",
+    "timeout",
+    "max-buffer",
+  ];
+  for (const [index, child] of result.childProcesses.entries()) {
+    const label = `final-regression.childProcesses[${index}]`;
+    if (!child || typeof child !== "object" || Array.isArray(child)) {
+      throw new Error(`${label} must be an object`);
+    }
+    if (!kinds.includes(child.kind)) throw new Error(`${label}.kind invalid: ${child.kind}`);
+    if (!Array.isArray(child.command) || child.command.length === 0 || child.command.some((entry) => typeof entry !== "string" || entry.length === 0)) {
+      throw new Error(`${label}.command must contain non-empty strings`);
+    }
+    for (const field of ["started", "completed", "timedOut"]) {
+      if (typeof child[field] !== "boolean") throw new Error(`${label}.${field} must be boolean`);
+    }
+    if (child.exitCode !== null && !Number.isInteger(child.exitCode)) {
+      throw new Error(`${label}.exitCode must be an integer or null`);
+    }
+    for (const field of ["signal", "errorCode", "spawnError"]) {
+      if (child[field] !== null && typeof child[field] !== "string") {
+        throw new Error(`${label}.${field} must be a string or null`);
+      }
+    }
+    if (child.rawOutputPath !== result.rawOutputPath) {
+      throw new Error(`${label}.rawOutputPath must reference final-regression rawOutputPath`);
+    }
+    validateFinalRegressionStreamCapture(child.stdout, `${label}.stdout`, child.rawOutputPath);
+    validateFinalRegressionStreamCapture(child.stderr, `${label}.stderr`, child.rawOutputPath);
+  }
+}
+
 export function validateFinalRegressionResult(result) {
   if (!result || typeof result !== "object") throw new Error("final-regression-result.json must be an object");
   if (result.version !== "1") throw new Error(`final-regression-result.json version='${result.version}', expected '1'`);
@@ -1003,6 +1075,7 @@ export function validateFinalRegressionResult(result) {
   if (result.result === "skipped") assertCamelRange(result.rawOutputLines, "final-regression");
   else assertRange(result.rawOutputLines, "final-regression");
   assertProcessMetadata(result.process, "final-regression.process");
+  validateFinalRegressionChildProcesses(result);
   validateFinalRegressionFailureKind(result);
   validateFinalRegressionSkipKind(result);
   validateFinalRegressionRecordAndProceed(result);

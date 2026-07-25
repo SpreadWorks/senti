@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js"
+    ],
+    "inputHash": "87fc6ec4eb372d47d7eb45292fbbb7115a093bef82ec0811b8eac6f70d19a89c",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js"
+  ],
+  "inputHash": "87fc6ec4eb372d47d7eb45292fbbb7115a093bef82ec0811b8eac6f70d19a89c",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T07:59:50.019Z",
+  "finishedAt": "2026-07-25T07:59:50.019Z",
+  "rawResponse": "I’ll inspect the touched file around the changed function so the review stays grounded in the actual local patterns, then I’ll return only proposals that fit the diff scope and required format.The diff path is not present under the current `.tmp` directory, so I’m checking the workspace layout before relying only on the provided patch.### 1. Reuse Stored Triage Validation With a Source-Step Option\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `readRejectedImplReviewTriage` now duplicates part of the stored impl-triage validation logic: JSON object check, `version`, `phase`, and `sourceStep` validation. This creates two validation paths that can drift.  \n**Suggestion:** Extract a helper such as `readStoredImplTriageArtifactHeader(file)` or extend `validateStoredImplTriageArtifact` with an option that permits checking `sourceStep` before loading/validating the source artifact. Then have both call sites share the same header validation.\n\n### 2. Isolate Source Artifact Loading for Impl Triage\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** The function now mixes three responsibilities: reading the triage artifact, validating source linkage/fingerprint, and applying the “all rejected” predicate.  \n**Suggestion:** Move the source artifact read and fingerprint consistency check into a small helper, for example `validateImplTriageSourceArtifact({ specDir, triage })`. That keeps `readRejectedImplReviewTriage` focused on selecting rejected impl-review triage artifacts.\n\n### 3. Name `previous` More Specifically\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** The variable name `previous` is vague in a function that handles multiple artifacts and references. It specifically represents the parsed previous fingerprint reference.  \n**Suggestion:** Rename it to `previousFingerprintRef` to make the manifest/hash comparison self-documenting.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Reuse Stored Triage Validation With a Source-Step Option",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `readRejectedImplReviewTriage` now duplicates part of the stored impl-triage validation logic: JSON object check, `version`, `phase`, and `sourceStep` validation. This creates two validation paths that can drift.  \n**Suggestion:** Extract a helper such as `readStoredImplTriageArtifactHeader(file)` or extend `validateStoredImplTriageArtifact` with an option that permits checking `sourceStep` before loading/validating the source artifact. Then have both call sites share the same header validation.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Isolate Source Artifact Loading for Impl Triage",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** The function now mixes three responsibilities: reading the triage artifact, validating source linkage/fingerprint, and applying the “all rejected” predicate.  \n**Suggestion:** Move the source artifact read and fingerprint consistency check into a small helper, for example `validateImplTriageSourceArtifact({ specDir, triage })`. That keeps `readRejectedImplReviewTriage` focused on selecting rejected impl-review triage artifacts.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Name `previous` More Specifically",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** The variable name `previous` is vague in a function that handles multiple artifacts and references. It specifically represents the parsed previous fingerprint reference.  \n**Suggestion:** Rename it to `previousFingerprintRef` to make the manifest/hash comparison self-documenting.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

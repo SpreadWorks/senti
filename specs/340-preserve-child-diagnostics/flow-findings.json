@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "2c3d8607dce1c57e8220c1822de8043a895b4a7cf2cf6caf50715723704874c5",
+      "runId": "5a9e6405-9da2-43b9-8d4c-cbe629d4fbfb",
+      "fingerprint": "2c3d8607dce1c57e8220c1822de8043a895b4a7cf2cf6caf50715723704874c5",
+      "disposition": "deferred",
+      "rationale": "R6 explicitly requires removing unsupported assertion/existing inference and using `unattributed_unknown_failure` conservatively, so retaining raw-output-based attribution contradicts a mandatory acceptance criterion.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "8deb60c06e9295a2d7df3f4869f7306f6a31f3f8ec67443ddf732c0d5e79ca9a",
+      "runId": "5a9e6405-9da2-43b9-8d4c-cbe629d4fbfb",
+      "fingerprint": "8deb60c06e9295a2d7df3f4869f7306f6a31f3f8ec67443ddf732c0d5e79ca9a",
+      "disposition": "deferred",
+      "rationale": "R8 is an explicit acceptance criterion and the implementation changes final-regression classification and artifact shape without the required behavioral proof.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    }
+  ]
+}

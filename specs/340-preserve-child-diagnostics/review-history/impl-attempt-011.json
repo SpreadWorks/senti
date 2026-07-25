@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T06:59:17.459Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "assertion-evidence-truncation-misclassifies-child-result",
+      "title": "Assertion evidence can be lost before classification",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/test-regression.js",
+      "requirementId": "R2",
+      "issue": "`childProcessResult()` computes `capturedStdout` and `capturedStderr` with `captureLimitBytes` and then calls `hasAssertionEvidence()` on only those prefixes. If a failing child writes enough output before `ERR_ASSERTION` or `AssertionError`, the result is classified as `nonzero-exit` even though the full child output contains assertion evidence.",
+      "suggestion": "In `childProcessResult()`, determine assertion evidence from the full `stdoutText` and `stderrText`, then separately create bounded `ProcessStreamCapture` values for serialization. Keep the constructor invariant check based on the stored capture, or include a durable assertion-evidence boolean in the record if R2 requires classification to survive truncation.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires numeric exits to use `assertion-failure` only when assertion evidence exists, but it also requires preserving the distinct assertion-failure invariant. Basing the kind on truncated evidence makes classification depend on capture size rather than the child result, which can turn real assertion failures into generic nonzero exits.",
+      "findingId": "0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f",
+      "fingerprint": "0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "spawn-error-started-invariant-inverted",
+      "title": "Spawn errors are marked as started",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/test-regression.js",
+      "requirementId": "R2",
+      "issue": "`processResultFromSpawnSync()` sets `started` to true when `result.error` exists, but `assertChildProcessOutcomeInvariant()` requires `spawn-error` records to have `started === false`. A normal ENOENT-style spawn failure therefore throws while constructing the child process result instead of producing a typed `spawn-error` record.",
+      "suggestion": "In `processResultFromSpawnSync()`, set `started` to false for pre-start spawn errors such as ENOENT, and only set it true for outcomes where the process actually started, including numeric exits, signals, timeouts, and max-buffer cases as appropriate.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires spawn-error, timeout, signal, and max-buffer outcomes to keep distinct invariants. The current started calculation violates the spawn-error invariant and prevents the required record from being produced.",
+      "findingId": "4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4",
+      "fingerprint": "4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "cd89beba1c486d27e7c2d83b801673da25baefa168bbc1af1b7dd7b15a4e9ca5",
+  "runId": "5a9e6405-9da2-43b9-8d4c-cbe629d4fbfb",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/340-preserve-child-diagnostics/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "2d77d9e1b22da72c8f0a4487cfecd589a25f7f2b1a3c9dafd02343b8cb123d5b"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 11,
+  "findings": [
+    {
+      "id": "0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f",
+      "findingId": "0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 11,
+      "severity": "blocking",
+      "title": "Assertion evidence can be lost before classification",
+      "body": "`childProcessResult()` computes `capturedStdout` and `capturedStderr` with `captureLimitBytes` and then calls `hasAssertionEvidence()` on only those prefixes. If a failing child writes enough output before `ERR_ASSERTION` or `AssertionError`, the result is classified as `nonzero-exit` even though the full child output contains assertion evidence.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "0fbafcb6b5ebc68dae01812af9cbcf49193bd25ab4ab27ed5ee0422ee840748f",
+      "disposition": "must-fix",
+      "rationale": "R2 requires numeric exits to use `assertion-failure` only when assertion evidence exists, but it also requires preserving the distinct assertion-failure invariant. Basing the kind on truncated evidence makes classification depend on capture size rather than the child result, which can turn real assertion failures into generic nonzero exits.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    },
+    {
+      "id": "4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4",
+      "findingId": "4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 11,
+      "severity": "blocking",
+      "title": "Spawn errors are marked as started",
+      "body": "`processResultFromSpawnSync()` sets `started` to true when `result.error` exists, but `assertChildProcessOutcomeInvariant()` requires `spawn-error` records to have `started === false`. A normal ENOENT-style spawn failure therefore throws while constructing the child process result instead of producing a typed `spawn-error` record.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "4d1cf840ea68b29cd5b712695736181b5524f88499748541ab11bac116b223a4",
+      "disposition": "must-fix",
+      "rationale": "R2 requires spawn-error, timeout, signal, and max-buffer outcomes to keep distinct invariants. The current started calculation violates the spawn-error invariant and prevents the required record from being produced.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "devType": "bugfix",
+  "goal": "must: final-regression の nested child process が失敗した理由を、テストを再実行せず raw log と最終 artifact の両方から説明可能にする。",
+  "analysis": {
+    "problem": "外側の regression command が非ゼロ終了した際、内側の unit/e2e child command の stdout/stderr が空だと、どの child が exit、signal、timeout、spawn error のどれで失敗したかを保存済み evidence から判別できない。それでも現行分類は数値の非ゼロ終了を assertion-failure と扱い、final-regression 側が unattributed_existing_failure と推定し得る。",
+    "proposedApproach": "outer test runner が各 nested child command の bounded execution record を出力し、final-regression がその record を raw log と structured artifact に保存する。分類は保存済みの typed evidence に限定し、assertion と current/existing attribution を証明できない場合は unknown outcome として扱う。",
+    "validation": "must: retained surface ごとに behavior-level parity を検証する。tests/run.js は category order、summary、aggregate exit code、1 category 1 spawn を確認する。senti flow run final-regression は pass/fail/skipped、retry、record-and-proceed、status/report transition を確認する。ChildProcessExecutionResult exports は exit、signal、timeout、spawn error、assertion output、no-output non-zero exit を fixtures で確認する。final-regression-result.json と raw attempt log は既存 fields/ranges に加えて bounded nested records、truncation metadata、durable reference を確認する。config-derived command/timeout behavior と issue-log side effect は非回帰 assertions を追加し、process spy で diagnostic enrichment による追加 invocation がゼロであることを証明する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #463 は tests/run.js と src/flow/lib/run-final-regression.js、および関連する final-regression execution/classification tests を対象とする。",
+      "must: tests/run.js は child command ごとに ChildProcessExecutionResult を生成するが、現行の数値非ゼロ終了 kind は assertion-failure に固定されている。",
+      "must: final-regression は outer command の stdout/stderr と process summary を保存するが、nested child の structured execution records を artifact contract として保持していない。",
+      "must: diagnostic enrichment のために test process を再実行してはならない。",
+      "must: ユーザーは preflight の Goal、Scope、Out of Scope を承認し、auto mode を選択した。"
+    ],
+    "decisionPoints": [
+      "must: nested child record を成功・失敗を問わず every child command に対して保存する。",
+      "must: stream bound 超過時に truncation metadata と durable raw-log reference を保存する。",
+      "must: assertion と current/existing attribution は concrete preserved evidence が存在する場合のみ設定する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 新しい meaningful values は専用 class と constructor invariant で表現し、plain object の discriminated union もどきは追加しない。",
+      "must: 外部依存を追加せず Node.js built-in modules のみを使用する。",
+      "must: alpha policy に従い旧 artifact format の compatibility shim は追加しない。",
+      "must: 同じ record formatting/parsing pattern が2箇所以上に現れる場合は共通 helper に抽出する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: child execution record の class responsibilities、serialization boundary、raw-log line format を spec で定義する。",
+      "must: final-regression artifact schema と validator の変更点を spec で定義する。",
+      "should: fixture helper と process spy の再利用単位を既存 test patterns に合わせて spec で定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: tests/run.js で every nested child command の bounded execution evidence を出力する。",
+      "must: src/flow/lib/run-final-regression.js で nested evidence を raw log と final artifact に保存し、evidence-based classification を行う。",
+      "must: related unit/e2e tests で typed failure modes、truncation、zero additional invocations を検証する。"
+    ],
+    "out": [
+      "must: Issue #451 で失敗した product code 自体は修正しない。",
+      "must: final-regression の execution point、invocation count、retry behavior、record-and-proceed failed-state display を変更しない。",
+      "must: failure を fallback で PASS または skipped に変換せず、assertions を削減しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: user-facing tests/run.js command の category execution order、summary、aggregate exit code は executeFiles が引き続き所有し、各 category の behavior test で parity を証明する。",
+    "must: user-facing senti flow run final-regression command の execution point、outer invocation count、pass/fail/skipped envelope、retry behavior は RunFinalRegressionCommand が引き続き所有し、command-level tests で parity を証明する。",
+    "must: exported ChildProcessExecutionResult、processResultFromSpawnSync、processOutputLines API は test-regression.js が所有し、既存 passed/signal/timeout/spawn-error/max-buffer behavior を保持しながら numeric exit の typed outcome を evidence-based に置換する。",
+    "must: generated final-regression-result.json は FinalRegressionArtifact が所有し、既存 process、rawOutputPath、rawOutputLines、failure/recovery fields を保持しながら bounded nested child records と truncation metadata を追加する。",
+    "must: generated tests/.raw/final-regression-attempt-NNN.log は RunFinalRegressionCommand が所有し、既存 outer process lines と result summary を保持しながら every nested child record と durable stream evidence を追加する。",
+    "must: final-regression post-hook の step transition、flow status/report surfaces、issue-log failure record、record-and-proceed failed-state display は既存 owners を維持し、unknown attribution に existing eligibility を与えない変更以外の side effects を behavior tests で不変確認する。",
+    "must: test.command、test.timeout、agent.timeout、testExecuteRegression の config behavior と command discovery は既存 config/test-regression owners を維持し、diagnostic capture のための新しい command invocation や execution point を追加しない。",
+    "must: public surface の意図的削除は行わない。alpha policy に従い generated artifact は新 contract を直接採用し、旧 format compatibility shim は追加しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: final-regression の nested child failure を再実行なしで説明可能にし、対象を tests/run.js、src/flow/lib/run-final-regression.js、関連 tests に限定する Goal と Scope でよいか。",
+      "answer": "must: Issue #463 の Goal、Scope、Out of Scope をそのまま採用する。",
+      "evidence": "ユーザーは preflight summary を明示承認した。draft guardrail Single Responsibility はユーザー定義 Issue を単一 spec の scope boundary として扱う。",
+      "why": "Single Responsibility guardrail と承認済み summary の双方が Issue #463 の境界を維持するため、新しい scope 判断を追加しない。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "must: outer runner は失敗した child だけでなく every nested child command の command identity、start/spawn state、exit code、signal、spawn error、timeout、stdout/stderr を保存する contract とするか。",
+      "answer": "must: 成否を問わず every nested child command の bounded execution record を保存する。",
+      "evidence": "Issue #463 Proposed Change が every nested command の保存を明記する。既存 tests/run.js executeFiles は category ごとに ChildProcessExecutionResult を生成するため、同じ execution boundary で全 record を取得できる。",
+      "why": "既存の category execution pattern を利用して成功 record も保持すれば、実行順、未実行、失敗位置を保存済み evidence だけから区別できる。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: stdout/stderr が configured bounds を超えた場合、保持した byte/line 範囲、切り捨て有無、元 evidence を参照できる durable raw-log path を artifact に記録するか。",
+      "answer": "must: stream の truncation metadata と durable raw-log reference を artifact に記録する。",
+      "evidence": "Issue #463 が configured bounds と durable reference を明記する。既存 run-final-regression.js は MAX_FAILURE_EVIDENCE_CHARS による bound と rawOutputPath による durable reference の両方を既に使う。",
+      "why": "既存の bounded evidence と raw-log reference pattern を child streams に拡張し、artifact size 制限と欠落 context の追跡可能性を両立する。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "must: no-output non-zero exit を assertion-failure とみなさず distinct typed outcome とし、assertion text が保存されていない限り failureNature: assertion を設定しないか。",
+      "answer": "must: no-output non-zero exit を distinct typed outcome とし、保存済み assertion evidence がない場合は failureNature: assertion を設定しない。",
+      "evidence": "Issue #463 が failure modes の区別を明記する。既存 test-regression.js の processResultFromSpawnSync は数値非ゼロ終了を assertion-failure に固定しており、signal、timeout、spawn-error は別 class invariant で表現する。",
+      "why": "既存の ChildProcessExecutionResult class pattern を拡張し、assertion evidence を持たない numeric exit を assertion と断定する現行 pattern を除去する。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: current change または existing failure への attribution を保存済み evidence で説明できない場合、existing と自動分類せず unknown として既存の安全な停止または確認経路へ送るか。",
+      "answer": "must: attribution を説明できない failure は unknown とし、existing failure として自動的に record-and-proceed させない。",
+      "evidence": "Issue #463 が unknown failure の自動 existing 分類を禁止する。既存 run-final-regression.js は InfrastructureRegressionFailure を stop policy に、ExistingRegressionFailure を user-confirmation policy に割り当てる。",
+      "why": "既存の conservative recovery policy pattern に従い、根拠のない attribution には record-and-proceed eligibility を与えず安全な経路を選ぶ。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "must: diagnostics を得るための追加 test-process invocation をゼロに保ち、execution count、retry behavior、record-and-proceed failed-state display を変更しないか。",
+      "answer": "must: diagnostic capture は既存 invocation 内で完結し、execution count、retry behavior、record-and-proceed failed-state display を変更しない。",
+      "evidence": "Issue #463 が zero additional invocations を明記する。既存 tests/run.js executeFiles は category ごとに1回 spawn し、run-final-regression.js execute は runProcessDetailed を1回だけ呼ぶ。",
+      "why": "既存 invocation boundary 内で record を収集すれば execution policy を変えずに evidence preservation を実現できる。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "should: stream bound の既定値と設定 source は、既存 maxBuffer policy と artifact size limits を調査して spec で確定する。",
+    "should: unknown nested failure に対する exact recovery action は、既存 final-regression failure policy と record-and-proceed eligibility を調査して spec で確定する。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T05:47:13Z",
+    "notes": "Issue #463 の承認済み preflight summary と解決済み QA に基づく auto mode draft approval。"
+  }
+}

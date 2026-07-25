@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/final-regression.test.js"
+    ],
+    "inputHash": "2482ff2a188da52fba564f425801b80f072a5d1aa2cbd74590ff595327320d32",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "tests/unit/flow/final-regression.test.js"
+  ],
+  "inputHash": "2482ff2a188da52fba564f425801b80f072a5d1aa2cbd74590ff595327320d32",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:01:26.406Z",
+  "finishedAt": "2026-07-25T08:01:26.406Z",
+  "rawResponse": "### 1. Extract repeated typed child evidence fixture helper\n**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R8  \n**Issue:** Several tests now inline `shellPrintChildProcessRecord({ stderr: ... })` with similar `ERR_ASSERTION\\n<path>: <message>\\n` payload construction. This duplicates the typed child evidence shape and makes future changes to the synthetic child-process record format more error-prone.  \n**Suggestion:** Add a small local helper in this test file, for example `childAssertionStderr(lines)` or `typedAssertionFailure(stderrLines)`, and use it in the affected fixtures.\n\n### 2. Avoid unclear `error` mutation in EPERM fixture\n**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R8  \n**Issue:** The EPERM test creates `const error = new Error(\"spawn EPERM\"); error.code = \"EPERM\";`. Mutating a built-in `Error` object inline is less clear than naming the fixture intent, especially because this is test data for child-process serialization.  \n**Suggestion:** Extract this into a local helper such as `makeChildProcessError(message, code)` or `makeEpermError()`, so the fixture reads as intentional test setup rather than incidental object mutation.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract repeated typed child evidence fixture helper",
+        "body": "**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R8  \n**Issue:** Several tests now inline `shellPrintChildProcessRecord({ stderr: ... })` with similar `ERR_ASSERTION\\n<path>: <message>\\n` payload construction. This duplicates the typed child evidence shape and makes future changes to the synthetic child-process record format more error-prone.  \n**Suggestion:** Add a small local helper in this test file, for example `childAssertionStderr(lines)` or `typedAssertionFailure(stderrLines)`, and use it in the affected fixtures.",
+        "file": "tests/unit/flow/final-regression.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Avoid unclear `error` mutation in EPERM fixture",
+        "body": "**File:** `tests/unit/flow/final-regression.test.js`  \n**Requirement:** R8  \n**Issue:** The EPERM test creates `const error = new Error(\"spawn EPERM\"); error.code = \"EPERM\";`. Mutating a built-in `Error` object inline is less clear than naming the fixture intent, especially because this is test data for child-process serialization.  \n**Suggestion:** Extract this into a local helper such as `makeChildProcessError(message, code)` or `makeEpermError()`, so the fixture reads as intentional test setup rather than incidental object mutation.",
+        "file": "tests/unit/flow/final-regression.test.js",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

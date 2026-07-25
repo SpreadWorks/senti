@@ -737,6 +737,10 @@ function readCanonicalImplReviewEvidence(specDir, flowState) {
   return record == null ? null : new CanonicalReviewEvidenceProjection({ specDir, record });
 }
 
+function readRejectedImplReviewTriageForVerdict(specDir, verdict) {
+  return verdict === "REJECTED" ? readRejectedImplReviewTriage(specDir) : null;
+}
+
 function inspectDeferredSources(specDir, deferredFindings, flowState) {
   const blockers = [];
   const evidence = [];
@@ -950,15 +954,12 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
   }
   const implReviewVerdict = canonicalImplReviewEvidence?.evidence.disposition.value
     || artifacts["impl-review.json"]?.verdict;
-  const rejectedReviewTriage = implReviewVerdict === "REJECTED"
-    && !fs.existsSync(path.join(specDir, "impl-repair.json")) ? (() => {
-    try {
-      return readRejectedImplReviewTriage(specDir);
-    } catch (_) {
-      invalidSchemas.push("impl-triage.json");
-      return null;
-    }
-  })() : null;
+  let rejectedReviewTriage = null;
+  try {
+    rejectedReviewTriage = readRejectedImplReviewTriageForVerdict(specDir, implReviewVerdict);
+  } catch (_) {
+    invalidSchemas.push("impl-triage.json");
+  }
   if (artifacts["impl-review.json"]) {
     try {
       validateImplReviewEvidence(artifacts["impl-review.json"]);
@@ -1067,9 +1068,7 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
   });
   const repairPath = path.join(specDir, "impl-repair.json");
   const implReview = mechanical.artifacts["impl-review.json"];
-  const rejectedReviewTriage = !fs.existsSync(repairPath) && implReview?.verdict === "REJECTED"
-    ? readRejectedImplReviewTriage(specDir)
-    : null;
+  const rejectedReviewTriage = readRejectedImplReviewTriageForVerdict(specDir, implReview?.verdict);
   const repairEvidence = fs.existsSync(repairPath)
     ? {
         kind: "repair-audit",

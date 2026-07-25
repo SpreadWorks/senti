@@ -1,0 +1,60 @@
+{
+  "spec": "specs/340-preserve-child-diagnostics/spec.json",
+  "date": "2026-07-25T08:27:16.771Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Every nested test command shall produce one typed execution record containing command argv, started/completed state, exit code, signal, error code, timeout state, spawn error, and bounded stdout/stderr captures.",
+      "status": "done",
+      "note": "R1: every child result serializes lifecycle termination and bounded stream fields"
+    },
+    {
+      "desc": "Child outcomes shall distinguish passed, assertion-failure with concrete assertion output, nonzero-exit without assertion evidence, signal, timeout, spawn-error, and max-buffer outcomes through class-enforced invariants.",
+      "status": "done",
+      "note": "R2: numeric exits require assertion evidence before using assertion-failure"
+    },
+    {
+      "desc": "Each captured child stream shall record original byte length, captured byte length, truncation state, bounded content, and a durable final-regression attempt-log reference when content exceeds the configured capture bound.",
+      "status": "done",
+      "note": "R3: UTF-8 stream capture is byte-bounded and reports truncation metadata"
+    },
+    {
+      "desc": "tests/run.js shall emit one machine-readable child execution marker for every executed category while preserving existing stream forwarding, category order, summary, aggregate exit code, and exactly one spawn per category.",
+      "status": "done",
+      "note": "R4: runner emits one record per category without additional spawns"
+    },
+    {
+      "desc": "The final-regression raw log and final-regression-result.json shall identify each nested command and its typed outcome, and the artifact shall expose bounded child records linked to the raw attempt log.",
+      "status": "done",
+      "note": "R5: final artifact and raw log preserve the nested typed record"
+    },
+    {
+      "desc": "Final-regression shall set failureNature assertion and current-versus-existing attribution only when preserved evidence supports them; an unsupported attribution shall become unattributed_unknown_failure with no automatic existing-failure eligibility.",
+      "status": "done",
+      "note": "R6: unsupported assertion and attribution become a non-proceed unknown failure"
+    },
+    {
+      "desc": "The change shall preserve final-regression execution count, pass/fail/skipped envelopes, retry behavior, record-and-proceed failed-state display, status/report transitions, config-derived command/timeout behavior, and issue-log side effects except for evidence-based failure fields.",
+      "status": "done",
+      "note": "R7: pass behavior and outer invocation count remain unchanged"
+    },
+    {
+      "desc": "Automated coverage shall prove all child failure modes, bounded truncation and durable references, raw-log/artifact persistence, evidence-based classification, retained-surface behavior parity, and zero additional test-process invocations without requiring legacy artifact compatibility.",
+      "status": "done",
+      "note": "R8: truncated nested evidence keeps exact metadata and a durable raw reference"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "d3063c8f6dd97d663779ed377bfd30ba0c3ee4ffb0cb9fc7d23ca109ea457b2a"
+}

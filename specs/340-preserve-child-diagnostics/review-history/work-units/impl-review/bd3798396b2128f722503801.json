@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/test-artifacts.js"
+    ],
+    "inputHash": "836daf8cdbd04b1ae65e5933e4449737bcf616c32a3e2cd0f59dc633a02a3036",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "src/flow/lib/test-artifacts.js"
+  ],
+  "inputHash": "836daf8cdbd04b1ae65e5933e4449737bcf616c32a3e2cd0f59dc633a02a3036",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:15:58.604Z",
+  "finishedAt": "2026-07-25T08:15:58.604Z",
+  "rawResponse": "### 1. Extract Shared Enum Constants for Final Regression Outcomes\n**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** The allowed outcome/kind lists are embedded directly inside validators, and this change adds more string literals in multiple places. That makes future schema changes easier to miss or apply inconsistently.  \n**Suggestion:** Move arrays such as final-regression failure kinds, record-and-proceed values, and child process kinds into named constants near the validators, e.g. `FINAL_REGRESSION_FAILURE_KINDS`, `FINAL_REGRESSION_RECORD_AND_PROCEED_VALUES`, and `FINAL_REGRESSION_CHILD_PROCESS_KINDS`.\n\n### 2. Simplify Repeated Nullable String Validation\n**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `validateFinalRegressionChildProcesses` repeats inline nullable-string validation for `signal`, `errorCode`, and `spawnError`. The same pattern is likely to grow if child process metadata expands.  \n**Suggestion:** Add a small helper such as `assertNullableString(value, label)` and use it for those fields. This keeps the child validator focused on child-process structure rather than low-level field checks.\n\n### 3. Extract Child Command Validation\n**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** The command validation condition is long and combines array shape, emptiness, item type, and item length in one expression. It is correct but harder to scan than the surrounding validation code.  \n**Suggestion:** Extract it to `validateFinalRegressionChildCommand(child.command, label)` or an `isNonEmptyStringArray` helper, then throw the existing error message from the caller.\n\n### 4. Name the Child Process Count Bound\n**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R3  \n**Issue:** The `128` child-process limit is a magic number inside `validateFinalRegressionChildProcesses`. The bound is important for the bounded-resource-usage guardrail, so it should be named.  \n**Suggestion:** Introduce a constant such as `MAX_FINAL_REGRESSION_CHILD_PROCESS_RECORDS = 128` and use it in both the comparison and error message. This makes the resource bound explicit and easier to reuse in tests.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Shared Enum Constants for Final Regression Outcomes",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** The allowed outcome/kind lists are embedded directly inside validators, and this change adds more string literals in multiple places. That makes future schema changes easier to miss or apply inconsistently.  \n**Suggestion:** Move arrays such as final-regression failure kinds, record-and-proceed values, and child process kinds into named constants near the validators, e.g. `FINAL_REGRESSION_FAILURE_KINDS`, `FINAL_REGRESSION_RECORD_AND_PROCEED_VALUES`, and `FINAL_REGRESSION_CHILD_PROCESS_KINDS`.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Simplify Repeated Nullable String Validation",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `validateFinalRegressionChildProcesses` repeats inline nullable-string validation for `signal`, `errorCode`, and `spawnError`. The same pattern is likely to grow if child process metadata expands.  \n**Suggestion:** Add a small helper such as `assertNullableString(value, label)` and use it for those fields. This keeps the child validator focused on child-process structure rather than low-level field checks.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Extract Child Command Validation",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R5  \n**Issue:** The command validation condition is long and combines array shape, emptiness, item type, and item length in one expression. It is correct but harder to scan than the surrounding validation code.  \n**Suggestion:** Extract it to `validateFinalRegressionChildCommand(child.command, label)` or an `isNonEmptyStringArray` helper, then throw the existing error message from the caller.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Name the Child Process Count Bound",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R3  \n**Issue:** The `128` child-process limit is a magic number inside `validateFinalRegressionChildProcesses`. The bound is important for the bounded-resource-usage guardrail, so it should be named.  \n**Suggestion:** Introduce a constant such as `MAX_FINAL_REGRESSION_CHILD_PROCESS_RECORDS = 128` and use it in both the comparison and error message. This makes the resource bound explicit and easier to reuse in tests.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

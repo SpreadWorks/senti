@@ -11,6 +11,7 @@ import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
+import { shellPrintChildProcessRecord } from "../../helpers/child-process-record.js";
 
 const SPEC_DIR = "specs/001-test";
 const FIXTURE_PATH = "final-regression-fixture.sh";
@@ -45,6 +46,9 @@ function setupProject(tmp, scriptBody, extraFlowState = {}) {
 function writeChangedFileReferencingFailureFixture(tmp, message) {
   writeFile(tmp, FIXTURE_PATH, [
     `printf '%s\\n' ${JSON.stringify(`${FIXTURE_PATH}: ${message}`)} >&2`,
+    shellPrintChildProcessRecord({
+      stderr: `ERR_ASSERTION\n${FIXTURE_PATH}: ${message}\n`,
+    }),
     "exit 1",
     "",
   ].join("\n"));
@@ -175,7 +179,14 @@ describe("flow run final-regression", () => {
 
   it("classifies failure with no project change as unattributed_existing_failure", async () => {
     tmp = createTmpDir("final-regression-unattributed-existing-");
-    const ctx = setupProject(tmp, failingFixtureBody("existing failure"));
+    const ctx = setupProject(tmp, [
+      "printf '%s\\n' 'existing failure' >&2",
+      shellPrintChildProcessRecord({
+        stderr: "ERR_ASSERTION\ntests/unit/existing.test.js: existing failure\n",
+      }),
+      "exit 1",
+      "",
+    ].join("\n"));
 
     const result = await new RunFinalRegressionCommand().execute(ctx);
 
@@ -197,6 +208,9 @@ describe("flow run final-regression", () => {
       "printf '%s\\n' \"  error: 'direct flow.json sinks detected'\"",
       "printf '%s\\n' \"  code: 'ERR_ASSERTION'\"",
       "printf '%s\\n' '  ...'",
+      shellPrintChildProcessRecord({
+        stderr: "ERR_ASSERTION\ntests/unit/flow-state-path.test.js: direct flow.json sinks detected\n",
+      }),
       "exit 1",
       "",
     ].join("\n"));
@@ -232,6 +246,14 @@ describe("flow run final-regression", () => {
       `printf '%s\\n' "  error: '${FIXTURE_PATH} failed'"`,
       "printf '%s\\n' \"  code: 'ERR_ASSERTION'\"",
       "printf '%s\\n' '  ...'",
+      shellPrintChildProcessRecord({
+        stderr: [
+          "ERR_ASSERTION",
+          "tests/unit/existing.test.js failed",
+          `${FIXTURE_PATH} failed`,
+          "",
+        ].join("\n"),
+      }),
       "exit 1",
       "",
     ].join("\n"));
@@ -252,20 +274,20 @@ describe("flow run final-regression", () => {
     assert.doesNotMatch(artifact.failureSummary, /not ok 2 - current assertion/);
   });
 
-  it("classifies silent non-zero test runner exits as infrastructure failure", async () => {
+  it("fails closed on silent non-zero test runner exits without typed child evidence", async () => {
     tmp = createTmpDir("final-regression-silent-fail-");
     const ctx = setupProject(tmp, "exit 1\n");
 
     const result = await new RunFinalRegressionCommand().execute(ctx);
 
     assertFinalRegressionFailure(tmp, result, {
-      failureKind: "infra_failure",
+      failureKind: "unattributed_unknown_failure",
       retryable: false,
       nextAction: "stop",
     });
   });
 
-  it("fails closed when a non-zero runner reports zero totals without test failure detail", async () => {
+  it("fails closed as unknown when a non-zero runner reports zero totals without typed child evidence", async () => {
     tmp = createTmpDir("final-regression-zero-detail-fail-");
     const ctx = setupProject(tmp, [
       "printf '%s\\n' 'unit: 0'",
@@ -278,11 +300,11 @@ describe("flow run final-regression", () => {
     const result = await new RunFinalRegressionCommand().execute(ctx);
 
     const artifact = assertFinalRegressionFailure(tmp, result, {
-      failureKind: "infra_failure",
+      failureKind: "unattributed_unknown_failure",
       retryable: false,
       nextAction: "stop",
     });
-    assert.equal(artifact.failureCategory, "environment");
+    assert.equal(artifact.failureCategory, "unknown");
     assert.equal(artifact.failureNature, "execution");
     assert.equal(artifact.recordAndProceed.eligible, false);
     assert.equal(artifact.nextRecommendedAction, "stop");
@@ -290,7 +312,13 @@ describe("flow run final-regression", () => {
 
   it("classifies child-process EPERM output distinctly", async () => {
     tmp = createTmpDir("final-regression-eperm-");
-    const ctx = setupProject(tmp, failingFixtureBody("spawn EPERM"));
+    const error = new Error("spawn EPERM");
+    error.code = "EPERM";
+    const ctx = setupProject(tmp, [
+      shellPrintChildProcessRecord({ status: null, error }),
+      "exit 1",
+      "",
+    ].join("\n"));
 
     const result = await new RunFinalRegressionCommand().execute(ctx);
 

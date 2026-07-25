@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "b6ff7457b7463fb1686a1bb3",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-3234475f061be5c7",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+      "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/test-artifacts.js",
+      "src/flow/lib/test-regression.js",
+      "tests/unit/flow/final-regression-record-and-proceed.test.js",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/step-outcome.test.js"
+    ],
+    "inputHash": "3234475f061be5c78161bbe79c2b287883b7f90fc08543deedfadeb6e26902cb",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "b6ff7457b7463fb1686a1bb3"
+  },
+  "targetFiles": [
+    "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+    "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/test-artifacts.js",
+    "src/flow/lib/test-regression.js",
+    "tests/unit/flow/final-regression-record-and-proceed.test.js",
+    "tests/unit/flow/final-regression.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/step-outcome.test.js"
+  ],
+  "inputHash": "3234475f061be5c78161bbe79c2b287883b7f90fc08543deedfadeb6e26902cb",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:23:52.955Z",
+  "finishedAt": "2026-07-25T08:23:52.955Z",
+  "rawResponse": "### 1. Centralize Child Process Record Schema Constants\n**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R5\n**Issue:** Child process kind and field semantics are being introduced and validated across `src/flow/lib/test-artifacts.js`, `src/flow/lib/test-regression.js`, and exercised in multiple tests. The summaries show repeated string sets such as `\"passed\"`, `\"assertion-failure\"`, `\"nonzero-exit\"`, `\"spawn-error\"`, plus duplicated validation expectations. This creates cross-file drift risk between production construction, artifact validation, and tests.\n**Suggestion:** Define shared constants/helpers for child process kinds and completed-exit semantics in the production module that owns the child process execution model, then import or reuse them from validators and tests where appropriate.\n\n### 2. Consolidate Child Process Fixture Builders Across Tests\n**File:** `tests/unit/flow/final-regression.test.js`\n**Requirement:** R8\n**Issue:** Several test files now independently construct synthetic child process records or spawn-error results: `final-regression.test.js`, `final-regression-record-and-proceed.test.js`, `step-outcome.test.js`, and spec evidence tests. The fixture shape is duplicated across files, so future codec/schema changes will require scattered test updates.\n**Suggestion:** Add a shared test fixture helper for child process execution records, assertion stderr payloads, and spawn errors, then use it across these test files instead of local ad hoc builders.\n\n### 3. Align Rejected Impl Review Triage Loading Behavior\n**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R6\n**Issue:** Rejected impl-review triage loading appears in both `acceptance-review-artifacts.js` and `impl-repair-artifacts.js`, with related validation and source-step handling split across modules. The per-file proposals indicate duplicated predicate/header validation and inconsistent read-failure behavior.\n**Suggestion:** Introduce one shared helper for reading rejected impl-review triage artifacts, including source-step filtering, header validation, and failure policy. Use it from both acceptance review and impl repair code paths.\n\n### 4. Share Final Regression Execution Helpers Across Regression Tests\n**File:** `specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js`\n**Requirement:** R7\n**Issue:** Final regression execution and artifact-reading boilerplate appears in both spec-level diagnostics tests and unit regression tests. The summaries show repeated `RunFinalRegressionCommand().execute(ctx)`, artifact reads, invocation-count checks, and current-change setup across files.\n**Suggestion:** Move common final-regression test setup into a shared test helper, such as `runFinalRegressionAndReadArtifact`, `assertInvocationCount`, and `writeCurrentChange`, then reuse it from both spec and unit regression tests.\n\n### 5. Use One Naming Convention For Child Failure Evidence\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R4\n**Issue:** Naming around child failure evidence is inconsistent across the changed area: summaries mention `failures`, `childFailure`, `failedChildProcesses`, `truncatedPrefix`, and tail-preserved assertion evidence. The mixed terminology obscures whether code is referring to failed child records, captured diagnostic output, or truncation behavior.\n**Suggestion:** Standardize names around explicit concepts such as `failedChildProcesses`, `childFailureEvidence`, and `tailPreservedAssertionEvidence`, and apply the convention consistently in production code and tests.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Child Process Record Schema Constants",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R5\n**Issue:** Child process kind and field semantics are being introduced and validated across `src/flow/lib/test-artifacts.js`, `src/flow/lib/test-regression.js`, and exercised in multiple tests. The summaries show repeated string sets such as `\"passed\"`, `\"assertion-failure\"`, `\"nonzero-exit\"`, `\"spawn-error\"`, plus duplicated validation expectations. This creates cross-file drift risk between production construction, artifact validation, and tests.\n**Suggestion:** Define shared constants/helpers for child process kinds and completed-exit semantics in the production module that owns the child process execution model, then import or reuse them from validators and tests where appropriate.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Consolidate Child Process Fixture Builders Across Tests",
+        "body": "**File:** `tests/unit/flow/final-regression.test.js`\n**Requirement:** R8\n**Issue:** Several test files now independently construct synthetic child process records or spawn-error results: `final-regression.test.js`, `final-regression-record-and-proceed.test.js`, `step-outcome.test.js`, and spec evidence tests. The fixture shape is duplicated across files, so future codec/schema changes will require scattered test updates.\n**Suggestion:** Add a shared test fixture helper for child process execution records, assertion stderr payloads, and spawn errors, then use it across these test files instead of local ad hoc builders.",
+        "file": "tests/unit/flow/final-regression.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Align Rejected Impl Review Triage Loading Behavior",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R6\n**Issue:** Rejected impl-review triage loading appears in both `acceptance-review-artifacts.js` and `impl-repair-artifacts.js`, with related validation and source-step handling split across modules. The per-file proposals indicate duplicated predicate/header validation and inconsistent read-failure behavior.\n**Suggestion:** Introduce one shared helper for reading rejected impl-review triage artifacts, including source-step filtering, header validation, and failure policy. Use it from both acceptance review and impl repair code paths.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Share Final Regression Execution Helpers Across Regression Tests",
+        "body": "**File:** `specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js`\n**Requirement:** R7\n**Issue:** Final regression execution and artifact-reading boilerplate appears in both spec-level diagnostics tests and unit regression tests. The summaries show repeated `RunFinalRegressionCommand().execute(ctx)`, artifact reads, invocation-count checks, and current-change setup across files.\n**Suggestion:** Move common final-regression test setup into a shared test helper, such as `runFinalRegressionAndReadArtifact`, `assertInvocationCount`, and `writeCurrentChange`, then reuse it from both spec and unit regression tests.",
+        "file": "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Use One Naming Convention For Child Failure Evidence",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R4\n**Issue:** Naming around child failure evidence is inconsistent across the changed area: summaries mention `failures`, `childFailure`, `failedChildProcesses`, `truncatedPrefix`, and tail-preserved assertion evidence. The mixed terminology obscures whether code is referring to failed child records, captured diagnostic output, or truncation behavior.\n**Suggestion:** Standardize names around explicit concepts such as `failedChildProcesses`, `childFailureEvidence`, and `tailPreservedAssertionEvidence`, and apply the convention consistently in production code and tests.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

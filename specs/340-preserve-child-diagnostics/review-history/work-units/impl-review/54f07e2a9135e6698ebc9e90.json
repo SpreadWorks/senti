@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "54f07e2a9135e6698ebc9e90",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-1090f7270e13788f",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+      "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/test-artifacts.js",
+      "src/flow/lib/test-regression.js",
+      "tests/unit/flow/final-regression-record-and-proceed.test.js",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/step-outcome.test.js"
+    ],
+    "inputHash": "1090f7270e13788f911ef9608233f138c30c0b9db416857dea5c1e23b88611a8",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "54f07e2a9135e6698ebc9e90"
+  },
+  "targetFiles": [
+    "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+    "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/test-artifacts.js",
+    "src/flow/lib/test-regression.js",
+    "tests/unit/flow/final-regression-record-and-proceed.test.js",
+    "tests/unit/flow/final-regression.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/step-outcome.test.js"
+  ],
+  "inputHash": "1090f7270e13788f911ef9608233f138c30c0b9db416857dea5c1e23b88611a8",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T08:20:51.090Z",
+  "finishedAt": "2026-07-25T08:20:51.090Z",
+  "rawResponse": "### 1. Centralize Child Process Record Limits\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R3\n**Issue:** Child process record bounding is discussed separately in `run-final-regression.js`, `test-artifacts.js`, and `test-regression.js`, with `128` appearing as a validator-local magic number while decoding/classification paths may use separate or missing limits. This can make producer, decoder, and artifact validation drift.\n**Suggestion:** Define one shared constant such as `MAX_FINAL_REGRESSION_CHILD_PROCESS_RECORDS` and use it across decoding, artifact construction, validation, and tests.\n\n### 2. Align Child Process Record Serialization Naming\n**File:** `src/flow/lib/test-regression.js`\n**Requirement:** R1\n**Issue:** `ChildProcessExecutionResult.toJSON()` appears to serialize a child execution record, while downstream files such as `run-final-regression.js`, `test-artifacts.js`, and tests reason about “records” explicitly. The naming mismatch can mislead callers across files about whether raw result fields or artifact-safe record fields are emitted.\n**Suggestion:** Rename the method to `toExecutionRecordJSON()` or introduce a dedicated record conversion method, then update all record emission/decoding call sites and fixture helpers to use the same terminology.\n\n### 3. Share Final Regression Failure Classification Helpers\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R6\n**Issue:** Failure classification logic is being duplicated or separately named across child evidence and top-level process evidence, while tests introduce multiple child assertion/spawn-error fixtures that encode the same classifier assumptions. This increases the chance that child evidence and parent process evidence diverge in behavior.\n**Suggestion:** Extract shared helpers such as `classifyTextFailure()` and clearly named child evidence classification functions, then update tests to build fixtures through helper names that match those classifier concepts.\n\n### 4. Centralize Rejected Impl Review Triage Loading\n**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R6\n**Issue:** Rejected impl-review triage loading is proposed in both `acceptance-review-artifacts.js` and `impl-repair-artifacts.js`, with overlapping validation/source-step concerns and inconsistent failure behavior. This is a cross-file interface risk because both files depend on the same artifact semantics.\n**Suggestion:** Create a shared helper in the impl-repair artifact layer, for example `readRejectedImplReviewTriageIfRejected(specDir, verdict)`, and have acceptance review code call it instead of duplicating predicate, loading, and validation behavior.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Child Process Record Limits",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R3\n**Issue:** Child process record bounding is discussed separately in `run-final-regression.js`, `test-artifacts.js`, and `test-regression.js`, with `128` appearing as a validator-local magic number while decoding/classification paths may use separate or missing limits. This can make producer, decoder, and artifact validation drift.\n**Suggestion:** Define one shared constant such as `MAX_FINAL_REGRESSION_CHILD_PROCESS_RECORDS` and use it across decoding, artifact construction, validation, and tests.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Align Child Process Record Serialization Naming",
+        "body": "**File:** `src/flow/lib/test-regression.js`\n**Requirement:** R1\n**Issue:** `ChildProcessExecutionResult.toJSON()` appears to serialize a child execution record, while downstream files such as `run-final-regression.js`, `test-artifacts.js`, and tests reason about “records” explicitly. The naming mismatch can mislead callers across files about whether raw result fields or artifact-safe record fields are emitted.\n**Suggestion:** Rename the method to `toExecutionRecordJSON()` or introduce a dedicated record conversion method, then update all record emission/decoding call sites and fixture helpers to use the same terminology.",
+        "file": "src/flow/lib/test-regression.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Share Final Regression Failure Classification Helpers",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R6\n**Issue:** Failure classification logic is being duplicated or separately named across child evidence and top-level process evidence, while tests introduce multiple child assertion/spawn-error fixtures that encode the same classifier assumptions. This increases the chance that child evidence and parent process evidence diverge in behavior.\n**Suggestion:** Extract shared helpers such as `classifyTextFailure()` and clearly named child evidence classification functions, then update tests to build fixtures through helper names that match those classifier concepts.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Centralize Rejected Impl Review Triage Loading",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`\n**Requirement:** R6\n**Issue:** Rejected impl-review triage loading is proposed in both `acceptance-review-artifacts.js` and `impl-repair-artifacts.js`, with overlapping validation/source-step concerns and inconsistent failure behavior. This is a cross-file interface risk because both files depend on the same artifact semantics.\n**Suggestion:** Create a shared helper in the impl-repair artifact layer, for example `readRejectedImplReviewTriageIfRejected(specDir, verdict)`, and have acceptance review code call it instead of duplicating predicate, loading, and validation behavior.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

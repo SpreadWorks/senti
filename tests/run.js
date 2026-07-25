@@ -14,11 +14,13 @@ import {
 import { resolveTestFiles } from "./helpers/test-selection.js";
 import { TestRunner } from "./helpers/test-runner.js";
 import {
+  ChildProcessExecutionRecordCodec,
   processResultFromSpawnSync,
 } from "../src/flow/lib/test-regression.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
+const CHILD_PROCESS_RECORD_CODEC = new ChildProcessExecutionRecordCodec();
 
 function getRealPresetNames() {
   return [];
@@ -75,6 +77,7 @@ export function executeFiles(files, { spawn = spawnSync, write = writeSync, root
     const execution = processResultFromSpawnSync(command, result);
     if (execution.stdout) write(1, execution.stdout);
     if (execution.stderr) write(2, execution.stderr);
+    write(2, `${CHILD_PROCESS_RECORD_CODEC.encode(execution)}\n`);
     if (execution.completed && category !== "other") {
       counts[category] = parsePassCount(execution.stdout + execution.stderr);
     } else if (!execution.completed && category !== "other") {
