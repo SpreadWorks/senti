@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-25T00:45:43.467Z",
+  "analyzedAt": "2026-07-25T02:15:30.180Z",
   "package": {
     "entries": [
       {
@@ -2649,9 +2649,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "0025bb1261ab06a1cd483f2571f4d9f8",
-        "lines": 4205,
-        "mtime": "2026-07-24T23:50:11.050Z",
+        "hash": "681d43e7065bbd066002d51bd4a33768",
+        "lines": 4206,
+        "mtime": "2026-07-25T02:15:17.782Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2908,25 +2908,24 @@
         "extends": "ImplReviewPersistenceStrategy",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command and its review pipeline for implementation, spec, draft, and test phases. It orchestrates diff collection, AI prompting, schema validation, and review artifact persistence.",
-        "detail": "This module is the main CLI entry point for review workflows and dispatches behavior by phase, including implementation review, spec review, draft QA/coverage review, and test review. It builds prompts from repository diffs, spec metadata, guardrails, requirement mappings, and optional prior review memory, then validates model output against strict JSON schemas with repair fallbacks when needed. The implementation review path supports both single-shot and loop-based chunked review strategies, scoped filtering of findings, persistence strategies, and review-history snapshots for convergence and traceability. The file also generates markdown and JSON artifacts, enforces path safety for written outputs, and normalizes findings into structured records that can be reused across retries and downstream tooling.",
+        "summary": "Implements the flow review command and its review pipelines for spec, draft, implementation, and test phases. It coordinates diff collection, prompt construction, AI review execution, schema validation, and artifact persistence.",
+        "detail": "This command module is the main controller for review workflows under `flow review`, including merge-base resolution, target file scoping, exclusion rules, and per-phase dispatch. It builds structured prompts for multiple review modes, parses and repairs JSON model output, enforces response schemas, and filters findings against touched files and requirement IDs. The implementation includes looped review strategies for larger diffs, persistence abstractions for implementation review artifacts, and history tracking for repeated attempts. It also writes Markdown and JSON outputs such as `review.md`, `impl-review.json`, `spec-review.json`, and test review artifacts while classifying recoverable failures into review-specific error types.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-24T23:51:34.407Z",
+          "processedAt": "2026-07-25T02:15:54.385Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review",
-          "CLI command",
+          "flow review command",
           "code review pipeline",
+          "implementation review",
           "spec review",
           "test review",
-          "draft review",
-          "schema validation",
-          "diff analysis",
+          "prompt orchestration",
           "artifact persistence",
-          "AI prompt orchestration"
+          "schema validation",
+          "diff analysis"
         ]
       },
       {
@@ -4094,18 +4093,20 @@
       },
       {
         "file": "src/flow/lib/gate-mutation-owner.js",
-        "hash": "8a462820f6a2d0b5ff8a5d71f1e6ae07",
-        "lines": 67,
-        "mtime": "2026-07-21T10:46:39.015Z",
+        "hash": "2a1a453ef3c021d56429b629f6bd4f29",
+        "lines": 113,
+        "mtime": "2026-07-25T02:15:17.782Z",
         "className": "gate-mutation-owner",
         "methods": [
           "GateMutationOwner",
           "requireObject",
-          "requireString"
+          "requireString",
+          "transitionStepMap"
         ],
         "imports": [
           "./gate-step.js",
           "./lifecycle-step-transition.js",
+          "./step-tree.js",
           "../../lib/flow-helpers.js"
         ],
         "exports": [
@@ -4116,21 +4117,23 @@
           "src/flow/lib/run-gate.js"
         ],
         "id": "e0dceaf5",
-        "summary": "Encapsulates ownership for gate-related step mutations and converts them into definition-aware lifecycle transitions. It normalizes input, resolves the correct scoped gate step, and delegates status updates through the flow manager.",
-        "detail": "The module validates required objects and strings before building a mutation owner instance. It derives a stable ownership payload, including a spec identifier from the flow path, and uses `resolveScopedGateStepId` to target the correct gate step for the current scope. When a mutation is requested, it creates a lifecycle transition via `createLifecycleStepTransition`, so gate updates follow the same definition-driven rules as other step changes. It explicitly requires `flowManager.updateStepStatus`, making the flow manager the single write path for persisted gate status changes.",
+        "summary": "Defines the owner object that safely applies gate-related step mutations in flow state. It validates ownership, guards against stale transitions, and produces lifecycle step transition payloads.",
+        "detail": "This library module wraps gate mutation responsibility in a `GateMutationOwner` class that validates input structure and enforces non-empty string and object contracts. It derives a task-scoped step map from flattened flow steps, checks that the selected owner step is still `in_progress`, and rejects stale or conflicting step IDs before commit. The class also snapshots expected step statuses into a `Map` so later mutations can detect concurrent state changes. Once validated, it creates a transition object through `createLifecycleStepTransition` and requires a compatible `flowManager.updateStepStatus` integration point.",
         "chapter": "internal_design",
-        "role": "middleware",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T10:48:46.915Z",
+          "processedAt": "2026-07-25T02:15:54.385Z",
           "attempts": 1
         },
         "keywords": [
-          "gate mutation",
-          "ownership",
+          "gate mutation owner",
           "step transition",
+          "workflow state",
+          "stale state protection",
+          "lifecycle transition",
           "flow manager",
-          "gate step",
-          "lifecycle update"
+          "step status validation",
+          "concurrency guard"
         ]
       },
       {
@@ -6869,9 +6872,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "5a78ecd1d57bf3c406a5462980fd8db6",
-        "lines": 5468,
-        "mtime": "2026-07-25T00:45:29.351Z",
+        "hash": "85de6f439e5e5e42200fcec7ca80c1c6",
+        "lines": 5687,
+        "mtime": "2026-07-25T02:15:17.783Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -6927,6 +6930,7 @@
           "buildRequirementGateBatches",
           "planRequirementGateCalls",
           "reasonsFromEvaluations",
+          "InferredGateTransition",
           "resolveEffectiveGatePhase",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -7038,7 +7042,7 @@
           "gateFail",
           "persistIntegrationGateResult",
           "runGateFlow",
-          "updateStepStatusDuringInference",
+          "completedSemanticGateResult",
           "runGatePhaseWithDependencies"
         ],
         "imports": [
@@ -7076,6 +7080,7 @@
           "./impl-repair-artifacts.js",
           "./lifecycle-step-transition.js",
           "./gate-mutation-owner.js",
+          "./step-tree.js",
           "./stale-test-evidence-refresh.js",
           "../definition.js"
         ],
@@ -7133,6 +7138,7 @@
           "buildRequirementGateBatches",
           "planRequirementGateCalls",
           "reasonsFromEvaluations",
+          "InferredGateTransition",
           "resolveEffectiveGatePhase",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -7171,25 +7177,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate pipeline that validates specs, drafts, task implementation, and integration artifacts before advancing lifecycle steps. It combines diff analysis, guardrail prompting, retry control, artifact persistence, and result reporting in one orchestration module.",
-        "detail": "This module acts as the central gate engine for flow execution, exposing command entry points and many helper utilities for phase-specific validation. It builds scoped diffs from committed, uncommitted, and untracked changes, filters out generated lifecycle artifacts, and converts the remaining context into bounded prompts for guardrail and requirement evaluation. The implementation contains strict JSON-schema-like parsing for AI responses, with explicit error classes, retry/repair handling, repeated-failure detection, and durable deferral paths when gate exhaustion can be externalized safely. It also validates companion review artifacts such as spec, draft, and implementation audit files, tracks retry history and issue logs, and persists gate memory and result artifacts back into the spec directory.",
+        "summary": "Implements the flow gate engine that validates spec, draft, task implementation, and integration phases. It combines artifact checks, diff analysis, AI guardrail evaluation, retry handling, and result persistence in one orchestration module.",
+        "detail": "This module gathers gate inputs from specs, drafts, git diffs, and generated artifacts, then normalizes them into phase-specific evaluation targets. It builds structured prompts for guardrail and requirement checks, parses strict JSON responses, and converts them into normalized gate reports and next actions. The file also manages retry accounting, no-progress detection, repeated-failure suppression, durable deferral, and recovery baselines so gate failures can be retried or escalated consistently. Additional helpers validate lifecycle artifacts, file maps, review findings, and same-spec requirement context to keep semantic gate decisions bounded and auditable. The exported command integrates these utilities into the flow command system and writes issue-log and artifact side effects for downstream steps.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T00:46:19.964Z",
+          "processedAt": "2026-07-25T02:15:54.400Z",
           "attempts": 1
         },
         "keywords": [
-          "gate pipeline",
+          "gate execution",
           "guardrail evaluation",
-          "diff analysis",
-          "flow orchestration",
-          "retry logic",
+          "implementation diff",
+          "retry recovery",
           "artifact validation",
-          "integration gate",
-          "requirement checks",
-          "issue log",
-          "AI response parsing"
+          "semantic checks",
+          "flow orchestration",
+          "requirement gating",
+          "issue log"
         ]
       },
       {
@@ -8683,9 +8688,9 @@
       },
       {
         "file": "src/flow/lib/set-retry.js",
-        "hash": "581f48979ab371e4285ae1f4a940e0d8",
-        "lines": 206,
-        "mtime": "2026-07-24T23:50:11.055Z",
+        "hash": "3e0ab4482c25efa8c386b2e8b8640566",
+        "lines": 205,
+        "mtime": "2026-07-25T02:15:17.783Z",
         "className": "set-retry",
         "methods": [
           "normalizeReviewResetPhase",
@@ -8711,23 +8716,24 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "ee559b7a",
-        "summary": "Handles manual retry state updates for gate and review phases. It decides which retry counters and phases to reset and issues recovery grants when review convergence state is still valid.",
-        "detail": "The file defines lookup tables that map retry kinds to counter names, counter readers, and maximum-attempt resolvers imported from gate and review modules. It normalizes review reset phases, including expansion of draft retries into both question and coverage review phases. For implementation review recovery, it inspects convergence records and compares the stored tree SHA with the current review target to avoid granting retries against a changed code state. The command returns structured envelope failures for invalid requests and otherwise produces a reset plan containing the action, phase list, counters, reset flag, and grant metadata.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "Defines the retry management command for flow phases, including counters, resets, and recovery-related grants. It centralizes how retry limits are resolved for gate and review workflows.",
+        "detail": "This module maps retry kinds to their counters, counting functions, and maximum-attempt resolvers so command behavior stays phase-aware. It normalizes review reset phases and expands a single reset request into the concrete phase set that must be cleared together. The command inspects flow state, validates whether retry recovery targets are unchanged, and looks up recent convergence records when review tooling recovery is involved. It returns structured envelope failures for invalid operations and a compact operation description for successful reset or grant actions. The implementation is deliberately thin and delegates phase flattening, review scope resolution, and SHA-based evidence comparison to neighboring flow utilities.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-24T23:51:34.465Z",
+          "processedAt": "2026-07-25T02:15:54.400Z",
           "attempts": 1
         },
         "keywords": [
           "retry reset",
+          "attempt counter",
+          "flow command",
           "review recovery",
           "gate retry",
-          "attempt counter",
+          "phase normalization",
+          "retry budget",
           "convergence record",
-          "tree SHA",
-          "flow state",
-          "manual retry"
+          "envelope failure"
         ]
       },
       {
@@ -9155,7 +9161,9 @@
           "src/flow/lib/task-scope.js",
           "src/flow/lib/lifecycle-step-transition.js",
           "src/flow/lib/run-rewind-test-evidence.js",
-          "src/flow/lib/stale-test-evidence-refresh.js"
+          "src/flow/lib/stale-test-evidence-refresh.js",
+          "src/flow/lib/gate-mutation-owner.js",
+          "src/flow/lib/run-gate.js"
         ],
         "id": "bc04b8b6",
         "summary": "Provides recursive utilities for navigating nested flow step trees. The helpers support flattening, lookup, and choosing the next executable leaf step.",
@@ -9784,9 +9792,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "e8b8dcfc8e43a4fd80d89e05a112f73b",
+        "hash": "5627706a8ee6a76e498b6a7909ec2d64",
         "lines": 1622,
-        "mtime": "2026-07-25T00:45:29.352Z",
+        "mtime": "2026-07-25T02:15:17.784Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -9833,23 +9841,23 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Flow command registry and lifecycle orchestrator for the `senti flow` command family. It connects command execution with phase tracking, step transitions, plugin hooks, and finalize-time side effects.",
-        "detail": "The file defines shared option sets, guard flags, retry boundaries, and responsibility constants that shape how flow subcommands behave across review and gate phases. It derives active phases and runtime log step IDs, updates step status defensively, appends issue-log entries, and resets downstream skipped steps when lifecycle conditions require it. A lifecycle adapter wraps registry actions so command handlers can trigger gate effects, outbox operations, merge finalization, and plugin hook execution in a consistent way. The registry also performs targeted artifact validation for commands that consume `test-execute`, `test-result-review`, and `final-regression` outputs, ensuring later transitions only proceed from valid evidence.",
+        "summary": "Central registry for flow-related CLI commands, lifecycle hooks, and runtime guard options. It coordinates phase-aware execution, review/gate transitions, and durable finalization behavior across the flow subsystem.",
+        "detail": "This module aggregates command definitions in `FLOW_COMMANDS` and couples them with shared option sets, help text, and target-guard validation rules. It derives active phases from flow state, resolves runtime step identifiers, and updates step status while enforcing lifecycle contracts and completion-transition checks. The implementation also bridges registry events to plugin hooks, issue-log writes, and gate or review side effects through a lifecycle adapter abstraction. Finalization paths handle outbox persistence, merge outcomes, worktree fallback, and validation of generated JSON artifacts for test and regression stages.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-25T00:46:19.979Z",
+          "processedAt": "2026-07-25T02:15:54.413Z",
           "attempts": 1
         },
         "keywords": [
           "flow registry",
-          "command lifecycle",
-          "step transitions",
-          "plugin hooks",
-          "finalization",
-          "gate phase",
-          "runtime logging",
-          "flow orchestration"
+          "CLI command registry",
+          "lifecycle hooks",
+          "phase transition",
+          "step status management",
+          "review workflow",
+          "gate validation",
+          "finalization pipeline"
         ]
       },
       {
@@ -14519,9 +14527,9 @@
     ],
     "summary": {
       "total": 257,
-      "totalMethods": 2826
+      "totalMethods": 2828
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-25T00:46:19.979Z"
+  "enrichedAt": "2026-07-25T02:15:54.413Z"
 }
