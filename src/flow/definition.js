@@ -610,30 +610,43 @@ export function resolveLifecyclePlan(input = {}) {
   });
 }
 
+function writeEmptyDraftReviewArtifact({
+  file,
+  phase,
+  sourceField,
+  sourceArtifact,
+  generatedAt,
+  summary,
+}) {
+  const payload = {
+    version: 1,
+    phase: requireString(phase, "phase"),
+    [sourceField]: requireString(sourceArtifact, sourceField),
+    generatedAt: requireString(generatedAt, "generatedAt"),
+    summary: requireString(summary, "summary"),
+    items: [],
+  };
+  fs.writeFileSync(file, `${JSON.stringify(payload, null, 2)}\n`);
+}
+
 export function writeEmptyDraftReviewRouteArtifacts({ specDir, route, generatedAt = new Date().toISOString() }) {
   fs.mkdirSync(specDir, { recursive: true });
-  const triagePath = path.join(specDir, route.triageArtifact);
-  const repairPath = path.join(specDir, route.repairArtifact);
-  if (!fs.existsSync(triagePath)) {
-    fs.writeFileSync(triagePath, JSON.stringify({
-      version: 1,
-      phase: route.triageStepId,
-      sourceReview: route.reviewArtifact,
-      generatedAt,
-      summary: "No draft review findings to triage.",
-      items: [],
-    }, null, 2) + "\n");
-  }
-  if (!fs.existsSync(repairPath)) {
-    fs.writeFileSync(repairPath, JSON.stringify({
-      version: 1,
-      phase: route.repairStepId,
-      sourceTriage: route.triageArtifact,
-      generatedAt,
-      summary: "No draft triage items to repair.",
-      items: [],
-    }, null, 2) + "\n");
-  }
+  writeEmptyDraftReviewArtifact({
+    file: path.join(specDir, route.triageArtifact),
+    phase: route.triageStepId,
+    sourceField: "sourceReview",
+    sourceArtifact: route.reviewArtifact,
+    generatedAt,
+    summary: "No draft review findings to triage.",
+  });
+  writeEmptyDraftReviewArtifact({
+    file: path.join(specDir, route.repairArtifact),
+    phase: route.repairStepId,
+    sourceField: "sourceTriage",
+    sourceArtifact: route.triageArtifact,
+    generatedAt,
+    summary: "No draft triage items to repair.",
+  });
 }
 
 export function resetImplEvidenceAfterReviewProposals({ specDir, flowState }) {

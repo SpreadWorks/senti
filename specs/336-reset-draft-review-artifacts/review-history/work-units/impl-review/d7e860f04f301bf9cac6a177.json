@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.json",
+      "specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.md",
+      "specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.json",
+      "specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.md"
+    ],
+    "inputHash": "1d444a33cf8b78a9d443aaa6c839d22f9df3fc6a68c7a3f9fed6d9533fc82a11",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.json",
+    "specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.md",
+    "specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.json",
+    "specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.md"
+  ],
+  "inputHash": "1d444a33cf8b78a9d443aaa6c839d22f9df3fc6a68c7a3f9fed6d9533fc82a11",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:34:33.917Z",
+  "finishedAt": "2026-07-25T05:34:33.917Z",
+  "rawResponse": "### 1. Remove duplicated finding payloads\n**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.json`  \n**Requirement:** R3  \n**Issue:** The same finding details are duplicated across `blockingFindings` and `findings`, including title, rationale, fingerprint, disposition, and issue/body text. This makes the artifact harder to maintain and creates drift risk if one copy changes without the other.  \n**Suggestion:** Prefer a single canonical `findings` array and derive `blockingFindings` from `severity`/`kind`, or reduce `blockingFindings` to references such as finding IDs if the schema requires that section.\n\n### 2. Remove duplicated finding payloads\n**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.json`  \n**Requirement:** R1  \n**Issue:** The finding content is repeated in both `blockingFindings` and `findings`, with slightly different field names such as `issue` vs `body` and `kind` vs `severity`. This adds avoidable duplication and weakens consistency.  \n**Suggestion:** Store the complete finding once, then represent blocking summaries as IDs or generated views from the canonical finding entry.\n\n### 3. Add trailing newline\n**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.md`  \n**Requirement:** R3  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with typical repository text-file formatting and can cause noisy diffs.  \n**Suggestion:** Add a final newline at EOF.\n\n### 4. Add trailing newline\n**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, creating unnecessary formatting inconsistency.  \n**Suggestion:** Add a final newline at EOF.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated finding payloads",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.json`  \n**Requirement:** R3  \n**Issue:** The same finding details are duplicated across `blockingFindings` and `findings`, including title, rationale, fingerprint, disposition, and issue/body text. This makes the artifact harder to maintain and creates drift risk if one copy changes without the other.  \n**Suggestion:** Prefer a single canonical `findings` array and derive `blockingFindings` from `severity`/`kind`, or reduce `blockingFindings` to references such as finding IDs if the schema requires that section.",
+        "file": "specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Remove duplicated finding payloads",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.json`  \n**Requirement:** R1  \n**Issue:** The finding content is repeated in both `blockingFindings` and `findings`, with slightly different field names such as `issue` vs `body` and `kind` vs `severity`. This adds avoidable duplication and weakens consistency.  \n**Suggestion:** Store the complete finding once, then represent blocking summaries as IDs or generated views from the canonical finding entry.",
+        "file": "specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Add trailing newline",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.md`  \n**Requirement:** R3  \n**Issue:** The markdown file has no trailing newline, which is inconsistent with typical repository text-file formatting and can cause noisy diffs.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/336-reset-draft-review-artifacts/review-history/test-attempt-002.md",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Add trailing newline",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.md`  \n**Requirement:** R1  \n**Issue:** The markdown file has no trailing newline, creating unnecessary formatting inconsistency.  \n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/336-reset-draft-review-artifacts/review-history/test-attempt-003.md",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

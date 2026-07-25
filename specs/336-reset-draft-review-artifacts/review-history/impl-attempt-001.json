@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T03:58:01.470Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "retains-stale-artifact-source-fields",
+      "title": "Replacement keeps stale source references",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/definition.js",
+      "requirementId": "R3",
+      "issue": "`writeEmptyDraftReviewRouteArtifacts` now overwrites the current triage and repair artifacts, but it reads `sourceReview` and `sourceTriage` from the stale files and writes those values back into the replacement documents. If a stale artifact belongs to the wrong draft-review route or points at an old artifact name, the PASS replacement is not route-correct or canonical.",
+      "suggestion": "In `writeEmptyDraftReviewRouteArtifacts`, remove `retainedArtifactSource` for these fields and construct `EmptyDraftReviewTriageArtifact` with `sourceReview: route.reviewArtifact` and `EmptyDraftReviewRepairArtifact` with `sourceTriage: route.triageArtifact`.",
+      "disposition": "must-fix",
+      "rationale": "R3 requires identical route-correct replacement for draft-coverage, and R1/R2 require canonical empty current-attempt documents. Retaining source fields from stale current artifacts allows stale or cross-route metadata to survive the replacement, contradicting the required PASS behavior.",
+      "findingId": "db2d84564c08e48fbf8f1683b5d3ff56f86c291709c4167ab1251017a2915a9a",
+      "fingerprint": "db2d84564c08e48fbf8f1683b5d3ff56f86c291709c4167ab1251017a2915a9a",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "missing-behavior-sequence-tests",
+      "title": "Required route sequence coverage is missing",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R6",
+      "issue": "The diff only changes `src/flow/definition.js` and does not add spec-local `node:test` coverage for the finite behavior-level sequences required for both draft-review routes.",
+      "suggestion": "Add tests under `specs/336-reset-draft-review-artifacts/tests/` with `// spec: R1 R2 R3 R4 R5 R6` headers that exercise questions and coverage stale artifacts retained across rewind and then replaced on PASS through the lifecycle hook path.",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires finite behavior-level sequences for both routes. The implementation changes shared lifecycle behavior without the required acceptance coverage, so the requirement is not satisfied.",
+      "findingId": "bc38e08eb595d078aec41ce12c09ae9d7c49e1405e4c0c163d05b00e6042b3e3",
+      "fingerprint": "bc38e08eb595d078aec41ce12c09ae9d7c49e1405e4c0c163d05b00e6042b3e3",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "92046af31b0e474ba9d60d2dba41615d28eb8fb1c9185dd113ee02fe0b3c82e7",
+  "runId": "4163edf7-eced-4117-8f57-8bbf52201768",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/336-reset-draft-review-artifacts/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/336-reset-draft-review-artifacts/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "88d413bf00b0f90ec85129281c12953a058d9b4388ccec4b7d27f3d7f7a4be6f"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "db2d84564c08e48fbf8f1683b5d3ff56f86c291709c4167ab1251017a2915a9a",
+      "findingId": "db2d84564c08e48fbf8f1683b5d3ff56f86c291709c4167ab1251017a2915a9a",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Replacement keeps stale source references",
+      "body": "`writeEmptyDraftReviewRouteArtifacts` now overwrites the current triage and repair artifacts, but it reads `sourceReview` and `sourceTriage` from the stale files and writes those values back into the replacement documents. If a stale artifact belongs to the wrong draft-review route or points at an old artifact name, the PASS replacement is not route-correct or canonical.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "db2d84564c08e48fbf8f1683b5d3ff56f86c291709c4167ab1251017a2915a9a",
+      "disposition": "must-fix",
+      "rationale": "R3 requires identical route-correct replacement for draft-coverage, and R1/R2 require canonical empty current-attempt documents. Retaining source fields from stale current artifacts allows stale or cross-route metadata to survive the replacement, contradicting the required PASS behavior.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    },
+    {
+      "id": "bc38e08eb595d078aec41ce12c09ae9d7c49e1405e4c0c163d05b00e6042b3e3",
+      "findingId": "bc38e08eb595d078aec41ce12c09ae9d7c49e1405e4c0c163d05b00e6042b3e3",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Required route sequence coverage is missing",
+      "body": "The diff only changes `src/flow/definition.js` and does not add spec-local `node:test` coverage for the finite behavior-level sequences required for both draft-review routes.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "bc38e08eb595d078aec41ce12c09ae9d7c49e1405e4c0c163d05b00e6042b3e3",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires finite behavior-level sequences for both routes. The implementation changes shared lifecycle behavior without the required acceptance coverage, so the requirement is not satisfied.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

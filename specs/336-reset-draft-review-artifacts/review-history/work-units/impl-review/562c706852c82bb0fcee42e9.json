@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/336-reset-draft-review-artifacts/impl-review.json",
+      "specs/336-reset-draft-review-artifacts/review.md"
+    ],
+    "inputHash": "0b4de37901767d59405de1e2c2ef504689b4be796e2436ec5b2560f28fd14ed7",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "specs/336-reset-draft-review-artifacts/impl-review.json",
+    "specs/336-reset-draft-review-artifacts/review.md"
+  ],
+  "inputHash": "0b4de37901767d59405de1e2c2ef504689b4be796e2436ec5b2560f28fd14ed7",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:47:07.883Z",
+  "finishedAt": "2026-07-25T05:47:07.883Z",
+  "rawResponse": "### 1. Add Missing File Field To Second Finding\n**File:** `specs/336-reset-draft-review-artifacts/review.md`\n**Requirement:** R6\n**Issue:** The second blocking finding omits a `**File:**` line, while the first finding includes one. This makes the review artifact structurally inconsistent and can break consumers or follow-up reviewers that expect every finding to identify an affected file.\n**Suggestion:** Add `**File:** src/flow/definition.js` to the second finding, matching the corresponding implementation concern.\n\n### 2. Add Missing JSON File Property\n**File:** `specs/336-reset-draft-review-artifacts/impl-review.json`\n**Requirement:** R6\n**Issue:** The second `blockingFindings` entry has no `\"file\"` property, while the first one does. This inconsistency forces downstream tooling to handle two shapes for the same finding type.\n**Suggestion:** Add `\"file\": \"src/flow/definition.js\"` to the second finding object, or ensure the generator always emits a nullable/file field consistently for every finding.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Add Missing File Field To Second Finding",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review.md`\n**Requirement:** R6\n**Issue:** The second blocking finding omits a `**File:**` line, while the first finding includes one. This makes the review artifact structurally inconsistent and can break consumers or follow-up reviewers that expect every finding to identify an affected file.\n**Suggestion:** Add `**File:** src/flow/definition.js` to the second finding, matching the corresponding implementation concern.",
+        "file": "specs/336-reset-draft-review-artifacts/review.md",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Add Missing JSON File Property",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/impl-review.json`\n**Requirement:** R6\n**Issue:** The second `blockingFindings` entry has no `\"file\"` property, while the first one does. This inconsistency forces downstream tooling to handle two shapes for the same finding type.\n**Suggestion:** Add `\"file\": \"src/flow/definition.js\"` to the second finding object, or ensure the generator always emits a nullable/file field consistently for every finding.",
+        "file": "specs/336-reset-draft-review-artifacts/impl-review.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

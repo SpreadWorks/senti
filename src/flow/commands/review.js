@@ -94,7 +94,7 @@ function ensureAgent(commandId) {
   }
   return agent;
 }
-import { runGit } from "../../lib/git-helpers.js";
+import { resolveMergeBase, runGit } from "../../lib/git-helpers.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { VALID_PHASES } from "../../lib/constants.js";
 import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
@@ -153,29 +153,6 @@ for (const key of Object.keys(REVIEW_PHASES)) {
   if (!VALID_PHASES.includes(key)) {
     throw new Error(`REVIEW_PHASES key '${key}' is not in VALID_PHASES`);
   }
-}
-
-/**
- * Resolve the merge-base SHA between HEAD and baseBranch. Throws with a
- * message that names `merge-base` and includes captured stderr when git
- * reports an error or returns an empty SHA.
- *
- * @param {string} root - repo root
- * @param {string} baseBranch - name/ref of the base branch
- * @returns {string} merge-base SHA (full)
- */
-function resolveMergeBase(root, baseBranch) {
-  const res = runGit(["-C", root, "merge-base", "HEAD", baseBranch]);
-  if (!res.ok) {
-    throw new Error(`git merge-base HEAD ${baseBranch} failed: ${res.stderr.trim()}`);
-  }
-  const sha = res.stdout.trim();
-  if (!sha) {
-    throw new Error(
-      `git merge-base HEAD ${baseBranch} produced empty output (stderr: ${res.stderr.trim()})`,
-    );
-  }
-  return sha;
 }
 
 /**

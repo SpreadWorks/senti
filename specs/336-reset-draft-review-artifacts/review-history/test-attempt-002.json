@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T03:52:51.311Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/336-reset-draft-review-artifacts/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 coverage test omits full canonical empty replacement semantics",
+      "target": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js:255",
+      "findingId": "aed23cfd0359a12506d66458e5c183768f5b86a7fb301b6903b638eb6598916d",
+      "fingerprint": "aed23cfd0359a12506d66458e5c183768f5b86a7fb301b6903b638eb6598916d",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R3 as covered, but the actual test does not cover several required canonical fields, so an implementation could leave stale or incorrect coverage summaries/version/timestamps and still pass.",
+      "issue": "The R3 test for the draft-coverage route only checks empty items, phases, and source references. R3 requires the same canonical empty replacement semantics as the questions route, including version 1, current generatedAt, and canonical empty summaries for both triage and repair artifacts.",
+      "requiredChange": "Extend the coverage PASS assertions to verify version, canonical summaries, and generatedAt freshness for both coverage triage and repair artifacts.",
+      "whyBlocking": "The coverage artifact marks R3 as covered, but the actual test does not cover several required canonical fields, so an implementation could leave stale or incorrect coverage summaries/version/timestamps and still pass.",
+      "origin": "R3",
+      "failureKind": "missing-spec-local-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/336-reset-draft-review-artifacts/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "55aa90d77f839c88796b9fd7232d39d52388e03cb4620511a0f54429ee13ce6b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "aed23cfd0359a12506d66458e5c183768f5b86a7fb301b6903b638eb6598916d",
+      "findingId": "aed23cfd0359a12506d66458e5c183768f5b86a7fb301b6903b638eb6598916d",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R3 coverage test omits full canonical empty replacement semantics",
+      "body": "The R3 test for the draft-coverage route only checks empty items, phases, and source references. R3 requires the same canonical empty replacement semantics as the questions route, including version 1, current generatedAt, and canonical empty summaries for both triage and repair artifacts.",
+      "category": "unknown",
+      "fingerprint": "aed23cfd0359a12506d66458e5c183768f5b86a7fb301b6903b638eb6598916d",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R3 as covered, but the actual test does not cover several required canonical fields, so an implementation could leave stale or incorrect coverage summaries/version/timestamps and still pass."
+    }
+  ]
+}

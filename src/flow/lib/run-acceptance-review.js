@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { runGit } from "../../lib/git-helpers.js";
+import { resolveMergeBase, runGit } from "../../lib/git-helpers.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
@@ -153,11 +153,12 @@ function untrackedDiff(root, fingerprint, registry) {
 export function implementationDiff(root, state) {
   const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
   const registry = new RepairArtifactRegistry(state.spec);
+  const baseRef = resolveMergeBase(root, state.baseBranch);
   const result = runGit([
     "diff",
     "--no-ext-diff",
     "--no-color",
-    fingerprint.baseline.commitOid,
+    baseRef,
     "--",
     ".",
     ...registry.gitPathspecExcludes(),

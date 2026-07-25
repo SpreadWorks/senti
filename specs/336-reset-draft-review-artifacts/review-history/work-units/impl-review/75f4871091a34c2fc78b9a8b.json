@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/336-reset-draft-review-artifacts/draft-questions-triage.json",
+      "specs/336-reset-draft-review-artifacts/draft-review-coverage.json",
+      "specs/336-reset-draft-review-artifacts/draft-review-questions.json",
+      "specs/336-reset-draft-review-artifacts/draft.json"
+    ],
+    "inputHash": "9fcde7b9ac98c73f93c65afd02932da72b03cb60cf19bf1f5a3da270fd7afcc4",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "specs/336-reset-draft-review-artifacts/draft-questions-triage.json",
+    "specs/336-reset-draft-review-artifacts/draft-review-coverage.json",
+    "specs/336-reset-draft-review-artifacts/draft-review-questions.json",
+    "specs/336-reset-draft-review-artifacts/draft.json"
+  ],
+  "inputHash": "9fcde7b9ac98c73f93c65afd02932da72b03cb60cf19bf1f5a3da270fd7afcc4",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:24:38.622Z",
+  "finishedAt": "2026-07-25T05:24:38.622Z",
+  "rawResponse": "### 1. Normalize Triage Metadata\n**File:** `specs/336-reset-draft-review-artifacts/draft-questions-triage.json`  \n**Requirement:** R1  \n**Issue:** This artifact omits `generatedAt`, while the other review artifacts include it. That makes the schema less consistent and can force consumers to special-case triage output.  \n**Suggestion:** Add `generatedAt` using the same timestamp format as the review artifacts, or explicitly remove `generatedAt` from all sibling artifacts if timestamps are not part of the canonical schema.\n\n### 2. Remove Stale Duplicate Artifact Variants\n**File:** `specs/336-reset-draft-review-artifacts/draft.json`  \n**Requirement:** R2  \n**Issue:** The diff shows two independent “new file” versions for the same path, with materially different scope: one includes approval freshness and sealed rewind timestamp behavior, while the other does not. This creates review ambiguity and risks landing a stale draft artifact.  \n**Suggestion:** Keep only the intended final artifact state and remove the obsolete duplicate version from the change set before merging.\n\n### 3. Align Review Outcome With Repair Targets\n**File:** `specs/336-reset-draft-review-artifacts/draft-review-questions.json`  \n**Requirement:** R3  \n**Issue:** The artifact says `verdict: \"ADVISORY\"` while also reporting `0 advisory` and placing the only finding in `repairTargets`. The naming makes the state harder to reason about because “advisory” is both a verdict and a finding category.  \n**Suggestion:** Use a clearer verdict such as `REPAIR_TARGETS` if the schema allows it, or update the summary wording so `ADVISORY` clearly means “non-blocking review did not pass cleanly.”\n\n### 4. Avoid Repeated Long Scope Text\n**File:** `specs/336-reset-draft-review-artifacts/draft.json`  \n**Requirement:** R4  \n**Issue:** The same route ownership and canonical artifact behavior is repeated across `analysis.proposedApproach`, `decisionMap`, `scopeVerification`, and `impactOnExisting`. This increases maintenance cost when the scope changes.  \n**Suggestion:** Consolidate the repeated invariant into one canonical section, then have other sections reference it briefly instead of restating the full behavior.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Triage Metadata",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/draft-questions-triage.json`  \n**Requirement:** R1  \n**Issue:** This artifact omits `generatedAt`, while the other review artifacts include it. That makes the schema less consistent and can force consumers to special-case triage output.  \n**Suggestion:** Add `generatedAt` using the same timestamp format as the review artifacts, or explicitly remove `generatedAt` from all sibling artifacts if timestamps are not part of the canonical schema.",
+        "file": "specs/336-reset-draft-review-artifacts/draft-questions-triage.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Remove Stale Duplicate Artifact Variants",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/draft.json`  \n**Requirement:** R2  \n**Issue:** The diff shows two independent “new file” versions for the same path, with materially different scope: one includes approval freshness and sealed rewind timestamp behavior, while the other does not. This creates review ambiguity and risks landing a stale draft artifact.  \n**Suggestion:** Keep only the intended final artifact state and remove the obsolete duplicate version from the change set before merging.",
+        "file": "specs/336-reset-draft-review-artifacts/draft.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Align Review Outcome With Repair Targets",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/draft-review-questions.json`  \n**Requirement:** R3  \n**Issue:** The artifact says `verdict: \"ADVISORY\"` while also reporting `0 advisory` and placing the only finding in `repairTargets`. The naming makes the state harder to reason about because “advisory” is both a verdict and a finding category.  \n**Suggestion:** Use a clearer verdict such as `REPAIR_TARGETS` if the schema allows it, or update the summary wording so `ADVISORY` clearly means “non-blocking review did not pass cleanly.”",
+        "file": "specs/336-reset-draft-review-artifacts/draft-review-questions.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Avoid Repeated Long Scope Text",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/draft.json`  \n**Requirement:** R4  \n**Issue:** The same route ownership and canonical artifact behavior is repeated across `analysis.proposedApproach`, `decisionMap`, `scopeVerification`, and `impactOnExisting`. This increases maintenance cost when the scope changes.  \n**Suggestion:** Consolidate the repeated invariant into one canonical section, then have other sections reference it briefly instead of restating the full behavior.",
+        "file": "specs/336-reset-draft-review-artifacts/draft.json",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

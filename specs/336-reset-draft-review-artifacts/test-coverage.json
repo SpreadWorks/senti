@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "For draft-questions, PASS after a rewind shall replace an existing canonical triage artifact containing stale items with version 1, phase=draft-questions-triage, sourceReview equal to the questions route reviewArtifact, a current generatedAt value, the canonical empty summary, and items=[].",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-review-pass-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "For draft-questions, the same PASS shall replace an existing canonical repair artifact containing stale items with version 1, phase=draft-questions-repair, sourceTriage equal to the questions route triageArtifact, a current generatedAt value, the canonical empty summary, and items=[].",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-review-pass-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "For draft-coverage, PASS after a rewind shall apply the same canonical empty replacement semantics to its triage and repair artifacts using the coverage route's paths, phases, reviewArtifact sourceReview, and triageArtifact sourceTriage.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-review-pass-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "The PASS lifecycle shall continue to mark the route's review, triage, and repair steps done and shall expose no finding from an invalidated attempt through either current canonical artifact.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-review-pass-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "The change shall preserve FAIL and ADVISORY artifact content until a later PASS, preserve reopen-draft audit/history, and leave route metadata, artifact paths, artifact schemas, verdict routing, retry accounting, and Issue #443 transition guards unchanged.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-review-pass-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Focused tests shall exercise the actual non-PASS review post hook, derive AI-authored triage and repair fixture artifacts from its findings while advancing through the actual set-step workflow, execute the actual reopen-draft reset with retained history, and run a later PASS through the registry lifecycle hook for each draft-review route.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-review-pass-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Plan evidence freshness shall compare against the authoritative occurrence time of the latest current rewind record: rewoundAt for guarded plan rewind records and timestamp for sealed spec-correction rewind records; an evidence timestamp must be strictly later to be fresh.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/approval-rewind-freshness.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "The approval completion guard shall accept a valid confirmed_at later than a sealed spec-correction timestamp, reject equal or earlier confirmations with STALE_PLAN_APPROVAL, fail closed for malformed occurrence times, and preserve the persisted audit shapes, digest chains, no-rewind behavior, and Issue #460 implement-evidence scope.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/approval-rewind-freshness.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/approval-rewind-freshness.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R7",
+        "R8"
+      ]
+    },
+    {
+      "file": "tests/draft-review-pass-artifacts.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

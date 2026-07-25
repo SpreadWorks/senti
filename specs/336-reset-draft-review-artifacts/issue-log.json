@@ -1,0 +1,607 @@
+{
+  "entries": [
+    {
+      "step": "prepare-spec",
+      "reason": "Concurrent worktree prepare journal blocked the first Issue #459 prepare attempt",
+      "trigger": "flow prepare reported a stale worktree prepare attempt for another retry target",
+      "resolution": "waited for the concurrent journal owner to finish, reverified the exact runId and Issue, then retried the identical prepare command successfully",
+      "guardrailCandidate": "serialize worktree preparation journals or return an explicit retryable concurrent-prepare outcome",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:28:51.001Z",
+      "issueLogId": "issue-log-32020e23-94d6-47bf-95e9-704f1d68ef3c"
+    },
+    {
+      "step": "draft",
+      "reason": "Automated docs freshness check could not complete because an existing spec artifact exceeded the 10000-file scan limit",
+      "trigger": "senti check freshness returned indeterminate at specs/322-flow-target-transition-guards/spec-gate-source.json",
+      "resolution": "compared newest docs and src modification times directly inside the worktree and treated source as authoritative because src is newer",
+      "guardrailCandidate": "freshness checks should exclude generated spec evidence or report a bounded source-versus-docs result",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:31:03.130Z",
+      "issueLogId": "issue-log-4f9ace15-b69d-4f2c-a741-1dd818621f3f"
+    },
+    {
+      "step": "draft-questions-repair",
+      "reason": "Draft question review found a priority marker embedded in the user-facing question text",
+      "trigger": "draft-review-questions.json produced repair target Remove Instruction Marker for q1",
+      "resolution": "removed only the leading must marker and recorded the mutation in draft-questions-repair.json",
+      "guardrailCandidate": "keep requirement priority markers outside question-only QA text fields",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:33:20.287Z",
+      "issueLogId": "issue-log-de032604-b3fa-436d-9825-e9decb330300"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft replaces existing PASS lifecycle behavior for canonical triage/repair artifacts, but does not inventory the existing public behavior being replaced, map each retained behavior to a new owner or removal decision, or define behavior-level verification for each retained public surface.; The draft states that the current canonical artifact should represent the current PASS attempt, but does not provide the required migration parity inventory, retained-behavior mapping, and behavior-level verification for the behavior being replaced.; The draft includes replacing draft-questions PASS canonical triage/repair artifacts with an empty state, but lacks migration parity details for that moved or replaced behavior: existing public behavior inventory, retained-behavior owner/removal mapping, and behavior-level verification through the new path.; The draft includes replacing draft-coverage PASS canonical triage/repair artifacts with an empty state, but lacks migration parity details for that moved or replaced behavior: existing public behavior inventory, retained-behavior owner/removal mapping, and behavior-level verification through the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T00:34:49.315Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The draft replaces existing PASS lifecycle behavior for canonical triage/repair artifacts, but does not inventory the existing public behavior being replaced, map each retained behavior to a new owner or removal decision, or define behavior-level verification for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.decisionPoints[0]"
+          },
+          "observed": "The draft states that the current canonical artifact should represent the current PASS attempt, but does not provide the required migration parity inventory, retained-behavior mapping, and behavior-level verification for the behavior being replaced.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "The draft includes replacing draft-questions PASS canonical triage/repair artifacts with an empty state, but lacks migration parity details for that moved or replaced behavior: existing public behavior inventory, retained-behavior owner/removal mapping, and behavior-level verification through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "scopeVerification.in[1]"
+          },
+          "observed": "The draft includes replacing draft-coverage PASS canonical triage/repair artifacts with an empty state, but lacks migration parity details for that moved or replaced behavior: existing public behavior inventory, retained-behavior owner/removal mapping, and behavior-level verification through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft replaces existing PASS lifecycle behavior for canonical triage/repair artifacts, but does not inventory the existing public behavior being replaced, map each retained behavior to a new owner or removal decision, or define behavior-level verification for each retained public surface."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that the current canonical artifact should represent the current PASS attempt, but does not provide the required migration parity inventory, retained-behavior mapping, and behavior-level verification for the behavior being replaced."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft includes replacing draft-questions PASS canonical triage/repair artifacts with an empty state, but lacks migration parity details for that moved or replaced behavior: existing public behavior inventory, retained-behavior owner/removal mapping, and behavior-level verification through the new path."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft includes replacing draft-coverage PASS canonical triage/repair artifacts with an empty state, but lacks migration parity details for that moved or replaced behavior: existing public behavior inventory, retained-behavior owner/removal mapping, and behavior-level verification through the new path."
+        }
+      ],
+      "issueLogId": "issue-log-c6f2f23c-d191-49aa-b114-21da70e6d5a9"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate rejected the artifact because migration parity inventory, ownership mapping, and behavior-level verification were incomplete",
+      "trigger": "migration-parity guardrail reported four blocking observations across approach, decision, and route scope fields",
+      "resolution": "added the retained behavior inventory, existing owner mapping, sole bug behavior removal, and per-route behavior-level verification across all related draft fields",
+      "guardrailCandidate": "when correcting existing artifact lifecycle behavior, document retained paths schemas owners side effects and behavior-level tests before the first draft gate",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:35:30.601Z",
+      "issueLogId": "issue-log-5d9f3975-5da2-46cb-8d1a-ca1ba689564a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec states migration parity preserves artifact paths, schemas, step completion, non-PASS findings, and rewind audit ownership, but it does not map each retained public behavior to its new owner or an explicit removal decision.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T00:39:34.464Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "migration parity definition"
+          },
+          "observed": "The spec states migration parity preserves artifact paths, schemas, step completion, non-PASS findings, and rewind audit ownership, but it does not map each retained public behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec states migration parity preserves artifact paths, schemas, step completion, non-PASS findings, and rewind audit ownership, but it does not map each retained public behavior to its new owner or an explicit removal decision."
+        }
+      ],
+      "issueLogId": "issue-log-c0e8c09a-8541-4921-8262-72706fad5c5d"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate required an explicit per-behavior migration parity owner mapping instead of the summarized parity description",
+      "trigger": "migration-parity guardrail reported one blocking observation for the spec migration parity definition",
+      "resolution": "added explicit owner mappings for paths schemas PASS current view step completion non-PASS findings and rewind history plus an explicit stale-view removal decision",
+      "guardrailCandidate": "state migration parity as a retained behavior to owner mapping with explicit removal decisions rather than only a preservation summary",
+      "taskId": null,
+      "timestamp": "2026-07-25T00:40:04.907Z",
+      "issueLogId": "issue-log-a95ab58b-f9d0-49fb-b172-8e0a7d00189c"
+    },
+    {
+      "step": "test",
+      "reason": "A stale repository flow lock temporarily blocked the test-phase source-read metric update",
+      "trigger": "flow set metric returned REPOSITORY_FLOW_OPERATION_BUSY for a process id that was no longer active",
+      "resolution": "verified the owner process was absent and retried the identical guarded metric command successfully",
+      "guardrailCandidate": "repository flow locks should be reclaimed immediately when the recorded owner process no longer exists",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:42:06.901Z",
+      "issueLogId": "issue-log-ea43a31e-e876-4fd2-8785-d1b93067d72f"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Scenario validity baseline was nine commits behind main and rebase autostash conflicted in generated analysis.json",
+      "trigger": "scenario-validity reported unrelated implementation-target differences after main advanced during the active flow",
+      "resolution": "rebased the feature worktree onto current main, kept the newer enriched analysis artifact, preserved all spec files, and removed only the generated stale autostash",
+      "guardrailCandidate": "scenario validity should compare against the flow creation commit or distinguish upstream base advancement from feature implementation changes",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:44:34.655Z",
+      "issueLogId": "issue-log-f9ffea9c-b3c6-4ce9-a44e-3095cd66b735"
+    },
+    {
+      "step": "test-review",
+      "reason": "Replaced synthetic rewind with production FlowManager and reopen-draft coverage; linked non-PASS findings to artifacts and added route, retry, history, and transition-guard assertions.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:52:24.343Z",
+      "issueLogId": "issue-log-701c0489-920a-4c84-988c-90665fc661e4"
+    },
+    {
+      "step": "test-review",
+      "reason": "Expanded R3 coverage assertions to verify full canonical triage and repair payloads, PASS-time freshness, and shared generatedAt semantics.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:53:15.088Z",
+      "issueLogId": "issue-log-01a45ddf-4dba-4cb3-89f5-f964e202d08a"
+    },
+    {
+      "step": "test-review",
+      "reason": "Seeded non-default sourceReview and sourceTriage values and asserted exact preservation after PASS so hardcoded route defaults cannot satisfy R1-R3.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:54:05.145Z",
+      "issueLogId": "issue-log-0484189f-4ad0-4797-88d0-4baef6f1a649"
+    },
+    {
+      "step": "task-review",
+      "reason": "The approved R1 and R2 explicitly require preserving the existing sourceReview and sourceTriage values; the implementation and distinct-value tests enforce that contract, while route metadata remains the fallback for first creation.",
+      "normalizedFindingId": "db2d84564c08e48fbf8f1683b5d3ff56f86c291709c4167ab1251017a2915a9a",
+      "repairRef": {
+        "files": [
+          "specs/336-reset-draft-review-artifacts/spec.json"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:59:38.379Z",
+      "issueLogId": "issue-log-50befc6b-111e-40f8-a90a-1bb50c2e7162"
+    },
+    {
+      "step": "task-review",
+      "reason": "The required two-route behavior sequence test already exists and covers non-PASS artifact creation, production reopen-draft retention, later PASS lifecycle replacement, audit, retry, and transition guards; staging makes it visible to task-scoped review.",
+      "normalizedFindingId": "bc38e08eb595d078aec41ce12c09ae9d7c49e1405e4c0c163d05b00e6042b3e3",
+      "repairRef": {
+        "files": [
+          "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T03:59:45.408Z",
+      "issueLogId": "issue-log-c013000f-9c51-4edd-bc43-57eb5999474c"
+    },
+    {
+      "step": "task-review",
+      "reason": "Renamed the source reader to existingCanonicalArtifactSource so ownership is explicit: it reads only the active route's fixed canonical file, preserves the approved existing reference, and falls back to DraftReviewRoute metadata when absent.",
+      "normalizedFindingId": "db2d84564c08e48fbf8f1683b5d3ff56f86c291709c4167ab1251017a2915a9a",
+      "repairRef": {
+        "files": [
+          "src/flow/definition.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:00:14.038Z",
+      "issueLogId": "issue-log-79ed475e-5483-442d-abaa-4a9287d7851c"
+    },
+    {
+      "step": "task.impl",
+      "reason": "Source verification found an approved-spec contradiction: draft gate requires route-canonical sourceReview/sourceTriage values, while R1/R2 and the strengthened test implied arbitrary existing-value preservation. It also confirmed triage/repair JSON is AI-authored by plan prompts, with no production producer command for R6 to invoke.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:01:32.290Z",
+      "issueLogId": "issue-log-b252669f-c761-402b-90d7-23c3dcf1333e"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft-questions-triage.json: items[0] must match a blocking finding or repair target from draft-review-questions.json",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T04:03:49.019Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-questions-triage.json: items[0] must match a blocking finding or repair target from draft-review-questions.json",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-37a1ec31-a604-4d5c-b246-7f1d0a7d1f3a"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Repaired stale questions triage and repair artifacts to the canonical empty PASS state after the installed CLI exercised the pre-fix create-if-absent hook during this self-hosted flow.",
+      "taskId": null,
+      "timestamp": "2026-07-25T04:04:31.482Z",
+      "issueLogId": "issue-log-2808578f-2756-463d-9a3e-6698cf4f589a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T04:30:47.758Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "tasks: new task 'T-2' added_round must be 1, got 0",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-14c34d8c-dd9f-45ab-a9d5-55ac1593b559"
+    },
+    {
+      "step": "task-review",
+      "reason": "Made the prompt-owned AI-authored artifact boundary explicit: finding-derived triage and repair documents are materialized, persisted and read back before actual SetStepCommand transitions, and both files are asserted present before production reopen-draft.",
+      "normalizedFindingId": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "repairRef": {
+        "files": [
+          "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T05:15:00.729Z",
+      "issueLogId": "issue-log-3d1c9502-986b-4882-b08f-1305bfb4a4b4"
+    },
+    {
+      "step": "task-review",
+      "reason": "Malformed rewind occurrence errors now fail freshness closed without swallowing unexpected exceptions.",
+      "normalizedFindingId": "29bb7d02255e822af439d2e8534c450741c39b37fcd8554a7fe7601e0904becb",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/plan-rewind.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T05:20:26.473Z",
+      "issueLogId": "issue-log-cfbfba13-36ce-469f-b47a-ffc0a16fa52f"
+    },
+    {
+      "step": "task-review",
+      "reason": "Approval freshness fixture now includes the complete minimal spec schema and direct malformed-helper coverage.",
+      "normalizedFindingId": "dffa38a1e3ec8d8ec08325e3a43cd63734cd65476b878283273cafce023db04b",
+      "repairRef": {
+        "files": [
+          "specs/336-reset-draft-review-artifacts/tests/approval-rewind-freshness.test.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T05:20:32.310Z",
+      "issueLogId": "issue-log-64b947e5-5929-48e8-9cdb-f79c6de36f4a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added catch block handles `PlanRewindError` by returning `false` without logging or re-throwing the error, silently discarding the caught error.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:21:38.841Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/flow/lib/plan-rewind.js",
+            "locator": "isPlanEvidenceFresh catch block"
+          },
+          "observed": "The added catch block handles `PlanRewindError` by returning `false` without logging or re-throwing the error, silently discarding the caught error.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added catch block handles `PlanRewindError` by returning `false` without logging or re-throwing the error, silently discarding the caught error."
+        }
+      ],
+      "issueLogId": "issue-log-d3eb9eba-7376-4ee1-9e6b-b9301e40f023"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Fix task gate rejection caused by silently handling malformed rewind validation errors.",
+      "resolution": "Replaced exception catching with a non-throwing occurrence factory that returns no value for malformed records while retaining constructor invariants.",
+      "normalizedFindingId": "c290b0d1d31275bc19950127a530ebe60aa7fa523d459548daca9fd602cf6466",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/plan-rewind.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T05:22:40.960Z",
+      "issueLogId": "issue-log-ec59ed45-217c-4d00-833c-52a85af62caf"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff introduces a production-only artifact container whose constructor repeats the same empty artifact construction shape as the repair artifact class; a local helper could generate the route-specific empty document without duplicating the assignment pattern.; The diff introduces a second production-only artifact container with the same constructor/control-flow shape as the triage artifact class, differing only in route fields and summary text; a local helper could remove the repeated transformation without changing ownership.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:31:03.823Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/definition.js",
+            "locator": "EmptyDraftReviewTriageArtifact"
+          },
+          "observed": "The diff introduces a production-only artifact container whose constructor repeats the same empty artifact construction shape as the repair artifact class; a local helper could generate the route-specific empty document without duplicating the assignment pattern.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/definition.js",
+            "locator": "EmptyDraftReviewRepairArtifact"
+          },
+          "observed": "The diff introduces a second production-only artifact container with the same constructor/control-flow shape as the triage artifact class, differing only in route fields and summary text; a local helper could remove the repeated transformation without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff introduces a production-only artifact container whose constructor repeats the same empty artifact construction shape as the repair artifact class; a local helper could generate the route-specific empty document without duplicating the assignment pattern."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff introduces a second production-only artifact container with the same constructor/control-flow shape as the triage artifact class, differing only in route fields and summary text; a local helper could remove the repeated transformation without changing ownership."
+        }
+      ],
+      "issueLogId": "issue-log-414ec44c-d928-4316-814b-1c88bc366435"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Fix integration gate duplication finding for empty draft review artifact construction.",
+      "resolution": "Unified triage and repair payload creation in one invariant-enforcing EmptyDraftReviewArtifact class while preserving route-specific fields and schemas.",
+      "normalizedFindingId": "1a320b22d92a5522d4e184e4f4b41a1419586760302360ffb23fb83f6f098c6d",
+      "repairRef": {
+        "files": [
+          "src/flow/definition.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T05:32:14.783Z",
+      "issueLogId": "issue-log-8f4ba439-a98f-4c89-8df9-6effa1f7ad98"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds `EmptyDraftReviewArtifact`, a non-exported DTO-style class used only by `writeEmptyDraftReviewRouteArtifacts` to emit two plain JSON objects. The class adds a new abstraction surface with constructor validation, dynamic field assignment, and freezing, but the added behavior is simple artifact object construction and does not establish a meaningful ownership boundary or shared production API.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:37:48.200Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/definition.js",
+            "locator": "EmptyDraftReviewArtifact"
+          },
+          "observed": "The diff adds `EmptyDraftReviewArtifact`, a non-exported DTO-style class used only by `writeEmptyDraftReviewRouteArtifacts` to emit two plain JSON objects. The class adds a new abstraction surface with constructor validation, dynamic field assignment, and freezing, but the added behavior is simple artifact object construction and does not establish a meaningful ownership boundary or shared production API.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds `EmptyDraftReviewArtifact`, a non-exported DTO-style class used only by `writeEmptyDraftReviewRouteArtifacts` to emit two plain JSON objects. The class adds a new abstraction surface with constructor validation, dynamic field assignment, and freezing, but the added behavior is simple artifact object construction and does not establish a meaningful ownership boundary or shared production API."
+        }
+      ],
+      "issueLogId": "issue-log-fb28b5d9-ab18-4825-9147-f239206e7cae"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Fix repeated integration gate finding that classified the payload DTO as a thin abstraction.",
+      "resolution": "Moved empty artifact persistence into DraftReviewRoute, which already owns route paths and phases, and reduced the lifecycle hook to one ownership-delegating call.",
+      "normalizedFindingId": "1a320b22d92a5522d4e184e4f4b41a1419586760302360ffb23fb83f6f098c6d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/draft-review-routes.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T05:39:18.837Z",
+      "issueLogId": "issue-log-3f0bb1dd-f5e2-4a00-8dd3-e840f65fe6ec"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a new `writeEmptyArtifacts()` method on `DraftReviewRoute` that is only called by `writeEmptyDraftReviewRouteArtifacts()` in `src/flow/definition.js`, moving filesystem persistence into the route metadata class without adding shared behavior, an invariant, or a distinct ownership boundary.; The diff adds a private `#writeEmptyArtifact()` wrapper used only by `writeEmptyArtifacts()` to write two small JSON objects, creating a single-caller abstraction that does not hide meaningful complexity or enforce an invariant.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:43:15.641Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/draft-review-routes.js",
+            "locator": "DraftReviewRoute.writeEmptyArtifacts"
+          },
+          "observed": "The diff adds a new `writeEmptyArtifacts()` method on `DraftReviewRoute` that is only called by `writeEmptyDraftReviewRouteArtifacts()` in `src/flow/definition.js`, moving filesystem persistence into the route metadata class without adding shared behavior, an invariant, or a distinct ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/draft-review-routes.js",
+            "locator": "DraftReviewRoute.#writeEmptyArtifact"
+          },
+          "observed": "The diff adds a private `#writeEmptyArtifact()` wrapper used only by `writeEmptyArtifacts()` to write two small JSON objects, creating a single-caller abstraction that does not hide meaningful complexity or enforce an invariant.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a new `writeEmptyArtifacts()` method on `DraftReviewRoute` that is only called by `writeEmptyDraftReviewRouteArtifacts()` in `src/flow/definition.js`, moving filesystem persistence into the route metadata class without adding shared behavior, an invariant, or a distinct ownership boundary."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a private `#writeEmptyArtifact()` wrapper used only by `writeEmptyArtifacts()` to write two small JSON objects, creating a single-caller abstraction that does not hide meaningful complexity or enforce an invariant."
+        }
+      ],
+      "issueLogId": "issue-log-e66d5e7b-74db-4c03-a16a-439206c9d944"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Fix repeated integration gate finding by removing both single-caller artifact abstractions.",
+      "resolution": "Replaced the DTO and route method with one local serialization helper called for triage and repair; no new class, exported API, or ownership layer remains.",
+      "normalizedFindingId": "1a320b22d92a5522d4e184e4f4b41a1419586760302360ffb23fb83f6f098c6d",
+      "repairRef": {
+        "files": [
+          "src/flow/definition.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-25T05:44:04.307Z",
+      "issueLogId": "issue-log-88789a57-2448-4d8a-b2bb-1726d65f14cd"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T06:09:28.143Z",
+      "issueLogId": "issue-log-6f251862-8f94-4801-a9ae-9d44b9b56ead"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T04:00:39.663Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "non-pass-artifact-creation-not-exercised",
+      "title": "R6 still bypasses non-PASS artifact creation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js",
+      "requirementId": "R6",
+      "issue": "`recordNonPassRouteArtifacts` drives the non-PASS review hook, but then writes the triage and repair artifacts directly with `this.writeJson(...)`. The test therefore proves PASS replacement of manually seeded stale files, not FAIL/ADVISORY artifact creation through the workflow path required by R6.",
+      "suggestion": "Change `recordNonPassRouteArtifacts` so the ADVISORY/REJECTED sequence creates the route triage and repair artifacts through the production review/triage/repair command or lifecycle path, then assert those created artifacts exist before calling `RunReopenDraftCommand`.",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory requirement and specifically requires focused tests to exercise FAIL or ADVISORY artifact creation, rewind step reset with retained history, and later PASS through the lifecycle hook path. Manually writing the stale triage and repair artifacts leaves the artifact-creation portion untested.",
+      "findingId": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "fingerprint": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "393cedc03ad367fece5f675476886dfff5d9e4dfdbb74f47925071230cbe0bc4",
+  "runId": "4163edf7-eced-4117-8f57-8bbf52201768",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/336-reset-draft-review-artifacts/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/336-reset-draft-review-artifacts/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "1520a1086c2aa39ab1f178096eaa4b8b5980fa711935659c0ca04a73b1d2ab95"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "findingId": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R6 still bypasses non-PASS artifact creation",
+      "body": "`recordNonPassRouteArtifacts` drives the non-PASS review hook, but then writes the triage and repair artifacts directly with `this.writeJson(...)`. The test therefore proves PASS replacement of manually seeded stale files, not FAIL/ADVISORY artifact creation through the workflow path required by R6.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory requirement and specifically requires focused tests to exercise FAIL or ADVISORY artifact creation, rewind step reset with retained history, and later PASS through the lifecycle hook path. Manually writing the stale triage and repair artifacts leaves the artifact-creation portion untested.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/336-reset-draft-review-artifacts/review-evidence/ae4f764a2fa3418fe893e9b06e6feb5e4c1e929362120af89efddaa55fedd3ac.json",
+      "specs/336-reset-draft-review-artifacts/review-evidence/c008c7d7d899bf5889b7c9fb1af14e43bb584f88062893e479d9e38bc15d322a.json",
+      "specs/336-reset-draft-review-artifacts/review-evidence/c42b7f8a9926883f864f8e385a148930ee8b9467f859dc316db5ef4ceaf001c7.json",
+      "specs/336-reset-draft-review-artifacts/review-evidence/d0249556e7f0455e4c3f19f23903738a0a903fe375ab306965105fa3a5e0e970.json"
+    ],
+    "inputHash": "f29c12bdd9de75ff3084376357d39cfb0612e4461f1361949590cf0b841dd8b9",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "specs/336-reset-draft-review-artifacts/review-evidence/ae4f764a2fa3418fe893e9b06e6feb5e4c1e929362120af89efddaa55fedd3ac.json",
+    "specs/336-reset-draft-review-artifacts/review-evidence/c008c7d7d899bf5889b7c9fb1af14e43bb584f88062893e479d9e38bc15d322a.json",
+    "specs/336-reset-draft-review-artifacts/review-evidence/c42b7f8a9926883f864f8e385a148930ee8b9467f859dc316db5ef4ceaf001c7.json",
+    "specs/336-reset-draft-review-artifacts/review-evidence/d0249556e7f0455e4c3f19f23903738a0a903fe375ab306965105fa3a5e0e970.json"
+  ],
+  "inputHash": "f29c12bdd9de75ff3084376357d39cfb0612e4461f1361949590cf0b841dd8b9",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:33:52.818Z",
+  "finishedAt": "2026-07-25T05:33:52.818Z",
+  "rawResponse": "### 1. Normalize Review Evidence Formatting\n**File:** `specs/336-reset-draft-review-artifacts/review-evidence/ae4f764a2fa3418fe893e9b06e6feb5e4c1e929362120af89efddaa55fedd3ac.json`  \n**Requirement:** R6  \n**Issue:** The JSON artifact is committed as a single long line, which makes future diffs noisy and obscures changes to individual findings, provenance fields, or disposition.  \n**Suggestion:** Pretty-print the JSON with stable indentation and key ordering consistent with the project’s other review artifacts, if any, before committing generated evidence files.\n\n### 2. Normalize Review Evidence Formatting\n**File:** `specs/336-reset-draft-review-artifacts/review-evidence/c008c7d7d899bf5889b7c9fb1af14e43bb584f88062893e479d9e38bc15d322a.json`  \n**Requirement:** R6  \n**Issue:** The JSON artifact is committed as a single long line, reducing readability and making small future updates hard to review.  \n**Suggestion:** Format the JSON with deterministic indentation and key ordering so future diffs isolate the actual changed fields.\n\n### 3. Normalize Review Evidence Formatting\n**File:** `specs/336-reset-draft-review-artifacts/review-evidence/c42b7f8a9926883f864f8e385a148930ee8b9467f859dc316db5ef4ceaf001c7.json`  \n**Requirement:** R6  \n**Issue:** The one-line JSON representation makes the artifact harder to inspect and compare against related review evidence files.  \n**Suggestion:** Pretty-print this artifact using the same deterministic formatter applied to the other review evidence JSON files.\n\n### 4. Normalize Review Evidence Formatting\n**File:** `specs/336-reset-draft-review-artifacts/review-evidence/d0249556e7f0455e4c3f19f23903738a0a903fe375ab306965105fa3a5e0e970.json`  \n**Requirement:** R6  \n**Issue:** Even though this artifact has no findings, its one-line JSON format is inconsistent with review-friendly evidence storage and will produce poor diffs if metadata changes.  \n**Suggestion:** Store the JSON in a stable pretty-printed format, matching the formatting convention used for the other evidence artifacts.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Review Evidence Formatting",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-evidence/ae4f764a2fa3418fe893e9b06e6feb5e4c1e929362120af89efddaa55fedd3ac.json`  \n**Requirement:** R6  \n**Issue:** The JSON artifact is committed as a single long line, which makes future diffs noisy and obscures changes to individual findings, provenance fields, or disposition.  \n**Suggestion:** Pretty-print the JSON with stable indentation and key ordering consistent with the project’s other review artifacts, if any, before committing generated evidence files.",
+        "file": "specs/336-reset-draft-review-artifacts/review-evidence/ae4f764a2fa3418fe893e9b06e6feb5e4c1e929362120af89efddaa55fedd3ac.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Normalize Review Evidence Formatting",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-evidence/c008c7d7d899bf5889b7c9fb1af14e43bb584f88062893e479d9e38bc15d322a.json`  \n**Requirement:** R6  \n**Issue:** The JSON artifact is committed as a single long line, reducing readability and making small future updates hard to review.  \n**Suggestion:** Format the JSON with deterministic indentation and key ordering so future diffs isolate the actual changed fields.",
+        "file": "specs/336-reset-draft-review-artifacts/review-evidence/c008c7d7d899bf5889b7c9fb1af14e43bb584f88062893e479d9e38bc15d322a.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Normalize Review Evidence Formatting",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-evidence/c42b7f8a9926883f864f8e385a148930ee8b9467f859dc316db5ef4ceaf001c7.json`  \n**Requirement:** R6  \n**Issue:** The one-line JSON representation makes the artifact harder to inspect and compare against related review evidence files.  \n**Suggestion:** Pretty-print this artifact using the same deterministic formatter applied to the other review evidence JSON files.",
+        "file": "specs/336-reset-draft-review-artifacts/review-evidence/c42b7f8a9926883f864f8e385a148930ee8b9467f859dc316db5ef4ceaf001c7.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Normalize Review Evidence Formatting",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-evidence/d0249556e7f0455e4c3f19f23903738a0a903fe375ab306965105fa3a5e0e970.json`  \n**Requirement:** R6  \n**Issue:** Even though this artifact has no findings, its one-line JSON format is inconsistent with review-friendly evidence storage and will produce poor diffs if metadata changes.  \n**Suggestion:** Store the JSON in a stable pretty-printed format, matching the formatting convention used for the other evidence artifacts.",
+        "file": "specs/336-reset-draft-review-artifacts/review-evidence/d0249556e7f0455e4c3f19f23903738a0a903fe375ab306965105fa3a5e0e970.json",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

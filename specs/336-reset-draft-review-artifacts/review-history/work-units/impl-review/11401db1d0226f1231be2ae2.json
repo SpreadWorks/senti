@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/336-reset-draft-review-artifacts/spec-review.json",
+      "specs/336-reset-draft-review-artifacts/spec.json",
+      "specs/336-reset-draft-review-artifacts/spec.md",
+      "specs/336-reset-draft-review-artifacts/tasks/T-1.md"
+    ],
+    "inputHash": "345ed14505a554359fb59bb17c3fa3022fe538a047b5f356cbe925a7dce77c44",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "specs/336-reset-draft-review-artifacts/spec-review.json",
+    "specs/336-reset-draft-review-artifacts/spec.json",
+    "specs/336-reset-draft-review-artifacts/spec.md",
+    "specs/336-reset-draft-review-artifacts/tasks/T-1.md"
+  ],
+  "inputHash": "345ed14505a554359fb59bb17c3fa3022fe538a047b5f356cbe925a7dce77c44",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:35:04.308Z",
+  "finishedAt": "2026-07-25T05:35:04.308Z",
+  "rawResponse": "### 1. Remove stale duplicate spec-review entry from the change set\n**File:** `specs/336-reset-draft-review-artifacts/spec-review.json`\n**Requirement:** R8\n**Issue:** The diff shows the same new file added twice with different `generatedAt` values. Keeping multiple generated variants in one change set makes the review artifact ambiguous and creates avoidable churn.\n**Suggestion:** Regenerate or keep only the latest `spec-review.json` content so the diff contains a single canonical version.\n\n### 2. Remove empty placeholder sections\n**File:** `specs/336-reset-draft-review-artifacts/spec.md`\n**Requirement:** R6\n**Issue:** `## Implementation Targets` contains only `-`, and `## Open Questions` contains only `- [ ]`. These are dead placeholder content and make the rendered spec look incomplete.\n**Suggestion:** Remove those sections when empty, or populate them with real targets/questions before committing.\n\n### 3. Deduplicate module ownership bullets\n**File:** `specs/336-reset-draft-review-artifacts/spec.md`\n**Requirement:** R1\n**Issue:** The Overview Modules section lists `src/flow/definition.js` twice for closely related ownership of PASS lifecycle and empty artifact writing, and `src/flow/lib/plan-rewind.js` twice for freshness normalization. This repeats ownership information without adding much distinction.\n**Suggestion:** Merge each pair into a single concise bullet per file, preserving the added task-specific detail.\n\n### 4. Keep generated task text in sync with the canonical spec\n**File:** `specs/336-reset-draft-review-artifacts/tasks/T-1.md`\n**Requirement:** R6\n**Issue:** The diff shows two generated versions of `T-1.md` with different Test Strategy text. One version exercises the actual non-PASS review post hook and set-step workflow, while the other is weaker and less aligned with the final R6 wording.\n**Suggestion:** Re-render `T-1.md` from the final `spec.json` and keep only the version that matches the canonical R6 test strategy.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove stale duplicate spec-review entry from the change set",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/spec-review.json`\n**Requirement:** R8\n**Issue:** The diff shows the same new file added twice with different `generatedAt` values. Keeping multiple generated variants in one change set makes the review artifact ambiguous and creates avoidable churn.\n**Suggestion:** Regenerate or keep only the latest `spec-review.json` content so the diff contains a single canonical version.",
+        "file": "specs/336-reset-draft-review-artifacts/spec-review.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Remove empty placeholder sections",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/spec.md`\n**Requirement:** R6\n**Issue:** `## Implementation Targets` contains only `-`, and `## Open Questions` contains only `- [ ]`. These are dead placeholder content and make the rendered spec look incomplete.\n**Suggestion:** Remove those sections when empty, or populate them with real targets/questions before committing.",
+        "file": "specs/336-reset-draft-review-artifacts/spec.md",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Deduplicate module ownership bullets",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/spec.md`\n**Requirement:** R1\n**Issue:** The Overview Modules section lists `src/flow/definition.js` twice for closely related ownership of PASS lifecycle and empty artifact writing, and `src/flow/lib/plan-rewind.js` twice for freshness normalization. This repeats ownership information without adding much distinction.\n**Suggestion:** Merge each pair into a single concise bullet per file, preserving the added task-specific detail.",
+        "file": "specs/336-reset-draft-review-artifacts/spec.md",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Keep generated task text in sync with the canonical spec",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/tasks/T-1.md`\n**Requirement:** R6\n**Issue:** The diff shows two generated versions of `T-1.md` with different Test Strategy text. One version exercises the actual non-PASS review post hook and set-step workflow, while the other is weaker and less aligned with the final R6 wording.\n**Suggestion:** Re-render `T-1.md` from the final `spec.json` and keep only the version that matches the canonical R6 test strategy.",
+        "file": "specs/336-reset-draft-review-artifacts/tasks/T-1.md",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

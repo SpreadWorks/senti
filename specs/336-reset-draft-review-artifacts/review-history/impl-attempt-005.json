@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T05:18:11.326Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "malformed-rewind-time-throws-instead-of-stale",
+      "title": "Malformed rewind time does not fail closed as stale",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/plan-rewind.js",
+      "requirementId": "R8",
+      "issue": "`isPlanEvidenceFresh` now constructs `PlanRewindOccurrence`, whose constructor calls `requireIso` for the selected occurrence field. A malformed latest rewind timestamp therefore raises a plan-rewind validation error instead of returning `false` to the approval guard, so approval completion will not reliably preserve the existing `STALE_PLAN_APPROVAL` envelope required for malformed occurrence times.",
+      "suggestion": "In `isPlanEvidenceFresh`, catch invalid or missing occurrence times from `PlanRewindOccurrence` and return `false`, or make `PlanRewindOccurrence` expose a non-throwing parse result used by the freshness comparison while keeping other callers fail-closed.",
+      "disposition": "must-fix",
+      "rationale": "R8 explicitly requires malformed occurrence times to fail closed with `STALE_PLAN_APPROVAL`. Throwing from the freshness helper changes the approval completion failure mode and breaks the required guard contract.",
+      "findingId": "29bb7d02255e822af439d2e8534c450741c39b37fcd8554a7fe7601e0904becb",
+      "fingerprint": "29bb7d02255e822af439d2e8534c450741c39b37fcd8554a7fe7601e0904becb",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "approval-freshness-fixture-invalid-spec",
+      "title": "Approval completion test uses an invalid spec fixture",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/336-reset-draft-review-artifacts/tests/approval-rewind-freshness.test.js",
+      "requirementId": "R8",
+      "issue": "`writeSpec` writes only `goal`, `requirements`, `tasks`, and `user_approval`, but `SetStepCommand.execute` loads and validates `spec.json` during approval completion. The fixture is missing required schema fields such as `scope`, `constraints`, `design_principles`, `overview`, `background`, `acceptance_criteria`, `clarifications`, `alternatives_considered`, and `open_questions`, so the approval-completion tests can fail on fixture validation before exercising the R8 freshness boundary.",
+      "suggestion": "Update `writeSpec` in `approval-rewind-freshness.test.js` to write a schema-valid minimal spec object, including the required top-level fields, so the later/equal/earlier/malformed/no-rewind assertions reach the actual approval completion guard.",
+      "disposition": "must-fix",
+      "rationale": "R8 requires focused approval completion coverage. An invalid fixture prevents the test from proving the required `STALE_PLAN_APPROVAL`, no-rewind, and sealed timestamp behavior through the actual command path.",
+      "findingId": "dffa38a1e3ec8d8ec08325e3a43cd63734cd65476b878283273cafce023db04b",
+      "fingerprint": "dffa38a1e3ec8d8ec08325e3a43cd63734cd65476b878283273cafce023db04b",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "25340ce78f6ff8e09d53b85343548edb26e852d959b5bebb4e322c79488ef1f7",
+  "runId": "4163edf7-eced-4117-8f57-8bbf52201768",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/336-reset-draft-review-artifacts/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/336-reset-draft-review-artifacts/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "77a298c3db821a36a73750f83735611acf784d6e97e97d390eade6c3d911fa70"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "29bb7d02255e822af439d2e8534c450741c39b37fcd8554a7fe7601e0904becb",
+      "findingId": "29bb7d02255e822af439d2e8534c450741c39b37fcd8554a7fe7601e0904becb",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Malformed rewind time does not fail closed as stale",
+      "body": "`isPlanEvidenceFresh` now constructs `PlanRewindOccurrence`, whose constructor calls `requireIso` for the selected occurrence field. A malformed latest rewind timestamp therefore raises a plan-rewind validation error instead of returning `false` to the approval guard, so approval completion will not reliably preserve the existing `STALE_PLAN_APPROVAL` envelope required for malformed occurrence times.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "29bb7d02255e822af439d2e8534c450741c39b37fcd8554a7fe7601e0904becb",
+      "disposition": "must-fix",
+      "rationale": "R8 explicitly requires malformed occurrence times to fail closed with `STALE_PLAN_APPROVAL`. Throwing from the freshness helper changes the approval completion failure mode and breaks the required guard contract.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    },
+    {
+      "id": "dffa38a1e3ec8d8ec08325e3a43cd63734cd65476b878283273cafce023db04b",
+      "findingId": "dffa38a1e3ec8d8ec08325e3a43cd63734cd65476b878283273cafce023db04b",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Approval completion test uses an invalid spec fixture",
+      "body": "`writeSpec` writes only `goal`, `requirements`, `tasks`, and `user_approval`, but `SetStepCommand.execute` loads and validates `spec.json` during approval completion. The fixture is missing required schema fields such as `scope`, `constraints`, `design_principles`, `overview`, `background`, `acceptance_criteria`, `clarifications`, `alternatives_considered`, and `open_questions`, so the approval-completion tests can fail on fixture validation before exercising the R8 freshness boundary.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "dffa38a1e3ec8d8ec08325e3a43cd63734cd65476b878283273cafce023db04b",
+      "disposition": "must-fix",
+      "rationale": "R8 requires focused approval completion coverage. An invalid fixture prevents the test from proving the required `STALE_PLAN_APPROVAL`, no-rewind, and sealed timestamp behavior through the actual command path.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    }
+  ]
+}

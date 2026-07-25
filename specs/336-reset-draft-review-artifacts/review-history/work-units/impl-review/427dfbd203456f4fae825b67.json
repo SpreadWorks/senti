@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.json",
+      "specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.md",
+      "specs/336-reset-draft-review-artifacts/scenario-validity-result.json",
+      "specs/336-reset-draft-review-artifacts/spec-gate-source.json"
+    ],
+    "inputHash": "b4850f0ec19e6a37253fc0448581a46561191452da3e2f5be5c14bfba0b4cb15",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.json",
+    "specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.md",
+    "specs/336-reset-draft-review-artifacts/scenario-validity-result.json",
+    "specs/336-reset-draft-review-artifacts/spec-gate-source.json"
+  ],
+  "inputHash": "b4850f0ec19e6a37253fc0448581a46561191452da3e2f5be5c14bfba0b4cb15",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:34:49.392Z",
+  "finishedAt": "2026-07-25T05:34:49.392Z",
+  "rawResponse": "### 1. Remove duplicated diff entry for test attempt JSON\n**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.json`\n**Requirement:** R5\n**Issue:** The same new-file diff appears twice with identical content, which adds review noise and makes the change set look larger than it is.\n**Suggestion:** Ensure the artifact is emitted or staged once so the diff contains a single `test-attempt-004.json` addition.\n\n### 2. Remove duplicated diff entry for test attempt Markdown\n**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.md`\n**Requirement:** R5\n**Issue:** The Markdown artifact is also shown twice with identical content.\n**Suggestion:** Deduplicate the generated or staged artifact so only one addition appears in the diff.\n\n### 3. Add trailing newline to Markdown artifact\n**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.md`\n**Requirement:** R5\n**Issue:** The file ends without a newline, which is inconsistent with standard text-file formatting and can create unnecessary future diffs.\n**Suggestion:** Add a final newline after `No advisory findings.`.\n\n### 4. Avoid repeated command strings in scenario evidence\n**File:** `specs/336-reset-draft-review-artifacts/scenario-validity-result.json`\n**Requirement:** R6\n**Issue:** The same long test command is repeated in the top-level `command` field and again in every `summary[].evidence.command`, creating duplicated data that can drift.\n**Suggestion:** Keep the command at the top level and omit per-entry duplicate `evidence.command`, or replace it with a stable reference if the schema requires command provenance.\n\n### 5. Avoid repeated raw output line ranges\n**File:** `specs/336-reset-draft-review-artifacts/scenario-validity-result.json`\n**Requirement:** R6\n**Issue:** Every summary entry repeats the same `raw_output_lines` range, adding bulk without extra information.\n**Suggestion:** Move the shared range to a top-level field when all requirements reference the same raw output span, or only include per-entry ranges when they differ.\n\n### 6. Consolidate duplicated guardrail finding data\n**File:** `specs/336-reset-draft-review-artifacts/spec-gate-source.json`\n**Requirement:** R5\n**Issue:** The same migration-parity violation is represented under both `evaluations[].observations[]` and top-level `observations[]`, with nearly identical fields but different `findingId` / `fingerprint` values. That duplication makes artifact consumers choose between two identities for the same finding.\n**Suggestion:** Store the canonical finding once and reference it from the evaluation, or ensure both locations use the same stable finding identity if the schema requires both views.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated diff entry for test attempt JSON",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.json`\n**Requirement:** R5\n**Issue:** The same new-file diff appears twice with identical content, which adds review noise and makes the change set look larger than it is.\n**Suggestion:** Ensure the artifact is emitted or staged once so the diff contains a single `test-attempt-004.json` addition.",
+        "file": "specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.json",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Remove duplicated diff entry for test attempt Markdown",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.md`\n**Requirement:** R5\n**Issue:** The Markdown artifact is also shown twice with identical content.\n**Suggestion:** Deduplicate the generated or staged artifact so only one addition appears in the diff.",
+        "file": "specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.md",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Add trailing newline to Markdown artifact",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.md`\n**Requirement:** R5\n**Issue:** The file ends without a newline, which is inconsistent with standard text-file formatting and can create unnecessary future diffs.\n**Suggestion:** Add a final newline after `No advisory findings.`.",
+        "file": "specs/336-reset-draft-review-artifacts/review-history/test-attempt-004.md",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Avoid repeated command strings in scenario evidence",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/scenario-validity-result.json`\n**Requirement:** R6\n**Issue:** The same long test command is repeated in the top-level `command` field and again in every `summary[].evidence.command`, creating duplicated data that can drift.\n**Suggestion:** Keep the command at the top level and omit per-entry duplicate `evidence.command`, or replace it with a stable reference if the schema requires command provenance.",
+        "file": "specs/336-reset-draft-review-artifacts/scenario-validity-result.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Avoid repeated raw output line ranges",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/scenario-validity-result.json`\n**Requirement:** R6\n**Issue:** Every summary entry repeats the same `raw_output_lines` range, adding bulk without extra information.\n**Suggestion:** Move the shared range to a top-level field when all requirements reference the same raw output span, or only include per-entry ranges when they differ.",
+        "file": "specs/336-reset-draft-review-artifacts/scenario-validity-result.json",
+        "requirementId": "R6"
+      },
+      {
+        "title": "6. Consolidate duplicated guardrail finding data",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/spec-gate-source.json`\n**Requirement:** R5\n**Issue:** The same migration-parity violation is represented under both `evaluations[].observations[]` and top-level `observations[]`, with nearly identical fields but different `findingId` / `fingerprint` values. That duplication makes artifact consumers choose between two identities for the same finding.\n**Suggestion:** Store the canonical finding once and reference it from the evaluation, or ensure both locations use the same stable finding identity if the schema requires both views.",
+        "file": "specs/336-reset-draft-review-artifacts/spec-gate-source.json",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

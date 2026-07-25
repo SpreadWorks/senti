@@ -85,6 +85,27 @@ export function getAheadCount(cwd, baseBranch) {
   return res.ok ? parseInt(res.stdout.trim(), 10) || 0 : 0;
 }
 
+/**
+ * Resolve the merge-base between HEAD and a base branch.
+ *
+ * @param {string} root - Repository root
+ * @param {string} baseBranch - Base branch name or ref
+ * @returns {string}
+ */
+export function resolveMergeBase(root, baseBranch) {
+  const res = runGit(["merge-base", "HEAD", baseBranch], { cwd: root });
+  if (!res.ok) {
+    throw new Error(`git merge-base HEAD ${baseBranch} failed: ${res.stderr.trim()}`);
+  }
+  const sha = res.stdout.trim();
+  if (!sha) {
+    throw new Error(
+      `git merge-base HEAD ${baseBranch} produced empty output (stderr: ${res.stderr.trim()})`,
+    );
+  }
+  return sha;
+}
+
 /** @returns {string|null} */
 export function getLastCommit(cwd) {
   const res = runGit(["log", "-1", "--oneline"], { cwd });

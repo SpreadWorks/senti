@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T04:22:29.571Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/336-reset-draft-review-artifacts/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Repair timestamp equality is stricter than the requirement",
+      "target": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js",
+      "findingId": "e00a8d5e4bba25e48d7ce03ab1a63bc4fb4bead970baf645b7cae108054add71",
+      "fingerprint": "e00a8d5e4bba25e48d7ce03ab1a63bc4fb4bead970baf645b7cae108054add71",
+      "disposition": "informational",
+      "rationale": "The tests still exercise production behavior and requirement coverage is present; this is a brittle extra constraint rather than missing or invalid coverage.",
+      "improvement": "Consider asserting only that the repair artifact has a current generatedAt value unless shared triage/repair timestamps are an intentional contract.",
+      "whyNonBlocking": "The tests still exercise production behavior and requirement coverage is present; this is a brittle extra constraint rather than missing or invalid coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/336-reset-draft-review-artifacts/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "5d898d0f6a0a6403630974a6e2271ae7d4a00aae797dad6abdf9c9acf35f9c20"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "e00a8d5e4bba25e48d7ce03ab1a63bc4fb4bead970baf645b7cae108054add71",
+      "findingId": "e00a8d5e4bba25e48d7ce03ab1a63bc4fb4bead970baf645b7cae108054add71",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "non-blocking",
+      "title": "Repair timestamp equality is stricter than the requirement",
+      "body": "The tests still exercise production behavior and requirement coverage is present; this is a brittle extra constraint rather than missing or invalid coverage.",
+      "category": "unknown",
+      "fingerprint": "e00a8d5e4bba25e48d7ce03ab1a63bc4fb4bead970baf645b7cae108054add71",
+      "disposition": "informational",
+      "rationale": "The tests still exercise production behavior and requirement coverage is present; this is a brittle extra constraint rather than missing or invalid coverage."
+    }
+  ]
+}

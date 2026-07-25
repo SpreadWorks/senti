@@ -467,13 +467,40 @@ export function latestPlanRewind(state) {
   return entries.length > 0 ? entries.at(-1) : null;
 }
 
+class PlanRewindOccurrence {
+  constructor(occurredAt, epochMilliseconds) {
+    if (typeof occurredAt !== "string" || !Number.isFinite(epochMilliseconds)) {
+      fail("PLAN_REWIND_INVALID_REQUEST", "plan rewind occurrence must be a valid timestamp");
+    }
+    this.occurredAt = occurredAt;
+    this.epochMilliseconds = epochMilliseconds;
+    Object.freeze(this);
+  }
+
+  static from(record) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      return null;
+    }
+    const field = record.category === "spec-correction" ? "timestamp" : "rewoundAt";
+    if (typeof record[field] !== "string" || record[field].trim() === "") return null;
+    const epochMilliseconds = Date.parse(record[field].trim());
+    if (Number.isNaN(epochMilliseconds)) return null;
+    return new PlanRewindOccurrence(new Date(epochMilliseconds).toISOString(), epochMilliseconds);
+  }
+
+  isEvidenceFresh(reference) {
+    return Date.parse(reference.createdAt) > this.epochMilliseconds;
+  }
+}
+
 export function isPlanEvidenceFresh(state, reference) {
   const normalized = reference instanceof PlanEvidenceReference
     ? reference
     : new PlanEvidenceReference(reference);
   const latest = latestPlanRewind(state);
   if (!latest) return true;
-  return Date.parse(normalized.createdAt) > Date.parse(latest.rewoundAt);
+  const occurrence = PlanRewindOccurrence.from(latest);
+  return occurrence?.isEvidenceFresh(normalized) ?? false;
 }
 
 export function isPlanArtifactFresh(state, file, kind) {

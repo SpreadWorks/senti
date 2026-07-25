@@ -1,0 +1,60 @@
+{
+  "spec": "specs/336-reset-draft-review-artifacts/spec.json",
+  "date": "2026-07-25T05:57:14.808Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "For draft-questions, PASS after a rewind shall replace an existing canonical triage artifact containing stale items with version 1, phase=draft-questions-triage, sourceReview equal to the questions route reviewArtifact, a current generatedAt value, the canonical empty summary, and items=[].",
+      "status": "done",
+      "note": "R1: replaces the questions triage artifact with the canonical empty state"
+    },
+    {
+      "desc": "For draft-questions, the same PASS shall replace an existing canonical repair artifact containing stale items with version 1, phase=draft-questions-repair, sourceTriage equal to the questions route triageArtifact, a current generatedAt value, the canonical empty summary, and items=[].",
+      "status": "done",
+      "note": "R2: replaces the questions repair artifact in the same PASS attempt"
+    },
+    {
+      "desc": "For draft-coverage, PASS after a rewind shall apply the same canonical empty replacement semantics to its triage and repair artifacts using the coverage route's paths, phases, reviewArtifact sourceReview, and triageArtifact sourceTriage.",
+      "status": "done",
+      "note": "R3: applies route-correct empty replacement to coverage artifacts"
+    },
+    {
+      "desc": "The PASS lifecycle shall continue to mark the route's review, triage, and repair steps done and shall expose no finding from an invalidated attempt through either current canonical artifact.",
+      "status": "done",
+      "note": "R4: completes every route step and removes invalidated findings from the current view"
+    },
+    {
+      "desc": "The change shall preserve FAIL and ADVISORY artifact content until a later PASS, preserve reopen-draft audit/history, and leave route metadata, artifact paths, artifact schemas, verdict routing, retry accounting, and Issue #443 transition guards unchanged.",
+      "status": "done",
+      "note": "R5: preserves routing, schemas, retry accounting, rewind history, and transition guards"
+    },
+    {
+      "desc": "Focused tests shall exercise the actual non-PASS review post hook, derive AI-authored triage and repair fixture artifacts from its findings while advancing through the actual set-step workflow, execute the actual reopen-draft reset with retained history, and run a later PASS through the registry lifecycle hook for each draft-review route.",
+      "status": "done",
+      "note": "R6: creates non-PASS artifacts, uses production rewind, then runs each PASS hook"
+    },
+    {
+      "desc": "Plan evidence freshness shall compare against the authoritative occurrence time of the latest current rewind record: rewoundAt for guarded plan rewind records and timestamp for sealed spec-correction rewind records; an evidence timestamp must be strictly later to be fresh.",
+      "status": "done",
+      "note": "R7: normalizes guarded rewoundAt and sealed spec-correction timestamp"
+    },
+    {
+      "desc": "The approval completion guard shall accept a valid confirmed_at later than a sealed spec-correction timestamp, reject equal or earlier confirmations with STALE_PLAN_APPROVAL, fail closed for malformed occurrence times, and preserve the persisted audit shapes, digest chains, no-rewind behavior, and Issue #460 implement-evidence scope.",
+      "status": "done",
+      "note": "R8: accepts only approval confirmed after a production sealed rewind"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "acc7b4563590905b3acd3ebf9d448fa4ecea3d6eb6826b91de0a4f11321f8742"
+}

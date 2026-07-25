@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "4163edf7-eced-4117-8f57-8bbf52201768",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T05:21:38.664Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-silent-error-swallowing",
+      "result": "fail",
+      "reason": "The added catch block handles `PlanRewindError` by returning `false` without logging or re-throwing the error, silently discarding the caught error.",
+      "category": "code-quality",
+      "title": "No Silent Error Swallowing",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/flow/lib/plan-rewind.js",
+            "locator": "isPlanEvidenceFresh catch block"
+          },
+          "observed": "The added catch block handles `PlanRewindError` by returning `false` without logging or re-throwing the error, silently discarding the caught error.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "findingId": "c290b0d1d31275bc19950127a530ebe60aa7fa523d459548daca9fd602cf6466",
+      "fingerprint": "c290b0d1d31275bc19950127a530ebe60aa7fa523d459548daca9fd602cf6466",
+      "disposition": "must-fix",
+      "rationale": "The added catch block handles `PlanRewindError` by returning `false` without logging or re-throwing the error, silently discarding the caught error.",
+      "requirementId": null,
+      "guardrailId": "no-silent-error-swallowing",
+      "reportedAt": "2026-07-25T05:21:38.664Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-silent-error-swallowing",
+      "where": {
+        "file": "src/flow/lib/plan-rewind.js",
+        "locator": "isPlanEvidenceFresh catch block"
+      },
+      "observed": "The added catch block handles `PlanRewindError` by returning `false` without logging or re-throwing the error, silently discarding the caught error.",
+      "severity": "blocking",
+      "refs": [
+        "no-silent-error-swallowing"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-silent-error-swallowing",
+      "category": "guardrail",
+      "findingId": "01b7c3d50a5b1e10cb304d06c59423410566c7ef8df4f4bbc8c042273aeb8105",
+      "fingerprint": "01b7c3d50a5b1e10cb304d06c59423410566c7ef8df4f4bbc8c042273aeb8105",
+      "disposition": "must-fix",
+      "rationale": "The added catch block handles `PlanRewindError` by returning `false` without logging or re-throwing the error, silently discarding the caught error.",
+      "requirementId": null,
+      "guardrailId": "no-silent-error-swallowing",
+      "reportedAt": "2026-07-25T05:21:38.664Z",
+      "repeatCount": 1
+    }
+  ]
+}

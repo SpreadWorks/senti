@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/336-reset-draft-review-artifacts/tests/approval-rewind-freshness.test.js",
+      "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js",
+      "src/flow/definition.js",
+      "src/flow/lib/plan-rewind.js"
+    ],
+    "inputHash": "b9b38ddccf31dc7ab41b183f5c0a152d20f7244b546240908559a2e8091216c5",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "specs/336-reset-draft-review-artifacts/tests/approval-rewind-freshness.test.js",
+    "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js",
+    "src/flow/definition.js",
+    "src/flow/lib/plan-rewind.js"
+  ],
+  "inputHash": "b9b38ddccf31dc7ab41b183f5c0a152d20f7244b546240908559a2e8091216c5",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:47:07.800Z",
+  "finishedAt": "2026-07-25T05:47:07.800Z",
+  "rawResponse": "### 1. Remove unused occurrence string state\n**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R7  \n**Issue:** `PlanRewindOccurrence.occurredAt` is assigned and frozen but never read. The freshness check only uses `epochMilliseconds`, so the normalized ISO string is dead state.  \n**Suggestion:** Drop the `occurredAt` constructor parameter/property, or use it in a concrete diagnostic path if the string form is needed.\n\n### 2. Simplify timestamp normalization\n**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R8  \n**Issue:** `PlanRewindOccurrence` is a fairly heavy abstraction for selecting one timestamp field and comparing epoch milliseconds. This adds indirection without much reuse.  \n**Suggestion:** Replace the class with a small private helper such as `planRewindOccurrenceMs(record)` that returns a finite timestamp or `null`, then compare directly in `isPlanEvidenceFresh`.\n\n### 3. Reduce repeated approval harness setup\n**File:** `specs/336-reset-draft-review-artifacts/tests/approval-rewind-freshness.test.js`  \n**Requirement:** R8  \n**Issue:** The tests repeat the `try/finally` harness lifecycle pattern several times, which makes the behavioral assertions harder to scan.  \n**Suggestion:** Add a local helper like `withApprovalFreshnessHarness(async (harness) => { ... })` to centralize construction and cleanup.\n\n### 4. Parameterize duplicate route artifact assertions\n**File:** `specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js`  \n**Requirement:** R3  \n**Issue:** The questions and coverage tests repeat nearly identical expected triage/repair artifact shapes, differing only by route metadata.  \n**Suggestion:** Add local helpers such as `expectedEmptyTriage(route, generatedAt)` and `expectedEmptyRepair(route, generatedAt)` and reuse them across R1, R2, and R3.\n\n### 5. Clarify destructive artifact writer naming\n**File:** `src/flow/definition.js`  \n**Requirement:** R5  \n**Issue:** `writeEmptyDraftReviewRouteArtifacts` now always overwrites existing triage and repair files, while the previous implementation only wrote missing files. The name does not make that destructive replacement behavior obvious.  \n**Suggestion:** Rename the helper or add a narrowly scoped wrapper name such as `replaceWithEmptyDraftReviewRouteArtifacts` so call sites make the PASS replacement semantics explicit.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove unused occurrence string state",
+        "body": "**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R7  \n**Issue:** `PlanRewindOccurrence.occurredAt` is assigned and frozen but never read. The freshness check only uses `epochMilliseconds`, so the normalized ISO string is dead state.  \n**Suggestion:** Drop the `occurredAt` constructor parameter/property, or use it in a concrete diagnostic path if the string form is needed.",
+        "file": "src/flow/lib/plan-rewind.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Simplify timestamp normalization",
+        "body": "**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R8  \n**Issue:** `PlanRewindOccurrence` is a fairly heavy abstraction for selecting one timestamp field and comparing epoch milliseconds. This adds indirection without much reuse.  \n**Suggestion:** Replace the class with a small private helper such as `planRewindOccurrenceMs(record)` that returns a finite timestamp or `null`, then compare directly in `isPlanEvidenceFresh`.",
+        "file": "src/flow/lib/plan-rewind.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Reduce repeated approval harness setup",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/tests/approval-rewind-freshness.test.js`  \n**Requirement:** R8  \n**Issue:** The tests repeat the `try/finally` harness lifecycle pattern several times, which makes the behavioral assertions harder to scan.  \n**Suggestion:** Add a local helper like `withApprovalFreshnessHarness(async (harness) => { ... })` to centralize construction and cleanup.",
+        "file": "specs/336-reset-draft-review-artifacts/tests/approval-rewind-freshness.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Parameterize duplicate route artifact assertions",
+        "body": "**File:** `specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js`  \n**Requirement:** R3  \n**Issue:** The questions and coverage tests repeat nearly identical expected triage/repair artifact shapes, differing only by route metadata.  \n**Suggestion:** Add local helpers such as `expectedEmptyTriage(route, generatedAt)` and `expectedEmptyRepair(route, generatedAt)` and reuse them across R1, R2, and R3.",
+        "file": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Clarify destructive artifact writer naming",
+        "body": "**File:** `src/flow/definition.js`  \n**Requirement:** R5  \n**Issue:** `writeEmptyDraftReviewRouteArtifacts` now always overwrites existing triage and repair files, while the previous implementation only wrote missing files. The name does not make that destructive replacement behavior obvious.  \n**Suggestion:** Rename the helper or add a narrowly scoped wrapper name such as `replaceWithEmptyDraftReviewRouteArtifacts` so call sites make the PASS replacement semantics explicit.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

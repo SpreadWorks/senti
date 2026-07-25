@@ -369,6 +369,21 @@ describe("repair state identity", () => {
     assert.ok(registry.gitPathspecExcludes().every((entry) => entry.startsWith(":(exclude,top")));
   });
 
+  it("builds acceptance diffs from the current base merge-base after the branch advances", () => {
+    const { state } = initRepository();
+    git("switch", "-c", "feature");
+    write("other-flow/generated.log", "unrelated base advancement\n");
+    git("add", "other-flow/generated.log");
+    git("commit", "-q", "-m", "advance base");
+    git("branch", "-f", "main", "HEAD");
+    write("backend/service.js", "export const changed = true;\n");
+
+    const diff = implementationDiff(tmp, state);
+
+    assert.match(diff, /backend\/service\.js/);
+    assert.doesNotMatch(diff, /other-flow\/generated\.log|unrelated base advancement/);
+  });
+
   it("migrates an active legacy flow transactionally and invalidates downstream evidence", () => {
     const initialized = initRepository();
     deleteRepairBaselineRef({ root: tmp, baseline: initialized.baseline });

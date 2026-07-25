@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T04:21:37.386Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/336-reset-draft-review-artifacts/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "PASS artifact source fields assert stale source paths instead of canonical route artifacts",
+      "target": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js:229",
+      "findingId": "6016ad21eadfa40d2ec783a100e448463b8da55d5654208b242eab3f1b42ee3a",
+      "fingerprint": "6016ad21eadfa40d2ec783a100e448463b8da55d5654208b242eab3f1b42ee3a",
+      "disposition": "must-fix",
+      "rationale": "The tests would reject a correct implementation that writes the required canonical source fields, and could pass an implementation that preserves stale source fields after rewind.",
+      "issue": "R1 requires the replacement questions triage artifact to set sourceReview equal to the questions route reviewArtifact, but the test expects sequence.harness.existingSourceReview, initialized as retained-questions-review-source.json. This encodes preservation of stale source metadata rather than canonical PASS replacement semantics. The same incorrect premise appears for R2 sourceTriage and R3 coverage sourceReview/sourceTriage expectations.",
+      "requiredChange": "Update the PASS replacement expectations so triage.sourceReview equals route.reviewArtifact and repair.sourceTriage equals route.triageArtifact for both questions and coverage.",
+      "whyBlocking": "The tests would reject a correct implementation that writes the required canonical source fields, and could pass an implementation that preserves stale source fields after rewind.",
+      "origin": "R1, R2, R3",
+      "failureKind": "test encodes an incorrect implementation premise"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/336-reset-draft-review-artifacts/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f34e242c44751d52ac793d947f6cfcf0d30b7fe5faeaf7b87bb75e0dcf9fd2aa"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "6016ad21eadfa40d2ec783a100e448463b8da55d5654208b242eab3f1b42ee3a",
+      "findingId": "6016ad21eadfa40d2ec783a100e448463b8da55d5654208b242eab3f1b42ee3a",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "PASS artifact source fields assert stale source paths instead of canonical route artifacts",
+      "body": "R1 requires the replacement questions triage artifact to set sourceReview equal to the questions route reviewArtifact, but the test expects sequence.harness.existingSourceReview, initialized as retained-questions-review-source.json. This encodes preservation of stale source metadata rather than canonical PASS replacement semantics. The same incorrect premise appears for R2 sourceTriage and R3 coverage sourceReview/sourceTriage expectations.",
+      "category": "unknown",
+      "fingerprint": "6016ad21eadfa40d2ec783a100e448463b8da55d5654208b242eab3f1b42ee3a",
+      "disposition": "must-fix",
+      "rationale": "The tests would reject a correct implementation that writes the required canonical source fields, and could pass an implementation that preserves stale source fields after rewind."
+    }
+  ]
+}

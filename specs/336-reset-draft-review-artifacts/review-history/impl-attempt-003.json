@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T05:14:21.249Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "non-pass-artifact-creation-not-exercised",
+      "title": "R6 still bypasses non-PASS artifact creation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js",
+      "requirementId": "R6",
+      "issue": "`recordNonPassRouteArtifacts` drives the non-PASS review hook, but then writes the triage and repair artifacts directly with `this.writeJson(...)`. The test therefore still proves PASS replacement of manually seeded stale files, not FAIL/ADVISORY triage and repair artifact creation through the workflow boundary required by R6.",
+      "suggestion": "Change `recordNonPassRouteArtifacts` so the ADVISORY/REJECTED sequence derives the AI-authored triage and repair fixture artifacts from the review findings through the required workflow boundary, advances with the actual set-step workflow, and asserts those artifacts exist before calling `RunReopenDraftCommand`.",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory requirement and specifically requires focused tests to exercise the actual non-PASS review post hook, finding-derived AI-authored triage and repair artifact boundary, actual set-step workflow, actual reopen-draft reset, and later PASS registry lifecycle hook for each draft-review route. Directly writing the triage and repair artifacts leaves the required non-PASS artifact creation path untested.",
+      "findingId": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "fingerprint": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "9a46850ea1a6a2523853d99f90534c85d0e6e1e86efe1cb650644b5c0e2c0884",
+  "runId": "4163edf7-eced-4117-8f57-8bbf52201768",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/336-reset-draft-review-artifacts/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/336-reset-draft-review-artifacts/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "3ef7fb20e29b445ce6a89ce4c7c888b677bc94e9b022e2592643dfab0e0cbae0"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "findingId": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R6 still bypasses non-PASS artifact creation",
+      "body": "`recordNonPassRouteArtifacts` drives the non-PASS review hook, but then writes the triage and repair artifacts directly with `this.writeJson(...)`. The test therefore still proves PASS replacement of manually seeded stale files, not FAIL/ADVISORY triage and repair artifact creation through the workflow boundary required by R6.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "5acfdc2cecc3907b63edee5479cbd3697e607151471113f773654b7a0dfe54a8",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory requirement and specifically requires focused tests to exercise the actual non-PASS review post hook, finding-derived AI-authored triage and repair artifact boundary, actual set-step workflow, actual reopen-draft reset, and later PASS registry lifecycle hook for each draft-review route. Directly writing the triage and repair artifacts leaves the required non-PASS artifact creation path untested.",
+      "requirementId": "R6",
+      "repeatCount": 2
+    }
+  ]
+}

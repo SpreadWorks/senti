@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T03:45:16.831Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/336-reset-draft-review-artifacts/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 does not prove FAIL/ADVISORY artifact creation",
+      "target": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js:32",
+      "findingId": "78f7a36b1226554d1d909bcadeee861291df9dac6aaf17040d5dc1ab276b9a42",
+      "fingerprint": "78f7a36b1226554d1d909bcadeee861291df9dac6aaf17040d5dc1ab276b9a42",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires focused tests to exercise FAIL or ADVISORY artifact creation; the current static design can pass without exercising that production behavior.",
+      "issue": "The harness seeds triage and repair artifacts with stale items before the first ADVISORY/REJECTED review. The later assertions read those seeded files, so the test can pass even if FAIL/ADVISORY artifact creation never writes canonical artifacts.",
+      "requiredChange": "Have the first ADVISORY/REJECTED lifecycle review create the stale triage/repair artifacts from supplied findings, then assert those created artifacts exist before rewind instead of pre-seeding the same canonical artifacts.",
+      "whyBlocking": "R6 explicitly requires focused tests to exercise FAIL or ADVISORY artifact creation; the current static design can pass without exercising that production behavior.",
+      "origin": "R6",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 rewind coverage is only a test-local simulation",
+      "target": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js:72",
+      "findingId": "84601ae5a68dea20398c05cf20133961316ece0ca9deb3e7232d3477e6ed4f04",
+      "fingerprint": "84601ae5a68dea20398c05cf20133961316ece0ca9deb3e7232d3477e6ed4f04",
+      "disposition": "must-fix",
+      "rationale": "R6 requires the rewind step reset with retained history to be exercised through the lifecycle path, but the current test can pass if production rewind behavior is missing or wrong.",
+      "issue": "The rewind behavior is implemented as a helper method inside the test harness that directly mutates step statuses and issue-log history. This does not exercise the actual rewind/reset path that must retain history before the later PASS.",
+      "requiredChange": "Drive the rewind/reset through the spec-local lifecycle command or hook used by production, and assert the retained audit/history after that real path runs.",
+      "whyBlocking": "R6 requires the rewind step reset with retained history to be exercised through the lifecycle path, but the current test can pass if production rewind behavior is missing or wrong.",
+      "origin": "R6",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 unchanged guards and retry accounting are marked covered without executable checks",
+      "target": "specs/336-reset-draft-review-artifacts/tests/draft-review-pass-artifacts.test.js:205",
+      "findingId": "2e5fe4fc0311b3fc120d6e31c8bb895a9062b0d68de886b2fc5be99868836b34",
+      "fingerprint": "2e5fe4fc0311b3fc120d6e31c8bb895a9062b0d68de886b2fc5be99868836b34",
+      "disposition": "must-fix",
+      "rationale": "The requirement-to-test coverage artifact claims R5 is covered, but concrete acceptance clauses have no corresponding spec-local executable coverage.",
+      "issue": "The R5 test checks artifact preservation, audit bytes, and schema key order, but it does not cover retry accounting, verdict routing, route metadata, artifact path invariants, or Issue #443 transition guards despite the coverage artifact marking R5 fully covered.",
+      "requiredChange": "Add focused assertions or reference existing spec-local tests for the unchanged retry accounting, verdict routing, route metadata/artifact paths, and Issue #443 transition guard behavior affected by this change.",
+      "whyBlocking": "The requirement-to-test coverage artifact claims R5 is covered, but concrete acceptance clauses have no corresponding spec-local executable coverage.",
+      "origin": "R5",
+      "failureKind": "missing coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/336-reset-draft-review-artifacts/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "50eebd72a6514e0e01fa99bef563181de79067116dc06b19c566af50db54e4b1"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "78f7a36b1226554d1d909bcadeee861291df9dac6aaf17040d5dc1ab276b9a42",
+      "findingId": "78f7a36b1226554d1d909bcadeee861291df9dac6aaf17040d5dc1ab276b9a42",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R6 does not prove FAIL/ADVISORY artifact creation",
+      "body": "The harness seeds triage and repair artifacts with stale items before the first ADVISORY/REJECTED review. The later assertions read those seeded files, so the test can pass even if FAIL/ADVISORY artifact creation never writes canonical artifacts.",
+      "category": "unknown",
+      "fingerprint": "78f7a36b1226554d1d909bcadeee861291df9dac6aaf17040d5dc1ab276b9a42",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires focused tests to exercise FAIL or ADVISORY artifact creation; the current static design can pass without exercising that production behavior."
+    },
+    {
+      "id": "84601ae5a68dea20398c05cf20133961316ece0ca9deb3e7232d3477e6ed4f04",
+      "findingId": "84601ae5a68dea20398c05cf20133961316ece0ca9deb3e7232d3477e6ed4f04",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R6 rewind coverage is only a test-local simulation",
+      "body": "The rewind behavior is implemented as a helper method inside the test harness that directly mutates step statuses and issue-log history. This does not exercise the actual rewind/reset path that must retain history before the later PASS.",
+      "category": "unknown",
+      "fingerprint": "84601ae5a68dea20398c05cf20133961316ece0ca9deb3e7232d3477e6ed4f04",
+      "disposition": "must-fix",
+      "rationale": "R6 requires the rewind step reset with retained history to be exercised through the lifecycle path, but the current test can pass if production rewind behavior is missing or wrong."
+    },
+    {
+      "id": "2e5fe4fc0311b3fc120d6e31c8bb895a9062b0d68de886b2fc5be99868836b34",
+      "findingId": "2e5fe4fc0311b3fc120d6e31c8bb895a9062b0d68de886b2fc5be99868836b34",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R5 unchanged guards and retry accounting are marked covered without executable checks",
+      "body": "The R5 test checks artifact preservation, audit bytes, and schema key order, but it does not cover retry accounting, verdict routing, route metadata, artifact path invariants, or Issue #443 transition guards despite the coverage artifact marking R5 fully covered.",
+      "category": "unknown",
+      "fingerprint": "2e5fe4fc0311b3fc120d6e31c8bb895a9062b0d68de886b2fc5be99868836b34",
+      "disposition": "must-fix",
+      "rationale": "The requirement-to-test coverage artifact claims R5 is covered, but concrete acceptance clauses have no corresponding spec-local executable coverage."
+    }
+  ]
+}
