@@ -466,8 +466,9 @@
             },
             {
               "id": "finalize-cleanup",
-              "status": "in_progress",
-              "startedAt": "2026-07-25T16:43:04.436Z"
+              "status": "done",
+              "startedAt": "2026-07-25T16:43:04.436Z",
+              "finishedAt": "2026-07-25T16:44:04.289Z"
             }
           ]
         }
@@ -2155,10 +2156,33 @@
       "taskId": null,
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
-      "status": "pending",
+      "status": "done",
       "attempt": 1,
       "startedAt": "2026-07-25T16:43:59.934Z",
-      "updatedAt": "2026-07-25T16:44:00.669Z"
+      "updatedAt": "2026-07-25T16:44:04.360Z",
+      "result": {
+        "status": "done",
+        "pluginHooks": [
+          {
+            "pluginId": "workflow",
+            "command": "finalize-cleanup",
+            "hook": "post",
+            "data": {
+              "skipped": true,
+              "reason": "retro extraction is available via `senti workflow retro <specid>`"
+            }
+          }
+        ],
+        "followUps": [],
+        "retainedCleanupMetadata": {
+          "surfaces": [
+            "agent-metrics",
+            "notes",
+            "plugin-artifact",
+            "plugin-hook-output"
+          ]
+        }
+      }
     }
   ],
   "request": "Goal: make senti flow set issue-log target a specific active flow using --expect-run-id, --expect-issue, and --expect-spec. Scope: parse and enforce these target guards for issue-log writes, preserve existing single-flow behavior, and add focused coverage for matching and mismatching targets. Out of scope: changing issue-log contents, other flow set commands, or #466 acceptance-review behavior. The command must reject a target mismatch and write only to the selected flow when multiple worktree flows are active.",
