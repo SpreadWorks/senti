@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-25T06:19:24.065Z",
+  "analyzedAt": "2026-07-25T06:22:06.559Z",
   "package": {
     "entries": [
       {
@@ -4780,9 +4780,9 @@
       },
       {
         "file": "src/flow/lib/impl-repair-artifacts.js",
-        "hash": "65a052848527fea8b975c54b465a5b70",
-        "lines": 1497,
-        "mtime": "2026-07-25T00:45:29.349Z",
+        "hash": "084688f7c470deaa001f676dbd99fa5c",
+        "lines": 1791,
+        "mtime": "2026-07-25T06:21:54.189Z",
         "className": "impl-repair-artifacts",
         "methods": [
           "ImplTriageItem",
@@ -4793,6 +4793,7 @@
           "ImplRepairPurpose",
           "AppliedFindingRepairPurpose",
           "TestEvidenceRefreshPurpose",
+          "ImplRepairTargetIdentity",
           "ImplRepairTransaction",
           "ImplRepairPrecommitAuthority",
           "ImplRepairTransitionIntent",
@@ -4820,6 +4821,7 @@
           "completeImplRepair",
           "recoverImplRepairTransaction",
           "requireString",
+          "sameSerializedValue",
           "requireHash",
           "requireStringArray",
           "writeJson",
@@ -4833,6 +4835,9 @@
           "planRepairInvalidation",
           "applyRepairInvalidations",
           "planAdditionalRefreshInvalidations",
+          "testEvidenceRefreshTransition",
+          "commitOwnedTestEvidenceRefresh",
+          "resumeJournaledTestEvidenceRefresh",
           "recordAppliedFindingRepairEvidence",
           "legacyMigrationInvalidations",
           "applyRepairMigrationState",
@@ -4841,7 +4846,8 @@
           "commitRepairTransaction",
           "prepareImplRepairTransaction",
           "plannedRepairStepChanges",
-          "clearImplRepairTransitionIntent"
+          "clearImplRepairTransitionIntent",
+          "commitOwnedImplRepairEffects"
         ],
         "imports": [
           "node:crypto",
@@ -4862,6 +4868,7 @@
           "ImplRepairPurpose",
           "AppliedFindingRepairPurpose",
           "TestEvidenceRefreshPurpose",
+          "ImplRepairTargetIdentity",
           "ImplRepairTransaction",
           "ImplRepairPrecommitAuthority",
           "ImplRepairTransitionIntent",
@@ -4911,23 +4918,22 @@
           "src/flow/lib/stale-test-evidence-refresh.js"
         ],
         "id": "69dba1ec",
-        "summary": "Implements the artifact, ledger, and transaction system behind implementation repair and triage workflows. It coordinates fingerprint validation, evidence invalidation, staged recovery, and committed repair effects across flow steps.",
-        "detail": "The module defines strongly validated classes for triage items, repair entries, ledgers, purposes, transactions, and precommit authorities, with extensive checks for duplicate data, size limits, and fingerprint continuity. It creates and verifies repair and triage JSON artifacts, records evidence per step, and computes invalidations when the repair fingerprint changes. Recovery logic uses staged filesystem moves, lock directories, migration records, and resumable transaction files so repair effects can be completed safely after interruption. Higher-level functions prepare, commit, recover, and finalize implementation repair work while updating flow state, resetting downstream steps, and preserving auditability through ledger chains and delta evidence.",
-        "chapter": "development",
+        "summary": "Implements the artifact contract for implementation repair and triage workflows, including fingerprinted evidence files, repair ledgers, and recovery transactions. It is the main state-management layer for recording, validating, and replaying repair activity in a spec directory.",
+        "detail": "The module defines strict JSON-backed value objects for triage items, repair entries, invalidation records, purpose types, and transaction state, with extensive input validation and stable serialization. It maintains a bounded append-only repair ledger with chained fingerprints, delta-file verification, and size limits so repair history can be audited and resumed safely. It also stamps and verifies repair fingerprints across evidence artifacts, plans invalidations for stale evidence, and uses staged filesystem moves to support rollback on failure. Higher-level helpers connect these artifacts to flow-step transitions, legacy migration, test-evidence refresh recovery, and flow-manager commit intents.",
+        "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T00:46:19.932Z",
+          "processedAt": "2026-07-25T06:23:55.248Z",
           "attempts": 1
         },
         "keywords": [
           "implementation repair",
-          "triage artifact",
-          "repair ledger",
-          "transaction recovery",
+          "repair artifact",
+          "triage ledger",
+          "repair fingerprint",
           "evidence invalidation",
-          "fingerprint chain",
-          "flow repair",
-          "staged rollback"
+          "transaction journal",
+          "state recovery"
         ]
       },
       {
@@ -7809,9 +7815,9 @@
       },
       {
         "file": "src/flow/lib/run-rewind-test-evidence.js",
-        "hash": "0b7b7327b142268c526c462cc017502c",
-        "lines": 1348,
-        "mtime": "2026-07-23T13:34:19.056Z",
+        "hash": "4241da9ae53eb2b4f35c77a7222e4390",
+        "lines": 1350,
+        "mtime": "2026-07-25T06:21:54.190Z",
         "className": "run-rewind-test-evidence",
         "methods": [
           "reject",
@@ -7856,21 +7862,22 @@
         "extends": "Error",
         "usedBy": null,
         "id": "18953eb4",
-        "summary": "Implements the rewind-test-evidence flow command for recovering from stale or mismatched test evidence. It validates recovery authority, reconstructs repair context, and returns either an explicit recovery transition or a structured failure envelope.",
-        "detail": "The module defines strict limits for artifact sizes, finding counts, git authority calls, and reference aggregation so recovery stays bounded and auditable. It captures JSON and file snapshots through a secure reader that uses O_NOFOLLOW, pre/post fstat checks, and stable file identity validation before parsing. Recovery authority is assembled from test execution, test review, issue log, implementation review, and gate artifacts, with helpers for git-backed fingerprints, requirement indexing, and material repair invalidation planning. When the authority snapshot is still valid, the command completes a repair and converts it into an ExplicitRecoveryTransition. If fingerprints, files, or flow identity drift, it raises a typed recovery error and returns an Envelope.fail result.",
+        "summary": "Implements the rewind-test-evidence flow command that recovers from stale or mismatched test evidence. It validates current authority, chooses a recovery path, and returns structured success or failure envelopes.",
+        "detail": "The command captures evidence files through bounded, symlink-safe snapshots and compares file identity before and after reads to reduce race-condition and path-traversal risk. It builds multiple authority layers around flow state, git history, gate status, triage state, and task requirements so recovery only proceeds when the observed environment still matches the expected one. When stale evidence is detected, it can either resume an impl-repair transaction or perform a material repair plan with targeted invalidations and reset step transitions. Failures are surfaced through typed recovery errors and Envelope responses rather than leaking partial internal state.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-23T14:43:16.248Z",
+          "processedAt": "2026-07-25T06:23:55.248Z",
           "attempts": 1
         },
         "keywords": [
-          "test evidence recovery",
-          "stale artifact rewind",
-          "repair fingerprint",
-          "authority validation",
-          "flow transition",
-          "bounded file snapshot"
+          "stale test evidence",
+          "rewind command",
+          "recovery transition",
+          "secure snapshot",
+          "git authority",
+          "evidence repair",
+          "flow command"
         ]
       },
       {
@@ -8949,9 +8956,9 @@
       },
       {
         "file": "src/flow/lib/stale-test-evidence-refresh.js",
-        "hash": "f34f8487c9917e88ca0b1e9761725448",
-        "lines": 142,
-        "mtime": "2026-07-25T00:45:29.351Z",
+        "hash": "2066a0f702733a7fd4b8010aec4178d8",
+        "lines": 144,
+        "mtime": "2026-07-25T06:21:54.190Z",
         "className": "stale-test-evidence-refresh",
         "methods": [
           "StaleTestEvidenceRefreshResult",
@@ -8976,23 +8983,21 @@
           "src/flow/lib/run-review.js"
         ],
         "id": "27fc9199",
-        "summary": "Defines stale test evidence refresh models and validation rules for repairing outdated test evidence fingerprints. It encapsulates mismatch detection and refresh result construction around SHA-256-based evidence identity checks.",
-        "detail": "This module is a small domain utility focused on stale test evidence reconciliation during implementation repair flows. It validates fingerprint fields with a strict 64-character SHA-256 format and throws early when evidence digests are missing or inconsistent. The exported classes model mismatch state, additional refresh artifacts, and the final refresh result, giving the surrounding flow code structured objects instead of raw JSON blobs. Its constructors enforce invariants such as differing stale and repaired fingerprints, which helps prevent invalid refresh artifacts from being persisted or consumed downstream.",
+        "summary": "Provides small domain objects for stale test-evidence mismatches and refresh results. It validates fingerprint pairs and wraps the delegated refresh operation into a consistent result model.",
+        "detail": "The module normalizes and checks SHA-256 fingerprints before any refresh path is accepted, rejecting identical or malformed values early. It models additional artifacts and mismatch state as explicit objects so callers can pass around typed repair context instead of raw JSON blobs. The refresh class encapsulates the old and new fingerprints, source artifact metadata, and any extra refresh artifacts that must accompany the repair. Actual refresh execution is delegated to completeTestEvidenceRefresh, keeping this file focused on validation and result shaping.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "model",
         "enrich": {
-          "processedAt": "2026-07-25T00:46:19.964Z",
+          "processedAt": "2026-07-25T06:23:55.248Z",
           "attempts": 1
         },
         "keywords": [
-          "stale test evidence",
-          "evidence refresh",
-          "fingerprint validation",
-          "SHA-256 digest",
-          "repair artifacts",
-          "mismatch detection",
-          "test artifact reconciliation",
-          "flow findings"
+          "stale evidence refresh",
+          "fingerprint mismatch",
+          "repair result",
+          "artifact metadata",
+          "test evidence",
+          "refresh wrapper"
         ]
       },
       {
@@ -9059,9 +9064,9 @@
       },
       {
         "file": "src/flow/lib/step-transition-policy.js",
-        "hash": "ea84970a9f9e6350c0b3f2f911e8c3b2",
-        "lines": 217,
-        "mtime": "2026-07-23T12:12:33.877Z",
+        "hash": "f650973d8b526d5743654d38306836f3",
+        "lines": 221,
+        "mtime": "2026-07-25T06:21:54.190Z",
         "className": "step-transition-policy",
         "methods": [
           "StepTransitionError",
@@ -9099,21 +9104,21 @@
           "src/flow/registry.js"
         ],
         "id": "fdbadaab",
-        "summary": "Defines the policy objects and validation rules for flow step transitions. It separates normal lifecycle changes from explicit recovery operations and enforces commit intent contracts.",
-        "detail": "The module constrains step states to a small known lifecycle set and names special recovery entrypoints such as reopening draft work or resetting skipped downstream steps. A dedicated StepTransitionError is used for invalid fields, unsupported statuses, and inconsistent recovery changes. StepTransitionCommitIntent acts as an abstract contract and requires concrete commit types to implement applyTo(state). Exported classes model normal step changes, definition lifecycle transitions, explicit recovery transitions, and per-step recovery edits. A runtime type guard is provided so callers can validate that a value is one of the supported transition types.",
+        "summary": "Defines the core step-transition primitives used to mutate flow state. It separates normal lifecycle changes, definition-level changes, and explicit recovery transitions behind a common intent model.",
+        "detail": "The module establishes allowed status sets and entrypoints, then uses shared validators to reject malformed transition payloads before they reach persistent flow state. StepTransitionCommitIntent acts as an abstract contract for transition authorities that can apply or later complete guarded updates. Concrete transition classes represent ordinary step updates, definition lifecycle updates, and recovery-driven rewinds with explicit step-level changes. A small type guard and dedicated error type make these transition objects safer to pass across store and recovery layers.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "model",
         "enrich": {
-          "processedAt": "2026-07-23T14:43:16.248Z",
+          "processedAt": "2026-07-25T06:23:55.248Z",
           "attempts": 1
         },
         "keywords": [
           "step transition",
-          "lifecycle policy",
+          "flow state",
           "recovery transition",
-          "state machine",
           "commit intent",
-          "workflow status"
+          "lifecycle status",
+          "transition policy"
         ]
       },
       {
@@ -11193,9 +11198,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "eb6ba8d9188d028f3c24634903d33ec3",
-        "lines": 1048,
-        "mtime": "2026-07-24T02:31:56.791Z",
+        "hash": "21e41d4e594dceacee98c6a12a6b970e",
+        "lines": 1054,
+        "mtime": "2026-07-25T06:21:54.190Z",
         "className": "flow-manager",
         "methods": [
           "ResolvedFlowTarget",
@@ -11239,22 +11244,22 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "Implements the main manager for active, preparing, parked, and worktree-bound flow state.",
-        "detail": "The class coordinates persistence through multiple backing stores while enforcing spec bindings, target expectations, repository locks, and worktree identity constraints. It resolves unique flow targets, detects ambiguous or missing matches, and models failure states with specialized error types and authority receipts. High-level methods cover step updates, runtime logs, metrics, task advancement, issue binding, and parked-flow lifecycle transitions while delegating storage details to helper stores. A major concern throughout the file is preserving consistency between visible flow state and worktree bindings across main-repo and managed-worktree execution modes.",
+        "summary": "Implements the main orchestration layer for loading, resolving, and mutating flow state. It coordinates stores, worktree bindings, parked-flow operations, and target resolution behind a single manager API.",
+        "detail": "The manager wraps lower-level stores and registries so callers can resolve a unique active or preparing flow target without reimplementing spec-id, issue, or worktree selection rules. It enforces canonical path and identity checks for managed worktrees, parked flows, and authority receipts, which helps prevent operations from applying to the wrong repository state. Most mutation methods forward to the underlying store while automatically injecting bound spec context and commit intents when needed. More complex paths handle parked-flow locking, worktree binding reconciliation, and cross-checks between visible flow state and persisted binding identity during issue transitions.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-24T13:45:57.111Z",
+          "processedAt": "2026-07-25T06:23:55.248Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "state persistence",
           "worktree binding",
           "parked flow",
           "target resolution",
+          "state orchestration",
           "repository lock",
-          "active flow"
+          "flow store"
         ]
       },
       {
@@ -11465,9 +11470,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "d6a3396cf73c53447940a7cab519f067",
-        "lines": 1108,
-        "mtime": "2026-07-23T12:12:33.878Z",
+        "hash": "1d251a2d3a1e191b71dbcf090c5b20b4",
+        "lines": 1119,
+        "mtime": "2026-07-25T06:21:54.190Z",
         "className": "flow-store",
         "methods": [
           "FlowStateSchemaUnsupportedError",
@@ -11524,21 +11529,22 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "Persistent store for flow.json that enforces schema compatibility, performs bounded migrations, and applies atomic state mutations. It is the main authority for step transitions, recovery rewinds, and task-scoped flow updates.",
-        "detail": "The file validates that loaded state matches the current schema, is bound to the correct spec directory, and stays within a maximum read size before JSON is parsed. Migration helpers rewrite legacy draft review, refine, triage, repair, and artifact naming layouts, with hard caps on step and artifact counts to prevent unsafe upgrades. Revision bytes are cached so later atomic writes can detect stale state and preserve consistency. Mutation APIs require explicit transition types and commit intents for step status updates, plan rewinds, and recovery saves. Additional helpers resolve mutation scope, promote pending leaves, infer the current spec, and validate task shapes before new task data is appended.",
+        "summary": "Implements the persistent store for workflow state by reading, validating, migrating, and atomically writing `flow.json`. It also provides higher-level mutation APIs for steps, tasks, recovery actions, and spec-bound state resolution.",
+        "detail": "The module uses filesystem helpers, bounded file-size checks, and strict schema assertions to reject malformed or legacy flow state early with explicit unsupported-schema errors. It includes migration routines for renamed step IDs, draft review structure changes, artifact path rewrites, and other compatibility updates before rebinding state to its owning spec directory and revision metadata. `FlowStore` exposes mutation-oriented operations such as loading current state, resolving task scope, promoting pending steps, updating step transitions, rewinding plans, and saving recovery replacements. Persistence is designed around durable atomic writes and validation-aware state construction so workflow updates remain consistent even across branch-based or partially upgraded repositories.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-23T14:43:16.248Z",
+          "processedAt": "2026-07-25T06:23:55.270Z",
           "attempts": 1
         },
         "keywords": [
-          "flow store",
+          "flow state store",
+          "workflow persistence",
+          "atomic file write",
           "schema migration",
-          "atomic state write",
           "step transition",
-          "recovery rewind",
-          "task validation"
+          "task management",
+          "flow.json"
         ]
       },
       {
@@ -14531,9 +14537,9 @@
     ],
     "summary": {
       "total": 257,
-      "totalMethods": 2831
+      "totalMethods": 2837
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-25T06:20:40.880Z"
+  "enrichedAt": "2026-07-25T06:23:55.270Z"
 }
