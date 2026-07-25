@@ -1,0 +1,209 @@
+{
+  "spec": "340-preserve-child-diagnostics",
+  "count": 7,
+  "candidates": [
+    {
+      "title": "ドラフト質問の本文と推奨根拠を分離する",
+      "body": "質問欄への推奨文混入と、Issue 本文だけを根拠にした推奨が連続し、draft-review と draft-gate の両方で差し戻しが発生した。質問本文の純度と推奨根拠の出典を draft 生成直後に自動検査したい。",
+      "labels": [
+        "ドラフト",
+        "QA",
+        "ガードレール"
+      ],
+      "rationale": "同種の入力品質不良が初期フェーズで繰り返され、後続の gate を通すためだけの修正ループが増えているため。",
+      "phenomenon": "q1〜q6 で質問欄に推奨文が混ざり、複数の推奨回答が docs/・guardrail principles・既存コードパターンではなく Issue 本文だけを根拠にしていた。",
+      "problem": "質問欄が自己完結しなくなり、許可された根拠体系から外れた推奨が gate で止まるため、ドラフト修正と再スキャンが増える。",
+      "proposal": "draft 生成時に `question` は質問文のみを許可し、推奨回答を出す場合は根拠を docs/・guardrail principles・既存コードパターンのいずれかに必ず紐づける事前 lint を追加する。",
+      "targetPaths": [],
+      "evidence": [
+        "issue-log-996bdf94-13ca-4b4a-9772-d9ecb83e9ec9: draft question 6件に推奨文が埋め込まれ review 修正が必要になった",
+        "issue-log-8639bd2b-be06-40f7-b9aa-643fd6683756: draft-gate が q1/q2/q3/q5/q6 の根拠を allowed bases 外として blocking 判定",
+        "issue-log-12f1e0fb-47fb-432c-891f-8f5cc18da68c: Issue 由来だけの根拠を docs/ guardrails 既存コードに結び直して再走査した",
+        "Report.tokenMetrics: callCount=98 durationMs=2453337 で初期フェーズの手戻りコストが大きい"
+      ],
+      "scope": "unclear",
+      "verification": [
+        "新規 draft を生成し、全 `question` フィールドが質問文のみで構成されていることを確認する",
+        "draft gate を実行し、`draft-recommend-with-reasoning` と埋め込み推奨文の違反が 0 件で通過することを確認する"
+      ],
+      "number": 1
+    },
+    {
+      "title": "置換挙動の移行パリティ表をドラフト必須項目にする",
+      "body": "既存 final-regression の分類・artifact 挙動を置き換える変更で、公開面の棚卸し、保持先の owner、面ごとの検証がドラフト時点で不足し、migration-parity で連続ブロックされた。影響面と検証責務を最初から表で持たせたい。",
+      "labels": [
+        "ドラフト",
+        "移行パリティ",
+        "公開面"
+      ],
+      "rationale": "実装前に保持挙動の一覧と検証境界が固まっていないと、R7/R8 の証明責務が後工程に漏れ続けるため。",
+      "phenomenon": "commands、APIs、hooks、config、generated artifacts、side effects の既存挙動が十分に棚卸しされず、保持する挙動の owner と parity verification が明示されていなかった。",
+      "problem": "どの公開面をどこで保持し、どのテストで証明するかが曖昧なまま実装が進み、gate 指摘が実装後まで持ち越される。",
+      "proposal": "behavior replacement 系ドラフトに、公開面ごとの現行挙動、移管先 owner、保持/削除判断、検証手段を埋める必須の migration parity 表を追加し、draft gate で空欄を弾く。",
+      "targetPaths": [],
+      "evidence": [
+        "issue-log-5c080a62-5bbc-41dd-8658-b02834e36df8: migration-parity が公開面の棚卸し、owner mapping、behavior-level verification 不足を blocking 判定",
+        "issue-log-ad59f992-e017-4db3-a36d-7a0d7270ee94: commands/APIs/hooks/config/artifacts/side effects を inventoried して retained owner と checks を追加した",
+        "issue-log-61b79f94-5cfa-4538-a87e-52ced7435a4a: R7 で既存挙動テストの実行証拠不足が再度指摘された",
+        "issue-log-ec2e3b37-91c0-49d6-9018-95fd56747ca2: R7/R8 の integration-gate evidence boundary を spec 側で明確化し直した"
+      ],
+      "scope": "unclear",
+      "verification": [
+        "新規ドラフトで commands/APIs/hooks/config/artifacts/side effects の各公開面に current behavior、owner、parity check が埋まっていることを確認する",
+        "draft gate を実行し、`migration-parity` が初回で通過することを確認する"
+      ],
+      "number": 2
+    },
+    {
+      "title": "失敗種別の列挙値をテストと実装で共有する",
+      "body": "テストが `infrastructure_failure` を期待し、実装と artifact validator は `infra_failure` を正としていたため、表記ずれだけで project-test-integrity が blocking になった。failureKind の canonical enum を一元化して文字列直書きを減らしたい。",
+      "labels": [
+        "テスト",
+        "enum",
+        "failureKind"
+      ],
+      "rationale": "振る舞いの regressions ではなく定数名の drift で赤くなると、レビューと gate のノイズが増えるため。",
+      "phenomenon": "R8 の追加テストと実装/validator が infrastructure failure の列挙値で食い違った。",
+      "problem": "テスト失敗が仕様差分ではなく fixture drift に起因し、修正の優先度判断と review 速度を落とす。",
+      "proposal": "failureKind の canonical enum を実装側で 1 か所に定義し、artifact validator と関連テストが同じ定数を参照するようにする。",
+      "targetPaths": [
+        "src/flow/lib/run-final-regression.js",
+        "src/flow/lib/test-artifacts.js",
+        "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js"
+      ],
+      "evidence": [
+        "issue-log-cf3a9ed3-86ed-4848-9336-1820e9f48382: `infrastructure_failure` と `infra_failure` の不一致で project-test-integrity が blocking",
+        "issue-log-1963b60f-aa23-480d-b276-070f63078240: signal fixture を canonical `infra_failure` に揃えた",
+        "issue-log-a2d4a3f2-e8fe-42cb-a29a-c8ee16deda23: R8 expectation を canonical failure kind に修正した"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "infra failure を期待する spec-local テストを実行し、期待値と artifact validator が同じ列挙値で PASS することを確認する",
+        "`node tests/run.js` を実行し、failureKind の enum 不一致で final-regression artifact validation が失敗しないことを確認する"
+      ],
+      "number": 3
+    },
+    {
+      "title": "子診断レコードを最終回帰分類の唯一の権威にする",
+      "body": "preserved failing child records より先に outer exit code や外側テキストを見ていたため、誤分類と根拠薄い attribution fallback が繰り返し指摘された。typed child evidence がない場合は fail closed し、成功コマンドの pass envelope は malformed marker だけで壊さない方針を固定したい。",
+      "labels": [
+        "最終回帰",
+        "分類",
+        "子プロセス"
+      ],
+      "rationale": "R6/R7 の中核は preserved evidence に基づく分類であり、優先順位のぶれがそのまま誤判定と不要な gate churn になるため。",
+      "phenomenon": "child failure classification が outer exit-code 127 推論や非権威テキスト heuristics に引っ張られ、malformed marker-like output が成功 run を fail に昇格させる挙動も発生した。",
+      "problem": "failureNature と current-versus-existing attribution が誤ると record-and-proceed や pass/fail envelope の保持保証を破り、最終回帰の判断を信頼できなくなる。",
+      "proposal": "typed child record を child failure classification の唯一の権威にし、typed evidence 不在時は `unattributed_unknown_failure` へ fail closed、成功した root command は marker decode error だけで fail にしないルールをテスト付きで固定する。",
+      "targetPaths": [
+        "src/flow/lib/run-final-regression.js",
+        "src/flow/lib/test-regression.js",
+        "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js"
+      ],
+      "evidence": [
+        "issue-log-c65afb4e-fdb0-4d3c-a985-49644c3eb73c: preserved failing child records を outer exit-code 127 dependency inference より優先する必要があった",
+        "issue-log-ca832f85-e996-4721-be48-3cc14f092542: preserved failing child records を非権威 outer text heuristics より優先する必要があった",
+        "issue-log-0c24d9ce-d07c-4cbf-a08f-16d8d29570cd: typed child evidence がないときは untyped outer-output attribution fallback を削除して unknown に fail closed した",
+        "issue-log-84a6e9e1-9782-4514-823f-97b93ff875a5: assertion classification を bounded diagnostic capture と整合させた",
+        "issue-log-e8a8792f-dfbb-40e7-8f82-b2c550a2a14a: malformed marker-like line が pass envelope を intercept する R7 問題が検出された",
+        "issue-log-eb5ddfe2-e199-4d3d-9bbb-2b4f544931ec: marker decode error で PASS-to-FAIL promotion しないように修正した"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "typed child evidence 不在時の unknown classification、malformed marker を含む成功コマンド、dependency inference 優先度の各ケースを最終回帰テストで実行する",
+        "`node tests/run.js` を実行し、成功 run が marker decode error だけで fail せず、失敗 run は preserved child record に基づいて分類されることを確認する"
+      ],
+      "number": 4
+    },
+    {
+      "title": "境界付き診断の上限制約を本番経路テストで固定する",
+      "body": "durable raw-log reference、max-buffer 経路、record-count overflow、marker line-byte overflow、artifact childProcesses count overflow の証明が段階的に抜け落ち、R1/R8 の gate 修正が続いた。bounded diagnostics の仕様は production path の自動テストで継続的に守りたい。",
+      "labels": [
+        "R8",
+        "境界値",
+        "診断証跡"
+      ],
+      "rationale": "サイズ上限や durable reference は壊れても通常系では見えにくく、integration gate まで遅延すると修正コストが高くなるため。",
+      "phenomenon": "truncation 時の durable raw reference や overflow 制約の自動検証が不足し、max-buffer を含む一部 child failure mode も final-regression 経路で十分に証明されていなかった。",
+      "problem": "bounded resource ルールが退行すると oversized artifact、欠落した raw-log linkage、追加再実行による invocation drift を招く。",
+      "proposal": "truncation metadata、rawOutputPath linkage、max-buffer classification、record-count overflow、marker line-byte overflow、artifact childProcesses count overflow をすべて production path の spec-local テストで必須化する。",
+      "targetPaths": [
+        "src/flow/lib/test-regression.js",
+        "src/flow/lib/test-artifacts.js",
+        "tests/run.js",
+        "specs/340-preserve-child-diagnostics/tests/child-execution-evidence.test.js",
+        "specs/340-preserve-child-diagnostics/tests/final-regression-diagnostics.test.js"
+      ],
+      "evidence": [
+        "issue-log-76d0c25b-5f3f-443f-9ccd-b5b8f85d9522: stream forwarding と retained-surface parity assertion が不足していた",
+        "issue-log-dab27f34-2720-4d0d-9c0d-c6b328c2adb0: truncation 時の durable raw-log reference が R1 で不足していると指摘された",
+        "issue-log-8e5d5184-19b1-4269-a6cb-d4be52efa103: max-buffer が final-regression artifact/classification behavior を駆動する R8 証拠が不足していた",
+        "issue-log-a5fe9312-60d9-4978-8325-9a3188482e8b: record-count overflow、marker line-byte overflow、artifact childProcesses count overflow のテスト不足が blocking になった",
+        "issue-log-b94534ef-92f4-469b-9d0d-8076539ccd0f: max-buffer final-regression coverage を追加した",
+        "issue-log-ec0c65be-27f7-4b33-8aff-3cf522d7d38d: すべての bounded diagnostic collection overflow を spec-local tests でカバーした"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "truncation、rawOutputPath、max-buffer、record-count overflow、marker line-byte overflow、artifact childProcesses overflow の各ケースを spec-local テストで実行する",
+        "`node tests/run.js` を実行し、追加の test-process invocation なしで同じ child diagnostic metadata が raw log と artifact に残ることを確認する"
+      ],
+      "number": 5
+    },
+    {
+      "title": "must-fix の修復証跡と triage 状態を自動整合させる",
+      "body": "repair や triage 自体は済んでいても、finding ID との紐付け不足や重複 triage により `process-evidence-missing` と lifecycle conflict が繰り返し発生した。must-fix の bookkeeping を自動で整合させて、製品修正と無関係な gate 停止を減らしたい。",
+      "labels": [
+        "ワークフロー",
+        "証跡",
+        "triage"
+      ],
+      "rationale": "実装の正否ではなく bookkeeping の欠落で flow が止まると、レビュー時間が消費され、どこまで直ったかの判断も難しくなるため。",
+      "phenomenon": "matching repair evidence 不足の指摘が複数回再発し、二回目の all-reject triage が既に完了済みの impl-repair step を完了しようとして lifecycle conflict も起きた。",
+      "problem": "process-evidence-missing が反復すると、実際のプロダクト差分よりも finding bookkeeping の再記録に時間が取られ、gate の信頼性も下がる。",
+      "proposal": "repair/triage 作成時に normalizedFindingId と repairRef の対応付けを必須・自動化し、重複 triage は idempotent に扱う共通 lookup/helper を artifact builders 全体で再利用する。",
+      "targetPaths": [
+        "src/flow/lib/impl-repair-artifacts.js",
+        "src/flow/lib/acceptance-review-artifacts.js"
+      ],
+      "evidence": [
+        "issue-log-f4f7f96f-0f30-48f0-95a3-52b199a816d5: 二回目の all-reject triage が既に完了済み impl-repair step と衝突した",
+        "issue-log-b9094562-7da1-4738-a352-c75a44a6bc08: must-fix findings に matching repair evidence がないとして integration gate が blocking になった",
+        "issue-log-de6d52bf-862d-4fa3-92bc-63ede3fe0993: 同じ missing repair evidence 指摘が再発した",
+        "issue-log-a4bdff13-34b7-4ca0-b34d-d8c346bd7047: finding 2733... に対応する repair evidence を issue-log に明示的に結び直した",
+        "issue-log-d658cde2-149a-4df3-819e-39798f331c6e: rejected impl-review triage lookup の重複が no-overengineering で指摘された",
+        "issue-log-908e418e-9077-44e8-9acb-3be52a337a8e: triage selection を helper に集約した"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "ダミー must-fix finding を triage と repair の両経路で処理し、integration gate 実行時に `process-evidence-missing` が出ないことを確認する",
+        "同じ finding を再 triage しても lifecycle conflict を起こさず、mechanical artifact validation と acceptance context の両方で同じ repair record が解決されることを確認する"
+      ],
+      "number": 6
+    },
+    {
+      "title": "再生成可能な分析出力を finalize の競合源から外す",
+      "body": "finalize-merge の直前に `.senti/output/analysis.json` の rebase conflict が発生し、作業木復元後に手動 rebase を要求された。生成物の競合で最終化が止まらないよう、再生成可能出力の扱いを見直したい。",
+      "labels": [
+        "finalize",
+        "rebase",
+        "生成物"
+      ],
+      "rationale": "コードや仕様の修正が完了していても、再生成可能ファイルの衝突だけで最終化が止まるのはフロー効率が悪いため。",
+      "phenomenon": "pre-merge rebase が `.senti/output/analysis.json` の conflict を検出し、`senti flow run finalize` がその場で完了できなかった。",
+      "problem": "生成物が merge blocker になると、最終フェーズの自動化が崩れ、手動 rebase と再実行が必要になる。",
+      "proposal": "`.senti/output/analysis.json` を regenerate-after-rebase 前提の出力として扱うか、競合しにくい merge strategy/保存先に切り替え、finalize では内容再生成を優先する。",
+      "targetPaths": [
+        ".senti/output/analysis.json"
+      ],
+      "evidence": [
+        "issue-log-c86930a2-beda-48af-afdd-596a5df1520d: finalize-merge で `.senti/output/analysis.json` の rebase conflict が検出され、手動 `git rebase main` を要求された"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "`git rebase main` を実行して `.senti/output/analysis.json` が手動競合なしで解決できることを確認する",
+        "`senti flow run finalize` を再実行し、同じ generated file が最終化をブロックしないことを確認する"
+      ],
+      "number": 7
+    }
+  ]
+}

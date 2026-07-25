@@ -1,0 +1,139 @@
+{
+  "spec": "335-implement-evidence-freshness",
+  "count": 5,
+  "candidates": [
+    {
+      "title": "spec-review のロック競合再試行前に所有 pid の生存確認を入れる",
+      "body": "spec-review の結果記録が一時的な active lock owner に塞がれて失敗したが、意味的な証拠を変えずに再試行で回復できた。再試行前の pid 生存確認と待機判定を標準化して、不要な停止と retry 消費を減らしたい。",
+      "labels": [
+        "レビュー",
+        "ツール障害",
+        "ロック"
+      ],
+      "rationale": "一時的な競合なのに review フェーズが停止し、手動確認が必要になった。lock owner の実在確認を先に自動化すれば、誤った再試行と無駄な待ち時間を減らせる。",
+      "phenomenon": "senti flow run review --phase spec が REVIEW_TOOLING_ERROR を返し、lock owner pid 1220966 active により artifact persistence が失敗した。",
+      "problem": "終了済みか不明な lock owner を見分けないまま再試行すると、review tooling の retry 枠を浪費し、レビュー完了までの待ち時間と手戻りが増える。",
+      "proposal": "review ロック競合時は記録済み pid の生存確認を先に行い、非アクティブなら自動再試行、アクティブなら待機または明示的な中断案内に分岐する。",
+      "targetPaths": [],
+      "evidence": [
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-3c57819e-00f8-4516-bb53-5b7e820eb171 [spec-review]",
+        "report.data.issueLog.entries[0] :: important/spec-review lock owner blocked artifact persistence"
+      ],
+      "scope": "unclear",
+      "verification": [
+        "終了済み pid を含む stale lock 状態で senti flow run review --phase spec を実行し、pid 非アクティブ判定後に自動再試行されることを確認する。",
+        "実在する pid を保持した lock 状態では retry 枠を消費せず、待機または明示的な中断案内になることを確認する。"
+      ],
+      "number": 1
+    },
+    {
+      "title": "scenario-validity 前に base branch drift を検出する",
+      "body": "worktree 準備後に main が進んだため、scenario-validity が upstream 差分 18 ファイルを spec 335 の変更と誤認しかけた。事前に drift を検出して clean rebase を促せば、無関係な差分の混入を防げる。",
+      "labels": [
+        "シナリオ妥当性",
+        "Git",
+        "ベースブランチ"
+      ],
+      "rationale": "今回の回復は upstream 由来の差分除去と rebase で解消できた。preflight に drift 検知があれば、テスト実装誤判定や差分ノイズ調査を前段で止められる。",
+      "phenomenon": "worktree 準備後に main が更新され、scenario-validity の git diff が upstream の 18 ファイルを spec 335 の変更として含めた。",
+      "problem": "upstream 差分を当該 spec の実装や test 変更と誤分類すると、回帰範囲とレビュー対象が膨らみ、不要な整理作業が入る。",
+      "proposal": "scenario-validity の preflight で base branch drift を検出し、clean な feature worktree の rebase 完了まで upstream 差分を実装対象に含めない。",
+      "targetPaths": [],
+      "evidence": [
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-dbee6efa-870e-4ab5-b023-d7b16a7423ca [scenario-validity]",
+        "report.data.tasks[0] :: T-1 review=done gate=done after rebase recovery"
+      ],
+      "scope": "unclear",
+      "verification": [
+        "feature worktree 作成後に main を意図的に進めて scenario-validity を実行し、upstream 差分を実装変更として数えず rebase を促すことを確認する。",
+        "clean rebase 後に同じ preflight を再実行し、当該 spec の差分だけが対象になることを確認する。"
+      ],
+      "number": 2
+    },
+    {
+      "title": "test-review で衝突する findingId と fingerprint を正規化する",
+      "body": "distinct な review findings が同じ findingId を再利用したため、test-review の result recording が retry を使い切って blocker 停止した。canonical review evidence で衝突を deterministic に正規化し、真の重複だけを従来どおり集約する必要がある。",
+      "labels": [
+        "test-review",
+        "findingId",
+        "回復性"
+      ],
+      "rationale": "rebase 後の再実行でも同じ衝突で停止したため、運用 retry では解けない生成系の欠陥だった。レビュー証拠の正規化を実装し、回帰テストで固定する価値が高い。",
+      "phenomenon": "test-review の guarded review runs が duplicate findingId 診断で 2 回失敗し、base-integrated rerun でも 4 件の findings が 1 identity を共有して再発した。",
+      "problem": "distinct finding を保存できないと review evidence が欠落したまま flow が停止し、retry だけでは回復できない。",
+      "proposal": "最初の provider identity は保持しつつ、後続の distinct collision には deterministic な一意 id と fingerprint を派生させ、真の duplicate 判定だけを残す。",
+      "targetPaths": [
+        "src/flow/lib/run-review.js",
+        "tests/unit/flow/commands/review.test.js"
+      ],
+      "evidence": [
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-cce95d34-35e8-4597-9dd9-5f3d30550060 [test-review]",
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-2ccca653-a8c5-41f8-956b-5e630a0e9447 [test-review]",
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-251ea5bb-8224-4459-91b8-79afd01338a9 [test-review]",
+        "report.data.implementation.commits[4] :: fix: normalize review finding identities"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "衝突する findingId を持つ複数 finding fixture で review persistence を再生し、REVIEW_TOOLING_ERROR にならず全件が canonical evidence に保存されることを確認する。",
+        "node tests/run.js を実行し、review identity 回帰を含む全回帰が通ることを確認する。"
+      ],
+      "number": 3
+    },
+    {
+      "title": "review identity の SHA-256 生成を helper に集約する",
+      "body": "integration gate が SHA-256 hex 変換の同形コードを 3 箇所で検出し、no-overengineering 違反として block した。review identity の hash 派生を helper に集約し、同種の差分重複を gate 前に消したい。",
+      "labels": [
+        "実装品質",
+        "guardrail",
+        "重複排除"
+      ],
+      "rationale": "同じ変換が複数地点に増えると修正漏れと保守コストが上がり、gate 指摘も再発しやすい。局所 helper 化は小さな修正で guardrail 違反を予防できる。",
+      "phenomenon": "src/flow/lib/run-review.js の複数箇所で review-finding fingerprint と同じ SHA-256 hex 生成式が繰り返され、spec-gate が 3 件の違反として報告した。",
+      "problem": "同一変換が散在すると identity ロジックの修正漏れが起きやすく、guardrail block により統合が遅れる。",
+      "proposal": "review artifact の hash 生成は sha256Hex のような local helper に一本化し、新しい call site も同 helper を使う。",
+      "targetPaths": [
+        "src/flow/lib/run-review.js"
+      ],
+      "evidence": [
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-1bab98da-3428-4b1b-b470-6190a43379e3 [spec-gate]",
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-2216cd96-070c-4265-87df-8006cc7c2794 [impl-gate]",
+        "report.data.implementation.commits[1] :: refactor: centralize review artifact hashing"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "src/flow/lib/run-review.js を確認し、対象の SHA-256 hex 生成が helper 経由に統一されていることを確認する。",
+        "対象差分で spec-gate と impl-gate を再実行し、no-overengineering の重複指摘が再発しないことを確認する。"
+      ],
+      "number": 4
+    },
+    {
+      "title": "shared regression と spec-local coverage の役割を gate で明確化する",
+      "body": "shared regression の更新だけでは spec-local coverage の必須条件を満たさず、spec-test-coverage guardrail で block された。spec-local を主、shared regression を補助とするルールを evidence と gate メッセージの両方で明確にしたい。",
+      "labels": [
+        "テスト",
+        "guardrail",
+        "カバレッジ"
+      ],
+      "rationale": "最終的には spec-local テストの強化とルール明文化で収束した。gate の説明が明確なら、shared test の補助的更新を過不足なく扱える。",
+      "phenomenon": "tests/unit/flow/commands/review.test.js の shared regression 更新が検出されたが、specs/<specid>/tests/ 配下の header 付き spec-local coverage の代替にはならないとして integration gate が失敗した。",
+      "problem": "coverage ルールの境界が曖昧だと、実装者が shared test で十分だと誤解し、gate 差し戻しと追加修正が発生する。",
+      "proposal": "spec-local coverage を必須、shared regression を補助とする方針を gate メッセージと関連 test evidence に明示し、shared file を触った差分では spec-local header と必要ケースの有無も合わせて検証する。",
+      "targetPaths": [
+        "specs/335-implement-evidence-freshness/tests/implement-evidence-freshness.test.js",
+        "tests/unit/flow/commands/review.test.js"
+      ],
+      "evidence": [
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-eab5559e-4e66-43b5-9909-43cf075f4328 [spec-gate]",
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-0023f598-8646-4efa-8aba-e348d1d1adcd [impl-gate]",
+        "specs/335-implement-evidence-freshness/issue-log.json :: issue-log-9a32056f-6bc2-4dfc-8595-5e1c92bc1678 [task-review]",
+        "report.data.implementation.commits[0] :: docs: clarify supplemental regression coverage"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "shared regression だけを更新した差分で integration spec-gate を再実行し、spec-test-coverage が明示的に返ることを確認する。",
+        "spec-local test に必要な // spec: R<N> header と対象ケースを揃えた差分で同 gate が通ることを確認する。"
+      ],
+      "number": 5
+    }
+  ]
+}

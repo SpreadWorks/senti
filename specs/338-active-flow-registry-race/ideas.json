@@ -1,0 +1,172 @@
+{
+  "spec": "338-active-flow-registry-race",
+  "count": 6,
+  "candidates": [
+    {
+      "title": "Guarded target resolution の一貫性を先に固定する",
+      "body": "連続する guarded 操作で同一 target が一度は NO_FLOW になり、直後の guarded refresh では同じ target が再解決された。exact target の捕捉と rollback の再検証を同じ mutation 境界に閉じ込め、連続操作でも runId・Issue・spec が揺れないことを回帰で固定したい。",
+      "labels": [
+        "競合",
+        "ターゲット解決",
+        "managed-worktree"
+      ],
+      "rationale": "同じ flow に対する連続操作が一貫しないと、失敗が本当の不整合なのか一時的な解決漏れなのか判別できず、再試行依存の運用になる。",
+      "phenomenon": "guarded step completion と issue-log 記録の周辺で transient NO_FLOW が出たが、直後の guarded status・refresh では同じ target が解決した。",
+      "problem": "flow mutation や rollback が別 flow に外れる危険があり、成功・失敗の記録を信頼しにくくなる。放置すると acceptance-decision や review 周辺で誤った復旧分岐が増える。",
+      "proposal": "exact target を mutation 開始時に捕捉し、forward と rollback の両方で同じ expectation を再利用する。加えて、managed-worktree を複数立てた連続 guarded 操作の回帰テストを追加する。",
+      "targetPaths": [
+        "src/lib/flow-manager.js",
+        "src/flow/lib/acceptance-review-artifacts.js"
+      ],
+      "evidence": [
+        "issue-log-ac57a45b-d17d-491d-87e7-3b4a21fcd364: guarded step completion が transient NO_FLOW を返し、直後の guarded refresh で同一 target が解決",
+        "issue-log-bb0d82a2-8438-4e74-8b67-79b740eb368f: issue-log write で transient NO_FLOW、直後の guarded status で intended flow を解決",
+        "issue-log-d7348497-4252-4945-8d72-e10f665970ee: FlowManager.mutateExactTarget を追加して runId・Issue・spec を mutation callback 内で再検証",
+        "issue-log-4a5be449-9195-4c7a-91db-72f703495b1a: rollback を同じ exact-target mutation closure に束縛"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "node --test specs/338-active-flow-registry-race/tests/acceptance-decision-registry.test.js",
+        "2 つの managed-worktree flow で guarded mutation と issue-log 記録を連続実行し、NO_FLOW が出ず同じ runId・Issue・spec が維持されることを確認する。"
+      ],
+      "number": 1
+    },
+    {
+      "title": "Spec の境界・成功条件・上限を draft 時点で固定する",
+      "body": "spec と draft gate で lifecycle boundary、可観測な preserved behavior、fixture 条件、resource bound が何度も未定義扱いになった。draft 時点で reviewer が同じ判定に到達できる粒度まで要件を埋めるテンプレートとチェックを持たせたい。",
+      "labels": [
+        "仕様",
+        "gate",
+        "要件"
+      ],
+      "rationale": "要件の曖昧さは後段の実装・テスト・gate を全部巻き戻すため、最初の 1 回で潰す効果が大きい。",
+      "phenomenon": "complete-context、unambiguous-requirements、bounded-resource-usage、single-responsibility で spec と draft gate が繰り返し停止した。",
+      "problem": "reviewer 間で合格条件が揺れ、隣接関心も後から混入して、実装前の合意形成に長い反復が発生する。",
+      "proposal": "draft テンプレートに lifecycle boundary、observable success・failure、preserved behavior の測定条件、resource bound、requirement ごとの spec-local test mapping を必須項目として追加し、未記入なら spec review に進ませない。",
+      "targetPaths": [],
+      "evidence": [
+        "issue-log-19373978-66c9-4ab9-9000-a446697eb0b6: lifecycle boundary と implementation behavior が deferred だとして draft gate が blocking",
+        "issue-log-57972b02-ff2b-491c-975d-ee252cc3f907: draft gate が lifecycle boundary と failure criteria の不足を再指摘",
+        "issue-log-5bdc92b0-d1be-4040-af08-5f5f7f8b2037: registry validation・focused tests・fixture 条件の曖昧さで spec gate が停止",
+        "issue-log-e839bd94-bd86-4bb9-8f99-11dcebc73000: preserved behavior と R6 の責務境界が曖昧だとして spec gate が停止",
+        "issue-log-7d932b06-454b-47e5-b68d-c0e1b67353cc: R6 recovery の上限未定義で bounded-resource-usage に違反",
+        "issue-log-28f2f394-3a5e-4c89-ad1e-f185692f94b9: whole-registry comparison の処理上限が未記述だとして spec gate が停止"
+      ],
+      "scope": "unclear",
+      "verification": [
+        "新規 flow draft で boundary・observable behavior・bound・test mapping の各欄が未入力なら draft/spec gate がその場で止まることを確認する。",
+        "同項目を満たした draft では complete-context と unambiguous-requirements の再指摘なしで spec-review に進めることを確認する。"
+      ],
+      "number": 2
+    },
+    {
+      "title": "Repair evidence と review diff の入力面を安定化する",
+      "body": "gate は materialized repo file ではない repair evidence や、diff から漏れた untracked spec-local test を根拠に誤検知した。review 入力を『実在する repo file と active-spec test』に限定し、generated artifact は除外したい。",
+      "labels": [
+        "レビュー",
+        "修復証拠",
+        "差分"
+      ],
+      "rationale": "入力面が不安定だと、修正済みの内容が未修正扱いになり、再試行と手動 staging が発生する。",
+      "phenomenon": "late repair evidence が workflow artifact を指して gate に弾かれ、別件では flow-owned spec-local test が review diff から落ちて偽の coverage 指摘になった。",
+      "problem": "repair ledger と task・test review が実装の実態を見られず、機械的な must-fix や recovery が増える。",
+      "proposal": "repair evidence 選定は materialized repository file のみ許可し、review diff 生成では active spec 配下の test source を自動合成して generated flow artifact を除外する。",
+      "targetPaths": [
+        "src/flow/lib/impl-repair-artifacts.js",
+        "src/flow/commands/review.js"
+      ],
+      "evidence": [
+        "issue-log-f2d20b25-25cb-4819-816f-1d6b8c2c6e9c: late repair evidence が workflow artifact を選び gate が missing repair evidence を報告",
+        "impl-repair:repair-006:a6b1c20d35743e242796886edd11371b43510f3bb74049ffb1c8c9eff2fb1880: repair evidence を src/flow/lib/impl-repair-artifacts.js に再記録",
+        "issue-log-dbcb2aeb-7f53-4d1d-879a-821befb29490: task review が untracked flow-owned spec-local test を diff evidence に含められなかった",
+        "issue-log-f0880e13-8e77-4331-ba5e-baea048ca5de: active-spec test diff を合成して review-visible に修正"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "untracked な specs/.../tests/*.test.js を 1 つ追加した状態で review を実行し、generated artifact なしでその test source だけが diff に載ることを確認する。",
+        "workflow artifact と repo file の両方を含む repair delta で gate を実行し、repo file のみが repair evidence として採用されることを確認する。"
+      ],
+      "number": 3
+    },
+    {
+      "title": "Review findingId の衝突規則を 1 つに固定する",
+      "body": "test review では findingId の重複記録で tooling error が起き、final regression では duplicate handling の期待が unit test とずれた。distinct fallback と真の重複の境界を review command で 1 箇所に固定し、全 regression で同じ規則を使いたい。",
+      "labels": [
+        "findingId",
+        "レビュー",
+        "回帰"
+      ],
+      "rationale": "review 記録と最終回帰の判定基準がずれると、merge-ready かどうかを最後まで確定できない。",
+      "phenomenon": "duplicate findingId 記録で test-review tooling error が発生し、最終的にも review.test.js で Missing expected exception が残った。",
+      "problem": "distinct な finding が誤って同一視されるか、逆に真の duplicate を見逃して reviewer 出力の信頼性が崩れる。",
+      "proposal": "non-draft finding の canonicalization ルールを review command 側に集約し、別 target には一意な fallback ID を割り当て、同一 finding のみ例外にする targeted regression を維持する。",
+      "targetPaths": [
+        "src/flow/commands/review.js",
+        "src/flow/lib/run-review.js",
+        "tests/unit/flow/commands/review.test.js"
+      ],
+      "evidence": [
+        "issue-log-bb0d82a2-8438-4e74-8b67-79b740eb368f: duplicate findingId の記録で tooling error",
+        "issue-log-f0354d09-2a0f-4bce-b90f-ea1de5861b4a: distinct canonical review findings を保持する修正を実施",
+        "Report.tests.finalRegression.failureSummary: tests/unit/flow/commands/review.test.js で 'Missing expected exception.' が残存"
+      ],
+      "scope": "in-project",
+      "verification": [
+        "node --test tests/unit/flow/commands/review.test.js",
+        "2 つの別 repair target が同一 base findingId を持つケースでは別 fallback ID が発行され、完全一致の duplicate だけが例外になることを確認する。",
+        "node tests/run.js"
+      ],
+      "number": 4
+    },
+    {
+      "title": "Concurrent lock を失敗ではなく状態として扱う",
+      "body": "artifact の書き込み自体は完了しているのに、post-hook や再実行が repository lock で失敗扱いになった。lock 競合を『再試行待ちの状態』として表現し、書けた evidence と書けなかった post-hook を分離したい。",
+      "labels": [
+        "lock",
+        "並行実行",
+        "post-hook"
+      ],
+      "rationale": "同時実行時の lock 競合を全部失敗扱いにすると、無駄な再試行と運用判断が増える。",
+      "phenomenon": "draft coverage review の PASS artifact 書き込み後に lock failure が報告され、後続の spec-local test re-execution も別 flow の repository lock で開始できなかった。",
+      "problem": "evidence が有効なのにフロー全体が transient failure に見え、オペレータが preserve・retry・wait を毎回判断する必要がある。",
+      "proposal": "repository lock の owner と待機理由を advisory として返し、artifact write 成功後の post-hook lock conflict は failure ではなく queued/retryable state に落とす。",
+      "targetPaths": [],
+      "evidence": [
+        "issue-log-3db8d0a2-5434-4bc0-a5f2-37edcdd422d3: PASS artifact 書き込み後に repository operation lock failure を報告",
+        "issue-log-35603a59-b109-411c-bc17-b6f135907c14: 別 flow が repository operation lock を保持して test re-execution を開始できなかった"
+      ],
+      "scope": "unclear",
+      "verification": [
+        "2 つの flow で同時に review/test evidence を走らせ、片方が advisory または queued 状態で lock owner を返し、既に書けた artifact は失敗扱いにならないことを確認する。",
+        "lock 解放後の再実行で新規 evidence だけが進み、既存 PASS artifact を壊さないことを確認する。"
+      ],
+      "number": 5
+    },
+    {
+      "title": "長時間 flow に中盤 sync checkpoint を入れる",
+      "body": "scenario-validity は base branch 差分で止まり、autostash rebase では generated artifact が衝突し、最後は finalize 前 rebase conflict で停止した。長時間 flow では中盤で安全に基線同期する checkpoint を持ちたい。",
+      "labels": [
+        "sync",
+        "rebase",
+        "branch"
+      ],
+      "rationale": "実装と review が長引く flow ほど base divergence の回収コストが最後に集中する。",
+      "phenomenon": "preflight が pre-existing diff で止まり、autostash rebase の restore conflict が発生し、finalize-merge 直前にも run-review.js と review.test.js で rebase conflict が起きた。",
+      "problem": "作業終盤で基線同期が詰まり、generated artifact の復元や conflict 解消に余計な手戻りが出る。",
+      "proposal": "長い impl-review ループに入る前に guarded sync checkpoint を設け、生成物を自動退避できる rebase playbook を workflow 手順として固定する。",
+      "targetPaths": [],
+      "evidence": [
+        "issue-log-868af498-6702-4f7f-84dc-fe27048c553e: scenario-validity が base branch との差分で preflight block",
+        "issue-log-d5f0896e-1514-402b-ae45-ae7867d5e601: uncommitted flow artifact のため通常 rebase が block",
+        "issue-log-95b5ef6f-94c3-4ff5-b532-5979a13c38b6: autostash rebase 復元で generated analysis artifact が conflict",
+        "issue-log-a53dc947-722a-443a-a22e-b5692551cfed: finalize 前 rebase で src/flow/lib/run-review.js と tests/unit/flow/commands/review.test.js が conflict"
+      ],
+      "scope": "unclear",
+      "verification": [
+        "長時間の feature flow で mid-flow sync checkpoint を実行し、generated artifact を保持したまま base branch へ安全に追従できることを確認する。",
+        "finalize 直前に追加 rebase が不要か、必要でも対象 conflict が初回 checkpoint で前倒し解消されていることを確認する。"
+      ],
+      "number": 6
+    }
+  ]
+}
