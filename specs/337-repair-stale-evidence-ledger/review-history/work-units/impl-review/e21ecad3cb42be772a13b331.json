@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "e21ecad3cb42be772a13b331",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-a71fbd4e72bfe53e",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+      "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/step-transition-policy.js",
+      "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js",
+      "tests/unit/flow/stale-test-evidence-refresh.test.js"
+    ],
+    "inputHash": "a71fbd4e72bfe53e80bc3e7292c1d0f0c951794f1d1b0b66c2ee395d465a43b8",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "e21ecad3cb42be772a13b331"
+  },
+  "targetFiles": [
+    "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+    "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/step-transition-policy.js",
+    "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js",
+    "tests/unit/flow/stale-test-evidence-refresh.test.js"
+  ],
+  "inputHash": "a71fbd4e72bfe53e80bc3e7292c1d0f0c951794f1d1b0b66c2ee395d465a43b8",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:21:11.670Z",
+  "finishedAt": "2026-07-25T05:21:11.670Z",
+  "rawResponse": "### 1. Centralize spawned shared-suite execution\n**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`  \n**Requirement:** R9  \n**Issue:** Two test files introduce `spawnSync(process.execPath, [\"--test\", ...])` style shared-suite execution, and both reviews independently flag the missing timeout. This is a cross-file duplication that can drift in timeout, env, cwd, and diagnostics behavior.  \n**Suggestion:** Extract a shared test helper for running affected shared suites with a fixed timeout and consistent failure output, then use it from both stale-evidence regression test files.\n\n### 2. Use one naming convention for shared-suite path collections\n**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`  \n**Requirement:** R9  \n**Issue:** `AFFECTED_SHARED_SUITES` is proposed for rename because it contains paths, while `runSharedSuites()` in the companion test file also uses “suites” wording around path-based execution. The naming ambiguity exists across files, not just locally.  \n**Suggestion:** Standardize on `*SUITE_PATHS` for arrays of file paths and reserve `*Suites` for executable helpers or suite definitions.\n\n### 3. Share repair-state fixture builders across unit tests\n**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R1  \n**Issue:** Multiple unit tests now duplicate repair flow state shapes with `runId`, `spec`, `steps`, `tasks`, and `transitions`. Per-file helpers would reduce local noise, but separate helpers in each file may still drift as the repair-state interface evolves.  \n**Suggestion:** Add a small shared unit-test fixture factory, for example under `tests/unit/flow/helpers/`, and let repair-state identity and impl-repair step tests override only scenario-specific fields.\n\n### 4. Share flow-manager recovery doubles across tests\n**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R9  \n**Issue:** Several tests model the same flow manager contract: `load`, `loadReadOnly`, mutation, and transition completion. Keeping separate inline doubles risks inconsistent behavior around read-only reload and commit intent completion.  \n**Suggestion:** Introduce a shared flow-manager test double that implements the recovery-facing interface once, with optional hooks for scenario-specific assertions.\n\n### 5. Align production and test naming around transition completion\n**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R3  \n**Issue:** The production interface adds `completeIn()`, while tests and doubles refer to `completeStepTransitionIntent`. The concepts are related but named at different abstraction levels, making it harder to tell which object owns transition completion semantics.  \n**Suggestion:** Keep the names intentionally distinct only if one is policy-level and one is flow-manager-level; otherwise align terminology in method names, test helpers, and assertion labels so “complete transition intent” means the same thing across files.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize spawned shared-suite execution",
+        "body": "**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`  \n**Requirement:** R9  \n**Issue:** Two test files introduce `spawnSync(process.execPath, [\"--test\", ...])` style shared-suite execution, and both reviews independently flag the missing timeout. This is a cross-file duplication that can drift in timeout, env, cwd, and diagnostics behavior.  \n**Suggestion:** Extract a shared test helper for running affected shared suites with a fixed timeout and consistent failure output, then use it from both stale-evidence regression test files.",
+        "file": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Use one naming convention for shared-suite path collections",
+        "body": "**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`  \n**Requirement:** R9  \n**Issue:** `AFFECTED_SHARED_SUITES` is proposed for rename because it contains paths, while `runSharedSuites()` in the companion test file also uses “suites” wording around path-based execution. The naming ambiguity exists across files, not just locally.  \n**Suggestion:** Standardize on `*SUITE_PATHS` for arrays of file paths and reserve `*Suites` for executable helpers or suite definitions.",
+        "file": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Share repair-state fixture builders across unit tests",
+        "body": "**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R1  \n**Issue:** Multiple unit tests now duplicate repair flow state shapes with `runId`, `spec`, `steps`, `tasks`, and `transitions`. Per-file helpers would reduce local noise, but separate helpers in each file may still drift as the repair-state interface evolves.  \n**Suggestion:** Add a small shared unit-test fixture factory, for example under `tests/unit/flow/helpers/`, and let repair-state identity and impl-repair step tests override only scenario-specific fields.",
+        "file": "tests/unit/flow/repair-state-identity.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Share flow-manager recovery doubles across tests",
+        "body": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R9  \n**Issue:** Several tests model the same flow manager contract: `load`, `loadReadOnly`, mutation, and transition completion. Keeping separate inline doubles risks inconsistent behavior around read-only reload and commit intent completion.  \n**Suggestion:** Introduce a shared flow-manager test double that implements the recovery-facing interface once, with optional hooks for scenario-specific assertions.",
+        "file": "tests/unit/flow/set-step-impl-repair.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "5. Align production and test naming around transition completion",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R3  \n**Issue:** The production interface adds `completeIn()`, while tests and doubles refer to `completeStepTransitionIntent`. The concepts are related but named at different abstraction levels, making it harder to tell which object owns transition completion semantics.  \n**Suggestion:** Keep the names intentionally distinct only if one is policy-level and one is flow-manager-level; otherwise align terminology in method names, test helpers, and assertion labels so “complete transition intent” means the same thing across files.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

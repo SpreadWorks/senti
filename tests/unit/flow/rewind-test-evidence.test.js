@@ -1103,11 +1103,17 @@ describe("public stale test evidence recovery", () => {
       expectedCode: "TARGET_GUARDS_REQUIRED",
       overrides: { expectRunId: undefined },
     });
-    await assertRejectedWithoutMutation({
-      caseName: "matrix-d-mismatched-target",
-      expectedCode: "ACTIVE_FLOW_MISMATCH",
-      overrides: { expectRunId: "another-run" },
-    });
+    for (const [caseName, overrides] of [
+      ["matrix-d-mismatched-run", { expectRunId: "another-run" }],
+      ["matrix-d-mismatched-spec", { expectSpec: "specs/foreign/spec.json" }],
+      ["matrix-d-mismatched-issue", { expectIssue: "999" }],
+    ]) {
+      await assertRejectedWithoutMutation({
+        caseName,
+        expectedCode: "ACTIVE_FLOW_MISMATCH",
+        overrides,
+      });
+    }
   });
 
   it("publishes a bounded discoverable command without arbitrary rewind inputs", async () => {

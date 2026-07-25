@@ -1,0 +1,99 @@
+[senti] spec-local tests start
+command: node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js
+process.kind: passed
+process.command: node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 2395
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 54811.743866
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R9: affected shared recovery unit suites execute as regression evidence
+ok 1 - R9: affected shared recovery unit suites execute as regression evidence
+  ---
+  duration_ms: 18388.35608
+  type: 'test'
+  ...
+# [senti] final-regression command: sh final-regression-fixture.sh
+# [senti] final-regression raw log: specs/demo/tests/.raw/final-regression-attempt-001.log
+# Subtest: R1: committed refresh aligns manifest ledger delta and result fingerprint
+ok 2 - R1: committed refresh aligns manifest ledger delta and result fingerprint
+  ---
+  duration_ms: 779.602285
+  type: 'test'
+  ...
+# Subtest: R2: refresh appends one continuous ledger entry after retry
+ok 3 - R2: refresh appends one continuous ledger entry after retry
+  ---
+  duration_ms: 896.713548
+  type: 'test'
+  ...
+# Subtest: R3: every stale entrypoint uses the owned lifecycle transition authority
+ok 4 - R3: every stale entrypoint uses the owned lifecycle transition authority
+  ---
+  duration_ms: 2479.216754
+  type: 'test'
+  ...
+# Subtest: R4: failed effects remain pending and never report recovered success
+ok 5 - R4: failed effects remain pending and never report recovered success
+  ---
+  duration_ms: 981.888493
+  type: 'test'
+  ...
+# Subtest: R5: every durable effects boundary converges exactly once
+ok 6 - R5: every durable effects boundary converges exactly once
+  ---
+  duration_ms: 4203.863634
+  type: 'test'
+  ...
+# Subtest: R6: changed target identity rejects a pending refresh without mutation
+ok 7 - R6: changed target identity rejects a pending refresh without mutation
+  ---
+  duration_ms: 3495.156665
+  type: 'test'
+  ...
+# Subtest: R7: committed recovery regenerates evidence through the real CLI lifecycle
+ok 8 - R7: committed recovery regenerates evidence through the real CLI lifecycle
+  ---
+  duration_ms: 17423.079119
+  type: 'test'
+  ...
+# Subtest: R8: public entrypoints preserve recovery projections and rewind guards
+ok 9 - R8: public entrypoints preserve recovery projections and rewind guards
+  ---
+  duration_ms: 3841.480935
+  type: 'test'
+  ...
+# Subtest: R9: regression matrix exercises current malformed and mismatched evidence
+ok 10 - R9: regression matrix exercises current malformed and mismatched evidence
+  ---
+  duration_ms: 2080.442187
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 54811.743866
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] requirement R9 result pass
+[senti] spec-local tests end

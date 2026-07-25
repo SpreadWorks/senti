@@ -17,6 +17,7 @@ import {
   ImplRepairEntry,
   ImplRepairLedger,
   ImplRepairPrecommitAuthority,
+  ImplRepairTargetIdentity,
   ImplRepairTransaction,
   ImplRepairTransitionIntent,
   InvalidatedArtifactRecord,
@@ -837,9 +838,10 @@ function completeMaterialRepair({
     createdAt: new Date().toISOString(),
   });
   const transaction = new ImplRepairTransaction({
-    version: 1,
+    version: 2,
     id,
     sourceStep: "impl-gate",
+    target: ImplRepairTargetIdentity.fromState(state),
     resetStepIds,
     entry,
     ledger: existing.append(entry),

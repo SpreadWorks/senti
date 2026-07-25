@@ -4,8 +4,10 @@ import fs from "fs";
 import path from "path";
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
+import { writeRepairFingerprintManifest } from "../../../src/flow/lib/repair-state-identity.js";
 import { validateFinalRegressionResult } from "../../../src/flow/lib/test-artifacts.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
@@ -101,12 +103,14 @@ describe("flow run final-regression", () => {
   it("invalidates stale test evidence and rewinds to test-execute before starting regression", async () => {
     tmp = createTmpDir("final-regression-stale-evidence-");
     const ctx = setupProject(tmp, "printf '%s\\n' 'final pass'\n");
+    writeFile(tmp, `${SPEC_DIR}/spec.json`, "{}\n");
     const previous = buildRepairFingerprint({
       root: tmp,
-      specPath: `${SPEC_DIR}/spec.md`,
+      specPath: `${SPEC_DIR}/spec.json`,
     });
+    writeRepairFingerprintManifest(path.join(tmp, SPEC_DIR), previous);
     const state = moveFlowToStep(makeFlowState({
-      spec: `${SPEC_DIR}/spec.md`,
+      spec: `${SPEC_DIR}/spec.json`,
       repairBaseline: previous.baseline.toJSON(),
     }), "final-regression");
     writeFile(tmp, "src/repair.js", "export const repaired = true;\n");
@@ -122,24 +126,27 @@ describe("flow run final-regression", () => {
       repairFingerprint: previous.hash,
     }, null, 2));
     writeFile(tmp, `${SPEC_DIR}/final-regression-result.json`, "{}\n");
-    const flowManager = {
-      mutate(mutator) {
-        mutator(state);
-      },
-    };
+    const flowManager = new FlowManager({
+      root: tmp,
+      mainRoot: tmp,
+      inWorktree: false,
+    });
+    flowManager.create(state);
+    const persistedState = flowManager.loadReadOnly();
 
     const result = await new RunFinalRegressionCommand().execute({
       ...ctx,
-      flowState: state,
+      flowState: persistedState,
       flowManager,
     });
+    const recoveredState = flowManager.loadReadOnly();
 
     assert.equal(result.result, "recovered");
     assert.equal(result.next, "test-execute");
     assert.equal(result.artifacts.evidenceRefresh.previousFingerprint, previous.hash);
     assert.equal(result.artifacts.evidenceRefresh.currentFingerprint, current.hash);
-    assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
-    assert.equal(findStepById(state.steps, "final-regression").status, "pending");
+    assert.equal(findStepById(recoveredState.steps, "test-execute").status, "in_progress");
+    assert.equal(findStepById(recoveredState.steps, "final-regression").status, "pending");
     assert.equal(fs.existsSync(path.join(tmp, `${SPEC_DIR}/test-execute-result.json`)), false);
     assert.equal(fs.existsSync(path.join(tmp, `${SPEC_DIR}/retro.json`)), false);
     assert.equal(fs.existsSync(path.join(tmp, `${SPEC_DIR}/final-regression-result.json`)), false);

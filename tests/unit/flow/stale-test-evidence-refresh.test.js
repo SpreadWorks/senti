@@ -97,8 +97,26 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
     load() {
       return state;
     },
+    loadReadOnly() {
+      return state;
+    },
     mutate(mutator) {
       mutator(state);
+    },
+    updateStepStatus(transition, _options, commitIntent = null) {
+      commitIntent?.assertBeforeTransition(state);
+      for (const change of transition.changes) {
+        const step = findStepById(state.steps, change.stepId);
+        step.status = change.requestedStatus;
+        delete step.startedAt;
+        delete step.finishedAt;
+      }
+      commitIntent?.applyTo(state);
+      return state;
+    },
+    completeStepTransitionIntent(commitIntent) {
+      commitIntent.completeIn(state);
+      return state;
     },
   };
   writeFile(tmp, "specs/demo/impl-review.json", JSON.stringify({
@@ -157,6 +175,7 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
     "test-evidence-refresh:final-regression",
   ]);
   assert.equal(result.currentFingerprint, current.hash);
+  assert.equal(state.implRepairTransaction, undefined);
   assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
   assert.equal(findStepById(state.steps, "final-regression").status, "pending");
   assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);

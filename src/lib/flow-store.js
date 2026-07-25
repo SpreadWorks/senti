@@ -689,6 +689,17 @@ export class FlowStore {
     return this.updateStepStatuses([transition], opts, commitIntent);
   }
 
+  completeStepTransitionIntent(commitIntent, opts) {
+    if (!(commitIntent instanceof StepTransitionCommitIntent)) {
+      throw new StepTransitionError(
+        "completeStepTransitionIntent requires a StepTransitionCommitIntent",
+      );
+    }
+    return this.mutate((state) => {
+      commitIntent.completeIn(state);
+    }, opts);
+  }
+
   updateStepStatuses(transitions, opts, commitIntent = null) {
     if (!Array.isArray(transitions) || transitions.length === 0 || transitions.some((transition) => !isStepTransition(transition))) {
       throw new StepTransitionError("updateStepStatuses requires explicit step transitions");

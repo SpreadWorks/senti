@@ -113,6 +113,7 @@ export class StaleTestEvidenceRefresh {
     reason,
     sourceStep = "test-evidence-refresh",
     additionalArtifacts = [],
+    faultInjector = null,
   }) {
     const normalizedAdditionalArtifacts = additionalArtifacts.map(
       (relativePath, index) => new AdditionalRefreshArtifact({
@@ -130,6 +131,7 @@ export class StaleTestEvidenceRefresh {
       additionalArtifacts: normalizedAdditionalArtifacts,
       expectedPreviousFingerprint: this.previousFingerprint,
       expectedCurrentFingerprint: this.currentFingerprint,
+      faultInjector,
     });
     return new StaleTestEvidenceRefreshResult({
       previousFingerprint: this.previousFingerprint,

@@ -369,6 +369,12 @@ export class FlowManager {
   updateStepStatus(transition, opts, commitIntent = null) {
     return this._store.updateStepStatus(transition, withSpecIdDefault(opts, this._boundSpecId), commitIntent);
   }
+  completeStepTransitionIntent(commitIntent, opts) {
+    return this._store.completeStepTransitionIntent(
+      commitIntent,
+      withSpecIdDefault(opts, this._boundSpecId),
+    );
+  }
   updateStepStatuses(transitions, opts, commitIntent = null) {
     return this._store.updateStepStatuses(transitions, withSpecIdDefault(opts, this._boundSpecId), commitIntent);
   }

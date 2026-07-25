@@ -436,6 +436,7 @@ describe("bounded repair audit and acceptance prompt", () => {
     writeAt("specs/demo/tests/demo.test.js", "export const test = true;\n");
     writeAt("app/example.js", "export const value = 1;\n");
     const state = {
+      runId: `run-${path.basename(root)}`,
       spec: "specs/demo/spec.json",
       steps: [
         { id: "impl-repair", status: "in_progress" },
@@ -473,6 +474,7 @@ describe("bounded repair audit and acceptance prompt", () => {
     write("specs/demo/tests/demo.test.js", "export const test = true;\n");
     write("app/example.js", "export const value = 1;\n");
     const state = {
+      runId: "run-repair-transaction",
       spec: "specs/demo/spec.json",
       steps: [
         { id: "impl-repair", status: "in_progress" },

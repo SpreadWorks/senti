@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "ef2642efce67aede82e38688",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-3b74ff3280e55bfb",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+      "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/step-transition-policy.js",
+      "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js",
+      "tests/unit/flow/stale-test-evidence-refresh.test.js"
+    ],
+    "inputHash": "3b74ff3280e55bfbc57480b217c76b1f5c650fb7b23caf40bf1845c6f68c2a02",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "ef2642efce67aede82e38688"
+  },
+  "targetFiles": [
+    "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+    "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/step-transition-policy.js",
+    "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js",
+    "tests/unit/flow/stale-test-evidence-refresh.test.js"
+  ],
+  "inputHash": "3b74ff3280e55bfbc57480b217c76b1f5c650fb7b23caf40bf1845c6f68c2a02",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:52:41.659Z",
+  "finishedAt": "2026-07-25T05:52:41.659Z",
+  "rawResponse": "### 1. Centralize stale-evidence recovery assertions\n**File:** `specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js`  \n**Requirement:** R9  \n**Issue:** Multiple files introduce similar stale-evidence recovery assertions: lifecycle step reset to `test-execute`, deferred gate/review step becomes `pending`, transaction cleared, and recovered result shape. This appears in spec regression tests, retry exhaustion tests, run-review advisory tests, and e2e lifecycle tests with slightly different helper names proposed per file.\n**Suggestion:** Add a shared test helper for recovery transition expectations, for example `assertRecoveredToTestExecute(state, deferredStepId)` or a spec-local shared helper module, then reuse it across the affected unit/spec tests where import boundaries allow.\n\n### 2. Align recovery fixture state construction\n**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R1  \n**Issue:** Several test files now construct flow/repair state fixtures inline with overlapping fields such as `runId`, `spec`, `steps`, `tasks`, and `transitions`. Per-file proposals suggest local helpers, but the duplication is cross-file and can still drift between repair identity, retry exhaustion, and impl-repair tests.\n**Suggestion:** Introduce a common test fixture builder in the existing test support area, such as `createRepairFlowState(overrides)`, and use per-test overrides for scenario-specific run IDs or step statuses.\n\n### 3. Standardize recovery naming\n**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R7  \n**Issue:** Recovery-related names vary across files: `recoveredGate`, `recoveredState`, `activeState`, and proposed alternatives like `stateAfterRecovery` or `staleEvidenceRecoveryGate`. This makes cross-file recovery scenarios harder to compare.\n**Suggestion:** Adopt one naming convention across tests, for example `stateBeforeRecovery`, `stateAfterRecovery`, and `staleEvidenceRecoveryGateResult`, then apply it consistently in e2e and unit recovery tests.\n\n### 4. Share transaction file assertion helpers\n**File:** `specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js`  \n**Requirement:** R5  \n**Issue:** Transaction file existence checks and transaction-cleared assertions appear as recurring concerns across stale evidence repair tests and recovery entrypoint tests. Keeping them local risks inconsistent expectations around committed versus pending transaction state.\n**Suggestion:** Extract shared helpers such as `assertTransactionFileExists(fixture)` and `assertTransactionFileAbsent(fixture)` in the spec test support layer, and use them wherever repair transaction persistence is asserted.\n\n### 5. Align transition intent abstract API wording\n**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R3  \n**Issue:** `applyTo()` and `completeIn()` form the same cross-file transition authority contract used by repair artifact commit paths, but their abstract method signatures and error wording are inconsistent. That weakens the interface contract for implementations consumed by `impl-repair-artifacts.js`.\n**Suggestion:** Make `completeIn(state)` mirror `applyTo(state)` in both signature and error wording, then verify transition intent implementations follow the same method-shape convention.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize stale-evidence recovery assertions",
+        "body": "**File:** `specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js`  \n**Requirement:** R9  \n**Issue:** Multiple files introduce similar stale-evidence recovery assertions: lifecycle step reset to `test-execute`, deferred gate/review step becomes `pending`, transaction cleared, and recovered result shape. This appears in spec regression tests, retry exhaustion tests, run-review advisory tests, and e2e lifecycle tests with slightly different helper names proposed per file.\n**Suggestion:** Add a shared test helper for recovery transition expectations, for example `assertRecoveredToTestExecute(state, deferredStepId)` or a spec-local shared helper module, then reuse it across the affected unit/spec tests where import boundaries allow.",
+        "file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Align recovery fixture state construction",
+        "body": "**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R1  \n**Issue:** Several test files now construct flow/repair state fixtures inline with overlapping fields such as `runId`, `spec`, `steps`, `tasks`, and `transitions`. Per-file proposals suggest local helpers, but the duplication is cross-file and can still drift between repair identity, retry exhaustion, and impl-repair tests.\n**Suggestion:** Introduce a common test fixture builder in the existing test support area, such as `createRepairFlowState(overrides)`, and use per-test overrides for scenario-specific run IDs or step statuses.",
+        "file": "tests/unit/flow/repair-state-identity.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Standardize recovery naming",
+        "body": "**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R7  \n**Issue:** Recovery-related names vary across files: `recoveredGate`, `recoveredState`, `activeState`, and proposed alternatives like `stateAfterRecovery` or `staleEvidenceRecoveryGate`. This makes cross-file recovery scenarios harder to compare.\n**Suggestion:** Adopt one naming convention across tests, for example `stateBeforeRecovery`, `stateAfterRecovery`, and `staleEvidenceRecoveryGateResult`, then apply it consistently in e2e and unit recovery tests.",
+        "file": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Share transaction file assertion helpers",
+        "body": "**File:** `specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js`  \n**Requirement:** R5  \n**Issue:** Transaction file existence checks and transaction-cleared assertions appear as recurring concerns across stale evidence repair tests and recovery entrypoint tests. Keeping them local risks inconsistent expectations around committed versus pending transaction state.\n**Suggestion:** Extract shared helpers such as `assertTransactionFileExists(fixture)` and `assertTransactionFileAbsent(fixture)` in the spec test support layer, and use them wherever repair transaction persistence is asserted.",
+        "file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Align transition intent abstract API wording",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R3  \n**Issue:** `applyTo()` and `completeIn()` form the same cross-file transition authority contract used by repair artifact commit paths, but their abstract method signatures and error wording are inconsistent. That weakens the interface contract for implementations consumed by `impl-repair-artifacts.js`.\n**Suggestion:** Make `completeIn(state)` mirror `applyTo(state)` in both signature and error wording, then verify transition intent implementations follow the same method-shape convention.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1910 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../tests/shared-recovery-regressions.test.js      |  26 +\n .../stale-evidence-repair-transaction.test.js      | 814 +++++++++++++++++++++\n tests/e2e/231-task-e2e-full-lifecycle.test.js      |  25 +-\n tests/unit/flow/rewind-test-evidence.test.js       |  16 +-\n 4 files changed, 875 insertions(+), 6 deletions(-)",
+      "commits": [
+        "test: cover pending recovery consumers",
+        "test: strengthen stale evidence recovery coverage"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "A stale test evidence recovery after a material implementation change shall create or resume one TestEvidenceRefreshPurpose transaction whose manifest hash, ledger tail currentHash, delta currentHash, and reported currentFingerprint equal the current repair fingerprint.",
+          "status": "done",
+          "note": "R1: committed refresh aligns manifest ledger delta and result fingerprint"
+        },
+        {
+          "desc": "When an impl-repair ledger already exists, the refresh entry shall append exactly once with previousHash equal to the prior ledger tail currentHash, a non-empty changed-path delta, and invalidation records equal to the transaction's staged artifact set.",
+          "status": "done",
+          "note": "R2: refresh appends one continuous ledger entry after retry"
+        },
+        {
+          "desc": "Integration gate, final-regression, and acceptance-review stale evidence entrypoints shall delegate lifecycle transition and repair effects to the same existing impl-repair transaction authority without adding another mutation owner.",
+          "status": "done",
+          "note": "R3: every stale entrypoint uses the owned lifecycle transition authority"
+        },
+        {
+          "desc": "Recovery shall report success only after the owned transaction has committed its delta, ledger, manifest, artifact invalidation, and test-execute lifecycle transition, and no consumer shall accept a pending or partially applied transaction as current evidence.",
+          "status": "done",
+          "note": "R4: failed effects remain pending and never report recovered success"
+        },
+        {
+          "desc": "A retry after each injected durable failure boundary shall either roll the identical owned transaction forward exactly once or fail closed; it shall not duplicate ledger entries, lose stale artifacts without a committed transition, or return a partial recovered result.",
+          "status": "done",
+          "note": "R5: every durable effects boundary converges exactly once"
+        },
+        {
+          "desc": "Valid evidence already matching the current fingerprint shall retain its normal path, while malformed evidence, inconsistent fingerprints, foreign pending transactions, changed material authority, and run/spec/Issue target mismatches shall fail closed without recovery mutation.",
+          "status": "done",
+          "note": "R6: changed target identity rejects a pending refresh without mutation"
+        },
+        {
+          "desc": "After committed recovery, the normal flow shall regenerate current evidence through test-execute, test-result-review, impl-review, impl-gate, retro, and acceptance-review without impl-repair ledger schema rejection.",
+          "status": "done",
+          "note": "R7: committed recovery regenerates evidence through the real CLI lifecycle"
+        },
+        {
+          "desc": "The public recovery behavior of integration gate, final-regression, acceptance-review, and explicit rewind-test-evidence shall retain its existing result fields, next step, exact target guards, and fail-closed structural validation.",
+          "status": "done",
+          "note": "R8: public entrypoints preserve recovery projections and rewind guards"
+        },
+        {
+          "desc": "Spec-local requirement tests and affected shared unit and CLI lifecycle tests shall cover existing-ledger continuity, all stale recovery entrypoints, durable failure boundaries, current evidence, malformed evidence, and target authority mismatches.",
+          "status": "done",
+          "note": "R9: affected shared recovery unit suites execute as regression evidence"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 27,
+      "fullLogPath": "specs/337-repair-stale-evidence-ledger/issue-log.json",
+      "importantTotal": 14,
+      "importantShown": 10,
+      "importantOmitted": 4,
+      "recentOtherTotal": 13,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 8,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate passed but preset-chain resolution emitted a non-blocking node-cli preset warning",
+          "resolution": "No workaround applied because the gate result and evidence were valid; recorded the out-of-scope warning for follow-up"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Initial spec-local tests bypassed public recovery entrypoints and under-asserted lifecycle coverage",
+          "resolution": "Added executable gate, final-regression, acceptance refresh, and rewind guard calls plus delta, invalidation, regenerated evidence, malformed, current, and target mismatch assertions"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Second test review found malformed evidence expectations and rewind plus authority edge cases incomplete",
+          "resolution": "Routed malformed JSON through integration validation, added successful explicit rewind command coverage, and added foreign pending transaction plus changed material authority assertions"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Third test review found no public current-evidence path and no assertion excluding direct mutation ownership",
+          "resolution": "Added a current-fingerprint final-regression pass case and counted only mutations made without an owned transaction intent, asserting zero such calls for all refresh entrypoints"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review exhausted after four executable coverage gaps remained",
+          "resolution": "Replaced fabricated lifecycle evidence with the shared CLI lifecycle, added exact guard mismatches, ran affected shared suites, and counted every mutation call"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Review retry reset rejected uncommitted test repairs as unchanged identity",
+          "resolution": "Committed the bounded test-design repairs on the feature branch so HEAD tree identity reflects changed evidence"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Changed-evidence review found pending-consumer and shared-coverage mapping gaps",
+          "resolution": "Added pending consumer recovery assertions and a dedicated R9 shared-suite regression adapter tracked by the coverage artifact"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "test artifact validation failed: spec-local requirement tests failed: R4, R7, R9",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "Gate evidence exposed three spec-local failures: cross-entrypoint journal resume rejected matching authority, and nested Node suites inherited NODE_TEST_CONTEXT.",
+          "resolution": "Allowed an exact journal/state transaction to resume independently of the detecting entrypoint and isolated nested test subprocesses from the parent Node test context."
+        },
+        {
+          "classification": "important",
+          "step": "acceptance-review",
+          "reason": "Acceptance found the repair ledger tail behind the current fingerprint because post-gate test fixes had been re-executed without a new owned refresh transaction.",
+          "resolution": "Introduced the final fixture cleanup as a material change so acceptance stale-evidence recovery can append the canonical transaction from the existing ledger tail and regenerate downstream evidence."
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-execute",
+          "reason": "R9 exposed an outdated final-regression fixture without the v2 manifest or canonical persisted flow target, plus a Node version command affected by the parent test context.",
+          "resolution": "Made the shared fixture exercise the real FlowManager with canonical spec.json and a persisted manifest, and used an independent successful command for the current-evidence control case."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff adds a JSON.stringify(toJSON()) equality comparison in ImplRepairTargetIdentity.equals; the same production comparison shape is also added in ImplRepairTransaction.equals, so the repeated transformation could be centralized loca...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: centralize repeated serialized value equality",
+          "resolution": "ImplRepairTargetIdentity.equals and ImplRepairTransaction.equals now delegate the identical toJSON serialization comparison to one local helper, removing the duplicated production pattern without changing equality semantics."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The added ledgerCurrent check repeats the same JSON.stringify(toJSON()) equality shape used for manifestCurrent in the same method; a local equality helper could remove the duplicated transformation without changing ownership.; The added...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-decision",
+          "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+          "resolution": "continue to final-regression with accepted risk"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 8,
+      "question": 0,
+      "issueLog": 21
+    },
+    "tokenMetrics": {
+      "input": 1277608,
+      "output": 54265,
+      "cacheRead": 1382144,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 67,
+      "durationMs": 1479018,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 7484
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7372
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 15417
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 145053
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 15765
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 156550
+        },
+        {
+          "phase": "implement",
+          "durationMs": 101899
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 457374
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 256936
+        },
+        {
+          "phase": "acceptance-review",
+          "durationMs": 315168
+        }
+      ]
+    },
+    "tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/337-repair-stale-evidence-ledger/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-rewind-test-evidence.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/stale-test-evidence-refresh.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/step-transition-policy.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-store.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/final-regression.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/repair-state-identity.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/rewind-test-evidence.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "164ba3d3de9bc6dd772b6f06f2172ef13ea4e664ed2a9d0a134cfa92a6c5968e"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-rewind-test-evidence.js",
+            "fingerprint": "21e7c6edf213d25230a3c7ad54fd06d6917e60453d79946235f88aee77de34bc"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/stale-test-evidence-refresh.js",
+            "fingerprint": "ad6cb8ac6feb878a46f7c96f38baa655ab306f5495ca7cac5fcdb7c8c943f920"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "9bd5ab755a2c1f92ff2cc0491c7f729e47aa782950ba934c4fd1f69ba57a6a66"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "3179a0102814bac7b70b146cda9f972a9585a5a04e57b7423e380c42dad6742a"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js",
+            "fingerprint": "e651f2ba7c91696641ea8aca4393eb693149eab4c821f0def3173bd9d12c892b"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "fingerprint": "cde4bb3bb75919cb5a04e0b90e846b6d9e4abf22f33740b25655da622fe9e36d"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression.test.js",
+            "fingerprint": "eead9cc5da5e214e69ee458e06c3def6aec73f49a9687a7f06964021c1f44526"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/repair-state-identity.test.js",
+            "fingerprint": "de635b35171c1bee01cbece3d8db0c9c5dafdb18a4653f4e73a854a61d09dcb8"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "3b53cf78e3abe659f9d8d0cfdb8f8fb5381a20c0d5ee677124f03f039cadf4b3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/rewind-test-evidence.test.js",
+            "fingerprint": "845e0abb859a393e26b5c1847d06380621dfd2ecf0ccfd858b21442db466a712"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "a644cc8560f390decf059e32137e290c0e1e748a7819b2f12ed389e22d670ada"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "88716647d69d9feff059c597fef718cca994034dd6fba51cf292f28f8f949378"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "fingerprint": "e38e0e105e1b24ca4fc2c4911e8c4ca83bd66315dbcdb1d47d3652fff4f251ab"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "164ba3d3de9bc6dd772b6f06f2172ef13ea4e664ed2a9d0a134cfa92a6c5968e"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-rewind-test-evidence.js",
+            "fingerprint": "21e7c6edf213d25230a3c7ad54fd06d6917e60453d79946235f88aee77de34bc"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/stale-test-evidence-refresh.js",
+            "fingerprint": "ad6cb8ac6feb878a46f7c96f38baa655ab306f5495ca7cac5fcdb7c8c943f920"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "9bd5ab755a2c1f92ff2cc0491c7f729e47aa782950ba934c4fd1f69ba57a6a66"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "3179a0102814bac7b70b146cda9f972a9585a5a04e57b7423e380c42dad6742a"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js",
+            "fingerprint": "e651f2ba7c91696641ea8aca4393eb693149eab4c821f0def3173bd9d12c892b"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "fingerprint": "cde4bb3bb75919cb5a04e0b90e846b6d9e4abf22f33740b25655da622fe9e36d"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression.test.js",
+            "fingerprint": "eead9cc5da5e214e69ee458e06c3def6aec73f49a9687a7f06964021c1f44526"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/repair-state-identity.test.js",
+            "fingerprint": "de635b35171c1bee01cbece3d8db0c9c5dafdb18a4653f4e73a854a61d09dcb8"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "3b53cf78e3abe659f9d8d0cfdb8f8fb5381a20c0d5ee677124f03f039cadf4b3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/rewind-test-evidence.test.js",
+            "fingerprint": "845e0abb859a393e26b5c1847d06380621dfd2ecf0ccfd858b21442db466a712"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "a644cc8560f390decf059e32137e290c0e1e748a7819b2f12ed389e22d670ada"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "88716647d69d9feff059c597fef718cca994034dd6fba51cf292f28f8f949378"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "fingerprint": "e38e0e105e1b24ca4fc2c4911e8c4ca83bd66315dbcdb1d47d3652fff4f251ab"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/337-repair-stale-evidence-ledger/tests/.raw/final-regression-attempt-002.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "b1c913fa71b86a60bafac8254993ccde8f624c66425ed84c4e3339b3973b8fa9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/acceptance-review.json",
+            "fingerprint": "f4cbdd3b62c86bc2ca4a3b96550514f145751748266d0ebace419f61994b5756"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/draft-coverage-repair.json",
+            "fingerprint": "ecbab6d1fcae2c3fb2153796f2ccb9c31db5dfc7c32a5a82cb2924336a84348c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/draft-coverage-triage.json",
+            "fingerprint": "2e16b15300290de86609e1496435ca935a000a27b808f08cd6a95b1b64b4bbcd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/draft-questions-repair.json",
+            "fingerprint": "9063ecf2d07f57276230c6eca3c55e4d4e5affa52693d7590653943ba699f651"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/draft-questions-triage.json",
+            "fingerprint": "ad6aca223e55423c833efa68dedaebc3342a3e4682e1a5ec5bf890762e9e3795"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/draft-review-coverage.json",
+            "fingerprint": "e77a9937ae7d35c804edc26de34d29c760bce099f829a1578ef4634197a4ceea"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/draft-review-questions.json",
+            "fingerprint": "a028e7a4b6c56f955429cb4d0a1810b741a8a915895d5501ad73522d9e56856f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/draft.json",
+            "fingerprint": "f807a6ac2b6b49e01e80ed0f94e39c389874e16a06fe29af94a119864ac99f56"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/file-map.json",
+            "fingerprint": "dc8b2212a178bf73c00b225cf2b1f98bae3bd126401be2059c738a3093baee4b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/flow-findings.json",
+            "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/impl-gate-result.json",
+            "fingerprint": "11e0c72cdc8ed7e3119d2af3ff487efeee8da1d08b3830fccc64757aecb04474"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/impl-repair.json",
+            "fingerprint": "22e43dde9858924ea33b187a7031764f1feecfb258b78c743ae95c0ac0113746"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/impl-review.json",
+            "fingerprint": "291a1a2f6b67f0ccd69c55147526c5142f6b4f1e2bdb3414a84ee554fe8df3ab"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/impl-triage.json",
+            "fingerprint": "4e0ab898c0894b1716cba2af7649c8b22354ffe8902c69b6b81161e411a2d972"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/issue.md",
+            "fingerprint": "708bc667b9dfd5e5d3bdd9b5e153e57a4b38a6ed648cd758346f1c7118b20e6d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "79cbe801e5ef7fa0f4b35158c72f80357810d13b891ce1b2ae786b85a5696f16"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-001.json",
+            "fingerprint": "eb755212598e9a16ed4db98626aee7aa8c6b5658a2ef9d876449b42b6a2fea3b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-002.json",
+            "fingerprint": "7339d13678945755eec95b3cf2d845d803012fbe0f81c84373045d5bbdeb552b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-003.json",
+            "fingerprint": "7dc477f42800835757e39560fe23af456f82822c17da06430fed5efb37532c44"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-004.json",
+            "fingerprint": "7fd1bef10d7b7b9b90532ed1e6caf7594df80f9ba43b6d93be1cd6ad7a5f1894"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-005.json",
+            "fingerprint": "9a8437a23abdc3419a432860ea36a9c4d100dce6b0806cf5c6107b1d1a410dc0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-006.json",
+            "fingerprint": "1c4fe5539c53d2994212fe055c0cd7516bd19ce412ed87c83c886c8fb1c9d9dd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/repair-fingerprint.json",
+            "fingerprint": "cfb66cdb44198bc267c3b44cc4cb99c0a8b8f388bce0fd26d712cd730ee3ad47"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/retro.json",
+            "fingerprint": "bb342ae2686a8c666f866dc091740d44f52fdfc075d1b0aa5dab7e276868399d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0d65080fdb148fd362e4194f61b2378b635816032b1de081989a671e9b440849.json",
+            "fingerprint": "9f1ba9da5193d347932df48c53a272c8602ddb059c2bec357d010632c2b0c75f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0e87d57eb80fd67c3830c5662e59719cd65f66ae9608553f8838fc28fb2bb0a8.json",
+            "fingerprint": "f1bb9a01b0535590b1c9d258b4d540f78a13c1ed2c88109ba0e2d31adc8ad5c3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0e90453472f06f9ed8ebc89385d95b14fd199315a5181ec94d607c39731f0489.json",
+            "fingerprint": "692e341ff05e75041272d9b570014ae0ddf0e89c7399a63977ffad193927fe3a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/115287c646374315f2b74d7af073d5d627658e049a3828c64d08608026b7ee5b.json",
+            "fingerprint": "6b64014da0b5582e9c4563a336ef949ba20c2a509f2c664bfd980f683bc1186b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/1885908ade752b225e43fd8dec3879a8fad3e6eec470e5faba3596d61fe797ec.json",
+            "fingerprint": "0c78d09a55ced1de7506bb8fb5813ddcccf405c6d8166c9c64b0a0a95061fd6e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/26b93961ccda222823a63443a6fae7afc0f758822b8ebb6191dfb316f7e400da.json",
+            "fingerprint": "1954b28522ec16a6bf9e3148b0f1a4b95a4faeaa1a9a9caad883abc3e0d70096"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/49cb1c6c14c26c60285ce5d0b0ca3198738d557bd31705b67f5695e95acc9918.json",
+            "fingerprint": "cd373aa5cd47c18d7c1a2c4820e4920563ae4dfd7aa893a3641e3deb25f01518"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/7166533cd14e07f501ce19f9ab3d208146ad4b3b2fdfbff19d96acc37dd3498b.json",
+            "fingerprint": "ae6c72ad3a063418305a1f4473bc072f19b251918dd099b21952ede2eea6dd79"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/749c462eaee7167d8ffbd27b3147c55086a635d9e2c60388ed13c8513c377717.json",
+            "fingerprint": "30409c2f5b7f1fc1e683b8bc51065be39013cfedf9c829d70543158546ef4434"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/a02065296500f2824e1a5909040194520e2f5b92fc824d3c510b6ba0ed99e4be.json",
+            "fingerprint": "864a31c0ab46b13813038e2b5d35ff094cd6a65eba869f55adfdb0f2e6683958"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/a8c434c9ca9e33591e82d2de6f2802b626c48ef38e815d2f337aa1632265cad9.json",
+            "fingerprint": "c8f6f1c09ac7a9ee03774a37bc8ad35bbe19ec1b2b6882cdb1bcf6e2bfb77a90"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/b37be4f9d069508e1bcdefacb87977de776845602877ed40add991b92b562495.json",
+            "fingerprint": "ec0daf622144e064dee7fa6b5c5e3f07d8737f5e31433061315177da1f234803"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/badbb56eb7d80bfa8f66c35e955db923ded6b1f33978537aec6504a33590ca32.json",
+            "fingerprint": "82d624bb895a89add9da1f5a0b4af96a9d63cd6b8feaca920fed721479b1728d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/c6ee57164a370c55a5a13152234b308da9c813806c4fe8bdb5cb2bfe32c22df7.json",
+            "fingerprint": "ef06927c72903445ce7c9bfc13589e4205a8d25f29d9661663206ff91d95808c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/ce3a1191889d3463a5dab634f6ae8cdaa3b929358de99e0dbc3b95a7a6058551.json",
+            "fingerprint": "672d346515dbd99ca4a232eea9e94c1f1e7df9ae23e4321316a4e7c0c820c2d9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/d168395678762e1283e26f2dbea39014d101548c640347e907ba7cf2217a4ec4.json",
+            "fingerprint": "fa4cbde052345baf8d42fba95f7a5a4277259e4f18477b2cea6e3d297c1ec479"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/d53c1b33fdb98f86291f90083270e63d1650f322ca9c45f851a6dbbcaa4e5c09.json",
+            "fingerprint": "4d83f5dc3c050943af3b9d6204de3e71a76267f3f17aa9097dc6f8f4b99612e6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/da1bb6c404d06e710469f55faebb026aa4d1e5416069d4f7a1628eee8046bad9.json",
+            "fingerprint": "962b766462b406185bcfd693d9fa145f19cf104339c0c06c6a2303aff873fa52"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/e29c922188275a600d938b6eac9780de281fc33de80ae23661da01a358b027b0.json",
+            "fingerprint": "ecbec7637534920be90c1c49dcf56737af9f86bee8eadc8eb53026dfd6cc0b11"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/e9bed8486aa2da9ce0799a3825fab628fd683d017505716a4aea127178cb0f7b.json",
+            "fingerprint": "b08e221725ac30ae1783a43e4bdec8be65a6a300e9e5289cac41d5d3d936ad6b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/eb05eaff7d9d4abbeec97f20e79d6af54424500296d8ed1690d1591b4a655139.json",
+            "fingerprint": "d34f22a02cae086e5488d862a2f8c693a5fcb89783d9b35704f9f5de372c067b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/edcaa7b1e337019c864e53af696ad8dfe53ea32eff6f084bd18b9f4ed6352b41.json",
+            "fingerprint": "e62a516e70fff00c28a1fd1ac838677f9bbcff8c8baf9ebe6a58d8bfd5f5f905"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/f4f480a7e22cdf0facf548bdf4840a9cfdbfa78f2a7c41174481b3a2662d0919.json",
+            "fingerprint": "d5832dfcd7e7b97106e81dc55cd792b74b9e1c3a7f23a754e5a706fa59fd5a7e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "fe59b7f9cbba5368b177f475bb9dda14625572e4d96e2b633cb9727abdb4ae99"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "9a35cf895dcff6ce9c544bdc46e5395b83aafecee5e077d7f9011beb11d11206"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-001.json",
+            "fingerprint": "c92d35305465e087bcd922bba62b92b8b32fb754de235b0c884c84f8b654002a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-001.md",
+            "fingerprint": "2851178f63f50cf0a1ad19043d46e69d3b21773c164bb65ecc00c142a8050974"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-002.json",
+            "fingerprint": "2c7fcd8ac07b94eea4e32a17d077e794533fb8da95498a789770ebcd8327c7a7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-003.json",
+            "fingerprint": "e0d48357fe6fad0a07ef8a4369ba5d03ee590fe20c06d8aeb21115d5d7f11f92"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-003.md",
+            "fingerprint": "c429211705782bf3b37f1a950da4f956f27b2d291c81f196cbea906ceb7cadbd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-004.json",
+            "fingerprint": "a0a5767af7f0939f09bd50d3de4c8ae973bdc0e6946dc19d5f69722199177e01"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-004.md",
+            "fingerprint": "af5e213281bb4a8da7d1a74261640e884deba4d170e772d253a45ed5e3b943c6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-005.json",
+            "fingerprint": "2b12eb3c2c03878a1757eaa44b83659fd0a5d473de98ff7be3a687854b207efc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-005.md",
+            "fingerprint": "1c3ab173483e7eaedd32fa2507445adfd78620ffed71799c632d9d39aaf95db9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-006.json",
+            "fingerprint": "68a46eb6fa651f7bd6a038b554c6afd8dea687047240a9b9e4eef412d03219dc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-006.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-007.json",
+            "fingerprint": "67d64395755494670f8b9915ea4b7433e9150509cc147194914d9c313936d513"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-007.md",
+            "fingerprint": "c2285f902abee343c8ff6c8366d2a6c56e3c0d66bd660776382b6e6005431522"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-008.json",
+            "fingerprint": "650eaa95ec6eed8e32098b2b7766a20fd90c8300049c4b9050dcc6058c43c5d1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-008.md",
+            "fingerprint": "7bad98892aca992913b2b18c5209a9f02a9beda9fa905aecbec17e07eef4b8a1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-009.json",
+            "fingerprint": "7edb98ba5e05b9ec8d18d64e8c79b384fb719abfd1e208009b452e71f80c8355"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-009.md",
+            "fingerprint": "d002e91025aac0d095317863270d474d678e7b0f65cede710e1d2eb5335e45ed"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-010.json",
+            "fingerprint": "cb185315e562d735ed885396e74cfb49b2851681bb69abaf217c1e25502265f5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-010.md",
+            "fingerprint": "63f733b9df95187133a273899b96f5af3e3a8dd5fd51c08eac392a02353dfc52"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-011.json",
+            "fingerprint": "5234b789d45429d5583a8cadbb302a81d1a465767422022523bdad7ee291adb5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-011.md",
+            "fingerprint": "3e8df6b79bb8022c4f1f6274da1db0ef30a657f7800b2fbd00e112b444810ab0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-012.json",
+            "fingerprint": "8c0bd44baabc57fb64a6e54fea8d60473e8fc793ade19035243dac1f48c74845"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-012.md",
+            "fingerprint": "7c8f80283d66f1fcb2a460dbbb863011a41126bf321a96caf78d5822e23c5729"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-013.json",
+            "fingerprint": "71d992d8c42afd53798fff0d801f1b6587ab4e831b3d629f5c711864327ea57a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-013.md",
+            "fingerprint": "8f9ba2b5a3ab9e2ef4e8a071eccb78a274bce39156f7549a61555401b0c11786"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/spec-attempt-001.json",
+            "fingerprint": "49710739802f42f98a12d85d993a47c7958778db29b82a335b452572dffc2f5f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-001.json",
+            "fingerprint": "692c6333d1df85b75795818bdcd1480c607d4b6f8638631e13d2cbcc7994d847"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-001.md",
+            "fingerprint": "4b480792896b385598f3a7df56a75af54bef63ac456e53a1d3bfa6147100bc5b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-002.json",
+            "fingerprint": "a6e30db790591e01d8008d9ce5d7f4687fa487c37ec03dde17e8b58d726d124f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-002.md",
+            "fingerprint": "9a651b7bbe0df7e3d98df73dc5369058005bf6bf10776fb33c155ef57aedbadf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-003.json",
+            "fingerprint": "006e7c9c22b44289ec1e942600bba9ff1ce1fe3ef39498844509dd9d7ee1d8f2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-003.md",
+            "fingerprint": "e8c234530de98ccbd9135b99983877a574cf2315258f278268df3cef83c15731"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-004.json",
+            "fingerprint": "0ae5444bf85f3cb0027737c6df7ce3d999b899307230a9c72941751ce0e8907d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-004.md",
+            "fingerprint": "ee82e0517793aa1a5f95107508eedf1ce6c303934a9935819db32afe6deec6e3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-005.json",
+            "fingerprint": "e998417d83760fb38fdf159cc25799f2294eacf222eb890c3fff8c9935b017ab"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-005.md",
+            "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-006.json",
+            "fingerprint": "663858755cfaa8a1fc4b29ae73637262d469c00de597949d2c024e0afba25c51"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-006.md",
+            "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-007.json",
+            "fingerprint": "98faffcd81617f3353c992b4acbb480206c360ddab6533797cf01ad1b2fe05a7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-007.md",
+            "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-008.json",
+            "fingerprint": "0d76f170d2497c287226e2c26033618257bab0cf54b53a285905dd1eaf562327"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-008.md",
+            "fingerprint": "0bb773223763d5fefba8554fbeaacf51f634a23927fc3e2eb88055b8fb063bbd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-009.json",
+            "fingerprint": "fc2cce989ecfbb1342a517b50e477080ad2a11d84381686448451e573a90d5b2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-009.md",
+            "fingerprint": "25ceed2eee15ce5e2c40269549b6caf3781fe85e16dfb7718fc8306dedcb2345"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-010.json",
+            "fingerprint": "bc0179a89e2871ecdd896868f5ace1f7ed863e16d6f17d378cc4537f07ddaef2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-010.md",
+            "fingerprint": "61e15534947312479075c4ba7328faa6edee9e610ba9c2f5e8c54a5ac720e0a7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "e7724e05de77094cf9ee6fda35bc24dcd387ab960776e237f63d303a2815ec67"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "98535410b8a6b4fd497a609e212295216307ba079ff7ceb5187075b2e592f915"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+            "fingerprint": "4d2eccde3415046341bc2ba82d516a449b8bace3bbad804dcbc03916e62aeffe"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "877c74fa55bbd35bfff92294f311af59ace19f8f80956f92f6d0f28e951ef9c0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/1ca9e9f9947bfc374f292454.json",
+            "fingerprint": "92c115121bc7b1605dee7ae1be75144ac4c8d884df3ca184ec79cd76df3030fd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/22bd916e92021e8998ffe54a.json",
+            "fingerprint": "c6d5171b97e2c5f3c790e73016e9c5edb6f00d912ba43aea822e15d259d8ceef"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "166adbfa23820f51e97ad82c232f8db298995f4c6d9c7066f964c99e00c89d39"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "1dd626ad2fa4f653e72d200f31c6a426ee2e5554a431ad53189ee5b668ec7831"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/4a4a21c9651eaa81645f4657.json",
+            "fingerprint": "e058d756316653827e9ac9af1a61a43a53d3efdd91585a1892ebb709ad4e19f6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "52640f14aa5f59df6fe0cad6fc28adedeaa9687707f2ff79f3b5c2f7fc11d4a1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "677f4275251e27df2d9428f6391b67de6f40404320ad9c8439a1830871b533af"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "28b5b0438525769f719274cde6dd214e7a4275eab11f7f4a6a168335ed5348f3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "05bb9f8cab1bc74cab0d5275048f4847ea08fab9c7b1ede95ad0ed4b3711da53"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "db83e03230e5263369387be0194dcacc8aa7e93c2e8c5f2974336d77f345827a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "8539cf7ba34007a877c8385d95723dc45a841771f8c4dcc8b4f244ba006b5109"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/aef895662887e4f149c8590c.json",
+            "fingerprint": "bd49815070f6c87f430f4f4a70c21fe9eb6568fffbd1a5206149f6b81d10ae6a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "5c6e9f8a4608f9cef0b4d814a480bcce4b0866220fe4ad0ff986928e8abce5b5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "cc366e5ceb7789194c954fd46a1b0f9bf3ce687f7d73cc5cc94ca1be69e1bb6b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "d88034ab7b4469d1b27b0efaa502177fff769c2d295bda90d6303f615baa1dcd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "c6961aa7d9d2db7fc2265ad1ea7a9d2ea7c1a4dd63b1feccd3a98c1a7d98963d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/e008a2408f21c90d08355efa.json",
+            "fingerprint": "5f04b59c94d067894e5dec3c6b28e89ea11f6743d06fbceea4e4ffad341ea641"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/e21ecad3cb42be772a13b331.json",
+            "fingerprint": "269b19a2fbec24ee35c29210880fc530b4c7968344d4e12be945a7a40e8869da"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/ef2642efce67aede82e38688.json",
+            "fingerprint": "b22cd6254ec817f58d053cae9bb1a9a0279fd61a79155101aba378e4baac6817"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/review.md",
+            "fingerprint": "8f9ba2b5a3ab9e2ef4e8a071eccb78a274bce39156f7549a61555401b0c11786"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/scenario-validity-result.json",
+            "fingerprint": "fe6f823590a3d85d8d3fbb71476884bbe37e56c697ca0a9d97fee1c052dd2afb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/spec-review.json",
+            "fingerprint": "9bab050f0dfcab915eed8e39debca1c24dac46134808a6ec1d798583cbffd252"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/spec.json",
+            "fingerprint": "3aa27a61b6f3063623a91831ebd8c74619363af2a2603477e9ff2e8b6602ef2a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/spec.md",
+            "fingerprint": "cefa8a46df1712c0f6d240a139f7c9eeb6b47898b8b259e8c0b6550945a37e9e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/tasks/T-1.md",
+            "fingerprint": "5172add79b1a611460d103537fbdd54121cb111e95fe0ff0893e8e992897efea"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/tasks/T-2.md",
+            "fingerprint": "2adaf254e27ac25eecca4a6b87a9e7d9fef946605017a0474879fd4d320033ca"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/test-coverage.json",
+            "fingerprint": "61190de173c91fa1dea370079007081cb5b6a82a8dfbf4faa870b53021ece4ce"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/test-execute-result.json",
+            "fingerprint": "bc7ec4fcb20ea3917646cb66747fb222f248fadf656820d326ecc5785f47b32a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/test-result-review.json",
+            "fingerprint": "39a0e6fb539a5e482dfe161d62cea2a39484f6ade5d02b2652ea8fbb3d4808a0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/test-result-review.md",
+            "fingerprint": "894391990cf2b04896ed584d2ef1dac79083a15d644d5d6388697239200e5f00"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/test-review.json",
+            "fingerprint": "9954bf9ba85beb9f691df135169f22cde9c46c1754f835bfac8d838205b4d8cb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/test-review.md",
+            "fingerprint": "61e15534947312479075c4ba7328faa6edee9e610ba9c2f5e8c54a5ac720e0a7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/tests/.raw/scenario-validity.log",
+            "fingerprint": "cbfb64d74e8282e7431ef36a85343fee78412358a3d3faf919a5169cfbcc83af"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/tests/.raw/test-execution.log",
+            "fingerprint": "b934c296eeee2bda102b5a88316939383b34a65451e1a3d7ea4d422ad0314565"
+          },
+          {
+            "status": "added",
+            "path": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+            "fingerprint": "ce186e658b66e1f010ad465ca63ca9c3657bd182fb279a4ef0e24d568bdc52b2"
+          },
+          {
+            "status": "modified",
+            "path": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+            "fingerprint": "ce186e658b66e1f010ad465ca63ca9c3657bd182fb279a4ef0e24d568bdc52b2"
+          },
+          {
+            "status": "added",
+            "path": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+            "fingerprint": "86f2f6a2e6021f92b4a23331a4a7ea2cba07919f42f11fb56366ec7bde68f4cc"
+          },
+          {
+            "status": "modified",
+            "path": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+            "fingerprint": "86f2f6a2e6021f92b4a23331a4a7ea2cba07919f42f11fb56366ec7bde68f4cc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/337-repair-stale-evidence-ledger/tests/standalone-test-environment.js",
+            "fingerprint": "d08f6843be83c2bf236d59838156498b25ae94a518bc7e2a30f3b7c5590ad346"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "164ba3d3de9bc6dd772b6f06f2172ef13ea4e664ed2a9d0a134cfa92a6c5968e"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-rewind-test-evidence.js",
+            "fingerprint": "21e7c6edf213d25230a3c7ad54fd06d6917e60453d79946235f88aee77de34bc"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/stale-test-evidence-refresh.js",
+            "fingerprint": "ad6cb8ac6feb878a46f7c96f38baa655ab306f5495ca7cac5fcdb7c8c943f920"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "9bd5ab755a2c1f92ff2cc0491c7f729e47aa782950ba934c4fd1f69ba57a6a66"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "3179a0102814bac7b70b146cda9f972a9585a5a04e57b7423e380c42dad6742a"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js",
+            "fingerprint": "e651f2ba7c91696641ea8aca4393eb693149eab4c821f0def3173bd9d12c892b"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "fingerprint": "cde4bb3bb75919cb5a04e0b90e846b6d9e4abf22f33740b25655da622fe9e36d"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression.test.js",
+            "fingerprint": "eead9cc5da5e214e69ee458e06c3def6aec73f49a9687a7f06964021c1f44526"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/repair-state-identity.test.js",
+            "fingerprint": "de635b35171c1bee01cbece3d8db0c9c5dafdb18a4653f4e73a854a61d09dcb8"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "3b53cf78e3abe659f9d8d0cfdb8f8fb5381a20c0d5ee677124f03f039cadf4b3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/rewind-test-evidence.test.js",
+            "fingerprint": "845e0abb859a393e26b5c1847d06380621dfd2ecf0ccfd858b21442db466a712"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "a644cc8560f390decf059e32137e290c0e1e748a7819b2f12ed389e22d670ada"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "88716647d69d9feff059c597fef718cca994034dd6fba51cf292f28f8f949378"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "fingerprint": "e38e0e105e1b24ca4fc2c4911e8c4ca83bd66315dbcdb1d47d3652fff4f251ab"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "b1c913fa71b86a60bafac8254993ccde8f624c66425ed84c4e3339b3973b8fa9"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/acceptance-review.json",
+            "fingerprint": "f4cbdd3b62c86bc2ca4a3b96550514f145751748266d0ebace419f61994b5756"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/draft-coverage-repair.json",
+            "fingerprint": "ecbab6d1fcae2c3fb2153796f2ccb9c31db5dfc7c32a5a82cb2924336a84348c"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/draft-coverage-triage.json",
+            "fingerprint": "2e16b15300290de86609e1496435ca935a000a27b808f08cd6a95b1b64b4bbcd"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/draft-questions-repair.json",
+            "fingerprint": "9063ecf2d07f57276230c6eca3c55e4d4e5affa52693d7590653943ba699f651"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/draft-questions-triage.json",
+            "fingerprint": "ad6aca223e55423c833efa68dedaebc3342a3e4682e1a5ec5bf890762e9e3795"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/draft-review-coverage.json",
+            "fingerprint": "e77a9937ae7d35c804edc26de34d29c760bce099f829a1578ef4634197a4ceea"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/draft-review-questions.json",
+            "fingerprint": "a028e7a4b6c56f955429cb4d0a1810b741a8a915895d5501ad73522d9e56856f"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/draft.json",
+            "fingerprint": "f807a6ac2b6b49e01e80ed0f94e39c389874e16a06fe29af94a119864ac99f56"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/file-map.json",
+            "fingerprint": "dc8b2212a178bf73c00b225cf2b1f98bae3bd126401be2059c738a3093baee4b"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/flow-findings.json",
+            "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/impl-gate-result.json",
+            "fingerprint": "11e0c72cdc8ed7e3119d2af3ff487efeee8da1d08b3830fccc64757aecb04474"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/impl-repair.json",
+            "fingerprint": "22e43dde9858924ea33b187a7031764f1feecfb258b78c743ae95c0ac0113746"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/impl-review.json",
+            "fingerprint": "291a1a2f6b67f0ccd69c55147526c5142f6b4f1e2bdb3414a84ee554fe8df3ab"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/impl-triage.json",
+            "fingerprint": "4e0ab898c0894b1716cba2af7649c8b22354ffe8902c69b6b81161e411a2d972"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/issue.md",
+            "fingerprint": "708bc667b9dfd5e5d3bdd9b5e153e57a4b38a6ed648cd758346f1c7118b20e6d"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "79cbe801e5ef7fa0f4b35158c72f80357810d13b891ce1b2ae786b85a5696f16"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-001.json",
+            "fingerprint": "eb755212598e9a16ed4db98626aee7aa8c6b5658a2ef9d876449b42b6a2fea3b"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-002.json",
+            "fingerprint": "7339d13678945755eec95b3cf2d845d803012fbe0f81c84373045d5bbdeb552b"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-003.json",
+            "fingerprint": "7dc477f42800835757e39560fe23af456f82822c17da06430fed5efb37532c44"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-004.json",
+            "fingerprint": "7fd1bef10d7b7b9b90532ed1e6caf7594df80f9ba43b6d93be1cd6ad7a5f1894"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-005.json",
+            "fingerprint": "9a8437a23abdc3419a432860ea36a9c4d100dce6b0806cf5c6107b1d1a410dc0"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-006.json",
+            "fingerprint": "1c4fe5539c53d2994212fe055c0cd7516bd19ce412ed87c83c886c8fb1c9d9dd"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/repair-fingerprint.json",
+            "fingerprint": "cfb66cdb44198bc267c3b44cc4cb99c0a8b8f388bce0fd26d712cd730ee3ad47"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/retro.json",
+            "fingerprint": "bb342ae2686a8c666f866dc091740d44f52fdfc075d1b0aa5dab7e276868399d"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0d65080fdb148fd362e4194f61b2378b635816032b1de081989a671e9b440849.json",
+            "fingerprint": "9f1ba9da5193d347932df48c53a272c8602ddb059c2bec357d010632c2b0c75f"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0e87d57eb80fd67c3830c5662e59719cd65f66ae9608553f8838fc28fb2bb0a8.json",
+            "fingerprint": "f1bb9a01b0535590b1c9d258b4d540f78a13c1ed2c88109ba0e2d31adc8ad5c3"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0e90453472f06f9ed8ebc89385d95b14fd199315a5181ec94d607c39731f0489.json",
+            "fingerprint": "692e341ff05e75041272d9b570014ae0ddf0e89c7399a63977ffad193927fe3a"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/115287c646374315f2b74d7af073d5d627658e049a3828c64d08608026b7ee5b.json",
+            "fingerprint": "6b64014da0b5582e9c4563a336ef949ba20c2a509f2c664bfd980f683bc1186b"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/1885908ade752b225e43fd8dec3879a8fad3e6eec470e5faba3596d61fe797ec.json",
+            "fingerprint": "0c78d09a55ced1de7506bb8fb5813ddcccf405c6d8166c9c64b0a0a95061fd6e"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/26b93961ccda222823a63443a6fae7afc0f758822b8ebb6191dfb316f7e400da.json",
+            "fingerprint": "1954b28522ec16a6bf9e3148b0f1a4b95a4faeaa1a9a9caad883abc3e0d70096"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/49cb1c6c14c26c60285ce5d0b0ca3198738d557bd31705b67f5695e95acc9918.json",
+            "fingerprint": "cd373aa5cd47c18d7c1a2c4820e4920563ae4dfd7aa893a3641e3deb25f01518"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/7166533cd14e07f501ce19f9ab3d208146ad4b3b2fdfbff19d96acc37dd3498b.json",
+            "fingerprint": "ae6c72ad3a063418305a1f4473bc072f19b251918dd099b21952ede2eea6dd79"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/749c462eaee7167d8ffbd27b3147c55086a635d9e2c60388ed13c8513c377717.json",
+            "fingerprint": "30409c2f5b7f1fc1e683b8bc51065be39013cfedf9c829d70543158546ef4434"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/a02065296500f2824e1a5909040194520e2f5b92fc824d3c510b6ba0ed99e4be.json",
+            "fingerprint": "864a31c0ab46b13813038e2b5d35ff094cd6a65eba869f55adfdb0f2e6683958"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/a8c434c9ca9e33591e82d2de6f2802b626c48ef38e815d2f337aa1632265cad9.json",
+            "fingerprint": "c8f6f1c09ac7a9ee03774a37bc8ad35bbe19ec1b2b6882cdb1bcf6e2bfb77a90"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/b37be4f9d069508e1bcdefacb87977de776845602877ed40add991b92b562495.json",
+            "fingerprint": "ec0daf622144e064dee7fa6b5c5e3f07d8737f5e31433061315177da1f234803"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/badbb56eb7d80bfa8f66c35e955db923ded6b1f33978537aec6504a33590ca32.json",
+            "fingerprint": "82d624bb895a89add9da1f5a0b4af96a9d63cd6b8feaca920fed721479b1728d"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/c6ee57164a370c55a5a13152234b308da9c813806c4fe8bdb5cb2bfe32c22df7.json",
+            "fingerprint": "ef06927c72903445ce7c9bfc13589e4205a8d25f29d9661663206ff91d95808c"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/ce3a1191889d3463a5dab634f6ae8cdaa3b929358de99e0dbc3b95a7a6058551.json",
+            "fingerprint": "672d346515dbd99ca4a232eea9e94c1f1e7df9ae23e4321316a4e7c0c820c2d9"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/d168395678762e1283e26f2dbea39014d101548c640347e907ba7cf2217a4ec4.json",
+            "fingerprint": "fa4cbde052345baf8d42fba95f7a5a4277259e4f18477b2cea6e3d297c1ec479"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/d53c1b33fdb98f86291f90083270e63d1650f322ca9c45f851a6dbbcaa4e5c09.json",
+            "fingerprint": "4d83f5dc3c050943af3b9d6204de3e71a76267f3f17aa9097dc6f8f4b99612e6"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/da1bb6c404d06e710469f55faebb026aa4d1e5416069d4f7a1628eee8046bad9.json",
+            "fingerprint": "962b766462b406185bcfd693d9fa145f19cf104339c0c06c6a2303aff873fa52"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/e29c922188275a600d938b6eac9780de281fc33de80ae23661da01a358b027b0.json",
+            "fingerprint": "ecbec7637534920be90c1c49dcf56737af9f86bee8eadc8eb53026dfd6cc0b11"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/e9bed8486aa2da9ce0799a3825fab628fd683d017505716a4aea127178cb0f7b.json",
+            "fingerprint": "b08e221725ac30ae1783a43e4bdec8be65a6a300e9e5289cac41d5d3d936ad6b"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/eb05eaff7d9d4abbeec97f20e79d6af54424500296d8ed1690d1591b4a655139.json",
+            "fingerprint": "d34f22a02cae086e5488d862a2f8c693a5fcb89783d9b35704f9f5de372c067b"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/edcaa7b1e337019c864e53af696ad8dfe53ea32eff6f084bd18b9f4ed6352b41.json",
+            "fingerprint": "e62a516e70fff00c28a1fd1ac838677f9bbcff8c8baf9ebe6a58d8bfd5f5f905"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-evidence/f4f480a7e22cdf0facf548bdf4840a9cfdbfa78f2a7c41174481b3a2662d0919.json",
+            "fingerprint": "d5832dfcd7e7b97106e81dc55cd792b74b9e1c3a7f23a754e5a706fa59fd5a7e"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "fe59b7f9cbba5368b177f475bb9dda14625572e4d96e2b633cb9727abdb4ae99"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "9a35cf895dcff6ce9c544bdc46e5395b83aafecee5e077d7f9011beb11d11206"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-001.json",
+            "fingerprint": "c92d35305465e087bcd922bba62b92b8b32fb754de235b0c884c84f8b654002a"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-001.md",
+            "fingerprint": "2851178f63f50cf0a1ad19043d46e69d3b21773c164bb65ecc00c142a8050974"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-002.json",
+            "fingerprint": "2c7fcd8ac07b94eea4e32a17d077e794533fb8da95498a789770ebcd8327c7a7"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-003.json",
+            "fingerprint": "e0d48357fe6fad0a07ef8a4369ba5d03ee590fe20c06d8aeb21115d5d7f11f92"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-003.md",
+            "fingerprint": "c429211705782bf3b37f1a950da4f956f27b2d291c81f196cbea906ceb7cadbd"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-004.json",
+            "fingerprint": "a0a5767af7f0939f09bd50d3de4c8ae973bdc0e6946dc19d5f69722199177e01"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-004.md",
+            "fingerprint": "af5e213281bb4a8da7d1a74261640e884deba4d170e772d253a45ed5e3b943c6"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-005.json",
+            "fingerprint": "2b12eb3c2c03878a1757eaa44b83659fd0a5d473de98ff7be3a687854b207efc"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-005.md",
+            "fingerprint": "1c3ab173483e7eaedd32fa2507445adfd78620ffed71799c632d9d39aaf95db9"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-006.json",
+            "fingerprint": "68a46eb6fa651f7bd6a038b554c6afd8dea687047240a9b9e4eef412d03219dc"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-006.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-007.json",
+            "fingerprint": "67d64395755494670f8b9915ea4b7433e9150509cc147194914d9c313936d513"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-007.md",
+            "fingerprint": "c2285f902abee343c8ff6c8366d2a6c56e3c0d66bd660776382b6e6005431522"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-008.json",
+            "fingerprint": "650eaa95ec6eed8e32098b2b7766a20fd90c8300049c4b9050dcc6058c43c5d1"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-008.md",
+            "fingerprint": "7bad98892aca992913b2b18c5209a9f02a9beda9fa905aecbec17e07eef4b8a1"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-009.json",
+            "fingerprint": "7edb98ba5e05b9ec8d18d64e8c79b384fb719abfd1e208009b452e71f80c8355"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-009.md",
+            "fingerprint": "d002e91025aac0d095317863270d474d678e7b0f65cede710e1d2eb5335e45ed"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-010.json",
+            "fingerprint": "cb185315e562d735ed885396e74cfb49b2851681bb69abaf217c1e25502265f5"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-010.md",
+            "fingerprint": "63f733b9df95187133a273899b96f5af3e3a8dd5fd51c08eac392a02353dfc52"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-011.json",
+            "fingerprint": "5234b789d45429d5583a8cadbb302a81d1a465767422022523bdad7ee291adb5"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-011.md",
+            "fingerprint": "3e8df6b79bb8022c4f1f6274da1db0ef30a657f7800b2fbd00e112b444810ab0"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-012.json",
+            "fingerprint": "8c0bd44baabc57fb64a6e54fea8d60473e8fc793ade19035243dac1f48c74845"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-012.md",
+            "fingerprint": "7c8f80283d66f1fcb2a460dbbb863011a41126bf321a96caf78d5822e23c5729"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-013.json",
+            "fingerprint": "71d992d8c42afd53798fff0d801f1b6587ab4e831b3d629f5c711864327ea57a"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-013.md",
+            "fingerprint": "8f9ba2b5a3ab9e2ef4e8a071eccb78a274bce39156f7549a61555401b0c11786"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/spec-attempt-001.json",
+            "fingerprint": "49710739802f42f98a12d85d993a47c7958778db29b82a335b452572dffc2f5f"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-001.json",
+            "fingerprint": "692c6333d1df85b75795818bdcd1480c607d4b6f8638631e13d2cbcc7994d847"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-001.md",
+            "fingerprint": "4b480792896b385598f3a7df56a75af54bef63ac456e53a1d3bfa6147100bc5b"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-002.json",
+            "fingerprint": "a6e30db790591e01d8008d9ce5d7f4687fa487c37ec03dde17e8b58d726d124f"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-002.md",
+            "fingerprint": "9a651b7bbe0df7e3d98df73dc5369058005bf6bf10776fb33c155ef57aedbadf"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-003.json",
+            "fingerprint": "006e7c9c22b44289ec1e942600bba9ff1ce1fe3ef39498844509dd9d7ee1d8f2"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-003.md",
+            "fingerprint": "e8c234530de98ccbd9135b99983877a574cf2315258f278268df3cef83c15731"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-004.json",
+            "fingerprint": "0ae5444bf85f3cb0027737c6df7ce3d999b899307230a9c72941751ce0e8907d"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-004.md",
+            "fingerprint": "ee82e0517793aa1a5f95107508eedf1ce6c303934a9935819db32afe6deec6e3"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-005.json",
+            "fingerprint": "e998417d83760fb38fdf159cc25799f2294eacf222eb890c3fff8c9935b017ab"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-005.md",
+            "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-006.json",
+            "fingerprint": "663858755cfaa8a1fc4b29ae73637262d469c00de597949d2c024e0afba25c51"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-006.md",
+            "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-007.json",
+            "fingerprint": "98faffcd81617f3353c992b4acbb480206c360ddab6533797cf01ad1b2fe05a7"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-007.md",
+            "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-008.json",
+            "fingerprint": "0d76f170d2497c287226e2c26033618257bab0cf54b53a285905dd1eaf562327"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-008.md",
+            "fingerprint": "0bb773223763d5fefba8554fbeaacf51f634a23927fc3e2eb88055b8fb063bbd"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-009.json",
+            "fingerprint": "fc2cce989ecfbb1342a517b50e477080ad2a11d84381686448451e573a90d5b2"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-009.md",
+            "fingerprint": "25ceed2eee15ce5e2c40269549b6caf3781fe85e16dfb7718fc8306dedcb2345"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-010.json",
+            "fingerprint": "bc0179a89e2871ecdd896868f5ace1f7ed863e16d6f17d378cc4537f07ddaef2"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-010.md",
+            "fingerprint": "61e15534947312479075c4ba7328faa6edee9e610ba9c2f5e8c54a5ac720e0a7"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "e7724e05de77094cf9ee6fda35bc24dcd387ab960776e237f63d303a2815ec67"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "98535410b8a6b4fd497a609e212295216307ba079ff7ceb5187075b2e592f915"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+            "fingerprint": "4d2eccde3415046341bc2ba82d516a449b8bace3bbad804dcbc03916e62aeffe"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "877c74fa55bbd35bfff92294f311af59ace19f8f80956f92f6d0f28e951ef9c0"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/1ca9e9f9947bfc374f292454.json",
+            "fingerprint": "92c115121bc7b1605dee7ae1be75144ac4c8d884df3ca184ec79cd76df3030fd"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/22bd916e92021e8998ffe54a.json",
+            "fingerprint": "c6d5171b97e2c5f3c790e73016e9c5edb6f00d912ba43aea822e15d259d8ceef"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "166adbfa23820f51e97ad82c232f8db298995f4c6d9c7066f964c99e00c89d39"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "1dd626ad2fa4f653e72d200f31c6a426ee2e5554a431ad53189ee5b668ec7831"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/4a4a21c9651eaa81645f4657.json",
+            "fingerprint": "e058d756316653827e9ac9af1a61a43a53d3efdd91585a1892ebb709ad4e19f6"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "52640f14aa5f59df6fe0cad6fc28adedeaa9687707f2ff79f3b5c2f7fc11d4a1"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "677f4275251e27df2d9428f6391b67de6f40404320ad9c8439a1830871b533af"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "28b5b0438525769f719274cde6dd214e7a4275eab11f7f4a6a168335ed5348f3"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "05bb9f8cab1bc74cab0d5275048f4847ea08fab9c7b1ede95ad0ed4b3711da53"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "db83e03230e5263369387be0194dcacc8aa7e93c2e8c5f2974336d77f345827a"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "8539cf7ba34007a877c8385d95723dc45a841771f8c4dcc8b4f244ba006b5109"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/aef895662887e4f149c8590c.json",
+            "fingerprint": "bd49815070f6c87f430f4f4a70c21fe9eb6568fffbd1a5206149f6b81d10ae6a"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "5c6e9f8a4608f9cef0b4d814a480bcce4b0866220fe4ad0ff986928e8abce5b5"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "cc366e5ceb7789194c954fd46a1b0f9bf3ce687f7d73cc5cc94ca1be69e1bb6b"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "d88034ab7b4469d1b27b0efaa502177fff769c2d295bda90d6303f615baa1dcd"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "c6961aa7d9d2db7fc2265ad1ea7a9d2ea7c1a4dd63b1feccd3a98c1a7d98963d"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/e008a2408f21c90d08355efa.json",
+            "fingerprint": "5f04b59c94d067894e5dec3c6b28e89ea11f6743d06fbceea4e4ffad341ea641"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/e21ecad3cb42be772a13b331.json",
+            "fingerprint": "269b19a2fbec24ee35c29210880fc530b4c7968344d4e12be945a7a40e8869da"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/ef2642efce67aede82e38688.json",
+            "fingerprint": "b22cd6254ec817f58d053cae9bb1a9a0279fd61a79155101aba378e4baac6817"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/review.md",
+            "fingerprint": "8f9ba2b5a3ab9e2ef4e8a071eccb78a274bce39156f7549a61555401b0c11786"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/scenario-validity-result.json",
+            "fingerprint": "fe6f823590a3d85d8d3fbb71476884bbe37e56c697ca0a9d97fee1c052dd2afb"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/spec-review.json",
+            "fingerprint": "9bab050f0dfcab915eed8e39debca1c24dac46134808a6ec1d798583cbffd252"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/spec.json",
+            "fingerprint": "3aa27a61b6f3063623a91831ebd8c74619363af2a2603477e9ff2e8b6602ef2a"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/spec.md",
+            "fingerprint": "cefa8a46df1712c0f6d240a139f7c9eeb6b47898b8b259e8c0b6550945a37e9e"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tasks/T-1.md",
+            "fingerprint": "5172add79b1a611460d103537fbdd54121cb111e95fe0ff0893e8e992897efea"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tasks/T-2.md",
+            "fingerprint": "2adaf254e27ac25eecca4a6b87a9e7d9fef946605017a0474879fd4d320033ca"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/test-coverage.json",
+            "fingerprint": "61190de173c91fa1dea370079007081cb5b6a82a8dfbf4faa870b53021ece4ce"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/test-execute-result.json",
+            "fingerprint": "bc7ec4fcb20ea3917646cb66747fb222f248fadf656820d326ecc5785f47b32a"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/test-result-review.json",
+            "fingerprint": "39a0e6fb539a5e482dfe161d62cea2a39484f6ade5d02b2652ea8fbb3d4808a0"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/test-result-review.md",
+            "fingerprint": "894391990cf2b04896ed584d2ef1dac79083a15d644d5d6388697239200e5f00"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/test-review.json",
+            "fingerprint": "9954bf9ba85beb9f691df135169f22cde9c46c1754f835bfac8d838205b4d8cb"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/test-review.md",
+            "fingerprint": "61e15534947312479075c4ba7328faa6edee9e610ba9c2f5e8c54a5ac720e0a7"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tests/.raw/scenario-validity.log",
+            "fingerprint": "cbfb64d74e8282e7431ef36a85343fee78412358a3d3faf919a5169cfbcc83af"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tests/.raw/test-execution.log",
+            "fingerprint": "b934c296eeee2bda102b5a88316939383b34a65451e1a3d7ea4d422ad0314565"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+            "fingerprint": "ce186e658b66e1f010ad465ca63ca9c3657bd182fb279a4ef0e24d568bdc52b2"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+            "fingerprint": "ce186e658b66e1f010ad465ca63ca9c3657bd182fb279a4ef0e24d568bdc52b2"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+            "fingerprint": "86f2f6a2e6021f92b4a23331a4a7ea2cba07919f42f11fb56366ec7bde68f4cc"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+            "fingerprint": "86f2f6a2e6021f92b4a23331a4a7ea2cba07919f42f11fb56366ec7bde68f4cc"
+          },
+          {
+            "path": "specs/337-repair-stale-evidence-ledger/tests/standalone-test-environment.js",
+            "fingerprint": "d08f6843be83c2bf236d59838156498b25ae94a518bc7e2a30f3b7c5590ad346"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "164ba3d3de9bc6dd772b6f06f2172ef13ea4e664ed2a9d0a134cfa92a6c5968e"
+          },
+          {
+            "path": "src/flow/lib/run-rewind-test-evidence.js",
+            "fingerprint": "21e7c6edf213d25230a3c7ad54fd06d6917e60453d79946235f88aee77de34bc"
+          },
+          {
+            "path": "src/flow/lib/stale-test-evidence-refresh.js",
+            "fingerprint": "ad6cb8ac6feb878a46f7c96f38baa655ab306f5495ca7cac5fcdb7c8c943f920"
+          },
+          {
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "9bd5ab755a2c1f92ff2cc0491c7f729e47aa782950ba934c4fd1f69ba57a6a66"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "fingerprint": "3179a0102814bac7b70b146cda9f972a9585a5a04e57b7423e380c42dad6742a"
+          },
+          {
+            "path": "src/lib/flow-store.js",
+            "fingerprint": "e651f2ba7c91696641ea8aca4393eb693149eab4c821f0def3173bd9d12c892b"
+          },
+          {
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "fingerprint": "cde4bb3bb75919cb5a04e0b90e846b6d9e4abf22f33740b25655da622fe9e36d"
+          },
+          {
+            "path": "tests/unit/flow/final-regression.test.js",
+            "fingerprint": "eead9cc5da5e214e69ee458e06c3def6aec73f49a9687a7f06964021c1f44526"
+          },
+          {
+            "path": "tests/unit/flow/repair-state-identity.test.js",
+            "fingerprint": "de635b35171c1bee01cbece3d8db0c9c5dafdb18a4653f4e73a854a61d09dcb8"
+          },
+          {
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "3b53cf78e3abe659f9d8d0cfdb8f8fb5381a20c0d5ee677124f03f039cadf4b3"
+          },
+          {
+            "path": "tests/unit/flow/rewind-test-evidence.test.js",
+            "fingerprint": "845e0abb859a393e26b5c1847d06380621dfd2ecf0ccfd858b21442db466a712"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "a644cc8560f390decf059e32137e290c0e1e748a7819b2f12ed389e22d670ada"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "88716647d69d9feff059c597fef718cca994034dd6fba51cf292f28f8f949378"
+          },
+          {
+            "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+            "fingerprint": "e38e0e105e1b24ca4fc2c4911e8c4ca83bd66315dbcdb1d47d3652fff4f251ab"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/337-repair-stale-evidence-ledger/tests/.raw/final-regression-attempt-002.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-2",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 2,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    test: cover pending recovery consumers\n    test: strengthen stale evidence recovery coverage\n    4 files changed, 875 insertions(+), 6 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 8\n    Q&A ......................... 0\n    issue-log ................... 21\n    agent calls ................. 67\n    input tokens ................ 1,277,608\n    output tokens ............... 54,265\n    cache-read tokens ........... 1,382,144\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1479.0s\n      draft-questions-review .... 7.5s\n      draft-coverage-review ..... 7.4s\n      draft-gate ................ 15.4s\n      spec-review ............... 145.1s\n      spec-gate ................. 15.8s\n      test-review ............... 156.6s\n      implement ................. 101.9s\n      impl-review ............... 457.4s\n      impl-gate ................. 256.9s\n      acceptance-review ......... 315.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 9  passed 9  failed 0 verdict=pass\n    raw_output: specs/337-repair-stale-evidence-ledger/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/337-repair-stale-evidence-ledger/tests/.raw/final-regression-attempt-002.log\n\n  Tasks (2/2)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (27 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/337-repair-stale-evidence-ledger/issue-log.json\n\n    Important (10 of 14)\n    - [draft-gate] Draft gate passed but preset-chain resolution emitted a non-blocking node-cli preset warning\n    - [test-review] Initial spec-local tests bypassed public recovery entrypoints and under-asserted lifecycle coverage\n    - [test-review] Second test review found malformed evidence expectations and rewind plus authority edge cases incomplete\n    - [test-review] Third test review found no public current-evidence path and no assertion excluding direct mutation ownership\n    - [test-review] Static test review exhausted after four executable coverage gaps remained\n    - [test-review] Review retry reset rejected uncommitted test repairs as unchanged identity\n    - [test-review] Changed-evidence review found pending-consumer and shared-coverage mapping gaps\n    - [spec-gate] test artifact validation failed: spec-local requirement tests failed: R4, R7, R9\n    - [impl-gate] Gate evidence exposed three spec-local failures: cross-entrypoint journal resume rejected matching authority, and nested Node suites inherited NODE_TEST_CONTEXT.\n    - [acceptance-review] Acceptance found the repair ledger tail behind the current fingerprint because post-gate test fixes had been re-executed without a new owned refresh transaction.\n    ... 4 important issue-log entries omitted\n\n    Recent Other (5 of 13)\n    - [test-execute] R9 exposed an outdated final-regression fixture without the v2 manifest or canonical persisted flow target, plus a Node version command affected by the parent test context.\n    - [spec-gate] The diff adds a JSON.stringify(toJSON()) equality comparison in ImplRepairTargetIdentity.equals; the same production comparison shape is also added in ImplRepairTransaction.equals, so the repeated transformation could be centralized loca...\n    - [impl-gate] fix: centralize repeated serialized value equality\n    - [spec-gate] The added ledgerCurrent check repeats the same JSON.stringify(toJSON()) equality shape used for manifestCurrent in the same method; a local equality helper could remove the duplicated transformation without changing ownership.; The added...\n    - [acceptance-decision] User explicitly selected accept_risk_and_continue for unresolved acceptance risk.\n    ... 8 other issue-log entries omitted"
+}

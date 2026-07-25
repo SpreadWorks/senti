@@ -48,6 +48,7 @@ import {
   makeFlowState,
   moveFlowToStep,
 } from "../../helpers/flow-setup.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 
@@ -949,12 +950,19 @@ test("acceptance-review rewinds stale fingerprint evidence to test execution", (
   writeFile(fixture.root, "src/demo.js", "export const demo = 'acceptance-repaired';\n");
   const state = flowStateAt("acceptance-review", {
     spec: fixture.specPath,
-    runId: null,
+    repairBaseline: previousFingerprint.baseline.toJSON(),
     request: "Verify repaired acceptance behavior.",
   });
+  const flowManager = new FlowManager({
+    root: fixture.root,
+    mainRoot: fixture.root,
+    inWorktree: false,
+  });
+  flowManager.create(state);
+  const activeState = flowManager.loadReadOnly();
   const context = buildAcceptanceReviewContext({
     root: fixture.root,
-    state,
+    state: activeState,
     diff: [
       "diff --git a/src/demo.js b/src/demo.js",
       "--- a/src/demo.js",
@@ -972,25 +980,17 @@ test("acceptance-review rewinds stale fingerprint evidence to test execution", (
   assert.equal(artifact.verdict, "blocked");
   assert.notEqual(artifact.repairFingerprint, previousFingerprint.hash);
 
-  const flowManager = {
-    load() {
-      return state;
-    },
-    mutate(mutator) {
-      mutator(state);
-      return state;
-    },
-  };
   const result = applyAcceptanceReviewResult({
     root: fixture.root,
     flowManager,
     artifact,
     evidenceRefresh: context.evidenceRefresh,
   });
+  const recoveredState = flowManager.loadReadOnly();
 
   assert.equal(result.evidenceRefresh.recovered, true);
-  assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
-  assert.equal(findStepById(state.steps, "acceptance-review").status, "pending");
+  assert.equal(findStepById(recoveredState.steps, "test-execute").status, "in_progress");
+  assert.equal(findStepById(recoveredState.steps, "acceptance-review").status, "pending");
   for (const relativePath of [
     "test-execute-result.json",
     "test-result-review.json",
@@ -1009,7 +1009,7 @@ test("integration gate rewinds stale fingerprint evidence before semantic evalua
   initGitRepo(fixture.root);
   writeJson(fixture.specDir, "file-map.json", { R1: ["src/demo.js"] });
   commitAll(fixture.root, "Create repository fixture");
-  prepareAcceptanceEvidence(fixture);
+  const previousFingerprint = prepareAcceptanceEvidence(fixture);
   commitAll(fixture.root, "Create integration gate fixture");
   const repairedSource = "export const demo = 'gate-repaired';\n";
   writeFile(fixture.root, "src/demo.js", repairedSource);
@@ -1035,21 +1035,22 @@ test("integration gate rewinds stale fingerprint evidence before semantic evalua
   fs.writeFileSync(testResultPath, `${JSON.stringify(testResult, null, 2)}\n`);
   const state = flowStateAt("impl-gate", {
     spec: fixture.specPath,
-    runId: null,
+    repairBaseline: previousFingerprint.baseline.toJSON(),
     request: "Verify repaired integration gate behavior.",
   });
+  const flowManager = new FlowManager({
+    root: fixture.root,
+    mainRoot: fixture.root,
+    inWorktree: false,
+  });
+  flowManager.create(state);
+  const activeState = flowManager.loadReadOnly();
   const staleEvidence = checkIntegrationTestArtifacts(
     fixture.root,
-    state,
+    activeState,
     "integration",
     "integration",
   );
-  const flowManager = {
-    mutate(mutator) {
-      mutator(state);
-      return state;
-    },
-  };
   assert.equal(typeof staleEvidence?.recover, "function", JSON.stringify(staleEvidence));
   const ctx = { flowManager };
   const result = staleEvidence.recover(ctx, {
@@ -1057,12 +1058,13 @@ test("integration gate rewinds stale fingerprint evidence before semantic evalua
     phase: "integration",
     specDir: fixture.specDir,
   });
+  const recoveredState = flowManager.loadReadOnly();
 
   assert.equal(ctx.gateEvidenceRefresh, true);
   assert.equal(result.result, "recovered");
   assert.equal(result.next, "test-execute");
-  assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
-  assert.equal(findStepById(state.steps, "impl-gate").status, "pending");
+  assert.equal(findStepById(recoveredState.steps, "test-execute").status, "in_progress");
+  assert.equal(findStepById(recoveredState.steps, "impl-gate").status, "pending");
   assert.equal(fs.existsSync(path.join(fixture.specDir, "test-execute-result.json")), false);
   assert.equal(fs.existsSync(path.join(fixture.specDir, "test-result-review.json")), false);
 });

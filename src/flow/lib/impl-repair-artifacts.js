@@ -4,7 +4,10 @@ import path from "node:path";
 import { flowLeafIdsBetween } from "../definition.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import { findStepById, flattenSteps } from "./step-tree.js";
-import { StepTransitionCommitIntent } from "./step-transition-policy.js";
+import {
+  ExplicitRecoveryTransition,
+  StepTransitionCommitIntent,
+} from "./step-transition-policy.js";
 import {
   REPAIR_DELTA_DIR,
   REPAIR_FINGERPRINT_MANIFEST_FILE,
@@ -57,6 +60,10 @@ function requireString(value, field) {
     throw new Error(`${field} must be a non-empty string`);
   }
   return value.trim();
+}
+
+function sameSerializedValue(left, right) {
+  return JSON.stringify(left.toJSON()) === JSON.stringify(right.toJSON());
 }
 
 function requireHash(value, field) {
@@ -368,12 +375,61 @@ export class TestEvidenceRefreshPurpose extends ImplRepairPurpose {
   }
 }
 
+export class ImplRepairTargetIdentity {
+  constructor(input = {}) {
+    this.runId = requireString(input.runId, "target.runId");
+    this.spec = normalizeRepairPath(input.spec);
+    this.hasIssue = Object.hasOwn(input, "issue") && input.issue != null;
+    this.issue = this.hasIssue ? Number(input.issue) : null;
+    if (this.hasIssue && !Number.isSafeInteger(this.issue)) {
+      throw new Error("target.issue must be an integer");
+    }
+    Object.freeze(this);
+  }
+
+  static fromState(state) {
+    return new ImplRepairTargetIdentity({
+      runId: state.runId,
+      spec: state.spec,
+      ...(Object.hasOwn(state, "issue") && state.issue != null
+        ? { issue: state.issue }
+        : {}),
+    });
+  }
+
+  equals(value) {
+    const other = value instanceof ImplRepairTargetIdentity
+      ? value
+      : new ImplRepairTargetIdentity(value);
+    return sameSerializedValue(other, this);
+  }
+
+  assertState(state) {
+    const observed = ImplRepairTargetIdentity.fromState(state);
+    if (!this.equals(observed)) {
+      throw new Error("impl-repair transaction target authority changed");
+    }
+    return state;
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      spec: this.spec,
+      ...(this.hasIssue ? { issue: this.issue } : {}),
+    };
+  }
+}
+
 export class ImplRepairTransaction {
   constructor(input = {}) {
-    if (input.version !== 1) throw new Error("impl-repair transaction version must be 1");
-    this.version = 1;
+    if (input.version !== 2) throw new Error("impl-repair transaction version must be 2");
+    this.version = 2;
     this.id = requireString(input.id, "id");
     this.sourceStep = requireString(input.sourceStep, "sourceStep");
+    this.target = input.target instanceof ImplRepairTargetIdentity
+      ? input.target
+      : new ImplRepairTargetIdentity(input.target);
     this.resetStepIds = Object.freeze(requireStringArray(input.resetStepIds, "resetStepIds", { allowEmpty: true }));
     if (new Set(this.resetStepIds).size !== this.resetStepIds.length) {
       throw new Error("impl-repair transaction resetStepIds must not contain duplicates");
@@ -409,11 +465,19 @@ export class ImplRepairTransaction {
     Object.freeze(this);
   }
 
+  equals(value) {
+    const other = value instanceof ImplRepairTransaction
+      ? value
+      : new ImplRepairTransaction(value);
+    return sameSerializedValue(other, this);
+  }
+
   toJSON() {
     return {
       version: this.version,
       id: this.id,
       sourceStep: this.sourceStep,
+      target: this.target.toJSON(),
       resetStepIds: [...this.resetStepIds],
       entry: this.entry.toJSON(),
       ledger: this.ledger.toJSON(),
@@ -467,10 +531,24 @@ export class ImplRepairTransitionIntent extends StepTransitionCommitIntent {
     const pending = state.implRepairTransaction == null
       ? null
       : new ImplRepairTransaction(state.implRepairTransaction);
-    if (pending && JSON.stringify(pending.toJSON()) !== JSON.stringify(this.transaction.toJSON())) {
+    if (pending && !this.transaction.equals(pending)) {
       throw new Error("a different impl-repair transaction is already pending");
     }
     state.implRepairTransaction = this.transaction.toJSON();
+    if (this.transaction.purpose instanceof TestEvidenceRefreshPurpose) {
+      delete state.acceptanceReview;
+    }
+  }
+
+  completeIn(state) {
+    if (state.implRepairTransaction == null) {
+      throw new Error("pending impl-repair transition intent is missing");
+    }
+    const pending = new ImplRepairTransaction(state.implRepairTransaction);
+    if (!this.transaction.equals(pending)) {
+      throw new Error("pending impl-repair transition intent changed before completion");
+    }
+    delete state.implRepairTransaction;
   }
 }
 
@@ -848,6 +926,236 @@ function planAdditionalRefreshInvalidations({
   });
 }
 
+class TestEvidenceRefreshTransitionAuthority extends ImplRepairPrecommitAuthority {
+  constructor({ root, specDir, transaction }) {
+    super();
+    this.root = path.resolve(root);
+    this.specDir = path.resolve(specDir);
+    this.transaction = transaction instanceof ImplRepairTransaction
+      ? transaction
+      : new ImplRepairTransaction(transaction);
+    Object.freeze(this);
+  }
+
+  assertTransition(state, transaction) {
+    if (!this.transaction.equals(transaction)) {
+      throw new Error("test evidence refresh transition transaction changed");
+    }
+    transaction.target.assertState(state);
+    const observed = buildRepairFingerprint({
+      root: this.root,
+      specPath: transaction.target.spec,
+      state,
+    });
+    if (observed.hash !== transaction.currentManifest.hash) {
+      throw new Error("test evidence refresh material authority changed");
+    }
+    const journalPath = path.join(this.specDir, REPAIR_TRANSACTION_FILE);
+    if (
+      !fs.existsSync(journalPath)
+      || !transaction.equals(readJson(journalPath))
+    ) {
+      throw new Error("test evidence refresh journal authority changed");
+    }
+  }
+
+  assertEffects(state, transaction) {
+    this.assertTransition(state, transaction);
+  }
+}
+
+function testEvidenceRefreshTransition(state, transaction) {
+  const changes = plannedRepairStepChanges(state, transaction.resetStepIds);
+  if (changes.length === 0) {
+    throw new Error("test evidence refresh produced no lifecycle changes");
+  }
+  return new ExplicitRecoveryTransition({
+    stepId: changes[0].stepId,
+    currentStatus: changes[0].currentStatus,
+    requestedStatus: changes[0].requestedStatus,
+    entrypoint: "impl-repair-invalidation",
+    changes,
+  });
+}
+
+class CommittedImplRepairEffects {
+  constructor({ specDir, state, transaction }) {
+    this.specDir = path.resolve(specDir);
+    this.state = state;
+    this.transaction = transaction instanceof ImplRepairTransaction
+      ? transaction
+      : new ImplRepairTransaction(transaction);
+    Object.freeze(this);
+  }
+
+  reconcileJournal() {
+    const deltaPath = path.join(this.specDir, this.transaction.entry.changedPathsRef);
+    const deltaCurrent = fs.existsSync(deltaPath)
+      && this.transaction.delta.digest === new RepairDeltaArtifact(readJson(deltaPath)).digest;
+    const ledgerPath = path.join(this.specDir, IMPL_REPAIR_ARTIFACT_FILE);
+    const ledgerCurrent = fs.existsSync(ledgerPath)
+      && sameSerializedValue(readImplRepairLedger(this.specDir), this.transaction.ledger);
+    const manifestPath = path.join(this.specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
+    const manifestCurrent = fs.existsSync(manifestPath)
+      && sameSerializedValue(
+        readRepairFingerprintManifest(this.specDir),
+        this.transaction.currentManifest,
+      );
+    const lifecycleCurrent = this.transaction.resetStepIds
+      .filter((stepId) => stepId !== "impl-repair")
+      .every((stepId) => {
+        const step = findStepById(this.state.steps || [], stepId);
+        return step?.status === (stepId === "test-execute" ? "in_progress" : "pending");
+      })
+      && (
+        !(this.transaction.purpose instanceof TestEvidenceRefreshPurpose)
+        || !Object.hasOwn(this.state, "acceptanceReview")
+      );
+    const invalidationsCurrent = this.transaction.invalidations.every(
+      (record) => !fs.existsSync(path.join(this.specDir, record.path)),
+    );
+    const durableMarkers = [
+      deltaCurrent,
+      ledgerCurrent,
+      manifestCurrent,
+      lifecycleCurrent,
+    ];
+    if (durableMarkers.every(Boolean) && invalidationsCurrent) {
+      fs.rmSync(path.join(this.specDir, REPAIR_TRANSACTION_FILE), { force: true });
+      return {
+        entry: this.transaction.entry.toJSON(),
+        invalidations: this.transaction.entry.invalidations.map((record) => record.toJSON()),
+      };
+    }
+    if (durableMarkers.some(Boolean)) {
+      throw new Error("completed impl-repair effects are partially committed");
+    }
+    return null;
+  }
+}
+
+function commitOwnedTestEvidenceRefresh({
+  root,
+  state,
+  specDir,
+  flowManager,
+  transaction,
+  faultInjector = null,
+}) {
+  if (!flowManager || typeof flowManager.updateStepStatus !== "function") {
+    throw new Error("test evidence refresh requires the impl-repair lifecycle authority");
+  }
+  const journal = transaction instanceof ImplRepairTransaction
+    ? transaction
+    : new ImplRepairTransaction(transaction);
+  journal.target.assertState(state);
+  const transactionPath = path.join(specDir, REPAIR_TRANSACTION_FILE);
+  if (fs.existsSync(transactionPath)) {
+    if (!journal.equals(readJson(transactionPath))) {
+      throw new Error("a different impl-repair transaction journal is pending");
+    }
+  } else {
+    writeJson(transactionPath, journal.toJSON());
+  }
+
+  const pending = state.implRepairTransaction == null
+    ? null
+    : new ImplRepairTransaction(state.implRepairTransaction);
+  if (pending && !journal.equals(pending)) {
+    throw new Error("a different impl-repair transaction is already pending");
+  }
+  let committedState = state;
+  if (!pending) {
+    const authority = new TestEvidenceRefreshTransitionAuthority({
+      root,
+      specDir,
+      transaction: journal,
+    });
+    flowManager.updateStepStatus(
+      testEvidenceRefreshTransition(state, journal),
+      {
+        taskId: null,
+        expectedOriginal: state,
+      },
+      new ImplRepairTransitionIntent(journal, authority),
+    );
+    committedState = typeof flowManager.loadReadOnly === "function"
+      ? flowManager.loadReadOnly()
+      : flowManager.load();
+  }
+  journal.target.assertState(committedState);
+  if (
+    committedState.implRepairTransaction == null
+    || !journal.equals(committedState.implRepairTransaction)
+  ) {
+    throw new Error("owned test evidence refresh intent is not committed");
+  }
+  return commitOwnedImplRepairEffects({
+    root,
+    state: committedState,
+    specDir,
+    flowManager,
+    transaction: journal,
+    precommitAuthority: new TestEvidenceRefreshTransitionAuthority({
+      root,
+      specDir,
+      transaction: journal,
+    }),
+    faultInjector,
+  });
+}
+
+function resumeJournaledTestEvidenceRefresh({
+  root,
+  state,
+  specDir,
+  flowManager,
+  expectedPreviousFingerprint,
+  expectedCurrentFingerprint,
+  faultInjector,
+}) {
+  const transaction = new ImplRepairTransaction(
+    readJson(path.join(specDir, REPAIR_TRANSACTION_FILE)),
+  );
+  if (!(transaction.purpose instanceof TestEvidenceRefreshPurpose)) {
+    throw new Error("pending repair transaction is not a test evidence refresh");
+  }
+  transaction.target.assertState(state);
+  if (
+    expectedPreviousFingerprint
+    && transaction.entry.previousHash !== expectedPreviousFingerprint
+  ) {
+    throw new Error("pending test evidence refresh previous fingerprint changed");
+  }
+  if (
+    expectedCurrentFingerprint
+    && transaction.entry.currentHash !== expectedCurrentFingerprint
+  ) {
+    throw new Error("pending test evidence refresh current fingerprint changed");
+  }
+  const reconciled = state.implRepairTransaction == null
+    ? new CommittedImplRepairEffects({
+        specDir,
+        state,
+        transaction,
+      }).reconcileJournal()
+    : null;
+  const resumed = reconciled || commitOwnedTestEvidenceRefresh({
+    root,
+    state,
+    specDir,
+    flowManager,
+    transaction,
+    faultInjector,
+  });
+  return {
+    ...resumed,
+    previousFingerprint: transaction.entry.previousHash,
+    currentFingerprint: transaction.entry.currentHash,
+    invalidatedArtifacts: resumed.invalidations.map((record) => record.path),
+  };
+}
+
 export function completeTestEvidenceRefresh({
   root,
   state,
@@ -859,6 +1167,7 @@ export function completeTestEvidenceRefresh({
   additionalArtifacts = [],
   expectedPreviousFingerprint = null,
   expectedCurrentFingerprint = null,
+  faultInjector = null,
 }) {
   const lock = new RepairRunLock(specDir);
   lock.acquire();
@@ -875,76 +1184,27 @@ export function completeTestEvidenceRefresh({
     }
     const transactionPath = path.join(specDir, REPAIR_TRANSACTION_FILE);
     if (fs.existsSync(transactionPath)) {
-      const transaction = new ImplRepairTransaction(readJson(transactionPath));
-      if (!(transaction.purpose instanceof TestEvidenceRefreshPurpose)) {
-        throw new Error("pending repair transaction is not a test evidence refresh");
-      }
-      if (
-        expectedPreviousFingerprint
-        && transaction.entry.previousHash !== expectedPreviousFingerprint
-      ) {
-        throw new Error("pending test evidence refresh previous fingerprint changed");
-      }
-      if (
-        expectedCurrentFingerprint
-        && transaction.entry.currentHash !== expectedCurrentFingerprint
-      ) {
-        throw new Error("pending test evidence refresh current fingerprint changed");
-      }
-      const resumed = commitRepairTransaction({
+      return resumeJournaledTestEvidenceRefresh({
         root: executionRoot,
         state: activeState,
         specDir,
         flowManager,
-        transaction,
+        expectedPreviousFingerprint,
+        expectedCurrentFingerprint,
+        faultInjector,
       });
-      return {
-        ...resumed,
-        previousFingerprint: transaction.entry.previousHash,
-        currentFingerprint: transaction.entry.currentHash,
-        invalidatedArtifacts: resumed.invalidations.map((record) => record.path),
-      };
     }
     const manifestPath = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
     if (!fs.existsSync(manifestPath)) {
-      const invalidationPlan = planRepairEvidenceInvalidation({
-        specDir,
-        currentFingerprint: expectedCurrentFingerprint,
-        previousFingerprint: expectedPreviousFingerprint,
-        reason,
-      });
-      const invalidations = [...invalidationPlan.invalidations];
-      const plannedPaths = new Set(invalidations.map((record) => record.path));
-      for (const relPath of additionalArtifacts) {
-        const file = path.join(specDir, relPath);
-        if (!fs.existsSync(file) || plannedPaths.has(relPath)) continue;
-        invalidations.push(new InvalidatedArtifactRecord({
-          path: relPath,
-          reason: `${requireString(reason, "reason")} (explicit_refresh_artifact)`,
-          previousFingerprint: expectedPreviousFingerprint,
-        }));
-      }
-      const invalidationTransaction = new RepairInvalidationTransaction({
-        specDir,
-        invalidations,
-      });
-      invalidationTransaction.stage();
-      try {
-        updateRepairSteps(flowManager, resetStepIds, { clearAcceptanceReview: true });
-        invalidationTransaction.commit();
-      } catch (error) {
-        invalidationTransaction.rollback();
-        throw error;
-      }
-      return {
-        entry: null,
-        invalidations: invalidations.map((record) => record.toJSON()),
-        previousFingerprint: null,
-        currentFingerprint: expectedCurrentFingerprint,
-        invalidatedArtifacts: invalidations.map((record) => record.path),
-      };
+      throw new Error("test evidence refresh requires a repair fingerprint manifest");
     }
     const previous = readRepairFingerprintManifest(specDir);
+    if (
+      expectedPreviousFingerprint
+      && previous.hash !== expectedPreviousFingerprint
+    ) {
+      throw new Error("test evidence refresh previous fingerprint authority changed");
+    }
     const current = buildRepairFingerprint({
       root: executionRoot,
       specPath: activeState.spec,
@@ -1007,9 +1267,10 @@ export function completeTestEvidenceRefresh({
       createdAt: new Date().toISOString(),
     });
     const transaction = new ImplRepairTransaction({
-      version: 1,
+      version: 2,
       id,
       sourceStep,
+      target: ImplRepairTargetIdentity.fromState(activeState),
       resetStepIds,
       entry,
       ledger: existing.append(entry),
@@ -1018,13 +1279,13 @@ export function completeTestEvidenceRefresh({
       purpose: new TestEvidenceRefreshPurpose(),
       invalidations,
     });
-    writeJson(path.join(specDir, REPAIR_TRANSACTION_FILE), transaction.toJSON());
-    const result = commitRepairTransaction({
+    const result = commitOwnedTestEvidenceRefresh({
       root: executionRoot,
       state: activeState,
       specDir,
       flowManager,
       transaction,
+      faultInjector,
     });
     return {
       ...result,
@@ -1273,8 +1534,10 @@ function commitRepairTransaction({
   transaction,
   faultInjector = null,
   commitFlowState = true,
+  removeJournal = true,
 }) {
   const journal = transaction instanceof ImplRepairTransaction ? transaction : new ImplRepairTransaction(transaction);
+  journal.target.assertState(state);
   const { entry, ledger, currentManifest: manifest } = journal;
   const observed = buildRepairFingerprint({ root, specPath: state.spec, state });
   if (observed.hash !== manifest.hash) {
@@ -1307,7 +1570,9 @@ function commitRepairTransaction({
     }
     faultInjector?.({ phase: "after-flow-state" });
     invalidationTransaction.commit();
-    fs.rmSync(path.join(specDir, REPAIR_TRANSACTION_FILE), { force: true });
+    if (removeJournal) {
+      fs.rmSync(path.join(specDir, REPAIR_TRANSACTION_FILE), { force: true });
+    }
     return { entry: entry.toJSON(), invalidations: entry.invalidations.map((record) => record.toJSON()) };
   } catch (error) {
     try {
@@ -1360,9 +1625,10 @@ function prepareImplRepairTransaction({ root, state, specDir, resetStepIds }) {
     createdAt: new Date().toISOString(),
   });
   return new ImplRepairTransaction({
-    version: 1,
+    version: 2,
     id,
     sourceStep: triage.sourceStep,
+    target: ImplRepairTargetIdentity.fromState(state),
     resetStepIds: [...resetStepIds],
     entry: entry.toJSON(),
     ledger: existing.append(entry).toJSON(),
@@ -1396,17 +1662,65 @@ function clearImplRepairTransitionIntent({ flowManager, transaction, specId = nu
     ? transaction
     : new ImplRepairTransaction(transaction);
   const stored = new ImplRepairTransaction(current.implRepairTransaction);
-  if (JSON.stringify(stored.toJSON()) !== JSON.stringify(expected.toJSON())) {
+  if (!expected.equals(stored)) {
     throw new Error("pending impl-repair transition intent does not match completed effects");
   }
-  flowManager.mutate((next) => {
-    const pending = new ImplRepairTransaction(next.implRepairTransaction);
-    if (JSON.stringify(pending.toJSON()) !== JSON.stringify(expected.toJSON())) {
-      throw new Error("pending impl-repair transition intent changed before completion");
-    }
-    delete next.implRepairTransaction;
-  }, specId == null ? undefined : { specId });
+  if (typeof flowManager.completeStepTransitionIntent !== "function") {
+    throw new Error("flow manager cannot complete an impl-repair transition intent");
+  }
+  flowManager.completeStepTransitionIntent(
+    new ImplRepairTransitionIntent(expected),
+    {
+      expectedOriginal: current,
+      ...(specId == null ? {} : { specId }),
+    },
+  );
   return true;
+}
+
+function commitOwnedImplRepairEffects({
+  root,
+  state,
+  flowManager = null,
+  transaction,
+  specDir,
+  specId = null,
+  precommitAuthority = null,
+  faultInjector = null,
+}) {
+  const journal = transaction instanceof ImplRepairTransaction
+    ? transaction
+    : new ImplRepairTransaction(transaction);
+  if (
+    precommitAuthority != null
+    && !(precommitAuthority instanceof ImplRepairPrecommitAuthority)
+  ) {
+    throw new Error("impl-repair effects precommit authority is invalid");
+  }
+  if (precommitAuthority) {
+    const load = typeof flowManager?.loadReadOnly === "function"
+      ? flowManager.loadReadOnly.bind(flowManager)
+      : typeof flowManager?.load === "function"
+        ? flowManager.load.bind(flowManager)
+        : null;
+    const committedState = load ? load(specId ?? undefined) : state;
+    precommitAuthority.assertEffects(committedState, journal);
+  }
+  writeJson(path.join(specDir, REPAIR_TRANSACTION_FILE), journal.toJSON());
+  const result = commitRepairTransaction({
+    root,
+    state,
+    specDir,
+    flowManager: null,
+    transaction: journal,
+    faultInjector,
+    commitFlowState: false,
+    removeJournal: false,
+  });
+  clearImplRepairTransitionIntent({ flowManager, transaction: journal, specId });
+  faultInjector?.({ phase: "after-intent-completion" });
+  fs.rmSync(path.join(specDir, REPAIR_TRANSACTION_FILE), { force: true });
+  return result;
 }
 
 export function commitImplRepairEffects({
@@ -1421,35 +1735,15 @@ export function commitImplRepairEffects({
   const lock = new RepairRunLock(specDir);
   lock.acquire();
   try {
-    const journal = transaction instanceof ImplRepairTransaction
-      ? transaction
-      : new ImplRepairTransaction(transaction);
-    if (
-      precommitAuthority != null
-      && !(precommitAuthority instanceof ImplRepairPrecommitAuthority)
-    ) {
-      throw new Error("impl-repair effects precommit authority is invalid");
-    }
-    if (precommitAuthority) {
-      const load = typeof flowManager?.loadReadOnly === "function"
-        ? flowManager.loadReadOnly.bind(flowManager)
-        : typeof flowManager?.load === "function"
-          ? flowManager.load.bind(flowManager)
-          : null;
-      const committedState = load ? load(specId ?? undefined) : state;
-      precommitAuthority.assertEffects(committedState, journal);
-    }
-    writeJson(path.join(specDir, REPAIR_TRANSACTION_FILE), journal.toJSON());
-    const result = commitRepairTransaction({
+    return commitOwnedImplRepairEffects({
       root,
       state,
+      flowManager,
+      transaction,
       specDir,
-      flowManager: null,
-      transaction: journal,
-      commitFlowState: false,
+      specId,
+      precommitAuthority,
     });
-    clearImplRepairTransitionIntent({ flowManager, transaction: journal, specId });
-    return result;
   } finally {
     lock.release();
   }

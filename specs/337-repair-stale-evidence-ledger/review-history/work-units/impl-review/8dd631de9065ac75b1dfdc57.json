@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "8dd631de9065ac75b1dfdc57",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0014",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "56649bd2973ce5ca9281eb5f66731b37069bdea4ff0544bb6989cfc153c364c9",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8dd631de9065ac75b1dfdc57"
+  },
+  "targetFiles": [
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "56649bd2973ce5ca9281eb5f66731b37069bdea4ff0544bb6989cfc153c364c9",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:38:49.309Z",
+  "finishedAt": "2026-07-25T05:38:49.309Z",
+  "rawResponse": "### 1. Extract shared impl-repair test state setup\n**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R9  \n**Issue:** The same `state` shape is duplicated across tests, and the newly added `runId: \"run-impl-repair-intent-recovery\"` repeats a long scenario-specific literal. This makes future fixture changes easy to miss in one test.  \n**Suggestion:** Add a small helper such as `createImplRepairState(overrides = {})` that returns the common state object, including `runId`, `spec`, `steps`, `tasks`, and `transitions`. Tests can override only the fields relevant to each scenario.\n\n### 2. Extract the flow manager test double\n**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R9  \n**Issue:** The inline `flowManager` stub now needs coordinated methods: `load`, `loadReadOnly`, `mutate`, and `completeStepTransitionIntent`. Keeping this inline makes the intent less clear and increases duplication if other tests need the same recovery behavior.  \n**Suggestion:** Introduce a helper such as `createFlowManagerDouble(state)` in this test file. It can encapsulate the shared behavior and make each test focus on the recovery scenario being asserted.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract shared impl-repair test state setup",
+        "body": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R9  \n**Issue:** The same `state` shape is duplicated across tests, and the newly added `runId: \"run-impl-repair-intent-recovery\"` repeats a long scenario-specific literal. This makes future fixture changes easy to miss in one test.  \n**Suggestion:** Add a small helper such as `createImplRepairState(overrides = {})` that returns the common state object, including `runId`, `spec`, `steps`, `tasks`, and `transitions`. Tests can override only the fields relevant to each scenario.",
+        "file": "tests/unit/flow/set-step-impl-repair.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Extract the flow manager test double",
+        "body": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R9  \n**Issue:** The inline `flowManager` stub now needs coordinated methods: `load`, `loadReadOnly`, `mutate`, and `completeStepTransitionIntent`. Keeping this inline makes the intent less clear and increases duplication if other tests need the same recovery behavior.  \n**Suggestion:** Introduce a helper such as `createFlowManagerDouble(state)` in this test file. It can encapsulate the shared behavior and make each test focus on the recovery scenario being asserted.",
+        "file": "tests/unit/flow/set-step-impl-repair.test.js",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

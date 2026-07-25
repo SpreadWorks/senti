@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "aef895662887e4f149c8590c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-77aa8422b61958ae",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+      "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/step-transition-policy.js",
+      "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js",
+      "tests/unit/flow/stale-test-evidence-refresh.test.js"
+    ],
+    "inputHash": "77aa8422b61958aea1cef434f32a53ce53667bd82de65174de9233dbcb8cd54e",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "aef895662887e4f149c8590c"
+  },
+  "targetFiles": [
+    "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+    "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/step-transition-policy.js",
+    "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js",
+    "tests/unit/flow/stale-test-evidence-refresh.test.js"
+  ],
+  "inputHash": "77aa8422b61958aea1cef434f32a53ce53667bd82de65174de9233dbcb8cd54e",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T04:56:46.139Z",
+  "finishedAt": "2026-07-25T04:56:46.139Z",
+  "rawResponse": "### 1. Consolidate shared-suite execution bounds\n**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`\n**Requirement:** R9\n**Issue:** Two spec tests independently introduce nested shared-suite execution via `spawnSync`, and both reviewers flagged missing runtime/resource bounds. If each file patches this separately, timeout and buffer behavior can drift.\n**Suggestion:** Define shared constants such as `SHARED_SUITE_TIMEOUT_MS` and `SHARED_SUITE_MAX_BUFFER` in the relevant spec test helper area, or at least use the same constant names and values in both `shared-recovery-regressions.test.js` and `stale-evidence-repair-transaction.test.js`.\n\n### 2. Align recovery entrypoint naming across tests\n**File:** `specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js`\n**Requirement:** R1\n**Issue:** Multiple files now refer to stale evidence recovery through generic or slightly different names: `recover`, `recoveredGate`, shared recovery suites, and stale evidence refresh tests. The inconsistent vocabulary makes it harder to distinguish direct repair from gate/final-regression/acceptance entrypoint recovery.\n**Suggestion:** Standardize on explicit names such as `recoverStaleEvidenceDirectly`, `staleEvidenceRecoveryGate`, and `SHARED_STALE_EVIDENCE_RECOVERY_SUITES` so direct recovery, integration-gate recovery, and shared regression execution are consistently named.\n\n### 3. Centralize repair-state fixture construction pattern\n**File:** `tests/unit/flow/repair-state-identity.test.js`\n**Requirement:** R9\n**Issue:** Several unit tests independently duplicate repair-related state objects with `runId`, `spec`, `steps`, `tasks`, and transition fields. Reviewers proposed local helpers in multiple files, but separate helper shapes could still drift across test files.\n**Suggestion:** Introduce a shared test fixture helper for repair flow state, or align local helpers around the same API shape, for example `createRepairState(overrides = {})`. Use it in `repair-state-identity.test.js`, `set-step-impl-repair.test.js`, and related stale evidence refresh tests.\n\n### 4. Reuse transition application semantics in tests\n**File:** `tests/unit/flow/stale-test-evidence-refresh.test.js`\n**Requirement:** R3\n**Issue:** Transition application behavior is being duplicated across test doubles: `updateStepStatus()` applies commit intent logic, while `set-step-impl-repair.test.js` also needs a `flowManager` double with `completeStepTransitionIntent`. These mocks model the same cross-file interface contract differently.\n**Suggestion:** Extract or standardize a test helper for applying `StepTransitionCommitIntent` objects to in-memory flow state, then use it from both repository and flow-manager doubles.\n\n### 5. Align repair journal naming with behavior\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R4\n**Issue:** Production code uses `CommittedImplRepairEffects` for journal reconciliation, while tests and proposals refer to transactions, repair recovery, stale evidence refresh, and committed effects interchangeably. This creates a naming mismatch between the domain object and its cross-file usage.\n**Suggestion:** Rename the production class to a behavior-focused name such as `ImplRepairJournalReconciler`, then update test/helper names to use “journal” for durable transaction files and “effects” only for the actual committed state changes.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate shared-suite execution bounds",
+        "body": "**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`\n**Requirement:** R9\n**Issue:** Two spec tests independently introduce nested shared-suite execution via `spawnSync`, and both reviewers flagged missing runtime/resource bounds. If each file patches this separately, timeout and buffer behavior can drift.\n**Suggestion:** Define shared constants such as `SHARED_SUITE_TIMEOUT_MS` and `SHARED_SUITE_MAX_BUFFER` in the relevant spec test helper area, or at least use the same constant names and values in both `shared-recovery-regressions.test.js` and `stale-evidence-repair-transaction.test.js`.",
+        "file": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Align recovery entrypoint naming across tests",
+        "body": "**File:** `specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js`\n**Requirement:** R1\n**Issue:** Multiple files now refer to stale evidence recovery through generic or slightly different names: `recover`, `recoveredGate`, shared recovery suites, and stale evidence refresh tests. The inconsistent vocabulary makes it harder to distinguish direct repair from gate/final-regression/acceptance entrypoint recovery.\n**Suggestion:** Standardize on explicit names such as `recoverStaleEvidenceDirectly`, `staleEvidenceRecoveryGate`, and `SHARED_STALE_EVIDENCE_RECOVERY_SUITES` so direct recovery, integration-gate recovery, and shared regression execution are consistently named.",
+        "file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Centralize repair-state fixture construction pattern",
+        "body": "**File:** `tests/unit/flow/repair-state-identity.test.js`\n**Requirement:** R9\n**Issue:** Several unit tests independently duplicate repair-related state objects with `runId`, `spec`, `steps`, `tasks`, and transition fields. Reviewers proposed local helpers in multiple files, but separate helper shapes could still drift across test files.\n**Suggestion:** Introduce a shared test fixture helper for repair flow state, or align local helpers around the same API shape, for example `createRepairState(overrides = {})`. Use it in `repair-state-identity.test.js`, `set-step-impl-repair.test.js`, and related stale evidence refresh tests.",
+        "file": "tests/unit/flow/repair-state-identity.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "4. Reuse transition application semantics in tests",
+        "body": "**File:** `tests/unit/flow/stale-test-evidence-refresh.test.js`\n**Requirement:** R3\n**Issue:** Transition application behavior is being duplicated across test doubles: `updateStepStatus()` applies commit intent logic, while `set-step-impl-repair.test.js` also needs a `flowManager` double with `completeStepTransitionIntent`. These mocks model the same cross-file interface contract differently.\n**Suggestion:** Extract or standardize a test helper for applying `StepTransitionCommitIntent` objects to in-memory flow state, then use it from both repository and flow-manager doubles.",
+        "file": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Align repair journal naming with behavior",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R4\n**Issue:** Production code uses `CommittedImplRepairEffects` for journal reconciliation, while tests and proposals refer to transactions, repair recovery, stale evidence refresh, and committed effects interchangeably. This creates a naming mismatch between the domain object and its cross-file usage.\n**Suggestion:** Rename the production class to a behavior-focused name such as `ImplRepairJournalReconciler`, then update test/helper names to use “journal” for durable transaction files and “effects” only for the actual committed state changes.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

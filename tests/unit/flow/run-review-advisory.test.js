@@ -12,13 +12,18 @@ import {
   runCmdWithRetry,
   updateReviewRetryCounter,
 } from "../../../src/flow/lib/run-review.js";
+import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
+import { writeRepairFingerprintManifest } from "../../../src/flow/lib/repair-state-identity.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { ReviewFailure } from "../../../src/flow/lib/review-failure.js";
 import {
   CompletionValidator,
   contractFromImplReviewArtifact,
 } from "../../../src/flow/lib/flow-judgment-contract.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 
 describe("draft coverage review advisory routing", () => {
   it("parses ADVISORY as a non-blocking draft review result routed to coverage triage", () => {
@@ -476,35 +481,45 @@ describe("impl review structured verdict routing", () => {
   it("rewinds stale test evidence before starting implementation review", () => {
     const root = createTmpDir("run-review-stale-evidence-");
     const specDir = path.join(root, "specs", "demo");
-    const previousFingerprint = "a".repeat(64);
-    const currentFingerprint = "b".repeat(64);
-    const flowState = {
-      spec: "specs/demo/spec.json",
-      steps: [
-        { id: "test-execute", status: "done" },
-        { id: "test-result-review", status: "done" },
-        { id: "impl-review", status: "in_progress" },
-        { id: "impl-gate", status: "pending" },
-      ],
-    };
+    const specPath = "specs/demo/spec.json";
+    const initialSource = path.join(root, "src", "demo.js");
     try {
       fs.mkdirSync(specDir, { recursive: true });
+      fs.mkdirSync(path.dirname(initialSource), { recursive: true });
+      fs.writeFileSync(path.join(root, specPath), "{}\n");
+      fs.writeFileSync(initialSource, "export const demo = false;\n");
+      const previousFingerprint = buildRepairFingerprint({ root, specPath });
+      writeRepairFingerprintManifest(specDir, previousFingerprint);
+      const flowState = moveFlowToStep(makeFlowState({
+        spec: specPath,
+        repairBaseline: previousFingerprint.baseline.toJSON(),
+      }), "impl-review");
       for (const file of ["test-execute-result.json", "test-result-review.json"]) {
         fs.writeFileSync(path.join(specDir, file), `${JSON.stringify({
-          repairFingerprint: previousFingerprint,
+          repairFingerprint: previousFingerprint.hash,
         })}\n`);
       }
+      fs.writeFileSync(initialSource, "export const demo = true;\n");
+      const currentFingerprint = buildRepairFingerprint({
+        root,
+        specPath,
+        state: flowState,
+      });
+      const flowManager = new FlowManager({
+        root,
+        mainRoot: root,
+        inWorktree: false,
+      });
+      flowManager.create(flowState);
+      const activeState = flowManager.loadReadOnly();
       const result = checkImplReviewTestArtifacts({
         root,
-        state: flowState,
+        state: activeState,
         specDir,
-        fingerprint: { hash: currentFingerprint },
-        flowManager: {
-          mutate(mutator) {
-            mutator(flowState);
-          },
-        },
+        fingerprint: currentFingerprint,
+        flowManager,
       });
+      const recoveredState = flowManager.loadReadOnly();
 
       assert.equal(result.result, "recovered");
       assert.equal(result.next, "test-execute");
@@ -513,9 +528,9 @@ describe("impl review structured verdict routing", () => {
         "test-execute-result.json",
         "test-result-review.json",
       ]);
-      assert.equal(flowState.steps[0].status, "in_progress");
-      assert.equal(flowState.steps[1].status, "pending");
-      assert.equal(flowState.steps[2].status, "pending");
+      assert.equal(findStepById(recoveredState.steps, "test-execute").status, "in_progress");
+      assert.equal(findStepById(recoveredState.steps, "test-result-review").status, "pending");
+      assert.equal(findStepById(recoveredState.steps, "impl-review").status, "pending");
       assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);
       assert.equal(fs.existsSync(path.join(specDir, "test-result-review.json")), false);
     } finally {

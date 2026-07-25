@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "22bd916e92021e8998ffe54a",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-b252e655abd61aa3",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+      "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/step-transition-policy.js",
+      "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js",
+      "tests/unit/flow/stale-test-evidence-refresh.test.js"
+    ],
+    "inputHash": "b252e655abd61aa392be20fdf21288bc70aafbaa6f9a82459c3d8731713f5a69",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "22bd916e92021e8998ffe54a"
+  },
+  "targetFiles": [
+    "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+    "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/step-transition-policy.js",
+    "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js",
+    "tests/unit/flow/stale-test-evidence-refresh.test.js"
+  ],
+  "inputHash": "b252e655abd61aa392be20fdf21288bc70aafbaa6f9a82459c3d8731713f5a69",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:15:13.406Z",
+  "finishedAt": "2026-07-25T05:15:13.406Z",
+  "rawResponse": "### 1. Standardize shared-suite subprocess execution\n**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`  \n**Requirement:** R9  \n**Issue:** Two spec files independently spawn shared test suites and both omit timeout handling. This duplicates process-runner behavior and makes bounded execution policy easy to apply inconsistently.  \n**Suggestion:** Extract a shared helper such as `runSharedTestSuites(paths, { cwd })` that wraps `spawnSync` with `encoding`, `env: standaloneTestEnvironment()`, timeout, and consistent failure reporting. Use it from both `shared-recovery-regressions.test.js` and `stale-evidence-repair-transaction.test.js`.\n\n### 2. Align shared-suite naming across tests\n**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`  \n**Requirement:** R9  \n**Issue:** One file uses `AFFECTED_SHARED_SUITES` for path strings while another exposes behavior as `runSharedSuites()`. The names disagree on whether the values are suites or suite paths, creating a small cross-file interface ambiguity.  \n**Suggestion:** Use path-explicit naming consistently, for example `AFFECTED_SHARED_SUITE_PATHS` and `runSharedSuitePaths()` or `runSharedTestFiles()`.\n\n### 3. Centralize repair-state fixture construction\n**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R1  \n**Issue:** Multiple unit test files now duplicate repair-state object shapes with `runId`, `spec`, `steps`, `tasks`, and transition-related fields. This risks fixture drift as repair-state identity evolves.  \n**Suggestion:** Add a shared test fixture factory, for example under `tests/helpers/flow-repair-state.js`, with helpers like `createRepairState()` and `createImplRepairState()`. Let individual tests override only scenario-specific fields.\n\n### 4. Share flow-manager recovery test doubles\n**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R9  \n**Issue:** Recovery tests are independently modeling `load`, `loadReadOnly`, mutation, and transition completion semantics. Similar behavior appears across stale evidence and impl repair tests, but each file encodes it locally.  \n**Suggestion:** Introduce a shared test double factory such as `createFlowManagerDouble(state, options)` that provides consistent `loadReadOnly`/`load` behavior and transition-commit hooks across unit tests.\n\n### 5. Use one artifact equality style across implementation classes\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** Newly introduced equality methods coexist with repeated `JSON.stringify(...toJSON())` comparisons. Across artifact classes, callers now have to remember which types expose semantic equality and which require serialization comparison.  \n**Suggestion:** Add semantic `equals()` methods to ledger/manifest artifact classes or a single shared artifact equality helper, then use that consistently in reconciliation and transaction comparisons.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize shared-suite subprocess execution",
+        "body": "**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`  \n**Requirement:** R9  \n**Issue:** Two spec files independently spawn shared test suites and both omit timeout handling. This duplicates process-runner behavior and makes bounded execution policy easy to apply inconsistently.  \n**Suggestion:** Extract a shared helper such as `runSharedTestSuites(paths, { cwd })` that wraps `spawnSync` with `encoding`, `env: standaloneTestEnvironment()`, timeout, and consistent failure reporting. Use it from both `shared-recovery-regressions.test.js` and `stale-evidence-repair-transaction.test.js`.",
+        "file": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Align shared-suite naming across tests",
+        "body": "**File:** `specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js`  \n**Requirement:** R9  \n**Issue:** One file uses `AFFECTED_SHARED_SUITES` for path strings while another exposes behavior as `runSharedSuites()`. The names disagree on whether the values are suites or suite paths, creating a small cross-file interface ambiguity.  \n**Suggestion:** Use path-explicit naming consistently, for example `AFFECTED_SHARED_SUITE_PATHS` and `runSharedSuitePaths()` or `runSharedTestFiles()`.",
+        "file": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Centralize repair-state fixture construction",
+        "body": "**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R1  \n**Issue:** Multiple unit test files now duplicate repair-state object shapes with `runId`, `spec`, `steps`, `tasks`, and transition-related fields. This risks fixture drift as repair-state identity evolves.  \n**Suggestion:** Add a shared test fixture factory, for example under `tests/helpers/flow-repair-state.js`, with helpers like `createRepairState()` and `createImplRepairState()`. Let individual tests override only scenario-specific fields.",
+        "file": "tests/unit/flow/repair-state-identity.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Share flow-manager recovery test doubles",
+        "body": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R9  \n**Issue:** Recovery tests are independently modeling `load`, `loadReadOnly`, mutation, and transition completion semantics. Similar behavior appears across stale evidence and impl repair tests, but each file encodes it locally.  \n**Suggestion:** Introduce a shared test double factory such as `createFlowManagerDouble(state, options)` that provides consistent `loadReadOnly`/`load` behavior and transition-commit hooks across unit tests.",
+        "file": "tests/unit/flow/set-step-impl-repair.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "5. Use one artifact equality style across implementation classes",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** Newly introduced equality methods coexist with repeated `JSON.stringify(...toJSON())` comparisons. Across artifact classes, callers now have to remember which types expose semantic equality and which require serialization comparison.  \n**Suggestion:** Add semantic `equals()` methods to ledger/manifest artifact classes or a single shared artifact equality helper, then use that consistently in reconciliation and transaction comparisons.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

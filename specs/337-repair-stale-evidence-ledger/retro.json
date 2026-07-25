@@ -1,0 +1,65 @@
+{
+  "spec": "specs/337-repair-stale-evidence-ledger/spec.json",
+  "date": "2026-07-25T05:53:28.370Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "A stale test evidence recovery after a material implementation change shall create or resume one TestEvidenceRefreshPurpose transaction whose manifest hash, ledger tail currentHash, delta currentHash, and reported currentFingerprint equal the current repair fingerprint.",
+      "status": "done",
+      "note": "R1: committed refresh aligns manifest ledger delta and result fingerprint"
+    },
+    {
+      "desc": "When an impl-repair ledger already exists, the refresh entry shall append exactly once with previousHash equal to the prior ledger tail currentHash, a non-empty changed-path delta, and invalidation records equal to the transaction's staged artifact set.",
+      "status": "done",
+      "note": "R2: refresh appends one continuous ledger entry after retry"
+    },
+    {
+      "desc": "Integration gate, final-regression, and acceptance-review stale evidence entrypoints shall delegate lifecycle transition and repair effects to the same existing impl-repair transaction authority without adding another mutation owner.",
+      "status": "done",
+      "note": "R3: every stale entrypoint uses the owned lifecycle transition authority"
+    },
+    {
+      "desc": "Recovery shall report success only after the owned transaction has committed its delta, ledger, manifest, artifact invalidation, and test-execute lifecycle transition, and no consumer shall accept a pending or partially applied transaction as current evidence.",
+      "status": "done",
+      "note": "R4: failed effects remain pending and never report recovered success"
+    },
+    {
+      "desc": "A retry after each injected durable failure boundary shall either roll the identical owned transaction forward exactly once or fail closed; it shall not duplicate ledger entries, lose stale artifacts without a committed transition, or return a partial recovered result.",
+      "status": "done",
+      "note": "R5: every durable effects boundary converges exactly once"
+    },
+    {
+      "desc": "Valid evidence already matching the current fingerprint shall retain its normal path, while malformed evidence, inconsistent fingerprints, foreign pending transactions, changed material authority, and run/spec/Issue target mismatches shall fail closed without recovery mutation.",
+      "status": "done",
+      "note": "R6: changed target identity rejects a pending refresh without mutation"
+    },
+    {
+      "desc": "After committed recovery, the normal flow shall regenerate current evidence through test-execute, test-result-review, impl-review, impl-gate, retro, and acceptance-review without impl-repair ledger schema rejection.",
+      "status": "done",
+      "note": "R7: committed recovery regenerates evidence through the real CLI lifecycle"
+    },
+    {
+      "desc": "The public recovery behavior of integration gate, final-regression, acceptance-review, and explicit rewind-test-evidence shall retain its existing result fields, next step, exact target guards, and fail-closed structural validation.",
+      "status": "done",
+      "note": "R8: public entrypoints preserve recovery projections and rewind guards"
+    },
+    {
+      "desc": "Spec-local requirement tests and affected shared unit and CLI lifecycle tests shall cover existing-ledger continuity, all stale recovery entrypoints, durable failure boundaries, current evidence, malformed evidence, and target authority mismatches.",
+      "status": "done",
+      "note": "R9: affected shared recovery unit suites execute as regression evidence"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "6d5969e8a015de79da7d9877c465b0ddc4d6181f3b1753e9e07a9cd8296bcc19"
+}

@@ -1,0 +1,333 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/337-repair-stale-evidence-ledger/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "test_name": "R1: committed refresh aligns manifest ledger delta and result fingerprint",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "test_name": "R2: refresh appends one continuous ledger entry after retry",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "test_name": "R3: every stale entrypoint uses the owned lifecycle transition authority",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "test_name": "R4: failed effects remain pending and never report recovered success",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "test_name": "R5: every durable effects boundary converges exactly once",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "test_name": "R6: changed target identity rejects a pending refresh without mutation",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "test_name": "R7: committed recovery regenerates evidence through the real CLI lifecycle",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "test_name": "R8: public entrypoints preserve recovery projections and rewind guards",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+        "test_name": "R9: affected shared recovery unit suites execute as regression evidence",
+        "command": "node --test specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-rewind-test-evidence.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/step-transition-policy.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-manager.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-store.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/final-regression.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/rewind-test-evidence.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/run-review-advisory.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "164ba3d3de9bc6dd772b6f06f2172ef13ea4e664ed2a9d0a134cfa92a6c5968e"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-rewind-test-evidence.js",
+        "fingerprint": "21e7c6edf213d25230a3c7ad54fd06d6917e60453d79946235f88aee77de34bc"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "fingerprint": "ad6cb8ac6feb878a46f7c96f38baa655ab306f5495ca7cac5fcdb7c8c943f920"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/step-transition-policy.js",
+        "fingerprint": "9bd5ab755a2c1f92ff2cc0491c7f729e47aa782950ba934c4fd1f69ba57a6a66"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js",
+        "fingerprint": "3179a0102814bac7b70b146cda9f972a9585a5a04e57b7423e380c42dad6742a"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-store.js",
+        "fingerprint": "e651f2ba7c91696641ea8aca4393eb693149eab4c821f0def3173bd9d12c892b"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "fingerprint": "cde4bb3bb75919cb5a04e0b90e846b6d9e4abf22f33740b25655da622fe9e36d"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression.test.js",
+        "fingerprint": "eead9cc5da5e214e69ee458e06c3def6aec73f49a9687a7f06964021c1f44526"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "fingerprint": "de635b35171c1bee01cbece3d8db0c9c5dafdb18a4653f4e73a854a61d09dcb8"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "fingerprint": "3b53cf78e3abe659f9d8d0cfdb8f8fb5381a20c0d5ee677124f03f039cadf4b3"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/rewind-test-evidence.test.js",
+        "fingerprint": "845e0abb859a393e26b5c1847d06380621dfd2ecf0ccfd858b21442db466a712"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/run-review-advisory.test.js",
+        "fingerprint": "a644cc8560f390decf059e32137e290c0e1e748a7819b2f12ed389e22d670ada"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "fingerprint": "88716647d69d9feff059c597fef718cca994034dd6fba51cf292f28f8f949378"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "fingerprint": "e38e0e105e1b24ca4fc2c4911e8c4ca83bd66315dbcdb1d47d3652fff4f251ab"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "164ba3d3de9bc6dd772b6f06f2172ef13ea4e664ed2a9d0a134cfa92a6c5968e"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-rewind-test-evidence.js",
+        "fingerprint": "21e7c6edf213d25230a3c7ad54fd06d6917e60453d79946235f88aee77de34bc"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/stale-test-evidence-refresh.js",
+        "fingerprint": "ad6cb8ac6feb878a46f7c96f38baa655ab306f5495ca7cac5fcdb7c8c943f920"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/step-transition-policy.js",
+        "fingerprint": "9bd5ab755a2c1f92ff2cc0491c7f729e47aa782950ba934c4fd1f69ba57a6a66"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js",
+        "fingerprint": "3179a0102814bac7b70b146cda9f972a9585a5a04e57b7423e380c42dad6742a"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-store.js",
+        "fingerprint": "e651f2ba7c91696641ea8aca4393eb693149eab4c821f0def3173bd9d12c892b"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "fingerprint": "cde4bb3bb75919cb5a04e0b90e846b6d9e4abf22f33740b25655da622fe9e36d"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression.test.js",
+        "fingerprint": "eead9cc5da5e214e69ee458e06c3def6aec73f49a9687a7f06964021c1f44526"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/repair-state-identity.test.js",
+        "fingerprint": "de635b35171c1bee01cbece3d8db0c9c5dafdb18a4653f4e73a854a61d09dcb8"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "fingerprint": "3b53cf78e3abe659f9d8d0cfdb8f8fb5381a20c0d5ee677124f03f039cadf4b3"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/rewind-test-evidence.test.js",
+        "fingerprint": "845e0abb859a393e26b5c1847d06380621dfd2ecf0ccfd858b21442db466a712"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/run-review-advisory.test.js",
+        "fingerprint": "a644cc8560f390decf059e32137e290c0e1e748a7819b2f12ed389e22d670ada"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "fingerprint": "88716647d69d9feff059c597fef718cca994034dd6fba51cf292f28f8f949378"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "fingerprint": "e38e0e105e1b24ca4fc2c4911e8c4ca83bd66315dbcdb1d47d3652fff4f251ab"
+      }
+    ]
+  },
+  "repairFingerprint": "6d5969e8a015de79da7d9877c465b0ddc4d6181f3b1753e9e07a9cd8296bcc19"
+}

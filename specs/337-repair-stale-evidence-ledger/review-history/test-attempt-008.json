@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T04:23:58.241Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/337-repair-stale-evidence-ledger/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 lacks fail-closed coverage for malformed evidence recovery mutation",
+      "target": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+      "findingId": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "fingerprint": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires malformed evidence to fail closed without recovery mutation, and the current tests do not cover that recovery-mutation behavior.",
+      "issue": "The malformed evidence case only calls `checkIntegrationTestArtifacts()` and asserts `ok === false`; it never exercises a recovery path or verifies that malformed evidence cannot create/resume a refresh transaction. A broken implementation could still mutate during malformed-evidence recovery and these tests would pass.",
+      "requiredChange": "Add a spec-local assertion that a malformed evidence entrypoint fails closed without creating `impl-repair-transaction.json`, changing the ledger, or moving lifecycle state.",
+      "whyBlocking": "R6 explicitly requires malformed evidence to fail closed without recovery mutation, and the current tests do not cover that recovery-mutation behavior.",
+      "origin": "R6",
+      "failureKind": "missing spec-local test coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 retry tests do not verify identical transaction roll-forward",
+      "target": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+      "findingId": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "fingerprint": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "disposition": "must-fix",
+      "rationale": "R5 requires retry to roll the identical owned transaction forward exactly once or fail closed; current coverage only proves no duplicate ledger entry, not transaction identity preservation.",
+      "issue": "The durable-boundary retry matrix checks a single appended ledger entry and current hash, but it does not compare the pending transaction identity/staged artifacts before retry with the committed ledger/delta/invalidation effects after retry for each boundary. An implementation could rebuild a different transaction on retry while still appending one current-hash entry.",
+      "requiredChange": "For each injected durable boundary, capture the pending owned transaction after failure and assert the retry commits that same transaction's staged artifact set/invalidation data without replacing it.",
+      "whyBlocking": "R5 requires retry to roll the identical owned transaction forward exactly once or fail closed; current coverage only proves no duplicate ledger entry, not transaction identity preservation.",
+      "origin": "R5",
+      "failureKind": "missing spec-local test coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/337-repair-stale-evidence-ledger/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "64565aff277f33ed7a1aed25a1e25d42c119e5ec4c0b7c36ad100fc09e3691f1"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "findingId": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "R6 lacks fail-closed coverage for malformed evidence recovery mutation",
+      "body": "The malformed evidence case only calls `checkIntegrationTestArtifacts()` and asserts `ok === false`; it never exercises a recovery path or verifies that malformed evidence cannot create/resume a refresh transaction. A broken implementation could still mutate during malformed-evidence recovery and these tests would pass.",
+      "category": "unknown",
+      "fingerprint": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires malformed evidence to fail closed without recovery mutation, and the current tests do not cover that recovery-mutation behavior."
+    },
+    {
+      "id": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "findingId": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "R5 retry tests do not verify identical transaction roll-forward",
+      "body": "The durable-boundary retry matrix checks a single appended ledger entry and current hash, but it does not compare the pending transaction identity/staged artifacts before retry with the committed ledger/delta/invalidation effects after retry for each boundary. An implementation could rebuild a different transaction on retry while still appending one current-hash entry.",
+      "category": "unknown",
+      "fingerprint": "7ebbd94e1830659791d5f30beef1c687ab4a033ec903756c6c003bb88fc329ad",
+      "disposition": "must-fix",
+      "rationale": "R5 requires retry to roll the identical owned transaction forward exactly once or fail closed; current coverage only proves no duplicate ledger entry, not transaction identity preservation."
+    }
+  ]
+}

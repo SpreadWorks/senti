@@ -1,0 +1,966 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Pre-prepare choice-note recording could not resolve the preparing flow target with guarded selectors",
+      "trigger": "The guarded senti flow set note command returned FLOW_TARGET_NOT_FOUND before prepare promoted the run",
+      "resolution": "Recorded the accepted auto-mode choice immediately after prepare using the bound runId, Issue, and spec guards",
+      "guardrailCandidate": "Preparing-flow note writes need an explicit run-id selector or must be deferred until target promotion",
+      "taskId": null,
+      "timestamp": "2026-07-25T03:41:48.810Z",
+      "issueLogId": "issue-log-67c27d28-7bce-4c12-8cf7-ee64079073c0"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate passed but preset-chain resolution emitted a non-blocking node-cli preset warning",
+      "trigger": "senti flow run gate --phase draft printed Preset not found: node-cli while all guardrails passed",
+      "resolution": "No workaround applied because the gate result and evidence were valid; recorded the out-of-scope warning for follow-up",
+      "guardrailCandidate": "Successful flow commands should persist non-blocking preset resolution warnings in their typed envelope",
+      "taskId": null,
+      "timestamp": "2026-07-25T03:47:52.883Z",
+      "issueLogId": "issue-log-2ebd9c0a-de99-4a9f-81bd-faa14f25fb34"
+    },
+    {
+      "step": "test-review",
+      "reason": "Initial spec-local tests bypassed public recovery entrypoints and under-asserted lifecycle coverage",
+      "trigger": "Static test review REJECTED six findings covering R2, R3, R6, R7, R8, and R9",
+      "resolution": "Added executable gate, final-regression, acceptance refresh, and rewind guard calls plus delta, invalidation, regenerated evidence, malformed, current, and target mismatch assertions",
+      "guardrailCandidate": "Spec tests for shared recovery owners must exercise each public entrypoint and every must-level evidence field",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:01:15.416Z",
+      "issueLogId": "issue-log-275aefe2-37e3-4a08-8a5b-8f9ba1328d80"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second test review found malformed evidence expectations and rewind plus authority edge cases incomplete",
+      "trigger": "Static test review REJECTED three remaining findings for R6, R8, and R9",
+      "resolution": "Routed malformed JSON through integration validation, added successful explicit rewind command coverage, and added foreign pending transaction plus changed material authority assertions",
+      "guardrailCandidate": "Fail-closed recovery tests must invoke the consumer validator and include both successful and guarded command entrypoint cases",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:04:00.390Z",
+      "issueLogId": "issue-log-22a0dad4-9ce2-484e-92f3-0da2f40999c6"
+    },
+    {
+      "step": "test-review",
+      "reason": "Third test review found no public current-evidence path and no assertion excluding direct mutation ownership",
+      "trigger": "Static test review REJECTED two remaining findings for R3 and R6/R9",
+      "resolution": "Added a current-fingerprint final-regression pass case and counted only mutations made without an owned transaction intent, asserting zero such calls for all refresh entrypoints",
+      "guardrailCandidate": "Transaction ownership tests should distinguish canonical intent cleanup from direct lifecycle mutation and include the non-recovery consumer path",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:05:32.428Z",
+      "issueLogId": "issue-log-f104955c-d418-492a-9245-ac2e320adda3"
+    },
+    {
+      "step": "test-review",
+      "reason": "Fourth test review requested comparison against the persisted ledger JSON shape for invalidation records",
+      "trigger": "Static test review REJECTED the R2 value-object invalidation comparison",
+      "resolution": "Changed R2 to read impl-repair.json directly and compare its persisted invalidations array with the pending transaction journal",
+      "guardrailCandidate": "Persistence contract tests should compare serialized artifacts directly when both value-object and JSON projections exist",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:06:28.980Z",
+      "issueLogId": "issue-log-748df19e-d368-41de-a421-b45d825de010"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review exhausted its semantic budget with four canonical findings still assigned to acceptance review",
+      "trigger": "The fifth review returned reviewAction move_to_acceptance with remainingSemanticAttempts zero",
+      "resolution": "Preserved the canonical review evidence and handoff findings for downstream implementation and acceptance disposition without another review retry",
+      "guardrailCandidate": "Exhausted semantic test review should advance the lifecycle automatically when canonical handoff evidence is finalized",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:08:09.492Z",
+      "issueLogId": "issue-log-92c2318d-2e24-4ce1-88b4-a8e6e5b83152"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review exhausted after four executable coverage gaps remained",
+      "trigger": "R7 lifecycle bypass, R8 guard mismatch gaps, R9 shared-suite omission, and incomplete mutation spying",
+      "resolution": "Replaced fabricated lifecycle evidence with the shared CLI lifecycle, added exact guard mismatches, ran affected shared suites, and counted every mutation call",
+      "guardrailCandidate": "Review retry recovery must change executable evidence before resetting the bounded semantic review budget",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:22:21.929Z",
+      "issueLogId": "issue-log-ba038772-95ad-4508-afac-207599d3a215"
+    },
+    {
+      "step": "test-review",
+      "reason": "Review retry reset rejected uncommitted test repairs as unchanged identity",
+      "trigger": "senti flow set retry reset review test returned REVIEW_IDENTITY_UNCHANGED",
+      "resolution": "Committed the bounded test-design repairs on the feature branch so HEAD tree identity reflects changed evidence",
+      "guardrailCandidate": "Review recovery identity should recognize relevant worktree evidence or explicitly require a checkpoint commit",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:23:21.460Z",
+      "issueLogId": "issue-log-7101a3fd-c32e-4de6-856e-658396fe3fe8"
+    },
+    {
+      "step": "test-review",
+      "reason": "Canonical test-review recording rejected two distinct findings with the same fingerprint",
+      "trigger": "Changed-evidence review returned R5 and R6 findings whose generated findingId values collided",
+      "resolution": "Addressed both underlying gaps by asserting identical pending transaction roll-forward and malformed-entrypoint no-mutation behavior",
+      "guardrailCandidate": "Canonical review finding identity should include stable requirement and title dimensions before duplicate rejection",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:24:52.410Z",
+      "issueLogId": "issue-log-178f4f96-d527-434d-bbd3-5c1aa4975aca"
+    },
+    {
+      "step": "test-review",
+      "reason": "Changed-evidence review found pending-consumer and shared-coverage mapping gaps",
+      "trigger": "Canonical semantic review returned blocking R4 and R9 findings",
+      "resolution": "Added pending consumer recovery assertions and a dedicated R9 shared-suite regression adapter tracked by the coverage artifact",
+      "guardrailCandidate": "Lifecycle requirements must test actual consumers and coverage artifacts must expose every delegated shared suite",
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:26:51.739Z",
+      "issueLogId": "issue-log-f7bbfcc9-802a-4eaf-825d-1543004456a2"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added typed StepTransitionCommitIntent completion through FlowStore and FlowManager, routed stale refresh through the canonical impl-repair effects owner, retained the journal until intent completion, and asserted successful retries clear implRepairTransaction.",
+      "normalizedFindingId": "728c8a45738bef00400c5a47dcbece13617af1527285e22ffdb1f9da19ce61a5",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-25T04:41:52.637Z",
+      "issueLogId": "issue-log-1b4ec954-2b29-4801-8e80-22a9bba14114"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added a typed committed-effects reconciliation path for intent-complete journals, retained exact artifact/lifecycle/invalidation checks, and extended the R5 fault matrix with the after-intent-completion boundary.",
+      "normalizedFindingId": "4d5cb33209cfe2ec20d7140f1705e42084dc73ab1d12064149304eaf75a5bd8b",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T04:47:55.684Z",
+      "issueLogId": "issue-log-7c7a262a-5d6f-49dc-8cfb-8cc5f0012664"
+    },
+    {
+      "step": "task-review",
+      "reason": "Moved journal-only committed-effects reconciliation into completeTestEvidenceRefresh before any new transaction construction, making the durable resume order explicit and preserving the same transaction identity.",
+      "normalizedFindingId": "4d5cb33209cfe2ec20d7140f1705e42084dc73ab1d12064149304eaf75a5bd8b",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T04:49:15.463Z",
+      "issueLogId": "issue-log-9fbe831b-f204-4da3-b7d0-2b595fe69944"
+    },
+    {
+      "step": "task-review",
+      "reason": "Extracted resumeJournaledTestEvidenceRefresh and made the on-disk journal branch return before manifest-based transaction creation; R5 now also asserts retries do not issue another lifecycle update.",
+      "normalizedFindingId": "4d5cb33209cfe2ec20d7140f1705e42084dc73ab1d12064149304eaf75a5bd8b",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/impl-repair-artifacts.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-25T04:50:31.882Z",
+      "issueLogId": "issue-log-55939dfc-fde8-440d-915d-c1dcf1b2c069"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test artifact validation failed: spec-local requirement tests failed: R4, R7, R9",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T04:57:03.761Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "test artifact validation failed: spec-local requirement tests failed: R4, R7, R9",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-cade81a9-cf82-44d8-8775-515fab48b1c6"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Gate evidence exposed three spec-local failures: cross-entrypoint journal resume rejected matching authority, and nested Node suites inherited NODE_TEST_CONTEXT.",
+      "resolution": "Allowed an exact journal/state transaction to resume independently of the detecting entrypoint and isolated nested test subprocesses from the parent Node test context.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:01:21.260Z",
+      "issueLogId": "issue-log-160dd237-fc9c-49f3-b102-0a40fcba4178"
+    },
+    {
+      "step": "test-execute",
+      "reason": "R9 exposed an outdated final-regression fixture without the v2 manifest or canonical persisted flow target, plus a Node version command affected by the parent test context.",
+      "resolution": "Made the shared fixture exercise the real FlowManager with canonical spec.json and a persisted manifest, and used an independent successful command for the current-evidence control case.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:06:39.629Z",
+      "issueLogId": "issue-log-0addf205-d199-4a0a-be33-3be02b1ddb5e"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "Acceptance found the repair ledger tail behind the current fingerprint because post-gate test fixes had been re-executed without a new owned refresh transaction.",
+      "resolution": "Introduced the final fixture cleanup as a material change so acceptance stale-evidence recovery can append the canonical transaction from the existing ledger tail and regenerate downstream evidence.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:18:51.550Z",
+      "issueLogId": "issue-log-2bb280ee-9b71-4ddb-ba12-453ceb08bda3"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "caused_by_current_change",
+      "failureCategory": "caused_by_current_change",
+      "reason": "final-regression failed: caused_by_current_change",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "b1c913fa71b86a60bafac8254993ccde8f624c66425ed84c4e3339b3973b8fa9"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/acceptance-review.json",
+          "fingerprint": "ed9356d2dd55534a0314a9faa377f496e30f6c1611904d9db004d379433f356b"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/draft-coverage-repair.json",
+          "fingerprint": "ecbab6d1fcae2c3fb2153796f2ccb9c31db5dfc7c32a5a82cb2924336a84348c"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/draft-coverage-triage.json",
+          "fingerprint": "2e16b15300290de86609e1496435ca935a000a27b808f08cd6a95b1b64b4bbcd"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/draft-questions-repair.json",
+          "fingerprint": "9063ecf2d07f57276230c6eca3c55e4d4e5affa52693d7590653943ba699f651"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/draft-questions-triage.json",
+          "fingerprint": "ad6aca223e55423c833efa68dedaebc3342a3e4682e1a5ec5bf890762e9e3795"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/draft-review-coverage.json",
+          "fingerprint": "e77a9937ae7d35c804edc26de34d29c760bce099f829a1578ef4634197a4ceea"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/draft-review-questions.json",
+          "fingerprint": "a028e7a4b6c56f955429cb4d0a1810b741a8a915895d5501ad73522d9e56856f"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/draft.json",
+          "fingerprint": "f807a6ac2b6b49e01e80ed0f94e39c389874e16a06fe29af94a119864ac99f56"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/file-map.json",
+          "fingerprint": "19f4ecafd5cdfbe3f485de604933a3888ab189699b741600e1d8590f04f29bfc"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/flow-findings.json",
+          "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/impl-gate-result.json",
+          "fingerprint": "31e6006acff31f6651ff4f8e962e5a617b435104ad17f8cc3da5bf202a11583b"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/impl-repair.json",
+          "fingerprint": "8782df1435fe14fae77b1486726cafb47f13aa110227ec33b2a8ddbb859ce8d2"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/impl-review.json",
+          "fingerprint": "f1effa3374dbf5fae2b31ce46f9507be62d11b26e2b1a6244f1d851c1a15a342"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/impl-triage.json",
+          "fingerprint": "d72a6ca09a0f5b3b2e5658bbbf01400fa1fb5fb9920028e715d051faaa14d730"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/issue.md",
+          "fingerprint": "708bc667b9dfd5e5d3bdd9b5e153e57a4b38a6ed648cd758346f1c7118b20e6d"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "79cbe801e5ef7fa0f4b35158c72f80357810d13b891ce1b2ae786b85a5696f16"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-001.json",
+          "fingerprint": "eb755212598e9a16ed4db98626aee7aa8c6b5658a2ef9d876449b42b6a2fea3b"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/repair-deltas/repair-002.json",
+          "fingerprint": "7339d13678945755eec95b3cf2d845d803012fbe0f81c84373045d5bbdeb552b"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/repair-fingerprint.json",
+          "fingerprint": "347cfc6702e41b863bf9174d645b35b788c9de7b4e321ee0eb0b71a462b25c56"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/retro.json",
+          "fingerprint": "601dddb81c877e11101c799539bdf455be5c4cd1d330c2975ecb989c98af4714"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0d65080fdb148fd362e4194f61b2378b635816032b1de081989a671e9b440849.json",
+          "fingerprint": "9f1ba9da5193d347932df48c53a272c8602ddb059c2bec357d010632c2b0c75f"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0e87d57eb80fd67c3830c5662e59719cd65f66ae9608553f8838fc28fb2bb0a8.json",
+          "fingerprint": "f1bb9a01b0535590b1c9d258b4d540f78a13c1ed2c88109ba0e2d31adc8ad5c3"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/0e90453472f06f9ed8ebc89385d95b14fd199315a5181ec94d607c39731f0489.json",
+          "fingerprint": "692e341ff05e75041272d9b570014ae0ddf0e89c7399a63977ffad193927fe3a"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/115287c646374315f2b74d7af073d5d627658e049a3828c64d08608026b7ee5b.json",
+          "fingerprint": "6b64014da0b5582e9c4563a336ef949ba20c2a509f2c664bfd980f683bc1186b"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/1885908ade752b225e43fd8dec3879a8fad3e6eec470e5faba3596d61fe797ec.json",
+          "fingerprint": "0c78d09a55ced1de7506bb8fb5813ddcccf405c6d8166c9c64b0a0a95061fd6e"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/26b93961ccda222823a63443a6fae7afc0f758822b8ebb6191dfb316f7e400da.json",
+          "fingerprint": "1954b28522ec16a6bf9e3148b0f1a4b95a4faeaa1a9a9caad883abc3e0d70096"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/49cb1c6c14c26c60285ce5d0b0ca3198738d557bd31705b67f5695e95acc9918.json",
+          "fingerprint": "cd373aa5cd47c18d7c1a2c4820e4920563ae4dfd7aa893a3641e3deb25f01518"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/749c462eaee7167d8ffbd27b3147c55086a635d9e2c60388ed13c8513c377717.json",
+          "fingerprint": "30409c2f5b7f1fc1e683b8bc51065be39013cfedf9c829d70543158546ef4434"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/a02065296500f2824e1a5909040194520e2f5b92fc824d3c510b6ba0ed99e4be.json",
+          "fingerprint": "864a31c0ab46b13813038e2b5d35ff094cd6a65eba869f55adfdb0f2e6683958"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/b37be4f9d069508e1bcdefacb87977de776845602877ed40add991b92b562495.json",
+          "fingerprint": "ec0daf622144e064dee7fa6b5c5e3f07d8737f5e31433061315177da1f234803"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/badbb56eb7d80bfa8f66c35e955db923ded6b1f33978537aec6504a33590ca32.json",
+          "fingerprint": "82d624bb895a89add9da1f5a0b4af96a9d63cd6b8feaca920fed721479b1728d"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/c6ee57164a370c55a5a13152234b308da9c813806c4fe8bdb5cb2bfe32c22df7.json",
+          "fingerprint": "ef06927c72903445ce7c9bfc13589e4205a8d25f29d9661663206ff91d95808c"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/ce3a1191889d3463a5dab634f6ae8cdaa3b929358de99e0dbc3b95a7a6058551.json",
+          "fingerprint": "672d346515dbd99ca4a232eea9e94c1f1e7df9ae23e4321316a4e7c0c820c2d9"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/d168395678762e1283e26f2dbea39014d101548c640347e907ba7cf2217a4ec4.json",
+          "fingerprint": "fa4cbde052345baf8d42fba95f7a5a4277259e4f18477b2cea6e3d297c1ec479"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/d53c1b33fdb98f86291f90083270e63d1650f322ca9c45f851a6dbbcaa4e5c09.json",
+          "fingerprint": "4d83f5dc3c050943af3b9d6204de3e71a76267f3f17aa9097dc6f8f4b99612e6"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/da1bb6c404d06e710469f55faebb026aa4d1e5416069d4f7a1628eee8046bad9.json",
+          "fingerprint": "962b766462b406185bcfd693d9fa145f19cf104339c0c06c6a2303aff873fa52"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/e9bed8486aa2da9ce0799a3825fab628fd683d017505716a4aea127178cb0f7b.json",
+          "fingerprint": "b08e221725ac30ae1783a43e4bdec8be65a6a300e9e5289cac41d5d3d936ad6b"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/edcaa7b1e337019c864e53af696ad8dfe53ea32eff6f084bd18b9f4ed6352b41.json",
+          "fingerprint": "e62a516e70fff00c28a1fd1ac838677f9bbcff8c8baf9ebe6a58d8bfd5f5f905"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-evidence/f4f480a7e22cdf0facf548bdf4840a9cfdbfa78f2a7c41174481b3a2662d0919.json",
+          "fingerprint": "d5832dfcd7e7b97106e81dc55cd792b74b9e1c3a7f23a754e5a706fa59fd5a7e"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "fe59b7f9cbba5368b177f475bb9dda14625572e4d96e2b633cb9727abdb4ae99"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "9a35cf895dcff6ce9c544bdc46e5395b83aafecee5e077d7f9011beb11d11206"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-001.json",
+          "fingerprint": "c92d35305465e087bcd922bba62b92b8b32fb754de235b0c884c84f8b654002a"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-001.md",
+          "fingerprint": "2851178f63f50cf0a1ad19043d46e69d3b21773c164bb65ecc00c142a8050974"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-002.json",
+          "fingerprint": "2c7fcd8ac07b94eea4e32a17d077e794533fb8da95498a789770ebcd8327c7a7"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-002.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-003.json",
+          "fingerprint": "e0d48357fe6fad0a07ef8a4369ba5d03ee590fe20c06d8aeb21115d5d7f11f92"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-003.md",
+          "fingerprint": "c429211705782bf3b37f1a950da4f956f27b2d291c81f196cbea906ceb7cadbd"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-004.json",
+          "fingerprint": "a0a5767af7f0939f09bd50d3de4c8ae973bdc0e6946dc19d5f69722199177e01"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-004.md",
+          "fingerprint": "af5e213281bb4a8da7d1a74261640e884deba4d170e772d253a45ed5e3b943c6"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-005.json",
+          "fingerprint": "2b12eb3c2c03878a1757eaa44b83659fd0a5d473de98ff7be3a687854b207efc"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-005.md",
+          "fingerprint": "1c3ab173483e7eaedd32fa2507445adfd78620ffed71799c632d9d39aaf95db9"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-006.json",
+          "fingerprint": "68a46eb6fa651f7bd6a038b554c6afd8dea687047240a9b9e4eef412d03219dc"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-006.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-007.json",
+          "fingerprint": "67d64395755494670f8b9915ea4b7433e9150509cc147194914d9c313936d513"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-007.md",
+          "fingerprint": "c2285f902abee343c8ff6c8366d2a6c56e3c0d66bd660776382b6e6005431522"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-008.json",
+          "fingerprint": "650eaa95ec6eed8e32098b2b7766a20fd90c8300049c4b9050dcc6058c43c5d1"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-008.md",
+          "fingerprint": "7bad98892aca992913b2b18c5209a9f02a9beda9fa905aecbec17e07eef4b8a1"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-009.json",
+          "fingerprint": "7edb98ba5e05b9ec8d18d64e8c79b384fb719abfd1e208009b452e71f80c8355"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/impl-attempt-009.md",
+          "fingerprint": "d002e91025aac0d095317863270d474d678e7b0f65cede710e1d2eb5335e45ed"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/spec-attempt-001.json",
+          "fingerprint": "49710739802f42f98a12d85d993a47c7958778db29b82a335b452572dffc2f5f"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-001.json",
+          "fingerprint": "692c6333d1df85b75795818bdcd1480c607d4b6f8638631e13d2cbcc7994d847"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-001.md",
+          "fingerprint": "4b480792896b385598f3a7df56a75af54bef63ac456e53a1d3bfa6147100bc5b"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-002.json",
+          "fingerprint": "a6e30db790591e01d8008d9ce5d7f4687fa487c37ec03dde17e8b58d726d124f"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-002.md",
+          "fingerprint": "9a651b7bbe0df7e3d98df73dc5369058005bf6bf10776fb33c155ef57aedbadf"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-003.json",
+          "fingerprint": "006e7c9c22b44289ec1e942600bba9ff1ce1fe3ef39498844509dd9d7ee1d8f2"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-003.md",
+          "fingerprint": "e8c234530de98ccbd9135b99983877a574cf2315258f278268df3cef83c15731"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-004.json",
+          "fingerprint": "0ae5444bf85f3cb0027737c6df7ce3d999b899307230a9c72941751ce0e8907d"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-004.md",
+          "fingerprint": "ee82e0517793aa1a5f95107508eedf1ce6c303934a9935819db32afe6deec6e3"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-005.json",
+          "fingerprint": "e998417d83760fb38fdf159cc25799f2294eacf222eb890c3fff8c9935b017ab"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-005.md",
+          "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-006.json",
+          "fingerprint": "663858755cfaa8a1fc4b29ae73637262d469c00de597949d2c024e0afba25c51"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-006.md",
+          "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-007.json",
+          "fingerprint": "98faffcd81617f3353c992b4acbb480206c360ddab6533797cf01ad1b2fe05a7"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-007.md",
+          "fingerprint": "68daf6bfbdfd00b12ed0eea12de262394a6981fe11af7ef915de54c087ac0644"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-008.json",
+          "fingerprint": "0d76f170d2497c287226e2c26033618257bab0cf54b53a285905dd1eaf562327"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-008.md",
+          "fingerprint": "0bb773223763d5fefba8554fbeaacf51f634a23927fc3e2eb88055b8fb063bbd"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-009.json",
+          "fingerprint": "fc2cce989ecfbb1342a517b50e477080ad2a11d84381686448451e573a90d5b2"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-009.md",
+          "fingerprint": "25ceed2eee15ce5e2c40269549b6caf3781fe85e16dfb7718fc8306dedcb2345"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-010.json",
+          "fingerprint": "bc0179a89e2871ecdd896868f5ace1f7ed863e16d6f17d378cc4537f07ddaef2"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/test-attempt-010.md",
+          "fingerprint": "61e15534947312479075c4ba7328faa6edee9e610ba9c2f5e8c54a5ac720e0a7"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "e7724e05de77094cf9ee6fda35bc24dcd387ab960776e237f63d303a2815ec67"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "2c69f7357d4144222555782c79cd64b81cfcc5cfe5378cba916fc3a441218a2d"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "877c74fa55bbd35bfff92294f311af59ace19f8f80956f92f6d0f28e951ef9c0"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/22bd916e92021e8998ffe54a.json",
+          "fingerprint": "c6d5171b97e2c5f3c790e73016e9c5edb6f00d912ba43aea822e15d259d8ceef"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "069018791bb6aee56d7ce1e92e9f48f8bc633c1d745c1df8ff58c20771656724"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "1dd626ad2fa4f653e72d200f31c6a426ee2e5554a431ad53189ee5b668ec7831"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "57fdf11245bb7460d9dbabeb32bd9bb8e38efa72cda1474b0d48b1f6ae1d6a34"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "677f4275251e27df2d9428f6391b67de6f40404320ad9c8439a1830871b533af"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "28b5b0438525769f719274cde6dd214e7a4275eab11f7f4a6a168335ed5348f3"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "0753c5dba703bb90a8027b5f2901b83844591e6b4740aa096da54c7c7ce62493"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "db83e03230e5263369387be0194dcacc8aa7e93c2e8c5f2974336d77f345827a"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/aef895662887e4f149c8590c.json",
+          "fingerprint": "bd49815070f6c87f430f4f4a70c21fe9eb6568fffbd1a5206149f6b81d10ae6a"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "5c6e9f8a4608f9cef0b4d814a480bcce4b0866220fe4ad0ff986928e8abce5b5"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "cc366e5ceb7789194c954fd46a1b0f9bf3ce687f7d73cc5cc94ca1be69e1bb6b"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "d88034ab7b4469d1b27b0efaa502177fff769c2d295bda90d6303f615baa1dcd"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "0815e597e3a6879fb0d08d3d16c593f6443dfa51b3af74286c9bf3e3d62a2995"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review-history/work-units/impl-review/e21ecad3cb42be772a13b331.json",
+          "fingerprint": "269b19a2fbec24ee35c29210880fc530b4c7968344d4e12be945a7a40e8869da"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/review.md",
+          "fingerprint": "d002e91025aac0d095317863270d474d678e7b0f65cede710e1d2eb5335e45ed"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/scenario-validity-result.json",
+          "fingerprint": "fe6f823590a3d85d8d3fbb71476884bbe37e56c697ca0a9d97fee1c052dd2afb"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/spec-review.json",
+          "fingerprint": "9bab050f0dfcab915eed8e39debca1c24dac46134808a6ec1d798583cbffd252"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/spec.json",
+          "fingerprint": "3aa27a61b6f3063623a91831ebd8c74619363af2a2603477e9ff2e8b6602ef2a"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/spec.md",
+          "fingerprint": "cefa8a46df1712c0f6d240a139f7c9eeb6b47898b8b259e8c0b6550945a37e9e"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tasks/T-1.md",
+          "fingerprint": "5172add79b1a611460d103537fbdd54121cb111e95fe0ff0893e8e992897efea"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tasks/T-2.md",
+          "fingerprint": "2adaf254e27ac25eecca4a6b87a9e7d9fef946605017a0474879fd4d320033ca"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/test-coverage.json",
+          "fingerprint": "61190de173c91fa1dea370079007081cb5b6a82a8dfbf4faa870b53021ece4ce"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/test-execute-result.json",
+          "fingerprint": "79a78f6defcc76cc86610c9d6ff48f01123159161f491a2fddcf4e0f283d0f0a"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/test-result-review.json",
+          "fingerprint": "6e06de59b5be98d8b2ce1308fe2622a7fdb118a8f880bcecde1f5195d25e599f"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/test-result-review.md",
+          "fingerprint": "894391990cf2b04896ed584d2ef1dac79083a15d644d5d6388697239200e5f00"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/test-review.json",
+          "fingerprint": "9954bf9ba85beb9f691df135169f22cde9c46c1754f835bfac8d838205b4d8cb"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/test-review.md",
+          "fingerprint": "61e15534947312479075c4ba7328faa6edee9e610ba9c2f5e8c54a5ac720e0a7"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tests/.raw/scenario-validity.log",
+          "fingerprint": "cbfb64d74e8282e7431ef36a85343fee78412358a3d3faf919a5169cfbcc83af"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tests/.raw/test-execution.log",
+          "fingerprint": "a011009060e1a641deed7a7b75420e8568cec7be0ca7954561b880899d1ad6d4"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+          "fingerprint": "fea99ef4734cc2a60c4568d756bfee3a1e506686c38bd480a071f329073b6cf2"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+          "fingerprint": "fea99ef4734cc2a60c4568d756bfee3a1e506686c38bd480a071f329073b6cf2"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+          "fingerprint": "86f2f6a2e6021f92b4a23331a4a7ea2cba07919f42f11fb56366ec7bde68f4cc"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+          "fingerprint": "86f2f6a2e6021f92b4a23331a4a7ea2cba07919f42f11fb56366ec7bde68f4cc"
+        },
+        {
+          "path": "specs/337-repair-stale-evidence-ledger/tests/standalone-test-environment.js",
+          "fingerprint": "d08f6843be83c2bf236d59838156498b25ae94a518bc7e2a30f3b7c5590ad346"
+        },
+        {
+          "path": "src/flow/lib/impl-repair-artifacts.js",
+          "fingerprint": "02278beb039b126093f8135537c0432ddf63e74d9e384c1e11a5935d127472b2"
+        },
+        {
+          "path": "src/flow/lib/run-rewind-test-evidence.js",
+          "fingerprint": "21e7c6edf213d25230a3c7ad54fd06d6917e60453d79946235f88aee77de34bc"
+        },
+        {
+          "path": "src/flow/lib/stale-test-evidence-refresh.js",
+          "fingerprint": "ad6cb8ac6feb878a46f7c96f38baa655ab306f5495ca7cac5fcdb7c8c943f920"
+        },
+        {
+          "path": "src/flow/lib/step-transition-policy.js",
+          "fingerprint": "9bd5ab755a2c1f92ff2cc0491c7f729e47aa782950ba934c4fd1f69ba57a6a66"
+        },
+        {
+          "path": "src/lib/flow-manager.js",
+          "fingerprint": "3179a0102814bac7b70b146cda9f972a9585a5a04e57b7423e380c42dad6742a"
+        },
+        {
+          "path": "src/lib/flow-store.js",
+          "fingerprint": "e651f2ba7c91696641ea8aca4393eb693149eab4c821f0def3173bd9d12c892b"
+        },
+        {
+          "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+          "fingerprint": "cde4bb3bb75919cb5a04e0b90e846b6d9e4abf22f33740b25655da622fe9e36d"
+        },
+        {
+          "path": "tests/unit/flow/final-regression.test.js",
+          "fingerprint": "eead9cc5da5e214e69ee458e06c3def6aec73f49a9687a7f06964021c1f44526"
+        },
+        {
+          "path": "tests/unit/flow/repair-state-identity.test.js",
+          "fingerprint": "de635b35171c1bee01cbece3d8db0c9c5dafdb18a4653f4e73a854a61d09dcb8"
+        },
+        {
+          "path": "tests/unit/flow/rewind-test-evidence.test.js",
+          "fingerprint": "845e0abb859a393e26b5c1847d06380621dfd2ecf0ccfd858b21442db466a712"
+        },
+        {
+          "path": "tests/unit/flow/set-step-impl-repair.test.js",
+          "fingerprint": "88716647d69d9feff059c597fef718cca994034dd6fba51cf292f28f8f949378"
+        },
+        {
+          "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+          "fingerprint": "e38e0e105e1b24ca4fc2c4911e8c4ca83bd66315dbcdb1d47d3652fff4f251ab"
+        }
+      ],
+      "rawOutputPath": "specs/337-repair-stale-evidence-ledger/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": true,
+      "nextAction": "regression-repair",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-25T05:32:57.609Z",
+      "issueLogId": "issue-log-001de29f-dafd-46a5-b690-24064d145915"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R9] requires spec-local tests and affected shared unit and CLI lifecycle tests to cover the stale recovery matrix, and [TASK:T-2] explicitly includes affected shared tests for integration gate, final-regression, acceptance-review, explicit rewind guard parity, malformed/current evidence, and crash-resume matrices. The diff adds spec-local coverage in [FILE-MAP:R9:2] and a shared-suite runner in [FILE-MAP:R9:1], but that runner omits mapped affected shared suites [FILE-MAP:R9:5] tests/unit/flow/retry-exhaustion-defer.test.js and [FILE-MAP:R9:6] tests/unit/flow/run-review-advisory.test.js even though both are changed in the diff. Because required affected shared unit coverage is omitted from the regression evidence, the implementation does not supply every required integration/test coverage item.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:39:44.450Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R9",
+          "where": null,
+          "observed": "[REQ:R9] requires spec-local tests and affected shared unit and CLI lifecycle tests to cover the stale recovery matrix, and [TASK:T-2] explicitly includes affected shared tests for integration gate, final-regression, acceptance-review, explicit rewind guard parity, malformed/current evidence, and crash-resume matrices. The diff adds spec-local coverage in [FILE-MAP:R9:2] and a shared-suite runner in [FILE-MAP:R9:1], but that runner omits mapped affected shared suites [FILE-MAP:R9:5] tests/unit/flow/retry-exhaustion-defer.test.js and [FILE-MAP:R9:6] tests/unit/flow/run-review-advisory.test.js even though both are changed in the diff. Because required affected shared unit coverage is omitted from the regression evidence, the implementation does not supply every required integration/test coverage item.",
+          "severity": "blocking",
+          "refs": [
+            "R9"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R4",
+        "R5",
+        "R6",
+        "R3",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R9",
+          "reason": "[REQ:R9] requires spec-local tests and affected shared unit and CLI lifecycle tests to cover the stale recovery matrix, and [TASK:T-2] explicitly includes affected shared tests for integration gate, final-regression, acceptance-review, explicit rewind guard parity, malformed/current evidence, and crash-resume matrices. The diff adds spec-local coverage in [FILE-MAP:R9:2] and a shared-suite runner in [FILE-MAP:R9:1], but that runner omits mapped affected shared suites [FILE-MAP:R9:5] tests/unit/flow/retry-exhaustion-defer.test.js and [FILE-MAP:R9:6] tests/unit/flow/run-review-advisory.test.js even though both are changed in the diff. Because required affected shared unit coverage is omitted from the regression evidence, the implementation does not supply every required integration/test coverage item."
+        }
+      ],
+      "issueLogId": "issue-log-4972cd6f-4e69-4c20-bfc1-9b3d18b76a57"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: include the newly affected acceptance and impl-review stale-recovery suites in the R9 shared regression runner",
+      "resolution": "The spec-local R9 runner now executes tests/unit/flow/retry-exhaustion-defer.test.js and tests/unit/flow/run-review-advisory.test.js, so every changed shared recovery suite is part of persisted test evidence.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:40:12.068Z",
+      "issueLogId": "issue-log-3c33f4da-9f16-4b15-b50e-3e30df789fff"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds a JSON.stringify(toJSON()) equality comparison in ImplRepairTargetIdentity.equals; the same production comparison shape is also added in ImplRepairTransaction.equals, so the repeated transformation could be centralized locally.; The diff adds a JSON.stringify(toJSON()) equality comparison in ImplRepairTransaction.equals; the same production comparison shape is also added in ImplRepairTargetIdentity.equals, so the repeated transformation could be centralized locally.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:45:11.990Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "ImplRepairTargetIdentity.equals"
+          },
+          "observed": "The diff adds a JSON.stringify(toJSON()) equality comparison in ImplRepairTargetIdentity.equals; the same production comparison shape is also added in ImplRepairTransaction.equals, so the repeated transformation could be centralized locally.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "ImplRepairTransaction.equals"
+          },
+          "observed": "The diff adds a JSON.stringify(toJSON()) equality comparison in ImplRepairTransaction.equals; the same production comparison shape is also added in ImplRepairTargetIdentity.equals, so the repeated transformation could be centralized locally.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a JSON.stringify(toJSON()) equality comparison in ImplRepairTargetIdentity.equals; the same production comparison shape is also added in ImplRepairTransaction.equals, so the repeated transformation could be centralized locally."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a JSON.stringify(toJSON()) equality comparison in ImplRepairTransaction.equals; the same production comparison shape is also added in ImplRepairTargetIdentity.equals, so the repeated transformation could be centralized locally."
+        }
+      ],
+      "issueLogId": "issue-log-2a179ecc-023e-4a97-8371-e0fff28d17a8"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: centralize repeated serialized value equality",
+      "resolution": "ImplRepairTargetIdentity.equals and ImplRepairTransaction.equals now delegate the identical toJSON serialization comparison to one local helper, removing the duplicated production pattern without changing equality semantics.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:46:23.509Z",
+      "issueLogId": "issue-log-dace236c-80ec-448e-aaa2-fcabbcc8664d"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The added ledgerCurrent check repeats the same JSON.stringify(toJSON()) equality shape used for manifestCurrent in the same method; a local equality helper could remove the duplicated transformation without changing ownership.; The added manifestCurrent check repeats the same JSON.stringify(toJSON()) equality shape used for ledgerCurrent in the same method; a local equality helper could remove the duplicated transformation without changing ownership.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-25T05:49:38.926Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "CommittedImplRepairEffects.reconcileJournal ledgerCurrent"
+          },
+          "observed": "The added ledgerCurrent check repeats the same JSON.stringify(toJSON()) equality shape used for manifestCurrent in the same method; a local equality helper could remove the duplicated transformation without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "CommittedImplRepairEffects.reconcileJournal manifestCurrent"
+          },
+          "observed": "The added manifestCurrent check repeats the same JSON.stringify(toJSON()) equality shape used for ledgerCurrent in the same method; a local equality helper could remove the duplicated transformation without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The added ledgerCurrent check repeats the same JSON.stringify(toJSON()) equality shape used for manifestCurrent in the same method; a local equality helper could remove the duplicated transformation without changing ownership."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The added manifestCurrent check repeats the same JSON.stringify(toJSON()) equality shape used for ledgerCurrent in the same method; a local equality helper could remove the duplicated transformation without changing ownership."
+        }
+      ],
+      "issueLogId": "issue-log-b1070ab3-c114-40cf-a1fd-357a40d0364d"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: reuse serialized value equality for committed ledger and manifest checks",
+      "resolution": "CommittedImplRepairEffects.reconcileJournal now uses the same local equality helper as transaction and target identity comparisons, eliminating the duplicated ledgerCurrent/manifestCurrent transformation while preserving fail-closed reconciliation.",
+      "taskId": null,
+      "timestamp": "2026-07-25T05:50:09.974Z",
+      "issueLogId": "issue-log-9be3ab1b-9b61-41ca-afe9-a871b96afd8c"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+      "trigger": "flow set acceptance-decision",
+      "resolution": "continue to final-regression with accepted risk",
+      "taskId": null,
+      "timestamp": "2026-07-25T06:09:31.511Z",
+      "issueLogId": "issue-log-3e3fe756-2b71-41d4-bacf-4adc1393023c"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-07-25T06:19:24.399Z",
+      "issueLogId": "issue-log-b7f679b2-f9bc-46ad-b750-2707a9c14249"
+    }
+  ]
+}

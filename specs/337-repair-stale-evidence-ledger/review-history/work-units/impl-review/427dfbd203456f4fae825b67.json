@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/e2e/231-task-e2e-full-lifecycle.test.js"
+    ],
+    "inputHash": "69c7dfbca577480c3a556d6f834e018997a15f52f47e47de98e26192d1d18351",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "tests/e2e/231-task-e2e-full-lifecycle.test.js"
+  ],
+  "inputHash": "69c7dfbca577480c3a556d6f834e018997a15f52f47e47de98e26192d1d18351",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T04:55:42.275Z",
+  "finishedAt": "2026-07-25T04:55:42.275Z",
+  "rawResponse": "### 1. Extract the repeated lifecycle step sequence\n**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R7  \n**Issue:** The test now contains a repeated pattern of `runEnvelope(...)` followed by `assertNext(...)` for lifecycle progression. The newly added recovery path adds another inline sequence for `test-execute -> test-result-review -> impl-review -> impl-gate`, making the test longer and harder to scan.  \n**Suggestion:** Extract a small helper inside this test file, such as `runStepAndAssertNext(tmp, command, next)` or a lifecycle-specific helper like `runRecoveredEvidenceRefresh(tmp)`, to remove repetition while keeping the scenario intent clear.\n\n### 2. Name the recovery gate result more specifically\n**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R7  \n**Issue:** `recoveredGate` is understandable locally, but it does not communicate that this is the integration gate result after stale evidence recovery. In a long lifecycle test, more precise naming would make the assertion block easier to follow.  \n**Suggestion:** Rename `recoveredGate` to something like `staleEvidenceRecoveryGate` or `integrationRecoveryGateResult`.\n\n### 3. Avoid embedding the repair source content inline\n**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R7  \n**Issue:** The added `writeFile(..., \"src/value.js\", [...].join(\"\\n\"))` block embeds fixture source text directly in the middle of the lifecycle assertions. This distracts from the test flow and makes future fixture edits more error-prone.  \n**Suggestion:** Extract the repaired implementation text to a local constant with a descriptive name, for example `const repairedValueImplementation = [...]`, or a small helper like `writeMaterialImplementationChange(tmp)`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract the repeated lifecycle step sequence",
+        "body": "**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R7  \n**Issue:** The test now contains a repeated pattern of `runEnvelope(...)` followed by `assertNext(...)` for lifecycle progression. The newly added recovery path adds another inline sequence for `test-execute -> test-result-review -> impl-review -> impl-gate`, making the test longer and harder to scan.  \n**Suggestion:** Extract a small helper inside this test file, such as `runStepAndAssertNext(tmp, command, next)` or a lifecycle-specific helper like `runRecoveredEvidenceRefresh(tmp)`, to remove repetition while keeping the scenario intent clear.",
+        "file": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Name the recovery gate result more specifically",
+        "body": "**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R7  \n**Issue:** `recoveredGate` is understandable locally, but it does not communicate that this is the integration gate result after stale evidence recovery. In a long lifecycle test, more precise naming would make the assertion block easier to follow.  \n**Suggestion:** Rename `recoveredGate` to something like `staleEvidenceRecoveryGate` or `integrationRecoveryGateResult`.",
+        "file": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Avoid embedding the repair source content inline",
+        "body": "**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`  \n**Requirement:** R7  \n**Issue:** The added `writeFile(..., \"src/value.js\", [...].join(\"\\n\"))` block embeds fixture source text directly in the middle of the lifecycle assertions. This distracts from the test flow and makes future fixture edits more error-prone.  \n**Suggestion:** Extract the repaired implementation text to a local constant with a descriptive name, for example `const repairedValueImplementation = [...]`, or a small helper like `writeMaterialImplementationChange(tmp)`.",
+        "file": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "devType": "bugfix",
+  "goal": "material な実装修正後の stale test evidence recovery を正式な repair transaction として扱い、repair fingerprint manifest、impl-repair ledger、repair delta、artifact invalidation、lifecycle transition を同じ current fingerprint へ整合させる。",
+  "analysis": {
+    "problem": "stale test evidence recovery は test-execute 以降を再実行可能にしても、既存 impl-repair ledger の末尾を current repair fingerprint まで前進させない経路がある。再生成された test evidence と ledger endpoint が不一致になり、acceptance-review などの downstream consumer が impl-repair.json を invalid_schema として正しく fail-closed するため、flow が再び閉塞する。",
+    "proposedApproach": "既存の TestEvidenceRefreshPurpose と impl-repair transaction authority を再利用し、stale evidence recovery を manifest、ledger、delta、artifact invalidation、flow lifecycle の一貫した formal repair transaction に統合する。各 entrypoint は同じ recovery contract を利用し、pending transaction や部分更新を current evidence として公開しない。",
+    "validation": "既存 impl-repair ledger を持つ fixture で material change 後の recovery を実行し、ledger tail、manifest、delta、再生成された test evidence が同じ fingerprint を参照することを検証する。正常 evidence、malformed evidence、target guard mismatch、各 durable failure boundary、final-regression・acceptance-review・integration gate の全 entrypoint を shared unit tests と CLI lifecycle regression で確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "[must] acceptance-review は impl-repair ledger 末尾の currentHash と current repair fingerprint の不一致を invalid_schema として拒否する。",
+      "[must] StaleTestEvidenceRefresh は現在 completeTestEvidenceRefresh を呼び、stale artifact の無効化と test-execute 以降の lifecycle reset を行う。",
+      "[must] completeTestEvidenceRefresh は TestEvidenceRefreshPurpose を持つ impl-repair transaction を生成できるが、entrypoint ごとの authority と failure boundary を一つの contract として保証する必要がある。",
+      "[must] run-rewind-test-evidence には ImplRepairTransitionIntent と commitImplRepairEffects を用いた guarded recovery authority が既に存在する。",
+      "[must] repair fingerprint の検証不一致は正しい fail-closed behavior であり、consumer 側の検証緩和では解消しない。"
+    ],
+    "decisionPoints": [
+      "[must] recovery transaction の完了可視性を定義し、manifest、ledger、delta、invalidation、lifecycle の一部だけが current と見なされない境界を定める。",
+      "[must] final-regression、acceptance-review、integration gate の全 entrypoint が同じ formal repair invariant を共有する責務境界を定める。"
+    ],
+    "resolvedByProjectRules": [
+      "[must] 新しい mutation owner を追加せず、既存の TestEvidenceRefreshPurpose と impl-repair transaction authority を再利用する。",
+      "[must] transaction failure と crash injection は部分成功を返さず、再試行可能または fail-closed な durable state を残す。",
+      "[must] 意味のある transaction、authority、result は専用クラスで invariant を表現し、外部依存を追加しない。",
+      "[must] hash の直接編集、artifact の手動削除、acceptance-review validation の緩和を実装しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "[must] 既存 transaction authority のどの公開操作へ recovery を集約するかを、現在の lifecycle と crash recovery behavior の調査結果から spec で定義する。",
+      "[must] current evidence の可視性と pending transaction recovery を検証する具体的な fault-injection boundary を spec で定義する。",
+      "[must] shared unit test と CLI lifecycle regression の fixture、entrypoint matrix、正常系・異常系 assertions を spec で定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] repair fingerprint manifest、impl-repair ledger、repair delta、stale artifact invalidation、test-execute への lifecycle transition の一貫性。",
+      "[must] final-regression、acceptance-review、flow-level integration gate から起動する stale evidence recovery。",
+      "[must] 既存 impl-repair ledger がある recovery、pending transaction、failure injection、target guard mismatch の回帰検証。",
+      "[must] stale-test-evidence-refresh、impl-repair-artifacts、acceptance-review-artifacts、run-final-regression、run-gate と関連 lifecycle tests。"
+    ],
+    "out": [
+      "[must] repair hash または ledger の手編集による修復。",
+      "[must] stale artifact の手動削除を前提とする運用回避。",
+      "[must] 新しい recovery mutation owner の追加。",
+      "[must] acceptance-review または他 consumer の fingerprint validation 緩和。"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] valid で current fingerprint と一致する evidence は従来どおり再生成せず受理する。",
+    "[must] malformed evidence、矛盾した fingerprint、target guard mismatch は従来どおり fail-closed にする。",
+    "[must] stale evidence recovery 成功後は test-execute から acceptance-review までの正規経路を再実行できる。",
+    "[must] transaction の再開または失敗時も、consumer が部分更新を current evidence として受理しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] Issue #458 の目標を、stale test evidence recovery 後も impl-repair ledger 末尾と current repair fingerprint を一致させ、正規 lifecycle を完走可能にすることとしてよいか。",
+      "answer": "[must] はい。ledger tail と current fingerprint の一致を回復し、test-execute から acceptance-review までの正規 lifecycle を完走可能にする。",
+      "evidence": "ユーザーは Issue #458 の Goal、Scope、Out of Scope を示した preflight summary に対して auto mode の [1] を明示的に選択した。",
+      "why": "承認された summary は Issue #458 の Problem、Expected Fix、Completion Criteria と一致する。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "[must] stale evidence recovery は既存 TestEvidenceRefreshPurpose と impl-repair transaction authority のみに所有させ、manifest、ledger、delta、artifact invalidation、lifecycle transition を一つの formal repair transaction として扱う方針でよいか。",
+      "answer": "[must] はい。既存 TestEvidenceRefreshPurpose と impl-repair transaction authority を再利用し、全 repair effects を一つの formal transaction として扱う。",
+      "evidence": "Issue #458 は既存 authority の再利用と新規 mutation owner の禁止を明示する。src/flow/lib/impl-repair-artifacts.js には TestEvidenceRefreshPurpose、ImplRepairTransaction、ImplRepairTransitionIntent、commitImplRepairEffects が存在する。",
+      "why": "既存 authority へ集約すれば、repair evidence と lifecycle transition の ownership を増やさず、ledger continuity を同じ invariant で検証できる。",
+      "considered": "entrypoint ごとに独立した recovery mutation を追加する方式は、新しい mutation owner を増やして invariant を分散させるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "[must] final-regression、acceptance-review、flow-level integration gate の stale evidence entrypoint すべてで同じ transaction invariant を要求する境界でよいか。",
+      "answer": "[must] はい。stale evidence を検出しうる全 entrypoint は同じ formal repair invariant を共有する。",
+      "evidence": "Issue #458 の Requirements は final-regression、acceptance-review、integration gate を例示し、すべての entrypoint で同じ invariant を維持することを要求する。現行 source は StaleTestEvidenceRefresh を acceptance-review、run-final-regression、run-gate から利用する。",
+      "why": "entrypoint によって ledger、manifest、lifecycle の更新範囲が異なると、同じ material state に対して consumer ごとに current evidence の判定が分岐する。",
+      "considered": "acceptance-review だけで ledger mismatch を補正する方式は upstream の不整合を隠し、final-regression と integration gate の再閉塞を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "[must] pending または部分適用された transaction を current evidence として受理せず、failure・crash・malformed evidence・target mismatch を部分成功なしで fail-closed にする境界でよいか。",
+      "answer": "[must] はい。transaction の完了が確認できない状態は current evidence として受理せず、部分成功を返さない。",
+      "evidence": "Issue #458 は intermediate state の拒否と transaction failure・crash injection 時の部分成功禁止を明示する。src/flow/lib/run-rewind-test-evidence.js は exact target guards、authority snapshot、owned transition intent、effects commit の検証境界を既に持つ。",
+      "why": "manifest、ledger、delta、invalidation、lifecycle の一部だけを current と扱うと、監査 chain と実行 state が異なる fingerprint を指して downstream validation が再閉塞する。",
+      "considered": "consumer が不一致を検出した時点で欠けた artifact だけを補完する方式は、部分状態を一時的に current と見なすため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "[must] 既存 impl-repair ledger を持つ recovery と全 entrypoint の正規 lifecycle、fault injection、正常 evidence、malformed evidence、target guard mismatch を shared unit tests と CLI lifecycle regression で検証する完了条件でよいか。",
+      "answer": "[must] はい。既存 ledger の continuity、全 entrypoint、正規 lifecycle、failure boundaries、fail-closed cases を unit と CLI lifecycle regression で検証する。",
+      "evidence": "Issue #458 の Completion Criteria は既存 impl-repair ledger、test-execute から acceptance-review までの再生成、final-regression recovery、intermediate state rejection、正常・malformed・target mismatch evidence、shared unit tests と CLI regression を列挙する。",
+      "why": "単一 entrypoint の unit test だけでは、共通 invariant が lifecycle command の呼び出し境界でも維持されることと crash 時の durable state を保証できない。",
+      "considered": "既存の stale-test-evidence-refresh unit test のみを拡張する方式は、CLI lifecycle と entrypoint 間の contract を検証できないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T03:47:20Z",
+    "notes": "Issue #458 preflight summary approved by the user; draft questions resolved from the Issue, source context, project rules, and accepted scope."
+  }
+}

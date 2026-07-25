@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T04:45:56.325Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "transaction-journal-left-after-clear-failure",
+      "title": "Transaction journal can remain after intent completion failure",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/impl-repair-artifacts.js",
+      "requirementId": "R5",
+      "issue": "`commitOwnedImplRepairEffects()` commits durable repair effects with `removeJournal: false`, then clears the flow-state intent, then removes `impl-repair-transaction.json`. If `clearImplRepairTransitionIntent()` succeeds in the flow store but a later failure occurs before or during journal removal, the state no longer contains `implRepairTransaction` while the transaction journal remains on disk. A retry then treats the journal as an active pending transaction but cannot find the matching owned state intent, so convergence is no longer exactly-once across the durable boundary.",
+      "suggestion": "In `commitOwnedImplRepairEffects()`, make journal removal and intent completion an atomic ordered recovery protocol: either remove the journal before completing the intent with a retry-safe marker, or teach resume to recognize a journal whose effects are already committed and whose state intent has already been completed, then remove it idempotently. Add a crash injection/assertion for the boundary between `clearImplRepairTransitionIntent()` and `fs.rmSync()` to the R5 matrix.",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires every durable effects boundary to converge exactly once. The implementation adds a new durable boundary after flow-state intent completion but before journal deletion and does not cover or recover that partial state.",
+      "findingId": "4d5cb33209cfe2ec20d7140f1705e42084dc73ab1d12064149304eaf75a5bd8b",
+      "fingerprint": "4d5cb33209cfe2ec20d7140f1705e42084dc73ab1d12064149304eaf75a5bd8b",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "91f87ac4718a2d8b8c760dbb7235341b7460d67fc721783ce8e1a15a49bace9d",
+  "runId": "bbeb8cad-39a7-46b4-9614-1c0e573a8fdf",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/337-repair-stale-evidence-ledger/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/337-repair-stale-evidence-ledger/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "6b3680b3e9aeb3dfdb45dd55436a3be02b19bb1cc1a6f17d99a3828228b5b706"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "4d5cb33209cfe2ec20d7140f1705e42084dc73ab1d12064149304eaf75a5bd8b",
+      "findingId": "4d5cb33209cfe2ec20d7140f1705e42084dc73ab1d12064149304eaf75a5bd8b",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Transaction journal can remain after intent completion failure",
+      "body": "`commitOwnedImplRepairEffects()` commits durable repair effects with `removeJournal: false`, then clears the flow-state intent, then removes `impl-repair-transaction.json`. If `clearImplRepairTransitionIntent()` succeeds in the flow store but a later failure occurs before or during journal removal, the state no longer contains `implRepairTransaction` while the transaction journal remains on disk. A retry then treats the journal as an active pending transaction but cannot find the matching owned state intent, so convergence is no longer exactly-once across the durable boundary.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "4d5cb33209cfe2ec20d7140f1705e42084dc73ab1d12064149304eaf75a5bd8b",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires every durable effects boundary to converge exactly once. The implementation adds a new durable boundary after flow-state intent completion but before journal deletion and does not cover or recover that partial state.",
+      "requirementId": "R5",
+      "repeatCount": 1
+    }
+  ]
+}

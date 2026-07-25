@@ -61,6 +61,7 @@ describe("set step impl-repair completion", () => {
     writeFile(tmp, "src/repair-target.js", "export const value = 'after';\n");
 
     const state = {
+      runId: "run-impl-repair-intent-recovery",
       spec: SPEC_PATH,
       steps: [{ id: "impl-repair", status: "in_progress" }],
       tasks: [],
@@ -123,6 +124,7 @@ describe("set step impl-repair completion", () => {
     writeFile(tmp, "src/repair-target.js", "export const value = 'after';\n");
 
     const state = {
+      runId: "run-impl-repair-intent-recovery",
       spec: SPEC_PATH,
       steps: [{ id: "impl-repair", status: "in_progress" }],
       tasks: [],
@@ -135,7 +137,11 @@ describe("set step impl-repair completion", () => {
 
     const flowManager = {
       load: () => state,
+      loadReadOnly: () => state,
       mutate(mutator) { mutator(state); },
+      completeStepTransitionIntent(commitIntent) {
+        commitIntent.completeIn(state);
+      },
     };
     const recovered = recoverImplRepairTransaction({ root: tmp, state, flowManager });
 

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "460d0bf59a905ce5bdd0188bfdcb304a46ef415662ef484ad16309a6edb4ebc4",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "460d0bf59a905ce5bdd0188bfdcb304a46ef415662ef484ad16309a6edb4ebc4",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:38:36.190Z",
+  "finishedAt": "2026-07-25T05:38:36.190Z",
+  "rawResponse": "### 1. Extract FlowManager Fixture Setup\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R9  \n**Issue:** Both changed tests now repeat the same `FlowManager` construction, `create(state)`, and `loadReadOnly()` sequence. This duplicates setup mechanics and makes future state-persistence test changes more error-prone.  \n**Suggestion:** Add a local helper such as `createPersistedFlowState(fixture, state)` that returns `{ flowManager, activeState }`, and use it in both tests.\n\n### 2. Use More Specific State Variable Names\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R9  \n**Issue:** `activeState` and `recoveredState` are technically correct, but they do not communicate the key behavior being tested: persisted flow state before and after stale-evidence recovery.  \n**Suggestion:** Rename them to something like `persistedState` and `reloadedStateAfterRecovery`, or `stateBeforeRecovery` and `stateAfterRecovery`, to make the persistence boundary explicit.\n\n### 3. Consider a Helper for Stale Recovery Assertions\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R9  \n**Issue:** The two tests assert the same recovery transition shape: recovered result, test-execute becomes `in_progress`, and the original gate/review step becomes `pending`. This pattern is duplicated with only the source step ID differing.  \n**Suggestion:** Extract a small assertion helper, for example `assertRecoveredToTestExecute(state, deferredStepId)`, to centralize the transition expectation while keeping each test focused on its entrypoint-specific setup.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract FlowManager Fixture Setup",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R9  \n**Issue:** Both changed tests now repeat the same `FlowManager` construction, `create(state)`, and `loadReadOnly()` sequence. This duplicates setup mechanics and makes future state-persistence test changes more error-prone.  \n**Suggestion:** Add a local helper such as `createPersistedFlowState(fixture, state)` that returns `{ flowManager, activeState }`, and use it in both tests.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Use More Specific State Variable Names",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R9  \n**Issue:** `activeState` and `recoveredState` are technically correct, but they do not communicate the key behavior being tested: persisted flow state before and after stale-evidence recovery.  \n**Suggestion:** Rename them to something like `persistedState` and `reloadedStateAfterRecovery`, or `stateBeforeRecovery` and `stateAfterRecovery`, to make the persistence boundary explicit.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Consider a Helper for Stale Recovery Assertions",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R9  \n**Issue:** The two tests assert the same recovery transition shape: recovered result, test-execute becomes `in_progress`, and the original gate/review step becomes `pending`. This pattern is duplicated with only the source step ID differing.  \n**Suggestion:** Extract a small assertion helper, for example `assertRecoveredToTestExecute(state, deferredStepId)`, to centralize the transition expectation while keeping each test focused on its entrypoint-specific setup.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

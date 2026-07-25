@@ -29,6 +29,10 @@ export class StepTransitionCommitIntent {
   applyTo() {
     throw new StepTransitionError("step transition commit intent must implement applyTo(state)");
   }
+
+  completeIn() {
+    throw new StepTransitionError("step transition commit intent does not support completion");
+  }
 }
 
 function transitionError(message) {

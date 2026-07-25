@@ -291,7 +291,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("review REJECTED -> source repair -> retest -> acceptance -> report -> finalize cleanup", () => {
+  it("stale integration evidence recovery regenerates the acceptance lifecycle", () => {
     tmp = createTmpDir("senti-cli-lifecycle-");
     setupFixture(tmp);
 
@@ -362,6 +362,29 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     assert.ok(matchingHistory.length > 0);
     assert.deepEqual(matchingHistory.map((artifact) => artifact.taskId ?? null), ["T-1"]);
 
+    writeFile(tmp, "src/value.js", [
+      "export function add(left, right) {",
+      "  // Material implementation change after test evidence was recorded.",
+      "  return left + right;",
+      "}",
+      "",
+    ].join("\n"));
+    const recoveredGate = runEnvelope(
+      tmp,
+      ["flow", "run", "gate", "--phase", "integration", "--skip-guardrail"],
+    );
+    assert.equal(recoveredGate.data.result, "recovered");
+    assert.equal(recoveredGate.data.next, "test-execute");
+    assert.equal(recoveredGate.data.artifacts.evidenceRefresh.recovered, true);
+    assertNext(tmp, "test-execute", null);
+
+    runEnvelope(tmp, ["flow", "run", "test-execute"]);
+    assertNext(tmp, "test-result-review", null);
+    runEnvelope(tmp, ["flow", "run", "test-result-review"]);
+    assertNext(tmp, "impl-review", null);
+    const regeneratedReview = runEnvelope(tmp, ["flow", "run", "review"]);
+    assert.equal(regeneratedReview.data.artifacts.verdict, "PASS");
+    assertNext(tmp, "impl-gate", null);
     runEnvelope(tmp, ["flow", "run", "gate", "--phase", "integration", "--skip-guardrail"]);
     assertNext(tmp, "retro", null);
     runEnvelope(tmp, ["flow", "run", "retro"]);

@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T04:25:27.502Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/337-repair-stale-evidence-ledger/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 pending evidence acceptance is not exercised",
+      "target": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js R4 test",
+      "findingId": "109dad86830a67ee61f178e691447a1410c438a81901761029c158a58707d4d0",
+      "fingerprint": "109dad86830a67ee61f178e691447a1410c438a81901761029c158a58707d4d0",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires that no consumer accept a pending or partially applied transaction as current evidence; that acceptance behavior has no corresponding executable coverage.",
+      "issue": "The R4 test verifies that an injected failure throws, leaves an owned transaction pending, and does not return a recovered result, but it never invokes a stale-evidence consumer while that pending or partially applied transaction exists. An implementation could still accept the pending transaction as current evidence and this test would pass.",
+      "requiredChange": "Add a spec-local assertion that, after an injected durable failure leaves a pending/partial transaction, a consumer entrypoint refuses to treat it as current recovered evidence until commit completes.",
+      "whyBlocking": "R4 explicitly requires that no consumer accept a pending or partially applied transaction as current evidence; that acceptance behavior has no corresponding executable coverage.",
+      "origin": "R4",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R9 shared-suite coverage artifact omits required affected test files",
+      "target": "Requirement-to-Test Coverage Artifact for R9",
+      "findingId": "66922b42d8c201d9a167d2a239801e3e3dc51fcd035c6d6dd7ace639ff09c5a0",
+      "fingerprint": "66922b42d8c201d9a167d2a239801e3e3dc51fcd035c6d6dd7ace639ff09c5a0",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact contradicts the stated R9 coverage obligation and does not account for the actual shared test files the spec-local test depends on.",
+      "issue": "R9 requires affected shared unit and CLI lifecycle tests to cover the regression matrix, but the coverage artifact lists only tests/stale-evidence-repair-transaction.test.js. The spec-local test spawns shared suites, yet the artifact does not identify those shared files as requirement coverage targets.",
+      "requiredChange": "Update the coverage artifact, and where applicable the spec/test headers, so R9 maps to the affected shared unit and CLI lifecycle test files that provide the required coverage.",
+      "whyBlocking": "The requirement coverage artifact contradicts the stated R9 coverage obligation and does not account for the actual shared test files the spec-local test depends on.",
+      "origin": "R9",
+      "failureKind": "coverage_artifact_contradiction"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/337-repair-stale-evidence-ledger/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3d1294bab34cf3a24743708b05808f21805286443bf47fcf743f023cbff2dc58"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "109dad86830a67ee61f178e691447a1410c438a81901761029c158a58707d4d0",
+      "findingId": "109dad86830a67ee61f178e691447a1410c438a81901761029c158a58707d4d0",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "R4 pending evidence acceptance is not exercised",
+      "body": "The R4 test verifies that an injected failure throws, leaves an owned transaction pending, and does not return a recovered result, but it never invokes a stale-evidence consumer while that pending or partially applied transaction exists. An implementation could still accept the pending transaction as current evidence and this test would pass.",
+      "category": "unknown",
+      "fingerprint": "109dad86830a67ee61f178e691447a1410c438a81901761029c158a58707d4d0",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires that no consumer accept a pending or partially applied transaction as current evidence; that acceptance behavior has no corresponding executable coverage."
+    },
+    {
+      "id": "66922b42d8c201d9a167d2a239801e3e3dc51fcd035c6d6dd7ace639ff09c5a0",
+      "findingId": "66922b42d8c201d9a167d2a239801e3e3dc51fcd035c6d6dd7ace639ff09c5a0",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "R9 shared-suite coverage artifact omits required affected test files",
+      "body": "R9 requires affected shared unit and CLI lifecycle tests to cover the regression matrix, but the coverage artifact lists only tests/stale-evidence-repair-transaction.test.js. The spec-local test spawns shared suites, yet the artifact does not identify those shared files as requirement coverage targets.",
+      "category": "unknown",
+      "fingerprint": "66922b42d8c201d9a167d2a239801e3e3dc51fcd035c6d6dd7ace639ff09c5a0",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact contradicts the stated R9 coverage obligation and does not account for the actual shared test files the spec-local test depends on."
+    }
+  ]
+}

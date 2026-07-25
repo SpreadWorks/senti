@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/run-review-advisory.test.js"
+    ],
+    "inputHash": "5f289f1f29bbb43f5ab0d97774dd8a7108d92d6f67f89ac5e4e8c002e1470b18",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "tests/unit/flow/run-review-advisory.test.js"
+  ],
+  "inputHash": "5f289f1f29bbb43f5ab0d97774dd8a7108d92d6f67f89ac5e4e8c002e1470b18",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:38:49.258Z",
+  "finishedAt": "2026-07-25T05:38:49.258Z",
+  "rawResponse": "### 1. Reuse the stale artifact file list\n**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R9  \n**Issue:** The stale artifact filenames are duplicated in the write loop and in the `removedArtifacts` assertion. This makes the test slightly harder to maintain if the recovery artifact set changes.  \n**Suggestion:** Extract a local `const staleArtifactFiles = [\"test-execute-result.json\", \"test-result-review.json\"];` and reuse it for writing, asserting `removedArtifacts`, and checking deletion.\n\n### 2. Reduce repeated step status assertions\n**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R9  \n**Issue:** The three `findStepById(...).status` assertions repeat the same lookup/assertion pattern.  \n**Suggestion:** Use a small local expectation table, for example `[[\"test-execute\", \"in_progress\"], ...]`, and loop through it. This keeps the recovery state expectation compact while preserving the same coverage.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Reuse the stale artifact file list",
+        "body": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R9  \n**Issue:** The stale artifact filenames are duplicated in the write loop and in the `removedArtifacts` assertion. This makes the test slightly harder to maintain if the recovery artifact set changes.  \n**Suggestion:** Extract a local `const staleArtifactFiles = [\"test-execute-result.json\", \"test-result-review.json\"];` and reuse it for writing, asserting `removedArtifacts`, and checking deletion.",
+        "file": "tests/unit/flow/run-review-advisory.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Reduce repeated step status assertions",
+        "body": "**File:** `tests/unit/flow/run-review-advisory.test.js`  \n**Requirement:** R9  \n**Issue:** The three `findStepById(...).status` assertions repeat the same lookup/assertion pattern.  \n**Suggestion:** Use a small local expectation table, for example `[[\"test-execute\", \"in_progress\"], ...]`, and loop through it. This keeps the recovery state expectation compact while preserving the same coverage.",
+        "file": "tests/unit/flow/run-review-advisory.test.js",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

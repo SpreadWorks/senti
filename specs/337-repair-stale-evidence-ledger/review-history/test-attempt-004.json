@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T04:05:57.662Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/337-repair-stale-evidence-ledger/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 invalidation comparison relies on an impossible object shape",
+      "target": "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js: test \"R2: refresh appends one continuous ledger entry after retry\"",
+      "findingId": "f0a05af347a2f32221a0a27571eda1f260616179a1e25c63d7bc4a9d5103f641",
+      "fingerprint": "f0a05af347a2f32221a0a27571eda1f260616179a1e25c63d7bc4a9d5103f641",
+      "disposition": "must-fix",
+      "rationale": "A test that is not executable or clearly contradicts the target API blocks implementation because it will fail for the wrong reason before exercising production behavior.",
+      "issue": "The test calls `entry.invalidations.map((record) => record.toJSON())` after `readImplRepairLedger(...)`. Ledger JSON records are very likely plain parsed objects, not class instances with `toJSON()`. That makes the test contradict the persistence API shape instead of checking the requirement.",
+      "requiredChange": "Compare the persisted invalidation records directly, or convert them through the actual ledger reader API if it intentionally returns value objects.",
+      "whyBlocking": "A test that is not executable or clearly contradicts the target API blocks implementation because it will fail for the wrong reason before exercising production behavior.",
+      "origin": "R2",
+      "failureKind": "test_not_executable"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/337-repair-stale-evidence-ledger/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "6ae5c1848afeaa652cdc3f8ae3198ab5ed8b3981e9b1c135f2407a78888e4339"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "f0a05af347a2f32221a0a27571eda1f260616179a1e25c63d7bc4a9d5103f641",
+      "findingId": "f0a05af347a2f32221a0a27571eda1f260616179a1e25c63d7bc4a9d5103f641",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R2 invalidation comparison relies on an impossible object shape",
+      "body": "The test calls `entry.invalidations.map((record) => record.toJSON())` after `readImplRepairLedger(...)`. Ledger JSON records are very likely plain parsed objects, not class instances with `toJSON()`. That makes the test contradict the persistence API shape instead of checking the requirement.",
+      "category": "unknown",
+      "fingerprint": "f0a05af347a2f32221a0a27571eda1f260616179a1e25c63d7bc4a9d5103f641",
+      "disposition": "must-fix",
+      "rationale": "A test that is not executable or clearly contradicts the target API blocks implementation because it will fail for the wrong reason before exercising production behavior."
+    }
+  ]
+}

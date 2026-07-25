@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "e008a2408f21c90d08355efa",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-46ccfe4978a204c3",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+      "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/step-transition-policy.js",
+      "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js",
+      "tests/unit/flow/stale-test-evidence-refresh.test.js"
+    ],
+    "inputHash": "46ccfe4978a204c3bfbb90b2062d5c3ad17c0cc94bd63e7b03ca77f89a317ae4",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "e008a2408f21c90d08355efa"
+  },
+  "targetFiles": [
+    "specs/337-repair-stale-evidence-ledger/tests/shared-recovery-regressions.test.js",
+    "specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/step-transition-policy.js",
+    "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js",
+    "tests/unit/flow/stale-test-evidence-refresh.test.js"
+  ],
+  "inputHash": "46ccfe4978a204c3bfbb90b2062d5c3ad17c0cc94bd63e7b03ca77f89a317ae4",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T05:44:08.401Z",
+  "finishedAt": "2026-07-25T05:44:08.401Z",
+  "rawResponse": "### 1. Centralize stale evidence recovery test helpers\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`\n**Requirement:** R9\n**Issue:** Multiple test files introduce similar stale-recovery setup and assertions: `retry-exhaustion-defer.test.js`, `run-review-advisory.test.js`, `stale-test-evidence-refresh.test.js`, and `specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js` all assert recovery back to `test-execute`, pending source steps, cleared artifacts, or transition application.\n**Suggestion:** Add shared test helpers for stale recovery expectations, such as `assertRecoveredToTestExecute(...)`, `assertStepStatuses(...)`, and artifact cleanup assertions, then reuse them across these tests.\n\n### 2. Standardize FlowManager test doubles\n**File:** `tests/unit/flow/set-step-impl-repair.test.js`\n**Requirement:** R9\n**Issue:** Several tests now need compatible `FlowManager` doubles with coordinated `load`, `loadReadOnly`, mutation, and transition-completion behavior. The current summaries show each file reintroducing a local version, which risks interface drift as recovery behavior evolves.\n**Suggestion:** Create a shared unit-test fixture helper for persisted flow state and FlowManager doubles, then have `set-step-impl-repair.test.js`, `retry-exhaustion-defer.test.js`, and `stale-test-evidence-refresh.test.js` use it.\n\n### 3. Align recovery naming across integration and unit tests\n**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`\n**Requirement:** R7\n**Issue:** The same concept is named differently across files: `recoveredGate`, `recoveredState`, `activeState`, and stale-evidence recovery state names all refer to recovery after stale evidence or persisted transaction handling. This makes cross-file behavior harder to trace.\n**Suggestion:** Use a consistent naming pattern such as `stateBeforeRecovery`, `stateAfterRecovery`, and `staleEvidenceRecoveryGateResult` across affected tests.\n\n### 4. Centralize repair state fixture construction\n**File:** `tests/unit/flow/repair-state-identity.test.js`\n**Requirement:** R1\n**Issue:** Repair state fixtures with `runId`, `spec`, `steps`, `tasks`, and `transitions` are being introduced or repeated across multiple test files, including `repair-state-identity.test.js`, `set-step-impl-repair.test.js`, and spec-local regression tests.\n**Suggestion:** Add a shared repair-state fixture builder for unit tests, with per-test overrides for `runId`, step status, and transition data.\n\n### 5. Use one artifact equality convention\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R5\n**Issue:** The implementation introduces `equals()` methods for some repair artifact classes while other artifact comparisons still use `JSON.stringify(...toJSON())`. This creates an interface inconsistency inside the repair artifact model that tests may mirror inconsistently.\n**Suggestion:** Add `equals()` methods or a shared `sameJsonArtifact(...)` helper for ledger and manifest comparisons, then use one convention throughout repair artifact reconciliation.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize stale evidence recovery test helpers",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`\n**Requirement:** R9\n**Issue:** Multiple test files introduce similar stale-recovery setup and assertions: `retry-exhaustion-defer.test.js`, `run-review-advisory.test.js`, `stale-test-evidence-refresh.test.js`, and `specs/337-repair-stale-evidence-ledger/tests/stale-evidence-repair-transaction.test.js` all assert recovery back to `test-execute`, pending source steps, cleared artifacts, or transition application.\n**Suggestion:** Add shared test helpers for stale recovery expectations, such as `assertRecoveredToTestExecute(...)`, `assertStepStatuses(...)`, and artifact cleanup assertions, then reuse them across these tests.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Standardize FlowManager test doubles",
+        "body": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`\n**Requirement:** R9\n**Issue:** Several tests now need compatible `FlowManager` doubles with coordinated `load`, `loadReadOnly`, mutation, and transition-completion behavior. The current summaries show each file reintroducing a local version, which risks interface drift as recovery behavior evolves.\n**Suggestion:** Create a shared unit-test fixture helper for persisted flow state and FlowManager doubles, then have `set-step-impl-repair.test.js`, `retry-exhaustion-defer.test.js`, and `stale-test-evidence-refresh.test.js` use it.",
+        "file": "tests/unit/flow/set-step-impl-repair.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Align recovery naming across integration and unit tests",
+        "body": "**File:** `tests/e2e/231-task-e2e-full-lifecycle.test.js`\n**Requirement:** R7\n**Issue:** The same concept is named differently across files: `recoveredGate`, `recoveredState`, `activeState`, and stale-evidence recovery state names all refer to recovery after stale evidence or persisted transaction handling. This makes cross-file behavior harder to trace.\n**Suggestion:** Use a consistent naming pattern such as `stateBeforeRecovery`, `stateAfterRecovery`, and `staleEvidenceRecoveryGateResult` across affected tests.",
+        "file": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Centralize repair state fixture construction",
+        "body": "**File:** `tests/unit/flow/repair-state-identity.test.js`\n**Requirement:** R1\n**Issue:** Repair state fixtures with `runId`, `spec`, `steps`, `tasks`, and `transitions` are being introduced or repeated across multiple test files, including `repair-state-identity.test.js`, `set-step-impl-repair.test.js`, and spec-local regression tests.\n**Suggestion:** Add a shared repair-state fixture builder for unit tests, with per-test overrides for `runId`, step status, and transition data.",
+        "file": "tests/unit/flow/repair-state-identity.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Use one artifact equality convention",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R5\n**Issue:** The implementation introduces `equals()` methods for some repair artifact classes while other artifact comparisons still use `JSON.stringify(...toJSON())`. This creates an interface inconsistency inside the repair artifact model that tests may mirror inconsistently.\n**Suggestion:** Add `equals()` methods or a shared `sameJsonArtifact(...)` helper for ledger and manifest comparisons, then use one convention throughout repair artifact reconciliation.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}
