@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-25T07:35:58.597Z",
+  "analyzedAt": "2026-07-25T08:47:38.345Z",
   "package": {
     "entries": [
       {
@@ -3087,9 +3087,9 @@
       },
       {
         "file": "src/flow/lib/acceptance-review-artifacts.js",
-        "hash": "9281293d4a3b3540334c62e3a4ccbf40",
-        "lines": 1295,
-        "mtime": "2026-07-25T02:24:59.960Z",
+        "hash": "13d8b65ad49ca7f53e4ce6ac09f8922a",
+        "lines": 1294,
+        "mtime": "2026-07-25T08:47:20.857Z",
         "className": "acceptance-review-artifacts",
         "methods": [
           "RequirementAcceptanceJudgment",
@@ -3130,6 +3130,7 @@
           "buildDeferredFindingsFromEvidence",
           "latestImplReviewRecord",
           "readCanonicalImplReviewEvidence",
+          "readRejectedImplReviewTriageForVerdict",
           "inspectDeferredSources",
           "requirementList",
           "validateRequirementSummaryMembership",
@@ -3186,22 +3187,23 @@
           "src/flow/lib/set-acceptance-decision.js"
         ],
         "id": "aa8dda77",
-        "summary": "Manages the acceptance-review artifact format, evidence projections, and verdict application for the flow engine. It validates review output against schema rules and current repository state before persisting decisions.",
-        "detail": "The module defines typed wrappers for requirement judgments, deferred findings, blockers, canonical review evidence, and final outcomes, with strict field and reference validation. It reads and writes JSON artifacts under the spec directory, fingerprints repair and test inputs, and checks that referenced evidence stays inside the spec tree and matches the current flow state. It assembles deferred findings from flow findings and review handoff records, classifies mechanical blockers from missing or stale artifacts, and builds a normalized review context. When a verdict is applied, it updates step statuses, resets or advances workflow branches, records issue-log entries for risk decisions, and persists the acceptance-review artifact.",
+        "summary": "Manages acceptance-review artifacts for the flow engine, including normalization, validation, and final verdict calculation. It binds requirement judgments and deferred findings to the current spec state, evidence files, and repair fingerprint.",
+        "detail": "The module defines structured classes for requirement judgments, deferred findings, blockers, evidence refresh state, and canonical review projections so acceptance data is serialized in a consistent form. It performs strict validation on schema shape, allowed statuses, file locality, canonical evidence bytes, and cross-references to request, requirement, diff, repair, and test artifacts. It builds review context from the spec directory and flow state, resolves deferred findings from multiple evidence sources, and derives verdicts such as pass, repair_required, blocked, and user_decision_required. It also persists acceptance-review artifacts with fingerprint checks and applies accepted or user-decided outcomes back into the workflow by updating steps and issue logs.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T06:20:40.838Z",
+          "processedAt": "2026-07-25T08:48:26.069Z",
           "attempts": 1
         },
         "keywords": [
-          "acceptance artifact",
-          "review evidence",
-          "schema validation",
-          "deferred findings",
-          "mechanical blockers",
-          "verdict application",
-          "spec directory"
+          "acceptance review",
+          "acceptance gate",
+          "artifact validation",
+          "requirement judgment",
+          "deferred finding",
+          "evidence binding",
+          "repair fingerprint",
+          "workflow verdict"
         ]
       },
       {
@@ -4780,9 +4782,9 @@
       },
       {
         "file": "src/flow/lib/impl-repair-artifacts.js",
-        "hash": "084688f7c470deaa001f676dbd99fa5c",
-        "lines": 1791,
-        "mtime": "2026-07-25T06:21:54.189Z",
+        "hash": "933adc608d136b0cf84caab49caf041d",
+        "lines": 1814,
+        "mtime": "2026-07-25T08:47:20.857Z",
         "className": "impl-repair-artifacts",
         "methods": [
           "ImplTriageItem",
@@ -4918,22 +4920,23 @@
           "src/flow/lib/stale-test-evidence-refresh.js"
         ],
         "id": "69dba1ec",
-        "summary": "Implements the artifact contract for implementation repair and triage workflows, including fingerprinted evidence files, repair ledgers, and recovery transactions. It is the main state-management layer for recording, validating, and replaying repair activity in a spec directory.",
-        "detail": "The module defines strict JSON-backed value objects for triage items, repair entries, invalidation records, purpose types, and transaction state, with extensive input validation and stable serialization. It maintains a bounded append-only repair ledger with chained fingerprints, delta-file verification, and size limits so repair history can be audited and resumed safely. It also stamps and verifies repair fingerprints across evidence artifacts, plans invalidations for stale evidence, and uses staged filesystem moves to support rollback on failure. Higher-level helpers connect these artifacts to flow-step transitions, legacy migration, test-evidence refresh recovery, and flow-manager commit intents.",
+        "summary": "Implements the implementation-repair artifact system, covering triage, repair ledgers, fingerprint tracking, and crash-safe transaction recovery. It coordinates how repair evidence is recorded, invalidated, and committed into the flow lifecycle.",
+        "detail": "The module models triage items, ledger entries, invalidated artifacts, path-group summaries, transaction state, and repair purposes as explicit classes with strong invariants and JSON serialization rules. It validates hash chains, changed-path delta files, entry limits, ledger size, and fingerprint consistency so repair history cannot drift from the current evidence set. It includes staged invalidation and journal-based commit logic to make repair effects recoverable if a transition is interrupted, including dedicated handling for test-evidence refresh flows. It also supports legacy migration, run locking, flow-manager transition intents, and helper APIs for appending repair entries, completing triage, and re-synchronizing pending repair transactions.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T06:23:55.248Z",
+          "processedAt": "2026-07-25T08:48:26.069Z",
           "attempts": 1
         },
         "keywords": [
           "implementation repair",
-          "repair artifact",
-          "triage ledger",
-          "repair fingerprint",
+          "repair ledger",
+          "fingerprint manifest",
           "evidence invalidation",
-          "transaction journal",
-          "state recovery"
+          "transaction recovery",
+          "triage artifact",
+          "delta evidence",
+          "workflow transition"
         ]
       },
       {
@@ -6366,9 +6369,9 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "4f9ff1d5ef711f12e6925ac1ec41bab8",
-        "lines": 1514,
-        "mtime": "2026-07-24T23:50:11.051Z",
+        "hash": "fa1160ee3e6264118010b9be0ad86bdd",
+        "lines": 1590,
+        "mtime": "2026-07-25T08:47:20.858Z",
         "className": "run-final-regression",
         "methods": [
           "FinalRegressionRecoveryPolicy",
@@ -6413,20 +6416,18 @@
           "projectPolicySkipDecision",
           "finalRegressionSkipDecision",
           "recoverStaleTestEvidence",
-          "classifyChangeScope",
           "boundedText",
-          "boundedEvidenceSource",
-          "failureEvidenceText",
-          "hasOnlyZeroTestSummary",
           "assertionFailureBlocks",
           "firstAssertionFailureBlockLines",
-          "allAssertionFailureBlockLines",
           "normalizeFailureMatchText",
           "changedFilePath",
           "listFilesRecursive",
           "expandChangedFileEntries",
           "failureReferencesChangedFile",
           "changedFilesWithinMatchLimit",
+          "hasConcreteUnchangedFailurePath",
+          "classifyChildProcessFailure",
+          "decodeChildProcessRecords",
           "nextFinalRegressionAttempt",
           "latestAttemptIndex",
           "previousFinalRegressionFailures",
@@ -6471,24 +6472,25 @@
         "extends": "FinalRegressionRecoveryPolicy",
         "usedBy": null,
         "id": "49364661",
-        "summary": "Implements the flow command that runs and records the final regression step for a spec. It classifies failures, decides recovery actions, and persists structured artifacts for retries and record-and-proceed handling.",
-        "detail": "This module defines a command-oriented orchestration layer around final regression execution, including process result factories, artifact models, skip proofs, and recovery policy classes. It uses file-based state under the spec output directory to track attempt logs, previous failures, JSON result artifacts, and freshness checks against changed-file fingerprints and command identity. Failure analysis combines stderr/stdout pattern classifiers, assertion-block extraction, zero-test detection, and changed-file matching to separate current-change regressions from pre-existing or environmental problems. The command also supports skip decisions, stale evidence recovery, record-and-proceed validation, and bounded evidence capture so downstream flow steps can resume with explicit risk metadata.",
-        "chapter": "internal_design",
+        "summary": "Implements the `final-regression` flow command that runs the last verification step, classifies failures, and records structured artifacts. It also decides whether to rerun, skip, repair, confirm, resume, or record-and-proceed based on evidence and prior attempts.",
+        "detail": "The module defines a command-oriented workflow around `RunFinalRegressionCommand`, including execution, artifact persistence, raw log capture, and issue-log integration. It models failure handling with typed failure classes, recovery policies, decision objects, and text or child-process based classifiers that distinguish current-change regressions from existing, infrastructure, sandbox, timeout, dependency, and permission failures. It compares command identity and changed-file fingerprints to evaluate freshness, detect repeated fix attempts, and decide whether previous test execution or project policy allows a safe skip. The implementation also scans attempt logs, decodes child process execution records, normalizes paths, and builds bounded summaries so the final regression stage can produce deterministic, reviewable results.",
+        "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-24T23:51:34.436Z",
+          "processedAt": "2026-07-25T08:48:26.091Z",
           "attempts": 1
         },
         "keywords": [
           "final regression",
-          "flow command",
+          "regression testing",
+          "CLI command",
           "failure classification",
-          "retry policy",
-          "artifact tracking",
-          "changed file fingerprint",
-          "record and proceed",
-          "test evidence",
-          "regression detection"
+          "retry logic",
+          "artifact recording",
+          "issue log",
+          "change fingerprint",
+          "child process",
+          "record and proceed"
         ]
       },
       {
@@ -9358,9 +9360,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "2dba2a4a87d4256d922c7538a164b61d",
-        "lines": 1697,
-        "mtime": "2026-07-25T00:45:29.352Z",
+        "hash": "4a4514fae5fd6ebcabd61973d65f0df9",
+        "lines": 1770,
+        "mtime": "2026-07-25T08:47:20.858Z",
         "className": "test-artifacts",
         "methods": [
           "matchUpgradeRequiredSourcePaths",
@@ -9426,6 +9428,8 @@
           "validateFinalRegressionFailureKind",
           "validateFinalRegressionRecordAndProceed",
           "validateFinalRegressionSkipKind",
+          "validateFinalRegressionStreamCapture",
+          "validateFinalRegressionChildProcesses",
           "completionFailure",
           "completionSuccess",
           "addCompletionIssue",
@@ -9539,23 +9543,23 @@
           "src/upgrade.js"
         ],
         "id": "0b1b96b3",
-        "summary": "Central utility module for test artifact files used by the flow pipeline. It manages artifact paths, bounded I/O, validation, cleanup, and trust checks for test and regression outputs.",
-        "detail": "The module defines canonical filenames and path patterns for execution logs, reviews, upgrade results, regression outputs, and temporary summaries. It uses strict validators with size, line-count, membership, and schema constraints to reject stale, malformed, oversized, or incomplete artifacts before later flow steps consume them. Several helpers enforce repository-relative path safety, normalize file matching, collect existing artifacts from limited glob patterns, and remove rebuildable outputs. It also implements artifact trust assessment through explicit contract classes, fingerprint and link authorities, placeholder sentinel scanning, and permission checks so integration evidence can be reused only when its provenance is still trustworthy.",
-        "chapter": "internal_design",
+        "summary": "This module centralizes paths, persistence helpers, and validation rules for test-related artifacts produced by the flow system. It also enforces artifact trust by checking evidence completeness, placeholder usage, upgrade state, and regression consistency.",
+        "detail": "The file defines a large set of artifact constants and bounded I/O helpers for JSON, raw logs, summaries, reviews, file maps, and scenario-validity outputs. Its validation functions aggressively fail closed, using size limits, membership checks, sorted uniqueness checks, path containment checks, and evidence range verification against captured raw output. The module also models trust with explicit contract and assessment classes, including fingerprint and linkage authorities that verify artifacts against required inputs and repository state. Additional completion helpers inspect partial artifact changes, detect missing evidence, and map validation errors into structured completion results for downstream flow steps.",
+        "chapter": "development",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T00:46:19.979Z",
+          "processedAt": "2026-07-25T08:48:26.109Z",
           "attempts": 1
         },
         "keywords": [
           "test artifacts",
           "artifact validation",
-          "regression evidence",
-          "trust contract",
+          "evidence verification",
+          "regression trust",
+          "JSON bounds",
           "placeholder detection",
-          "bounded JSON",
-          "raw log parsing",
-          "flow pipeline"
+          "file map",
+          "scenario validity"
         ]
       },
       {
@@ -9615,16 +9619,19 @@
       },
       {
         "file": "src/flow/lib/test-regression.js",
-        "hash": "fbe25d8b9163d9b0fd290ad28ed96832",
-        "lines": 711,
-        "mtime": "2026-07-21T06:51:49.154Z",
+        "hash": "fdf071e3b9b10c0c4202f4ed92fa771b",
+        "lines": 1056,
+        "mtime": "2026-07-25T08:47:20.858Z",
         "className": "test-regression",
         "methods": [
           "formatElapsedMs",
           "ParsedCommand",
           "RegressionCommandIdentity",
           "ProcessStreamSummary",
+          "ProcessStreamCapture",
           "ChildProcessExecutionResult",
+          "ChildProcessExecutionRecord",
+          "ChildProcessExecutionRecordCodec",
           "processResultFromSpawnSync",
           "commandIdentityFor",
           "withChangedFileFingerprints",
@@ -9640,10 +9647,16 @@
           "processOutputLines",
           "runProcessDetailed",
           "resolveTestTimeoutSeconds",
+          "assertPositiveSafeInteger",
+          "utf8Prefix",
+          "boundedDiagnosticContent",
           "assertOptionalString",
+          "assertChildProcessOutcomeInvariant",
           "commandArgv",
           "processErrorMessage",
+          "hasAssertionEvidence",
           "childProcessResult",
+          "spawnSyncStarted",
           "readJsonIfExists",
           "regressionCommandFromSource",
           "normalizePath",
@@ -9671,7 +9684,10 @@
           "ParsedCommand",
           "RegressionCommandIdentity",
           "ProcessStreamSummary",
+          "ProcessStreamCapture",
           "ChildProcessExecutionResult",
+          "ChildProcessExecutionRecord",
+          "ChildProcessExecutionRecordCodec",
           "processResultFromSpawnSync",
           "commandIdentityFor",
           "withChangedFileFingerprints",
@@ -9690,6 +9706,9 @@
           "DEFAULT_TEST_TIMEOUT_SECONDS",
           "DEFAULT_PROCESS_HEARTBEAT_MS",
           "MIN_PROCESS_HEARTBEAT_MS",
+          "DEFAULT_CHILD_PROCESS_CAPTURE_BYTES",
+          "DEFAULT_CHILD_PROCESS_RECORD_LIMIT",
+          "DEFAULT_CHILD_PROCESS_RECORD_LINE_BYTES",
           "TEST_EXECUTE_REGRESSION_POLICIES",
           "NO_SUPPORTED_REGRESSION_COMMAND",
           "CHILD_PROCESS_RESULT_KINDS",
@@ -9703,23 +9722,23 @@
           "src/flow/lib/test-artifacts.js"
         ],
         "id": "2980d983",
-        "summary": "Provides regression-test planning and execution helpers for flow operations. It discovers safe test commands, classifies changed files, and decides whether targeted, full, or skipped regression runs are appropriate.",
-        "detail": "The module models parsed commands, execution identities, stream summaries, execution plans, and validated child-process outcomes as structured classes instead of loose objects. It discovers a runnable regression command from configuration, package scripts, Composer, Make targets, and other supported sources, while rejecting shell control syntax and unsafe command forms. Changed files are normalized and compared against analysis-derived project paths, spec artifacts, documentation, and config files to determine whether the change should trigger tests. Its execution helpers then run the command with timeout controls and detailed result capture, including exit mode, signals, buffer failures, output summaries, and elapsed time reporting.",
+        "summary": "This module implements regression command discovery, regression classification, and detailed process execution tracking for test runs. It decides whether regression testing should run, how to run it, and how to serialize child-process evidence safely.",
+        "detail": "The code defines command and process record classes that normalize argv-based execution, capture stdout and stderr with truncation metadata, and preserve structured child-process outcomes for later validation. It discovers regression commands from multiple project sources such as config, package metadata, Composer, and Make targets, while rejecting unsafe shell syntax in configurable commands. Regression planning classifies changed files into trigger-relevant and non-trigger categories, then selects targeted, full, or skipped execution policies based on project analysis and configuration. The process runner and conversion helpers also distinguish assertion failures, spawn failures, signals, timeouts, and max-buffer conditions so later stages can make policy decisions from explicit machine-readable evidence.",
         "chapter": "development",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T06:57:12.174Z",
+          "processedAt": "2026-07-25T08:48:26.109Z",
           "attempts": 1
         },
         "keywords": [
           "regression testing",
-          "test command discovery",
+          "command discovery",
+          "process execution",
+          "child process capture",
           "change classification",
-          "child process execution",
-          "timeout handling",
-          "git diff analysis",
-          "test planning",
-          "safe command parsing"
+          "test policy",
+          "assertion failure",
+          "structured logs"
         ]
       },
       {
@@ -14540,9 +14559,9 @@
     ],
     "summary": {
       "total": 257,
-      "totalMethods": 2840
+      "totalMethods": 2850
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-25T07:37:40.848Z"
+  "enrichedAt": "2026-07-25T08:48:26.109Z"
 }
