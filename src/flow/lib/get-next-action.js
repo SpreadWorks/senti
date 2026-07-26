@@ -34,6 +34,7 @@ import { FlowCompletion } from "./flow-completion.js";
 import {
   AwaitingDecisionOutcome,
   ExternalBlockedOutcome,
+  retryResetTimestampForStep,
   StepAttemptLog,
 } from "./step-outcome.js";
 import { resolveReviewActionForFlowState } from "./review-convergence.js";
@@ -191,7 +192,11 @@ function attachLatestStepAttempt(result, state, target) {
     : state.steps;
   const targetStep = flattenSteps(targetSteps || [])
     .find((step) => step.id === target.stepId);
-  if (targetStep?.startedAt && attempt.recordedAt < targetStep.startedAt) return;
+  const resetAt = retryResetTimestampForStep(state, target.stepId);
+  if (
+    (targetStep?.startedAt && attempt.recordedAt < targetStep.startedAt)
+    || Date.parse(attempt.recordedAt) < resetAt
+  ) return;
   result.stepAttempt = attempt.toJSON();
   result.stepOutcome = attempt.outcome.toJSON();
   if (attempt.outcome instanceof ExternalBlockedOutcome || attempt.outcome instanceof AwaitingDecisionOutcome) {

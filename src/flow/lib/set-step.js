@@ -82,6 +82,19 @@ function isBlockedImplRepairRecovery({ id, status, activeNode, storedStep }) {
     && storedStep?.status === "done";
 }
 
+function hasAuditedPreimplementationBootstrap(state, scenarioArtifact) {
+  const scenario = findStepById(state.steps || [], "scenario-validity");
+  const testReview = findStepById(state.steps || [], "test-review");
+  const implement = findStepById(state.steps || [], "implement");
+  return scenario?.status === "skipped"
+    && testReview?.status === "skipped"
+    && implement?.status === "in_progress"
+    && typeof state.repairBaseline?.ref === "string"
+    && scenarioArtifact?.result === "block"
+    && Array.isArray(scenarioArtifact?.preflight?.invalid_paths)
+    && scenarioArtifact.preflight.invalid_paths.length > 0;
+}
+
 const MISSING_REPAIR_EVIDENCE_REASON = /^must-fix finding ([a-f0-9]{64}) is missing matching repair evidence$/;
 const LATE_APPLIED_REPAIR_REASON_PREFIX = "Late repair evidence recorded for findings ";
 
@@ -396,13 +409,16 @@ export async function preValidateImplementStepCompletion({ root, state, requeste
   }
   if (scenarioValidityEvidence.current) {
     try {
-      const completed = await completeScenarioValidityArtifactChange({
-        root,
-        specDir,
-        artifact: JSON.parse(fs.readFileSync(scenarioValidityPath, "utf8")),
-      });
-      if (completed.constructor.name === "ArtifactCompletionMechanicalFailure") {
-        for (const code of completed.issueCodes) addImplementIssue(issueCodes, code);
+      const scenarioArtifact = JSON.parse(fs.readFileSync(scenarioValidityPath, "utf8"));
+      if (!hasAuditedPreimplementationBootstrap(state, scenarioArtifact)) {
+        const completed = await completeScenarioValidityArtifactChange({
+          root,
+          specDir,
+          artifact: scenarioArtifact,
+        });
+        if (completed.constructor.name === "ArtifactCompletionMechanicalFailure") {
+          for (const code of completed.issueCodes) addImplementIssue(issueCodes, code);
+        }
       }
     } catch (err) {
       addImplementIssue(issueCodes, "durable-artifact-missing");

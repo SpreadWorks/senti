@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-26T02:54:48.108Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "fail",
+      "reason": "The diff adds a single-caller helper that only wraps construction of one impl-gate invalidation record. It does not hide meaningful complexity, enforce an invariant, or establish a clear ownership boundary.",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/impl-repair-artifacts.js",
+            "locator": "planLateAppliedFindingGateInvalidation"
+          },
+          "observed": "The diff adds a single-caller helper that only wraps construction of one impl-gate invalidation record. It does not hide meaningful complexity, enforce an invariant, or establish a clear ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "findingId": "2a29dde5dcc95ae690684283ef9a6a6c3d6c5502338082781c31cab74e10b0a5",
+      "fingerprint": "2a29dde5dcc95ae690684283ef9a6a6c3d6c5502338082781c31cab74e10b0a5",
+      "disposition": "must-fix",
+      "rationale": "The diff adds a single-caller helper that only wraps construction of one impl-gate invalidation record. It does not hide meaningful complexity, enforce an invariant, or establish a clear ownership boundary.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-26T02:51:39.658Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "fail",
+      "reason": "The diff adds an exported helper with one production caller that only selects `repairBaseline.ref`, `baseBranch`, or `main`. The abstraction adds API surface without shared behavior or a meaningful invariant.",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-scenario-validity.js",
+            "locator": "resolveScenarioValidityBaselineRef"
+          },
+          "observed": "The diff adds an exported helper with one production caller that only selects `repairBaseline.ref`, `baseBranch`, or `main`. The abstraction adds API surface without shared behavior or a meaningful invariant.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "findingId": "2a29dde5dcc95ae690684283ef9a6a6c3d6c5502338082781c31cab74e10b0a5",
+      "fingerprint": "2a29dde5dcc95ae690684283ef9a6a6c3d6c5502338082781c31cab74e10b0a5",
+      "disposition": "must-fix",
+      "rationale": "The diff adds an exported helper with one production caller that only selects `repairBaseline.ref`, `baseBranch`, or `main`. The abstraction adds API surface without shared behavior or a meaningful invariant.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-26T02:51:39.658Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-overengineering",
+      "where": {
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "locator": "planLateAppliedFindingGateInvalidation"
+      },
+      "observed": "The diff adds a single-caller helper that only wraps construction of one impl-gate invalidation record. It does not hide meaningful complexity, enforce an invariant, or establish a clear ownership boundary.",
+      "severity": "blocking",
+      "refs": [
+        "no-overengineering"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-overengineering",
+      "category": "guardrail",
+      "findingId": "805dbf6663167a2d748ea58b72a5966574a7b599e903356bb06bc7882cd31fcc",
+      "fingerprint": "805dbf6663167a2d748ea58b72a5966574a7b599e903356bb06bc7882cd31fcc",
+      "disposition": "must-fix",
+      "rationale": "The diff adds a single-caller helper that only wraps construction of one impl-gate invalidation record. It does not hide meaningful complexity, enforce an invariant, or establish a clear ownership boundary.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-26T02:54:48.108Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-overengineering",
+      "where": {
+        "file": "src/flow/lib/run-scenario-validity.js",
+        "locator": "resolveScenarioValidityBaselineRef"
+      },
+      "observed": "The diff adds an exported helper with one production caller that only selects `repairBaseline.ref`, `baseBranch`, or `main`. The abstraction adds API surface without shared behavior or a meaningful invariant.",
+      "severity": "blocking",
+      "refs": [
+        "no-overengineering"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-overengineering",
+      "category": "guardrail",
+      "findingId": "805dbf6663167a2d748ea58b72a5966574a7b599e903356bb06bc7882cd31fcc",
+      "fingerprint": "805dbf6663167a2d748ea58b72a5966574a7b599e903356bb06bc7882cd31fcc",
+      "disposition": "must-fix",
+      "rationale": "The diff adds an exported helper with one production caller that only selects `repairBaseline.ref`, `baseBranch`, or `main`. The abstraction adds API surface without shared behavior or a meaningful invariant.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-26T02:54:48.108Z",
+      "repeatCount": 1
+    }
+  ]
+}

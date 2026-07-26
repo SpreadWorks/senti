@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/set-step.js",
+      "src/flow/lib/step-outcome.js"
+    ],
+    "inputHash": "b2bd9fe25dbe52d7b260ee5ca5f0bc5e7709813ca6c1facb4a7c83a75288f9f0",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "src/flow/lib/set-step.js",
+    "src/flow/lib/step-outcome.js"
+  ],
+  "inputHash": "b2bd9fe25dbe52d7b260ee5ca5f0bc5e7709813ca6c1facb4a7c83a75288f9f0",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:14:48.819Z",
+  "finishedAt": "2026-07-26T03:14:48.819Z",
+  "rawResponse": "I’ll review only the two diffed files and focus on maintainability plus the bounded-resource guardrail. I’ll inspect nearby code so the proposals line up with existing patterns rather than just reacting to the patch.The provided paths are not directly under the current temp directory, so I’m locating the repository layout first. I’ll still keep the review scoped to the two files named in the diff.I found the source one level up from the writable temp directory. I’m reading the relevant surrounding code now to check whether the new helpers duplicate existing predicates or conflict with local naming patterns.The retry reset helper is already imported by `get-next-action`, so I’m checking that call site for duplicated filtering logic and naming expectations before deciding whether it deserves a proposal.### 1. Rename Bootstrap Predicate to Match What It Verifies\n**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R1  \n**Issue:** `hasAuditedPreimplementationBootstrap` implies it verifies an audit record, but it only checks final step statuses, repair baseline presence, and scenario artifact shape. That name overstates the guarantee.  \n**Suggestion:** Rename it to something like `isPreimplementationBootstrapState` or `shouldSkipScenarioCompletionForBootstrap` so the predicate describes the actual condition.\n\n### 2. Remove Repeated Step Lookups in Bootstrap Predicate\n**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R2  \n**Issue:** The helper repeats `findStepById(state.steps || [], ...)` three times and hardcodes the expected status checks inline. This makes future lifecycle edits more error-prone.  \n**Suggestion:** Build a small expected-status table and check it with `every`, e.g. `Object.entries(expectedStatuses).every(([id, status]) => findStepById(steps, id)?.status === status)`.\n\n### 3. Bound and Simplify Retry Reset Metric Scanning\n**File:** `src/flow/lib/step-outcome.js`  \n**Requirement:** R3  \n**Issue:** `retryResetTimestampForStep` scans all `flowState.metrics` and creates multiple intermediate arrays. That violates the `bounded-resource-usage` guardrail because metric history can grow without an explicit scan bound.  \n**Suggestion:** Replace the `filter/map/filter/reduce` chain with a single loop and an explicit maximum scan count, ideally scanning from the end because only the latest reset matters. Define a named cap such as `MAX_RETRY_RESET_METRICS_SCAN`.\n\n### 4. Avoid Duplicate Retry Metric Mapping Concepts\n**File:** `src/flow/lib/step-outcome.js`  \n**Requirement:** R4  \n**Issue:** `RETRY_RESET_METRIC_BY_STEP` introduces another hardcoded step-to-phase/counter mapping alongside existing retry accounting concepts elsewhere in the flow code. This increases the chance that retry behavior diverges when phases change.  \n**Suggestion:** Centralize the mapping behind a small local helper with a descriptive name, such as `retryResetMetricForStep(stepId)`, and keep `nextStepAttemptNumber` dependent on that abstraction instead of directly indexing the table.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Rename Bootstrap Predicate to Match What It Verifies",
+        "body": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R1  \n**Issue:** `hasAuditedPreimplementationBootstrap` implies it verifies an audit record, but it only checks final step statuses, repair baseline presence, and scenario artifact shape. That name overstates the guarantee.  \n**Suggestion:** Rename it to something like `isPreimplementationBootstrapState` or `shouldSkipScenarioCompletionForBootstrap` so the predicate describes the actual condition.",
+        "file": "src/flow/lib/set-step.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Remove Repeated Step Lookups in Bootstrap Predicate",
+        "body": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R2  \n**Issue:** The helper repeats `findStepById(state.steps || [], ...)` three times and hardcodes the expected status checks inline. This makes future lifecycle edits more error-prone.  \n**Suggestion:** Build a small expected-status table and check it with `every`, e.g. `Object.entries(expectedStatuses).every(([id, status]) => findStepById(steps, id)?.status === status)`.",
+        "file": "src/flow/lib/set-step.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Bound and Simplify Retry Reset Metric Scanning",
+        "body": "**File:** `src/flow/lib/step-outcome.js`  \n**Requirement:** R3  \n**Issue:** `retryResetTimestampForStep` scans all `flowState.metrics` and creates multiple intermediate arrays. That violates the `bounded-resource-usage` guardrail because metric history can grow without an explicit scan bound.  \n**Suggestion:** Replace the `filter/map/filter/reduce` chain with a single loop and an explicit maximum scan count, ideally scanning from the end because only the latest reset matters. Define a named cap such as `MAX_RETRY_RESET_METRICS_SCAN`.",
+        "file": "src/flow/lib/step-outcome.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Avoid Duplicate Retry Metric Mapping Concepts",
+        "body": "**File:** `src/flow/lib/step-outcome.js`  \n**Requirement:** R4  \n**Issue:** `RETRY_RESET_METRIC_BY_STEP` introduces another hardcoded step-to-phase/counter mapping alongside existing retry accounting concepts elsewhere in the flow code. This increases the chance that retry behavior diverges when phases change.  \n**Suggestion:** Centralize the mapping behind a small local helper with a descriptive name, such as `retryResetMetricForStep(stepId)`, and keep `nextStepAttemptNumber` dependent on that abstraction instead of directly indexing the table.",
+        "file": "src/flow/lib/step-outcome.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

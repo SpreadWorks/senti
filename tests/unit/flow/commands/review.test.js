@@ -364,13 +364,12 @@ describe("draft repair target checkpoint replay", () => {
         draftPath: "draft.json",
         proposals: [checkpoint.toProposal()],
         stage: {
-          retryPhase: "draft-questions",
-          reviewPhase: "draft-questions-review",
+          artifactPhase: "draft-questions-review",
           findingClassification: "repair_target",
         },
       });
       assert.equal(producedArtifact.verdict, checkpoint.disposition);
-      assert.equal(producedArtifact.phase, "draft-questions");
+      assert.equal(producedArtifact.phase, "draft-questions-review");
       assert.deepEqual(producedArtifact.blockingFindings, []);
       assert.deepEqual(producedArtifact.advisoryFindings, []);
       assert.equal(producedArtifact.repairTargets.length, 1);
@@ -459,12 +458,12 @@ describe("draft review artifact phases", () => {
     body: "The draft needs one explicit acceptance condition.",
   };
 
-  for (const { retryPhase, reviewPhase } of [
-    { retryPhase: "draft-questions", reviewPhase: "draft-questions-review" },
-    { retryPhase: "draft-coverage", reviewPhase: "draft-coverage-review" },
+  for (const { retryPhase, artifactPhase } of [
+    { retryPhase: "draft-questions", artifactPhase: "draft-questions-review" },
+    { retryPhase: "draft-coverage", artifactPhase: "draft-coverage-review" },
   ]) {
-    it(`persists ${retryPhase} rather than ${reviewPhase}`, () => {
-      const stage = { retryPhase, reviewPhase, findingClassification: "advisory" };
+    it(`persists ${artifactPhase} for ${retryPhase}`, () => {
+      const stage = { retryPhase, artifactPhase, findingClassification: "advisory" };
       const pass = buildDraftReviewArtifact({
         raw: "NO_PROPOSALS",
         draftPath: "draft.json",
@@ -478,8 +477,8 @@ describe("draft review artifact phases", () => {
         stage,
       });
 
-      assert.equal(pass.phase, retryPhase);
-      assert.equal(advisory.phase, retryPhase);
+      assert.equal(pass.phase, artifactPhase);
+      assert.equal(advisory.phase, artifactPhase);
       assert.equal(advisory.verdict, "ADVISORY");
     });
   }
@@ -1817,7 +1816,7 @@ describe("impl review structured artifact helpers", () => {
     }
   });
 
-  it("aggregates a stable fingerprint and defers the must-fix finding at the bounded attempt", async () => {
+  it("aggregates a stable fingerprint while retaining the must-fix finding for acceptance disposition", async () => {
     const tmp = createTmpDir("impl-review-disposition-");
     try {
       fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
@@ -1850,7 +1849,7 @@ describe("impl review structured artifact helpers", () => {
       assert.equal(result.artifacts.verdict, "REJECTED");
       assert.equal(artifact.summary.total, 1);
       assert.equal(artifact.nonBlockingImprovements.length, 0);
-      assert.equal(artifact.blockingFindings[0].disposition, "deferred");
+      assert.equal(artifact.blockingFindings[0].disposition, "must-fix");
       assert.equal(artifact.blockingFindings[0].repeatCount, 4);
       assert.equal(artifact.blockingFindings[0].findingId, artifact.blockingFindings[0].fingerprint);
     } finally {

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "ad598cef69dd6740825874b2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-90382b7964da32e9",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/get-next-action.js",
+      "src/flow/lib/retry-recovery.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/lib/step-transition-policy.js",
+      "src/lib/agent.js",
+      "tests/unit/flow/finding-disposition-policy.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/lib/agent.test.js"
+    ],
+    "inputHash": "90382b7964da32e950276b32282f8a39fd616090676dd9ae110c719d54533c57",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "ad598cef69dd6740825874b2"
+  },
+  "targetFiles": [
+    "src/flow/lib/get-next-action.js",
+    "src/flow/lib/retry-recovery.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/set-step.js",
+    "src/flow/lib/step-transition-policy.js",
+    "src/lib/agent.js",
+    "tests/unit/flow/finding-disposition-policy.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/lib/agent.test.js"
+  ],
+  "inputHash": "90382b7964da32e950276b32282f8a39fd616090676dd9ae110c719d54533c57",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:16:37.572Z",
+  "finishedAt": "2026-07-26T03:16:37.572Z",
+  "rawResponse": "### 1. Centralize Retry Reset Mapping\n**File:** `src/flow/lib/step-outcome.js`\n**Requirement:** R4\n**Issue:** Retry reset phase/counter mapping appears to be introduced in multiple places: `step-outcome.js` maps steps to reset metrics, while `run-reopen-draft.js`, `get-next-action.js`, and `set-step.js` depend on related retry reset semantics. This creates cross-file drift risk when phases or counters change.\n**Suggestion:** Move retry reset metadata behind one shared helper, for example `retryResetMetricForStep(stepId)` plus shared reset descriptors, and reuse it from attempt filtering, reset recording, and attempt numbering.\n\n### 2. Unify Review Phase Metadata\n**File:** `src/flow/lib/run-review.js`\n**Requirement:** R1\n**Issue:** Review phase normalization and artifact naming are handled separately across `run-review.js`, tests, and recovery logic. Proposals mention `sourceArtifactPhase()`, `REVIEW_SOURCE_ARTIFACT_BY_PHASE`, hardcoded `\"draft-questions-review\"`, and recovery active-step phase mapping. These are all encoding related phase identity rules independently.\n**Suggestion:** Introduce a single review phase metadata table that provides artifact phase, canonical artifact name, and expected active step where applicable. Use it in `run-review.js`, `retry-recovery.js`, and tests.\n\n### 3. Align Recovery Entrypoint Constants\n**File:** `src/flow/lib/step-transition-policy.js`\n**Requirement:** R4\n**Issue:** Recovery entrypoints and bootstrap semantics are referenced across `step-transition-policy.js`, `set-step.js`, and retry recovery logic, but the summaries show separate predicates, maps, and literal entrypoint handling. This can lead to inconsistent support for new recovery modes.\n**Suggestion:** Define shared recovery entrypoint constants and policy helpers, such as `SUPPORTED_RECOVERY_ENTRYPOINTS` and bootstrap transition metadata, then consume them from transition validation and state predicates.\n\n### 4. Normalize Draft Semantic Recovery Naming\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R5\n**Issue:** Draft semantic retry behavior is described with several overlapping names across files: `GATE_RECOVERY_PHASES`, inline semantic finding checks, semantic recovery dispositions, and draft deferral tests. Some names imply repair recovery while draft semantics appear to defer instead.\n**Suggestion:** Rename shared concepts around the actual behavior, for example `GATE_RETRY_EXHAUSTION_PHASES` and `isDraftDeferrableSemanticFinding()`, and use the same terminology in `review-convergence.js` and retry exhaustion tests.\n\n### 5. Standardize Process Exit Terminology\n**File:** `src/lib/agent.js`\n**Requirement:** R2\n**Issue:** The implementation uses `directChildClosed` for process exit semantics, while the related test exercises supervisor exit behavior. “Closed” and “exited” imply different lifecycle events, which can confuse future changes across implementation and tests.\n**Suggestion:** Rename the state to `directChildExited` and update test names/assertions to use the same process-exit terminology.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Retry Reset Mapping",
+        "body": "**File:** `src/flow/lib/step-outcome.js`\n**Requirement:** R4\n**Issue:** Retry reset phase/counter mapping appears to be introduced in multiple places: `step-outcome.js` maps steps to reset metrics, while `run-reopen-draft.js`, `get-next-action.js`, and `set-step.js` depend on related retry reset semantics. This creates cross-file drift risk when phases or counters change.\n**Suggestion:** Move retry reset metadata behind one shared helper, for example `retryResetMetricForStep(stepId)` plus shared reset descriptors, and reuse it from attempt filtering, reset recording, and attempt numbering.",
+        "file": "src/flow/lib/step-outcome.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Unify Review Phase Metadata",
+        "body": "**File:** `src/flow/lib/run-review.js`\n**Requirement:** R1\n**Issue:** Review phase normalization and artifact naming are handled separately across `run-review.js`, tests, and recovery logic. Proposals mention `sourceArtifactPhase()`, `REVIEW_SOURCE_ARTIFACT_BY_PHASE`, hardcoded `\"draft-questions-review\"`, and recovery active-step phase mapping. These are all encoding related phase identity rules independently.\n**Suggestion:** Introduce a single review phase metadata table that provides artifact phase, canonical artifact name, and expected active step where applicable. Use it in `run-review.js`, `retry-recovery.js`, and tests.",
+        "file": "src/flow/lib/run-review.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Align Recovery Entrypoint Constants",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`\n**Requirement:** R4\n**Issue:** Recovery entrypoints and bootstrap semantics are referenced across `step-transition-policy.js`, `set-step.js`, and retry recovery logic, but the summaries show separate predicates, maps, and literal entrypoint handling. This can lead to inconsistent support for new recovery modes.\n**Suggestion:** Define shared recovery entrypoint constants and policy helpers, such as `SUPPORTED_RECOVERY_ENTRYPOINTS` and bootstrap transition metadata, then consume them from transition validation and state predicates.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Normalize Draft Semantic Recovery Naming",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R5\n**Issue:** Draft semantic retry behavior is described with several overlapping names across files: `GATE_RECOVERY_PHASES`, inline semantic finding checks, semantic recovery dispositions, and draft deferral tests. Some names imply repair recovery while draft semantics appear to defer instead.\n**Suggestion:** Rename shared concepts around the actual behavior, for example `GATE_RETRY_EXHAUSTION_PHASES` and `isDraftDeferrableSemanticFinding()`, and use the same terminology in `review-convergence.js` and retry exhaustion tests.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Standardize Process Exit Terminology",
+        "body": "**File:** `src/lib/agent.js`\n**Requirement:** R2\n**Issue:** The implementation uses `directChildClosed` for process exit semantics, while the related test exercises supervisor exit behavior. “Closed” and “exited” imply different lifecycle events, which can confuse future changes across implementation and tests.\n**Suggestion:** Rename the state to `directChildExited` and update test names/assertions to use the same process-exit terminology.",
+        "file": "src/lib/agent.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

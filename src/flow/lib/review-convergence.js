@@ -924,10 +924,10 @@ export class ReviewSemanticRecoveryMutation extends ReviewRecoveryMutation {
 
   apply(flowState) {
     const { records, index, current } = this.readCurrent(flowState);
-    if (current.disposition !== "REJECTED") {
-      throw new Error("review semantic recovery requires rejected evidence");
+    if (current.disposition !== "REJECTED" && current.disposition !== "PASS" && current.disposition !== null) {
+      throw new Error("review semantic recovery requires rejected, invalidated pass, or no-verdict evidence");
     }
-    if (current.semanticAttempts !== current.semanticMaxAttempts) {
+    if (current.disposition === "REJECTED" && current.semanticAttempts !== current.semanticMaxAttempts) {
       throw new Error("review semantic recovery requires exhausted semantic attempts");
     }
     const recovered = new ReviewConvergenceState({

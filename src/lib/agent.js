@@ -28,6 +28,7 @@ import { AgentTimeout } from "./agent-timeout.js";
 import { LinuxProcessStat } from "./process-identity.js";
 
 const DEFAULT_AGENT_TIMEOUT_GRACE_MS = 100;
+const DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS = 250;
 const PROCESS_DEATH_POLL_MS = 10;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
 const MAX_RETRY = 5;
@@ -391,6 +392,7 @@ class Agent {
           child,
           timeoutMs,
           graceMs: this._supervision.graceMs || DEFAULT_AGENT_TIMEOUT_GRACE_MS,
+          exitDrainMs: this._supervision.exitDrainMs || DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS,
           platform,
           runTaskkill: this._supervision.runTaskkill,
           onEvent: options.onSupervisorEvent,
@@ -501,13 +503,15 @@ class UnterminatedProcessMember {
 }
 
 class ChildProcessSupervisor {
-  constructor({ child, timeoutMs, graceMs, platform = process.platform, runTaskkill, onEvent }) {
+  constructor({ child, timeoutMs, graceMs, exitDrainMs = DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS, platform = process.platform, runTaskkill, onEvent }) {
     if (!child || typeof child.on !== "function") throw new Error("child must be a ChildProcess");
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("timeoutMs must be a positive number");
     if (!Number.isFinite(graceMs) || graceMs <= 0) throw new Error("graceMs must be a positive number");
+    if (!Number.isFinite(exitDrainMs) || exitDrainMs <= 0) throw new Error("exitDrainMs must be a positive number");
     this.child = child;
     this.timeoutMs = timeoutMs;
     this.graceMs = graceMs;
+    this.exitDrainMs = exitDrainMs;
     this.platform = platform;
     this.runTaskkill = runTaskkill || runWindowsTaskkill;
     this.onEvent = typeof onEvent === "function" ? onEvent : null;
@@ -515,6 +519,7 @@ class ChildProcessSupervisor {
     this.graceTimer = null;
     this.treeDeathPollTimer = null;
     this.finalDeadlineTimer = null;
+    this.exitDrainTimer = null;
     this.originalPosixMembers = null;
     this.timeoutOwned = false;
     this.directChildClosed = false;
@@ -522,6 +527,7 @@ class ChildProcessSupervisor {
     this.settled = false;
     this.finalAction = null;
     this._onClose = this._handleClose.bind(this);
+    this._onExit = this._handleExit.bind(this);
     this._onError = this._handleError.bind(this);
   }
 
@@ -530,6 +536,7 @@ class ChildProcessSupervisor {
       this.resolve = resolve;
       this.reject = reject;
       this.child.once("close", this._onClose);
+      this.child.once("exit", this._onExit);
       this.child.once("error", this._onError);
       this._emit({ type: "spawn", pid: this.child.pid ?? null, detached: this.platform !== "win32" });
       this.deadlineTimer = setTimeout(() => this._handleTimeout(), this.timeoutMs);
@@ -545,6 +552,25 @@ class ChildProcessSupervisor {
       return;
     }
     this._trySettleTimedOutChild();
+  }
+
+  _handleExit(code, signal) {
+    if (this.settled) return;
+    this.directChildClosed = true;
+    this._emit({ type: "exit", code, signal });
+    if (this.timeoutOwned) {
+      this._trySettleTimedOutChild();
+      return;
+    }
+    // A descendant can inherit stdout/stderr and prevent ChildProcess's
+    // `close` event after the direct provider process has exited. Give the
+    // streams a brief chance to drain, then resolve from the direct exit so a
+    // completed provider cannot strand the flow dispatcher indefinitely.
+    this.exitDrainTimer = setTimeout(() => {
+      if (!this.settled && this.directChildClosed && !this.timeoutOwned) {
+        this._settleClose(code, signal);
+      }
+    }, this.exitDrainMs);
   }
 
   _handleError(error) {
@@ -710,11 +736,14 @@ class ChildProcessSupervisor {
     if (this.graceTimer) clearTimeout(this.graceTimer);
     if (this.treeDeathPollTimer) clearTimeout(this.treeDeathPollTimer);
     if (this.finalDeadlineTimer) clearTimeout(this.finalDeadlineTimer);
+    if (this.exitDrainTimer) clearTimeout(this.exitDrainTimer);
     this.deadlineTimer = null;
     this.graceTimer = null;
     this.treeDeathPollTimer = null;
     this.finalDeadlineTimer = null;
+    this.exitDrainTimer = null;
     this.child.removeListener("close", this._onClose);
+    this.child.removeListener("exit", this._onExit);
     this.child.removeListener("error", this._onError);
     this._emit({
       type: "cleanup",
@@ -725,7 +754,7 @@ class ChildProcessSupervisor {
   }
 
   _activeTimerCount() {
-    return [this.deadlineTimer, this.graceTimer, this.treeDeathPollTimer, this.finalDeadlineTimer]
+    return [this.deadlineTimer, this.graceTimer, this.treeDeathPollTimer, this.finalDeadlineTimer, this.exitDrainTimer]
       .filter((timer) => timer !== null)
       .length;
   }

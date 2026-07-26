@@ -224,6 +224,20 @@ describe("FindingDispositionPolicy", () => {
     }
   });
 
+  it("R3: rejects duplicate complete proofs for one must-fix finding", () => {
+    const policy = new FindingDispositionPolicy({ maxOccurrences: 3 });
+    const decision = policy.evaluateGate({
+      findings: [mustFixFinding()],
+      issueLogEntries: [repairEvidence(), repairEvidence()],
+      phase: "integration",
+      reviewedTree: REVIEWED_TREE,
+      reviewedHead: REVIEWED_HEAD,
+      repairDiff: REPAIR_DIFF,
+    });
+
+    assert.equal(decision.allowsPass(), false);
+  });
+
   it("R3: serializes repairDiff as a top-level evidence value", () => {
     const evidence = new RepairEvidenceReference(repairEvidence()).toJSON();
 

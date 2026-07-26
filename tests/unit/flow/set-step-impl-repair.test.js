@@ -105,10 +105,7 @@ describe("set step impl-repair completion", () => {
 
     const ledger = JSON.parse(fs.readFileSync(path.join(specDir, "impl-repair.json"), "utf8"));
     assert.equal(ledger.entries.length, 1);
-    const issueLog = JSON.parse(fs.readFileSync(path.join(specDir, "issue-log.json"), "utf8"));
-    assert.equal(issueLog.entries.length, 1);
-    assert.equal(issueLog.entries[0].normalizedFindingId, "F-1");
-    assert.deepEqual(issueLog.entries[0].repairRef.files, ["src/repair-target.js"]);
+    assert.equal(fs.existsSync(path.join(specDir, "issue-log.json")), false);
   });
 
   it("recovers post-commit effects from the atomic transition intent", () => {
@@ -172,7 +169,10 @@ describe("set step impl-repair completion", () => {
     const specDir = path.join(tmp, "specs/001-test");
     writeJson(tmp, "specs/001-test/impl-review.json", {
       repairFingerprint: previousFingerprint.hash,
-      blockingFindings: [{ findingId: GATE_FINDING_ID }],
+      phase: "integration",
+      reviewedTree: previousFingerprint.hash,
+      reviewedHead: "b".repeat(40),
+      blockingFindings: [{ findingId: GATE_FINDING_ID, fingerprint: GATE_FINDING_ID }],
       nonBlockingImprovements: [],
     });
     prepareImplTriageArtifact({
@@ -184,8 +184,13 @@ describe("set step impl-repair completion", () => {
     });
     writeJson(tmp, "specs/001-test/test-execute-result.json", {
       repairFingerprint: previousFingerprint.hash,
+      summary: [{ id: "focused", result: "pass" }],
     });
     writeJson(tmp, "specs/001-test/test-result-review.json", {
+      repairFingerprint: previousFingerprint.hash,
+      verdict: "pass",
+    });
+    writeJson(tmp, "specs/001-test/impl-gate-result.json", {
       repairFingerprint: previousFingerprint.hash,
     });
     writeFile(tmp, "src/repair-target.js", "export const value = 'after';\n");
@@ -237,14 +242,20 @@ describe("set step impl-repair completion", () => {
     assert.deepEqual(result.missingFindingIds, [GATE_FINDING_ID]);
     assert.equal(transitions.length, 1);
     assert.ok(transitions[0] instanceof ExplicitRecoveryTransition);
-    assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
+    assert.equal(findStepById(state.steps, "test-execute").status, "done");
     assert.equal(findStepById(state.steps, "impl-gate").status, "pending");
     const ledger = JSON.parse(fs.readFileSync(path.join(specDir, "impl-repair.json"), "utf8"));
     assert.deepEqual(ledger.entries[0].sourceFindingIds, [GATE_FINDING_ID]);
-    assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);
+    assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), true);
+    assert.equal(fs.existsSync(path.join(specDir, "test-result-review.json")), true);
+    assert.equal(fs.existsSync(path.join(specDir, "impl-gate-result.json")), false);
+    const issueLog = JSON.parse(fs.readFileSync(path.join(specDir, "issue-log.json"), "utf8"));
+    assert.equal(issueLog.entries.at(-1).findingFingerprint, GATE_FINDING_ID);
+    assert.equal(issueLog.entries.at(-1).reviewedTree, previousFingerprint.hash);
+    assert.equal(issueLog.entries.at(-1).validatingTestResult.status, "pass");
   });
 
-  it("recovers a gate-observed repair evidence failure after review artifacts were invalidated", async () => {
+  it("fails closed when a gate-observed recovery no longer has canonical review evidence", async () => {
     tmp = createTmpDir("set-step-impl-repair-gate-evidence-recovery-");
     writeJson(tmp, SPEC_PATH, { goal: "repair fixture" });
     writeFile(tmp, "src/repair-target.js", "export const value = 'before';\n");
@@ -281,13 +292,17 @@ describe("set step impl-repair completion", () => {
     commitImplRepairEffects({ root: tmp, state, transaction: initialRepair.transaction });
 
     const issueLogPath = path.join(specDir, "issue-log.json");
-    const issueLog = JSON.parse(fs.readFileSync(issueLogPath, "utf8"));
-    issueLog.entries[0].repairRef = { files: [".senti/config.json"] };
-    issueLog.entries.push({
+    const issueLog = { entries: [{
+      normalizedFindingId: GATE_FINDING_ID,
+      repairRef: { files: [".senti/config.json"] },
+      step: "impl-repair",
+      reason: "stale repair proof fixture",
+      timestamp: new Date().toISOString(),
+    }, {
       step: "impl-gate",
       reason: `must-fix finding ${GATE_FINDING_ID} is missing matching repair evidence`,
       timestamp: new Date().toISOString(),
-    });
+    }] };
     writeJson(tmp, "specs/001-test/issue-log.json", issueLog);
     fs.rmSync(path.join(specDir, "impl-review.json"), { force: true });
     fs.rmSync(path.join(specDir, "impl-triage.json"), { force: true });
@@ -331,10 +346,9 @@ describe("set step impl-repair completion", () => {
       status: "done",
     });
 
-    assert.equal(result.recovered, true);
-    assert.deepEqual(result.missingFindingIds, [GATE_FINDING_ID]);
-    const repairedLog = JSON.parse(fs.readFileSync(issueLogPath, "utf8"));
-    assert.deepEqual(repairedLog.entries.at(-1).repairRef.files, ["src/repair-evidence-recovery.js"]);
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "IMPL_REPAIR_RECOVERY_FAILED");
+    assert.match(result.errors[0].messages[0], /impl-review\.json/);
   });
 });
 

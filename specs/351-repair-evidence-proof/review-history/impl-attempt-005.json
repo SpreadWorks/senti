@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T02:21:18.545Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "task-scoped-proof-scope-hardcoded",
+      "title": "Repair proof is hardcoded to flow integration scope",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/impl-repair-artifacts.js",
+      "requirementId": "R1",
+      "issue": "recordAppliedFindingRepairEvidence builds every proof with phase: \"integration\" and taskId: null, instead of taking the scope from the reviewed impl-review artifact/current review. A task-scoped applied finding, including this T-1 review scope, will therefore persist proof that does not bind to the current review scope and can fail matching when the disposition policy evaluates with a taskId.",
+      "suggestion": "In recordAppliedFindingRepairEvidence, populate the proof scope from the impl-review artifact, e.g. phase: review.phase ?? \"integration\" and taskId: review.taskId ?? null, and add a task-scoped regression asserting the persisted RepairEvidenceReference has the taskId from impl-review.",
+      "disposition": "must-fix",
+      "rationale": "The task requires one complete workflow-owned proof for each applied finding, with values bound to the current review, repair, and passing validation artifacts. Hardcoding flow-level integration scope breaks that mandatory binding for task-scoped findings.",
+      "findingId": "0a37f962240031f3ea7bf6dc4a4b6ed1fdc2ee9429243a3064119ee87c232806",
+      "fingerprint": "0a37f962240031f3ea7bf6dc4a4b6ed1fdc2ee9429243a3064119ee87c232806",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "1649494354a72aa4071db21228e192577dd931dfb8d62151b43368a8bf1f0c59",
+  "reviewedTree": "1649494354a72aa4071db21228e192577dd931dfb8d62151b43368a8bf1f0c59",
+  "reviewedHead": "2391904069c94113906b2d8bcb8dd16359459a64",
+  "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/351-repair-evidence-proof/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/351-repair-evidence-proof/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "31d9a6f2668224ce9b27e4de660ec7c459e12d62669094013452db6a0776b67d"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "0a37f962240031f3ea7bf6dc4a4b6ed1fdc2ee9429243a3064119ee87c232806",
+      "findingId": "0a37f962240031f3ea7bf6dc4a4b6ed1fdc2ee9429243a3064119ee87c232806",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Repair proof is hardcoded to flow integration scope",
+      "body": "recordAppliedFindingRepairEvidence builds every proof with phase: \"integration\" and taskId: null, instead of taking the scope from the reviewed impl-review artifact/current review. A task-scoped applied finding, including this T-1 review scope, will therefore persist proof that does not bind to the current review scope and can fail matching when the disposition policy evaluates with a taskId.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "0a37f962240031f3ea7bf6dc4a4b6ed1fdc2ee9429243a3064119ee87c232806",
+      "disposition": "must-fix",
+      "rationale": "The task requires one complete workflow-owned proof for each applied finding, with values bound to the current review, repair, and passing validation artifacts. Hardcoding flow-level integration scope breaks that mandatory binding for task-scoped findings.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

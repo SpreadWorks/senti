@@ -1173,6 +1173,9 @@ async function runImplReviewWithPersistence({
   const reviewJsonPath = path.join(specDir, "impl-review.json");
   const fingerprint = buildRepairFingerprint({ root, specPath: flow.spec, state: flow });
   const artifactJson = stampRepairFingerprint({ artifact: artifact.toJSON(), fingerprint });
+  const reviewedHead = runGit(["rev-parse", "HEAD"], { cwd: root });
+  artifactJson.reviewedTree = fingerprint.hash;
+  if (reviewedHead.ok) artifactJson.reviewedHead = reviewedHead.stdout.trim();
   Object.assign(artifactJson, new ReviewFindingCycle(flow).toJSON());
   if (taskSpec) {
     artifactJson.taskId = taskSpec.task.id;
@@ -3697,7 +3700,7 @@ function buildDraftReviewStage(key, overrides) {
     key,
     retryPhase: route.retryPhase,
     artifact: route.reviewArtifact,
-    reviewPhase: route.reviewStepId,
+    artifactPhase: route.reviewStepId,
     ...overrides,
   };
 }
@@ -3747,7 +3750,7 @@ function addDraftReviewFindingToBucket(buckets, finding) {
 function buildDraftReviewArtifact({ raw, draftPath, proposals, stage }) {
   if (raw.includes("NO_PROPOSALS") || proposals.length === 0) {
     return new DraftReviewArtifact({
-      phase: stage.retryPhase,
+      phase: stage.artifactPhase,
       sourceDraft: draftPath,
     });
   }
@@ -3761,7 +3764,7 @@ function buildDraftReviewArtifact({ raw, draftPath, proposals, stage }) {
     addDraftReviewFindingToBucket(buckets, finding);
   }
   return new DraftReviewArtifact({
-    phase: stage.retryPhase,
+    phase: stage.artifactPhase,
     sourceDraft: draftPath,
     ...buckets,
   });

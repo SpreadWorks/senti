@@ -94,10 +94,10 @@ export class AcceptanceBudgetError extends Error {
   }
 }
 
-function readFixtureArtifact() {
-  const file = process.env.SENTI_ACCEPTANCE_REVIEW_ARTIFACT;
-  if (!file) return null;
-  return JSON.parse(fs.readFileSync(file, "utf8"));
+export class AcceptanceReviewResponseSource {
+  load(_context) {
+    return null;
+  }
 }
 
 function appendWithinDiffBudget(current, addition, component) {
@@ -393,6 +393,14 @@ async function callAcceptanceAgent(agent, prompt) {
 }
 
 export default class RunAcceptanceReviewCommand extends FlowCommand {
+  constructor({ responseSource = new AcceptanceReviewResponseSource() } = {}) {
+    super();
+    if (!(responseSource instanceof AcceptanceReviewResponseSource)) {
+      throw new TypeError("responseSource must be an AcceptanceReviewResponseSource");
+    }
+    this.responseSource = responseSource;
+  }
+
   async execute(ctx) {
     const state = ctx.flowManager.load();
     ensureRepairFingerprintContract({ root: ctx.root, state, flowManager: ctx.flowManager });
@@ -401,7 +409,7 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
       state,
       diff: implementationDiff(ctx.root, state),
     });
-    const fixture = readFixtureArtifact();
+    const fixture = this.responseSource.load(context);
     let artifact;
     if (fixture) {
       artifact = artifactFromAcceptanceJudgments({

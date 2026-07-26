@@ -24,6 +24,8 @@ import {
 import {
   PLAN_REWIND_SUPPORTED_STAGES,
   SPEC_CORRECTION_SUPPORTED_STAGES,
+  PLAN_REWIND_GATE_PHASES,
+  PLAN_REWIND_REVIEW_PHASES,
   PlanRewindError,
   PlanRewindRequest,
   applyPlanRewind,
@@ -63,6 +65,7 @@ const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
   "spec-gate",
   "approval",
   "test",
+  "scenario-validity",
   "test-review",
 ]);
 const PLAN_REOPEN_RESET_STEPS = Object.freeze([
@@ -128,6 +131,17 @@ function resetStepSequence(state, stepIds, destinationStep = "draft", options) {
 
 function resetSpecCorrectionStepSequence(state, stepIds) {
   return resetStepSequence(state, stepIds, "draft", { runtimeLog: true });
+}
+
+function resetSpecCorrectionRetries(state, timestamp) {
+  if (!Array.isArray(state.metrics)) state.metrics = [];
+  for (const phase of PLAN_REWIND_REVIEW_PHASES) {
+    state.metrics.push({ phase, counter: "reviewRetry", delta: 0, reset: true, taskId: null, ts: timestamp });
+  }
+  for (const phase of PLAN_REWIND_GATE_PHASES) {
+    state.metrics.push({ phase, counter: "gateRetry", delta: 0, reset: true, taskId: null, ts: timestamp });
+  }
+  state.retryRecovery = null;
 }
 
 function createReopenResetTransition(state, stepIds, { clearRuntimeLog = false } = {}) {
@@ -435,6 +449,7 @@ function executeSpecCorrection({ flowManager, root, specId, state, reason }) {
   }
   const nextState = structuredClone(state);
   const resetSteps = resetSpecCorrectionStepSequence(nextState, stepIds);
+  resetSpecCorrectionRetries(nextState, timestamp);
   resetSpecCorrectionTasks(nextState);
   const audit = new PlanRewindAuditEntry({
     state,
@@ -565,6 +580,9 @@ export class RunReopenDraftCommand extends FlowCommand {
           return auditFailure(err);
         }
         if (retryAudit) {
+          flowManager.mutate((next) => {
+            resetSpecCorrectionRetries(next, new Date().toISOString());
+          });
           const resetSteps = stepIds.filter((id) => findStepById(state.steps || [], id));
           return specCorrectionResult(retryAudit, resetSteps, null, { idempotent: true });
         }
@@ -643,7 +661,7 @@ export class RunReopenDraftCommand extends FlowCommand {
         return flowRewindEnvelope(error);
       }
     }
-    if (state.currentTaskId == null && PLAN_REOPEN_ACTIVE_STEPS.includes(previousActiveStep)) {
+    if (PLAN_REOPEN_ACTIVE_STEPS.includes(previousActiveStep)) {
       const transition = createReopenResetTransition(state, ["draft", ...PLAN_REOPEN_RESET_STEPS]);
       flowManager.rewindPlan(transition);
       const resetSteps = transition.changes.map((change) => change.stepId);

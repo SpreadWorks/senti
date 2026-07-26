@@ -312,7 +312,7 @@ class ReviewEvidenceScope {
 
   static canonicalPhase(value, taskId) {
     const phase = value.trim().toLowerCase();
-    if (taskId !== null && ["task-impl", "task-gate", "task-review"].includes(phase)) {
+    if (taskId !== null && ["impl", "task-impl", "task-gate", "task-review"].includes(phase)) {
       return "task-review";
     }
     if (taskId === null && ["integration", "impl", "impl-gate", "impl-review"].includes(phase)) {
@@ -509,16 +509,18 @@ export class IssueLogRepairEvidenceSource {
     const entries = Array.isArray(input) ? input : requireRecord(input, "issue log").entries;
     if (!Array.isArray(entries)) throw new Error("issue log entries must be an array");
     const evidence = [];
+    const invalidProofClaims = [];
     for (const entry of entries) {
       if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-      if (entry.normalizedFindingId == null || entry.repairRef == null) continue;
+      if (!hasRepairProofClaimFields(entry)) continue;
       try {
         evidence.push(new RepairEvidenceReference(entry));
-      } catch {
-        // Invalid issue-log claims are not repair evidence.
+      } catch (error) {
+        invalidProofClaims.push(new InvalidRepairEvidenceClaim(entry, error));
       }
     }
     this.entries = Object.freeze(evidence);
+    this.invalidProofClaims = Object.freeze(invalidProofClaims);
     Object.freeze(this);
   }
 
@@ -534,7 +536,8 @@ export class IssueLogRepairEvidenceSource {
     repairDiff = null,
   } = {}) {
     const id = requireString(normalizedFindingId, "normalizedFindingId");
-    return this.entries.findLast((entry) => entry.matches({
+    if (this.invalidProofClaims.some((claim) => claim.normalizedFindingId === id)) return null;
+    const matches = this.entries.filter((entry) => entry.matches({
       normalizedFindingId: id,
       phase,
       taskId,
@@ -544,8 +547,29 @@ export class IssueLogRepairEvidenceSource {
       reviewedTree,
       reviewedHead,
       repairDiff,
-    })) || null;
+    }));
+    return matches.length === 1 ? matches[0] : null;
   }
+}
+
+class InvalidRepairEvidenceClaim {
+  constructor(entry, error) {
+    this.normalizedFindingId = optionalString(entry.normalizedFindingId, "invalid repair evidence.normalizedFindingId");
+    this.reason = error instanceof Error ? error.message : String(error);
+    Object.freeze(this);
+  }
+}
+
+function hasRepairProofClaimFields(entry) {
+  return [
+    "findingFingerprint",
+    "reviewedTree",
+    "reviewedHead",
+    "repairDiff",
+    "validatingTestResult",
+    "phase",
+    "taskId",
+  ].some((field) => Object.hasOwn(entry, field));
 }
 
 class GateFinding {

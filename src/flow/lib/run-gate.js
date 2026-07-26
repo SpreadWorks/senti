@@ -105,6 +105,7 @@ import {
   assertRepairFingerprint,
   buildRepairFingerprint,
   ensureRepairFingerprintContract,
+  readImplRepairLedger,
   stampRepairFingerprint,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
@@ -2077,7 +2078,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
 import { resolveMaxAttempts } from "../definition.js";
 
 const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
-const GATE_RECOVERY_PHASES = new Set(["task-impl", "integration"]);
+const GATE_RECOVERY_PHASES = new Set(["draft", "task-impl", "integration"]);
 const GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "gate-retry-exhausted";
 const GATE_RECOVERY_TRIGGER_RESULT_FAIL = "gate-result-fail";
 
@@ -2403,6 +2404,16 @@ export function classifyGateRetryExhaustionSource(input = {}) {
     return { completionKind: "blocking", deferAllowed: false, reason: "invalid_finding_disposition" };
   }
   if (findings.length === 0) return { completionKind: "blocking", deferAllowed: false, reason: "missing_content_findings" };
+  if (merged.phase === "draft") {
+    if (!rawFindings.every((finding) => finding?.category === "semantic")) {
+      return { completionKind: "blocking", deferAllowed: false, reason: "non_semantic_findings" };
+    }
+    return {
+      completionKind: "deferred",
+      deferAllowed: true,
+      reason: "semantic_findings",
+    };
+  }
   let decision;
   try {
     decision = new FindingDispositionPolicy({ maxOccurrences: 3 }).evaluateGate({
@@ -2478,12 +2489,17 @@ export function evaluateReviewFindingGateReadiness({ root, state, phase, taskId 
     ) continue;
     for (const finding of artifact.findings) obligations.set(finding.fingerprint, finding);
   }
+  const ledger = readImplRepairLedger(specDir);
+  const repairDiff = ledger?.entries.at(-1)?.changedPathsDigest || null;
   const decision = new FindingDispositionPolicy({ maxOccurrences: 3 }).evaluateGate({
     findings: [...obligations.values()],
     issueLogEntries: issueLog?.entries || issueLog || [],
     phase,
     taskId,
     root,
+    reviewedTree: latestArtifact.reviewedTree || null,
+    reviewedHead: latestArtifact.reviewedHead || null,
+    repairDiff,
   });
   return { artifact: latestArtifact, decision };
 }
@@ -5721,16 +5737,8 @@ export class RunGateCommand extends FlowCommand {
     const state = ctx.flowState;
     const taskSpec = resolveCurrentTaskSpec({ root, state });
     const issueLog = loadIssueLog(root, state.spec);
-    const findingReadiness = reviewFindingGateFailure({
-      root,
-      state,
-      phase,
-      taskId: state.currentTaskId,
-      issueLog,
-      level,
-      targetPath: taskSpec.relPath,
-    });
-    if (findingReadiness) return findingReadiness;
+    // Post-validation repair proof is owned by the integration gate after
+    // test-result-review; task gates deliberately remain pre-validation.
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
     const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", root);
     const untracked = await collectUntrackedDiff(root, {

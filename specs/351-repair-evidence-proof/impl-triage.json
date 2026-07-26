@@ -1,0 +1,338 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "26f9d6edc732e5d7b6b229a92e9bdec9d653522957707f11060f24dd02a3ff9f",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-26T03:20:31.893Z",
+  "items": [
+    {
+      "findingId": "3d0d305b1c42eb75a274dc49d9888d6ef04de19f2bf73eaa79181fa1b21d8013",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R1  \n**Issue:** `attachLatestStepAttempt` now combines two freshness checks inline: attempt before `startedAt`, and attempt before retry reset timestamp. This makes the guard harder to read and will be easy to duplicate if similar filtering is needed elsewhere.  \n**Suggestion:** Extract a helper such as `isAttemptCurrentForStep({ attempt, targetStep, resetAt })` or `isStaleStepAttempt(...)` and use it in the early return.",
+      "evidenceRefs": [
+        "impl-review.json#3d0d305b1c42eb75a274dc49d9888d6ef04de19f2bf73eaa79181fa1b21d8013"
+      ]
+    },
+    {
+      "findingId": "b2beeb084cbcce1a340c0ca3fd95422ddcde9c48e11d3cc86a55eec5199cb604",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R1  \n**Issue:** `Date.parse(attempt.recordedAt) < resetAt` silently returns `false` when `attempt.recordedAt` is invalid because `Date.parse` returns `NaN`. That can allow malformed attempt timestamps to survive the reset filter.  \n**Suggestion:** Store the parsed timestamp in a named variable and explicitly handle non-finite values, either by treating them as stale or throwing if invalid timestamps should never occur.",
+      "evidenceRefs": [
+        "impl-review.json#b2beeb084cbcce1a340c0ca3fd95422ddcde9c48e11d3cc86a55eec5199cb604"
+      ]
+    },
+    {
+      "findingId": "7032bfba6d79bb95b1b0938fd534a4af4bc09f8ece18b7c652b1b2904f122ac8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `repairProofValidationContext({ specDir, entry })` accepts `entry` but never uses it, which adds noise and suggests validation may depend on entry data when it does not.  \n**Suggestion:** Change the signature to `repairProofValidationContext({ specDir })` and update the call site accordingly.",
+      "evidenceRefs": [
+        "impl-review.json#7032bfba6d79bb95b1b0938fd534a4af4bc09f8ece18b7c652b1b2904f122ac8"
+      ]
+    },
+    {
+      "findingId": "15dcef3edb3375c1624112626e08030e2e06c2fbbe12ab6347039049b1369b93",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `recordAppliedFindingRepairEvidence` manually constructs a proof-shaped object, then `buildAppliedFindingRepairProof` immediately wraps it in `new RepairEvidenceReference(input)` and reconstructs nearly the same structure. This duplicates field mapping and makes the data flow harder to follow.  \n**Suggestion:** Either construct `RepairEvidenceReference` directly in `recordAppliedFindingRepairEvidence` and serialize it once, or make `buildAppliedFindingRepairProof` accept a `RepairEvidenceReference` instance so the validation/mapping boundary is explicit.",
+      "evidenceRefs": [
+        "impl-review.json#15dcef3edb3375c1624112626e08030e2e06c2fbbe12ab6347039049b1369b93"
+      ]
+    },
+    {
+      "findingId": "e5a4c4639c73520fe697ec402ae2bc6f0d4434da0f9592edf16576b7e4927510",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `ValidatedAppliedFindingRepairPurpose` is semantically close to `AppliedFindingRepairPurpose`, but the name does not clearly indicate that it represents the post-validation evidence-recording phase rather than a different kind of repair.  \n**Suggestion:** Rename it to something more precise, such as `AppliedFindingRepairEvidencePurpose` or `ValidatedRepairEvidencePurpose`, and update the serialized `kind` string if persisted compatibility allows.",
+      "evidenceRefs": [
+        "impl-review.json#e5a4c4639c73520fe697ec402ae2bc6f0d4434da0f9592edf16576b7e4927510"
+      ]
+    },
+    {
+      "findingId": "65ae155b8ff29f91abffa436f14342edc06a1d77953043b02849d743cf1cb583",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/retry-recovery.js`  \n**Requirement:** R4  \n**Issue:** `expectedActiveStep()` now mixes fixed phase-to-step mapping with conditional task context logic inline. This makes the new `draft` gate case and task-scoped impl review case harder to scan and easier to diverge from nearby phase mapping constants.  \n**Suggestion:** Replace the nested conditionals with small lookup maps, for example `GATE_ACTIVE_STEP_BY_PHASE` and `REVIEW_ACTIVE_STEP_BY_PHASE`, and handle only the `impl` task/non-task split as the special case.",
+      "evidenceRefs": [
+        "impl-review.json#65ae155b8ff29f91abffa436f14342edc06a1d77953043b02849d743cf1cb583"
+      ]
+    },
+    {
+      "findingId": "d4a14a5a0abdb30b8b635a74fac7af3a58c9de78e4d5cca247d115cbc2fb3061",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R5  \n**Issue:** `ReviewSemanticRecoveryMutation.apply()` now has a long inline disposition condition plus a second conditional tied only to `REJECTED`. The error message also introduces domain language, “invalidated pass” and “no-verdict,” that is not reflected by named code concepts.  \n**Suggestion:** Add a small helper such as `canApplySemanticRecovery(current)` or constants like `SEMANTIC_RECOVERY_DISPOSITIONS = new Set([\"REJECTED\", \"PASS\", null])`, plus `requiresExhaustedSemanticAttempts(current)`. This would make the allowed states explicit and reduce future mistakes when adding another recovery disposition.",
+      "evidenceRefs": [
+        "impl-review.json#d4a14a5a0abdb30b8b635a74fac7af3a58c9de78e4d5cca247d115cbc2fb3061"
+      ]
+    },
+    {
+      "findingId": "57bd4cf78d5ebb6b95b2eae74fba1a3b8950ca33765244e8ce1326e19ba20250",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** The draft retry-exhaustion branch embeds `finding?.category === \"semantic\"` inline. That category check is now policy-significant because only semantic draft findings defer.  \n**Suggestion:** Extract a named helper such as `isDraftDeferrableSemanticFinding(finding)` or `allFindingsAreSemantic(rawFindings)` and use it in `classifyGateRetryExhaustionSource`.",
+      "evidenceRefs": [
+        "impl-review.json#57bd4cf78d5ebb6b95b2eae74fba1a3b8950ca33765244e8ce1326e19ba20250"
+      ]
+    },
+    {
+      "findingId": "4cd7c32295aed1a2f0dd6d3e2d0b6261423fecc8f6f3f9063aa7aac775134362",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** `GATE_RECOVERY_PHASES` now includes `draft`, but draft exhaustion does not follow the same repair-evidence recovery path as task/integration; it defers semantic findings directly. The name is broader than the behavior.  \n**Suggestion:** Rename it to something like `GATE_RETRY_EXHAUSTION_PHASES` so the constant describes which phases participate in retry-exhaustion handling, not just repair recovery.",
+      "evidenceRefs": [
+        "impl-review.json#4cd7c32295aed1a2f0dd6d3e2d0b6261423fecc8f6f3f9063aa7aac775134362"
+      ]
+    },
+    {
+      "findingId": "7c2edd1d1ee3007a53116c23cab5136bfa7f01f867a62f48b48eede30e539918",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** `repairDiff` is derived from `ledger?.entries.at(-1)?.changedPathsDigest`, but the name hides that this is specifically the latest repair ledger digest.  \n**Suggestion:** Introduce a small helper or clearer local name, e.g. `latestRepairDiff = latestImplRepairDiffDigest(ledger)`, then pass it as `repairDiff`. That keeps the policy API intact while making the source and selection rule explicit.",
+      "evidenceRefs": [
+        "impl-review.json#7c2edd1d1ee3007a53116c23cab5136bfa7f01f867a62f48b48eede30e539918"
+      ]
+    },
+    {
+      "findingId": "0d3b6da0a072fd4c66260d3e8df1e05797649f2ca009aae5f9743859af6f4691",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-reopen-draft.js`  \n**Requirement:** R5  \n**Issue:** `resetSpecCorrectionRetries` duplicates the same metric record shape across two loops, differing only by phase list and counter name. This makes future retry-reset changes easy to apply inconsistently.  \n**Suggestion:** Build one local reset descriptor list, e.g. `SPEC_CORRECTION_RETRY_RESETS`, and loop once to append `{ phase, counter, delta: 0, reset: true, taskId: null, ts }`.",
+      "evidenceRefs": [
+        "impl-review.json#0d3b6da0a072fd4c66260d3e8df1e05797649f2ca009aae5f9743859af6f4691"
+      ]
+    },
+    {
+      "findingId": "57a1244c24e11bb14ed44eaf6fa567d0e37ffe34ad949373e699eda80b7d9fbe",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** `sourceArtifactPhase()` hard-codes the same special-case phase knowledge that is already related to `REVIEW_SOURCE_ARTIFACT_BY_PHASE` / `canonicalArtifactName()`. This creates a second place to update when review phase naming changes.  \n**Suggestion:** Replace the `if` chain with a shared map or derive both artifact filename and stored artifact phase from one phase metadata object.",
+      "evidenceRefs": [
+        "impl-review.json#57a1244c24e11bb14ed44eaf6fa567d0e37ffe34ad949373e699eda80b7d9fbe"
+      ]
+    },
+    {
+      "findingId": "ec4f94f0cbf57ba6067b1c04bb6c163d90fa9feb0d9e5e13e8608dbb42ca326b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R4  \n**Issue:** `completedReviewLifecycleReplay()` mutates `artifact.phase` after validation and writes the whole object back. This is a narrow repair path, but mutating the loaded object makes the write behavior less explicit.  \n**Suggestion:** Create a new object for the repaired artifact, e.g. `const repairedArtifact = { ...artifact, phase: artifactPhase };`, and write that. This keeps validation input and repaired output distinct.",
+      "evidenceRefs": [
+        "impl-review.json#ec4f94f0cbf57ba6067b1c04bb6c163d90fa9feb0d9e5e13e8608dbb42ca326b"
+      ]
+    },
+    {
+      "findingId": "e5a56682e6108f2689984417125103a4dc0f1071907c8efaf82d4a91085d8ce7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R1  \n**Issue:** The same target identity fields are assembled in multiple places: `phase`, `taskId`, `treeSha`, and `targetStateDigest`. The replay path and canonical artifact persistence path both depend on matching these fields exactly.  \n**Suggestion:** Add a small helper such as `buildReviewTargetIdentity({ phase, taskId, treeSha, targetStateDigest })`, with an option for artifact phase normalization where needed. That reduces drift between validation and persistence logic.",
+      "evidenceRefs": [
+        "impl-review.json#e5a56682e6108f2689984417125103a4dc0f1071907c8efaf82d4a91085d8ce7"
+      ]
+    },
+    {
+      "findingId": "c0178d7cdc3a9a8bc48fb82a2c16dc8e399a8aa859f56556ad65cab9131c115f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-scenario-validity.js`  \n**Requirement:** R2  \n**Issue:** `baselineRef` is clearer than the previous `baseBranch`, but `buildScenarioValidityDiffArgs(baseBranch = \"main\")` still uses the old parameter name. The function now accepts any baseline ref, not necessarily a branch.  \n**Suggestion:** Rename the parameter to `baselineRef = \"main\"` in `buildScenarioValidityDiffArgs()` for consistency with the call site and the repaired state model.",
+      "evidenceRefs": [
+        "impl-review.json#c0178d7cdc3a9a8bc48fb82a2c16dc8e399a8aa859f56556ad65cab9131c115f"
+      ]
+    },
+    {
+      "findingId": "dbc576204bade470e9f40548431e8a20bd647cf8548672c0cec1326a57fab19c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R1  \n**Issue:** `hasAuditedPreimplementationBootstrap` implies it verifies an audit record, but it only checks final step statuses, repair baseline presence, and scenario artifact shape. That name overstates the guarantee.  \n**Suggestion:** Rename it to something like `isPreimplementationBootstrapState` or `shouldSkipScenarioCompletionForBootstrap` so the predicate describes the actual condition.",
+      "evidenceRefs": [
+        "impl-review.json#dbc576204bade470e9f40548431e8a20bd647cf8548672c0cec1326a57fab19c"
+      ]
+    },
+    {
+      "findingId": "d9371e3c337233c93ce052d5862cec1966351113553f75915524582cb1d2ac79",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R2  \n**Issue:** The helper repeats `findStepById(state.steps || [], ...)` three times and hardcodes the expected status checks inline. This makes future lifecycle edits more error-prone.  \n**Suggestion:** Build a small expected-status table and check it with `every`, e.g. `Object.entries(expectedStatuses).every(([id, status]) => findStepById(steps, id)?.status === status)`.",
+      "evidenceRefs": [
+        "impl-review.json#d9371e3c337233c93ce052d5862cec1966351113553f75915524582cb1d2ac79"
+      ]
+    },
+    {
+      "findingId": "e67d53c43e1f73170aa2973915cc6daada6feb42b31f69ff5a66b83820bbb2e0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-outcome.js`  \n**Requirement:** R3  \n**Issue:** `retryResetTimestampForStep` scans all `flowState.metrics` and creates multiple intermediate arrays. That violates the `bounded-resource-usage` guardrail because metric history can grow without an explicit scan bound.  \n**Suggestion:** Replace the `filter/map/filter/reduce` chain with a single loop and an explicit maximum scan count, ideally scanning from the end because only the latest reset matters. Define a named cap such as `MAX_RETRY_RESET_METRICS_SCAN`.",
+      "evidenceRefs": [
+        "impl-review.json#e67d53c43e1f73170aa2973915cc6daada6feb42b31f69ff5a66b83820bbb2e0"
+      ]
+    },
+    {
+      "findingId": "27ee0233c8563db2f572cd2711ab5bc3eeef99a3f8042eef13cdfdb7749ae926",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-outcome.js`  \n**Requirement:** R4  \n**Issue:** `RETRY_RESET_METRIC_BY_STEP` introduces another hardcoded step-to-phase/counter mapping alongside existing retry accounting concepts elsewhere in the flow code. This increases the chance that retry behavior diverges when phases change.  \n**Suggestion:** Centralize the mapping behind a small local helper with a descriptive name, such as `retryResetMetricForStep(stepId)`, and keep `nextStepAttemptNumber` dependent on that abstraction instead of directly indexing the table.",
+      "evidenceRefs": [
+        "impl-review.json#27ee0233c8563db2f572cd2711ab5bc3eeef99a3f8042eef13cdfdb7749ae926"
+      ]
+    },
+    {
+      "findingId": "9dd8d668e50e8121191f755497db4cf1a0334108c23f356cd09fc102173303aa",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R4  \n**Issue:** `ExplicitRecoveryTransition.validate()` and `isStepTransition()` now both encode supported recovery entrypoints separately. This creates drift risk when adding future recovery entrypoints.  \n**Suggestion:** Introduce a shared `SUPPORTED_RECOVERY_ENTRYPOINTS` `Set` using `RESET_SKIPPED_ENTRYPOINT`, `\"impl-repair-invalidation\"`, and `PREIMPLEMENTATION_BOOTSTRAP_ENTRYPOINT`, then reuse it in `isStepTransition()` and validation dispatch where appropriate.",
+      "evidenceRefs": [
+        "impl-review.json#9dd8d668e50e8121191f755497db4cf1a0334108c23f356cd09fc102173303aa"
+      ]
+    },
+    {
+      "findingId": "066524f09898a4b131ed13032d59c1df12665c216ddcd1a14c9ac9f0348d07bc",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R5  \n**Issue:** The expected preimplementation bootstrap transition `Map` is recreated every time validation runs, even though it is static policy data.  \n**Suggestion:** Define a module-level constant such as `PREIMPLEMENTATION_BOOTSTRAP_EXPECTED_CHANGES`, then reference it from `validate()`. This makes the policy easier to scan and avoids repeated allocation.",
+      "evidenceRefs": [
+        "impl-review.json#066524f09898a4b131ed13032d59c1df12665c216ddcd1a14c9ac9f0348d07bc"
+      ]
+    },
+    {
+      "findingId": "c37dd6550b6c83786e6a310b8975ba55c41c6fda28eecccb939a2b090f8fdb39",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R2  \n**Issue:** The local variable name `expected` is generic and does not communicate that it encodes required current/requested status pairs for this specific recovery entrypoint.  \n**Suggestion:** Rename it to something like `requiredBootstrapTransitions` or `PREIMPLEMENTATION_BOOTSTRAP_EXPECTED_CHANGES` if extracted to module scope.",
+      "evidenceRefs": [
+        "impl-review.json#c37dd6550b6c83786e6a310b8975ba55c41c6fda28eecccb939a2b090f8fdb39"
+      ]
+    },
+    {
+      "findingId": "e8ad4c68c4620d9e031adbe1643f54d5328f0ae40cd4bf950185dcb1b1e837e9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/agent.js`  \n**Requirement:** R2  \n**Issue:** `directChildClosed` is now set in `_handleExit`, before the child process `close` event has necessarily fired. The name implies stream closure, but the new behavior is specifically tracking direct process exit.  \n**Suggestion:** Rename it to something like `directChildExited` and update the related checks in `_handleExit` and the exit-drain timer.",
+      "evidenceRefs": [
+        "impl-review.json#e8ad4c68c4620d9e031adbe1643f54d5328f0ae40cd4bf950185dcb1b1e837e9"
+      ]
+    },
+    {
+      "findingId": "4d9387e11994ed2a5ad7665817f6cb549a05a94e312e4b282127dad6151d4afe",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R1  \n**Issue:** `\"draft-questions-review\"` is now repeated in the test setup and assertion, so a typo or future rename would require updating multiple locations.  \n**Suggestion:** Introduce a local constant, for example `const artifactPhase = \"draft-questions-review\";`, and use it in both `stage.artifactPhase` and the `producedArtifact.phase` assertion.",
+      "evidenceRefs": [
+        "impl-review.json#4d9387e11994ed2a5ad7665817f6cb549a05a94e312e4b282127dad6151d4afe"
+      ]
+    },
+    {
+      "findingId": "bdcbd892c86a1d7108d427a4fb0090ab7c9506edfe9fc9dd627b0095e5efbaa0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/finding-disposition-policy.test.js`  \n**Requirement:** R6  \n**Issue:** The new duplicate-proof test only checks `allowsPass() === false`. If the policy failed for an unrelated reason, the test could still pass while not actually verifying duplicate proof rejection.  \n**Suggestion:** Assert the specific diagnostic or failure reason emitted for duplicate complete proofs, if available in the decision object. That keeps the test aligned with the behavior it names.",
+      "evidenceRefs": [
+        "impl-review.json#bdcbd892c86a1d7108d427a4fb0090ab7c9506edfe9fc9dd627b0095e5efbaa0"
+      ]
+    },
+    {
+      "findingId": "0e02f56a9f2c765abac9d70b9e800910d2cbc45d4137a07c9a6d4077c3b91c94",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/get-next-action.test.js`  \n**Requirement:** R6  \n**Issue:** The new test builds a full active-flow state, manually sets `task-gate` in progress, injects `stepAttempts`, writes state, runs the CLI, and asserts the shared success envelope inline. This is likely to grow duplicated as more retry-reset/external-block cases are added.  \n**Suggestion:** Extract a small helper in this test file, for example `setupTaskGateAttempt({ attemptRecordedAt, resetAt, outcome })`, and keep the individual test focused on the behavior being asserted.",
+      "evidenceRefs": [
+        "impl-review.json#0e02f56a9f2c765abac9d70b9e800910d2cbc45d4137a07c9a6d4077c3b91c94"
+      ]
+    },
+    {
+      "findingId": "b17ff54ec009089ee4e407a2fa9ef79751a593bbc085c118723463cfd206628f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/get-next-action.test.js`  \n**Requirement:** R6  \n**Issue:** The test depends on the fact that the external block timestamp is before the audited retry reset timestamp, but that relationship is only visible by comparing string literals.  \n**Suggestion:** Introduce local constants such as `const blockedBeforeResetAt = ...` and `const retryResetAt = ...`, then use those in the metric and `StepAttempt`. This makes the reset-ordering condition explicit and reduces the chance of accidentally reversing the dates later.",
+      "evidenceRefs": [
+        "impl-review.json#b17ff54ec009089ee4e407a2fa9ef79751a593bbc085c118723463cfd206628f"
+      ]
+    },
+    {
+      "findingId": "bda5d9469b010ea27817e5613365be926be8792af3696d4bbc99b93dde241540",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R5  \n**Issue:** The new draft-gate semantic and non-semantic tests duplicate most of the `classifyGateRetryExhaustionSource` input shape, differing only in `category` and `reason`.  \n**Suggestion:** Add a small local helper such as `classifyDraftFinding(category, reason, extra = {})` or a `draftEvaluation(overrides)` fixture builder to reduce repetition and make the semantic/non-semantic distinction stand out.",
+      "evidenceRefs": [
+        "impl-review.json#bda5d9469b010ea27817e5613365be926be8792af3696d4bbc99b93dde241540"
+      ]
+    },
+    {
+      "findingId": "d83fa24272b6ca33318b279322e94e700078f0747dc235293a206e2a46c0e9bb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R5  \n**Issue:** The temp directory prefix still uses `set-step-impl-repair-gate-evidence-recovery-`, but the test was renamed to assert fail-closed behavior when canonical review evidence is missing. The fixture name now suggests successful recovery.  \n**Suggestion:** Rename the prefix to something like `set-step-impl-repair-gate-evidence-fail-closed-` so the fixture naming matches the test’s behavior.",
+      "evidenceRefs": [
+        "impl-review.json#d83fa24272b6ca33318b279322e94e700078f0747dc235293a206e2a46c0e9bb"
+      ]
+    },
+    {
+      "findingId": "e2e3026781587798973438581e7d67dabb1607def36d0a208a21fa635874b716",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R5  \n**Issue:** The test repeatedly calls `issueLog.entries.at(-1)` for several assertions, which adds noise and makes failures slightly harder to read.  \n**Suggestion:** Store the latest entry once, e.g. `const latestIssue = issueLog.entries.at(-1);`, then assert against `latestIssue.findingFingerprint`, `latestIssue.reviewedTree`, and `latestIssue.validatingTestResult.status`.",
+      "evidenceRefs": [
+        "impl-review.json#e2e3026781587798973438581e7d67dabb1607def36d0a208a21fa635874b716"
+      ]
+    },
+    {
+      "findingId": "673ce1a5fab5f986e8b682a9420935bf6c1f8d940545d753f0c8e6dfd59048e5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/lib/agent.test.js`  \n**Requirement:** R4  \n**Issue:** The new `EventEmitter` import uses `\"events\"` while the file already uses explicit `node:` imports for Node core modules such as `node:assert/strict`.  \n**Suggestion:** Change `import { EventEmitter } from \"events\";` to `import { EventEmitter } from \"node:events\";` for consistency with the existing built-in module import style.",
+      "evidenceRefs": [
+        "impl-review.json#673ce1a5fab5f986e8b682a9420935bf6c1f8d940545d753f0c8e6dfd59048e5"
+      ]
+    },
+    {
+      "findingId": "a3a8af398f9071f81038f770ba9a8decfe8bffd27dc18fd2185d7ecf299ee105",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-outcome.js`\n**Requirement:** R4\n**Issue:** Retry reset phase/counter mappings are being introduced or referenced across `step-outcome.js`, `run-reopen-draft.js`, `get-next-action.js`, and `set-step.js`. Several proposals independently suggest helpers or descriptor lists, which indicates the same retry-reset concept is being duplicated across files.\n**Suggestion:** Create one shared retry reset metadata helper, such as `retryResetMetricForStep(stepId)` plus a reset descriptor export, and have reset recording and attempt filtering consume that shared interface.",
+      "evidenceRefs": [
+        "impl-review.json#a3a8af398f9071f81038f770ba9a8decfe8bffd27dc18fd2185d7ecf299ee105"
+      ]
+    },
+    {
+      "findingId": "e33c4d774eaaaa8fc48e149b63e58c1105893aaa79332d5463148162d9f8cc40",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`\n**Requirement:** R2\n**Issue:** Bootstrap-related logic appears in both `set-step.js` and `step-transition-policy.js`, but names vary between audit-oriented predicates, entrypoint policy, and expected transition checks. `hasAuditedPreimplementationBootstrap` also overstates what it verifies compared with the transition-policy terminology.\n**Suggestion:** Use a consistent bootstrap vocabulary across both files, for example `isPreimplementationBootstrapState`, `PREIMPLEMENTATION_BOOTSTRAP_ENTRYPOINT`, and `PREIMPLEMENTATION_BOOTSTRAP_EXPECTED_CHANGES`.",
+      "evidenceRefs": [
+        "impl-review.json#e33c4d774eaaaa8fc48e149b63e58c1105893aaa79332d5463148162d9f8cc40"
+      ]
+    },
+    {
+      "findingId": "8463bb9763def8277c5df7861897aa30d742a955c36d4888989d4dd7cbe4cc8d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`\n**Requirement:** R1\n**Issue:** Review phase remapping and artifact identity are handled in multiple places, while tests also repeat literal artifact phase names such as `\"draft-questions-review\"`. This creates cross-file drift risk between runtime artifact naming and test expectations.\n**Suggestion:** Introduce a shared review phase metadata object that defines source artifact phase, canonical artifact name, and persisted artifact phase, then use it from `run-review.js` and related tests.",
+      "evidenceRefs": [
+        "impl-review.json#8463bb9763def8277c5df7861897aa30d742a955c36d4888989d4dd7cbe4cc8d"
+      ]
+    },
+    {
+      "findingId": "91fe0a1b9292f39e10fcafd223a60bf9bc901c29104fc3a4bdf8ee226336db38",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R5\n**Issue:** Draft semantic retry behavior is described with slightly different concepts across `run-gate.js`, `review-convergence.js`, and `retry-exhaustion-defer.test.js`: semantic finding deferral, semantic recovery eligibility, invalidated pass, and no-verdict handling. The behavior is related, but the names do not make the shared policy obvious.\n**Suggestion:** Extract shared names for the policy boundary, such as `isDeferrableSemanticDraftFinding` and `SEMANTIC_RECOVERY_DISPOSITIONS`, and mirror those names in tests.",
+      "evidenceRefs": [
+        "impl-review.json#91fe0a1b9292f39e10fcafd223a60bf9bc901c29104fc3a4bdf8ee226336db38"
+      ]
+    },
+    {
+      "findingId": "33bf67549d0bd8e2c5b15ce0a397ade503448682f5ded2be11f1fdb0256f7415",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/agent.js`\n**Requirement:** R2\n**Issue:** `agent.js` now tracks child process exit state with a name implying stream closure, while `agent.test.js` introduces lower-level event simulation. The implementation/test pair can drift if one refers to close semantics and the other verifies exit semantics.\n**Suggestion:** Rename `directChildClosed` to `directChildExited` and update tests to assert exit behavior using the same terminology.",
+      "evidenceRefs": [
+        "impl-review.json#33bf67549d0bd8e2c5b15ce0a397ade503448682f5ded2be11f1fdb0256f7415"
+      ]
+    }
+  ]
+}

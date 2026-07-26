@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T01:57:02.959Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "proof-finding-id-mismatch",
+      "title": "Applied repair proof still misses normalized review findings",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/impl-repair-artifacts.js",
+      "requirementId": "R1",
+      "issue": "`recordAppliedFindingRepairEvidence` still resolves the reviewed finding with only `candidate?.findingId === findingId || candidate?.fingerprint === findingId`. The task proof contract is keyed by normalized finding id, and implementation review output is not guaranteed to carry `findingId`. A valid applied finding whose source id matches the review artifact's normalized id field can still throw `repair proof finding is absent from impl-review`, so no proof is recorded for that finding.",
+      "suggestion": "In `recordAppliedFindingRepairEvidence`, match against the normalized finding id field emitted by implementation review artifacts, or normalize both `entry.sourceFindingIds` and candidate identifiers through the same helper before comparing. Add a persisted issue-log test using the real review finding shape with its normalized id field and no synthetic `findingId`.",
+      "disposition": "must-fix",
+      "rationale": "T-1 requires every applied finding to get exactly one complete proof. If the proof producer cannot locate valid reviewed findings because it checks the wrong identifier fields, the mandatory proof is not written.",
+      "findingId": "08048b137739755acae5bbc3058d2b7ba91773329a902be356c1f0a42e4c1527",
+      "fingerprint": "08048b137739755acae5bbc3058d2b7ba91773329a902be356c1f0a42e4c1527",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "be73a754d76aefe07dd68a66b81882dc6a713eb339c8502a2678aadddb0483f6",
+  "reviewedTree": "be73a754d76aefe07dd68a66b81882dc6a713eb339c8502a2678aadddb0483f6",
+  "reviewedHead": "2391904069c94113906b2d8bcb8dd16359459a64",
+  "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/351-repair-evidence-proof/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/351-repair-evidence-proof/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "e6fe9270b268d1baa169c23cc5b25c0410bcf4e4516f8be630ecee2b974b1cce"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "08048b137739755acae5bbc3058d2b7ba91773329a902be356c1f0a42e4c1527",
+      "findingId": "08048b137739755acae5bbc3058d2b7ba91773329a902be356c1f0a42e4c1527",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Applied repair proof still misses normalized review findings",
+      "body": "`recordAppliedFindingRepairEvidence` still resolves the reviewed finding with only `candidate?.findingId === findingId || candidate?.fingerprint === findingId`. The task proof contract is keyed by normalized finding id, and implementation review output is not guaranteed to carry `findingId`. A valid applied finding whose source id matches the review artifact's normalized id field can still throw `repair proof finding is absent from impl-review`, so no proof is recorded for that finding.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "08048b137739755acae5bbc3058d2b7ba91773329a902be356c1f0a42e4c1527",
+      "disposition": "must-fix",
+      "rationale": "T-1 requires every applied finding to get exactly one complete proof. If the proof producer cannot locate valid reviewed findings because it checks the wrong identifier fields, the mandatory proof is not written.",
+      "requirementId": "R1",
+      "repeatCount": 2
+    }
+  ]
+}

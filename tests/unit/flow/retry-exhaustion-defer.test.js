@@ -482,6 +482,44 @@ test("gate rejects a blocking observation without a typed disposition", () => {
   assert.equal(classification.reason, "invalid_finding_disposition");
 });
 
+test("draft gate defers typed semantic findings without implementation repair evidence", () => {
+  const classification = classifyGateRetryExhaustionSource({
+    sourceArtifact: {
+      phase: "draft",
+      result: "fail",
+      evaluations: [{
+        guardrail_id: "migration-parity",
+        result: "fail",
+        category: "semantic",
+        reason: "The draft omits the replacement behavior inventory.",
+      }],
+    },
+    repairEvidence: [],
+  });
+
+  assert.equal(classification.deferAllowed, true);
+  assert.equal(classification.completionKind, "deferred");
+  assert.equal(classification.reason, "semantic_findings");
+});
+
+test("draft gate keeps typed non-semantic findings blocking", () => {
+  const classification = classifyGateRetryExhaustionSource({
+    sourceArtifact: {
+      phase: "draft",
+      result: "fail",
+      evaluations: [{
+        guardrail_id: "migration-parity",
+        result: "fail",
+        category: "process",
+        reason: "The draft review artifact has an invalid lifecycle phase.",
+      }],
+    },
+  });
+
+  assert.equal(classification.deferAllowed, false);
+  assert.equal(classification.reason, "non_semantic_findings");
+});
+
 test("gate refuses to defer a must-fix finding without matching repair evidence", () => {
   const finding = {
     guardrail_id: "R1",
@@ -577,7 +615,7 @@ test("gate rejects stale repair claims and tampered typed dispositions", () => {
   assert.equal(tampered.reason, "invalid_finding_disposition");
 });
 
-test("gate retry producer rejects unverified scoped issue-log evidence at the bound", () => {
+test("gate retry exhaustion rejects diagnostic-only issue-log evidence at the bound", () => {
   const fixture = prepareSpecRoot();
   writeFile(fixture.root, "src/example.js", "export const example = true;\n");
   const flowState = flowStateAt("spec-gate", {

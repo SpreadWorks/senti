@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/retry-recovery.js",
+      "src/flow/lib/review-convergence.js"
+    ],
+    "inputHash": "3ab253ab658e8e5b28850f58606dfde824680b4f941b4eb4eac87f649cced30b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "src/flow/lib/retry-recovery.js",
+    "src/flow/lib/review-convergence.js"
+  ],
+  "inputHash": "3ab253ab658e8e5b28850f58606dfde824680b4f941b4eb4eac87f649cced30b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:08:54.362Z",
+  "finishedAt": "2026-07-26T03:08:54.362Z",
+  "rawResponse": "I’ll review only the two diff files and focus on maintainability plus the bounded-resource guardrail. I’m going to inspect the surrounding code so proposals are grounded in actual local patterns, not just the patch fragment.The provided paths are not under the current working directory root as-is, so I’m checking the workspace layout before reading the touched files.The repo root is one directory above `.tmp`, and the writable constraint does not matter because this is review-only. I found both diff files and am reading the relevant regions now.The main maintainability issue I’m seeing is that the patch adds new phase/disposition cases inline, while nearby code already centralizes some phase mapping. I’m checking the surrounding state model once more to avoid proposing behavior-changing cleanup.### 1. Centralize recovery active-step mapping\n**File:** `src/flow/lib/retry-recovery.js`  \n**Requirement:** R4  \n**Issue:** `expectedActiveStep()` now mixes fixed phase-to-step mapping with conditional task context logic inline. This makes the new `draft` gate case and task-scoped impl review case harder to scan and easier to diverge from nearby phase mapping constants.  \n**Suggestion:** Replace the nested conditionals with small lookup maps, for example `GATE_ACTIVE_STEP_BY_PHASE` and `REVIEW_ACTIVE_STEP_BY_PHASE`, and handle only the `impl` task/non-task split as the special case.\n\n### 2. Extract semantic recovery eligibility into named helpers\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R5  \n**Issue:** `ReviewSemanticRecoveryMutation.apply()` now has a long inline disposition condition plus a second conditional tied only to `REJECTED`. The error message also introduces domain language, “invalidated pass” and “no-verdict,” that is not reflected by named code concepts.  \n**Suggestion:** Add a small helper such as `canApplySemanticRecovery(current)` or constants like `SEMANTIC_RECOVERY_DISPOSITIONS = new Set([\"REJECTED\", \"PASS\", null])`, plus `requiresExhaustedSemanticAttempts(current)`. This would make the allowed states explicit and reduce future mistakes when adding another recovery disposition.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize recovery active-step mapping",
+        "body": "**File:** `src/flow/lib/retry-recovery.js`  \n**Requirement:** R4  \n**Issue:** `expectedActiveStep()` now mixes fixed phase-to-step mapping with conditional task context logic inline. This makes the new `draft` gate case and task-scoped impl review case harder to scan and easier to diverge from nearby phase mapping constants.  \n**Suggestion:** Replace the nested conditionals with small lookup maps, for example `GATE_ACTIVE_STEP_BY_PHASE` and `REVIEW_ACTIVE_STEP_BY_PHASE`, and handle only the `impl` task/non-task split as the special case.",
+        "file": "src/flow/lib/retry-recovery.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Extract semantic recovery eligibility into named helpers",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R5  \n**Issue:** `ReviewSemanticRecoveryMutation.apply()` now has a long inline disposition condition plus a second conditional tied only to `REJECTED`. The error message also introduces domain language, “invalidated pass” and “no-verdict,” that is not reflected by named code concepts.  \n**Suggestion:** Add a small helper such as `canApplySemanticRecovery(current)` or constants like `SEMANTIC_RECOVERY_DISPOSITIONS = new Set([\"REJECTED\", \"PASS\", null])`, plus `requiresExhaustedSemanticAttempts(current)`. This would make the allowed states explicit and reduce future mistakes when adding another recovery disposition.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}
