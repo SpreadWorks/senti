@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-b14aa8af-3355-4056-94cc-2c7bc5dae42f",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "repair-011 and spec-local R3 evidence now participate in impl review recovery",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "070b18f09931803b83204d3fa19ddfc24ea85c62e0a345119022d73dfe548369",
+        "currentHash": "8ac364f7272720cdad4201c1039861e6039fc2b5f266b86db156a7a85c9e4427",
+        "changedPaths": [
+          "specs/344-final-regression-evidence/spec.json",
+          "specs/344-final-regression-evidence/tests/.raw/scenario-validity.log",
+          "specs/344-final-regression-evidence/tests/.raw/test-execution.log",
+          "specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/review-evidence-store.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/test-artifacts.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"repair-011 and spec-local R3 evidence now participate in impl review recovery\" --yes",
+      "createdAt": "2026-07-25T16:25:32.855Z"
+    }
+  ]
+}

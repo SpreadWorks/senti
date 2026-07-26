@@ -1606,7 +1606,7 @@ export const FLOW_COMMANDS = {
           && result?.result === "fail"
           && result?.failedRecorded === true
           && artifact.completed === true
-          && artifact.selectedAction === "record-and-proceed"
+          && artifact.selectedAction === "explicit-record-and-proceed"
           && artifact.recordAndProceed?.validated === true
           && artifact.nextAction === "report";
         const completed = (artifact.result === "pass" && result?.result === "pass")

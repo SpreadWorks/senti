@@ -445,7 +445,10 @@ export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir })
     return new RecoveryEvidenceSource({ sourceKind: "spec-tests", paths: [`${dir}/tests`] });
   }
   if (kind === "review" && canonicalPhase === "impl") {
-    return new RecoveryEvidenceSource({ sourceKind: "implementation-diff", paths: ["src", `${dir}/spec.json`] });
+    return new RecoveryEvidenceSource({
+      sourceKind: "implementation-diff",
+      paths: ["src", `${dir}/spec.json`, `${dir}/tests`],
+    });
   }
   return new RecoveryEvidenceSource({ sourceKind: "unknown", paths: [] });
 }

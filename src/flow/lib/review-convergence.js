@@ -924,12 +924,17 @@ export class ReviewSemanticRecoveryMutation extends ReviewRecoveryMutation {
 
   apply(flowState) {
     const { records, index, current } = this.readCurrent(flowState);
-    if (current.disposition !== "REJECTED" && current.disposition !== "PASS" && current.disposition !== null) {
-      throw new Error("review semantic recovery requires rejected, invalidated pass, or no-verdict evidence");
+    const exhaustedRejectedReview = current.disposition === "REJECTED"
+      || (
+        current.evidence == null
+        && current.semanticAttempts === current.semanticMaxAttempts
+        && records[index].evidenceIdentity != null
+      );
+    if (!exhaustedRejectedReview) {
+      throw new Error("review semantic recovery requires rejected evidence");
     }
-    if (current.disposition === "REJECTED" && current.semanticAttempts !== current.semanticMaxAttempts) {
-      throw new Error("review semantic recovery requires exhausted semantic attempts");
-    }
+    // The flow retry counter is authoritative across successive review trees.
+    // The latest tree can therefore have fewer local attempts than that counter.
     const recovered = new ReviewConvergenceState({
       ...current.toJSON(),
       treeSha: this.nextTreeSha,

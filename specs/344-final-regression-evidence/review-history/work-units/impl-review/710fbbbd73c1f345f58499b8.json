@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "710fbbbd73c1f345f58499b8",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-e18ebb38b6b9b7cd",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/commands/review.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/retry-recovery.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/lib/test-artifacts.js",
+      "tests/unit/flow/final-regression-record-and-proceed.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/retry-recovery-file-map.test.js"
+    ],
+    "inputHash": "e18ebb38b6b9b7cd846c7ce4a0bb6ead4815e654745eef4633ffaa9f6cdf81a0",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "710fbbbd73c1f345f58499b8"
+  },
+  "targetFiles": [
+    "src/flow/commands/review.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/retry-recovery.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/set-step.js",
+    "src/flow/lib/test-artifacts.js",
+    "tests/unit/flow/final-regression-record-and-proceed.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/retry-recovery-file-map.test.js"
+  ],
+  "inputHash": "e18ebb38b6b9b7cd846c7ce4a0bb6ead4815e654745eef4633ffaa9f6cdf81a0",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T02:23:02.096Z",
+  "finishedAt": "2026-07-26T02:23:02.096Z",
+  "rawResponse": "I’ll treat these as aggregated review inputs and only raise issues that emerge across files, not repeat single-file suggestions. I’m checking for repeated concepts and mismatched interfaces in the summaries themselves.### 1. Centralize Explicit Proceed Action Name\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R3\n**Issue:** The action literal `\"explicit-record-and-proceed\"` is introduced in production code and repeated in `tests/unit/flow/final-regression-record-and-proceed.test.js`. This creates a cross-file naming contract with no shared source of truth.\n**Suggestion:** Define and export a named constant from the production module or shared action constants module, then import it in both runtime code and tests.\n\n### 2. Align Final Regression Evidence Bounds\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R4\n**Issue:** Final regression artifact generation, validation, and worktree fingerprinting are spread across `run-final-regression.js` and `test-artifacts.js`, but the resource bounds are proposed independently: stream caps, raw output caps, and fingerprint scan limits are not tied to one shared contract.\n**Suggestion:** Centralize final-regression evidence limits in one module, for example `FINAL_REGRESSION_STDIO_MAX_BYTES`, `FINAL_REGRESSION_RAW_OUTPUT_MAX_BYTES`, and `FINAL_REGRESSION_FINGERPRINT_MAX_FILES`, and use them from both generation and validation paths.\n\n### 3. Share Evidence Hashing And Git Metadata Helpers\n**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R2\n**Issue:** Evidence binding logic appears in both `run-final-regression.js` and `test-artifacts.js`: SHA-256 hashing is repeated during artifact creation, while git metadata reads are embedded during validation and fingerprinting. This splits one evidence integrity interface across files.\n**Suggestion:** Add shared helpers such as `sha256Hex(content)`, `readGitHeadSha(root)`, and `readGitTreeSha(root)` in the evidence/test artifact module, then reuse them from final regression creation and validation.\n\n### 4. Unify Lifecycle Status Update Interface\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R2\n**Issue:** The summaries show call sites needing to handle both `updateStepStatus` and `updateStepStatuses`, while other recovery files continue to build lifecycle state around step transitions. This exposes batching differences across files instead of presenting one lifecycle transition interface.\n**Suggestion:** Introduce one helper, for example `updateLifecycleStepStatuses(flowManager, transitions, options)`, that accepts a transition list and hides whether the manager supports batch or single-step updates.\n\n### 5. Normalize Git SHA Fixture Semantics\n**File:** `tests/unit/flow/retry-recovery-convergence.test.js`\n**Requirement:** R3\n**Issue:** Test summaries show 40-character and 64-character values both being used for fields named `treeSha`, while final regression evidence code also relies on git tree identity. The same name appears to mean different hash formats across files.\n**Suggestion:** Use 40-character Git SHA fixtures consistently for `treeSha` fields, or rename non-Git digests to something like `evidenceDigest` so tests and production evidence contracts remain distinguishable.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Explicit Proceed Action Name",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R3\n**Issue:** The action literal `\"explicit-record-and-proceed\"` is introduced in production code and repeated in `tests/unit/flow/final-regression-record-and-proceed.test.js`. This creates a cross-file naming contract with no shared source of truth.\n**Suggestion:** Define and export a named constant from the production module or shared action constants module, then import it in both runtime code and tests.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Align Final Regression Evidence Bounds",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R4\n**Issue:** Final regression artifact generation, validation, and worktree fingerprinting are spread across `run-final-regression.js` and `test-artifacts.js`, but the resource bounds are proposed independently: stream caps, raw output caps, and fingerprint scan limits are not tied to one shared contract.\n**Suggestion:** Centralize final-regression evidence limits in one module, for example `FINAL_REGRESSION_STDIO_MAX_BYTES`, `FINAL_REGRESSION_RAW_OUTPUT_MAX_BYTES`, and `FINAL_REGRESSION_FINGERPRINT_MAX_FILES`, and use them from both generation and validation paths.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Share Evidence Hashing And Git Metadata Helpers",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R2\n**Issue:** Evidence binding logic appears in both `run-final-regression.js` and `test-artifacts.js`: SHA-256 hashing is repeated during artifact creation, while git metadata reads are embedded during validation and fingerprinting. This splits one evidence integrity interface across files.\n**Suggestion:** Add shared helpers such as `sha256Hex(content)`, `readGitHeadSha(root)`, and `readGitTreeSha(root)` in the evidence/test artifact module, then reuse them from final regression creation and validation.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Unify Lifecycle Status Update Interface",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R2\n**Issue:** The summaries show call sites needing to handle both `updateStepStatus` and `updateStepStatuses`, while other recovery files continue to build lifecycle state around step transitions. This exposes batching differences across files instead of presenting one lifecycle transition interface.\n**Suggestion:** Introduce one helper, for example `updateLifecycleStepStatuses(flowManager, transitions, options)`, that accepts a transition list and hides whether the manager supports batch or single-step updates.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "5. Normalize Git SHA Fixture Semantics",
+        "body": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`\n**Requirement:** R3\n**Issue:** Test summaries show 40-character and 64-character values both being used for fields named `treeSha`, while final regression evidence code also relies on git tree identity. The same name appears to mean different hash formats across files.\n**Suggestion:** Use 40-character Git SHA fixtures consistently for `treeSha` fields, or rename non-Git digests to something like `evidenceDigest` so tests and production evidence contracts remain distinguishable.",
+        "file": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

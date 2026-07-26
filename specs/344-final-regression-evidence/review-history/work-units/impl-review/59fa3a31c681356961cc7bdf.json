@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/retry-recovery.js"
+    ],
+    "inputHash": "072db76898f8bc7fa83530d512d48248703b5fc7e16a8d0a517881c7284e3434",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "src/flow/lib/retry-recovery.js"
+  ],
+  "inputHash": "072db76898f8bc7fa83530d512d48248703b5fc7e16a8d0a517881c7284e3434",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T02:19:22.039Z",
+  "finishedAt": "2026-07-26T02:19:22.039Z",
+  "rawResponse": "### 1. Extract shared tests evidence path\n**File:** `src/flow/lib/retry-recovery.js`  \n**Requirement:** R1  \n**Issue:** `${dir}/tests` is now used in multiple recovery evidence source branches, which adds small but avoidable duplication in path construction.  \n**Suggestion:** Define a local `testsPath` constant near `dir` initialization and reuse it in both branches, e.g. `const testsPath = `${dir}/tests`;`, then use `paths: [testsPath]` and `paths: [\"src\", `${dir}/spec.json`, testsPath]`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract shared tests evidence path",
+        "body": "**File:** `src/flow/lib/retry-recovery.js`  \n**Requirement:** R1  \n**Issue:** `${dir}/tests` is now used in multiple recovery evidence source branches, which adds small but avoidable duplication in path construction.  \n**Suggestion:** Define a local `testsPath` constant near `dir` initialization and reuse it in both branches, e.g. `const testsPath = `${dir}/tests`;`, then use `paths: [testsPath]` and `paths: [\"src\", `${dir}/spec.json`, testsPath]`.",
+        "file": "src/flow/lib/retry-recovery.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

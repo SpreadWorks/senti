@@ -533,7 +533,7 @@ export function contractFromTestResultReviewArtifact(artifact, opts = {}) {
 export function contractFromFinalRegressionArtifact(artifact, opts = {}) {
   const failedRecorded = artifact.result === "fail"
     && artifact.completed === true
-    && artifact.selectedAction === "record-and-proceed"
+    && artifact.selectedAction === "explicit-record-and-proceed"
     && artifact.recordAndProceed?.validated === true
     && artifact.nextAction === "report";
   const blockingFindings = artifact.result === "pass" || artifact.result === "skipped" || failedRecorded

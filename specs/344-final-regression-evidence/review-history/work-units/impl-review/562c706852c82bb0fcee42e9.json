@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/retry-recovery-convergence.test.js"
+    ],
+    "inputHash": "6d6aafb7a8f91ad7fa2f40f39278c91488971f81f02c657ba68f075c3d3c8157",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "tests/unit/flow/retry-recovery-convergence.test.js"
+  ],
+  "inputHash": "6d6aafb7a8f91ad7fa2f40f39278c91488971f81f02c657ba68f075c3d3c8157",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T02:45:44.955Z",
+  "finishedAt": "2026-07-26T02:45:44.955Z",
+  "rawResponse": "### 1. Extract Repeated SHA Fixtures Into Named Constants\n**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** The new tests repeat values like `\"8\".repeat(40)`, `\"a\".repeat(40)`, `\"b\".repeat(64)`, and `\"d\".repeat(64)` across setup, mutation input, and assertions. This makes the intended identity relationships harder to scan and easier to accidentally desynchronize.  \n**Suggestion:** Define local constants such as `previousTreeSha`, `nextTreeSha`, and `evidenceDigest` at the top of each test, then reuse them in the state setup, mutation input, and assertions.\n\n### 2. Clarify Or Correct Tree SHA Length In The Newer Review Tree Test\n**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** The first added test uses 40-character tree SHAs, while the second uses 64-character values for `treeSha`, `previousTreeSha`, and `nextTreeSha`. If these fields represent Git tree SHAs, the inconsistency obscures the fixture’s intent and may accidentally test unrealistic data.  \n**Suggestion:** Use 40-character tree SHA fixtures consistently, unless the 64-character value is intentional. If intentional, add a short fixture name or comment explaining why this test uses 64-character tree identifiers.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Repeated SHA Fixtures Into Named Constants",
+        "body": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** The new tests repeat values like `\"8\".repeat(40)`, `\"a\".repeat(40)`, `\"b\".repeat(64)`, and `\"d\".repeat(64)` across setup, mutation input, and assertions. This makes the intended identity relationships harder to scan and easier to accidentally desynchronize.  \n**Suggestion:** Define local constants such as `previousTreeSha`, `nextTreeSha`, and `evidenceDigest` at the top of each test, then reuse them in the state setup, mutation input, and assertions.",
+        "file": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Clarify Or Correct Tree SHA Length In The Newer Review Tree Test",
+        "body": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** The first added test uses 40-character tree SHAs, while the second uses 64-character values for `treeSha`, `previousTreeSha`, and `nextTreeSha`. If these fields represent Git tree SHAs, the inconsistency obscures the fixture’s intent and may accidentally test unrealistic data.  \n**Suggestion:** Use 40-character tree SHA fixtures consistently, unless the 64-character value is intentional. If intentional, add a short fixture name or comment explaining why this test uses 64-character tree identifiers.",
+        "file": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

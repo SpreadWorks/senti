@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T16:09:18.708Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "unsafe-raw-output-path",
+      "title": "Execution binding accepts paths outside the repository",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/test-artifacts.js",
+      "requirementId": "R2",
+      "issue": "validateFinalRegressionEvidence builds rawPath with path.join(root, binding.rawOutputPath || artifact.rawOutputPath) and then reads it without verifying that the resolved path is repo-relative and still under root. An artifact can point rawOutputPath at an absolute path or a ../../ path, and validation will hash and accept that external file if the manifest fields match.",
+      "suggestion": "In validateFinalRegressionEvidence, resolve rawOutputPath through the same repo-relative artifact path policy used for final regression artifacts, reject absolute paths and paths that escape root, and only then read the raw output file.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires acceptance to validate captured execution binding against the current repository. Allowing an execution binding to be satisfied by files outside the repository is a data-integrity boundary failure and can make stale or unrelated evidence appear valid.",
+      "findingId": "428a475b737f90507f08e164df368a3db5f4e897e75beba559b8cf18171b72b1",
+      "fingerprint": "428a475b737f90507f08e164df368a3db5f4e897e75beba559b8cf18171b72b1",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "701f7a04fb5798604afe6b233ad680f60fb9d900542f18acf3e5ca39500b531b",
+  "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/344-final-regression-evidence/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "9c160eca47d59afb355e2b72dfbd2bac3d826a7357a8ccab323bd805afffd4af"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 19,
+  "findings": [
+    {
+      "id": "428a475b737f90507f08e164df368a3db5f4e897e75beba559b8cf18171b72b1",
+      "findingId": "428a475b737f90507f08e164df368a3db5f4e897e75beba559b8cf18171b72b1",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 19,
+      "severity": "blocking",
+      "title": "Execution binding accepts paths outside the repository",
+      "body": "validateFinalRegressionEvidence builds rawPath with path.join(root, binding.rawOutputPath || artifact.rawOutputPath) and then reads it without verifying that the resolved path is repo-relative and still under root. An artifact can point rawOutputPath at an absolute path or a ../../ path, and validation will hash and accept that external file if the manifest fields match.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "428a475b737f90507f08e164df368a3db5f4e897e75beba559b8cf18171b72b1",
+      "disposition": "must-fix",
+      "rationale": "R2 requires acceptance to validate captured execution binding against the current repository. Allowing an execution binding to be satisfied by files outside the repository is a data-integrity boundary failure and can make stale or unrelated evidence appear valid.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -46,6 +46,7 @@ const WORKFLOW_ARTIFACT_PATH_PREFIXES = Object.freeze([
   "docs/",
   "specs/",
 ]);
+const SPEC_TEST_SOURCE_PATH = /^specs\/[^/]+\/tests\/.+\.(?:[cm]?js|ts)$/;
 
 export const EVIDENCE_FILE_BY_STEP = Object.freeze({
   "test-execute": "test-execute-result.json",
@@ -1223,7 +1224,7 @@ function commitOwnedTestEvidenceRefresh({
   transition = null,
   faultInjector = null,
 }) {
-  if (!flowManager || typeof flowManager.updateStepStatus !== "function") {
+  if (!flowManager || (typeof flowManager.updateStepStatus !== "function" && typeof flowManager.updateStepStatuses !== "function")) {
     throw new Error("test evidence refresh requires the impl-repair lifecycle authority");
   }
   const journal = transaction instanceof ImplRepairTransaction
@@ -1528,11 +1529,25 @@ export function completeLateAppliedFindingRepair({
     throw new Error("late applied-finding repair changed paths must be non-empty");
   }
   const reason = `Late repair evidence recorded for findings ${appliedFindingIds.join(", ")}.`;
-  const invalidations = [new InvalidatedArtifactRecord({
-    path: EVIDENCE_FILE_BY_STEP["impl-gate"],
-    reason: `${reason} (late_repair_evidence_recorded)`,
-    previousFingerprint: previous.hash,
-  })];
+  const invalidations = planRepairInvalidation({
+    specDir: resolvedSpecDir,
+    currentFingerprint: current,
+    previousFingerprint: previous,
+    reason,
+  });
+  const testExecutionAlreadyInvalidated = findStepById(activeState.steps || [], "test-execute")?.status === "in_progress";
+  if (invalidations.length === 0 && testExecutionAlreadyInvalidated) {
+    // A prior repair already removed downstream evidence; replace its stale
+    // fingerprint manifest as the durable invalidation for this new ledger entry.
+    invalidations.push(new InvalidatedArtifactRecord({
+      path: REPAIR_FINGERPRINT_MANIFEST_FILE,
+      reason: `${reason} (superseded_repair_fingerprint)`,
+      previousFingerprint: previous.hash,
+    }));
+  }
+  if (invalidations.length === 0) {
+    throw new Error("late applied-finding repair must invalidate stale test evidence");
+  }
   const id = `repair-${String(existing.entries.length + 1).padStart(3, "0")}`;
   const delta = ledgerPreviousHash === previous.hash
     ? repairDeltaArtifact({ id, previous, current, changedPaths })
@@ -1604,7 +1619,10 @@ export function appendImplRepairEntry({ specDir, entry }) {
 }
 
 function isDurableRepairEvidencePath(root, relativePath) {
-  if (WORKFLOW_ARTIFACT_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix))) return false;
+  if (
+    WORKFLOW_ARTIFACT_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix))
+    && !SPEC_TEST_SOURCE_PATH.test(relativePath)
+  ) return false;
   const repositoryRoot = path.resolve(root);
   const candidate = path.resolve(repositoryRoot, relativePath);
   const relative = path.relative(repositoryRoot, candidate);
@@ -2198,7 +2216,10 @@ function commitRepairTransaction({
   journal.target.assertState(state);
   const { entry, ledger, currentManifest: manifest } = journal;
   const observed = buildRepairFingerprint({ root, specPath: state.spec, state });
-  if (observed.hash !== manifest.hash) {
+  const persistedEntry = readImplRepairLedger(specDir)?.entries.at(-1);
+  const ledgerAlreadyContainsEntry = persistedEntry != null
+    && JSON.stringify(persistedEntry.toJSON()) === JSON.stringify(entry.toJSON());
+  if (observed.hash !== manifest.hash && !ledgerAlreadyContainsEntry) {
     throw new Error("impl-repair transaction current state changed before recovery");
   }
   const invalidationTransaction = new RepairInvalidationTransaction({

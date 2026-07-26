@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:56:06.952Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "skip-manifest-unstarted-result",
+      "title": "Project-policy skip can crash while writing evidence manifest",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-final-regression.js",
+      "requirementId": "R4",
+      "issue": "For a project-policy skip, `rootOk && !skipDecision` is false, so no process result is produced, but the new manifest path still calls `finalRegressionTestCount(result.stdout)` and later `captureStream(result.stdout)` unconditionally. In the skip branch `result` is still unset/null, so a configured skip no longer reaches the completed report outcome covered by R4.",
+      "suggestion": "In `RunFinalRegressionCommand.execute`, guard all execution-evidence stream/test-count/manifest work behind the non-skipped execution path, or initialize a skipped process result before reading `result.stdout`/`result.stderr`. Keep `executionBinding` null for skipped artifacts.",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires project-policy skip parity as a completed report outcome, and the touched test file adds that scenario. The implementation currently dereferences `result` before a skipped artifact can be written, making this a blocking behavioral regression.",
+      "findingId": "c122a33f6d5cc933c3df89667720bf0fbdbf1142afc5d82205eaafedb2ced7ca",
+      "fingerprint": "c122a33f6d5cc933c3df89667720bf0fbdbf1142afc5d82205eaafedb2ced7ca",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "3e44d6e9c31edde9ba8b8f40f183c5859bdbedcabc2a8aff25bbaf9053e18549",
+  "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/344-final-regression-evidence/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "6b70068f6f285bdea22d33a0d88ebc7aea8699b19b126e654065076bcc068da8"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 14,
+  "findings": [
+    {
+      "id": "c122a33f6d5cc933c3df89667720bf0fbdbf1142afc5d82205eaafedb2ced7ca",
+      "findingId": "c122a33f6d5cc933c3df89667720bf0fbdbf1142afc5d82205eaafedb2ced7ca",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 14,
+      "severity": "blocking",
+      "title": "Project-policy skip can crash while writing evidence manifest",
+      "body": "For a project-policy skip, `rootOk && !skipDecision` is false, so no process result is produced, but the new manifest path still calls `finalRegressionTestCount(result.stdout)` and later `captureStream(result.stdout)` unconditionally. In the skip branch `result` is still unset/null, so a configured skip no longer reaches the completed report outcome covered by R4.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "c122a33f6d5cc933c3df89667720bf0fbdbf1142afc5d82205eaafedb2ced7ca",
+      "disposition": "must-fix",
+      "rationale": "R4 explicitly requires project-policy skip parity as a completed report outcome, and the touched test file adds that scenario. The implementation currently dereferences `result` before a skipped artifact can be written, making this a blocking behavioral regression.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    }
+  ]
+}

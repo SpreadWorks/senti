@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { execFileSync } from "child_process";
 import { StringDecoder } from "string_decoder";
 import { sentiOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
@@ -71,6 +72,7 @@ const INTEGRATION_TRUST_INPUTS = Object.freeze([
   FILE_MAP_RELATIVE,
   RAW_OUTPUT_RELATIVE,
 ]);
+
 export const UPGRADE_REQUIRED_SOURCE_PATTERNS = Object.freeze([
   "src/upgrade.js",
   "src/skills/**",
@@ -896,14 +898,11 @@ function validateFinalRegressionRecordAndProceed(result) {
     throw new Error("final-regression record-and-proceed validated must be boolean");
   }
   if (result.completed === true) {
-    if (result.selectedAction !== "record-and-proceed") {
-      throw new Error("final-regression completed fail requires selectedAction=record-and-proceed");
+    if (result.selectedAction !== "explicit-record-and-proceed") {
+      throw new Error("final-regression completed fail requires explicit operator proceed");
     }
     if (result.nextAction !== "report") {
       throw new Error("final-regression completed failed-recorded nextAction must be report");
-    }
-    if (result.nextRecommendedAction !== "record-and-proceed") {
-      throw new Error("final-regression completed failed-recorded nextRecommendedAction must be record-and-proceed");
     }
     if (result.recordAndProceed.eligible !== true || result.recordAndProceed.validated !== true) {
       throw new Error("final-regression completed fail requires validated failed-recorded record-and-proceed evidence");
@@ -911,10 +910,16 @@ function validateFinalRegressionRecordAndProceed(result) {
     if (typeof result.recordAndProceed.evidence !== "string" || result.recordAndProceed.evidence.trim().length === 0) {
       throw new Error("final-regression record-and-proceed evidence must be non-empty");
     }
-    if (typeof result.remainingRisk !== "string" || result.remainingRisk.trim().length === 0) {
+    if (typeof result.recordAndProceed.remainingRisk !== "string" || result.recordAndProceed.remainingRisk.trim().length === 0) {
       throw new Error("final-regression remainingRisk is required for record-and-proceed");
     }
-  } else if (result.selectedAction === "record-and-proceed") {
+    for (const field of ["failureClassification", "operatorJustification", "remainingRisk", "executionBinding"]) {
+      if (!Object.hasOwn(result.recordAndProceed, field)) throw new Error(`final-regression explicit operator ${field} is required`);
+    }
+    if (typeof result.recordAndProceed.operatorJustification !== "string" || result.recordAndProceed.operatorJustification.trim().length === 0) {
+      throw new Error("final-regression explicit operator justification must be non-empty");
+    }
+  } else if (result.selectedAction === "explicit-record-and-proceed") {
     throw new Error("final-regression record-and-proceed selection requires completed fail");
   }
 }
@@ -1080,6 +1085,202 @@ export function validateFinalRegressionResult(result) {
   validateFinalRegressionSkipKind(result);
   validateFinalRegressionRecordAndProceed(result);
   return result;
+}
+
+function finalRegressionEvidenceFailure(reason) {
+  return { ok: false, reason };
+}
+
+function readFinalRegressionManifest(rawText) {
+  const values = new Map(String(rawText).split(/\r?\n/)
+    .map((line) => line.match(/^evidence\.([^:]+):\s*(.*)$/))
+    .filter(Boolean)
+    .map((match) => [match[1], match[2]]));
+  if (values.size === 0) throw new Error("execution evidence manifest missing from raw output");
+  const number = (key) => {
+    const value = Number(values.get(key));
+    if (!Number.isSafeInteger(value) || value < 0) throw new Error(`execution evidence ${key} invalid`);
+    return value;
+  };
+  const boolean = (key) => {
+    const value = values.get(key);
+    if (value !== "true" && value !== "false") throw new Error(`execution evidence ${key} invalid`);
+    return value === "true";
+  };
+  return {
+    command: values.get("command"),
+    result: values.get("result"),
+    testCount: number("testCount"),
+    truncated: boolean("truncated"),
+    worktreeSha256: values.get("worktreeSha256"),
+    streams: Object.fromEntries(["stdout", "stderr"].map((name) => [name, {
+      originalByteLength: number(`${name}.originalByteLength`),
+      capturedByteLength: number(`${name}.capturedByteLength`),
+      truncated: boolean(`${name}.truncated`),
+      sha256: values.get(`${name}.sha256`),
+    }])),
+  };
+}
+
+export function finalRegressionTestCount(stdout) {
+  const text = String(stdout || "");
+  const patterns = [
+    /(?:^|\n)\s*1\.\.(\d+)(?:\s|$)/,
+    /(?:^|\n)\s*# tests\s+(\d+)(?:\s|$)/m,
+    /Tests:\s*(\d+)\s+(?:passed|total)/i,
+    /(?:^|\n)\s*(\d+)\s+passing(?:\s|$)/m,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return Number.parseInt(match[1], 10);
+  }
+  return 0;
+}
+
+// This covers staged and unstaged tracked-file content without treating flow artifacts as project mutations.
+export function finalRegressionWorktreeFingerprint(root) {
+  const staged = execFileSync("git", ["diff", "--cached", "--no-ext-diff", "--binary", "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  const unstaged = execFileSync("git", ["diff", "--no-ext-diff", "--binary"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard", "-z"], {
+    cwd: root,
+    encoding: "utf8",
+  }).split("\0").filter(Boolean).sort();
+  const hash = crypto.createHash("sha256")
+    .update("staged\0")
+    .update(staged)
+    .update("\0unstaged\0")
+    .update(unstaged);
+  for (const relativePath of untracked) {
+    // Flow-managed specs and configuration are created while evidence is recorded.
+    if (relativePath.startsWith("specs/") || relativePath.startsWith(".senti/")) continue;
+    const absolutePath = path.join(root, relativePath);
+    const stat = fs.lstatSync(absolutePath);
+    if (!stat.isFile() || stat.isSymbolicLink()) continue;
+    hash.update("\0").update(relativePath).update("\0").update(fs.readFileSync(absolutePath));
+  }
+  return hash.digest("hex");
+}
+
+// The three values must always describe the same repository instant.
+export class FinalRegressionRepositoryBinding {
+  constructor({ headSha, treeSha, worktreeSha256 }) {
+    if (!/^[a-f0-9]{40}$/.test(headSha)) throw new Error("final-regression headSha must be a Git SHA");
+    if (!/^[a-f0-9]{40}$/.test(treeSha)) throw new Error("final-regression treeSha must be a Git SHA");
+    if (!/^[a-f0-9]{64}$/.test(worktreeSha256)) throw new Error("final-regression worktreeSha256 must be a SHA-256 digest");
+    this.headSha = headSha;
+    this.treeSha = treeSha;
+    this.worktreeSha256 = worktreeSha256;
+    Object.freeze(this);
+  }
+
+  static capture(root) {
+    return new FinalRegressionRepositoryBinding({
+      headSha: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
+      treeSha: execFileSync("git", ["write-tree"], { cwd: root, encoding: "utf8" }).trim(),
+      worktreeSha256: finalRegressionWorktreeFingerprint(root),
+    });
+  }
+
+  matches(other) {
+    return other instanceof FinalRegressionRepositoryBinding
+      && this.headSha === other.headSha
+      && this.treeSha === other.treeSha
+      && this.worktreeSha256 === other.worktreeSha256;
+  }
+}
+
+function resolveFinalRegressionRawOutputPath(root, rawOutputPath) {
+  const resolved = resolveRepoRelativePathInside({
+    root,
+    allowedBaseDir: path.resolve(root),
+    relPath: rawOutputPath,
+    label: "final-regression rawOutputPath",
+  });
+  const stat = fs.lstatSync(resolved);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error("final-regression rawOutputPath must reference a regular repository file");
+  }
+  return resolved;
+}
+
+export function validateFinalRegressionEvidence({ root, artifact }) {
+  try {
+    validateFinalRegressionResult(artifact);
+    const binding = artifact.executionBinding;
+    if (!binding || typeof binding !== "object") throw new Error("executionBinding is required");
+    const rawPath = resolveFinalRegressionRawOutputPath(root, binding.rawOutputPath || artifact.rawOutputPath);
+    const rawText = fs.readFileSync(rawPath, "utf8");
+    const manifest = readFinalRegressionManifest(rawText);
+    if (binding.command !== artifact.command || binding.command !== manifest.command) throw new Error("execution binding command mismatch");
+    if (binding.parsedResult !== artifact.result || binding.parsedResult !== manifest.result) throw new Error("execution binding result mismatch");
+    const rawResult = rawText.match(/(?:^|\n)result:\s*(pass|fail|skipped)(?:\s|$)/)?.[1];
+    if (rawResult !== binding.parsedResult) throw new Error("execution binding parsed result mismatch");
+    if (binding.worktreeSha256 !== manifest.worktreeSha256 || !/^[a-f0-9]{64}$/.test(binding.worktreeSha256)) {
+      throw new Error("execution binding worktree fingerprint mismatch");
+    }
+    if (artifact.completed) {
+      const recordedRepository = new FinalRegressionRepositoryBinding(binding);
+      const currentRepository = FinalRegressionRepositoryBinding.capture(root);
+      if (recordedRepository.headSha !== currentRepository.headSha) throw new Error("execution binding HEAD is stale");
+      if (recordedRepository.treeSha !== currentRepository.treeSha) throw new Error("execution binding tree is stale");
+      if (recordedRepository.worktreeSha256 !== currentRepository.worktreeSha256) throw new Error("execution binding worktree is stale");
+    }
+    if (binding.rawOutputSha256 !== crypto.createHash("sha256").update(rawText).digest("hex")) throw new Error("execution binding raw output mismatch");
+    for (const stream of ["stdout", "stderr"]) {
+      const captured = binding[stream]?.content;
+      const evidence = manifest.streams[stream];
+      if (!binding[stream]
+        || binding[stream].originalByteLength !== evidence.originalByteLength
+        || binding[stream].capturedByteLength !== evidence.capturedByteLength
+        || binding[stream].truncated !== evidence.truncated
+        || crypto.createHash("sha256").update(captured).digest("hex") !== evidence.sha256) {
+        throw new Error(`execution binding ${stream} mismatch`);
+      }
+    }
+    if (binding.testCount !== manifest.testCount || binding.testCount !== finalRegressionTestCount(binding.stdout.content)) {
+      throw new Error("execution binding test count mismatch");
+    }
+    if (binding.truncated !== manifest.truncated || binding.truncated !== Boolean(manifest.streams.stdout.truncated || manifest.streams.stderr.truncated)) {
+      throw new Error("execution binding truncation mismatch");
+    }
+    return { ok: true };
+  } catch (err) {
+    return finalRegressionEvidenceFailure(err.message);
+  }
+}
+
+export function validateExplicitFinalRegressionProceed({ root, artifact }) {
+  try {
+    validateFinalRegressionResult(artifact);
+    if (artifact.selectedAction !== "explicit-record-and-proceed" || artifact.completed !== true) {
+      throw new Error("explicit operator proceed is required");
+    }
+    const evidence = artifact.recordAndProceed;
+    if (evidence.failureClassification !== artifact.failureCategory) throw new Error("operator failure classification mismatch");
+    if (typeof artifact.remainingRisk !== "string" || artifact.remainingRisk.length === 0) {
+      throw new Error("operator remaining risk is required");
+    }
+    if (evidence.remainingRisk !== artifact.remainingRisk) {
+      throw new Error("operator remaining risk mismatch");
+    }
+    const binding = evidence.executionBinding;
+    for (const field of ["rawOutputPath", "rawOutputSha256", "headSha", "treeSha"]) {
+      if (!binding || !binding[field]) throw new Error(`operator ${field} is required`);
+    }
+    if (binding.rawOutputPath !== artifact.rawOutputPath) throw new Error("operator raw output path mismatch");
+    for (const field of ["rawOutputSha256", "headSha", "treeSha"]) {
+      if (binding[field] !== artifact.executionBinding?.[field]) throw new Error(`operator ${field} mismatch`);
+    }
+    return validateFinalRegressionEvidence({ root, artifact });
+  } catch (err) {
+    return finalRegressionEvidenceFailure(err.message);
+  }
 }
 
 export function validateSummaryEvidence(summary, {

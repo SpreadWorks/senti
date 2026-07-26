@@ -43,6 +43,17 @@ function eligibility(root, flowState) {
   });
 }
 
+function implReviewEligibility(root, flowState) {
+  return buildRecoveryEligibilityForState({
+    root,
+    flowState,
+    kind: "review",
+    phase: "impl",
+    attempts: 4,
+    maxAttempts: 4,
+  });
+}
+
 describe("integration gate retry recovery file-map evidence", () => {
   const cleanup = [];
   afterEach(() => {
@@ -83,5 +94,36 @@ describe("integration gate retry recovery file-map evidence", () => {
     assert.equal(changed.recoverable, true);
     assert.equal(changed.reason, "changed-evidence");
     assert.deepEqual(changed.changedEvidence.changedPaths, [FILE_MAP_PATH]);
+  });
+});
+
+describe("implementation review retry recovery evidence", () => {
+  const cleanup = [];
+  afterEach(() => {
+    while (cleanup.length > 0) removeTmpDir(cleanup.pop());
+  });
+
+  it("accepts a spec-local test correction as changed implementation evidence", () => {
+    const root = setupRepo();
+    cleanup.push(root);
+    const testPath = `${SPEC_DIR}/tests/final-regression.test.js`;
+    writeFile(root, testPath, "test('initial', () => {});\n");
+    const flowState = { spec: SPEC_PATH, baseBranch: "main", reviewRecoveryBaselines: [] };
+    const source = resolveRecoveryEvidenceSource({ kind: "review", canonicalPhase: "impl", specDir: SPEC_DIR });
+    assert.ok(source.includes(testPath));
+
+    persistCurrentRecoveryBaseline({
+      root,
+      flowState,
+      kind: "review",
+      phase: "impl",
+      trigger: "test-baseline",
+      createdAt: "2026-07-12T00:00:00.000Z",
+    });
+    writeFile(root, testPath, "test('corrected', () => {});\n");
+
+    const changed = implReviewEligibility(root, flowState);
+    assert.equal(changed.recoverable, true);
+    assert.deepEqual(changed.changedEvidence.changedPaths, [testPath]);
   });
 });

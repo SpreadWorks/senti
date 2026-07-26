@@ -404,6 +404,91 @@ describe("retry recovery authority convergence", () => {
     assert.equal(recovered.finalizedEvidenceAvailable, false);
   });
 
+  it("recovers an exhausted rejected review after result recording lost its evidence reference", () => {
+    const state = makeFlowState({
+      spec: "specs/review-tooling/spec.json",
+      runId: "run-review-tooling",
+      reviewConvergence: {
+        version: 1,
+        records: [{
+          phase: "spec",
+          taskId: null,
+          treeSha: "8".repeat(40),
+          semanticAttempts: 1,
+          semanticMaxAttempts: 1,
+          toolingAttempts: 1,
+          toolingMaxAttempts: 1,
+          evidence: null,
+          finalizedEvidenceAvailable: false,
+          handoffFindings: [],
+          blocker: { kind: "tooling_attempts_exhausted", reason: "result recording failed" },
+          toolingOutcome: {
+            stage: "result_recording",
+            attempt: 2,
+            maxAttempts: 2,
+            reason: "review semantic attempt budget is exhausted for this target",
+            permissionRelated: false,
+          },
+          evidenceIdentity: { evidenceDigest: "9".repeat(64) },
+        }],
+      },
+    });
+
+    new ReviewSemanticRecoveryMutation({
+      phase: "spec",
+      taskId: null,
+      previousTreeSha: "8".repeat(40),
+      nextTreeSha: "a".repeat(40),
+      expectedRunId: state.runId,
+      expectedSpec: state.spec,
+    }).apply(state);
+
+    const recovered = state.reviewConvergence.records[0];
+    assert.equal(recovered.treeSha, "a".repeat(40));
+    assert.equal(recovered.semanticAttempts, 0);
+    assert.equal(recovered.toolingAttempts, 0);
+    assert.equal(recovered.evidence, null);
+    assert.equal(recovered.blocker, null);
+  });
+
+  it("grants one retry when prior rejected evidence belongs to a newer review tree", () => {
+    const state = makeFlowState({
+      spec: "specs/review-new-tree/spec.json",
+      runId: "run-review-new-tree",
+      reviewConvergence: {
+        version: 1,
+        records: [{
+          phase: "impl",
+          taskId: null,
+          treeSha: "b".repeat(64),
+          semanticAttempts: 1,
+          semanticMaxAttempts: 4,
+          toolingAttempts: 0,
+          toolingMaxAttempts: 1,
+          evidence: { evidenceId: "c".repeat(64), disposition: "REJECTED" },
+          finalizedEvidenceAvailable: true,
+          handoffFindings: [],
+          blocker: null,
+          toolingOutcome: null,
+        }],
+      },
+    });
+
+    new ReviewSemanticRecoveryMutation({
+      phase: "impl",
+      taskId: null,
+      previousTreeSha: "b".repeat(64),
+      nextTreeSha: "d".repeat(64),
+      expectedRunId: state.runId,
+      expectedSpec: state.spec,
+    }).apply(state);
+
+    const recovered = state.reviewConvergence.records[0];
+    assert.equal(recovered.treeSha, "d".repeat(64));
+    assert.equal(recovered.semanticAttempts, 3);
+    assert.equal(recovered.evidence, null);
+  });
+
   for (const scenario of ["flow-payload", "flow-duplicate", "public-payload", "issue-payload"]) {
     it(`rejects ${scenario} before any mutation`, () => {
       const root = createTmpDir(`retry-convergence-${scenario}-`);

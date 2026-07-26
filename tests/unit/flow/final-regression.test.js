@@ -89,7 +89,7 @@ describe("flow run final-regression", () => {
 
   it("writes a pass artifact and returns report as next action", async () => {
     tmp = createTmpDir("final-regression-pass-");
-    const ctx = setupProject(tmp, "printf '%s\\n' 'final pass'\n");
+    const ctx = setupProject(tmp, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - final pass'\n");
 
     const result = await new RunFinalRegressionCommand().execute(ctx);
 

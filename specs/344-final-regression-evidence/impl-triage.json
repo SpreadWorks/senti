@@ -1,0 +1,275 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "a379bae8827873d0ae90be8a865b309c4d99b26979e0611943c5671131369b8c",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-26T02:58:50.195Z",
+  "items": [
+    {
+      "findingId": "a6ea0e0c140edf6d9bd5075ad359cc91ee5eac6481ad5c1c41edb65114948ddf",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R4  \n**Issue:** The new loop walks every entry in `blockingFindings` and `nonBlockingImprovements` without an explicit count bound. Since this processes model output, it can violate the `bounded-resource-usage` guardrail if schema validation does not already cap array lengths before this normalization step.  \n**Suggestion:** Validate or enforce maximum finding counts before this loop, or move this normalization after a lightweight bounded pre-validation. Reuse the same maximums expected by `buildImplReviewResponseSchema(requirementIds)` so resource limits are defined in one place.",
+      "evidenceRefs": [
+        "impl-review.json#a6ea0e0c140edf6d9bd5075ad359cc91ee5eac6481ad5c1c41edb65114948ddf"
+      ]
+    },
+    {
+      "findingId": "772a1719404972a509505286640450569ac35e1ce947bcbbf8f6a3ca8d714766",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** The same `flowManager` capability check is duplicated in `commitOwnedTestEvidenceRefresh` and `completeLateAppliedFindingRepair`, and now each check has a wider two-method condition.  \n**Suggestion:** Extract a small helper such as `assertImplRepairLifecycleAuthority(flowManager, action)` that checks for `updateStepStatus` or `updateStepStatuses` and formats the action-specific error message.",
+      "evidenceRefs": [
+        "impl-review.json#772a1719404972a509505286640450569ac35e1ce947bcbbf8f6a3ca8d714766"
+      ]
+    },
+    {
+      "findingId": "eb18edd1d47bdb23c5047c8b7a68e23bde537521e206b9dc6c37ce485bc782dc",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R2  \n**Issue:** `completeLateAppliedFindingRepair` now wraps a single `ExplicitRecoveryTransition` in an array solely to call `updateStepStatuses`. That makes the call site awkward and couples it to the manager’s batching API shape.  \n**Suggestion:** Add a local helper such as `updateLifecycleStepStatuses(flowManager, transitions, options)` and use it consistently. The helper can prefer `updateStepStatuses` when present and fall back to `updateStepStatus` for a single transition if needed.",
+      "evidenceRefs": [
+        "impl-review.json#eb18edd1d47bdb23c5047c8b7a68e23bde537521e206b9dc6c37ce485bc782dc"
+      ]
+    },
+    {
+      "findingId": "3004a92bb032459cc290e511bc33038faec66afc5d5138ff0221167945c5f22b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R3  \n**Issue:** `SPEC_TEST_SOURCE_PATH` sounds like a path value, but it is a regular expression matcher for source files under `specs/<id>/tests/`.  \n**Suggestion:** Rename it to `SPEC_TEST_SOURCE_PATH_PATTERN` or `SPEC_TEST_SOURCE_FILE_PATTERN` so call sites like `SPEC_TEST_SOURCE_FILE_PATTERN.test(relativePath)` read more accurately.",
+      "evidenceRefs": [
+        "impl-review.json#3004a92bb032459cc290e511bc33038faec66afc5d5138ff0221167945c5f22b"
+      ]
+    },
+    {
+      "findingId": "3ee627c2004fb9f5ebe565078924f69e96ef4f0a12858688615671e5c2bdd7c6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `readImplRepairLedger(specDir)?.entries.at(-1)` loads the ledger entries just to compare the latest entry. Under the bounded-resource-usage guardrail, bulk data reads should have explicit limits.  \n**Suggestion:** Add or use a bounded helper that reads only the latest impl-repair ledger entry, or enforces a maximum ledger size before loading. Then compare that latest entry against `entry`.",
+      "evidenceRefs": [
+        "impl-review.json#3ee627c2004fb9f5ebe565078924f69e96ef4f0a12858688615671e5c2bdd7c6"
+      ]
+    },
+    {
+      "findingId": "4cf2579d6b20919071051006deaf1ecb19c3745fc3bf29780eadc75c04552d04",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R2  \n**Issue:** `JSON.stringify(persistedEntry.toJSON()) === JSON.stringify(entry.toJSON())` is a fragile structural comparison and obscures the intended domain check.  \n**Suggestion:** Add a helper such as `isSameRepairLedgerEntry(left, right)` that compares the stable identity fields for an impl-repair entry. This makes the recovery condition easier to audit and avoids depending on JSON property order.",
+      "evidenceRefs": [
+        "impl-review.json#4cf2579d6b20919071051006deaf1ecb19c3745fc3bf29780eadc75c04552d04"
+      ]
+    },
+    {
+      "findingId": "d9dc0abe0756d9e7ed7e55e3826ee5ff4ef54889ed525a643709787a00f86481",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/retry-recovery.js`  \n**Requirement:** R1  \n**Issue:** `${dir}/tests` is now used in multiple recovery evidence source branches, which adds small but avoidable duplication in path construction.  \n**Suggestion:** Define a local `testsPath` constant near `dir` initialization and reuse it in both branches, e.g. `const testsPath = `${dir}/tests`;`, then use `paths: [testsPath]` and `paths: [\"src\", `${dir}/spec.json`, testsPath]`.",
+      "evidenceRefs": [
+        "impl-review.json#d9dc0abe0756d9e7ed7e55e3826ee5ff4ef54889ed525a643709787a00f86481"
+      ]
+    },
+    {
+      "findingId": "e36e34d54dd210e07b7ba62e480166024afdc3260ad0005789f29e4123d571cf",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R4  \n**Issue:** `exhaustedRejectedReview` is true when the review is rejected, even if semantic attempts are not exhausted. The name implies both rejection and exhaustion are required, but the condition is actually “rejected OR semantically exhausted with prior evidence identity.”  \n**Suggestion:** Rename it to something that matches the logic, such as `recoverableReviewFailure` or split the condition into two booleans:\n\n```js\nconst rejectedReview = current.disposition === \"REJECTED\";\nconst exhaustedSemanticRecovery = current.evidence == null\n  && current.semanticAttempts === current.semanticMaxAttempts\n  && records[index].evidenceIdentity != null;\n\nif (!rejectedReview && !exhaustedSemanticRecovery) {\n  throw new Error(\"review semantic recovery requires rejected or exhausted evidence\");\n}\n```",
+      "evidenceRefs": [
+        "impl-review.json#e36e34d54dd210e07b7ba62e480166024afdc3260ad0005789f29e4123d571cf"
+      ]
+    },
+    {
+      "findingId": "41e7952855907518c482ea694d38b325a2b91d3272b9012b432cabe44d2f92f4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R4  \n**Issue:** The new condition mostly reads from `current`, but checks `records[index].evidenceIdentity`. Since `readCurrent(flowState)` already returns `current`, mixing both sources makes the invariant harder to reason about and risks inconsistency if `current` is later transformed or wrapped.  \n**Suggestion:** Use `current.evidenceIdentity` if available on the state object, or introduce a clearly named local if the raw record must be consulted:\n\n```js\nconst currentRecord = records[index];\n```\n\nThen use `currentRecord.evidenceIdentity` in the condition to make the source intentional.",
+      "evidenceRefs": [
+        "impl-review.json#41e7952855907518c482ea694d38b325a2b91d3272b9012b432cabe44d2f92f4"
+      ]
+    },
+    {
+      "findingId": "0db104f45ad68c5484bc59d174a440a18eb7af0ffead3999a5cce0baf9d8dabe",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R2  \n**Issue:** SHA-256 creation is repeated inline for stream content and raw artifact content, which makes evidence generation noisier and easier to drift from validation semantics.  \n**Suggestion:** Add a small helper such as `sha256Hex(content)` and use it for `evidence.*.sha256` and `rawOutputSha256`.",
+      "evidenceRefs": [
+        "impl-review.json#0db104f45ad68c5484bc59d174a440a18eb7af0ffead3999a5cce0baf9d8dabe"
+      ]
+    },
+    {
+      "findingId": "10b638a863950a09bc43b178580ad15ca5ac89d4db2920e96fd91a13f35ffc99",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R2  \n**Issue:** The `rawLines.push(...)` block for execution evidence mixes command execution flow with manifest serialization details, including repeated stdout/stderr formatting logic.  \n**Suggestion:** Move the evidence line construction into a focused helper, for example `finalRegressionEvidenceLines({ commandText, resultStatus, testCount, truncated, repository, streams })`, returning the lines to append.",
+      "evidenceRefs": [
+        "impl-review.json#10b638a863950a09bc43b178580ad15ca5ac89d4db2920e96fd91a13f35ffc99"
+      ]
+    },
+    {
+      "findingId": "824a709b5cb69ae098d4f2d0af998d2ec2754a6ac82a32922f29663c4a6f5fb8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R3  \n**Issue:** `\"explicit-record-and-proceed\"` is introduced as a raw string in multiple places while related actions use `NEXT_RECOMMENDED_ACTIONS`. This weakens naming consistency and makes typos harder to catch.  \n**Suggestion:** Define a constant such as `EXPLICIT_RECORD_AND_PROCEED_ACTION = \"explicit-record-and-proceed\"` near the other final-regression action constants and reuse it in `failedRecordedArtifact()` and `recordAndProceed()`.",
+      "evidenceRefs": [
+        "impl-review.json#824a709b5cb69ae098d4f2d0af998d2ec2754a6ac82a32922f29663c4a6f5fb8"
+      ]
+    },
+    {
+      "findingId": "9d0a69b0f8ba3682d1e493c667e16bb8cd18b071574750c0ce899a830ed8aed8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R2  \n**Issue:** `manifestStreams` can recapture `result.stdout` and `result.stderr` after `result` has already been replaced with captured content. That fallback is subtle and produces different `originalByteLength` semantics depending on whether `streamEvidence` was set.  \n**Suggestion:** Ensure `streamEvidence` is initialized for every non-skipped execution path before manifest construction, then remove the fallback recapture branch.",
+      "evidenceRefs": [
+        "impl-review.json#9d0a69b0f8ba3682d1e493c667e16bb8cd18b071574750c0ce899a830ed8aed8"
+      ]
+    },
+    {
+      "findingId": "1543f6fcdb740e50b8cde610fc36870a03574a56c92e9575ee40a778913966b7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R1  \n**Issue:** The pass-to-fail downgrade condition combines several independent evidence requirements inline: started, exit code, test count, truncation, and repository binding. This is the core R1 gate but is currently embedded in the middle of command orchestration.  \n**Suggestion:** Extract a helper such as `finalRegressionPassEvidenceFailure({ result, testCount, truncated, repositoryChangedDuringRun })` that returns `null` or a reason. Use that reason when assigning `UnknownRegressionFailure`, making the gate easier to audit and extend.",
+      "evidenceRefs": [
+        "impl-review.json#1543f6fcdb740e50b8cde610fc36870a03574a56c92e9575ee40a778913966b7"
+      ]
+    },
+    {
+      "findingId": "a2f62d5827ac4559ef08041584f0f76752f67443f5c3d20641c8de0a28a7e36e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-step.js`  \n**Requirement:** R3  \n**Issue:** `isBlockedImplRepairRecovery({ id, status, activeNode, storedStep })` no longer reads `storedStep` after the diff removed `storedStep?.status === \"done\"`. Keeping the parameter creates dead code and makes callers look like the stored step still affects recovery eligibility.  \n**Suggestion:** Remove `storedStep` from the function signature and from the call site at `isBlockedImplRepairRecovery({ id, status, activeNode, storedStep })`, leaving only the values that participate in the predicate.",
+      "evidenceRefs": [
+        "impl-review.json#a2f62d5827ac4559ef08041584f0f76752f67443f5c3d20641c8de0a28a7e36e"
+      ]
+    },
+    {
+      "findingId": "da71fda40c6494b5a8bd2d2d69aef1e79e5a93572796fa476a4314c834cf1eb2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R2  \n**Issue:** `validateFinalRegressionEvidence()` reads the raw output file with `fs.readFileSync(rawPath, \"utf8\")`, and `finalRegressionWorktreeFingerprint()` loads full git diffs and untracked file contents into memory. This violates the bounded-resource-usage guardrail because file/diff size is not capped before bulk loading.  \n**Suggestion:** Add explicit size checks before reading raw output and untracked files, and avoid unbounded `execFileSync` diff capture where possible. For raw output, reject files larger than the expected artifact limit before reading.",
+      "evidenceRefs": [
+        "impl-review.json#da71fda40c6494b5a8bd2d2d69aef1e79e5a93572796fa476a4314c834cf1eb2"
+      ]
+    },
+    {
+      "findingId": "6f163c023c0f0c58f6b2d260d2f5d399b293b62c293bf9ec0a06915b4e9c31c2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R2  \n**Issue:** `FinalRegressionRepositoryBinding.matches()` is defined but `validateFinalRegressionEvidence()` manually compares `headSha`, `treeSha`, and `worktreeSha256` instead. That leaves dead or underused class behavior and duplicates comparison logic.  \n**Suggestion:** Replace the three manual stale checks with `recordedRepository.matches(currentRepository)`, or remove `matches()` if field-specific error messages are more important.",
+      "evidenceRefs": [
+        "impl-review.json#6f163c023c0f0c58f6b2d260d2f5d399b293b62c293bf9ec0a06915b4e9c31c2"
+      ]
+    },
+    {
+      "findingId": "e1e8ca89c8ce7593a0d801b822b21659b0a9ab58ea45f3f7f47135067eb1a2ec",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R2  \n**Issue:** The stream validation loop mixes presence checks, length checks, truncation checks, and hashing inline. This makes the evidence-binding logic harder to audit and will be easy to duplicate if more streams or fields are added.  \n**Suggestion:** Extract a small helper such as `validateFinalRegressionStreamBinding(name, bindingStream, manifestStream)` that performs the comparison and hash check, then call it for `stdout` and `stderr`.",
+      "evidenceRefs": [
+        "impl-review.json#e1e8ca89c8ce7593a0d801b822b21659b0a9ab58ea45f3f7f47135067eb1a2ec"
+      ]
+    },
+    {
+      "findingId": "180822968dbdbdaceeb881aeffbce06e219e36f3449707ba179603c50f907c94",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-regression.js`  \n**Requirement:** R4  \n**Issue:** The new `environment` variable is generic, but its purpose is specifically to remove `NODE_TEST_CONTEXT` before spawning the test process.  \n**Suggestion:** Rename it to something like `envWithoutNodeTestContext` so the intent is clear at the call site:\n\n```js\nconst { NODE_TEST_CONTEXT: _nodeTestContext, ...envWithoutNodeTestContext } = process.env;\n...\nenv: { ...envWithoutNodeTestContext, ...command.env },\n```",
+      "evidenceRefs": [
+        "impl-review.json#180822968dbdbdaceeb881aeffbce06e219e36f3449707ba179603c50f907c94"
+      ]
+    },
+    {
+      "findingId": "2ec557c7b98a4dc3f36d88362669ae98f4a1c62f3b56410697fff8d0a4b1d7a0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/final-regression-record-and-proceed.test.js`  \n**Requirement:** R4  \n**Issue:** The literal `\"explicit-record-and-proceed\"` is now repeated in the fixture and assertion. If the action name changes again, the test can become internally inconsistent or require multiple edits.  \n**Suggestion:** Define a local constant such as `const EXPLICIT_RECORD_AND_PROCEED = \"explicit-record-and-proceed\";` and use it in both `failedRecordedArtifact()` and the text assertion.",
+      "evidenceRefs": [
+        "impl-review.json#2ec557c7b98a4dc3f36d88362669ae98f4a1c62f3b56410697fff8d0a4b1d7a0"
+      ]
+    },
+    {
+      "findingId": "1c6749dcf40501504f0a92f264081f799f855aff62a95b47e9fbcaf2e7f36176",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/final-regression-record-and-proceed.test.js`  \n**Requirement:** R2  \n**Issue:** The fixture now includes `failureClassification`, `operatorJustification`, `remainingRisk`, and `executionBinding`, but the negative schema test still only checks invalid evidence. That leaves the test less clear about which new fields are required versus incidental fixture data.  \n**Suggestion:** Add one compact invalid-case assertion for a missing or empty newly required field, for example `operatorJustification: \"\"`, so the test documents the explicit-record-and-proceed contract more directly.",
+      "evidenceRefs": [
+        "impl-review.json#1c6749dcf40501504f0a92f264081f799f855aff62a95b47e9fbcaf2e7f36176"
+      ]
+    },
+    {
+      "findingId": "08aed9fa3f655309494049207a7761bb622e6f4ad1965e0088ff97c199773f42",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** The new tests repeat values like `\"8\".repeat(40)`, `\"a\".repeat(40)`, `\"b\".repeat(64)`, and `\"d\".repeat(64)` across setup, mutation input, and assertions. This makes the intended identity relationships harder to scan and easier to accidentally desynchronize.  \n**Suggestion:** Define local constants such as `previousTreeSha`, `nextTreeSha`, and `evidenceDigest` at the top of each test, then reuse them in the state setup, mutation input, and assertions.",
+      "evidenceRefs": [
+        "impl-review.json#08aed9fa3f655309494049207a7761bb622e6f4ad1965e0088ff97c199773f42"
+      ]
+    },
+    {
+      "findingId": "0003b3319e082ef6355717a4a696a2f5a7df0d17fc97be3ae3b11ec694c603ed",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** The first added test uses 40-character tree SHAs, while the second uses 64-character values for `treeSha`, `previousTreeSha`, and `nextTreeSha`. If these fields represent Git tree SHAs, the inconsistency obscures the fixture’s intent and may accidentally test unrealistic data.  \n**Suggestion:** Use 40-character tree SHA fixtures consistently, unless the 64-character value is intentional. If intentional, add a short fixture name or comment explaining why this test uses 64-character tree identifiers.",
+      "evidenceRefs": [
+        "impl-review.json#0003b3319e082ef6355717a4a696a2f5a7df0d17fc97be3ae3b11ec694c603ed"
+      ]
+    },
+    {
+      "findingId": "ba17fdf72df92b951e65d7c05d5ccb3388e85a86e8488eb884935add0a542373",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-recovery-file-map.test.js`  \n**Requirement:** R1  \n**Issue:** Both `describe` blocks define identical `cleanup` arrays and `afterEach` teardown loops. This repeats the same test fixture lifecycle logic in the same file.  \n**Suggestion:** Move `const cleanup = [];` and the shared `afterEach(() => { while (...) ... })` to the outer scope once, or introduce a small helper like `trackTmpDir(root)` if each test suite needs clearer ownership. This removes duplication without changing test behavior.",
+      "evidenceRefs": [
+        "impl-review.json#ba17fdf72df92b951e65d7c05d5ccb3388e85a86e8488eb884935add0a542373"
+      ]
+    },
+    {
+      "findingId": "77586e74b97e3d91e1c901996bb100e4110c2f61671ec8258fbdd635bf6b9a5f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-recovery-file-map.test.js`  \n**Requirement:** R1  \n**Issue:** `implReviewEligibility()` duplicates the existing `eligibility()` helper shape and only changes fixed option values. As more retry recovery scenarios are added, this pattern can grow into several near-identical helpers.  \n**Suggestion:** Replace both helpers with one parameterized helper, for example `recoveryEligibility(root, flowState, overrides = {})`, with the common defaults inside and scenario-specific fields passed by each test. This keeps the test setup concise while preserving readability.",
+      "evidenceRefs": [
+        "impl-review.json#77586e74b97e3d91e1c901996bb100e4110c2f61671ec8258fbdd635bf6b9a5f"
+      ]
+    },
+    {
+      "findingId": "fc8b3116a3ea424b2b36a283f4b6054706eb247ccb2ee51a76fb148786661d1d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R3  \n**Issue:** The new action name `\"explicit-record-and-proceed\"` is introduced in production code and repeated in `tests/unit/flow/final-regression-record-and-proceed.test.js`. This creates a cross-file naming drift risk between the implementation contract and test fixtures/assertions.\n**Suggestion:** Export or colocate a named constant such as `EXPLICIT_RECORD_AND_PROCEED_ACTION` from the production module, and have tests import or mirror it through the existing action-constant pattern.",
+      "evidenceRefs": [
+        "impl-review.json#fc8b3116a3ea424b2b36a283f4b6054706eb247ccb2ee51a76fb148786661d1d"
+      ]
+    },
+    {
+      "findingId": "933a4dfe45af0ea25cc7de150d15fab76642e13039c6f43a6d7f3cc0df25eebd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R2  \n**Issue:** Evidence SHA-256 values are generated inline in `run-final-regression.js`, while `src/flow/lib/test-artifacts.js` independently validates stream/raw evidence hashes. The producer and validator now encode the same evidence-binding semantics separately across files.\n**Suggestion:** Extract a shared helper such as `sha256Hex(content)` or a small final-regression evidence utility module used by both generation and validation paths.",
+      "evidenceRefs": [
+        "impl-review.json#933a4dfe45af0ea25cc7de150d15fab76642e13039c6f43a6d7f3cc0df25eebd"
+      ]
+    },
+    {
+      "findingId": "4c954d7768b1403b6eac82ffe9be37e7da94891baa92e01a8c1b735c8e1c3d28",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R2  \n**Issue:** `run-final-regression.js` formats stdout/stderr stream evidence and `test-artifacts.js` validates the same stream fields with separate inline logic. This duplicates the stream contract across files and makes future additions easy to implement on only one side.\n**Suggestion:** Introduce a shared stream evidence abstraction or helper pair with common field names and hashing rules, then use it from both manifest generation and validation.",
+      "evidenceRefs": [
+        "impl-review.json#4c954d7768b1403b6eac82ffe9be37e7da94891baa92e01a8c1b735c8e1c3d28"
+      ]
+    },
+    {
+      "findingId": "d21ab3c98ffbcc0b0bfaae3016dce945504bf6f687770ddafe1b2603b865bdc4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/test-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Multiple files raise bounded-resource concerns around model output normalization, ledger reads, raw output reads, and git/worktree captures. The limits appear to be enforced or proposed locally, which risks inconsistent caps across review findings, repair ledgers, and final regression artifacts.\n**Suggestion:** Define shared limit constants/helpers for flow artifact reads and generated-output normalization, then reuse them in `review.js`, `impl-repair-artifacts.js`, and `test-artifacts.js`.",
+      "evidenceRefs": [
+        "impl-review.json#d21ab3c98ffbcc0b0bfaae3016dce945504bf6f687770ddafe1b2603b865bdc4"
+      ]
+    }
+  ]
+}

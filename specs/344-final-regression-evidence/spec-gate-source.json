@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T14:27:05.188Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The goal requires completion evidence from fully captured output but does not state an explicit maximum output size or other bound for that output capture.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "goal"
+          },
+          "observed": "The goal requires completion evidence from fully captured output but does not state an explicit maximum output size or other bound for that output capture.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "The goal requires completion evidence from fully captured output but does not state an explicit maximum output size or other bound for that output capture.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T14:27:05.188Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "R1 makes `stdout/stderr truncated=false` a completion condition, implying complete output capture, but does not define an explicit size bound for captured stdout/stderr.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "R1 makes `stdout/stderr truncated=false` a completion condition, implying complete output capture, but does not define an explicit size bound for captured stdout/stderr.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "R1 makes `stdout/stderr truncated=false` a completion condition, implying complete output capture, but does not define an explicit size bound for captured stdout/stderr.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T14:27:05.188Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "R2 requires storing and hashing raw output but does not define an explicit size bound for the raw output being loaded, stored, or hashed.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1].desc"
+          },
+          "observed": "R2 requires storing and hashing raw output but does not define an explicit size bound for the raw output being loaded, stored, or hashed.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "R2 requires storing and hashing raw output but does not define an explicit size bound for the raw output being loaded, stored, or hashed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T14:27:05.188Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "AC-4 verifies retained pass, policy skip, classified failure, artifact, nextAction, and issue-log behavior, but it does not include behavior-level verification that the retained command name still works through the new path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[3]"
+          },
+          "observed": "AC-4 verifies retained pass, policy skip, classified failure, artifact, nextAction, and issue-log behavior, but it does not include behavior-level verification that the retained command name still works through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "findingId": "84f746184b5b1a87fa1a37544e1c4ef6af2ac013c43c7fec8107800fc1ece7bc",
+      "fingerprint": "84f746184b5b1a87fa1a37544e1c4ef6af2ac013c43c7fec8107800fc1ece7bc",
+      "disposition": "must-fix",
+      "rationale": "AC-4 verifies retained pass, policy skip, classified failure, artifact, nextAction, and issue-log behavior, but it does not include behavior-level verification that the retained command name still works through the new path.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-25T14:27:05.188Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "goal"
+      },
+      "observed": "The goal requires completion evidence from fully captured output but does not state an explicit maximum output size or other bound for that output capture.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "The goal requires completion evidence from fully captured output but does not state an explicit maximum output size or other bound for that output capture.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T14:27:05.188Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[0].desc"
+      },
+      "observed": "R1 makes `stdout/stderr truncated=false` a completion condition, implying complete output capture, but does not define an explicit size bound for captured stdout/stderr.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "R1 makes `stdout/stderr truncated=false` a completion condition, implying complete output capture, but does not define an explicit size bound for captured stdout/stderr.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T14:27:05.188Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[1].desc"
+      },
+      "observed": "R2 requires storing and hashing raw output but does not define an explicit size bound for the raw output being loaded, stored, or hashed.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "R2 requires storing and hashing raw output but does not define an explicit size bound for the raw output being loaded, stored, or hashed.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T14:27:05.188Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[3]"
+      },
+      "observed": "AC-4 verifies retained pass, policy skip, classified failure, artifact, nextAction, and issue-log behavior, but it does not include behavior-level verification that the retained command name still works through the new path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ],
+      "result": "fail",
+      "guardrail_id": "migration-parity",
+      "category": "guardrail",
+      "findingId": "d50b0a27615c4942f6a166ef020fea351cac5b83f0ef4a2825b1c5b81cd88e9e",
+      "fingerprint": "d50b0a27615c4942f6a166ef020fea351cac5b83f0ef4a2825b1c5b81cd88e9e",
+      "disposition": "must-fix",
+      "rationale": "AC-4 verifies retained pass, policy skip, classified failure, artifact, nextAction, and issue-log behavior, but it does not include behavior-level verification that the retained command name still works through the new path.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-25T14:27:05.188Z",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "dd99e32c2fd3718a91fa5368",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-1ed6571c3bdb0509",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/retry-recovery.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/test-artifacts.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/retry-recovery-file-map.test.js"
+    ],
+    "inputHash": "1ed6571c3bdb05098aebd0df5c06d5ad9020ad4b039b48f8bc78185e30a8ea79",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "dd99e32c2fd3718a91fa5368"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/retry-recovery.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/test-artifacts.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/retry-recovery-file-map.test.js"
+  ],
+  "inputHash": "1ed6571c3bdb05098aebd0df5c06d5ad9020ad4b039b48f8bc78185e30a8ea79",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:32:37.703Z",
+  "finishedAt": "2026-07-25T16:32:37.703Z",
+  "rawResponse": "### 1. Centralize final regression evidence binding\n**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R2  \n**Issue:** `run-final-regression.js` constructs execution evidence while `test-artifacts.js` independently validates the same binding fields, manifest values, hashes, truncation flags, and remaining-risk shape. This creates a cross-file contract that is duplicated rather than represented by a shared abstraction.  \n**Suggestion:** Extract a shared final-regression evidence/binding model or helper used by both artifact creation and validation, for example `buildFinalRegressionExecutionBinding()` plus `validateFinalRegressionExecutionBinding()` in one module.\n\n### 2. Normalize bounded evidence handling\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R1  \n**Issue:** `review-evidence-store.js` and `run-final-regression.js` both introduce evidence capture/hash paths, but only final regression appears to apply an explicit byte cap after output is already buffered. The bounded-resource policy is therefore inconsistent across evidence-producing files.  \n**Suggestion:** Introduce a shared bounded evidence capture/hash utility that supports streaming or explicit byte limits, then use it for review diff hashing and final regression stdout/stderr evidence.\n\n### 3. Use one canonical explicit proceed action constant\n**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R3  \n**Issue:** `\"explicit-record-and-proceed\"` is introduced as a raw action string in `run-final-regression.js`, while `test-artifacts.js` validates corresponding explicit proceed artifact structure. The action name is part of a cross-file protocol but is not centralized.  \n**Suggestion:** Define and export a named constant such as `EXPLICIT_RECORD_AND_PROCEED_ACTION` from the shared artifact/protocol module and use it in both generation and validation code.\n\n### 4. Align repository identity naming across review recovery and final regression\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R4  \n**Issue:** Review recovery code refers to `evidenceIdentity`, while final regression proposals refer to repository bindings with `headSha`, `treeSha`, and `worktreeSha256`. These appear to describe related repository-state evidence concepts but use different names and shapes across files.  \n**Suggestion:** Standardize on one naming model, such as `repositoryBinding`, with consistent fields and equality helpers. Use that model in review convergence, final regression generation, and validation code where repository-state identity is compared.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize final regression evidence binding",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R2  \n**Issue:** `run-final-regression.js` constructs execution evidence while `test-artifacts.js` independently validates the same binding fields, manifest values, hashes, truncation flags, and remaining-risk shape. This creates a cross-file contract that is duplicated rather than represented by a shared abstraction.  \n**Suggestion:** Extract a shared final-regression evidence/binding model or helper used by both artifact creation and validation, for example `buildFinalRegressionExecutionBinding()` plus `validateFinalRegressionExecutionBinding()` in one module.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Normalize bounded evidence handling",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R1  \n**Issue:** `review-evidence-store.js` and `run-final-regression.js` both introduce evidence capture/hash paths, but only final regression appears to apply an explicit byte cap after output is already buffered. The bounded-resource policy is therefore inconsistent across evidence-producing files.  \n**Suggestion:** Introduce a shared bounded evidence capture/hash utility that supports streaming or explicit byte limits, then use it for review diff hashing and final regression stdout/stderr evidence.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Use one canonical explicit proceed action constant",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R3  \n**Issue:** `\"explicit-record-and-proceed\"` is introduced as a raw action string in `run-final-regression.js`, while `test-artifacts.js` validates corresponding explicit proceed artifact structure. The action name is part of a cross-file protocol but is not centralized.  \n**Suggestion:** Define and export a named constant such as `EXPLICIT_RECORD_AND_PROCEED_ACTION` from the shared artifact/protocol module and use it in both generation and validation code.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Align repository identity naming across review recovery and final regression",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R4  \n**Issue:** Review recovery code refers to `evidenceIdentity`, while final regression proposals refer to repository bindings with `headSha`, `treeSha`, and `worktreeSha256`. These appear to describe related repository-state evidence concepts but use different names and shapes across files.  \n**Suggestion:** Standardize on one naming model, such as `repositoryBinding`, with consistent fields and equality helpers. Use that model in review convergence, final regression generation, and validation code where repository-state identity is compared.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

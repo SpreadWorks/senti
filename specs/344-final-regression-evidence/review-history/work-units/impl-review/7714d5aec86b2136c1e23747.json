@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "7714d5aec86b2136c1e23747",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-99161f0118e239bc",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/retry-recovery.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/test-artifacts.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/retry-recovery-file-map.test.js"
+    ],
+    "inputHash": "99161f0118e239bc2a31eaf87458eddbf7e2ff23809e93d758972164f6f426aa",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "7714d5aec86b2136c1e23747"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/retry-recovery.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/test-artifacts.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/retry-recovery-file-map.test.js"
+  ],
+  "inputHash": "99161f0118e239bc2a31eaf87458eddbf7e2ff23809e93d758972164f6f426aa",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:28:47.069Z",
+  "finishedAt": "2026-07-25T16:28:47.069Z",
+  "rawResponse": "### 1. Centralize Final Regression Evidence Hashing\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R2\n**Issue:** SHA-256 evidence hashing is being introduced in `run-final-regression.js`, while `review-evidence-store.js` also computes evidence identity from Git diff content. These are related evidence-binding concerns, but the hashing logic appears file-local and could drift in algorithm, encoding, or resource limits.\n**Suggestion:** Extract a shared evidence hashing helper, for example under `src/flow/lib/evidence-hash.js`, with clear APIs for text, buffer, and bounded stream hashing. Use it from both final regression evidence generation and review evidence storage.\n\n### 2. Align Execution Binding Field Names Across Producer And Validator\n**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R3\n**Issue:** `run-final-regression.js` produces execution binding fields such as `rawOutputSha256`, `headSha`, `treeSha`, and truncation state, while `test-artifacts.js` validates the same fields through separate inline checks. The producer and validator currently share an implicit interface rather than a named contract, which makes future field additions easy to miss on one side.\n**Suggestion:** Define a shared execution binding field list or small binding class/helper used by both files, so generation and validation depend on the same canonical field names and invariants.\n\n### 3. Normalize Remaining Risk Location In Explicit Proceed Artifacts\n**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R3\n**Issue:** `test-artifacts.js` validates remaining risk in both `artifact.remainingRisk` and `result.recordAndProceed.remainingRisk`, implying duplicate sources for one concept. The corresponding producer in `run-final-regression.js` should not emit a data shape where the same semantic value must be kept in sync across two locations.\n**Suggestion:** Pick one canonical location for remaining risk in explicit proceed artifacts, then update both the artifact construction in `run-final-regression.js` and validation in `test-artifacts.js` to enforce that single source.\n\n### 4. Reuse Test Evidence Path Construction\n**File:** `src/flow/lib/retry-recovery.js`\n**Requirement:** R1\n**Issue:** `retry-recovery.js` introduces repeated `${dir}/tests` construction, while adjacent test fixture code in `tests/unit/flow/retry-recovery-file-map.test.js` is also accumulating duplicated recovery eligibility setup. These duplicate introductions point to missing shared naming around retry recovery evidence paths.\n**Suggestion:** Introduce a small helper for recovery evidence paths, such as `recoveryTestsPath(dir)`, and use it in production code and tests where applicable. This keeps path naming consistent and reduces fixture drift.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Final Regression Evidence Hashing",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R2\n**Issue:** SHA-256 evidence hashing is being introduced in `run-final-regression.js`, while `review-evidence-store.js` also computes evidence identity from Git diff content. These are related evidence-binding concerns, but the hashing logic appears file-local and could drift in algorithm, encoding, or resource limits.\n**Suggestion:** Extract a shared evidence hashing helper, for example under `src/flow/lib/evidence-hash.js`, with clear APIs for text, buffer, and bounded stream hashing. Use it from both final regression evidence generation and review evidence storage.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Align Execution Binding Field Names Across Producer And Validator",
+        "body": "**File:** `src/flow/lib/test-artifacts.js`\n**Requirement:** R3\n**Issue:** `run-final-regression.js` produces execution binding fields such as `rawOutputSha256`, `headSha`, `treeSha`, and truncation state, while `test-artifacts.js` validates the same fields through separate inline checks. The producer and validator currently share an implicit interface rather than a named contract, which makes future field additions easy to miss on one side.\n**Suggestion:** Define a shared execution binding field list or small binding class/helper used by both files, so generation and validation depend on the same canonical field names and invariants.",
+        "file": "src/flow/lib/test-artifacts.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Normalize Remaining Risk Location In Explicit Proceed Artifacts",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`\n**Requirement:** R3\n**Issue:** `test-artifacts.js` validates remaining risk in both `artifact.remainingRisk` and `result.recordAndProceed.remainingRisk`, implying duplicate sources for one concept. The corresponding producer in `run-final-regression.js` should not emit a data shape where the same semantic value must be kept in sync across two locations.\n**Suggestion:** Pick one canonical location for remaining risk in explicit proceed artifacts, then update both the artifact construction in `run-final-regression.js` and validation in `test-artifacts.js` to enforce that single source.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Reuse Test Evidence Path Construction",
+        "body": "**File:** `src/flow/lib/retry-recovery.js`\n**Requirement:** R1\n**Issue:** `retry-recovery.js` introduces repeated `${dir}/tests` construction, while adjacent test fixture code in `tests/unit/flow/retry-recovery-file-map.test.js` is also accumulating duplicated recovery eligibility setup. These duplicate introductions point to missing shared naming around retry recovery evidence paths.\n**Suggestion:** Introduce a small helper for recovery evidence paths, such as `recoveryTestsPath(dir)`, and use it in production code and tests where applicable. This keeps path naming consistent and reduces fixture drift.",
+        "file": "src/flow/lib/retry-recovery.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

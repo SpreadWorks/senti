@@ -80,8 +80,12 @@ function failedRecordedArtifact(overrides = {}) {
       eligible: true,
       validated: true,
       evidence: "existing failure remained after an attempted repair",
+      failureClassification: "existing_failure",
+      operatorJustification: "failure is outside the current change",
+      remainingRisk: "full regression remains red for an existing failure",
+      executionBinding: {},
     },
-    selectedAction: "record-and-proceed",
+    selectedAction: "explicit-record-and-proceed",
     remainingRisk: "full regression remains red for an existing failure",
     fixAttempts: 1,
     retryable: false,
@@ -153,14 +157,14 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
     }
   });
 
-  test("schema accepts failed-recorded artifacts and rejects invalid failed completion", () => {
+  test("schema accepts explicitly failed-recorded artifacts and rejects invalid failed completion", () => {
     assert.equal(validateFinalRegressionResult(failedRecordedArtifact()).result, "fail");
     assert.throws(() => validateFinalRegressionResult(failedRecordedArtifact({
       recordAndProceed: { eligible: true, validated: false, evidence: "" },
     })), /record-and-proceed evidence/i);
   });
 
-  test("registry and completion policy complete only validated failed-recorded artifacts", async () => {
+  test("registry and completion policy complete only explicitly validated failed-recorded artifacts", async () => {
     const validator = new CompletionValidator();
     const contract = contractFromFinalRegressionArtifact(failedRecordedArtifact(), {
       artifactPath: "specs/001/final-regression-result.json",
@@ -232,7 +236,7 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
     assert.equal(data.tests.finalRegression.result, "fail");
     assert.equal(data.tests.finalRegression.failureCategory, "existing_failure");
     assert.match(text, /Final regression: result=fail/);
-    assert.match(text, /selectedAction=record-and-proceed/);
+    assert.match(text, /selectedAction=explicit-record-and-proceed/);
     assert.doesNotMatch(text, /Final regression: result=pass/);
   });
 });

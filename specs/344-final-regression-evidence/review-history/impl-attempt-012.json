@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:50:22.204Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "worktree-mutation-not-bound",
+      "title": "Unstaged worktree mutations are not detected by the execution binding",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-final-regression.js",
+      "requirementId": "R2",
+      "issue": "The pass guard records and compares `git write-tree`, which only reflects the index. If the final-regression command modifies tracked files in the working tree without staging them, `repositoryChangedDuringRun` remains false and a passing artifact can be completed against a different working tree than the one captured by `headSha`/`treeSha`.",
+      "suggestion": "In `RunFinalRegressionCommand.execute`, bind and compare the actual working tree state as well as HEAD/index, for example by recording a status or tracked-file fingerprint before execution and rejecting pass/report completion when it changes.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires acceptance evidence to be validated against the current repository state. A passing regression can currently mutate tracked files and still complete because `git write-tree` misses unstaged content, so the execution evidence is stale.",
+      "findingId": "5c57820c6883ec71c5d0bc5da685368054a4a803300b9789b53a097800e9fd78",
+      "fingerprint": "5c57820c6883ec71c5d0bc5da685368054a4a803300b9789b53a097800e9fd78",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "1775174ee46e118bb43ea16993fbf7a9a87353e08da5baa23d398c872d4722dd",
+  "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/344-final-regression-evidence/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "1ec24ee24d47e72208f49ad9ae68bfe4f3f9ad35c10584f25476e7ac5b18b760"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 12,
+  "findings": [
+    {
+      "id": "5c57820c6883ec71c5d0bc5da685368054a4a803300b9789b53a097800e9fd78",
+      "findingId": "5c57820c6883ec71c5d0bc5da685368054a4a803300b9789b53a097800e9fd78",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "Unstaged worktree mutations are not detected by the execution binding",
+      "body": "The pass guard records and compares `git write-tree`, which only reflects the index. If the final-regression command modifies tracked files in the working tree without staging them, `repositoryChangedDuringRun` remains false and a passing artifact can be completed against a different working tree than the one captured by `headSha`/`treeSha`.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "5c57820c6883ec71c5d0bc5da685368054a4a803300b9789b53a097800e9fd78",
+      "disposition": "must-fix",
+      "rationale": "R2 requires acceptance evidence to be validated against the current repository state. A passing regression can currently mutate tracked files and still complete because `git write-tree` misses unstaged content, so the execution evidence is stale.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

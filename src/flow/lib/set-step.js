@@ -78,8 +78,7 @@ function isBlockedImplRepairRecovery({ id, status, activeNode, storedStep }) {
   return id === "impl-repair"
     && status === "done"
     && activeNode?.scope === "flow"
-    && activeNode.stepId === "impl-gate"
-    && storedStep?.status === "done";
+    && activeNode.stepId === "impl-gate";
 }
 
 function hasAuditedPreimplementationBootstrap(state, scenarioArtifact) {
@@ -177,7 +176,7 @@ function validateBlockedImplRepairRecovery({ root, state }) {
   const latest = new StepAttemptLog(state.stepAttempts || []).latestForRun(state.runId);
   if (
     latest?.stepId !== "impl-gate"
-    || latest.taskId !== null
+    || latest.taskId != null
     || !(latest.outcome instanceof ExternalBlockedOutcome)
     || latest.outcome.reason !== "mechanical"
   ) {

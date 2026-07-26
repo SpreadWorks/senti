@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:54:03.202Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "record-proceed-validation-skips-top-level-schema",
+      "title": "Explicit Proceed Skips Final Artifact Validation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-final-regression.js",
+      "requirementId": "R3",
+      "issue": "`recordAndProceed()` no longer calls `validateFinalRegressionResult(json)` after applying explicit record-and-proceed fields. It only calls `validateExplicitFinalRegressionProceed()`, whose current checks do not replace the full result schema validation for fields outside the explicit evidence binding.",
+      "suggestion": "In `recordAndProceed()`, run `validateFinalRegressionResult(json)` before or after `validateExplicitFinalRegressionProceed({ root, artifact: json })`, and only write the artifact after both validations pass.",
+      "disposition": "must-fix",
+      "rationale": "R3 requires explicit failed-regression completion evidence, and the existing mandatory result validation is the guard that enforces the artifact contract as a whole. Replacing it with a narrower explicit-evidence validator can allow malformed completed artifacts to be persisted as report-ready evidence.",
+      "findingId": "9282ad04ac75174b76c43656640e21c08a46fb84a920878f4fec83a0609324d8",
+      "fingerprint": "9282ad04ac75174b76c43656640e21c08a46fb84a920878f4fec83a0609324d8",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "bfde0e5ff22719e32c62a956b50cbbb79e0a7f2ac6a78a58a9534b17f804b74c",
+  "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/344-final-regression-evidence/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "6b5a81aea6016fa2a18da9cb38d0b171ca852bec82529fa58bd5bcc486eb30b0"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 13,
+  "findings": [
+    {
+      "id": "9282ad04ac75174b76c43656640e21c08a46fb84a920878f4fec83a0609324d8",
+      "findingId": "9282ad04ac75174b76c43656640e21c08a46fb84a920878f4fec83a0609324d8",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 13,
+      "severity": "blocking",
+      "title": "Explicit Proceed Skips Final Artifact Validation",
+      "body": "`recordAndProceed()` no longer calls `validateFinalRegressionResult(json)` after applying explicit record-and-proceed fields. It only calls `validateExplicitFinalRegressionProceed()`, whose current checks do not replace the full result schema validation for fields outside the explicit evidence binding.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "9282ad04ac75174b76c43656640e21c08a46fb84a920878f4fec83a0609324d8",
+      "disposition": "must-fix",
+      "rationale": "R3 requires explicit failed-regression completion evidence, and the existing mandatory result validation is the guard that enforces the artifact contract as a whole. Replacing it with a narrower explicit-evidence validator can allow malformed completed artifacts to be persisted as report-ready evidence.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    }
+  ]
+}

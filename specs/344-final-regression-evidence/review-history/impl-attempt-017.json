@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T16:00:55.212Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "untracked-worktree-mutation-not-bound",
+      "title": "Passing evidence ignores untracked repository mutations",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/test-artifacts.js",
+      "requirementId": "R2",
+      "issue": "`finalRegressionWorktreeFingerprint()` still hashes only `git diff --no-ext-diff --binary HEAD`, so it covers tracked staged/unstaged content but not untracked repository files. A final-regression command can create an untracked project file, leave the repository in a different state, and still produce a passing artifact whose `executionBinding` validates because the before/after fingerprint remains unchanged.",
+      "suggestion": "Update `finalRegressionWorktreeFingerprint()` to include untracked repository files deterministically, for example by combining the tracked diff with `git ls-files --others --exclude-standard` paths and content hashes while excluding generated flow artifact paths. Add an R2 regression test where a passing final-regression command creates an untracked project file and must be retained as incomplete evidence.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires acceptance evidence to be bound to the current repository state. Ignoring untracked files leaves a data-integrity gap where final regression can certify a pass for a repository state that differs from the state left after execution.",
+      "findingId": "23ffdf2d5be9e4214d86c7aa83b3e1bae202dc59119ba178a227984956cd2daf",
+      "fingerprint": "23ffdf2d5be9e4214d86c7aa83b3e1bae202dc59119ba178a227984956cd2daf",
+      "repeatCount": 3
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "02dae3a67a7c78fafa61dce4cc2cc1e91caa981af1cb81e7880bd7024d801dc9",
+  "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/344-final-regression-evidence/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "c0eb239bec7ee6a73c08f9f9f8243c4baa2d642a47fbd573c5f954e15c8b93e1"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 17,
+  "findings": [
+    {
+      "id": "23ffdf2d5be9e4214d86c7aa83b3e1bae202dc59119ba178a227984956cd2daf",
+      "findingId": "23ffdf2d5be9e4214d86c7aa83b3e1bae202dc59119ba178a227984956cd2daf",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 17,
+      "severity": "blocking",
+      "title": "Passing evidence ignores untracked repository mutations",
+      "body": "`finalRegressionWorktreeFingerprint()` still hashes only `git diff --no-ext-diff --binary HEAD`, so it covers tracked staged/unstaged content but not untracked repository files. A final-regression command can create an untracked project file, leave the repository in a different state, and still produce a passing artifact whose `executionBinding` validates because the before/after fingerprint remains unchanged.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "23ffdf2d5be9e4214d86c7aa83b3e1bae202dc59119ba178a227984956cd2daf",
+      "disposition": "must-fix",
+      "rationale": "R2 requires acceptance evidence to be bound to the current repository state. Ignoring untracked files leaves a data-integrity gap where final regression can certify a pass for a repository state that differs from the state left after execution.",
+      "requirementId": "R2",
+      "repeatCount": 3
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "756664e38a71bc208dfb63bf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-e0403b0d27d37622",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/retry-recovery.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/test-artifacts.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/retry-recovery-file-map.test.js"
+    ],
+    "inputHash": "e0403b0d27d376223a9221129ade6a9c0e8f48ebe03c9eb06b47308402866123",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "756664e38a71bc208dfb63bf"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/retry-recovery.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/test-artifacts.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/retry-recovery-file-map.test.js"
+  ],
+  "inputHash": "e0403b0d27d376223a9221129ade6a9c0e8f48ebe03c9eb06b47308402866123",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T00:44:53.563Z",
+  "finishedAt": "2026-07-26T00:44:53.563Z",
+  "rawResponse": "### 1. Centralize final regression execution binding schema\n**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R3  \n**Issue:** `run-final-regression.js` constructs execution binding fields while `test-artifacts.js` independently validates many of the same fields. This creates a cross-file drift risk whenever binding fields such as `rawOutputSha256`, `headSha`, `treeSha`, or stream hashes change.  \n**Suggestion:** Move the execution binding field list and validation/comparison logic into a shared helper in `src/flow/lib/test-artifacts.js` or a dedicated binding module, then have both artifact creation and validation consume the same field definitions.\n\n### 2. Standardize SHA length semantics across production and tests\n**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** Test fixtures mix 40-character and 64-character values for `treeSha`, while production code also handles SHA-256 fields for evidence artifacts. Across files, this makes it unclear whether a field represents a Git object SHA or a SHA-256 digest.  \n**Suggestion:** Use explicit fixture names and validators that distinguish Git SHAs from SHA-256 digests, for example `gitTreeSha` for 40-character Git object IDs and `evidenceSha256` for 64-character hashes.\n\n### 3. Share bounded hashing and file-read utilities\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R2  \n**Issue:** Multiple files introduce evidence hashing or fingerprinting paths that may read large data into memory: `review-evidence-store.js` hashes full git diffs, `run-final-regression.js` hashes output content inline, and `test-artifacts.js` reads raw evidence and untracked files. These are related evidence-generation concerns but have separate resource behavior.  \n**Suggestion:** Introduce a shared bounded hashing helper for git output and file contents, with explicit byte limits and clear errors. Reuse it from review evidence capture, final regression output hashing, and evidence validation.\n\n### 4. Avoid duplicate path construction conventions for test evidence\n**File:** `src/flow/lib/retry-recovery.js`  \n**Requirement:** R1  \n**Issue:** `retry-recovery.js` constructs `${dir}/tests` independently while `impl-repair-artifacts.js` has separate durable evidence path logic for spec test sources. These files are both encoding workflow artifact path semantics, but the naming and construction are split.  \n**Suggestion:** Centralize workflow evidence path constants or helpers, such as `testsEvidencePath(dir)` and durable spec test source matching, so recovery and repair code refer to the same path model.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize final regression execution binding schema",
+        "body": "**File:** `src/flow/lib/run-final-regression.js`  \n**Requirement:** R3  \n**Issue:** `run-final-regression.js` constructs execution binding fields while `test-artifacts.js` independently validates many of the same fields. This creates a cross-file drift risk whenever binding fields such as `rawOutputSha256`, `headSha`, `treeSha`, or stream hashes change.  \n**Suggestion:** Move the execution binding field list and validation/comparison logic into a shared helper in `src/flow/lib/test-artifacts.js` or a dedicated binding module, then have both artifact creation and validation consume the same field definitions.",
+        "file": "src/flow/lib/run-final-regression.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Standardize SHA length semantics across production and tests",
+        "body": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R4  \n**Issue:** Test fixtures mix 40-character and 64-character values for `treeSha`, while production code also handles SHA-256 fields for evidence artifacts. Across files, this makes it unclear whether a field represents a Git object SHA or a SHA-256 digest.  \n**Suggestion:** Use explicit fixture names and validators that distinguish Git SHAs from SHA-256 digests, for example `gitTreeSha` for 40-character Git object IDs and `evidenceSha256` for 64-character hashes.",
+        "file": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Share bounded hashing and file-read utilities",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R2  \n**Issue:** Multiple files introduce evidence hashing or fingerprinting paths that may read large data into memory: `review-evidence-store.js` hashes full git diffs, `run-final-regression.js` hashes output content inline, and `test-artifacts.js` reads raw evidence and untracked files. These are related evidence-generation concerns but have separate resource behavior.  \n**Suggestion:** Introduce a shared bounded hashing helper for git output and file contents, with explicit byte limits and clear errors. Reuse it from review evidence capture, final regression output hashing, and evidence validation.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Avoid duplicate path construction conventions for test evidence",
+        "body": "**File:** `src/flow/lib/retry-recovery.js`  \n**Requirement:** R1  \n**Issue:** `retry-recovery.js` constructs `${dir}/tests` independently while `impl-repair-artifacts.js` has separate durable evidence path logic for spec test sources. These files are both encoding workflow artifact path semantics, but the naming and construction are split.  \n**Suggestion:** Centralize workflow evidence path constants or helpers, such as `testsEvidencePath(dir)` and durable spec test source matching, so recovery and repair code refer to the same path model.",
+        "file": "src/flow/lib/retry-recovery.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

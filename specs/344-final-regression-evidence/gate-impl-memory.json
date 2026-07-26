@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "phase": "integration",
+      "round": 1,
+      "status": "blocking",
+      "statusReason": "The diff adds a new helper `executionManifestLines(...)`, but the diff shows exactly one production caller and the helper only formats a short manifest line array without hiding meaningful complexity, enforcing an invariant, or establishing an ownership boundary.",
+      "updatedAt": "2026-07-25T16:30:06.321Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R2"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-final-regression.js",
+            "locator": "executionManifestLines"
+          },
+          "observed": "The diff adds a new helper `executionManifestLines(...)`, but the diff shows exactly one production caller and the helper only formats a short manifest line array without hiding meaningful complexity, enforcing an invariant, or establishing an ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ]
+    }
+  ]
+}

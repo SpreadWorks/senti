@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/retry-recovery-file-map.test.js"
+    ],
+    "inputHash": "078b79c3bdc312716180826f24394fd84688bfcbc651e428b7ff5114a9b700ee",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "tests/unit/flow/retry-recovery-file-map.test.js"
+  ],
+  "inputHash": "078b79c3bdc312716180826f24394fd84688bfcbc651e428b7ff5114a9b700ee",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T02:45:45.194Z",
+  "finishedAt": "2026-07-26T02:45:45.194Z",
+  "rawResponse": "### 1. Consolidate Duplicate Cleanup Hooks\n**File:** `tests/unit/flow/retry-recovery-file-map.test.js`  \n**Requirement:** R1  \n**Issue:** Both `describe` blocks define identical `cleanup` arrays and `afterEach` teardown loops. This repeats the same test fixture lifecycle logic in the same file.  \n**Suggestion:** Move `const cleanup = [];` and the shared `afterEach(() => { while (...) ... })` to the outer scope once, or introduce a small helper like `trackTmpDir(root)` if each test suite needs clearer ownership. This removes duplication without changing test behavior.\n\n### 2. Avoid Over-Specific Eligibility Helper\n**File:** `tests/unit/flow/retry-recovery-file-map.test.js`  \n**Requirement:** R1  \n**Issue:** `implReviewEligibility()` duplicates the existing `eligibility()` helper shape and only changes fixed option values. As more retry recovery scenarios are added, this pattern can grow into several near-identical helpers.  \n**Suggestion:** Replace both helpers with one parameterized helper, for example `recoveryEligibility(root, flowState, overrides = {})`, with the common defaults inside and scenario-specific fields passed by each test. This keeps the test setup concise while preserving readability.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate Duplicate Cleanup Hooks",
+        "body": "**File:** `tests/unit/flow/retry-recovery-file-map.test.js`  \n**Requirement:** R1  \n**Issue:** Both `describe` blocks define identical `cleanup` arrays and `afterEach` teardown loops. This repeats the same test fixture lifecycle logic in the same file.  \n**Suggestion:** Move `const cleanup = [];` and the shared `afterEach(() => { while (...) ... })` to the outer scope once, or introduce a small helper like `trackTmpDir(root)` if each test suite needs clearer ownership. This removes duplication without changing test behavior.",
+        "file": "tests/unit/flow/retry-recovery-file-map.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Avoid Over-Specific Eligibility Helper",
+        "body": "**File:** `tests/unit/flow/retry-recovery-file-map.test.js`  \n**Requirement:** R1  \n**Issue:** `implReviewEligibility()` duplicates the existing `eligibility()` helper shape and only changes fixed option values. As more retry recovery scenarios are added, this pattern can grow into several near-identical helpers.  \n**Suggestion:** Replace both helpers with one parameterized helper, for example `recoveryEligibility(root, flowState, overrides = {})`, with the common defaults inside and scenario-specific fields passed by each test. This keeps the test setup concise while preserving readability.",
+        "file": "tests/unit/flow/retry-recovery-file-map.test.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

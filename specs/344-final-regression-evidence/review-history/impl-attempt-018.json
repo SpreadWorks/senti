@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T16:07:17.068Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "staged-worktree-mutation-not-detected",
+      "title": "Staged Mutations Can Complete As Passing Evidence",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-final-regression.js",
+      "requirementId": "R2",
+      "issue": "The repository mutation guard compares `git write-tree` before and after the regression run, but `write-tree` only reflects the index. A regression command can modify a tracked file and then `git add` it; after the run, `git diff --no-ext-diff --binary HEAD` in `finalRegressionWorktreeFingerprint` is unchanged from the pre-run staged diff, and `write-tree` can also match the pre-run index tree if the same staged content was already present. That allows a command that mutates the working tree during execution to be accepted as completed pass evidence.",
+      "suggestion": "In `RunFinalRegressionCommand.execute`, bind and compare both staged and working-tree content separately before and after the run, for example by hashing `git diff --cached --binary HEAD` and `git diff --binary` or by making `finalRegressionWorktreeFingerprint` include index and unstaged fingerprints independently. Add an R2 test where a passing command modifies a tracked file and stages it before exiting.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires acceptance to validate execution binding against the current repository state and reject stale or mutated execution evidence. A passing command that can alter tracked source state and still complete as report-ready evidence violates that mandatory acceptance requirement.",
+      "findingId": "8bbf3dbe51c78a5d010d8391fc47f12fab716c9484c2b7967d61a7a50943d130",
+      "fingerprint": "8bbf3dbe51c78a5d010d8391fc47f12fab716c9484c2b7967d61a7a50943d130",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "6cfa7e42fdd9a1de01d12580394f2b721d22d7c68a2152ea7b8c7ad164e17fc4",
+  "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/344-final-regression-evidence/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "ab9e909a91796bfd01a1962b9df15c90eb4554a6422284f8d7ed23562c1604d2"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 18,
+  "findings": [
+    {
+      "id": "8bbf3dbe51c78a5d010d8391fc47f12fab716c9484c2b7967d61a7a50943d130",
+      "findingId": "8bbf3dbe51c78a5d010d8391fc47f12fab716c9484c2b7967d61a7a50943d130",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 18,
+      "severity": "blocking",
+      "title": "Staged Mutations Can Complete As Passing Evidence",
+      "body": "The repository mutation guard compares `git write-tree` before and after the regression run, but `write-tree` only reflects the index. A regression command can modify a tracked file and then `git add` it; after the run, `git diff --no-ext-diff --binary HEAD` in `finalRegressionWorktreeFingerprint` is unchanged from the pre-run staged diff, and `write-tree` can also match the pre-run index tree if the same staged content was already present. That allows a command that mutates the working tree during execution to be accepted as completed pass evidence.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "8bbf3dbe51c78a5d010d8391fc47f12fab716c9484c2b7967d61a7a50943d130",
+      "disposition": "must-fix",
+      "rationale": "R2 requires acceptance to validate execution binding against the current repository state and reject stale or mutated execution evidence. A passing command that can alter tracked source state and still complete as report-ready evidence violates that mandatory acceptance requirement.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

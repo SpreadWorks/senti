@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "pass artifact は process.started=true、exitCode=0、testCount>=1、stdout と stderr が各 1 MiB 以下かつ truncated=false、解析済み result=pass の全条件を満たす場合だけ completed=true と nextAction=report を設定する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-evidence.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "artifact は各 1 MiB に制限した raw output、execution 前の HEAD SHA と tree SHA、実行 command、raw output SHA-256、parsed result、testCount、truncated を保存し、artifact を受理または proceed するときに保存値と再計算値が全て一致しない限り completion evidence として拒否する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-evidence.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "failed または incomplete regression で autoApprove は record-and-proceed を選択せず、operator が failure classification、raw output path/SHA-256、HEAD SHA、tree SHA、override 根拠、残存リスクを入力して binding が一致する場合だけ explicit proceed artifact を作成する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-evidence.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "既存の pass、policy skip、failure classification、recovery nextAction、issue-log、command 名、artifact path を保持し、auto-selected proceed のみを explicit override 必須へ変更する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-evidence.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/final-regression-evidence.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T16:20:15.362Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "record-and-proceed-missing-top-level-risk",
+      "title": "Explicit record-and-proceed artifacts cannot pass their own schema",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-final-regression.js",
+      "requirementId": "R3",
+      "issue": "`recordAndProceed()` moves the operator risk text into `recordAndProceed.remainingRisk` but no longer writes top-level `remainingRisk`. `FinalRegressionArtifact` and existing consumers still model `remainingRisk` as a top-level artifact field, and `validateExplicitFinalRegressionProceed()` even checks consistency when it is present. The R3 path therefore produces completed explicit-proceed artifacts without the top-level risk field that downstream reporting/contracts expect.",
+      "suggestion": "In `recordAndProceed()`, keep `remainingRisk: input.remainingRisk` on the top-level artifact and also mirror it into `recordAndProceed.remainingRisk`; add an assertion in the R3 test that the written artifact has both fields and they match.",
+      "disposition": "must-fix",
+      "rationale": "R3 is the mandatory requirement governing explicit operator proceed evidence. A completed proceed artifact that drops the canonical top-level risk field weakens the required operator evidence contract and can break report consumers, so this is blocking.",
+      "findingId": "40f3fd1feaab3f7c0b4ee310ba65cda39b640344c3195d9726faaf652e043855",
+      "fingerprint": "40f3fd1feaab3f7c0b4ee310ba65cda39b640344c3195d9726faaf652e043855",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "3495ddfa8a6418cf3ccd2972f0583fcefe9532cd8d412320deeeb3a5baea7d9b",
+  "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/344-final-regression-evidence/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "fa698a17bde9739b48df49f894b9e817ab050f3a3aa78e2b110a51c4c058e1d8"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 21,
+  "findings": [
+    {
+      "id": "40f3fd1feaab3f7c0b4ee310ba65cda39b640344c3195d9726faaf652e043855",
+      "findingId": "40f3fd1feaab3f7c0b4ee310ba65cda39b640344c3195d9726faaf652e043855",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 21,
+      "severity": "blocking",
+      "title": "Explicit record-and-proceed artifacts cannot pass their own schema",
+      "body": "`recordAndProceed()` moves the operator risk text into `recordAndProceed.remainingRisk` but no longer writes top-level `remainingRisk`. `FinalRegressionArtifact` and existing consumers still model `remainingRisk` as a top-level artifact field, and `validateExplicitFinalRegressionProceed()` even checks consistency when it is present. The R3 path therefore produces completed explicit-proceed artifacts without the top-level risk field that downstream reporting/contracts expect.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "40f3fd1feaab3f7c0b4ee310ba65cda39b640344c3195d9726faaf652e043855",
+      "disposition": "must-fix",
+      "rationale": "R3 is the mandatory requirement governing explicit operator proceed evidence. A completed proceed artifact that drops the canonical top-level risk field weakens the required operator evidence contract and can break report consumers, so this is blocking.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    }
+  ]
+}

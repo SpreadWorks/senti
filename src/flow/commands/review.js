@@ -770,6 +770,14 @@ function parseImplReviewJsonOutput(raw, requirementIds) {
       throw new Error(`impl review output failed schema validation: ${err.message}`);
     }
   }
+  for (const bucket of ["blockingFindings", "nonBlockingImprovements"]) {
+    if (!Array.isArray(parsed[bucket])) continue;
+    for (const finding of parsed[bucket]) {
+      if (finding && typeof finding === "object" && !Object.hasOwn(finding, "file")) {
+        finding.file = null;
+      }
+    }
+  }
   const errors = validateSchema(parsed, buildImplReviewResponseSchema(requirementIds));
   if (errors.length > 0) {
     throw new Error(`impl review output failed schema validation: ${errors.join("; ")}`);

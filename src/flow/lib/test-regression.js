@@ -1015,6 +1015,7 @@ export async function runProcessDetailed(command, opts = {}) {
     };
     let child;
     try {
+      const { NODE_TEST_CONTEXT: _nodeTestContext, ...environment } = process.env;
       child = execFile(
         command.argv[0],
         command.argv.slice(1),
@@ -1022,7 +1023,8 @@ export async function runProcessDetailed(command, opts = {}) {
           cwd: opts.cwd,
           encoding: opts.encoding || "utf8",
           timeout: opts.timeoutMs,
-          env: { ...process.env, ...command.env },
+          // A test command must run independently when the flow itself is invoked by node:test.
+          env: { ...environment, ...command.env },
           maxBuffer: opts.maxBuffer ?? 20 * 1024 * 1024,
         },
         (err, stdout, stderr) => {

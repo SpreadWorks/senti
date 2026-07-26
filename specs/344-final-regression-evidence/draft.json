@@ -1,0 +1,69 @@
+{
+  "devType": "bugfix",
+  "goal": "must: final-regression の完了証跡を、正のテスト実行・完全な結果・実行対象への厳密な束縛が確認できる場合に限定する。",
+  "analysis": {
+    "problem": "must: 現行の final-regression は、testCount=0 と exitCode=0 でも成功として完了扱いにでき、失敗時にも autoApprove が record-and-proceed を選択して completed artifact を残せる。artifact は実行時に検証した HEAD SHA、tree SHA、command、result へ一致検証されていない。",
+    "proposedApproach": "must: 成功 artifact は started=true、exitCode=0、テスト件数が 1 以上、stdout/stderr の収集が truncated=false、かつ出力から pass/fail を確定できる場合だけ生成する。must: artifact は実行直前の HEAD SHA と tree SHA、実行した command 文字列、raw output の SHA-256、解析済み result を保存し、受理時に同じ HEAD、tree、command、raw output digest、result を再計算して一致を確認する。must: failed regression の record-and-proceed は operator が failure classification、確認した raw output path と digest、override の根拠、残存リスクを入力した場合だけ生成する。",
+    "validation": "must: run-final-regression の focused tests は、(1) testCount=0 と exitCode=0、(2) truncated=true の stdout または stderr、(3) 保存時または受理時に HEAD SHA か tree SHA が一致しない artifact、(4) failed regression で autoApprove のみを使う proceed 試行、(5) operator 入力と一致する binding を持つ明示的 proceed をそれぞれ検証する。#403 の failure classification の値と recovery classification は変更しない。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: final-regression は最終プロジェクト回帰の実行結果を artifact と issue-log に残す。",
+      "must: 現行 FinalRegressionArtifact は autoApprove が record-and-proceed を選択すると failed artifact を completed として report へ進める。",
+      "must: #403 で導入された failure classification は保持する。",
+      "must: record-and-proceed は failure classification が既存の例外対象である場合でも、autoApprove ではなく operator の明示操作、検証可能な根拠、残存リスクの記録を必要とする。",
+      "must: 既存の `senti flow run final-regression` は command 名、final-regression-result artifact の保存先、pass と policy skip の report 遷移を保持し、同じ command がより厳しい completion 判定と artifact 検証の owner になる。",
+      "must: 既存の failure classification、repair/stop の recovery policy、issue-log 記録は同じ final-regression command が保持する。",
+      "must: autoApprove による failed regression の record-and-proceed 選択は削除し、ユーザー影響として auto mode 利用者は operator 入力付きの明示的 override を実行しなければ report へ進めない。"
+    ],
+    "decisionPoints": [
+      "must: completion evidence は started=true、exitCode=0、testCount>=1、stdout/stderr truncated=false、出力から pass/fail を確定できる解析結果を同時に満たす場合だけ pass とする。",
+      "must: explicit record-and-proceed に必要な operator 根拠、残存リスク、failure classification を定義する。",
+      "must: artifact は実行直前の HEAD SHA、tree SHA、command 文字列、raw output SHA-256、解析済み result を保存し、受理時に現在の HEAD/tree と保存済み command/output/result の再計算値が全て一致しない限り completion evidence として拒否する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 自動モードでも不可逆または安全性に関わる例外判断を自動選択しない。",
+      "must: 要件は検証可能な条件で記述し、既存の失敗分類を弱めない。",
+      "must: retained command、artifact、failure classification、issue-log の新しい owner はいずれも src/flow/lib/run-final-regression.js と関連 artifact validation であり、command 名または artifact path の移行は行わない。",
+      "must: behavior-level parity は既存 pass、policy skip、分類済み failure の recovery が同じ command から従来どおり結果 artifact と nextAction を返すこと、ならびに auto-selected proceed だけが拒否されることを focused tests で確認する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: spec は HEAD SHA、tree SHA、command、raw output SHA-256、result、testCount、truncated の artifact field と、artifact 書き込み前および受理前に一致を検証する責務を定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/flow/lib/run-final-regression.js の completion 判定、record-and-proceed 選択、artifact binding を強化する。",
+      "must: 関連 artifact schema と focused tests を更新する。"
+    ],
+    "out": [
+      "must not: #403 の failure classification を削除、弱体化、または置換しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: successful regression は started=true、exitCode=0、testCount>=1、stdout/stderr truncated=false、解析済み result が pass の場合だけ report へ進む。",
+    "must: failed regression は autoApprove だけで report へ進めず、明示的な override 証跡がある場合だけ例外処理できる。",
+    "must: 保存済み HEAD SHA、tree SHA、command、raw output SHA-256、解析済み result のいずれかが実行対象または再計算値と一致しない artifact、または testCount=0・truncated=true・pass/fail 未確定の artifact は completion evidence として受理しない。",
+    "must: pass、policy skip、分類済み failure の command 名・artifact 保存先・issue-log 記録・nextAction は保持し、auto-selected record-and-proceed だけを明示的 override 必須へ置換する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "既存・環境起因に分類された failed regression の record-and-proceed は、どの failure category まで許可し、operator はどの検証可能な根拠と残存リスクを記録すべきか。",
+      "answer": "既存の例外対象 category は保持する。ただし must: failed regression の proceed は autoApprove で選択せず、operator が failure classification、確認した raw output path と SHA-256、保存済み HEAD SHA と tree SHA、override の根拠、残存リスクを明示して初めて許可する。must: 保存済み値と再計算値が一つでも一致しない場合は proceed artifact を生成しない。",
+      "evidence": "Issue #468 の Required Invariants と Acceptance Criteria は explicit proceed に failure classification、operator-provided evidence / justification、対象 commit / tree への exact binding を要求する。src/flow/lib/run-final-regression.js は RECORD_AND_PROCEED_CATEGORIES で既存の例外対象を定義する。",
+      "why": "#403 の分類を維持しながら、completion evidence を例外の存在ではなく明示的で再検証可能な override に限定する。",
+      "considered": "record-and-proceed を全廃する案は、Issue が明示的な例外フローを要求しているため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T23:11:34+09:00",
+    "notes": "autoApprove preflight accepted; issue requirements and existing failure classification resolve the draft decision."
+  }
+}
