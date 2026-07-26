@@ -1,0 +1,2435 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": null,
+      "commits": []
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "pass artifact は process.started=true、exitCode=0、testCount>=1、stdout と stderr が各 1 MiB 以下かつ truncated=false、解析済み result=pass の全条件を満たす場合だけ completed=true と nextAction=report を設定する。",
+          "status": "done",
+          "note": "R1: zero tests or either stream beyond 1 MiB never completes a passing regression"
+        },
+        {
+          "desc": "artifact は各 1 MiB に制限した raw output、execution 前の HEAD SHA と tree SHA、実行 command、raw output SHA-256、parsed result、testCount、truncated を保存し、artifact を受理または proceed するときに保存値と再計算値が全て一致しない限り completion evidence として拒否する。",
+          "status": "done",
+          "note": "R2: acceptance validates the captured execution binding against the current repository"
+        },
+        {
+          "desc": "failed または incomplete regression で autoApprove は record-and-proceed を選択せず、operator が failure classification、raw output path/SHA-256、HEAD SHA、tree SHA、override 根拠、残存リスクを入力して binding が一致する場合だけ explicit proceed artifact を作成する。",
+          "status": "done",
+          "note": "R3: autoApprove cannot complete a failed regression, while explicit bound evidence is required"
+        },
+        {
+          "desc": "既存の pass、policy skip、failure classification、recovery nextAction、issue-log、command 名、artifact path を保持し、auto-selected proceed のみを explicit override 必須へ変更する。",
+          "status": "done",
+          "note": "R4: final-regression keeps its command, artifact path, and classified failure recovery"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 61,
+      "fullLogPath": "specs/344-final-regression-evidence/issue-log.json",
+      "importantTotal": 10,
+      "importantShown": 10,
+      "importantOmitted": 0,
+      "recentOtherTotal": 51,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 46,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "The goal requires completion evidence from fully captured output but does not state an explicit maximum output size or other bound for that output capture.; R1 makes `stdout/stderr truncated=false` a completion condition, implying comple...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: corrected explicit evidence validation, failure classification, and the spec fixture newline so R1-R4 test artifacts pass",
+          "resolution": "Central test-execute and test-result-review now provide current PASS evidence for all requirements."
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "repair-011 and spec-local R3 evidence now participate in impl review recovery",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "final-regression failed: caused_by_current_change",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "final-regression failed: caused_by_current_change",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "final-regression failed: caused_by_current_change",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "The diff adds `gitValue(root, args)` as a helper wrapping `execFileSync(\"git\", args, ...)`, but its added call sites are only within `run-final-regression.js`; it does not hide meaningful complexity, enforce an invariant, or establish a ...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: modeled HEAD, tree, and worktree fingerprint as one FinalRegressionRepositoryBinding value object",
+          "resolution": "The value object enforces the execution-binding invariants and centralizes capture/matching across the runner and artifact validator, eliminating both thin wrappers and duplicate repository reads."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff adds an inline SHA-256 hex calculation for stream evidence using `crypto.createHash(\"sha256\").update(...).digest(\"hex\")`; the same hashing shape is repeated in other changed production locations and could be a local helper.; The...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff introduces a non-trivial final-regression executionBinding/artifact-validation data flow, but the provided spec content does not include evidence that this design direction was confirmed before implementation.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: documented the execution-binding validator ownership and accepted complexity boundary in the spec alternatives",
+          "resolution": "R2 requires one shared, recomputable producer/acceptance contract; the spec now explicitly records the rejected runner-specific or omitted-validation alternatives."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: removed the thin gitValue and sha256Hex wrappers while preserving the final-regression evidence checks",
+          "resolution": "Direct standard-library calls keep the validation behavior unchanged and avoid abstractions that do not establish a reusable ownership boundary."
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-decision",
+          "reason": "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
+          "resolution": "continue to final-regression with accepted risk"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 20
+    },
+    "tokenMetrics": {
+      "input": 1579128,
+      "output": 84511,
+      "cacheRead": 1562624,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 101,
+      "durationMs": 2486897,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 6483
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7292
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 53840
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 102036
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 52474
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 73444
+        },
+        {
+          "phase": "implement",
+          "durationMs": 243404
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 1074627
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 284492
+        },
+        {
+          "phase": "acceptance-review",
+          "durationMs": 588805
+        }
+      ]
+    },
+    "tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/344-final-regression-evidence/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/commands/review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/flow-judgment-contract.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/retry-recovery.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/review-convergence.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-final-regression.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-regression.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/final-regression.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "028aa7d9bbb205ba35af664bc7e23fde4ba8cc296e34b2b179e6b874530c9245"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js",
+            "fingerprint": "dced450649de7c6599ad2dd0d65cb60fb5e77df71e53575d5ae4d08391ba2e8a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "aba6c3f6ae468befdb3dc34cb22749623b8944389d5ba5c15816f0dd46e2f50e"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js",
+            "fingerprint": "a58e20a7ba14255beaf1e5b03754dbc09425cfae17f43de4c862c560ba8458d1"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "dc3cd82ffd067229e7da352b88b37de74883c2b159f84ea9287d0e5af8f6150c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-final-regression.js",
+            "fingerprint": "d8bdb41a2bbcbed2fdd35ece0741887126aeec16c688df0104b2d422bdb4e9f4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "e2b1eac6ce4ef5729297672955a999b0fd72b7a2b51f669369fe9690a0a5a732"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js",
+            "fingerprint": "73385477610bd337a276eb100ec49bce01dba2318c4e63cc365583ca91d199c0"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js",
+            "fingerprint": "5832a0340c6bcf2ba7dc1f31ed0ccd46daab6d08074f2b7eab98f70d40466e02"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "86865c46f808e86683711a257a79650bad1e9ef0b3e9ae4173b5ef3b72c63955"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "fingerprint": "50b37ca4750782e8d4aef4d5840588be533dde852d4e855dd3f3aeea43dfab47"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression.test.js",
+            "fingerprint": "519f81aebf37ee4fd58cdf9a9637dc1c1260f970e7bd7d9411a49f5be06f3f9b"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "50b95566c6b091c999369a52903e8fb4b38b7bed6615e84e24f40e5c6c7d7f97"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+            "fingerprint": "0c26e6962a82f1af9ba1c3ded80728b5e471c1b8d0a68ff06709bf9bc854e111"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "a4ee71c6bf3fd95095fd09da101409658a446d997d541762be4f6cdbd99b9291"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "028aa7d9bbb205ba35af664bc7e23fde4ba8cc296e34b2b179e6b874530c9245"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js",
+            "fingerprint": "dced450649de7c6599ad2dd0d65cb60fb5e77df71e53575d5ae4d08391ba2e8a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "aba6c3f6ae468befdb3dc34cb22749623b8944389d5ba5c15816f0dd46e2f50e"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js",
+            "fingerprint": "a58e20a7ba14255beaf1e5b03754dbc09425cfae17f43de4c862c560ba8458d1"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "dc3cd82ffd067229e7da352b88b37de74883c2b159f84ea9287d0e5af8f6150c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-final-regression.js",
+            "fingerprint": "d8bdb41a2bbcbed2fdd35ece0741887126aeec16c688df0104b2d422bdb4e9f4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "e2b1eac6ce4ef5729297672955a999b0fd72b7a2b51f669369fe9690a0a5a732"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js",
+            "fingerprint": "73385477610bd337a276eb100ec49bce01dba2318c4e63cc365583ca91d199c0"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js",
+            "fingerprint": "5832a0340c6bcf2ba7dc1f31ed0ccd46daab6d08074f2b7eab98f70d40466e02"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "86865c46f808e86683711a257a79650bad1e9ef0b3e9ae4173b5ef3b72c63955"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "fingerprint": "50b37ca4750782e8d4aef4d5840588be533dde852d4e855dd3f3aeea43dfab47"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression.test.js",
+            "fingerprint": "519f81aebf37ee4fd58cdf9a9637dc1c1260f970e7bd7d9411a49f5be06f3f9b"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "50b95566c6b091c999369a52903e8fb4b38b7bed6615e84e24f40e5c6c7d7f97"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+            "fingerprint": "0c26e6962a82f1af9ba1c3ded80728b5e471c1b8d0a68ff06709bf9bc854e111"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "a4ee71c6bf3fd95095fd09da101409658a446d997d541762be4f6cdbd99b9291"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/344-final-regression-evidence/tests/.raw/final-regression-attempt-004.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "9ddf528e45d39f1af6386f28f67e526673314e2e512f9710fe58654ca7256e7b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/.retry-recovery.transaction.json",
+            "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/acceptance-review.json",
+            "fingerprint": "44138d70da65ffecca6921c72a7636b380f969924af3fbcc4b845c0d6ea10f36"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/draft-coverage-repair.json",
+            "fingerprint": "48cc06f5838ac451b60ce397bea605aaa4a000fa342e147921af997a5239cb62"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/draft-coverage-triage.json",
+            "fingerprint": "f414b4ae4dd7255fb002e5e8817d44d8c5002190bb95c10c83e4795cefec765c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/draft-gate-source.json",
+            "fingerprint": "31d164c51cb5456a018a66e76b46f0205278aff061e74f7516d98ce46d6a33b4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/draft-questions-repair.json",
+            "fingerprint": "edaa789eccf15f1c177a5d8f01ca5efa35cd622a21086ed8d9fd37263804c385"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/draft-questions-triage.json",
+            "fingerprint": "d69b6e4bb2affdca1744e191f21e921817fbbda3fa7501d70259d670eef32bd9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/draft-review-coverage.json",
+            "fingerprint": "cae00644ef6e26ac6178e4b0f8c80dc8053aad6330156c94e3adb2251d6613af"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/draft-review-questions.json",
+            "fingerprint": "f4531fc22ecdeee45955b70b429e24e30e85555bc26e190399dfacf44f5e3445"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/draft.json",
+            "fingerprint": "de9d393e54245888fead045584590dfb432d90516b81024a66209a39db0aa658"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/file-map.json",
+            "fingerprint": "69c8b8889e38c70cef47b3f0e05f6756fadbb2d175aa20a6e6feda3fb845ce28"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/flow-findings.json",
+            "fingerprint": "7e9f2efd182a6b79eb61396b3dde3621cb5aea09f6f533b0e73285d0fbcd5999"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/gate-impl-memory.json",
+            "fingerprint": "6ae2f2d4afcf3cefb3b598945f09ce1e8a21df7bdd697fdc80ee39982f7ac667"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/impl-gate-result.json",
+            "fingerprint": "f296073cd16f22abbcaa3f7f0c9f206843e060439a322d256be2f21a4ddb90dd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/impl-repair.json",
+            "fingerprint": "82c2e05ddca4310f79c5dfd82333a7ef463e84fba52071058ef5ebe011feee09"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/impl-review.json",
+            "fingerprint": "a70113fc15c117d35424cf30034f3d0a8b24a6b37e1385f5841cc64077327230"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/impl-triage.json",
+            "fingerprint": "7b4991ac1b127f5c796ee34c33a907aa02be44e54c954b664bf508bc58c29ca1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/issue.md",
+            "fingerprint": "19d1aae960ba67283a4eecb24b24fa28eb5acd9d9ce36f90c442d06ed9892bca"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "7e4e1b2aea5c221c0395a5c2abdf14007fb3b6e4bacdfab6381cd223fc28a116"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-001.json",
+            "fingerprint": "23d2bceb19b4b02dc7dcff67b6e26d9f4522310a545b93de7e02bea0192844ba"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-002.json",
+            "fingerprint": "1f5529ec15c9552958a4d4ed495c6c286feda262fe86c08a07aa4f0110b5192e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-003.json",
+            "fingerprint": "7962afa69f4563c6e4f4b344b98dc3208da8efe6782487ad15b73ec002b5c7d3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-004.json",
+            "fingerprint": "298802a44fd4d1ea9763c1bcd674ea43679b9d852880f61de0694dc74b2697aa"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-005.json",
+            "fingerprint": "76046ae7f6db3934df341313fbb8bc28e4472e81ed296c4dd379282340b7cf26"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-006.json",
+            "fingerprint": "7dcc1613169f3e1b742c86ee73f10c19b79ddab0e36c74d1b77ed9eead05dc17"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-007.json",
+            "fingerprint": "cf9a122ad2d37d586f87effdca31171d9468e5278f46f21e967429d98a952f9d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-008.json",
+            "fingerprint": "34b12d89b54b97a3fe0fb0a5beaa4ac8c08ab002edb23490998e37c2c43e2882"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-009.json",
+            "fingerprint": "8c03ddb15bbbf96fe36a5aea7651e62285d8c6973fc47b2349f83a5c2e7fe5c8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-010.json",
+            "fingerprint": "748df46ff3815b297fcfa48ff4c2b20f4e74091db077f46857554196aa1351ed"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-011.json",
+            "fingerprint": "13294d71a3b11dcbb663fc6f6eb0c15fa961367b1c8d7fa4a6d4d2a7b846058a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-012.json",
+            "fingerprint": "d0ee62cad2f7937074bcf0da24e3f8b1f29ca6c58d5205f5fc8385101376e068"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-013.json",
+            "fingerprint": "da71bcf10248ae813d2b76cfd78ab22838a6573acabb4bd77f3e1f9a5e559292"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-014.json",
+            "fingerprint": "7062c4104d2216a67ca88ec62c89963da97348b02b8b8dffddfc40874d31d858"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-015.json",
+            "fingerprint": "09e6225a059ec445d74e93d5990336e53bc0988e303bb94cf1af3418e625af38"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-016.json",
+            "fingerprint": "874607c388ae45f276464b6b84b5d50bffff4a4f5e2cae4c33e20b2854872cc6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-017.json",
+            "fingerprint": "02caa03b1dc6a328f24f1f26a322139e4093f4afe4cdf6f3dd99e4f4b0117e9f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-018.json",
+            "fingerprint": "da52711bbbe9383577d2fc74153fbbc7c700bb2c09bdcf3422501d98bb069005"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-019.json",
+            "fingerprint": "57f0f052e7ed761510b8ea67f94a7dbb78ed0aafdb482c1d14fa557d17f87b1a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-020.json",
+            "fingerprint": "234960c6dd1f44efbac008e66fcc4144f4a9e5b9335dda0c913d3adfc44c6a43"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-021.json",
+            "fingerprint": "d51d7510da8065956013d1a051d3a612dac9c6c5b112ee0cf4924286a3064627"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-022.json",
+            "fingerprint": "1014b458ff22d1e0e6ec806b7fc452eec980bc27b5579f63cfef0d604ac0bc09"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/repair-fingerprint.json",
+            "fingerprint": "a225ef4dae1c0019328c0c5138101106952fcddcadc604c6d06923fc2ce6a788"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/retro.json",
+            "fingerprint": "1ed2d19456a26e2029c1415aeb2c5b8ce8dc03c626a32880b2e83cf9bd416e05"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/retry-recovery.json",
+            "fingerprint": "478def024bea50b4c87bfb76fac3db96146d7be9fc184aaf9c17206dcce8a99a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/1ce7a76902eee9266f47611b27cd58d9699c516861b707febf15cbd081d8a3b8.json",
+            "fingerprint": "e4da97f62b5fa138e4d4a649104d9725a4b0b8c64918f4b5c03983e3e30a1870"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/2128b6bd87791dfbefdc53f0c9a1504f097186fad215716d51f6a4e06d0b7ab7.json",
+            "fingerprint": "56aaca3c3f844074707a3e36064c50a031e3cc85899a24e8de72b88c473dda0f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/26151e1458555b06b15a1532e8e98f235bd2d6eef19be176f7c4154ccf1e6ad6.json",
+            "fingerprint": "f22909b9154c5bd5669b6451efa95de67d6235c2b4eb8bec46ee2f134bccb632"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/2697996530cc14e896688763a1e6c38488a20e78946ee6ecdc7c34b159b4045d.json",
+            "fingerprint": "11a98686a600e76cd7ad58a6fc864afcc07cb59dc40be8c95ce612bb4900f41f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/26ff096578527e50370260f7a8d9e871f1f28ffb0ed3a4886f96317d1be92af0.json",
+            "fingerprint": "ff28b2ddb0548cc77ff622b2c93ad216f2aabb69c05efb903434a196c484ea1c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/3a5f10ea587881c1a67fb57ec5a5c42d573caa94207746fffcf9d8782fd9fee6.json",
+            "fingerprint": "e573a006003c43b99a04f298590e99d304f0c82893bf4fe0745b1f77f7cd6a7f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/3a6a059bd7ccca02a1d7d94383e01f113b6dc0f91109ccd2813c26b181254c8e.json",
+            "fingerprint": "b8fbda69d50cb9fde194b5ca283c62ffdab34fd116a46b79e733a2ad7d7cee8b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/3ad3a72e5ac92b67867f9aebc3ff21427e1eb8d68196d00bf903d45a833e4625.json",
+            "fingerprint": "8a80336a77b73f836046a62f0a181eae0797cfa5b458fd8b95ff07f9f61c9fb4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/3b7d2eeb1d205fcfc14f6cdda0d69b98d6fb02b34791ffbebc7bcebcfc825b26.json",
+            "fingerprint": "b78a63a1dde3987b58c95fc6068217b146f6832f596cf48a55ee3780ea623110"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/3fb2d99ee38328db428e87755f20089d3dab01a949fd5d5f51c5b14b073e46ca.json",
+            "fingerprint": "371ed8ac5a931d67a88208e87cb4b15f2e559ced8b3c3be329699f97bfba8db3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/52c0328d96d935bd7c6a5911a9b6d5f25270d855e752564dd7438b1f650f482b.json",
+            "fingerprint": "9820a1421550152c00dde9029f790dbad423d20daf8fa454a79d931fd081867c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/5bd113925537ef34be38a0f968c9fea41c9ba4ba1351a320c16d3ed5aead24ac.json",
+            "fingerprint": "a802b95c4f6358e79bccd1b82bb0a4715879ee9a7a3e2ee42c0bf24e22ce8367"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/6425c67fa5c4339589b6bea61cbcedc7f3757f72188110cea5e49cbc6a15f311.json",
+            "fingerprint": "9e272229a47d9280924b76cd1928288675c21ac274b07977cfd67dfbd4e307ce"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/64fa191e63f4369da3a60dbd79c65b8e9c1d599c57eba5dcc51553927c6b49b2.json",
+            "fingerprint": "fb3180f2d57d2723183da199bec001eb7670546b2aa81b97dce4b9c54e7e2621"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/800ac03820740dc556765b56dcc90d686ac778bf2a74494918119976091b34b2.json",
+            "fingerprint": "07b6c0a05811bc1e3d6bda5dfb8ba6583bf641eef1caa22c62e12905b7f8272a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/862cda19ee9f23f044ded52bc6de0af0e6da3f085b9882995a1662114692a762.json",
+            "fingerprint": "bf223da5376f0920e5f5a0132484983e442478e3e9438ff33b78f11045fe020e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/931399ca5a64d455b12cac8d6b7fac0f34bec79c25ae06627a6a63768fb53c20.json",
+            "fingerprint": "09a02de649959af088cfec2166399daf85c41950fda127d094109786cbfabce2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/937bdc39e2308360a36f29fb121b75ac1e163cd2de330d2ffde83d93a20e0361.json",
+            "fingerprint": "46d017768aa08c56d14ac17b6b992b92ab65a5afce9e855458a616e1934baa04"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/95b18f37c241dbb7025a8ef589836961262127a6aaeffa0cc2d301e80412a26f.json",
+            "fingerprint": "70cb8b9f498880666ca6050f7229b7a2eb20adc547c24140a3595ccb2ba2f598"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/95b6d55f797da51902dbc74c7ecb42c010fb679cb5658538215777be44f7f7ad.json",
+            "fingerprint": "74a60b32eb641f3509372e61e7505550f9cdb37d1312c6872815b94a8d28dfb0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/9d88df1b924b3a3a35faf02ae4809248f1bccd7cc86c99d3f7802fe58ce126f8.json",
+            "fingerprint": "82fafb795676bd9d36094583077b3b1f96d667ed9f10eae6f559e6b0f3b61d81"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/c08a1791ad23c166f63ebb24cd8ef4ed92df9ad19dcbde4d6d92598224d2fb55.json",
+            "fingerprint": "5f630cc56204c8abd2eb8eaac0c46461eb1e435ea5926bf37f07b8f4386471b3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/c5fe8c9ae224dd57a2db46414ccdd9c2bc1129c1372449ae46587907c92090cf.json",
+            "fingerprint": "aa160159ff17a7dc0bd298da5baac2e0437db1a0789e799a7c8951b61341e989"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/c7eef41265583553e7162be576041776fbcbf45e433e1ae37381988ebbaac700.json",
+            "fingerprint": "d0bf86f22658f0aec54745af3192767f814691327d10fa4ace7c2731c64973b2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/d2d2dec2d276f6c4447ed4724599e39ad4dbc5b49cc3f2ce2258b19bb17c1b70.json",
+            "fingerprint": "b563394bfe5b1615fa97957f11ddb5721571d4f16d36fa760c485b696e7145a1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/d63ab52f8d61e5321c80ed6092b018edd3e54ce5c8afd560855e0d49f91cd0ac.json",
+            "fingerprint": "90b3b1ee867c1a3c6117b4579f75445c449ccabcb648489d7d04700f50ee62c8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/d819e79d60fa849845ce931cbf0e035e1d002dc5869b4900188dde803e365303.json",
+            "fingerprint": "f9e621be649e7387a6126b0db1eb259e4dc07043278cf631171cc764544a91ab"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/d97a122ee4bc193deac1de88d6d4e6de86c96e49053049ce33a2812556de213d.json",
+            "fingerprint": "91fce7eeb46a9ade653866e55e20d11eb3aa7ecd31085ff340232f439721a115"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/e015e7a2979555be5f95521880b890aa668155501403c3079693e78b754bf73d.json",
+            "fingerprint": "219ff365b001355d3a2b384f27b4ccb07a367276dcd30d8de9c5b28d67ec549b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/e34e6b3db25b4ec2e43a12415347336738d37bfd618f83a53f6c6381148ce2ea.json",
+            "fingerprint": "4cc8a602ac21220650931d27494104b6bf6ebc839c6eef5918f8f389c0f8ed6a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/e8aae5274cc0045a0213b668abb94b1c4dbd87526ee5fa5394d8773dd71ecd3e.json",
+            "fingerprint": "d64ea95c11e097af4c5ed3decf8bb747d44f4597507407faf9462a23d638a547"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/f119bfa83c3ab6819b85b792a31884073d661e62e0c3c6c556fa73c886574ef8.json",
+            "fingerprint": "295f199ff12171d4110b9568f9badfa10a447e5548a60ebfeeeaf68c4ce332ca"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/f74049e6e538dc7ac5be39517aaba00cb00c11d6a1d5773ee9762eeeaed96cee.json",
+            "fingerprint": "ff11142d4a3b8ad00acd446da5b5f902744cf10c75f4d6d482852feff9e262e5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-evidence/fbadc22699cb0555ba5923719cfed3853e7ff3eb6141419e13a1431242773d37.json",
+            "fingerprint": "612ffedfe2978577331f1b670fe30c7c4369c5e6960329c8dfe3e0ef20902b68"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "220c80cfca1baf143a7041c6d23a04cc8c67384bb94d41b47159e24fac1479ad"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "f0bad7d1759f6f80e973fe51b6fa6e095cd80883a441d70d107f94d22e73256c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-001.json",
+            "fingerprint": "d5b3b13495b369714fe7b3d4cc76f888dc28a06d664b93b02d62b9c82a7da175"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-001.md",
+            "fingerprint": "2e7b54edfa3ecfaca4fbbcd56b98bd59eb989ae87d074ef4996ffb41f2b8e904"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-002.json",
+            "fingerprint": "f19b3d8b13ad83eab4d880ee2c05bb7bf38cc83838a613d06966f8c8c8f34537"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-002.md",
+            "fingerprint": "eb86db3a39081330c8013659a2072945a4e70218992c6de1e58d61190bdff3d8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-003.json",
+            "fingerprint": "460292e124b8e24e02d85be9822679127017416a29dafda4f09e80da66d0314b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-004.json",
+            "fingerprint": "9ac728c43758bdd17f1b22ea9c983cc386cb301883479670c0d173cb45cdbabf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-004.md",
+            "fingerprint": "51b8f2cbc6632f61c4cd06046a1adbe4c7c356ae1be0ff7c23c4fa0b13a329a9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-005.json",
+            "fingerprint": "6690727b16ede2bf3726aeaba6e2e843c93d3065f9b8aa3746119022b26aa05d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-005.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-006.json",
+            "fingerprint": "a026b1fc8d5e48b9023ef35a17e2b17409bb59a28da9a109f14f5fe97712ad9e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-006.md",
+            "fingerprint": "7b1ad7ff7ebf7940785a854fe3b46a8ba6118e568728846994a0f41a89b6d8dd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-007.json",
+            "fingerprint": "77c8ae14a39bb5760d4813dfdb796ba50c35764e3dddaf40ed45daeb661eb0de"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-007.md",
+            "fingerprint": "c78b1c9fefb0b18c7620bf9f2da3c9ba376b291f0df89d7dd739665cfd9d01ed"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-008.json",
+            "fingerprint": "533635db6158a5904c0e94b30a54cd3819cc806b0080067b2015801296c6669a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-008.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-009.json",
+            "fingerprint": "1addfe671cf9be6f3bc3f65bf49e2e782a70e4742adb4d434d00c565ed8b8bf6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-009.md",
+            "fingerprint": "b4c66d04260fdb64427fe50604fd84443dac6817013b1bf1ead59260d4d82ddb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-010.json",
+            "fingerprint": "614d243496935fb4699b4096582b0f4e54ded65aad88795ae1906883eca82006"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-010.md",
+            "fingerprint": "67c4298f34e22e30676cd18ed967244bee8a99d5c328780044c940f9315b841f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-011.json",
+            "fingerprint": "d704991567aa3d725ab5766df7cce5b599b9507b16300dd60571cbe1abbcec49"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-011.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-012.json",
+            "fingerprint": "899711ddedbc3df37cc9dbe71376e5958631adaee63ec6f3363550e4290b2834"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-012.md",
+            "fingerprint": "d2ee35674dabe8df0e527e34d9cf8a802bea5ef61ad247d55d7e86fb15ea59ea"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-013.json",
+            "fingerprint": "01eec4ffb62f224f03a855f290e4d67a322d019ec86542fad70fb4e25c50134b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-013.md",
+            "fingerprint": "03cc0ba21544d440fd982e825cfcefdb361c3c4a4db07064881baeb16c8b3b99"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-014.json",
+            "fingerprint": "fb76cf624cbc9719b4c3c61213775a1de70e76f2cadd1703b19d81fbb707b310"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-014.md",
+            "fingerprint": "1d468366b641e80d865e89a6a3311ab273d27ad26a2cd37a2257ed4564b25599"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-015.json",
+            "fingerprint": "0b99e6953e4f9d6fa2041e93a491ba2d629dddca62b8d821daf832d663abc335"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-015.md",
+            "fingerprint": "a4355cdcce03daba66f808d89c8c1049dfaa5c50280ff0df9c8ae727031d1b3c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-016.json",
+            "fingerprint": "9393f027dfb89b33cfb7aab8a7fde6047de28911afd5f6d5f05196801d98e8bb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-016.md",
+            "fingerprint": "bf4294153856bdd20c97a16bb1f28e7ec6f4e877963aff57c7f09e383ac384cf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-017.json",
+            "fingerprint": "66c67d642cea6a98d96312ce38cdfc943e511f07be121f9daa8e284fdbbccf77"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-017.md",
+            "fingerprint": "7bd2050c382098ada8014f2d4a328a9082a033f2df3ee1bf3a7ec745fce51831"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-018.json",
+            "fingerprint": "a78bd8372e326a4951fdfa58c5b5a9d1772d30eddcd2d42421e9f91e048a33a7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-018.md",
+            "fingerprint": "17915e30ad97b33ffa5e3e983dc03f43e1bf3573a28e346c8bc1161db0401d95"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-019.json",
+            "fingerprint": "ee2bfc119f317e75439825e1ae1e94fbc252499d42645d52395d60a360901b46"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-019.md",
+            "fingerprint": "ed24152033657fdc3629847e79730e94693b0e256b8e2284f8f80e439017b3ea"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-020.json",
+            "fingerprint": "aa9e333b64dc569e317fd99f3c041dfa4c915ed56905398620ed499b5a85d0ff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-020.md",
+            "fingerprint": "a9cea56f01197ad6356c50197cff499a5cc753d98f104b32a0371edbc7b91335"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-021.json",
+            "fingerprint": "67d5e21fad848f26d7e2ec009540970d4cbe3e31bb7d20c0766a70822c36f920"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-021.md",
+            "fingerprint": "78579dfba645416963c951626c218367a9b86d7803984dfcb53ed940d9e870e0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-022.json",
+            "fingerprint": "8d17d62bc565e83ae1e269a42fb15545d1a809ff0ca58fc00ab0d93dedf74fe3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-022.md",
+            "fingerprint": "3e2fa44440e66ce7887ef6b1480df5f621cae3dc46ae11235e66ac8efbf5b11c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-023.json",
+            "fingerprint": "c5259ee25a377980e9811f68c39f0879744bec36573c22edcd9e282c4931b8d3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-023.md",
+            "fingerprint": "813de5edff415979ef40740abd7ee1e95528cdbdd357d31d4bf0577f7c4ce2fe"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-024.json",
+            "fingerprint": "16de1b243cc94d4d4549a7036d43d52e7b63950670a9aed9968296abce45f8a1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-024.md",
+            "fingerprint": "5e42dbbee41836b0a282cbfa2a1fa098deb8ebb914b86e377247b54ec023a7ec"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-025.json",
+            "fingerprint": "a1b0f50f6dd8b6b84d9570cd65cd784c88d2795e0f749f8bce28f7d73f71a964"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-025.md",
+            "fingerprint": "2408a9ef836b999205551699c3128ec266913dbd2b20bf90c94d27185f4bf9ed"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-026.json",
+            "fingerprint": "a3231cb82db9d87ce6243463c4cd2e61d17a31b4b2644a9bb3bb81e849759c63"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-026.md",
+            "fingerprint": "2408a9ef836b999205551699c3128ec266913dbd2b20bf90c94d27185f4bf9ed"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-027.json",
+            "fingerprint": "1b310ed37621173112449b4b4de5e9fa30f47d100b2cb3dc65e8ac9c9f83ea5f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-027.md",
+            "fingerprint": "a141073308d1d476676ffb14d3ed5823fdbe53c7d4f2650e363174f7a4ee7c4c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-028.json",
+            "fingerprint": "b057542382009f75353756a95e0f3be4807330918ea4c430a4d49e497e76e593"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-028.md",
+            "fingerprint": "23c962526510f5bd96bed2eddd3162673b25864a7954c737e07bca84c37ef918"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-029.json",
+            "fingerprint": "4c27058813d730110d379becf0b7c5429615b761f8c6b3f7b91a11bd01f94ebc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-029.md",
+            "fingerprint": "707512b54bcc4f45022cc63f9b4ac2b68b3013da29e0f99989902f535941c4a2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-030.json",
+            "fingerprint": "a55ee26370ede75c72372c4b3330eb0a722778cad924bcee85762b884d0643c3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-030.md",
+            "fingerprint": "707512b54bcc4f45022cc63f9b4ac2b68b3013da29e0f99989902f535941c4a2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-031.json",
+            "fingerprint": "7ec791f850ebd520423646bfc89d40da3190dc2c60d947416c6119570c21624a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-031.md",
+            "fingerprint": "9c49ceb66f81a8724c4cece12b37b06eeceb773314891ce30bfcbd234bc86576"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-032.json",
+            "fingerprint": "f6172f2fe854d576cd6fb12c265e927c6e7191d098fc34c75b77755cbe8667f7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-032.md",
+            "fingerprint": "5e35e246381171bee1ca9698d03a75237a287930f54b23af04155462a32f3dcc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/spec-attempt-001.json",
+            "fingerprint": "53085499aea6c675664dd298cfc2b2bb146e44288ce74305c614e97e07baf573"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-001.json",
+            "fingerprint": "c34a2002d1ee50cb9df54fea8e3b3fd1aa6792e69bc45b461bebee101387a69e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-001.md",
+            "fingerprint": "25464266c71b968ff3c0eed0779a238b47d13a06b56d8ab4298c32548045ae52"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-002.json",
+            "fingerprint": "25c2424339cba14fe24c424d5c8537ea5f83edb6897211ddbb888eb9c6b46ace"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-002.md",
+            "fingerprint": "547e2a540616bdbcdb961a150b2066565ccbe97dbe82a91a61b87d5211e49e61"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-003.json",
+            "fingerprint": "a78e707a4485034c97dfac4171630eae0f372b41d6b880df83b0f1ab7eab4e1e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-003.md",
+            "fingerprint": "efa95ef41d73e4bc2cfbf28c99cd6ba84a3eaf2ef4fc89e87a690e8c86c4d9ab"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-004.json",
+            "fingerprint": "4ccd67d10ba65c9e59891924d28741dbb1f3bc85aca90a76672e91f9b3e3c67e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-004.md",
+            "fingerprint": "b84af64b8c49b1ce737a8160d2a7ae5804697b61c6604af5fcc8617ea6e2ebc8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "8b05d3c6d6b1d4614c7dbe777a8e7d764b4c807810859b9af3074895fbc31abe"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/01be5beb8cdb0c28c6a3bfc3.json",
+            "fingerprint": "ddf4ab5eb84ce768e35372817fd8a86fdabe300d12759e0f6e3e8fe0ec323225"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "d3ccc4e9dc8f897b740ca05cec2c59084f1c638b57cd2fd83ebe0e4727b341ae"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "522edabbba0f145e840db063476fe433c65c2d6f6b5a0a4dc8ccfe509c4a4d2b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/1da5e4d5a8a2086b6a9093da.json",
+            "fingerprint": "64a012cabc259c420fa4763a02398ad40329f3a459a2e84688f522b194344f7c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "8d5c3103ea1aa9b1b5d1a04e6e6714e2a5ac3914ae3c04a187d98133cbd49c2d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "fcb8a21361c8bdc706ec035458bb3de722771519f992e0116895df5ab779bb2e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "a1800f1198c2f0709510dc1b574ba73d977d8a7eb092b3b5e9f684e6f4f587a5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "1827817dfe3cd06e68ce87e30e16bd2fb21ed707fb80679755e4acf30d846330"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "81a34d374f9115ad5df913ba4a74f429d3e4a597cd19503cf9dc6b2dbf7503b4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "86a2e931a2165375b5400145ac281f57f7327df988a6a069c3df59f5896b3881"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/710fbbbd73c1f345f58499b8.json",
+            "fingerprint": "2ae34a4568f4eb7296b0bc7a2597efcb72a91f6d9f7615027ee012fe867a0241"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/756664e38a71bc208dfb63bf.json",
+            "fingerprint": "b8f5afb63a7322d8db11d7a43aea32bdef505678713f65d0f38a9591c5a76be1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "0e3d6ac9f819d94aa19a146724505059c113fd3f0646bb40330915e936eb7bcb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/763fdb39699ec1edc119d245.json",
+            "fingerprint": "7b249331a657f67abf3ead18f283b92eadc619c6e7efae032f23823873d240e8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/7714d5aec86b2136c1e23747.json",
+            "fingerprint": "c654d3f226e2133b2cd3404d89f861313814784b581c0a232cb2549a6cfbfc56"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "3464e185272642196024f8d4e62389298cbcf7f16f583b07ada7a1166993afef"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/9e8522ac146d446258d62532.json",
+            "fingerprint": "2b6738b1dbda626fc86dc4f2cdc7e79468e4e464ac44715e83c6697e5654670b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/bac59a917b91b456c8699f48.json",
+            "fingerprint": "2128df55ae11bb4f0fcf2647285341afc4c5f6ce6620248485621235355e9322"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "cbceffa2a4dd9be215a60fea8805e881912ff263c9daace57a94fee41491aaf1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "a4b2fd0984c23d1fdcf668dbba6d30b9244db49277deb1c5d95a9a93983658a1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/cdb1b7fe8a1c90dd7855691c.json",
+            "fingerprint": "d3f957e6a22672f5daa2a042cdceeadc525b8cc6ad2dffc979c577a175b8e1da"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "53f557c8bdac014b17ad107c17eb2aa5575e3b4b4eab56288f200baa5b890c2e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "467eaa73cd6c5141d6067dcdc4d0ea7b5c6dc6017a68c806d5e85ff44cae4c2f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/dd99e32c2fd3718a91fa5368.json",
+            "fingerprint": "3201370f4bf7279ce87d4ce51236953dcbdae01ab35a32643d00375df5e704bf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/review.md",
+            "fingerprint": "5e35e246381171bee1ca9698d03a75237a287930f54b23af04155462a32f3dcc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/scenario-validity-result.json",
+            "fingerprint": "a450614e53b4dc36f7ac70811f0c584c0c527b5b483b177636a1e81c7dda947a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/spec-gate-source.json",
+            "fingerprint": "ae20cc8b2f132529036eb08b6ca6160d1365c71d8c4fa0bb2819cc5abf0e1885"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/spec-review.json",
+            "fingerprint": "19be0220484a02a65de68af72e7561940eeda41ded03ced53737edaf705c3a91"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/spec.json",
+            "fingerprint": "0367cbfe93496488e8cab5b7a979bbe62191ad9c66c30fe92baf014e3947bdaa"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/spec.md",
+            "fingerprint": "0eb5b932c2d78e6bb6192499ec12b7bd8aeec5bd22c177c33ce3ea6b819b4de7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/task-impl-gate-source.json",
+            "fingerprint": "487d6ab52338ff90b318d87511d40ce3eb853459188ebcc9f0e7c0f45ef0fd92"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/tasks/T-1.md",
+            "fingerprint": "fdf68b3c5d664b61b741c60d7b34fc8b2a933cfdd4571523884ed2f0dbd320ac"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/tasks/T-2.md",
+            "fingerprint": "1d382470a9bbc640d6a9f19fe36e37f6861e2df739bb6c434cfef3d1785cf8db"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/tasks/T-3.md",
+            "fingerprint": "7ab87d4fe7d930e47b3f28650502cc805abba1ae5506ea68d1cffe9c5e54e40c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/test-coverage.json",
+            "fingerprint": "fa4c26b683741b8f56dac3934f0e7f238916f802d3f0f9711e084b710f163069"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/test-execute-result.json",
+            "fingerprint": "74e88863b7601b70c0b16d329c4ad1416e1fd642576684dcdfe11b88e75b98ec"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/test-result-review.json",
+            "fingerprint": "67806e5b8c7913495cf03d671fd9d3fec1f1c96763688ff2ca626525a6c70ca0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/test-result-review.md",
+            "fingerprint": "9e6be73b1d129933c5891804294d809430b81093d1cc5bbb3396811f6c62c724"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/test-review.json",
+            "fingerprint": "9dff044ddb7e7330a872180f2b61a024a43eb4c37bf0d49e081a8cdcb5eaca56"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/test-review.md",
+            "fingerprint": "b84af64b8c49b1ce737a8160d2a7ae5804697b61c6604af5fcc8617ea6e2ebc8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/tests/.raw/scenario-validity.log",
+            "fingerprint": "d00d680bfa4ab2f3b5d883f06f5c9eb500c85a4d39ed69a8a2e7b8fde6be91bf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/tests/.raw/test-execution.log",
+            "fingerprint": "25738eab88789ae3e0f5a1643de2d6a1228b582711419278a07874e53d3c2a14"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+            "fingerprint": "817d66472bf547e6ae7ead776e623e9e121dc75afac46dddb38470d3fe4c1b1a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "028aa7d9bbb205ba35af664bc7e23fde4ba8cc296e34b2b179e6b874530c9245"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js",
+            "fingerprint": "dced450649de7c6599ad2dd0d65cb60fb5e77df71e53575d5ae4d08391ba2e8a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "aba6c3f6ae468befdb3dc34cb22749623b8944389d5ba5c15816f0dd46e2f50e"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js",
+            "fingerprint": "a58e20a7ba14255beaf1e5b03754dbc09425cfae17f43de4c862c560ba8458d1"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "dc3cd82ffd067229e7da352b88b37de74883c2b159f84ea9287d0e5af8f6150c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-final-regression.js",
+            "fingerprint": "d8bdb41a2bbcbed2fdd35ece0741887126aeec16c688df0104b2d422bdb4e9f4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "e2b1eac6ce4ef5729297672955a999b0fd72b7a2b51f669369fe9690a0a5a732"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js",
+            "fingerprint": "73385477610bd337a276eb100ec49bce01dba2318c4e63cc365583ca91d199c0"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js",
+            "fingerprint": "5832a0340c6bcf2ba7dc1f31ed0ccd46daab6d08074f2b7eab98f70d40466e02"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "86865c46f808e86683711a257a79650bad1e9ef0b3e9ae4173b5ef3b72c63955"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "fingerprint": "50b37ca4750782e8d4aef4d5840588be533dde852d4e855dd3f3aeea43dfab47"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/final-regression.test.js",
+            "fingerprint": "519f81aebf37ee4fd58cdf9a9637dc1c1260f970e7bd7d9411a49f5be06f3f9b"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "50b95566c6b091c999369a52903e8fb4b38b7bed6615e84e24f40e5c6c7d7f97"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+            "fingerprint": "0c26e6962a82f1af9ba1c3ded80728b5e471c1b8d0a68ff06709bf9bc854e111"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "a4ee71c6bf3fd95095fd09da101409658a446d997d541762be4f6cdbd99b9291"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "9ddf528e45d39f1af6386f28f67e526673314e2e512f9710fe58654ca7256e7b"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/.retry-recovery.transaction.json",
+            "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/acceptance-review.json",
+            "fingerprint": "44138d70da65ffecca6921c72a7636b380f969924af3fbcc4b845c0d6ea10f36"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/draft-coverage-repair.json",
+            "fingerprint": "48cc06f5838ac451b60ce397bea605aaa4a000fa342e147921af997a5239cb62"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/draft-coverage-triage.json",
+            "fingerprint": "f414b4ae4dd7255fb002e5e8817d44d8c5002190bb95c10c83e4795cefec765c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/draft-gate-source.json",
+            "fingerprint": "31d164c51cb5456a018a66e76b46f0205278aff061e74f7516d98ce46d6a33b4"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/draft-questions-repair.json",
+            "fingerprint": "edaa789eccf15f1c177a5d8f01ca5efa35cd622a21086ed8d9fd37263804c385"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/draft-questions-triage.json",
+            "fingerprint": "d69b6e4bb2affdca1744e191f21e921817fbbda3fa7501d70259d670eef32bd9"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/draft-review-coverage.json",
+            "fingerprint": "cae00644ef6e26ac6178e4b0f8c80dc8053aad6330156c94e3adb2251d6613af"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/draft-review-questions.json",
+            "fingerprint": "f4531fc22ecdeee45955b70b429e24e30e85555bc26e190399dfacf44f5e3445"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/draft.json",
+            "fingerprint": "de9d393e54245888fead045584590dfb432d90516b81024a66209a39db0aa658"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/file-map.json",
+            "fingerprint": "69c8b8889e38c70cef47b3f0e05f6756fadbb2d175aa20a6e6feda3fb845ce28"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/flow-findings.json",
+            "fingerprint": "7e9f2efd182a6b79eb61396b3dde3621cb5aea09f6f533b0e73285d0fbcd5999"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/gate-impl-memory.json",
+            "fingerprint": "6ae2f2d4afcf3cefb3b598945f09ce1e8a21df7bdd697fdc80ee39982f7ac667"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/impl-gate-result.json",
+            "fingerprint": "f296073cd16f22abbcaa3f7f0c9f206843e060439a322d256be2f21a4ddb90dd"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/impl-repair.json",
+            "fingerprint": "82c2e05ddca4310f79c5dfd82333a7ef463e84fba52071058ef5ebe011feee09"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/impl-review.json",
+            "fingerprint": "a70113fc15c117d35424cf30034f3d0a8b24a6b37e1385f5841cc64077327230"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/impl-triage.json",
+            "fingerprint": "7b4991ac1b127f5c796ee34c33a907aa02be44e54c954b664bf508bc58c29ca1"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/issue.md",
+            "fingerprint": "19d1aae960ba67283a4eecb24b24fa28eb5acd9d9ce36f90c442d06ed9892bca"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "7e4e1b2aea5c221c0395a5c2abdf14007fb3b6e4bacdfab6381cd223fc28a116"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-001.json",
+            "fingerprint": "23d2bceb19b4b02dc7dcff67b6e26d9f4522310a545b93de7e02bea0192844ba"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-002.json",
+            "fingerprint": "1f5529ec15c9552958a4d4ed495c6c286feda262fe86c08a07aa4f0110b5192e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-003.json",
+            "fingerprint": "7962afa69f4563c6e4f4b344b98dc3208da8efe6782487ad15b73ec002b5c7d3"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-004.json",
+            "fingerprint": "298802a44fd4d1ea9763c1bcd674ea43679b9d852880f61de0694dc74b2697aa"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-005.json",
+            "fingerprint": "76046ae7f6db3934df341313fbb8bc28e4472e81ed296c4dd379282340b7cf26"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-006.json",
+            "fingerprint": "7dcc1613169f3e1b742c86ee73f10c19b79ddab0e36c74d1b77ed9eead05dc17"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-007.json",
+            "fingerprint": "cf9a122ad2d37d586f87effdca31171d9468e5278f46f21e967429d98a952f9d"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-008.json",
+            "fingerprint": "34b12d89b54b97a3fe0fb0a5beaa4ac8c08ab002edb23490998e37c2c43e2882"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-009.json",
+            "fingerprint": "8c03ddb15bbbf96fe36a5aea7651e62285d8c6973fc47b2349f83a5c2e7fe5c8"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-010.json",
+            "fingerprint": "748df46ff3815b297fcfa48ff4c2b20f4e74091db077f46857554196aa1351ed"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-011.json",
+            "fingerprint": "13294d71a3b11dcbb663fc6f6eb0c15fa961367b1c8d7fa4a6d4d2a7b846058a"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-012.json",
+            "fingerprint": "d0ee62cad2f7937074bcf0da24e3f8b1f29ca6c58d5205f5fc8385101376e068"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-013.json",
+            "fingerprint": "da71bcf10248ae813d2b76cfd78ab22838a6573acabb4bd77f3e1f9a5e559292"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-014.json",
+            "fingerprint": "7062c4104d2216a67ca88ec62c89963da97348b02b8b8dffddfc40874d31d858"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-015.json",
+            "fingerprint": "09e6225a059ec445d74e93d5990336e53bc0988e303bb94cf1af3418e625af38"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-016.json",
+            "fingerprint": "874607c388ae45f276464b6b84b5d50bffff4a4f5e2cae4c33e20b2854872cc6"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-017.json",
+            "fingerprint": "02caa03b1dc6a328f24f1f26a322139e4093f4afe4cdf6f3dd99e4f4b0117e9f"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-018.json",
+            "fingerprint": "da52711bbbe9383577d2fc74153fbbc7c700bb2c09bdcf3422501d98bb069005"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-019.json",
+            "fingerprint": "57f0f052e7ed761510b8ea67f94a7dbb78ed0aafdb482c1d14fa557d17f87b1a"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-020.json",
+            "fingerprint": "234960c6dd1f44efbac008e66fcc4144f4a9e5b9335dda0c913d3adfc44c6a43"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-021.json",
+            "fingerprint": "d51d7510da8065956013d1a051d3a612dac9c6c5b112ee0cf4924286a3064627"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-deltas/repair-022.json",
+            "fingerprint": "1014b458ff22d1e0e6ec806b7fc452eec980bc27b5579f63cfef0d604ac0bc09"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/repair-fingerprint.json",
+            "fingerprint": "a225ef4dae1c0019328c0c5138101106952fcddcadc604c6d06923fc2ce6a788"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/retro.json",
+            "fingerprint": "1ed2d19456a26e2029c1415aeb2c5b8ce8dc03c626a32880b2e83cf9bd416e05"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/retry-recovery.json",
+            "fingerprint": "478def024bea50b4c87bfb76fac3db96146d7be9fc184aaf9c17206dcce8a99a"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/1ce7a76902eee9266f47611b27cd58d9699c516861b707febf15cbd081d8a3b8.json",
+            "fingerprint": "e4da97f62b5fa138e4d4a649104d9725a4b0b8c64918f4b5c03983e3e30a1870"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/2128b6bd87791dfbefdc53f0c9a1504f097186fad215716d51f6a4e06d0b7ab7.json",
+            "fingerprint": "56aaca3c3f844074707a3e36064c50a031e3cc85899a24e8de72b88c473dda0f"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/26151e1458555b06b15a1532e8e98f235bd2d6eef19be176f7c4154ccf1e6ad6.json",
+            "fingerprint": "f22909b9154c5bd5669b6451efa95de67d6235c2b4eb8bec46ee2f134bccb632"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/2697996530cc14e896688763a1e6c38488a20e78946ee6ecdc7c34b159b4045d.json",
+            "fingerprint": "11a98686a600e76cd7ad58a6fc864afcc07cb59dc40be8c95ce612bb4900f41f"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/26ff096578527e50370260f7a8d9e871f1f28ffb0ed3a4886f96317d1be92af0.json",
+            "fingerprint": "ff28b2ddb0548cc77ff622b2c93ad216f2aabb69c05efb903434a196c484ea1c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/3a5f10ea587881c1a67fb57ec5a5c42d573caa94207746fffcf9d8782fd9fee6.json",
+            "fingerprint": "e573a006003c43b99a04f298590e99d304f0c82893bf4fe0745b1f77f7cd6a7f"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/3a6a059bd7ccca02a1d7d94383e01f113b6dc0f91109ccd2813c26b181254c8e.json",
+            "fingerprint": "b8fbda69d50cb9fde194b5ca283c62ffdab34fd116a46b79e733a2ad7d7cee8b"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/3ad3a72e5ac92b67867f9aebc3ff21427e1eb8d68196d00bf903d45a833e4625.json",
+            "fingerprint": "8a80336a77b73f836046a62f0a181eae0797cfa5b458fd8b95ff07f9f61c9fb4"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/3b7d2eeb1d205fcfc14f6cdda0d69b98d6fb02b34791ffbebc7bcebcfc825b26.json",
+            "fingerprint": "b78a63a1dde3987b58c95fc6068217b146f6832f596cf48a55ee3780ea623110"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/3fb2d99ee38328db428e87755f20089d3dab01a949fd5d5f51c5b14b073e46ca.json",
+            "fingerprint": "371ed8ac5a931d67a88208e87cb4b15f2e559ced8b3c3be329699f97bfba8db3"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/52c0328d96d935bd7c6a5911a9b6d5f25270d855e752564dd7438b1f650f482b.json",
+            "fingerprint": "9820a1421550152c00dde9029f790dbad423d20daf8fa454a79d931fd081867c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/5bd113925537ef34be38a0f968c9fea41c9ba4ba1351a320c16d3ed5aead24ac.json",
+            "fingerprint": "a802b95c4f6358e79bccd1b82bb0a4715879ee9a7a3e2ee42c0bf24e22ce8367"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/6425c67fa5c4339589b6bea61cbcedc7f3757f72188110cea5e49cbc6a15f311.json",
+            "fingerprint": "9e272229a47d9280924b76cd1928288675c21ac274b07977cfd67dfbd4e307ce"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/64fa191e63f4369da3a60dbd79c65b8e9c1d599c57eba5dcc51553927c6b49b2.json",
+            "fingerprint": "fb3180f2d57d2723183da199bec001eb7670546b2aa81b97dce4b9c54e7e2621"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/800ac03820740dc556765b56dcc90d686ac778bf2a74494918119976091b34b2.json",
+            "fingerprint": "07b6c0a05811bc1e3d6bda5dfb8ba6583bf641eef1caa22c62e12905b7f8272a"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/862cda19ee9f23f044ded52bc6de0af0e6da3f085b9882995a1662114692a762.json",
+            "fingerprint": "bf223da5376f0920e5f5a0132484983e442478e3e9438ff33b78f11045fe020e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/931399ca5a64d455b12cac8d6b7fac0f34bec79c25ae06627a6a63768fb53c20.json",
+            "fingerprint": "09a02de649959af088cfec2166399daf85c41950fda127d094109786cbfabce2"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/937bdc39e2308360a36f29fb121b75ac1e163cd2de330d2ffde83d93a20e0361.json",
+            "fingerprint": "46d017768aa08c56d14ac17b6b992b92ab65a5afce9e855458a616e1934baa04"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/95b18f37c241dbb7025a8ef589836961262127a6aaeffa0cc2d301e80412a26f.json",
+            "fingerprint": "70cb8b9f498880666ca6050f7229b7a2eb20adc547c24140a3595ccb2ba2f598"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/95b6d55f797da51902dbc74c7ecb42c010fb679cb5658538215777be44f7f7ad.json",
+            "fingerprint": "74a60b32eb641f3509372e61e7505550f9cdb37d1312c6872815b94a8d28dfb0"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/9d88df1b924b3a3a35faf02ae4809248f1bccd7cc86c99d3f7802fe58ce126f8.json",
+            "fingerprint": "82fafb795676bd9d36094583077b3b1f96d667ed9f10eae6f559e6b0f3b61d81"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/c08a1791ad23c166f63ebb24cd8ef4ed92df9ad19dcbde4d6d92598224d2fb55.json",
+            "fingerprint": "5f630cc56204c8abd2eb8eaac0c46461eb1e435ea5926bf37f07b8f4386471b3"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/c5fe8c9ae224dd57a2db46414ccdd9c2bc1129c1372449ae46587907c92090cf.json",
+            "fingerprint": "aa160159ff17a7dc0bd298da5baac2e0437db1a0789e799a7c8951b61341e989"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/c7eef41265583553e7162be576041776fbcbf45e433e1ae37381988ebbaac700.json",
+            "fingerprint": "d0bf86f22658f0aec54745af3192767f814691327d10fa4ace7c2731c64973b2"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/d2d2dec2d276f6c4447ed4724599e39ad4dbc5b49cc3f2ce2258b19bb17c1b70.json",
+            "fingerprint": "b563394bfe5b1615fa97957f11ddb5721571d4f16d36fa760c485b696e7145a1"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/d63ab52f8d61e5321c80ed6092b018edd3e54ce5c8afd560855e0d49f91cd0ac.json",
+            "fingerprint": "90b3b1ee867c1a3c6117b4579f75445c449ccabcb648489d7d04700f50ee62c8"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/d819e79d60fa849845ce931cbf0e035e1d002dc5869b4900188dde803e365303.json",
+            "fingerprint": "f9e621be649e7387a6126b0db1eb259e4dc07043278cf631171cc764544a91ab"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/d97a122ee4bc193deac1de88d6d4e6de86c96e49053049ce33a2812556de213d.json",
+            "fingerprint": "91fce7eeb46a9ade653866e55e20d11eb3aa7ecd31085ff340232f439721a115"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/e015e7a2979555be5f95521880b890aa668155501403c3079693e78b754bf73d.json",
+            "fingerprint": "219ff365b001355d3a2b384f27b4ccb07a367276dcd30d8de9c5b28d67ec549b"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/e34e6b3db25b4ec2e43a12415347336738d37bfd618f83a53f6c6381148ce2ea.json",
+            "fingerprint": "4cc8a602ac21220650931d27494104b6bf6ebc839c6eef5918f8f389c0f8ed6a"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/e8aae5274cc0045a0213b668abb94b1c4dbd87526ee5fa5394d8773dd71ecd3e.json",
+            "fingerprint": "d64ea95c11e097af4c5ed3decf8bb747d44f4597507407faf9462a23d638a547"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/f119bfa83c3ab6819b85b792a31884073d661e62e0c3c6c556fa73c886574ef8.json",
+            "fingerprint": "295f199ff12171d4110b9568f9badfa10a447e5548a60ebfeeeaf68c4ce332ca"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/f74049e6e538dc7ac5be39517aaba00cb00c11d6a1d5773ee9762eeeaed96cee.json",
+            "fingerprint": "ff11142d4a3b8ad00acd446da5b5f902744cf10c75f4d6d482852feff9e262e5"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-evidence/fbadc22699cb0555ba5923719cfed3853e7ff3eb6141419e13a1431242773d37.json",
+            "fingerprint": "612ffedfe2978577331f1b670fe30c7c4369c5e6960329c8dfe3e0ef20902b68"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "220c80cfca1baf143a7041c6d23a04cc8c67384bb94d41b47159e24fac1479ad"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "f0bad7d1759f6f80e973fe51b6fa6e095cd80883a441d70d107f94d22e73256c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-001.json",
+            "fingerprint": "d5b3b13495b369714fe7b3d4cc76f888dc28a06d664b93b02d62b9c82a7da175"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-001.md",
+            "fingerprint": "2e7b54edfa3ecfaca4fbbcd56b98bd59eb989ae87d074ef4996ffb41f2b8e904"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-002.json",
+            "fingerprint": "f19b3d8b13ad83eab4d880ee2c05bb7bf38cc83838a613d06966f8c8c8f34537"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-002.md",
+            "fingerprint": "eb86db3a39081330c8013659a2072945a4e70218992c6de1e58d61190bdff3d8"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-003.json",
+            "fingerprint": "460292e124b8e24e02d85be9822679127017416a29dafda4f09e80da66d0314b"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-004.json",
+            "fingerprint": "9ac728c43758bdd17f1b22ea9c983cc386cb301883479670c0d173cb45cdbabf"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-004.md",
+            "fingerprint": "51b8f2cbc6632f61c4cd06046a1adbe4c7c356ae1be0ff7c23c4fa0b13a329a9"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-005.json",
+            "fingerprint": "6690727b16ede2bf3726aeaba6e2e843c93d3065f9b8aa3746119022b26aa05d"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-005.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-006.json",
+            "fingerprint": "a026b1fc8d5e48b9023ef35a17e2b17409bb59a28da9a109f14f5fe97712ad9e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-006.md",
+            "fingerprint": "7b1ad7ff7ebf7940785a854fe3b46a8ba6118e568728846994a0f41a89b6d8dd"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-007.json",
+            "fingerprint": "77c8ae14a39bb5760d4813dfdb796ba50c35764e3dddaf40ed45daeb661eb0de"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-007.md",
+            "fingerprint": "c78b1c9fefb0b18c7620bf9f2da3c9ba376b291f0df89d7dd739665cfd9d01ed"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-008.json",
+            "fingerprint": "533635db6158a5904c0e94b30a54cd3819cc806b0080067b2015801296c6669a"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-008.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-009.json",
+            "fingerprint": "1addfe671cf9be6f3bc3f65bf49e2e782a70e4742adb4d434d00c565ed8b8bf6"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-009.md",
+            "fingerprint": "b4c66d04260fdb64427fe50604fd84443dac6817013b1bf1ead59260d4d82ddb"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-010.json",
+            "fingerprint": "614d243496935fb4699b4096582b0f4e54ded65aad88795ae1906883eca82006"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-010.md",
+            "fingerprint": "67c4298f34e22e30676cd18ed967244bee8a99d5c328780044c940f9315b841f"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-011.json",
+            "fingerprint": "d704991567aa3d725ab5766df7cce5b599b9507b16300dd60571cbe1abbcec49"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-011.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-012.json",
+            "fingerprint": "899711ddedbc3df37cc9dbe71376e5958631adaee63ec6f3363550e4290b2834"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-012.md",
+            "fingerprint": "d2ee35674dabe8df0e527e34d9cf8a802bea5ef61ad247d55d7e86fb15ea59ea"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-013.json",
+            "fingerprint": "01eec4ffb62f224f03a855f290e4d67a322d019ec86542fad70fb4e25c50134b"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-013.md",
+            "fingerprint": "03cc0ba21544d440fd982e825cfcefdb361c3c4a4db07064881baeb16c8b3b99"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-014.json",
+            "fingerprint": "fb76cf624cbc9719b4c3c61213775a1de70e76f2cadd1703b19d81fbb707b310"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-014.md",
+            "fingerprint": "1d468366b641e80d865e89a6a3311ab273d27ad26a2cd37a2257ed4564b25599"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-015.json",
+            "fingerprint": "0b99e6953e4f9d6fa2041e93a491ba2d629dddca62b8d821daf832d663abc335"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-015.md",
+            "fingerprint": "a4355cdcce03daba66f808d89c8c1049dfaa5c50280ff0df9c8ae727031d1b3c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-016.json",
+            "fingerprint": "9393f027dfb89b33cfb7aab8a7fde6047de28911afd5f6d5f05196801d98e8bb"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-016.md",
+            "fingerprint": "bf4294153856bdd20c97a16bb1f28e7ec6f4e877963aff57c7f09e383ac384cf"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-017.json",
+            "fingerprint": "66c67d642cea6a98d96312ce38cdfc943e511f07be121f9daa8e284fdbbccf77"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-017.md",
+            "fingerprint": "7bd2050c382098ada8014f2d4a328a9082a033f2df3ee1bf3a7ec745fce51831"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-018.json",
+            "fingerprint": "a78bd8372e326a4951fdfa58c5b5a9d1772d30eddcd2d42421e9f91e048a33a7"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-018.md",
+            "fingerprint": "17915e30ad97b33ffa5e3e983dc03f43e1bf3573a28e346c8bc1161db0401d95"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-019.json",
+            "fingerprint": "ee2bfc119f317e75439825e1ae1e94fbc252499d42645d52395d60a360901b46"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-019.md",
+            "fingerprint": "ed24152033657fdc3629847e79730e94693b0e256b8e2284f8f80e439017b3ea"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-020.json",
+            "fingerprint": "aa9e333b64dc569e317fd99f3c041dfa4c915ed56905398620ed499b5a85d0ff"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-020.md",
+            "fingerprint": "a9cea56f01197ad6356c50197cff499a5cc753d98f104b32a0371edbc7b91335"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-021.json",
+            "fingerprint": "67d5e21fad848f26d7e2ec009540970d4cbe3e31bb7d20c0766a70822c36f920"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-021.md",
+            "fingerprint": "78579dfba645416963c951626c218367a9b86d7803984dfcb53ed940d9e870e0"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-022.json",
+            "fingerprint": "8d17d62bc565e83ae1e269a42fb15545d1a809ff0ca58fc00ab0d93dedf74fe3"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-022.md",
+            "fingerprint": "3e2fa44440e66ce7887ef6b1480df5f621cae3dc46ae11235e66ac8efbf5b11c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-023.json",
+            "fingerprint": "c5259ee25a377980e9811f68c39f0879744bec36573c22edcd9e282c4931b8d3"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-023.md",
+            "fingerprint": "813de5edff415979ef40740abd7ee1e95528cdbdd357d31d4bf0577f7c4ce2fe"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-024.json",
+            "fingerprint": "16de1b243cc94d4d4549a7036d43d52e7b63950670a9aed9968296abce45f8a1"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-024.md",
+            "fingerprint": "5e42dbbee41836b0a282cbfa2a1fa098deb8ebb914b86e377247b54ec023a7ec"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-025.json",
+            "fingerprint": "a1b0f50f6dd8b6b84d9570cd65cd784c88d2795e0f749f8bce28f7d73f71a964"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-025.md",
+            "fingerprint": "2408a9ef836b999205551699c3128ec266913dbd2b20bf90c94d27185f4bf9ed"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-026.json",
+            "fingerprint": "a3231cb82db9d87ce6243463c4cd2e61d17a31b4b2644a9bb3bb81e849759c63"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-026.md",
+            "fingerprint": "2408a9ef836b999205551699c3128ec266913dbd2b20bf90c94d27185f4bf9ed"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-027.json",
+            "fingerprint": "1b310ed37621173112449b4b4de5e9fa30f47d100b2cb3dc65e8ac9c9f83ea5f"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-027.md",
+            "fingerprint": "a141073308d1d476676ffb14d3ed5823fdbe53c7d4f2650e363174f7a4ee7c4c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-028.json",
+            "fingerprint": "b057542382009f75353756a95e0f3be4807330918ea4c430a4d49e497e76e593"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-028.md",
+            "fingerprint": "23c962526510f5bd96bed2eddd3162673b25864a7954c737e07bca84c37ef918"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-029.json",
+            "fingerprint": "4c27058813d730110d379becf0b7c5429615b761f8c6b3f7b91a11bd01f94ebc"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-029.md",
+            "fingerprint": "707512b54bcc4f45022cc63f9b4ac2b68b3013da29e0f99989902f535941c4a2"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-030.json",
+            "fingerprint": "a55ee26370ede75c72372c4b3330eb0a722778cad924bcee85762b884d0643c3"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-030.md",
+            "fingerprint": "707512b54bcc4f45022cc63f9b4ac2b68b3013da29e0f99989902f535941c4a2"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-031.json",
+            "fingerprint": "7ec791f850ebd520423646bfc89d40da3190dc2c60d947416c6119570c21624a"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-031.md",
+            "fingerprint": "9c49ceb66f81a8724c4cece12b37b06eeceb773314891ce30bfcbd234bc86576"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-032.json",
+            "fingerprint": "f6172f2fe854d576cd6fb12c265e927c6e7191d098fc34c75b77755cbe8667f7"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/impl-attempt-032.md",
+            "fingerprint": "5e35e246381171bee1ca9698d03a75237a287930f54b23af04155462a32f3dcc"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/spec-attempt-001.json",
+            "fingerprint": "53085499aea6c675664dd298cfc2b2bb146e44288ce74305c614e97e07baf573"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-001.json",
+            "fingerprint": "c34a2002d1ee50cb9df54fea8e3b3fd1aa6792e69bc45b461bebee101387a69e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-001.md",
+            "fingerprint": "25464266c71b968ff3c0eed0779a238b47d13a06b56d8ab4298c32548045ae52"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-002.json",
+            "fingerprint": "25c2424339cba14fe24c424d5c8537ea5f83edb6897211ddbb888eb9c6b46ace"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-002.md",
+            "fingerprint": "547e2a540616bdbcdb961a150b2066565ccbe97dbe82a91a61b87d5211e49e61"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-003.json",
+            "fingerprint": "a78e707a4485034c97dfac4171630eae0f372b41d6b880df83b0f1ab7eab4e1e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-003.md",
+            "fingerprint": "efa95ef41d73e4bc2cfbf28c99cd6ba84a3eaf2ef4fc89e87a690e8c86c4d9ab"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-004.json",
+            "fingerprint": "4ccd67d10ba65c9e59891924d28741dbb1f3bc85aca90a76672e91f9b3e3c67e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/test-attempt-004.md",
+            "fingerprint": "b84af64b8c49b1ce737a8160d2a7ae5804697b61c6604af5fcc8617ea6e2ebc8"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "8b05d3c6d6b1d4614c7dbe777a8e7d764b4c807810859b9af3074895fbc31abe"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/01be5beb8cdb0c28c6a3bfc3.json",
+            "fingerprint": "ddf4ab5eb84ce768e35372817fd8a86fdabe300d12759e0f6e3e8fe0ec323225"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "d3ccc4e9dc8f897b740ca05cec2c59084f1c638b57cd2fd83ebe0e4727b341ae"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "522edabbba0f145e840db063476fe433c65c2d6f6b5a0a4dc8ccfe509c4a4d2b"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/1da5e4d5a8a2086b6a9093da.json",
+            "fingerprint": "64a012cabc259c420fa4763a02398ad40329f3a459a2e84688f522b194344f7c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "8d5c3103ea1aa9b1b5d1a04e6e6714e2a5ac3914ae3c04a187d98133cbd49c2d"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "fcb8a21361c8bdc706ec035458bb3de722771519f992e0116895df5ab779bb2e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "a1800f1198c2f0709510dc1b574ba73d977d8a7eb092b3b5e9f684e6f4f587a5"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "1827817dfe3cd06e68ce87e30e16bd2fb21ed707fb80679755e4acf30d846330"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "81a34d374f9115ad5df913ba4a74f429d3e4a597cd19503cf9dc6b2dbf7503b4"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "86a2e931a2165375b5400145ac281f57f7327df988a6a069c3df59f5896b3881"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/710fbbbd73c1f345f58499b8.json",
+            "fingerprint": "2ae34a4568f4eb7296b0bc7a2597efcb72a91f6d9f7615027ee012fe867a0241"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/756664e38a71bc208dfb63bf.json",
+            "fingerprint": "b8f5afb63a7322d8db11d7a43aea32bdef505678713f65d0f38a9591c5a76be1"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "0e3d6ac9f819d94aa19a146724505059c113fd3f0646bb40330915e936eb7bcb"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/763fdb39699ec1edc119d245.json",
+            "fingerprint": "7b249331a657f67abf3ead18f283b92eadc619c6e7efae032f23823873d240e8"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/7714d5aec86b2136c1e23747.json",
+            "fingerprint": "c654d3f226e2133b2cd3404d89f861313814784b581c0a232cb2549a6cfbfc56"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "3464e185272642196024f8d4e62389298cbcf7f16f583b07ada7a1166993afef"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/9e8522ac146d446258d62532.json",
+            "fingerprint": "2b6738b1dbda626fc86dc4f2cdc7e79468e4e464ac44715e83c6697e5654670b"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/bac59a917b91b456c8699f48.json",
+            "fingerprint": "2128df55ae11bb4f0fcf2647285341afc4c5f6ce6620248485621235355e9322"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "cbceffa2a4dd9be215a60fea8805e881912ff263c9daace57a94fee41491aaf1"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "a4b2fd0984c23d1fdcf668dbba6d30b9244db49277deb1c5d95a9a93983658a1"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/cdb1b7fe8a1c90dd7855691c.json",
+            "fingerprint": "d3f957e6a22672f5daa2a042cdceeadc525b8cc6ad2dffc979c577a175b8e1da"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "53f557c8bdac014b17ad107c17eb2aa5575e3b4b4eab56288f200baa5b890c2e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "467eaa73cd6c5141d6067dcdc4d0ea7b5c6dc6017a68c806d5e85ff44cae4c2f"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review-history/work-units/impl-review/dd99e32c2fd3718a91fa5368.json",
+            "fingerprint": "3201370f4bf7279ce87d4ce51236953dcbdae01ab35a32643d00375df5e704bf"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/review.md",
+            "fingerprint": "5e35e246381171bee1ca9698d03a75237a287930f54b23af04155462a32f3dcc"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/scenario-validity-result.json",
+            "fingerprint": "a450614e53b4dc36f7ac70811f0c584c0c527b5b483b177636a1e81c7dda947a"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/spec-gate-source.json",
+            "fingerprint": "ae20cc8b2f132529036eb08b6ca6160d1365c71d8c4fa0bb2819cc5abf0e1885"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/spec-review.json",
+            "fingerprint": "19be0220484a02a65de68af72e7561940eeda41ded03ced53737edaf705c3a91"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/spec.json",
+            "fingerprint": "0367cbfe93496488e8cab5b7a979bbe62191ad9c66c30fe92baf014e3947bdaa"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/spec.md",
+            "fingerprint": "0eb5b932c2d78e6bb6192499ec12b7bd8aeec5bd22c177c33ce3ea6b819b4de7"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/task-impl-gate-source.json",
+            "fingerprint": "487d6ab52338ff90b318d87511d40ce3eb853459188ebcc9f0e7c0f45ef0fd92"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/tasks/T-1.md",
+            "fingerprint": "fdf68b3c5d664b61b741c60d7b34fc8b2a933cfdd4571523884ed2f0dbd320ac"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/tasks/T-2.md",
+            "fingerprint": "1d382470a9bbc640d6a9f19fe36e37f6861e2df739bb6c434cfef3d1785cf8db"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/tasks/T-3.md",
+            "fingerprint": "7ab87d4fe7d930e47b3f28650502cc805abba1ae5506ea68d1cffe9c5e54e40c"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/test-coverage.json",
+            "fingerprint": "fa4c26b683741b8f56dac3934f0e7f238916f802d3f0f9711e084b710f163069"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/test-execute-result.json",
+            "fingerprint": "74e88863b7601b70c0b16d329c4ad1416e1fd642576684dcdfe11b88e75b98ec"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/test-result-review.json",
+            "fingerprint": "67806e5b8c7913495cf03d671fd9d3fec1f1c96763688ff2ca626525a6c70ca0"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/test-result-review.md",
+            "fingerprint": "9e6be73b1d129933c5891804294d809430b81093d1cc5bbb3396811f6c62c724"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/test-review.json",
+            "fingerprint": "9dff044ddb7e7330a872180f2b61a024a43eb4c37bf0d49e081a8cdcb5eaca56"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/test-review.md",
+            "fingerprint": "b84af64b8c49b1ce737a8160d2a7ae5804697b61c6604af5fcc8617ea6e2ebc8"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/tests/.raw/scenario-validity.log",
+            "fingerprint": "d00d680bfa4ab2f3b5d883f06f5c9eb500c85a4d39ed69a8a2e7b8fde6be91bf"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/tests/.raw/test-execution.log",
+            "fingerprint": "25738eab88789ae3e0f5a1643de2d6a1228b582711419278a07874e53d3c2a14"
+          },
+          {
+            "path": "specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+            "fingerprint": "817d66472bf547e6ae7ead776e623e9e121dc75afac46dddb38470d3fe4c1b1a"
+          },
+          {
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "028aa7d9bbb205ba35af664bc7e23fde4ba8cc296e34b2b179e6b874530c9245"
+          },
+          {
+            "path": "src/flow/lib/flow-judgment-contract.js",
+            "fingerprint": "dced450649de7c6599ad2dd0d65cb60fb5e77df71e53575d5ae4d08391ba2e8a"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "aba6c3f6ae468befdb3dc34cb22749623b8944389d5ba5c15816f0dd46e2f50e"
+          },
+          {
+            "path": "src/flow/lib/retry-recovery.js",
+            "fingerprint": "a58e20a7ba14255beaf1e5b03754dbc09425cfae17f43de4c862c560ba8458d1"
+          },
+          {
+            "path": "src/flow/lib/review-convergence.js",
+            "fingerprint": "dc3cd82ffd067229e7da352b88b37de74883c2b159f84ea9287d0e5af8f6150c"
+          },
+          {
+            "path": "src/flow/lib/run-final-regression.js",
+            "fingerprint": "d8bdb41a2bbcbed2fdd35ece0741887126aeec16c688df0104b2d422bdb4e9f4"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "e2b1eac6ce4ef5729297672955a999b0fd72b7a2b51f669369fe9690a0a5a732"
+          },
+          {
+            "path": "src/flow/lib/test-artifacts.js",
+            "fingerprint": "73385477610bd337a276eb100ec49bce01dba2318c4e63cc365583ca91d199c0"
+          },
+          {
+            "path": "src/flow/lib/test-regression.js",
+            "fingerprint": "5832a0340c6bcf2ba7dc1f31ed0ccd46daab6d08074f2b7eab98f70d40466e02"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "fingerprint": "86865c46f808e86683711a257a79650bad1e9ef0b3e9ae4173b5ef3b72c63955"
+          },
+          {
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "fingerprint": "50b37ca4750782e8d4aef4d5840588be533dde852d4e855dd3f3aeea43dfab47"
+          },
+          {
+            "path": "tests/unit/flow/final-regression.test.js",
+            "fingerprint": "519f81aebf37ee4fd58cdf9a9637dc1c1260f970e7bd7d9411a49f5be06f3f9b"
+          },
+          {
+            "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+            "fingerprint": "50b95566c6b091c999369a52903e8fb4b38b7bed6615e84e24f40e5c6c7d7f97"
+          },
+          {
+            "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+            "fingerprint": "0c26e6962a82f1af9ba1c3ded80728b5e471c1b8d0a68ff06709bf9bc854e111"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "a4ee71c6bf3fd95095fd09da101409658a446d997d541762be4f6cdbd99b9291"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/344-final-regression-evidence/tests/.raw/final-regression-attempt-004.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-2",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-3",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 3,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    -\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 20\n    agent calls ................. 101\n    input tokens ................ 1,579,128\n    output tokens ............... 84,511\n    cache-read tokens ........... 1,562,624\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2486.9s\n      draft-questions-review .... 6.5s\n      draft-coverage-review ..... 7.3s\n      draft-gate ................ 53.8s\n      spec-review ............... 102.0s\n      spec-gate ................. 52.5s\n      test-review ............... 73.4s\n      implement ................. 243.4s\n      impl-review ............... 1074.6s\n      impl-gate ................. 284.5s\n      acceptance-review ......... 588.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 4  passed 4  failed 0 verdict=pass\n    raw_output: specs/344-final-regression-evidence/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/344-final-regression-evidence/tests/.raw/final-regression-attempt-004.log\n\n  Tasks (3/3)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n    T-3 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (61 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/344-final-regression-evidence/issue-log.json\n\n    Important (10)\n    - [spec-gate] The goal requires completion evidence from fully captured output but does not state an explicit maximum output size or other bound for that output capture.; R1 makes `stdout/stderr truncated=false` a completion condition, implying comple...\n    - [spec-gate] test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4\n    - [impl-gate] fix: corrected explicit evidence validation, failure classification, and the spec fixture newline so R1-R4 test artifacts pass\n    - [retry-recovery] repair-011 and spec-local R3 evidence now participate in impl review recovery\n    - [final-regression] final-regression failed: caused_by_current_change\n    - [spec-gate] test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4\n    - [final-regression] final-regression failed: caused_by_current_change\n    - [final-regression] final-regression failed: caused_by_current_change\n    - [spec-gate] The diff adds `gitValue(root, args)` as a helper wrapping `execFileSync(\"git\", args, ...)`, but its added call sites are only within `run-final-regression.js`; it does not hide meaningful complexity, enforce an invariant, or establish a ...\n    - [impl-gate] fix: modeled HEAD, tree, and worktree fingerprint as one FinalRegressionRepositoryBinding value object\n\n    Recent Other (5 of 51)\n    - [spec-gate] The diff adds an inline SHA-256 hex calculation for stream evidence using `crypto.createHash(\"sha256\").update(...).digest(\"hex\")`; the same hashing shape is repeated in other changed production locations and could be a local helper.; The...\n    - [spec-gate] The diff introduces a non-trivial final-regression executionBinding/artifact-validation data flow, but the provided spec content does not include evidence that this design direction was confirmed before implementation.\n    - [impl-gate] fix: documented the execution-binding validator ownership and accepted complexity boundary in the spec alternatives\n    - [impl-gate] fix: removed the thin gitValue and sha256Hex wrappers while preserving the final-regression evidence checks\n    - [acceptance-decision] User explicitly selected accept_risk_and_continue for unresolved acceptance risk.\n    ... 46 other issue-log entries omitted"
+}

@@ -1,0 +1,132 @@
+[senti] scenario-validity tests start
+command: node --test specs/344-final-regression-evidence/tests/final-regression-evidence.test.js
+[senti] scenario-validity file start command=node specs/344-final-regression-evidence/tests/final-regression-evidence.test.js
+TAP version 13
+# Subtest: final-regression completion evidence
+    # Subtest: R1: zero tests or either stream beyond 1 MiB never completes a passing regression
+    not ok 1 - R1: zero tests or either stream beyond 1 MiB never completes a passing regression
+      ---
+      duration_ms: 141.818537
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:89:3'
+      failureType: 'testCodeFailure'
+      error: 'exit 0 with zero tests is incomplete evidence'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'pass'
+      actual: 'pass'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:96:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R2: acceptance validates the captured execution binding against the current repository
+    not ok 2 - R2: acceptance validates the captured execution binding against the current repository
+      ---
+      duration_ms: 106.00547
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:109:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:118:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R3: autoApprove cannot complete a failed regression, while explicit bound evidence is required
+    not ok 3 - R3: autoApprove cannot complete a failed regression, while explicit bound evidence is required
+      ---
+      duration_ms: 2.200811
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:128:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:130:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: final-regression keeps its command, artifact path, and classified failure recovery
+    not ok 4 - R4: final-regression keeps its command, artifact path, and classified failure recovery
+      ---
+      duration_ms: 145.438515
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:150:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + undefined
+        - 'fail'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'fail'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:160:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..4
+not ok 1 - final-regression completion evidence
+  ---
+  duration_ms: 397.780905
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence/specs/344-final-regression-evidence/tests/final-regression-evidence.test.js:82:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 406.686071
+[senti] final-regression command: node fixture.mjs
+[senti] final-regression raw log: specs/344-final-regression-evidence/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression command: node fixture.mjs
+[senti] final-regression raw log: specs/344-final-regression-evidence/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression command: node fixture.mjs
+[senti] final-regression raw log: specs/344-final-regression-evidence/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression result artifact: specs/344-final-regression-evidence/final-regression-result.json
+[senti] final-regression wrote raw log: specs/344-final-regression-evidence/tests/.raw/final-regression-attempt-001.log
+exitCode: 1
+[senti] scenario-validity file end command=node specs/344-final-regression-evidence/tests/final-regression-evidence.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: zero tests or either stream beyond 1 MiB never completes a passing regression
+[senti] requirement R2 observed: R2: acceptance validates the captured execution binding against the current repository
+[senti] requirement R3 observed: R3: autoApprove cannot complete a failed regression, while explicit bound evidence is required
+[senti] requirement R4 observed: R4: final-regression keeps its command, artifact path, and classified failure recovery
+[senti] scenario-validity tests end

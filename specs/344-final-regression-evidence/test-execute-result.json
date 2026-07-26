@@ -1,0 +1,282 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/344-final-regression-evidence/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "test_name": "R1: zero tests or either stream beyond 1 MiB never completes a passing regression",
+        "command": "node --test specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 131
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "test_name": "R2: acceptance validates the captured execution binding against the current repository",
+        "command": "node --test specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 131
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "test_name": "R3: autoApprove cannot complete a failed regression, while explicit bound evidence is required",
+        "command": "node --test specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 131
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "test_name": "R4: final-regression keeps its command, artifact path, and classified failure recovery",
+        "command": "node --test specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 131
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/commands/review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/flow-judgment-contract.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/retry-recovery.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/review-convergence.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-final-regression.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-step.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/test-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/test-regression.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/final-regression.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js",
+        "fingerprint": "028aa7d9bbb205ba35af664bc7e23fde4ba8cc296e34b2b179e6b874530c9245"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-judgment-contract.js",
+        "fingerprint": "dced450649de7c6599ad2dd0d65cb60fb5e77df71e53575d5ae4d08391ba2e8a"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "aba6c3f6ae468befdb3dc34cb22749623b8944389d5ba5c15816f0dd46e2f50e"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/retry-recovery.js",
+        "fingerprint": "a58e20a7ba14255beaf1e5b03754dbc09425cfae17f43de4c862c560ba8458d1"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-convergence.js",
+        "fingerprint": "dc3cd82ffd067229e7da352b88b37de74883c2b159f84ea9287d0e5af8f6150c"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-final-regression.js",
+        "fingerprint": "d8bdb41a2bbcbed2fdd35ece0741887126aeec16c688df0104b2d422bdb4e9f4"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js",
+        "fingerprint": "e2b1eac6ce4ef5729297672955a999b0fd72b7a2b51f669369fe9690a0a5a732"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-artifacts.js",
+        "fingerprint": "73385477610bd337a276eb100ec49bce01dba2318c4e63cc365583ca91d199c0"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-regression.js",
+        "fingerprint": "5832a0340c6bcf2ba7dc1f31ed0ccd46daab6d08074f2b7eab98f70d40466e02"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "86865c46f808e86683711a257a79650bad1e9ef0b3e9ae4173b5ef3b72c63955"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+        "fingerprint": "50b37ca4750782e8d4aef4d5840588be533dde852d4e855dd3f3aeea43dfab47"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression.test.js",
+        "fingerprint": "519f81aebf37ee4fd58cdf9a9637dc1c1260f970e7bd7d9411a49f5be06f3f9b"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "fingerprint": "50b95566c6b091c999369a52903e8fb4b38b7bed6615e84e24f40e5c6c7d7f97"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+        "fingerprint": "0c26e6962a82f1af9ba1c3ded80728b5e471c1b8d0a68ff06709bf9bc854e111"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "fingerprint": "a4ee71c6bf3fd95095fd09da101409658a446d997d541762be4f6cdbd99b9291"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js",
+        "fingerprint": "028aa7d9bbb205ba35af664bc7e23fde4ba8cc296e34b2b179e6b874530c9245"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-judgment-contract.js",
+        "fingerprint": "dced450649de7c6599ad2dd0d65cb60fb5e77df71e53575d5ae4d08391ba2e8a"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/impl-repair-artifacts.js",
+        "fingerprint": "aba6c3f6ae468befdb3dc34cb22749623b8944389d5ba5c15816f0dd46e2f50e"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/retry-recovery.js",
+        "fingerprint": "a58e20a7ba14255beaf1e5b03754dbc09425cfae17f43de4c862c560ba8458d1"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/review-convergence.js",
+        "fingerprint": "dc3cd82ffd067229e7da352b88b37de74883c2b159f84ea9287d0e5af8f6150c"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-final-regression.js",
+        "fingerprint": "d8bdb41a2bbcbed2fdd35ece0741887126aeec16c688df0104b2d422bdb4e9f4"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js",
+        "fingerprint": "e2b1eac6ce4ef5729297672955a999b0fd72b7a2b51f669369fe9690a0a5a732"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-artifacts.js",
+        "fingerprint": "73385477610bd337a276eb100ec49bce01dba2318c4e63cc365583ca91d199c0"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-regression.js",
+        "fingerprint": "5832a0340c6bcf2ba7dc1f31ed0ccd46daab6d08074f2b7eab98f70d40466e02"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "86865c46f808e86683711a257a79650bad1e9ef0b3e9ae4173b5ef3b72c63955"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+        "fingerprint": "50b37ca4750782e8d4aef4d5840588be533dde852d4e855dd3f3aeea43dfab47"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/final-regression.test.js",
+        "fingerprint": "519f81aebf37ee4fd58cdf9a9637dc1c1260f970e7bd7d9411a49f5be06f3f9b"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "fingerprint": "50b95566c6b091c999369a52903e8fb4b38b7bed6615e84e24f40e5c6c7d7f97"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/retry-recovery-file-map.test.js",
+        "fingerprint": "0c26e6962a82f1af9ba1c3ded80728b5e471c1b8d0a68ff06709bf9bc854e111"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "fingerprint": "a4ee71c6bf3fd95095fd09da101409658a446d997d541762be4f6cdbd99b9291"
+      }
+    ]
+  },
+  "repairFingerprint": "a379bae8827873d0ae90be8a865b309c4d99b26979e0611943c5671131369b8c"
+}
