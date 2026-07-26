@@ -25,6 +25,12 @@ const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
 });
 const REVIEW_TOOLING_MAX_ATTEMPTS = 1;
 
+export function artifactPhaseMatchesReviewTarget(artifactPhase, phase) {
+  if (artifactPhase === phase) return true;
+  return (artifactPhase === "draft-questions-review" && phase === "draft-questions")
+    || (artifactPhase === "draft-coverage-review" && phase === "draft-coverage");
+}
+
 function requireObject(value, field) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${field} must be an object`);

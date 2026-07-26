@@ -61,6 +61,7 @@ import {
   ReviewEvidenceReference,
   ReviewTargetState,
   ReviewToolingOutcome,
+  artifactPhaseMatchesReviewTarget,
   buildReviewHandoffFindings,
   nextReviewToolingOutcome,
   resolveReviewPermittedOperation,
@@ -1158,7 +1159,7 @@ export function recoverFinalizedFlowReviewPostHookFailure(ctx, result, error) {
   const treeSha = resolveCurrentReviewTreeSha(ctx);
   const targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx);
   if (
-    source.phase !== phase
+    !artifactPhaseMatchesReviewTarget(source.phase, phase)
     || source.taskId !== null
     || source.treeSha !== treeSha
     || source.targetStateDigest !== targetStateDigest
@@ -1333,12 +1334,15 @@ function persistCanonicalReviewArtifact(
   const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
   const taskId = result.artifacts.taskId ?? null;
   for (const [field, value] of Object.entries({ phase, taskId, treeSha, targetStateDigest: repairFingerprint })) {
-    if (Object.hasOwn(artifact, field) && artifact[field] !== value) {
+    const matches = field === "phase"
+      ? artifactPhaseMatchesReviewTarget(artifact[field], value)
+      : artifact[field] === value;
+    if (Object.hasOwn(artifact, field) && !matches) {
       const error = new Error(`finalized review artifact ${field} does not match the current review target`);
       error.code = "STALE_REVIEW_TARGET";
       throw error;
     }
-    artifact[field] = value;
+    if (field !== "phase" || !Object.hasOwn(artifact, field)) artifact[field] = value;
   }
   const bytes = Buffer.from(`${JSON.stringify(artifact, null, 2)}\n`, "utf8");
   fs.writeFileSync(artifactPath, bytes);

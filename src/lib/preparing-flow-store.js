@@ -97,8 +97,6 @@ export class PreparingFlowStore {
    */
   create(runId, extra = {}) {
     const id = new PreparingFlowId(runId);
-    const dir = sentiDir(this._mainRoot);
-    fs.mkdirSync(dir, { recursive: true });
     const state = {
       runId,
       lifecycle: "preparing",
@@ -137,9 +135,10 @@ export class PreparingFlowStore {
     if (!fs.existsSync(p)) return null;
     try {
       return new PreparingFlowSnapshot(p).state;
-    } catch (err) {
-      console.error(`[flow-state] WARN: failed to read preparing flow ${runId}: ${err.message}`);
-      return null;
+    } catch (cause) {
+      const error = new Error(`preparing flow is corrupt: ${runId}`, { cause });
+      error.code = "PREPARING_FLOW_CORRUPT";
+      throw error;
     }
   }
 

@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -141,6 +142,10 @@ export class ProcessIdentitySource {
       if (cause.code === "PROCESS_IDENTITY_UNAVAILABLE") throw cause;
       throw processIdentityUnavailable("current process identity is unavailable", cause);
     }
+  }
+
+  assertAvailable() {
+    this.createOwner(crypto.randomUUID());
   }
 
   assess(owner) {

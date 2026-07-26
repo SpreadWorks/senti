@@ -17,6 +17,7 @@ import {
 } from "../../../../src/flow/lib/run-review.js";
 import {
   applyReviewEvidenceTransition,
+  artifactPhaseMatchesReviewTarget,
   ReviewDisposition,
   ReviewEvidence,
 } from "../../../../src/flow/lib/review-convergence.js";
@@ -311,6 +312,12 @@ describe("FLOW_STEPS includes impl-review", () => {
 });
 
 describe("draft repair target checkpoint replay", () => {
+  it("accepts the public draft artifact phase for its internal retry phase", () => {
+    assert.equal(artifactPhaseMatchesReviewTarget("draft-questions-review", "draft-questions"), true);
+    assert.equal(artifactPhaseMatchesReviewTarget("draft-coverage-review", "draft-coverage"), true);
+    assert.equal(artifactPhaseMatchesReviewTarget("draft-questions-review", "draft-coverage"), false);
+  });
+
   it("records the exact R8 ADVISORY fixture once and advances through the production triage hook without review AI", async () => {
     const tmp = createTmpDir("draft-repair-target-checkpoint-");
     const specDir = path.join(tmp, "specs/demo");

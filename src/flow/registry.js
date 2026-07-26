@@ -1565,12 +1565,16 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.final-regression",
       runtimeLog: { stepId: "final-regression" },
       command: () => import("./lib/run-final-regression.js"),
-      args: { flags: withTargetGuardFlags(["--record-and-proceed"]), options: [...FLOW_RUN_OPTIONS] },
+      args: {
+        flags: withTargetGuardFlags(["--record-and-proceed"]),
+        options: ["--record-category", "--record-evidence", "--remaining-risk", ...FLOW_RUN_OPTIONS],
+      },
       help: [
-        "Usage: senti flow run final-regression [--record-and-proceed]",
+        "Usage: senti flow run final-regression [--record-and-proceed --record-category <category> --record-evidence <text> --remaining-risk <text>]",
         "",
         "Run the full project-level regression command after retro and before finalize.",
         "Persists specs/<spec>/final-regression-result.json and specs/<spec>/tests/.raw/final-regression-attempt-<N>.log (zero-padded to at least three digits).",
+        "A current-diff failure may be recorded only as out_of_scope with explicit evidence and remaining risk.",
       ].join("\n"),
       async post(ctx, result) {
         if (

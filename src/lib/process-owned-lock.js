@@ -214,6 +214,14 @@ export class ProcessOwnedLock {
   }
 
   acquire({ claimStale = false } = {}) {
+    const initial = fs.existsSync(this.directory) ? this.inspect() : null;
+    if (initial) {
+      const assessment = this.processIdentitySource.assess(initial.owner.processIdentity);
+      if (assessment.status !== "stale" || !claimStale) {
+        throw this.conflict(initial.owner, assessment);
+      }
+    }
+    this.processIdentitySource.assertAvailable();
     this.directoryAuthority.ensure();
     for (let attempt = 0; attempt < MAX_ACQUIRE_ATTEMPTS; attempt += 1) {
       const existing = this.inspect();
@@ -312,13 +320,13 @@ export class ProcessOwnedLock {
     let owner = null;
     let phase = "owner-temp-open";
     try {
-      descriptor = fs.openSync(tempPath, "wx", 0o600);
       this.processIdentity = this.processIdentitySource.createOwner(token);
       owner = new ProcessOwnedLockOwner({
         kind: this.kind,
         authority: this.authority,
         processIdentity: this.processIdentity,
       });
+      descriptor = fs.openSync(tempPath, "wx", 0o600);
       phase = "owner-file-write";
       fs.writeFileSync(descriptor, `${JSON.stringify(owner.toJSON(), null, 2)}\n`);
       phase = "owner-file-mode";
@@ -381,6 +389,17 @@ export class ProcessOwnedLock {
         cleanupErrors,
         `process-owned lock publish and cleanup both failed: ${this.lockPath}`,
       );
+      if (
+        primaryError.code === "PROCESS_IDENTITY_UNAVAILABLE"
+        && cleanupErrors.length === 0
+        && residue.temp === false
+        && residue.visible === false
+        && published === false
+      ) {
+        this.processIdentity = null;
+        this.lockIdentity = null;
+        throw primaryError;
+      }
       if (primaryError.code === "EEXIST" && cleanupErrors.length === 0 && residue.temp === false && published === false) {
         this.processIdentity = null;
         this.lockIdentity = null;

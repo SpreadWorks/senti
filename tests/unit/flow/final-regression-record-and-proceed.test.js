@@ -117,6 +117,42 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
     }
   });
 
+  test("permits an explicit out-of-scope record for a current-diff failure", async () => {
+    const tmp = createTmpDir("unit-final-regression-record-proceed-current-diff-");
+    try {
+      const ctx = setupProject(tmp, [
+        "printf '%s\\n' 'current failure' >&2",
+        shellPrintChildProcessRecord({
+          stderr: "ERR_ASSERTION\\nsrc/current.js: unrelated flow test failure\\n",
+        }),
+        "exit 1",
+        "",
+      ].join("\n"));
+      writeFile(tmp, "src/current.js", "export const current = true;\n");
+
+      await new RunFinalRegressionCommand().execute(ctx);
+      const failed = readArtifact(tmp);
+      assert.equal(failed.failureKind, "caused_by_current_change");
+      assert.equal(failed.recordAndProceed.eligible, false);
+
+      const recorded = await new RunFinalRegressionCommand().execute({
+        ...ctx,
+        recordAndProceed: true,
+        recordAndProceedCategory: "out_of_scope",
+        recordAndProceedEvidence: "User approved recording this unrelated regression failure.",
+        remainingRisk: "The full regression remains red for the recorded unrelated failure.",
+      });
+      const artifact = readArtifact(tmp);
+
+      assert.equal(recorded.failedRecorded, true, JSON.stringify(recorded));
+      assert.equal(artifact.completed, true);
+      assert.equal(artifact.failureCategory, "out_of_scope");
+      assert.equal(artifact.recordAndProceed.validated, true);
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+
   test("schema accepts failed-recorded artifacts and rejects invalid failed completion", () => {
     assert.equal(validateFinalRegressionResult(failedRecordedArtifact()).result, "fail");
     assert.throws(() => validateFinalRegressionResult(failedRecordedArtifact({

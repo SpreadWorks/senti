@@ -1172,9 +1172,12 @@ function recordFinalRegressionFailure(root, state, artifact) {
 }
 
 function recordAndProceedInput(ctx) {
-  return ctx.recordAndProceedEvidence || {
+  if (ctx.recordAndProceedEvidence && typeof ctx.recordAndProceedEvidence === "object") {
+    return ctx.recordAndProceedEvidence;
+  }
+  return {
     category: ctx.recordAndProceedCategory,
-    evidence: ctx.recordAndProceedEvidenceText || ctx.evidence,
+    evidence: ctx.recordAndProceedEvidenceText || ctx.recordAndProceedEvidence || ctx.evidence,
     remainingRisk: ctx.remainingRisk,
   };
 }
@@ -1504,7 +1507,22 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       );
     }
     const artifact = read.artifact;
-    if (artifact.result !== "fail" || artifact.recordAndProceed?.eligible !== true) {
+    let input;
+    try {
+      input = validateRecordAndProceedInput(recordAndProceedInput(ctx), artifact.failureCategory);
+    } catch (err) {
+      return recordAndProceedFailure(
+        "FINAL_REGRESSION_RECORD_AND_PROCEED_INVALID_EVIDENCE",
+        err.message,
+      );
+    }
+
+    const explicitCurrentChangeOverride = artifact.failureKind === FAILURE_KINDS.CURRENT_CHANGE
+      && input.category === FAILURE_CATEGORIES.OUT_OF_SCOPE;
+    if (
+      artifact.result !== "fail"
+      || (artifact.recordAndProceed?.eligible !== true && !explicitCurrentChangeOverride)
+    ) {
       return recordAndProceedFailure(
         "FINAL_REGRESSION_RECORD_AND_PROCEED_INELIGIBLE",
         "final-regression artifact is not eligible for record-and-proceed",
@@ -1523,16 +1541,6 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       return recordAndProceedFailure(
         "FINAL_REGRESSION_RECORD_AND_PROCEED_STALE",
         "final-regression failed artifact is stale",
-      );
-    }
-
-    let input;
-    try {
-      input = validateRecordAndProceedInput(recordAndProceedInput(ctx), artifact.failureCategory);
-    } catch (err) {
-      return recordAndProceedFailure(
-        "FINAL_REGRESSION_RECORD_AND_PROCEED_INVALID_EVIDENCE",
-        err.message,
       );
     }
 

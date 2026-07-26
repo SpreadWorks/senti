@@ -57,6 +57,7 @@ const WORKTREE_PREPARE_ATTEMPT_KEYS = Object.freeze([
   "mainRoot",
   "runId",
   "issue",
+  "request",
   "branchName",
   "worktreePath",
   "spec",
@@ -71,6 +72,15 @@ const WORKTREE_PREPARE_ATTEMPT_KEYS = Object.freeze([
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
 const MAX_PREPARE_ATTEMPT_BYTES = 256 * 1024;
+
+function reportWorktreePrepareCheckpoint(ctx, phase, attempt) {
+  ctx.worktreePrepareFaultInjector?.({
+    phase,
+    worktreePath: attempt.worktreePath,
+    branchName: attempt.branchName,
+    spec: attempt.spec,
+  });
+}
 
 function runGitTrim(root, args) {
   const res = runGit(["-C", root, ...args]);
@@ -423,6 +433,9 @@ class WorktreePrepareAttemptRecord {
     if (value.issue !== null && (!Number.isSafeInteger(value.issue) || value.issue < 1)) {
       throw new Error("worktree prepare attempt Issue is invalid");
     }
+    if (typeof value.request !== "string") {
+      throw new Error("worktree prepare attempt request is invalid");
+    }
     for (const [filePath, label] of [
       [value.preparingPath, "preparing path"],
       [value.excludePath, "exclude path"],
@@ -454,6 +467,7 @@ class WorktreePrepareAttemptRecord {
     this.mainRoot = value.mainRoot;
     this.runId = value.runId;
     this.issue = value.issue;
+    this.request = value.request;
     this.branchName = value.branchName;
     this.worktreePath = value.worktreePath;
     this.spec = value.spec;
@@ -471,7 +485,7 @@ class WorktreePrepareAttemptRecord {
     Object.freeze(this);
   }
 
-  static create({ mainRoot, runId, issue, branchName, worktreePath, spec, expectedOid, processIdentitySource }) {
+  static create({ mainRoot, runId, issue, request, branchName, worktreePath, spec, expectedOid, processIdentitySource }) {
     const attemptId = crypto.randomUUID();
     const preparingPath = path.join(sentiDir(mainRoot), `.active-flow.${runId}`);
     const rawExclude = runGitTrim(mainRoot, ["rev-parse", "--git-path", "info/exclude"]);
@@ -484,6 +498,7 @@ class WorktreePrepareAttemptRecord {
       mainRoot,
       runId,
       issue,
+      request,
       branchName,
       worktreePath,
       spec,
@@ -504,6 +519,7 @@ class WorktreePrepareAttemptRecord {
       mainRoot: this.mainRoot,
       runId: this.runId,
       issue: this.issue,
+      request: this.request,
       branchName: this.branchName,
       worktreePath: this.worktreePath,
       spec: this.spec,
@@ -811,15 +827,39 @@ export class RunPrepareSpecCommand extends FlowCommand {
   async execute(ctx) {
     const { root, flowManager } = ctx;
 
-    const title = ctx.title || "";
+    let title = ctx.title || "";
     const base = ctx.base || "";
     const runIdArg = ctx.runId || "";
     const noBranch = ctx.noBranch || false;
     const useWorktreeFlag = ctx.worktree || false;
     const dryRun = ctx.dryRun || false;
 
-    const { issue, request } = flowManager.resolvePreparingInputs(runIdArg, ctx.issue, ctx.request);
+    const mainRoot = fs.realpathSync(ctx.mainRoot || flowManager._mainRoot || root);
+    const retryJournal = !dryRun && runIdArg && useWorktreeFlag
+      ? new WorktreePrepareAttemptJournal({
+          mainRoot,
+          processIdentitySource: ctx.worktreePrepareProcessIdentitySource,
+        })
+      : null;
+    const retryAttempt = retryJournal?.load()?.record ?? null;
     const preparingState = runIdArg ? flowManager.loadPreparingFlow(runIdArg) : null;
+    let issue;
+    let request;
+    if (preparingState) {
+      ({ issue, request } = flowManager.resolvePreparingInputs(runIdArg, ctx.issue, ctx.request));
+    } else if (retryAttempt?.runId === runIdArg) {
+      if (ctx.issue != null && Number(ctx.issue) !== retryAttempt.issue) {
+        throw new Error("stale worktree prepare attempt Issue does not match this exact retry target");
+      }
+      if (ctx.request && ctx.request !== retryAttempt.request) {
+        throw new Error("stale worktree prepare attempt request does not match this exact retry target");
+      }
+      issue = retryAttempt.issue;
+      request = retryAttempt.request;
+      if (!title) title = retryAttempt.specDirName.replace(/^[0-9]{3}-/, "");
+    } else {
+      ({ issue, request } = flowManager.resolvePreparingInputs(runIdArg, ctx.issue, ctx.request));
+    }
     if (ctx.flowState && !runIdArg) {
       return Envelope.fail(
         "run",
@@ -888,20 +928,20 @@ export class RunPrepareSpecCommand extends FlowCommand {
     if (!skipBranch) ensureBaseBranch(root, resolvedBase);
 
     const slug = slugify(title) || "feature";
-    const mainRoot = fs.realpathSync(ctx.mainRoot || flowManager._mainRoot || root);
     const attemptJournal = !dryRun && useWorktree
-      ? new WorktreePrepareAttemptJournal({
-          mainRoot,
-          processIdentitySource: ctx.worktreePrepareProcessIdentitySource,
-        })
+      ? retryJournal ?? new WorktreePrepareAttemptJournal({ mainRoot, processIdentitySource: ctx.worktreePrepareProcessIdentitySource })
       : null;
-    const pendingAttempt = attemptJournal?.load()?.record ?? null;
+    const pendingAttempt = retryAttempt ?? attemptJournal?.load()?.record ?? null;
     if (pendingAttempt && (
-      (runIdArg && pendingAttempt.runId !== runIdArg)
+      (!runIdArg || pendingAttempt.runId !== runIdArg)
       || pendingAttempt.issue !== (issue ? Number(issue) : null)
+      || pendingAttempt.request !== request
       || !pendingAttempt.specDirName.endsWith(`-${slug}`)
     )) {
       throw new Error("stale worktree prepare attempt does not match this exact retry target");
+    }
+    if (pendingAttempt && runGitTrim(mainRoot, ["rev-parse", resolvedBase]) !== pendingAttempt.expectedOid) {
+      throw new Error("stale worktree prepare attempt base revision does not match this exact retry target");
     }
     const idx = pendingAttempt
       ? pendingAttempt.specDirName.slice(0, 3)
@@ -942,6 +982,9 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     const operationLock = new RepositoryFlowOperationLock({
       mainRoot,
+      ...(ctx.worktreePrepareProcessIdentitySource && {
+        processIdentitySource: ctx.worktreePrepareProcessIdentitySource,
+      }),
     });
     const operationOwnerToken = operationLock.acquire();
     let repairBaselinePublication = null;
@@ -1075,6 +1118,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
           mainRoot,
           runId: flowRunId,
           issue: issue ? Number(issue) : null,
+          request,
           branchName,
           worktreePath,
           spec: `specs/${specDirName}/spec.json`,
@@ -1083,18 +1127,16 @@ export class RunPrepareSpecCommand extends FlowCommand {
         });
         attemptJournal.begin(worktreeAttempt, flowManager);
         attemptPublished = true;
+        reportWorktreePrepareCheckpoint(ctx, "after-journal-publication", worktreeAttempt);
         runGitTrim(root, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
         attemptJournal.assertGitCreated(worktreeAttempt);
-        ctx.worktreePrepareFaultInjector?.({
-          phase: "after-worktree-add",
-          worktreePath,
-          branchName,
-          spec: worktreeAttempt.spec,
-        });
+        reportWorktreePrepareCheckpoint(ctx, "after-worktree-add", worktreeAttempt);
         ensureWorktreeFlowIdentityIgnored(worktreePath, attemptJournal, worktreeAttempt);
+        reportWorktreePrepareCheckpoint(ctx, "after-exclusion-registration", worktreeAttempt);
         syncPluginRuntimeToWorktree(root, worktreePath);
         await onHook("PostWorktree", { CWD: worktreePath });
         await writeFlowState({ worktree: true }, writeSpecFiles);
+        reportWorktreePrepareCheckpoint(ctx, "after-planning-state-publication", worktreeAttempt);
         runDocsScanAndValidate(specRoot);
         const identity = new WorktreeFlowIdentity({
           runId: flowRunId,
@@ -1106,6 +1148,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
           worktreePath,
           faultInjector: ctx.worktreeFlowBindingFaultInjector,
         }).save(identity);
+        reportWorktreePrepareCheckpoint(ctx, "after-identity-binding", worktreeAttempt);
         const worktreeManager = flowManager.forRoot(worktreePath, {
           bindingFaultInjector: ctx.worktreeFlowBindingFaultInjector,
         });
@@ -1116,8 +1159,11 @@ export class RunPrepareSpecCommand extends FlowCommand {
         resolvedIdentity.assertFlowState(worktreeManager.load(resolvedIdentity.specId));
         flowManager.cleanStaleFlows({ operationOwnerToken });
         flowManager.addActiveFlow(specDirName, "worktree", { operationOwnerToken });
+        reportWorktreePrepareCheckpoint(ctx, "after-registry-publication", worktreeAttempt);
         if (runIdArg) flowManager.deletePreparingFlow(runIdArg);
+        reportWorktreePrepareCheckpoint(ctx, "after-preparing-flow-removal", worktreeAttempt);
         attemptJournal.complete(worktreeAttempt);
+        reportWorktreePrepareCheckpoint(ctx, "after-journal-completion", worktreeAttempt);
         attemptPublished = false;
       } catch (publicationError) {
         if (attemptPublished) {
