@@ -1391,7 +1391,10 @@ function persistCanonicalReviewArtifact(
     treeSha,
     targetStateDigest: repairFingerprint,
   })) {
-    if (Object.hasOwn(artifact, field) && artifact[field] !== value) {
+    const matches = field === "phase"
+      ? artifactPhaseMatchesReviewTarget(artifact[field], phase)
+      : artifact[field] === value;
+    if (Object.hasOwn(artifact, field) && !matches) {
       const error = new Error(`finalized review artifact ${field} does not match the current review target`);
       error.code = "STALE_REVIEW_TARGET";
       throw error;
