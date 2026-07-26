@@ -1094,7 +1094,7 @@ export const FLOW_COMMANDS = {
         "  --finding-id <id>     Stable finding ID for decision or finding actions.",
         "  --finding-source <s>  Durable source reference for a new direct finding.",
         "  --classification <c>  Direct finding classification.",
-        "  --summary <text>       New direct finding summary.",
+        "  --summary <text>       Finding summary or requirement-by-requirement implementation evidence.",
         "  --recommended-resolution <text>  Recommended finding resolution.",
         "  --resolution <text>    Explicit adopted finding resolution.",
         "  --change-target <paths>  Comma-separated repository-relative targets.",

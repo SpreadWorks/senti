@@ -2359,6 +2359,159 @@ function ensureRealDirectory(directory) {
   }
 }
 
+class FinalizeWorktreeRuntimeResidue {
+  constructor({ mainRepoPath, worktreePath, transactionId }) {
+    if (typeof transactionId !== "string" || transactionId === "") {
+      throw new Error("finalize runtime residue requires a transaction identity");
+    }
+    this.mainRepoPath = fs.realpathSync(mainRepoPath);
+    this.worktreePath = path.resolve(worktreePath);
+    this.transactionId = transactionId;
+    this.managedWorktreeRoot = path.join(this.mainRepoPath, ".senti", "worktree");
+    this.recoveryRoot = path.join(
+      this.mainRepoPath,
+      ".senti",
+      "recovery",
+      "finalize-cleanup-residue",
+    );
+  }
+
+  #assertRealDirectory(directory, label) {
+    const stat = fs.lstatSync(directory);
+    if (
+      !stat.isDirectory()
+      || stat.isSymbolicLink()
+      || fs.realpathSync(directory) !== directory
+    ) {
+      throw new Error(`${label} must be one real directory`);
+    }
+  }
+
+  #assertEmptyDirectoryTree(directory) {
+    this.#assertRealDirectory(directory, "finalize worktree metadata residue");
+    for (const entry of fs.readdirSync(directory)) {
+      const entryPath = path.join(directory, entry);
+      const stat = fs.lstatSync(entryPath);
+      if (!stat.isDirectory() || stat.isSymbolicLink()) {
+        throw new Error("finalize worktree metadata residue contains a file");
+      }
+      this.#assertEmptyDirectoryTree(entryPath);
+    }
+  }
+
+  #assertRuntimeLogDirectory(directory) {
+    this.#assertRealDirectory(directory, "finalize runtime log residue");
+    for (const entry of fs.readdirSync(directory)) {
+      const entryPath = path.join(directory, entry);
+      const stat = fs.lstatSync(entryPath);
+      if (
+        !stat.isFile()
+        || stat.isSymbolicLink()
+        || stat.nlink !== 1
+        || fs.realpathSync(entryPath) !== entryPath
+      ) {
+        throw new Error("finalize runtime log residue contains a non-log entry");
+      }
+    }
+  }
+
+  #assertRuntimeOnlyTree() {
+    this.#assertRealDirectory(this.managedWorktreeRoot, "managed worktree root");
+    this.#assertRealDirectory(this.worktreePath, "finalize worktree residue");
+    if (path.dirname(this.worktreePath) !== this.managedWorktreeRoot) {
+      throw new Error("finalize worktree residue is outside the managed worktree root");
+    }
+
+    const worktrees = runGit([
+      "-C",
+      this.mainRepoPath,
+      "worktree",
+      "list",
+      "--porcelain",
+    ]);
+    if (!worktrees.ok) {
+      throw new Error(
+        `finalize worktree residue registration could not be verified: ${
+          worktrees.stderr || worktrees.stdout || "unknown"
+        }`,
+      );
+    }
+    if (
+      worktrees.stdout
+        .split("\n")
+        .some((line) => line === `worktree ${this.worktreePath}`)
+    ) {
+      throw new Error("finalize worktree residue is still registered as a Git worktree");
+    }
+
+    for (const entry of fs.readdirSync(this.worktreePath)) {
+      if (entry === ".senti") {
+        this.#assertEmptyDirectoryTree(path.join(this.worktreePath, entry));
+        continue;
+      }
+      if (entry === ".tmp") {
+        const tempDirectory = path.join(this.worktreePath, entry);
+        this.#assertRealDirectory(tempDirectory, "finalize temporary residue");
+        const tempEntries = fs.readdirSync(tempDirectory);
+        if (
+          tempEntries.some((name) => name !== "logs")
+          || !tempEntries.includes("logs")
+        ) {
+          throw new Error("finalize temporary residue contains non-runtime data");
+        }
+        this.#assertRuntimeLogDirectory(path.join(tempDirectory, "logs"));
+        continue;
+      }
+      throw new Error(`finalize worktree residue contains unexpected data: ${entry}`);
+    }
+  }
+
+  relocate() {
+    this.#assertRuntimeOnlyTree();
+    ensureRealDirectory(this.recoveryRoot);
+    const token = crypto
+      .createHash("sha256")
+      .update(this.transactionId)
+      .digest("hex");
+    const recoveryPath = path.join(this.recoveryRoot, token);
+    if (pathExistsStrict(recoveryPath)) {
+      throw new Error("finalize runtime residue recovery target already exists");
+    }
+    fs.renameSync(this.worktreePath, recoveryPath);
+    fsyncDirectory(this.managedWorktreeRoot);
+    fsyncDirectory(this.recoveryRoot);
+    return recoveryPath;
+  }
+}
+
+function recoverAuthorizedWorktreeRuntimeResidue({
+  finalizeAdapter,
+  state,
+  transaction,
+  mainRepoPath,
+  worktreePath,
+}) {
+  if (
+    !finalizeAdapter
+    || !mainRepoPath
+    || !worktreePath
+    || !transaction.phase.atLeast("worktree-removed")
+    || !pathExistsStrict(worktreePath)
+    || finalizeAdapter.authorizeRemovedWorktreeRuntimeResidueRecovery?.({
+      state,
+      worktreePath,
+      transaction,
+    }) !== true
+  ) {
+    return null;
+  }
+  return new FinalizeWorktreeRuntimeResidue({
+    mainRepoPath,
+    worktreePath,
+    transactionId: transaction.transactionId,
+  }).relocate();
+}
+
 class FinalizeRepositoryOperationLock {
   constructor(mainRoot) {
     this.mainRoot = fs.realpathSync(resolveRepositoryLockRoot(mainRoot));
@@ -2973,9 +3126,10 @@ function bindingFailure(code, error) {
   };
 }
 
-function verifyExactWorktreeBinding(expectedBinding) {
+function verifyExactWorktreeBinding(expectedBinding, missingBindingRecoveryAuthorized) {
   const store = new WorktreeFlowBindingStore({ worktreePath: expectedBinding.worktreePath });
   store.withLock(() => {
+    if (!store.exists && missingBindingRecoveryAuthorized) return;
     const current = store.loadOwned().identity;
     if (!current.equals(expectedBinding)) {
       throw new Error("worktree flow binding changed before finalize teardown");
@@ -2990,13 +3144,20 @@ export function removeWorktreeForCleanup({
   force = false,
   runGit: runGitFn = runGit,
   expectedBinding = null,
+  missingBindingRecoveryAuthorized = false,
 }) {
+  if (typeof missingBindingRecoveryAuthorized !== "boolean") {
+    throw new Error("worktree cleanup missing-binding recovery authority must be boolean");
+  }
+  if (missingBindingRecoveryAuthorized && expectedBinding == null) {
+    throw new Error("worktree cleanup missing-binding recovery requires an expected binding");
+  }
   if (expectedBinding != null) {
     if (!(expectedBinding instanceof WorktreeFlowIdentity)) {
       throw new Error("worktree cleanup expected binding must be a worktree flow identity");
     }
     try {
-      verifyExactWorktreeBinding(expectedBinding);
+      verifyExactWorktreeBinding(expectedBinding, missingBindingRecoveryAuthorized);
     } catch (error) {
       return bindingFailure("WORKTREE_FLOW_BINDING_REMOVE_FAILED", error);
     }
@@ -5505,13 +5666,6 @@ async function runTeardownTransactionOwned(
     );
   }
   const gitAuthorityRoot = mainRepoPath || targetRoot;
-  assertPersistedTeardownReality(transaction, ctx, {
-    worktreePath,
-    mainRepoPath,
-    targetRoot,
-    reportRoot,
-    specId,
-  });
   const attachTransaction = (env) => {
     if (env.data == null) env.data = {};
     env.data.teardown = transaction.result?.toJSON() ?? new FinalizeTeardownResult({
@@ -5588,6 +5742,38 @@ async function runTeardownTransactionOwned(
     transactionStore.write(transaction);
     return attachTransaction(env);
   };
+  const preserveAuthorizedRuntimeResidue = () => {
+    try {
+      recoverAuthorizedWorktreeRuntimeResidue({
+        finalizeAdapter,
+        state,
+        transaction,
+        mainRepoPath,
+        worktreePath,
+      });
+      return null;
+    } catch (error) {
+      return failAfterCommit(Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "WORKTREE_RUNTIME_RESIDUE_RECOVERY_FAILED",
+        [
+          `Removed worktree runtime residue could not be safely preserved: ${error.message}`,
+          "The remaining directory was left untouched.",
+        ],
+        { causeCode: error.code || null, worktreePath },
+      ));
+    }
+  };
+  const initialResidueFailure = preserveAuthorizedRuntimeResidue();
+  if (initialResidueFailure) return initialResidueFailure;
+  assertPersistedTeardownReality(transaction, ctx, {
+    worktreePath,
+    mainRepoPath,
+    targetRoot,
+    reportRoot,
+    specId,
+  });
 
   if (!transaction.phase.atLeast("commit-durable")) {
     try {
@@ -5895,12 +6081,21 @@ async function runTeardownTransactionOwned(
             worktreePath: wtPath,
           })
         : null;
+      const bindingMissing = expectedBinding != null
+        && !new WorktreeFlowBindingStore({ worktreePath: wtPath }).exists;
+      const missingBindingRecoveryAuthorized = bindingMissing
+        && finalizeAdapter?.authorizeMissingWorktreeBindingRecovery?.({
+          state,
+          worktreePath: wtPath,
+          transaction,
+        }) === true;
       const removeResult = removeWorktreeForCleanup({
         mainRepoPath,
         worktreePath: wtPath,
         featureBranch,
         force: ctx.force === true,
         expectedBinding,
+        missingBindingRecoveryAuthorized,
       });
       if (!removeResult.ok) return failAfterCommit(removeResult.env);
     }
@@ -5936,6 +6131,9 @@ async function runTeardownTransactionOwned(
   }
 
   assertCommitReachableFromBase(transaction, { mainRepoPath: gitAuthorityRoot, state });
+
+  const residueFailure = preserveAuthorizedRuntimeResidue();
+  if (residueFailure) return residueFailure;
 
   if (!transaction.phase.atLeast("validated")) {
     const validation = validateTeardown({

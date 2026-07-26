@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 
@@ -48,6 +49,109 @@ function commitSpecArtifact(fixture, fileName, value, message) {
   git(fixture.worktreePath, ["commit", "--quiet", "-m", message]);
 }
 
+async function confirmDirectImplementation(fixture, summary = null) {
+  const spec = JSON.parse(fs.readFileSync(
+    path.join(fixture.worktreePath, fixture.spec),
+    "utf8",
+  ));
+  const requirementIds = (spec.requirements || [])
+    .filter((requirement) => requirement.testable !== false)
+    .map((requirement) => requirement.id);
+  const evidence = summary || [
+    "Completed the bounded direct implementation and inspected the product diff.",
+    ...requirementIds.map((id) => `${id}: implemented the specified product behavior.`),
+  ].join(" ");
+  const confirmed = await runDirectFlowAction(fixture.context(), {
+    action: "CONFIRM_DIRECT_IMPLEMENTATION",
+    summary: evidence,
+  });
+  assert.equal(confirmed.code, "DIRECT_FIX");
+  assert.ok(confirmed.directFlowSession.implementationProof);
+  return confirmed;
+}
+
+async function prepareVerifiedDirectChange(fixture, {
+  relativePath,
+  contents,
+  reason,
+}) {
+  await runDirectFlowAction(fixture.context(), {
+    action: "SELECT_DIRECT_FIX",
+    reason,
+    scope: [relativePath],
+    source: "manual",
+  });
+  const sourcePath = path.join(fixture.worktreePath, relativePath);
+  fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+  fs.writeFileSync(sourcePath, contents);
+  await confirmDirectImplementation(fixture);
+  const verified = await runDirectFlowAction(fixture.context(), {
+    action: "VERIFY_DIRECT",
+    testCommand: "node -e \"process.exit(0)\"",
+    timeoutMs: 10_000,
+  });
+  assert.equal(verified.code, "DIRECT_VERIFY_PASSED", JSON.stringify(verified));
+}
+
+function executableFromPath(name) {
+  for (const directory of (process.env.PATH || "").split(path.delimiter)) {
+    if (!directory) continue;
+    const candidate = path.join(directory, name);
+    try {
+      fs.accessSync(candidate, fs.constants.X_OK);
+      return fs.realpathSync(candidate);
+    } catch {
+      // Continue searching PATH.
+    }
+  }
+  throw new Error(`${name} executable is unavailable`);
+}
+
+function installWorktreeRemovalResidue(fixture, {
+  relativePath,
+  contents,
+}) {
+  const originalPath = process.env.PATH;
+  const realGit = executableFromPath("git");
+  const wrapperRoot = fs.mkdtempSync(path.join(os.tmpdir(), "senti-git-wrapper-"));
+  const wrapperPath = path.join(wrapperRoot, "git");
+  fs.writeFileSync(wrapperPath, `#!${process.execPath}
+const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+const args = process.argv.slice(2);
+const result = spawnSync(${JSON.stringify(realGit)}, args, { encoding: "utf8" });
+if (result.stdout) process.stdout.write(result.stdout);
+if (result.stderr) process.stderr.write(result.stderr);
+const worktreeIndex = args.indexOf("worktree");
+if (
+  result.status === 0
+  && worktreeIndex >= 0
+  && args[worktreeIndex + 1] === "remove"
+  && args.includes(${JSON.stringify(fixture.worktreePath)})
+) {
+  const target = path.join(
+    ${JSON.stringify(fixture.worktreePath)},
+    ${JSON.stringify(relativePath)},
+  );
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, ${JSON.stringify(contents)});
+  fs.mkdirSync(
+    path.join(${JSON.stringify(fixture.worktreePath)}, ".senti"),
+    { recursive: true },
+  );
+}
+process.exit(result.status == null ? 1 : result.status);
+`);
+  fs.chmodSync(wrapperPath, 0o755);
+  process.env.PATH = `${wrapperRoot}${path.delimiter}${originalPath || ""}`;
+  return () => {
+    if (originalPath == null) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+    fs.rmSync(wrapperRoot, { recursive: true, force: true });
+  };
+}
+
 function assertReceiptlessReconcileRejected(fixture) {
   const inspected = getDirectFlowAction(fixture.context());
   assert.equal(
@@ -88,8 +192,8 @@ test("direct fix persists its plan before changes and completes through shared t
       scope: ["src/direct-fixture.js"],
       source: "manual",
     });
-    assert.equal(selected.code, "DIRECT_FIX");
-    assert.equal(selected.yieldsControl, true);
+    assert.equal(selected.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+    assert.equal(selected.requiresUserAction, false);
 
     const plannedState = fixture.context().flowState;
     const session = DirectFlowSession.fromStored(plannedState.directFlowSession);
@@ -106,6 +210,7 @@ test("direct fix persists its plan before changes and completes through shared t
     fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
     fs.writeFileSync(sourcePath, "export const directFixture = true;\n");
 
+    await confirmDirectImplementation(fixture);
     const verified = await runDirectFlowAction(fixture.context(), {
       action: "VERIFY_DIRECT",
       testCommand: "node -e \"process.exit(0)\"",
@@ -193,6 +298,225 @@ test("direct fix persists its plan before changes and completes through shared t
   }
 });
 
+test("passing tests cannot be run or finalized before implementation completion is recorded", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-implementation-proof" });
+  try {
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Keep implementation and verification as separate direct recovery decisions.",
+      scope: ["src/implementation-proof.js"],
+      source: "manual",
+    });
+    const sourcePath = path.join(fixture.worktreePath, "src", "implementation-proof.js");
+    const testSentinel = path.join(fixture.worktreePath, "verification-ran.txt");
+    fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+    fs.writeFileSync(sourcePath, "export const implementationProof = true;\n");
+
+    const before = getDirectFlowAction(fixture.context());
+    assert.equal(before.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+    assert.equal(before.requiresUserAction, false);
+    assert.equal(before.actionPrompt, undefined);
+
+    const blocked = await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"require('fs').writeFileSync('verification-ran.txt', 'yes')\"",
+      timeoutMs: 10_000,
+    });
+    assert.equal(blocked.ok, false);
+    assert.equal(blocked.errors[0].code, "DIRECT_IMPLEMENTATION_NOT_READY");
+    assert.equal(fs.existsSync(testSentinel), false);
+    assert.equal(fixture.context().flowState.directFlowSession.phase, "DIRECT_FIX");
+    assert.equal(fixture.context().flowState.directFlowSession.verification, null);
+
+    await confirmDirectImplementation(fixture);
+    const verified = await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"process.exit(0)\"",
+      timeoutMs: 10_000,
+    });
+    assert.equal(verified.code, "DIRECT_VERIFY_PASSED");
+    assert.equal(
+      fixture.context().flowState.directFlowSession.verification.checks
+        .find((check) => check.id === "implementation-readiness").passed,
+      true,
+    );
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("direct cleanup recovers a missing worktree binding from durable finalize authority", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-missing-binding-cleanup" });
+  try {
+    container.register("config", { commands: { gh: "disable" } });
+    const pluginId = "remove-binding-during-cleanup";
+    const pluginRoot = path.join(fixture.worktreePath, ".senti", "plugins", pluginId);
+    fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixture.worktreePath, ".senti", "config.json"),
+      `${JSON.stringify({
+        lang: "en",
+        type: "base",
+        commands: { gh: "disable" },
+        docs: { languages: ["en"], defaultLanguage: "en" },
+        plugin: { packages: [{ id: pluginId }] },
+      }, null, 2)}\n`,
+    );
+    fs.writeFileSync(path.join(pluginRoot, "hooks", "finalize.js"), `
+      import fs from "node:fs";
+      import path from "node:path";
+
+      export default function register(api) {
+        return class RemoveBindingDuringCleanup extends api.FlowCommandHook {
+          static command = "finalize-cleanup";
+          static hook = "pre";
+          static failurePolicy = "required";
+          async run(context) {
+            fs.unlinkSync(path.join(context.project.root, ".senti", "flow-identity.json"));
+            return context.envelope.ok("plugin-hook", "finalize-cleanup", {});
+          }
+        };
+      }
+    `);
+    fixture.context().flowManager.mutate((state) => {
+      state.plugins = { flowCommandHooks: [{
+        apiVersion: 1,
+        pluginId,
+        module: "hooks/finalize.js",
+        className: "RemoveBindingDuringCleanup",
+        command: "finalize-cleanup",
+        hook: "pre",
+        priority: 0,
+        failurePolicy: "required",
+      }] };
+    });
+    git(fixture.worktreePath, ["add", ".senti", `specs/${fixture.specId}/flow.json`]);
+    git(fixture.worktreePath, ["commit", "--quiet", "-m", "add binding cleanup fixture"]);
+
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Exercise durable direct cleanup after the worktree binding disappears.",
+      scope: ["src/missing-binding-cleanup.js"],
+      source: "manual",
+    });
+    const sourcePath = path.join(fixture.worktreePath, "src", "missing-binding-cleanup.js");
+    fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+    fs.writeFileSync(sourcePath, "export const missingBindingCleanup = true;\n");
+    await confirmDirectImplementation(fixture);
+    await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"process.exit(0)\"",
+      timeoutMs: 10_000,
+    });
+
+    const finalized = await runDirectFlowAction(fixture.context(), {
+      action: "FINALIZE_DIRECT",
+    });
+    assert.equal(finalized.ok, true, JSON.stringify(finalized));
+    assert.equal(finalized.data.status, "done");
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+    assert.equal(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
+test("direct cleanup preserves and removes runtime-only residue recreated after worktree removal", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-runtime-residue-cleanup" });
+  try {
+    container.register("config", { commands: { gh: "disable" } });
+    await prepareVerifiedDirectChange(fixture, {
+      relativePath: "src/runtime-residue-cleanup.js",
+      contents: "export const runtimeResidueCleanup = true;\n",
+      reason: "Exercise direct cleanup after runtime logging recreates the removed worktree.",
+    });
+    const restoreGit = installWorktreeRemovalResidue(fixture, {
+      relativePath: ".tmp/logs/recreated.log",
+      contents: "preserved runtime evidence\n",
+    });
+    let finalized;
+    try {
+      finalized = await runDirectFlowAction(fixture.context(), {
+        action: "FINALIZE_DIRECT",
+      });
+    } finally {
+      restoreGit();
+    }
+
+    assert.equal(finalized.ok, true, JSON.stringify(finalized));
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+    assert.equal(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");
+    const recoveryRoot = path.join(
+      fixture.root,
+      ".senti",
+      "recovery",
+      "finalize-cleanup-residue",
+    );
+    const recoveryEntries = fs.readdirSync(recoveryRoot);
+    assert.equal(recoveryEntries.length, 1);
+    assert.equal(
+      fs.readFileSync(path.join(
+        recoveryRoot,
+        recoveryEntries[0],
+        ".tmp",
+        "logs",
+        "recreated.log",
+      ), "utf8"),
+      "preserved runtime evidence\n",
+    );
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
+test("direct cleanup refuses to remove unexpected files recreated after worktree removal", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-unsafe-residue-cleanup" });
+  try {
+    container.register("config", { commands: { gh: "disable" } });
+    await prepareVerifiedDirectChange(fixture, {
+      relativePath: "src/unsafe-residue-cleanup.js",
+      contents: "export const unsafeResidueCleanup = true;\n",
+      reason: "Exercise the fail-closed boundary for recreated worktree content.",
+    });
+    const restoreGit = installWorktreeRemovalResidue(fixture, {
+      relativePath: "src/unexpected.js",
+      contents: "export const unexpected = true;\n",
+    });
+    let stopped;
+    try {
+      stopped = await runDirectFlowAction(fixture.context(), {
+        action: "FINALIZE_DIRECT",
+      });
+    } finally {
+      restoreGit();
+    }
+
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "WORKTREE_RUNTIME_RESIDUE_RECOVERY_FAILED");
+    assert.equal(
+      fs.readFileSync(
+        path.join(fixture.worktreePath, "src", "unexpected.js"),
+        "utf8",
+      ),
+      "export const unexpected = true;\n",
+    );
+    assert.equal(
+      fs.existsSync(path.join(
+        fixture.root,
+        ".senti",
+        "recovery",
+        "finalize-cleanup-residue",
+      )),
+      false,
+    );
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
 test("direct fix derives its scope and verification command from Flow evidence", async () => {
   const fixture = createDirectFlowFixture({ specId: "476-derived-direct-inputs" });
   try {
@@ -211,7 +535,7 @@ test("direct fix derives its scope and verification command from Flow evidence",
       reason: "Continue the explicitly requested direct repair.",
       source: "manual",
     });
-    assert.equal(selected.code, "DIRECT_FIX");
+    assert.equal(selected.code, "DIRECT_IMPLEMENTATION_REQUIRED");
     assert.equal(
       selected.verificationCommand.command,
       "node -e \"process.exit(0)\"",
@@ -222,6 +546,7 @@ test("direct fix derives its scope and verification command from Flow evidence",
     );
     assert.equal(plan.scopePaths.includes("src/derived-direct-inputs.js"), true);
 
+    await confirmDirectImplementation(fixture);
     const verified = await runDirectFlowAction(fixture.context(), {
       action: "VERIFY_DIRECT",
       timeoutMs: 10_000,
@@ -264,7 +589,7 @@ test("direct suspend resumes the exact phase and abort retains Git state", async
     const resumed = await runDirectFlowAction(fixture.context(), {
       action: "RESUME_DIRECT",
     });
-    assert.equal(resumed.code, "DIRECT_FIX");
+    assert.equal(resumed.code, "DIRECT_IMPLEMENTATION_REQUIRED");
     assert.equal(resumed.directFlowSession.phase, "DIRECT_FIX");
     assert.equal(
       fixture.context().flowManager.snapshotActiveFlows().entries.some((entry) => (
@@ -317,6 +642,7 @@ test("direct abort can reopen the retained target and complete with archived abo
     fs.writeFileSync(sourcePath, "export const reopenedDirect = true;\n");
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
+      await confirmDirectImplementation(fixture);
       const failed = await runDirectFlowAction(fixture.context(), {
         action: "VERIFY_DIRECT",
         testCommand: "node -e \"process.exit(1)\"",
@@ -330,7 +656,7 @@ test("direct abort can reopen the retained target and complete with archived abo
         const returned = await runDirectFlowAction(fixture.context(), {
           action: "RETURN_TO_DIRECT_FIX",
         });
-        assert.equal(returned.code, "DIRECT_FIX");
+        assert.equal(returned.code, "DIRECT_IMPLEMENTATION_REQUIRED");
       }
     }
 
@@ -347,7 +673,7 @@ test("direct abort can reopen the retained target and complete with archived abo
       action: "REOPEN_ABORTED_DIRECT",
       reason: "Continue the retained target after correcting its deterministic fixture.",
     });
-    assert.equal(reopened.code, "DIRECT_FIX");
+    assert.equal(reopened.code, "DIRECT_IMPLEMENTATION_REQUIRED");
     const reopenedState = fixture.context().flowState;
     assert.equal(reopenedState.directFlowSession.phase, "DIRECT_FIX");
     assert.equal(reopenedState.directFlowSession.verificationAttempts, 0);
@@ -359,6 +685,7 @@ test("direct abort can reopen the retained target and complete with archived abo
     assert.equal(reopenedState.directResolutionPlan.revision, originalPlanRevision + 1);
     assert.deepEqual(stepStatuses(reopenedState), initialSteps);
 
+    await confirmDirectImplementation(fixture);
     const verified = await runDirectFlowAction(fixture.context(), {
       action: "VERIFY_DIRECT",
       testCommand: "node -e \"process.exit(0)\"",
@@ -409,7 +736,7 @@ test("direct suspend resumes a finalized normal Flow without parking its active 
     const resumed = await runDirectFlowAction(fixture.context(), {
       action: "RESUME_DIRECT",
     });
-    assert.equal(resumed.code, "DIRECT_FIX");
+    assert.equal(resumed.code, "DIRECT_IMPLEMENTATION_REQUIRED");
     assert.equal(resumed.directFlowSession.phase, "DIRECT_FIX");
   } finally {
     fixture.cleanup();
@@ -554,7 +881,7 @@ test("a blocked impl target preserves its stop reason through direct preflight",
       scope: ["src/blocked-direct.js"],
       source: "manual",
     });
-    assert.equal(selected.code, "DIRECT_FIX");
+    assert.equal(selected.code, "DIRECT_IMPLEMENTATION_REQUIRED");
     const state = fixture.context().flowState;
     assert.equal(
       state.directResolutionPlan.routingFailure,
@@ -601,7 +928,7 @@ test("manual direct preflight stops for semantic decisions and resumes the same 
       resolution: "Proceed with the bounded behavior described by the approved spec.",
     });
 
-    assert.equal(resumed.code, "DIRECT_FIX");
+    assert.equal(resumed.code, "DIRECT_IMPLEMENTATION_REQUIRED");
     const resumedState = fixture.context().flowState;
     const resumedSession = DirectFlowSession.fromStored(resumedState.directFlowSession);
     const resumedPlan = DirectResolutionPlan.fromStored(resumedState.directResolutionPlan);
@@ -654,7 +981,7 @@ test("autoApprove adopts safe preflight recommendations only after explicit dire
       source: "manual",
     });
 
-    assert.equal(selected.code, "DIRECT_FIX");
+    assert.equal(selected.code, "DIRECT_IMPLEMENTATION_REQUIRED");
     const state = fixture.context().flowState;
     const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
     assert.equal(plan.selectionSource, "manual");
@@ -682,6 +1009,7 @@ test("direct verification is bounded and risk acceptance cannot credit normal st
       source: "manual",
     });
 
+    await confirmDirectImplementation(fixture);
     let result;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       result = await runDirectFlowAction(fixture.context(), {
@@ -1019,6 +1347,7 @@ test("direct finalize stops without cleanup when verified content changes", asyn
     const sourcePath = path.join(fixture.worktreePath, "src", "mutable-direct.js");
     fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
     fs.writeFileSync(sourcePath, "export const version = 1;\n");
+    await confirmDirectImplementation(fixture);
     await runDirectFlowAction(fixture.context(), {
       action: "VERIFY_DIRECT",
       testCommand: "node -e \"process.exit(0)\"",
@@ -1109,6 +1438,7 @@ test("direct cleanup preserves required-hook, dirty, and orphaned-commit failure
     const sourcePath = path.join(fixture.worktreePath, "src", "required-hook.js");
     fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
     fs.writeFileSync(sourcePath, "export const requiredHook = true;\n");
+    await confirmDirectImplementation(fixture);
     await runDirectFlowAction(fixture.context(), {
       action: "VERIFY_DIRECT",
       testCommand: "node -e \"process.exit(0)\"",
@@ -1233,6 +1563,7 @@ test("direct cleanup removes only the target active-flow entry", async () => {
     const sourcePath = path.join(fixture.worktreePath, "src", "target-only.js");
     fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
     fs.writeFileSync(sourcePath, "export const targetOnly = true;\n");
+    await confirmDirectImplementation(fixture);
     await runDirectFlowAction(fixture.context(), {
       action: "VERIFY_DIRECT",
       testCommand: "node -e \"process.exit(0)\"",

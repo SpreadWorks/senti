@@ -64,6 +64,10 @@ export function createDirectFlowFixture({
     featureBranch,
     worktree: true,
   }), "implement");
+  for (const task of state.tasks || []) {
+    task.status = "done";
+    for (const step of task.steps || []) step.status = "done";
+  }
   state.state = { mergeStrategy: "squash" };
   const specDir = path.join(worktreePath, "specs", specId);
   fs.mkdirSync(specDir, { recursive: true });

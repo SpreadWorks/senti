@@ -642,6 +642,65 @@ describe("dispatcher (unified runner)", () => {
       }
     });
 
+    it("writes direct finalization runtime logs outside the managed worktree", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-direct-finalize-"));
+      const mainRoot = path.join(tmp, "main");
+      const worktreeRoot = path.join(mainRoot, ".senti", "worktree", "feature-demo");
+      try {
+        fs.mkdirSync(worktreeRoot, { recursive: true });
+        container.register("paths", {
+          root: worktreeRoot,
+          agentWorkDir: path.join(worktreeRoot, ".agent-work"),
+        });
+        const flowManager = {
+          resolveWorktreePaths() {
+            return { mainRepoPath: mainRoot, worktreePath: worktreeRoot };
+          },
+        };
+
+        class Cmd extends Command {
+          static outputMode = "envelope";
+          execute() {
+            return { status: "done" };
+          }
+        }
+
+        for (const action of ["FINALIZE_DIRECT", "FINALIZE_DIRECT_RECONCILE"]) {
+          const entry = {
+            command: async () => ({ default: Cmd }),
+            args: { options: ["--action"] },
+            requiresFlow: false,
+            runtimeLog: { stepMetadata: false },
+          };
+          const out = [];
+          await dispatch({
+            container,
+            entry,
+            argv: ["--action", action],
+            envelopeType: "run",
+            envelopeKey: "direct",
+            runtimeLog: true,
+            stdout: (s) => out.push(s),
+            buildHookCtx: () => ({
+              root: worktreeRoot,
+              specId: "demo-flow",
+              flowState: { runId: "run-demo", worktree: true },
+              flowManager,
+            }),
+          });
+          assert.equal(JSON.parse(out.join("")).ok, true);
+        }
+
+        assert.equal(
+          fs.existsSync(path.join(mainRoot, ".tmp", "logs", "demo-flow.log")),
+          true,
+        );
+        assert.equal(fs.existsSync(path.join(worktreeRoot, ".tmp")), false);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
     it("persists cleanup runtime metadata through the loaded command module and main flow authority", async () => {
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-cleanup-metadata-"));
       try {

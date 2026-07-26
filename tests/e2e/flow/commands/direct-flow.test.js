@@ -137,20 +137,26 @@ test("flow direct CLI preserves prompts and completes a bounded managed-worktree
       ...targetGuards(fixture),
     ]);
     assert.equal(selected.status, 0, selected.stderr || selected.stdout);
-    assert.equal(selected.envelope.data.code, "DIRECT_FIX");
-    assert.equal(selected.envelope.data.yieldsControl, true);
+    assert.equal(selected.envelope.data.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+    assert.equal(selected.envelope.data.requiresUserAction, false);
 
     const nextAction = invoke(fixture, ["get", "next-action", ...targetGuards(fixture)]);
     assert.equal(nextAction.status, 0, nextAction.stderr || nextAction.stdout);
-    assert.equal(nextAction.envelope.data.code, "DIRECT_FIX");
-    assert.deepEqual(
-      nextAction.envelope.data.actionPrompt,
-      selected.envelope.data.actionPrompt,
-    );
+    assert.equal(nextAction.envelope.data.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+    assert.equal(nextAction.envelope.data.requiresUserAction, false);
 
     const sourcePath = path.join(fixture.worktreePath, "src", "direct-cli.js");
     fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
     fs.writeFileSync(sourcePath, "export const directCli = true;\n");
+
+    const confirmed = invoke(fixture, [
+      "run", "direct",
+      "--action", "CONFIRM_DIRECT_IMPLEMENTATION",
+      "--summary", "Completed the bounded direct CLI implementation and inspected the product diff.",
+      ...targetGuards(fixture),
+    ]);
+    assert.equal(confirmed.status, 0, confirmed.stderr || confirmed.stdout);
+    assert.equal(confirmed.envelope.data.code, "DIRECT_FIX");
 
     const verified = invoke(fixture, [
       "run", "direct",

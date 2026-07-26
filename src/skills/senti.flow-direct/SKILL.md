@@ -87,13 +87,37 @@ Do not ask the user to supply information already recorded by the Flow or projec
   command.
 
 Automatically execute safe, deterministic continuation actions when their inputs
-are complete, including repair-plan preflight, recorded project verification, and
-readback. If verification fails, explain the failing check in plain language,
-continue the bounded repair, and re-run verification within the CLI attempt limit.
+are complete, including repair-plan preflight and readback. Recorded project
+verification is mechanical only after the CLI reports that implementation
+completion evidence is current for the exact change set.
 
 Only edit source, tests, spec files, or issue-log entries after the CLI has
 persisted the direct plan and entered direct fix. Stay inside the persisted scope.
 Record newly discovered findings through the CLI action before expanding the plan.
+
+## Complete the Implementation Before Verification
+
+`DIRECT_IMPLEMENTATION_REQUIRED` is a work instruction for the agent, not a user
+decision and not permission to run tests immediately.
+
+1. Read the spec goal, every requirement, task status, current diff, and the
+   affected product code in the retained worktree.
+2. Continue the implementation until the whole requested behavior is present.
+   A previous passing test result, `done` requirement metadata, or an existing
+   verification command is not evidence that implementation work is complete.
+3. Inspect the final diff against every requirement. Do not infer completeness
+   merely because the bounded tests pass.
+4. Only then execute the guarded `CONFIRM_DIRECT_IMPLEMENTATION` action. Supply
+   `--summary` with concrete requirement-by-requirement evidence, naming every
+   requirement ID returned by the CLI and the implemented product behavior.
+5. Re-run guarded inspection. Run `VERIFY_DIRECT` only when the CLI reports that
+   the implementation proof matches the exact current change set.
+
+Returning to direct fix, reopening an abort, recording a new finding, or changing
+any implementation file invalidates the proof. Re-inspect the implementation and
+record a new proof before verification. If verification fails, explain the
+failing check in plain language, continue the bounded repair, re-record
+implementation completion, and re-run verification within the CLI attempt limit.
 
 ## Ask Only for a Real Decision
 

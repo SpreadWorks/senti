@@ -740,6 +740,7 @@ export class FlowStateCreator {
     faultInjector = () => {},
     maintenanceOwnerToken = null,
     operationOwnerToken = null,
+    allowProcessOwnerBorrow = false,
     processIdentitySource = new ProcessIdentitySource(),
   }) {
     const expectedSpec = `specs/${boundSpecId}/spec.json`;
@@ -757,6 +758,7 @@ export class FlowStateCreator {
       mainRoot,
       maintenanceOwnerToken,
       operationOwnerToken,
+      allowProcessOwnerBorrow,
       processIdentitySource,
     });
   }
@@ -826,6 +828,7 @@ export class AtomicFlowStateWriter {
     processIdentitySource = new ProcessIdentitySource(),
     maintenanceOwnerToken = null,
     operationOwnerToken = null,
+    allowProcessOwnerBorrow = false,
     allowIssueTransition = false,
     transitionId = null,
     writerOwnerToken = null,
@@ -860,6 +863,7 @@ export class AtomicFlowStateWriter {
       mainRoot,
       maintenanceOwnerToken,
       operationOwnerToken,
+      allowProcessOwnerBorrow,
     });
   }
 

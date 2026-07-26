@@ -713,12 +713,7 @@ export class FlowManager {
   }
 
   #withParkedFlowOperation(options, body) {
-    const operationLock = new RepositoryFlowOperationLock({
-      mainRoot: this._mainRoot,
-      maintenanceOwnerToken: options.maintenanceOwnerToken,
-      operationOwnerToken: options.operationOwnerToken,
-      ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
-    });
+    const operationLock = this.#repositoryOperationLock(options);
     const operationOwnerToken = operationLock.acquire();
     let result;
     let primary = null;
@@ -959,12 +954,7 @@ export class FlowManager {
     if (typeof issue !== "number" || !Number.isSafeInteger(issue) || issue < 1) {
       throw new Error(`worktree flow identity issue must be a positive integer: ${issue}`);
     }
-    const operationLock = new RepositoryFlowOperationLock({
-      mainRoot: this._mainRoot,
-      maintenanceOwnerToken: opts.maintenanceOwnerToken,
-      operationOwnerToken: opts.operationOwnerToken,
-      ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
-    });
+    const operationLock = this.#repositoryOperationLock(opts);
     const operationOwnerToken = operationLock.acquire();
     let result;
     let primary = null;
@@ -1076,10 +1066,7 @@ export class FlowManager {
 
   #recoverBoundIssueTransition() {
     if (!this._worktreeBinding?.issueTransitionExists) return;
-    const operationLock = new RepositoryFlowOperationLock({
-      mainRoot: this._mainRoot,
-      ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
-    });
+    const operationLock = this.#repositoryOperationLock();
     const operationOwnerToken = operationLock.acquire();
     let primary = null;
     try {
@@ -1107,10 +1094,7 @@ export class FlowManager {
   }
 
   #resolveGuardedWorktreeBinding(expectation) {
-    const operationLock = new RepositoryFlowOperationLock({
-      mainRoot: this._mainRoot,
-      ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
-    });
+    const operationLock = this.#repositoryOperationLock();
     const operationOwnerToken = operationLock.acquire();
     let result;
     let primary = null;
@@ -1189,5 +1173,15 @@ export class FlowManager {
     } catch {
       return false;
     }
+  }
+
+  #repositoryOperationLock(options = {}) {
+    return new RepositoryFlowOperationLock({
+      mainRoot: this._mainRoot,
+      maintenanceOwnerToken: options.maintenanceOwnerToken,
+      operationOwnerToken: options.operationOwnerToken,
+      allowProcessOwnerBorrow: false,
+      ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
+    });
   }
 }

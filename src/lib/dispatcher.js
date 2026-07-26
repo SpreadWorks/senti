@@ -148,9 +148,21 @@ function runtimeLogAllowed(entry, hookCtx) {
   );
 }
 
+function removesManagedWorktree(envelopeKey, hookCtx) {
+  return envelopeKey === "finalize-cleanup"
+    || (
+      envelopeKey === "direct"
+      && ["FINALIZE_DIRECT", "FINALIZE_DIRECT_RECONCILE"].includes(hookCtx?.action)
+    );
+}
+
 function runtimeLogRoot({ envelopeKey, hookCtx, container }) {
   const fallbackRoot = hookCtx.root || container.get("paths").root;
-  if (envelopeKey !== "finalize-cleanup" || !hookCtx?.flowManager || !hookCtx?.flowState?.worktree) {
+  if (
+    !removesManagedWorktree(envelopeKey, hookCtx)
+    || !hookCtx?.flowManager
+    || !hookCtx?.flowState?.worktree
+  ) {
     return fallbackRoot;
   }
   const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(hookCtx.flowState);

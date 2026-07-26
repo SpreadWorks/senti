@@ -353,6 +353,49 @@ export class DirectFinalizeAdapter {
     }
   }
 
+  #authorizesTeardownRecovery({
+    state,
+    worktreePath,
+    transaction,
+    requiredPhase,
+  }) {
+    const receipt = state.directCompletionReceipt
+      ? DirectCompletionReceipt.fromStored(state.directCompletionReceipt)
+      : null;
+    const expectation = transaction?.commitExpectation;
+    const identity = transaction?.identity;
+    return (
+      receipt != null
+      && receipt.receiptId === this.completionReceipt.receiptId
+      && receipt.status === "prepared"
+      && this.plan.target.sameIdentity(state)
+      && worktreePath === this.plan.target.worktreePath
+      && transaction?.phase?.atLeast?.(requiredPhase) === true
+      && identity?.runId === this.plan.target.runId
+      && identity?.spec === this.plan.target.spec
+      && (identity?.issue ?? null) === this.plan.target.issue
+      && identity?.featureBranch === this.plan.target.featureBranch
+      && identity?.baseBranch === this.plan.target.baseBranch
+      && expectation?.worktreePath === this.plan.target.worktreePath
+      && expectation?.worktreeHead === this.completionReceipt.gitEvidence.featureHead
+      && expectation?.featureRef === this.completionReceipt.gitEvidence.featureHead
+    );
+  }
+
+  authorizeMissingWorktreeBindingRecovery(input) {
+    return this.#authorizesTeardownRecovery({
+      ...input,
+      requiredPhase: "commit-durable",
+    });
+  }
+
+  authorizeRemovedWorktreeRuntimeResidueRecovery(input) {
+    return this.#authorizesTeardownRecovery({
+      ...input,
+      requiredPhase: "worktree-removed",
+    });
+  }
+
   complete(flowManager, specId, operationOwnerToken) {
     const existingState = flowManager.load(specId);
     const existingSession = DirectFlowSession.fromStored(existingState.directFlowSession);
@@ -581,6 +624,16 @@ async function finalizeMerge(authority, state, session, plan, options) {
     : null;
   let featureHead = pendingReceipt?.featureHead ?? null;
   if (session.phase === "DIRECT_VERIFY") {
+    if (
+      session.implementationProof == null
+      || !session.implementationProof.matchesIdentity(state, plan)
+      || !session.implementationProof.matchesVerification(session.verification)
+    ) {
+      return directStop(state, "DIRECT_IMPLEMENTATION_NOT_READY", [
+        "Limited finalize requires implementation completion evidence for the exact verified change set.",
+        "No commit, merge, cleanup, pointer, branch, worktree, or active-registry mutation was attempted.",
+      ], { retryAction: "RETURN_TO_DIRECT_FIX" });
+    }
     if (session.verification?.status !== "passed") {
       return directStop(state, "DIRECT_VERIFY_REQUIRED", [
         "Limited finalize requires a passed direct verification.",

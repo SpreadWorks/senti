@@ -205,12 +205,17 @@ export class RepositoryFlowOperationLock {
     mainRoot,
     maintenanceOwnerToken = null,
     operationOwnerToken = null,
+    allowProcessOwnerBorrow = true,
     processIdentitySource = new ProcessIdentitySource(),
   }) {
+    if (typeof allowProcessOwnerBorrow !== "boolean") {
+      throw new Error("repository flow-operation process-owner borrowing flag must be boolean");
+    }
     const repositoryAuthority = new RepositoryLockAuthority(mainRoot);
     this.lockPath = path.join(repositoryAuthority.mainRoot, ".senti", FLOW_OPERATION_FILE);
     this.maintenanceOwnerToken = maintenanceOwnerToken;
     this.operationOwnerToken = operationOwnerToken;
+    this.allowProcessOwnerBorrow = allowProcessOwnerBorrow;
     this.borrowed = false;
     this.acquiredOwnerToken = null;
     this.maintenance = new ProcessOwnedRepositoryLock({
@@ -259,7 +264,8 @@ export class RepositoryFlowOperationLock {
       throw this.#attachContention(error, null);
     }
     const processOwner = PROCESS_OPERATION_OWNERS.get(this.lockPath);
-    const knownOwnerToken = this.operationOwnerToken || processOwner?.ownerToken;
+    const knownOwnerToken = this.operationOwnerToken
+      || (this.allowProcessOwnerBorrow ? processOwner?.ownerToken : null);
     if (
       existing
       && knownOwnerToken

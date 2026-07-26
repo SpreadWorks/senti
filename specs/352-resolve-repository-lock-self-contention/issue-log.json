@@ -645,6 +645,617 @@
       "timestamp": "2026-07-26T12:24:19.578Z",
       "taskId": null,
       "issueLogId": "direct-plan:56a88d9e-c305-427a-b278-ae0df9e97391:direct-plan-75d7ae2e6cb3fd04d637e7e3:r3"
+    },
+    {
+      "step": "direct-completion",
+      "reason": "Direct handling completed from implement.",
+      "trigger": "MERGE_ONLY_FINALIZE",
+      "resolution": "Direct completion direct-completion-ffa72e688c160cd752d9e3105eb9ea06; mode=direct; merge=merged; sourceStep=implement; verification=passed; skipped=impl-review,impl-triage,impl-repair,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup",
+      "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+      "planId": "direct-plan-75d7ae2e6cb3fd04d637e7e3",
+      "planRevision": 3,
+      "completionMode": "direct",
+      "mergeDisposition": "merged",
+      "gitEvidence": {
+        "kind": "integration-receipt",
+        "featureHead": "3c1437fd222327743ccd0c81e61e64429eb42bdd",
+        "mainHead": "cb4979bead5289c1b4194dd0b1568acdcba3fda1",
+        "receiptKey": "direct-integration-01e307865255430ab296d5918113ec38",
+        "receiptCommit": "cb4979bead5289c1b4194dd0b1568acdcba3fda1",
+        "observedAt": "2026-07-26T14:39:19.995Z"
+      },
+      "skippedSteps": [
+        {
+          "stepId": "impl-review",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "impl-triage",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "impl-repair",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "impl-gate",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "retro",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "acceptance-review",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "final-regression",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "report",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-commit",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-merge",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-sync",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-cleanup",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        }
+      ],
+      "minimalValidation": {
+        "status": "passed",
+        "testStatus": "passed",
+        "testCommand": "node --test specs/352-resolve-repository-lock-self-contention/tests/draft-review-lifecycle.test.js specs/352-resolve-repository-lock-self-contention/tests/repository-operation-lock.test.js specs/352-resolve-repository-lock-self-contention/tests/repository-lock-diagnostics.test.js tests/unit/lib/repository-maintenance-lock.test.js tests/unit/flow/draft-review-route-artifacts.test.js",
+        "checks": [
+          {
+            "id": "target-identity",
+            "passed": true,
+            "detail": "runId, Issue, spec, and branch identity match the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "origin-flow-revision",
+            "passed": true,
+            "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+            "overrideable": false
+          },
+          {
+            "id": "direct-plan-cas",
+            "passed": true,
+            "detail": "Direct session and plan revisions match.",
+            "overrideable": false
+          },
+          {
+            "id": "worktree-binding",
+            "passed": true,
+            "detail": "Managed worktree binding matches the handoff revision.",
+            "overrideable": false
+          },
+          {
+            "id": "active-registry-cas",
+            "passed": true,
+            "detail": "Active Flow registry revision matches the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "feature-history",
+            "passed": true,
+            "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+            "overrideable": false
+          },
+          {
+            "id": "git-conflicts",
+            "passed": true,
+            "detail": "No unresolved Git conflicts exist.",
+            "overrideable": false
+          },
+          {
+            "id": "change-scope",
+            "passed": true,
+            "detail": "All changed paths are inside the persisted direct scope.",
+            "overrideable": false
+          },
+          {
+            "id": "merge-target-operation",
+            "passed": true,
+            "detail": "No prohibited Git operation is in progress on the merge target.",
+            "overrideable": false
+          },
+          {
+            "id": "deterministic-tests",
+            "passed": true,
+            "detail": "Deterministic test command exited successfully.",
+            "overrideable": true
+          }
+        ],
+        "changedPaths": [
+          "specs/352-resolve-repository-lock-self-contention/draft-coverage-repair.json",
+          "specs/352-resolve-repository-lock-self-contention/draft-coverage-triage.json",
+          "specs/352-resolve-repository-lock-self-contention/draft-gate-source.json",
+          "specs/352-resolve-repository-lock-self-contention/draft-questions-repair.json",
+          "specs/352-resolve-repository-lock-self-contention/draft-questions-triage.json",
+          "specs/352-resolve-repository-lock-self-contention/draft-review-coverage.json",
+          "specs/352-resolve-repository-lock-self-contention/draft-review-questions.json",
+          "specs/352-resolve-repository-lock-self-contention/draft.json",
+          "specs/352-resolve-repository-lock-self-contention/file-map.json",
+          "specs/352-resolve-repository-lock-self-contention/flow-findings.json",
+          "specs/352-resolve-repository-lock-self-contention/flow.json",
+          "specs/352-resolve-repository-lock-self-contention/impl-review.json",
+          "specs/352-resolve-repository-lock-self-contention/issue-log.json",
+          "specs/352-resolve-repository-lock-self-contention/issue.md",
+          "specs/352-resolve-repository-lock-self-contention/plugin-artifacts/workflow/prepare.json",
+          "specs/352-resolve-repository-lock-self-contention/repair-fingerprint.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/272d51a732d2605d894ef27a3ee9eb8cf6942571752d7fcbaabcaff58f764e91.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/283476ca2ded4ba4ecad14f809da9f42d21c47f238111473930ff43b46cb964e.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/2ba999488a3a785da64c3443988004b9f343b2679695ff966bd5cc7ac2bddbe5.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/4a4f87d98c0b525889d927f2b87dbe469907318e02a8b9cef4a7a094ef38b6ac.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/4dd13c76eabef82181c2a5ccd7022c763e02a741f41107097885d0d8c0d585dc.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/7da36589c5d5f37c04bafb9ff454e3b4889d6e90e4e0b676405c829d76fcc3fe.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/7ffe557f715641bb453d41228719d4ee2c205d4568778824d1f2227916923b06.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/aa4c387afb3b54be9a431cf38144253fecde29a3b858cb124a0198e90e5686bb.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/b310c72877ca00f1bb8f4ad0b866c2e383683738a35c9209332b8160ab54f4b4.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/b429e4fed874eb3fcb4b56ae09c5f6bd8a22347ca6cba75c3460669afed4a182.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/e61e4645ff123ee810a5af303ee4e9054174f5da6cedd36f87ec750f8ac017f5.json",
+          "specs/352-resolve-repository-lock-self-contention/review-evidence/fbb447d1882fedcdfd573475d82edaf349f369f82fb086a86676860ffd522c2e.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/draft-coverage-attempt-001.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/draft-questions-attempt-001.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/draft-questions-attempt-002.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/draft-questions-attempt-003.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/draft-questions-attempt-004.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-001.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-001.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-002.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-002.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-003.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-003.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-004.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-004.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-005.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-005.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-006.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-006.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-007.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-007.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-008.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-008.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-009.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-009.md",
+          "specs/352-resolve-repository-lock-self-contention/review-history/spec-attempt-001.json",
+          "specs/352-resolve-repository-lock-self-contention/review-history/spec-attempt-001.md",
+          "specs/352-resolve-repository-lock-self-contention/review.md",
+          "specs/352-resolve-repository-lock-self-contention/scenario-validity-result.json",
+          "specs/352-resolve-repository-lock-self-contention/spec-gate-source.json",
+          "specs/352-resolve-repository-lock-self-contention/spec-review.json",
+          "specs/352-resolve-repository-lock-self-contention/spec-review.md",
+          "specs/352-resolve-repository-lock-self-contention/spec.json",
+          "specs/352-resolve-repository-lock-self-contention/spec.md",
+          "specs/352-resolve-repository-lock-self-contention/task-impl-gate-source.json",
+          "specs/352-resolve-repository-lock-self-contention/tasks/T1.md",
+          "specs/352-resolve-repository-lock-self-contention/tasks/T2.md",
+          "specs/352-resolve-repository-lock-self-contention/tasks/T3.md",
+          "specs/352-resolve-repository-lock-self-contention/test-execute-result.json",
+          "specs/352-resolve-repository-lock-self-contention/test-result-review.json",
+          "specs/352-resolve-repository-lock-self-contention/test-result-review.md",
+          "specs/352-resolve-repository-lock-self-contention/tests/.raw/scenario-validity.log",
+          "specs/352-resolve-repository-lock-self-contention/tests/.raw/test-execution.log",
+          "specs/352-resolve-repository-lock-self-contention/tests/draft-review-lifecycle.test.js",
+          "specs/352-resolve-repository-lock-self-contention/tests/repository-lock-diagnostics.test.js",
+          "specs/352-resolve-repository-lock-self-contention/tests/repository-operation-lock.test.js",
+          "src/flow/commands/review.js",
+          "src/flow/definition.js",
+          "src/flow/lib/run-gate.js",
+          "src/lib/repository-maintenance-lock.js",
+          "tests/unit/flow/commands/review.test.js",
+          "tests/unit/flow/draft-review-route-artifacts.test.js",
+          "tests/unit/lib/repository-maintenance-lock.test.js"
+        ],
+        "pathFingerprints": [
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/draft-coverage-repair.json",
+            "kind": "file",
+            "digest": "7a32f9c6c7c2e026dbe759055e50f3fc72762a5167ea335c4df76b560fcc1b36"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/draft-coverage-triage.json",
+            "kind": "file",
+            "digest": "0ccbd83b16f293b8bfe5c7adee56d982218557b6d75ffc2982de84455203be2b"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/draft-gate-source.json",
+            "kind": "file",
+            "digest": "603824bd706e1c16db13e874c3974ba6dd608ed8a904874f29d6f35f3ce80eb2"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/draft-questions-repair.json",
+            "kind": "file",
+            "digest": "69fa457cc2b4644bf45045073031dbeead0358ae4a9d4caf0d4ee6e2f2f4aaf1"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/draft-questions-triage.json",
+            "kind": "file",
+            "digest": "3bb90333191ee1baa0a124b9c2ffec1ed7929edccc93b40cfb48348d06f18ab6"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/draft-review-coverage.json",
+            "kind": "file",
+            "digest": "f67d3eed427c08930ddcaf642769fcf83cb62f8d2d116e6b43d98b2a729e4cec"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/draft-review-questions.json",
+            "kind": "file",
+            "digest": "9edbc03ac0461fbfe567601446cc029581cf4e0e9b7a620241887635982310bf"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/draft.json",
+            "kind": "file",
+            "digest": "c4f25ec3d988eefb87197345e818cb3f592f5c52f5a963d521cc3bd4859b52fe"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/file-map.json",
+            "kind": "file",
+            "digest": "257be906d01ef11b386ca0829ef8a779662b61dcedc49e027e2a5760d38741b5"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/flow-findings.json",
+            "kind": "file",
+            "digest": "377e2ec97d07b9aa2b3451f0003addf22f9f0d72a8090ed3a93feb5af038d7f1"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/impl-review.json",
+            "kind": "file",
+            "digest": "d7eba4c92e68356da6acf0a61240bf3b78614cd6b4956c7778dabaaab6a30c3c"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/issue.md",
+            "kind": "file",
+            "digest": "11b748ff37db0163ab3368536063b21e17a2b61d0d2ad68f54cb6faf9b3031cb"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/plugin-artifacts/workflow/prepare.json",
+            "kind": "file",
+            "digest": "3d64b06965b312a410b1c89bc44eae896535e59d9967d861f8359925b9961660"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/repair-fingerprint.json",
+            "kind": "file",
+            "digest": "083a15a19d875ba25e6392804f6ba856d183ab16694b2a1653f41e4fe0168c70"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/272d51a732d2605d894ef27a3ee9eb8cf6942571752d7fcbaabcaff58f764e91.json",
+            "kind": "file",
+            "digest": "0fab0f4e4d61180af3e148a9c91deece187daa3bcb58a25399f87cf9105649fc"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/283476ca2ded4ba4ecad14f809da9f42d21c47f238111473930ff43b46cb964e.json",
+            "kind": "file",
+            "digest": "c655552c873d9ed06867f55587bd9b5b2c8d0512a97b967424680127dc808057"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/2ba999488a3a785da64c3443988004b9f343b2679695ff966bd5cc7ac2bddbe5.json",
+            "kind": "file",
+            "digest": "fffa3fae11e31f27a0bd9b26befcacd29e4a5fbcb0de52a5e34d3c4879073980"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/4a4f87d98c0b525889d927f2b87dbe469907318e02a8b9cef4a7a094ef38b6ac.json",
+            "kind": "file",
+            "digest": "6dbd12a0b5c29efe6000c8b3b835ed6f12759c880d6c1a161d9f266533ba7a61"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/4dd13c76eabef82181c2a5ccd7022c763e02a741f41107097885d0d8c0d585dc.json",
+            "kind": "file",
+            "digest": "ce7cab6d14334cf89d41a7887e7b8db8712193dfdcbd7d1e7cfb50c6672843b4"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/7da36589c5d5f37c04bafb9ff454e3b4889d6e90e4e0b676405c829d76fcc3fe.json",
+            "kind": "file",
+            "digest": "761434de65d4251ba5e4f365d53857f188c41c68b42ac488cdc5a625c35e1c96"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/7ffe557f715641bb453d41228719d4ee2c205d4568778824d1f2227916923b06.json",
+            "kind": "file",
+            "digest": "d88db55c37c1f676476880d76d1649f72fa0071b218c3b2c01af6c2c1e09f4bc"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/aa4c387afb3b54be9a431cf38144253fecde29a3b858cb124a0198e90e5686bb.json",
+            "kind": "file",
+            "digest": "2bf376050b92c8ad6b333a25b6ccfdc6d1cca38498c2ab0e470a21ad829681b4"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/b310c72877ca00f1bb8f4ad0b866c2e383683738a35c9209332b8160ab54f4b4.json",
+            "kind": "file",
+            "digest": "cb1c94b2718b3ee5b25e4a7b9f8f55912eed99101e87610479ed6f3a6672b787"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/b429e4fed874eb3fcb4b56ae09c5f6bd8a22347ca6cba75c3460669afed4a182.json",
+            "kind": "file",
+            "digest": "6ff6321f3d30fb7128dfdd53a2efd730d8b36af7d7768f4065e854146bde7ee0"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/e61e4645ff123ee810a5af303ee4e9054174f5da6cedd36f87ec750f8ac017f5.json",
+            "kind": "file",
+            "digest": "f138ab4362d982b2fbf8d9fb135acefb5b27cbec8f00f31c46a18ebf8bb58751"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-evidence/fbb447d1882fedcdfd573475d82edaf349f369f82fb086a86676860ffd522c2e.json",
+            "kind": "file",
+            "digest": "32883322935b2a963fb42bb8909c51e364d57043a5d6e6184a483ba3ffe19a2d"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/draft-coverage-attempt-001.json",
+            "kind": "file",
+            "digest": "1e4e98dc7c65234d35b5ae30f9b66097ece1545b1b45386cedda1a15652c3b81"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/draft-questions-attempt-001.json",
+            "kind": "file",
+            "digest": "fdd33e90106016d809b7066eefaa8dd7c9236effe03ac3ae8b46abd53900f98f"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/draft-questions-attempt-002.json",
+            "kind": "file",
+            "digest": "d5f63e186c1790ed47f2995f5fc8ec8c1bc56abaa2d7d87d616229cc34eb93ab"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/draft-questions-attempt-003.json",
+            "kind": "file",
+            "digest": "407579a8dab0478612d280afc47b267698edf5bd15c268f9f767182345825409"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/draft-questions-attempt-004.json",
+            "kind": "file",
+            "digest": "b392feebb5452a701a0da5090dc633fd6845eb773a516af24b63b1448d058117"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-001.json",
+            "kind": "file",
+            "digest": "5050018f27ff5fdd1701488c81d1ce14f7d5aba39e0fa73434aaa0b5fc3d47c0"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-001.md",
+            "kind": "file",
+            "digest": "5b1233c02dd5525601b69aac960f10eb24a232cb30d4d5952423424e7c885c4f"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-002.json",
+            "kind": "file",
+            "digest": "913776476349cc5cb0c9e5df0a5e074ca00fa0202a36ab6bcc3578e5e3ed655e"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-002.md",
+            "kind": "file",
+            "digest": "583688c6de675290eb6142e376b439224f7cfbb8a97d1f4070fce36289e1a81b"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-003.json",
+            "kind": "file",
+            "digest": "bd17884fc76b11774fe3ec5667758f6adffeb8fc12d0de86781ebd0152e85bcd"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-003.md",
+            "kind": "file",
+            "digest": "f31da1c75e11f6a62fc49ea6f17cab30b7b66cc355c810a113a7e891b0e26ed7"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-004.json",
+            "kind": "file",
+            "digest": "dec8583e7625576904531eb2c8a94f97fe63169f56f4b327c0f039ede434f8a3"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-004.md",
+            "kind": "file",
+            "digest": "02d59ac001f4961eb4fe4f451a2abb1757291a30e51867c55f97dcbb3570e2ef"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-005.json",
+            "kind": "file",
+            "digest": "9d24afcbddfd7481b0dee6332fe8c30a60cefbf58249d8a6741dbd7a3e2eadee"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-005.md",
+            "kind": "file",
+            "digest": "7d43f4630dac2d8609ad7588f4d2257050d403ee7a3d494f1b41917e21695770"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-006.json",
+            "kind": "file",
+            "digest": "e37abf81271af14fdc274ecaf21595b1dfcfa659799cfcf718022a59be4ad881"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-006.md",
+            "kind": "file",
+            "digest": "391ab271f4f1d1fc79dcf55cac4c610c15b8192cbd580cc6a1b18e4ac8ebe838"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-007.json",
+            "kind": "file",
+            "digest": "0ba205031c6da0369fcb1d80b0c0ea8b6e8c7efa40f00416008da8a5a907b445"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-007.md",
+            "kind": "file",
+            "digest": "fdeb761d77a53e3113f5de4dfe9e930228214c7c42f799eb446f031f77fea441"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-008.json",
+            "kind": "file",
+            "digest": "040bfda05d01d299bd4adbae6520a08b706ef0bb10a448f839e6751a0d2a6a22"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-008.md",
+            "kind": "file",
+            "digest": "7704d99d8e6345ac3b054e620b64c8c78650ecea8474d39c20bde2ea14373fd6"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-009.json",
+            "kind": "file",
+            "digest": "00a36b04e1ae82b800db69054cfcef4f0759c8c8666cadd94f564f31434831b0"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/impl-attempt-009.md",
+            "kind": "file",
+            "digest": "3cd21041e005dce8cdc8a3bdbe116609fb01df1cce9df65b3961303cdfa5fb4a"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/spec-attempt-001.json",
+            "kind": "file",
+            "digest": "77952737c6d3b99cb006aff7369144e486c9c2608899bd7b6de428002a793728"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review-history/spec-attempt-001.md",
+            "kind": "file",
+            "digest": "247ac2510e0c1f7f042109ce8830baadb60a0d0cd2380275463a3f475a4741eb"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/review.md",
+            "kind": "file",
+            "digest": "169cfbec3786cb3454cf4fd7fb0186a49036b9dfbb36d2667c77bc142f3f800d"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/scenario-validity-result.json",
+            "kind": "file",
+            "digest": "d5c76e80a98060e366270385c140d4d0c67ea3436fbb755963e32f6b6a1d5540"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/spec-gate-source.json",
+            "kind": "file",
+            "digest": "c907c05616d0c7effd2aaa77d0608e5c9d560ffaabd82d3e6c7e6dc3ec47c9e2"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/spec-review.json",
+            "kind": "file",
+            "digest": "66c4806aba7e0941b998f41343d6b5a124f6884d3218856b43477ac8c73e1abd"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/spec-review.md",
+            "kind": "file",
+            "digest": "e48c41ceac1c70565a1315ec83c7e26fe4810882a37ba8efe45efba35145f9ea"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/spec.json",
+            "kind": "file",
+            "digest": "87181cdf6f3440cd7953f2436153adb581fc3e853a0374fb6b0c6947c6846c23"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/spec.md",
+            "kind": "file",
+            "digest": "0984920118161e77c424b3daa70ab7560e7a882bab24eafe475f38684f94d4c8"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/task-impl-gate-source.json",
+            "kind": "file",
+            "digest": "e1a64f0f2730e56787d56ad8a39b38e1b9f7adc0eeacd2758030858913147eec"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/tasks/T1.md",
+            "kind": "file",
+            "digest": "9a68e8b1cc9282a86ba0b9494c0e2ca291321f1fc89d0ed7c39228f6a1c16215"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/tasks/T2.md",
+            "kind": "file",
+            "digest": "802da55ca667509e6c72aa736ba9a7ae7bffe53e04c348e20b69d4b1f0ccd0a7"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/tasks/T3.md",
+            "kind": "file",
+            "digest": "f447c4eb668152bc03713d25db8a27916dbb067f5c94e6049c65c0491f5c5e75"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/test-execute-result.json",
+            "kind": "file",
+            "digest": "433fbe57270e12f29b728cdd4d9fe53cf758b06a2e5c5fd91b1aa6b0193a18fc"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/test-result-review.json",
+            "kind": "file",
+            "digest": "7d7d2df22017e202a193b9b0d1be362cddfe8bd1e1d251032995e50873430df9"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/test-result-review.md",
+            "kind": "file",
+            "digest": "b5ad87e0c9dcaeaae78682698127454d4fd1b47ed732d71f352418685472148c"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/tests/.raw/scenario-validity.log",
+            "kind": "file",
+            "digest": "bf2935ea06d6afe83bb6cc7d10c2c588fd1b8ec01e533fbfac59e38af3014a15"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/tests/.raw/test-execution.log",
+            "kind": "file",
+            "digest": "e2d206d8d235acde5ab4b8fb3e9c230c6cde3c41151c034fb5378b6fa2d3f73f"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/tests/draft-review-lifecycle.test.js",
+            "kind": "file",
+            "digest": "a579a443d020bf5fba16f6c07d6982f9520923d816ec50eb27da47ebe52e3db1"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/tests/repository-lock-diagnostics.test.js",
+            "kind": "file",
+            "digest": "d78ded927ac74c7c2dc5139b675f1eebe75ed5781eb27d60f643c8eabbf00ef6"
+          },
+          {
+            "path": "specs/352-resolve-repository-lock-self-contention/tests/repository-operation-lock.test.js",
+            "kind": "file",
+            "digest": "0c0a33a714a5ba2e7cdf61a95cc71071f2bf38f469f17e1e518e61709e136f5c"
+          },
+          {
+            "path": "src/flow/commands/review.js",
+            "kind": "file",
+            "digest": "8c60a71dfa4b08a2a93519a441fb6d909d34f08ecbb31da5e0538c1c42cdcc5d"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "kind": "file",
+            "digest": "c5e44df406f347ada12c5e7faa62a937d6c9fa302933a7093c73b5ac11b1327f"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "kind": "file",
+            "digest": "c4b5b9232601c868ce852863b5cb5f2b0fc33d740e988b983eefae557b9de89b"
+          },
+          {
+            "path": "src/lib/repository-maintenance-lock.js",
+            "kind": "file",
+            "digest": "36d65fb8b572a1219b74b8ef7e282c5e8d0811062053e0ba165f2594f07be35c"
+          },
+          {
+            "path": "tests/unit/flow/commands/review.test.js",
+            "kind": "file",
+            "digest": "7b48cd7246e9b7f99d37af082869d88b34e42d31e066aad7579f0b6c18a9bdd6"
+          },
+          {
+            "path": "tests/unit/flow/draft-review-route-artifacts.test.js",
+            "kind": "file",
+            "digest": "3190895098982d8319e56b37b4ad86e6564e806b7255c69b22900e07c1f38349"
+          },
+          {
+            "path": "tests/unit/lib/repository-maintenance-lock.test.js",
+            "kind": "file",
+            "digest": "3496d9514514f1fc0821be3ad015c6714ad33a1380d9f70a34a05f9db6b877ed"
+          }
+        ],
+        "featureHead": "02f8fc9079e0d8c246a54e751b7522d3d7649144",
+        "riskAccepted": false,
+        "riskReason": null,
+        "verifiedAt": "2026-07-26T14:39:07.400Z"
+      },
+      "timestamp": "2026-07-26T14:39:19.995Z",
+      "taskId": null,
+      "issueLogId": "direct-completion:56a88d9e-c305-427a-b278-ae0df9e97391:direct-plan-75d7ae2e6cb3fd04d637e7e3:r3"
     }
   ]
 }

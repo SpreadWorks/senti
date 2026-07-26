@@ -489,6 +489,7 @@ export class FlowStore {
     faultInjector = () => {},
     maintenanceOwnerToken = null,
     operationOwnerToken = null,
+    allowProcessOwnerBorrow = false,
     processIdentitySource,
   } = {}) {
     const nextState = structuredClone(state);
@@ -506,6 +507,7 @@ export class FlowStore {
       faultInjector,
       maintenanceOwnerToken,
       operationOwnerToken,
+      allowProcessOwnerBorrow,
       processIdentitySource,
     }).create();
   }
@@ -522,6 +524,7 @@ export class FlowStore {
     processIdentitySource,
     maintenanceOwnerToken,
     operationOwnerToken,
+    allowProcessOwnerBorrow = false,
     allowIssueTransition = false,
     transitionId = null,
     writerOwnerToken = null,
@@ -538,6 +541,7 @@ export class FlowStore {
       processIdentitySource,
       maintenanceOwnerToken,
       operationOwnerToken,
+      allowProcessOwnerBorrow,
       allowIssueTransition,
       transitionId,
       writerOwnerToken,
@@ -552,6 +556,7 @@ export class FlowStore {
     processIdentitySource,
     maintenanceOwnerToken,
     operationOwnerToken,
+    allowProcessOwnerBorrow = false,
     transitionId,
     writerOwnerToken,
     writerOwnerTempName,
@@ -563,6 +568,7 @@ export class FlowStore {
       processIdentitySource,
       maintenanceOwnerToken,
       operationOwnerToken,
+      allowProcessOwnerBorrow,
       transitionId,
       writerOwnerToken,
       writerOwnerTempName,
@@ -604,6 +610,7 @@ export class FlowStore {
       processIdentitySource: opts.processIdentitySource,
       maintenanceOwnerToken: opts.maintenanceOwnerToken,
       operationOwnerToken: opts.operationOwnerToken,
+      allowProcessOwnerBorrow: opts.allowProcessOwnerBorrow === true,
     }).mutate(guardedMutator, {
       parseState: opts.stepIdMigration === true
         ? parseStepIdMigrationState
@@ -802,7 +809,7 @@ export class FlowStore {
         : scope.steps.find((s) => s.id === stepId);
       if (!step) throw new Error(`unknown step: ${stepId}`);
       step.runtimeLog = { ...runtimeLog };
-    }, opts);
+    }, { ...opts, allowProcessOwnerBorrow: true });
   }
 
   setRequest(text, opts) { this.mutate((state) => { state.request = text; }, opts); }

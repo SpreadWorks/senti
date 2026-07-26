@@ -15,6 +15,7 @@ import {
   DirectChangedPathFingerprint,
   DirectFlowSession,
   DirectFlowTarget,
+  DirectImplementationProof,
   DirectVerificationResult,
   flowStateRevisionDigest,
 } from "./direct-flow-session.js";
@@ -57,6 +58,7 @@ const DIRECT_VALIDATION_ITEMS = Object.freeze([
   "feature history only advances from the handoff HEAD",
   "no unresolved Git conflicts exist",
   "specified deterministic tests or mechanical checks are recorded",
+  "implementation completion is explicitly evidenced before verification",
   "all changed paths stay inside the persisted direct scope",
   "the merge target has no prohibited in-progress Git operation",
 ]);
@@ -569,6 +571,119 @@ function readJsonIfPresent(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
+class DirectImplementationAssessment {
+  constructor({
+    specAvailable,
+    requirementIds,
+    incompleteRequirementIds,
+    taskIds,
+    incompleteTaskIds,
+    unresolvedFindingIds,
+  }) {
+    if (typeof specAvailable !== "boolean") {
+      throw new Error("direct implementation assessment spec availability must be boolean");
+    }
+    this.specAvailable = specAvailable;
+    this.requirementIds = Object.freeze([...requirementIds]);
+    this.incompleteRequirementIds = Object.freeze([...incompleteRequirementIds]);
+    this.taskIds = Object.freeze([...taskIds]);
+    this.incompleteTaskIds = Object.freeze([...incompleteTaskIds]);
+    this.unresolvedFindingIds = Object.freeze([...unresolvedFindingIds]);
+    Object.freeze(this);
+  }
+
+  get ready() {
+    return this.specAvailable
+      && this.incompleteRequirementIds.length === 0
+      && this.incompleteTaskIds.length === 0
+      && this.unresolvedFindingIds.length === 0;
+  }
+
+  get blockingReasons() {
+    return [
+      ...(!this.specAvailable ? ["canonical spec artifact is unavailable"] : []),
+      ...this.incompleteRequirementIds.map((id) => `requirement ${id} is not complete`),
+      ...this.incompleteTaskIds.map((id) => `task ${id} is not complete`),
+      ...this.unresolvedFindingIds.map((id) => `finding ${id} is unresolved`),
+    ];
+  }
+
+  toJSON() {
+    return {
+      ready: this.ready,
+      specAvailable: this.specAvailable,
+      requirementIds: [...this.requirementIds],
+      incompleteRequirementIds: [...this.incompleteRequirementIds],
+      taskIds: [...this.taskIds],
+      incompleteTaskIds: [...this.incompleteTaskIds],
+      unresolvedFindingIds: [...this.unresolvedFindingIds],
+      blockingReasons: this.blockingReasons,
+    };
+  }
+}
+
+function directImplementationAssessment(state, plan, targetRoot) {
+  const spec = readJsonIfPresent(path.resolve(targetRoot, state.spec));
+  const requirements = Array.isArray(spec?.requirements)
+    ? spec.requirements.filter((requirement) => requirement?.testable !== false)
+    : [];
+  const requirementIds = requirements.map((requirement, index) => (
+    String(requirement?.id || `requirement-${index + 1}`)
+  ));
+  const incompleteRequirementIds = requirements
+    .map((requirement, index) => ({ requirement, id: requirementIds[index] }))
+    .filter(({ requirement }) => requirement?.status !== "done")
+    .map(({ id }) => id);
+  const tasks = Array.isArray(state.tasks) ? state.tasks : [];
+  const taskIds = tasks.map((task, index) => String(task?.id || `task-${index + 1}`));
+  const incompleteTaskIds = tasks
+    .map((task, index) => ({ task, id: taskIds[index] }))
+    .filter(({ task }) => !["done", "skipped"].includes(task?.status))
+    .map(({ id }) => id);
+  return new DirectImplementationAssessment({
+    specAvailable: spec != null,
+    requirementIds,
+    incompleteRequirementIds,
+    taskIds,
+    incompleteTaskIds,
+    unresolvedFindingIds: plan.unresolvedDecisions.map((finding) => finding.findingId),
+  });
+}
+
+function directImplementationProofStatus(authority, state, session, plan) {
+  if (session.implementationProof == null) {
+    return {
+      ready: false,
+      reason: "Implementation completion has not been recorded.",
+      snapshot: null,
+    };
+  }
+  const snapshot = directSafetySnapshot(authority, state, plan);
+  const failedSafety = snapshot.checks.find((check) => !check.passed);
+  if (failedSafety) {
+    return {
+      ready: false,
+      reason: `${failedSafety.id}: ${failedSafety.detail}`,
+      snapshot,
+    };
+  }
+  if (!session.implementationProof.matchesIdentity(state, plan)) {
+    return {
+      ready: false,
+      reason: "The implementation record does not match the active Flow and repair plan.",
+      snapshot,
+    };
+  }
+  if (!session.implementationProof.matchesSnapshot(snapshot)) {
+    return {
+      ready: false,
+      reason: "The implementation changed after completion was recorded.",
+      snapshot,
+    };
+  }
+  return { ready: true, reason: null, snapshot };
+}
+
 function collectPlanFindings(root, state, autoSelectSafe) {
   const specDir = path.dirname(path.resolve(root, state.spec));
   const collected = [];
@@ -850,6 +965,7 @@ function ensureDirectPreflight(authority, input, finalPhase) {
 function sessionWithPlan(session, plan, changes = {}) {
   return new DirectFlowSession({
     ...session.toJSON(),
+    implementationProof: null,
     ...changes,
     planId: plan.planId,
     planRevision: plan.revision,
@@ -1223,10 +1339,44 @@ function activeDirectPrompt(ctx, state) {
     });
   }
   if (session.phase === "DIRECT_FIX") {
+    const assessment = directImplementationAssessment(
+      state,
+      plan,
+      session.target.worktreePath,
+    );
+    const proofStatus = directImplementationProofStatus(ctx, state, session, plan);
+    if (!assessment.ready || !proofStatus.ready) {
+      return {
+        code: "DIRECT_IMPLEMENTATION_REQUIRED",
+        phase: session.phase,
+        verificationCommand: verificationCommand()?.toJSON() || null,
+        yieldsControl: false,
+        requiresUserAction: false,
+        implementationRequired: true,
+        implementation: {
+          status: session.implementationProof == null ? "unconfirmed" : "stale",
+          instruction: [
+            "Continue the product implementation in the retained worktree.",
+            "Passing tests alone do not establish implementation completion.",
+            "After every requirement is implemented and the diff has been inspected, record concrete requirement-by-requirement evidence.",
+          ].join(" "),
+          assessment: assessment.toJSON(),
+          proofReason: proofStatus.reason,
+          completionAction: {
+            actionId: "CONFIRM_DIRECT_IMPLEMENTATION",
+            nextAction: run(
+              "CONFIRM_DIRECT_IMPLEMENTATION",
+              '--summary "<requirement-by-requirement implementation evidence>"',
+            ),
+          },
+        },
+        directFlowSession: session.toJSON(),
+      };
+    }
     return promptResult({
       code: "DIRECT_FIX",
       state,
-      question: "The repair plan is saved. Run the recorded project tests after the code changes are ready.",
+      question: "Implementation completion is recorded for the current change set. Run the recorded project tests.",
       choices: [
         choice({
           actionId: "VERIFY_DIRECT",
@@ -1276,10 +1426,11 @@ function activeDirectPrompt(ctx, state) {
         }),
       ],
       recommendedActionId: "VERIFY_DIRECT",
-      recommendationReason: "The Flow already records the verification command needed before completion.",
+      recommendationReason: "Implementation evidence is current and the Flow records the required verification command.",
       details: {
         phase: session.phase,
         verificationCommand: verificationCommand()?.toJSON() || null,
+        implementationProof: session.implementationProof.toJSON(),
       },
     });
   }
@@ -1783,6 +1934,90 @@ function directSafetySnapshot(authority, state, plan) {
   };
 }
 
+function confirmDirectImplementation(authority, input) {
+  const state = authority.flowManager.load(authority.specId);
+  const session = DirectFlowSession.fromStored(state.directFlowSession);
+  const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
+  if (session.phase !== "DIRECT_FIX") {
+    throw Object.assign(new Error(
+      `implementation completion can be recorded only from direct fix, got ${session.phase}`,
+    ), { code: "DIRECT_PHASE_MISMATCH" });
+  }
+  const assessment = directImplementationAssessment(
+    state,
+    plan,
+    session.target.worktreePath,
+  );
+  if (!assessment.ready) {
+    throw Object.assign(new Error(
+      `direct implementation is incomplete: ${assessment.blockingReasons.join("; ")}`,
+    ), {
+      code: "DIRECT_IMPLEMENTATION_INCOMPLETE",
+      data: assessment.toJSON(),
+    });
+  }
+  const summary = String(input.summary || "").trim();
+  if (summary.length < 20) {
+    throw Object.assign(new Error(
+      "direct implementation completion requires concrete requirement-by-requirement evidence",
+    ), { code: "DIRECT_IMPLEMENTATION_EVIDENCE_REQUIRED" });
+  }
+  const missingEvidence = assessment.requirementIds.filter((requirementId) => (
+    !summary.includes(requirementId)
+  ));
+  if (missingEvidence.length > 0) {
+    throw Object.assign(new Error(
+      `direct implementation evidence does not cover: ${missingEvidence.join(", ")}`,
+    ), {
+      code: "DIRECT_IMPLEMENTATION_EVIDENCE_INCOMPLETE",
+      data: { missingRequirementIds: missingEvidence },
+    });
+  }
+  const snapshot = directSafetySnapshot(authority, state, plan);
+  const failedSafety = snapshot.checks.find((check) => !check.passed);
+  if (failedSafety) {
+    throw Object.assign(new Error(
+      `direct implementation cannot be recorded: ${failedSafety.id}: ${failedSafety.detail}`,
+    ), { code: "DIRECT_IMPLEMENTATION_SAFETY_FAILED" });
+  }
+  if (snapshot.pathFingerprints.length === 0) {
+    throw Object.assign(new Error(
+      "direct implementation completion requires at least one non-metadata changed path",
+    ), { code: "DIRECT_IMPLEMENTATION_CHANGE_REQUIRED" });
+  }
+  const proof = new DirectImplementationProof({
+    runId: state.runId,
+    issue: state.issue ?? null,
+    spec: state.spec,
+    planId: plan.planId,
+    planRevision: plan.revision,
+    sourceStep: plan.sourceStep,
+    summary,
+    requirementIds: assessment.requirementIds,
+    taskIds: assessment.taskIds,
+    changedPaths: snapshot.changedPaths,
+    pathFingerprints: snapshot.pathFingerprints,
+    featureHead: snapshot.currentHead,
+  });
+  const confirmed = session.withImplementationProof(proof);
+  authority.flowManager.mutate((current) => {
+    const currentSession = DirectFlowSession.fromStored(current.directFlowSession);
+    const currentPlan = DirectResolutionPlan.fromStored(current.directResolutionPlan);
+    if (
+      currentSession.phase !== "DIRECT_FIX"
+      || currentPlan.planId !== plan.planId
+      || currentPlan.revision !== plan.revision
+      || currentSession.revision !== session.revision
+    ) {
+      throw Object.assign(new Error(
+        "direct implementation state changed before completion evidence was saved",
+      ), { code: "DIRECT_CAS_CONFLICT" });
+    }
+    current.directFlowSession = confirmed.toJSON();
+  }, directMutationOptions(authority, { expectedOriginal: state }));
+  return authority.flowManager.load(authority.specId);
+}
+
 function runDirectVerification(authority, input) {
   let state = authority.flowManager.load(authority.specId);
   let session = DirectFlowSession.fromStored(state.directFlowSession);
@@ -1792,6 +2027,13 @@ function runDirectVerification(authority, input) {
       `direct verification reached its ${MAX_DIRECT_VERIFICATION_ATTEMPTS}-attempt limit`,
     ), { code: "DIRECT_VERIFICATION_LIMIT" });
   }
+  const proofStatus = directImplementationProofStatus(authority, state, session, plan);
+  if (!proofStatus.ready) {
+    throw Object.assign(new Error(
+      `direct verification requires current implementation completion evidence: ${proofStatus.reason}`,
+    ), { code: "DIRECT_IMPLEMENTATION_NOT_READY" });
+  }
+  const snapshot = proofStatus.snapshot;
   if (session.phase === "DIRECT_FIX") {
     const verifying = session.transition("DIRECT_VERIFY");
     authority.flowManager.mutate((current) => {
@@ -1805,7 +2047,6 @@ function runDirectVerification(authority, input) {
       code: "DIRECT_PHASE_MISMATCH",
     });
   }
-  const snapshot = directSafetySnapshot(authority, state, plan);
   const verificationCommand = resolveDirectVerificationCommand(
     authority,
     state,
@@ -1818,6 +2059,12 @@ function runDirectVerification(authority, input) {
   );
   const checks = [
     ...snapshot.checks,
+    {
+      id: "implementation-readiness",
+      passed: true,
+      detail: "Implementation completion evidence matches the exact verified change set.",
+      overrideable: false,
+    },
     {
       id: "deterministic-tests",
       passed: test.status === "passed",
@@ -1892,6 +2139,7 @@ function acceptDirectRisk(authority, input) {
   });
   const revised = plan.withFinding(riskFinding);
   return persistPlanRevision(authority, state, revised, {
+    implementationProof: session.implementationProof?.withPlan(revised).toJSON() ?? null,
     verification: verification.toJSON(),
   });
 }
@@ -1904,7 +2152,7 @@ function returnToDirectFix(authority) {
       code: "DIRECT_PHASE_MISMATCH",
     });
   }
-  const next = session.transition("DIRECT_FIX");
+  const next = session.transition("DIRECT_FIX", { implementationProof: null });
   authority.flowManager.mutate((current) => {
     current.directFlowSession = next.toJSON();
   }, directMutationOptions(authority, { expectedOriginal: state }));
@@ -2264,9 +2512,33 @@ async function runDirectFlowActionOwned(ctx, input) {
     const recorded = recordDirectFinding(authority, input);
     return activeDirectPrompt(authority, recorded);
   }
+  if (action === "CONFIRM_DIRECT_IMPLEMENTATION") {
+    const confirmed = confirmDirectImplementation(authority, input);
+    return activeDirectPrompt(authority, confirmed);
+  }
   if (action === "VERIFY_DIRECT") {
-    if (DirectFlowSession.fromStored(authority.state.directFlowSession).verificationAttempts
-      >= MAX_DIRECT_VERIFICATION_ATTEMPTS) {
+    const current = authority.flowManager.load(authority.specId);
+    const currentSession = DirectFlowSession.fromStored(current.directFlowSession);
+    const currentPlan = DirectResolutionPlan.fromStored(current.directResolutionPlan);
+    const proofStatus = directImplementationProofStatus(
+      authority,
+      current,
+      currentSession,
+      currentPlan,
+    );
+    if (!proofStatus.ready) {
+      return Envelope.fail(
+        "run",
+        "direct",
+        "DIRECT_IMPLEMENTATION_NOT_READY",
+        [
+          "Direct verification is blocked until implementation completion is recorded.",
+          proofStatus.reason,
+        ],
+        activeDirectPrompt(authority, current),
+      );
+    }
+    if (currentSession.verificationAttempts >= MAX_DIRECT_VERIFICATION_ATTEMPTS) {
       const stopped = activeDirectPrompt(authority, authority.state);
       return stoppedEnvelope(
         "run",

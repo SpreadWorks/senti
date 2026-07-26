@@ -235,6 +235,135 @@ export class DirectVerificationResult {
   }
 }
 
+export class DirectImplementationProof {
+  constructor({
+    runId,
+    issue = null,
+    spec,
+    planId,
+    planRevision,
+    sourceStep,
+    summary,
+    requirementIds = [],
+    taskIds = [],
+    changedPaths = [],
+    pathFingerprints = [],
+    featureHead,
+    recordedAt = new Date().toISOString(),
+  }) {
+    this.runId = requireString(runId, "direct implementation proof runId", 300);
+    this.issue = nullableIssue(issue);
+    this.spec = requireString(spec, "direct implementation proof spec", 500);
+    this.planId = requireString(planId, "direct implementation proof planId", 100);
+    if (!Number.isSafeInteger(planRevision) || planRevision < 1) {
+      throw new Error("direct implementation proof planRevision must be positive");
+    }
+    this.planRevision = planRevision;
+    this.sourceStep = requireString(sourceStep, "direct implementation proof sourceStep", 200);
+    this.summary = requireString(summary, "direct implementation proof summary", 8000);
+    if (this.summary.length < 20) {
+      throw new Error("direct implementation proof summary must contain concrete implementation evidence");
+    }
+    this.requirementIds = Object.freeze(requireStringList(
+      requirementIds,
+      "direct implementation proof requirementIds",
+    ));
+    this.taskIds = Object.freeze(requireStringList(
+      taskIds,
+      "direct implementation proof taskIds",
+    ));
+    this.changedPaths = Object.freeze(requireStringList(
+      changedPaths,
+      "direct implementation proof changedPaths",
+    ));
+    if (this.changedPaths.length === 0) {
+      throw new Error("direct implementation proof requires at least one changed path");
+    }
+    if (!Array.isArray(pathFingerprints)) {
+      throw new Error("direct implementation proof pathFingerprints must be an array");
+    }
+    this.pathFingerprints = Object.freeze(pathFingerprints.map((entry) => (
+      DirectChangedPathFingerprint.fromStored(entry)
+    )));
+    const fingerprintPaths = this.pathFingerprints.map((entry) => entry.path);
+    if (new Set(fingerprintPaths).size !== fingerprintPaths.length) {
+      throw new Error("direct implementation proof pathFingerprints must not contain duplicates");
+    }
+    this.featureHead = requireString(featureHead, "direct implementation proof featureHead", 128);
+    if (!GIT_OBJECT_ID.test(this.featureHead)) {
+      throw new Error("direct implementation proof featureHead is invalid");
+    }
+    this.recordedAt = requireIso(recordedAt, "direct implementation proof recordedAt");
+    Object.freeze(this);
+  }
+
+  matchesIdentity(state, plan) {
+    return state?.runId === this.runId
+      && (state.issue ?? null) === this.issue
+      && state.spec === this.spec
+      && plan?.planId === this.planId
+      && plan?.revision === this.planRevision
+      && plan?.sourceStep === this.sourceStep;
+  }
+
+  matchesSnapshot(snapshot) {
+    return snapshot?.currentHead === this.featureHead
+      && JSON.stringify(snapshot.changedPaths) === JSON.stringify([...this.changedPaths])
+      && JSON.stringify(snapshot.pathFingerprints.map((entry) => entry.toJSON()))
+        === JSON.stringify(this.pathFingerprints.map((entry) => entry.toJSON()));
+  }
+
+  matchesVerification(verification) {
+    const result = verification == null ? null : DirectVerificationResult.fromStored(verification);
+    return result != null
+      && result.featureHead === this.featureHead
+      && JSON.stringify([...result.changedPaths]) === JSON.stringify([...this.changedPaths])
+      && JSON.stringify(result.pathFingerprints.map((entry) => entry.toJSON()))
+        === JSON.stringify(this.pathFingerprints.map((entry) => entry.toJSON()));
+  }
+
+  withPlan(plan) {
+    if (
+      plan?.planId !== this.planId
+      || plan?.sourceStep !== this.sourceStep
+      || plan?.target?.runId !== this.runId
+      || (plan?.target?.issue ?? null) !== this.issue
+      || plan?.target?.spec !== this.spec
+    ) {
+      throw new Error("direct implementation proof cannot move to a different repair plan");
+    }
+    return new DirectImplementationProof({
+      ...this.toJSON(),
+      planRevision: plan.revision,
+      recordedAt: new Date().toISOString(),
+    });
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      issue: this.issue,
+      spec: this.spec,
+      planId: this.planId,
+      planRevision: this.planRevision,
+      sourceStep: this.sourceStep,
+      summary: this.summary,
+      requirementIds: [...this.requirementIds],
+      taskIds: [...this.taskIds],
+      changedPaths: [...this.changedPaths],
+      pathFingerprints: this.pathFingerprints.map((entry) => entry.toJSON()),
+      featureHead: this.featureHead,
+      recordedAt: this.recordedAt,
+    };
+  }
+
+  static fromStored(value) {
+    return value instanceof DirectImplementationProof
+      ? value
+      : new DirectImplementationProof(value);
+  }
+}
+
 export class DirectVerificationCheck {
   constructor({ id, passed, detail, overrideable = false }) {
     this.id = requireString(id, "direct verification check id", 100);
@@ -397,6 +526,7 @@ export class DirectFlowSession {
     updatedAt = selectedAt,
     planId = null,
     planRevision = null,
+    implementationProof = null,
     verification = null,
     verificationAttempts = 0,
     suspendedFrom = null,
@@ -427,6 +557,18 @@ export class DirectFlowSession {
     }
     if ((this.planId == null) !== (this.planRevision == null)) {
       throw new Error("direct session plan identity must be complete");
+    }
+    this.implementationProof = implementationProof == null
+      ? null
+      : DirectImplementationProof.fromStored(implementationProof);
+    if (
+      this.implementationProof != null
+      && (
+        this.implementationProof.planId !== this.planId
+        || this.implementationProof.planRevision !== this.planRevision
+      )
+    ) {
+      throw new Error("direct implementation proof must match the session plan");
     }
     this.verification = verification == null ? null : DirectVerificationResult.fromStored(verification);
     if (!Number.isSafeInteger(verificationAttempts) || verificationAttempts < 0) {
@@ -481,6 +623,23 @@ export class DirectFlowSession {
       ...this.toJSON(),
       planId: plan.planId,
       planRevision: plan.revision,
+      implementationProof: null,
+      revision: this.revision + 1,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  withImplementationProof(proof) {
+    const readiness = DirectImplementationProof.fromStored(proof);
+    if (
+      readiness.planId !== this.planId
+      || readiness.planRevision !== this.planRevision
+    ) {
+      throw new Error("direct implementation proof does not match the active plan");
+    }
+    return new DirectFlowSession({
+      ...this.toJSON(),
+      implementationProof: readiness.toJSON(),
       revision: this.revision + 1,
       updatedAt: new Date().toISOString(),
     });
@@ -513,6 +672,7 @@ export class DirectFlowSession {
       updatedAt: new Date().toISOString(),
       planId: plan.planId,
       planRevision: plan.revision,
+      implementationProof: null,
       verificationAttempts: 0,
       suspendedFrom: null,
       completion: null,
@@ -533,6 +693,7 @@ export class DirectFlowSession {
       updatedAt: this.updatedAt,
       planId: this.planId,
       planRevision: this.planRevision,
+      implementationProof: this.implementationProof?.toJSON() ?? null,
       verification: this.verification?.toJSON() ?? null,
       verificationAttempts: this.verificationAttempts,
       suspendedFrom: this.suspendedFrom,
