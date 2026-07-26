@@ -421,12 +421,23 @@
           "children": [
             {
               "id": "finalize-commit",
-              "status": "in_progress",
-              "startedAt": "2026-07-26T03:11:53.348Z"
+              "status": "done",
+              "startedAt": "2026-07-26T03:11:53.348Z",
+              "finishedAt": "2026-07-26T03:12:11.219Z",
+              "runtimeLog": {
+                "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+                "sequence": 338,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-07-26T03:12:10.008Z",
+                "endedAt": "2026-07-26T03:12:11.373Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-merge",
-              "status": "pending"
+              "status": "in_progress",
+              "startedAt": "2026-07-26T03:12:11.219Z"
             },
             {
               "id": "finalize-sync",
@@ -3049,10 +3060,25 @@
       "taskId": null,
       "stepId": "finalize-commit",
       "operation": "finalize-commit",
-      "status": "pending",
+      "status": "done",
       "attempt": 1,
       "startedAt": "2026-07-26T03:12:10.052Z",
-      "updatedAt": "2026-07-26T03:12:10.052Z"
+      "updatedAt": "2026-07-26T03:12:11.342Z",
+      "result": {
+        "status": "done",
+        "message": "fix: harden final regression completion evidence"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:4d726ec3-fd9d-4f18-9b2c-d017a925d5fc:flow:finalize-merge:finalize-merge",
+      "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+      "taskId": null,
+      "stepId": "finalize-merge",
+      "operation": "finalize-merge",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-26T03:12:27.337Z",
+      "updatedAt": "2026-07-26T03:12:27.337Z"
     }
   ],
   "issue": 468,
