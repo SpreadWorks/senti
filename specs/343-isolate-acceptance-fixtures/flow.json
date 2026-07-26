@@ -456,7 +456,19 @@
     }
   ],
   "currentTaskId": null,
-  "outbox": [],
+  "outbox": [
+    {
+      "idempotencyKey": "flow-outbox-v1:f1b47dfb-13c4-4f8a-924f-0bbbca70498c:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "f1b47dfb-13c4-4f8a-924f-0bbbca70498c",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-26T13:36:23.411Z",
+      "updatedAt": "2026-07-26T13:36:23.454Z"
+    }
+  ],
   "issue": 466,
   "request": "Goal: isolate acceptance-review fixture injection from the production CLI path. Scope: introduce an explicit test-only harness or injected dependency for fixtures; retain validation and add focused regression coverage. Out of scope: acceptance-review lifecycle redesign, artifact schema/fingerprint validation, official test discovery behavior, and broader architecture changes. Default runtime must ignore SENTI_ACCEPTANCE_REVIEW_ARTIFACT; only explicitly constructed test dependencies may use fixture artifacts.",
   "autoApprove": true,
