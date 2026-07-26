@@ -15,6 +15,7 @@ import {
   FlowOutbox,
   finalizationOutboxIdentity,
 } from "../../../src/flow/lib/flow-outbox.js";
+import { FinalizeCleanupStateResolution } from "../../../src/flow/lib/finalize-cleanup-state.js";
 import {
   ExternalBlockedOutcome,
   StepAttempt,
@@ -71,6 +72,12 @@ test("direct fix persists its plan before changes and completes through shared t
     assert.deepEqual(
       selection.actionPrompt.choices.map((entry) => entry.actionId),
       ["SELECT_DIRECT_FIX", "CONTINUE_NORMAL_FLOW"],
+    );
+    assert.equal(
+      selection.actionPrompt.choices
+        .find((entry) => entry.actionId === "SELECT_DIRECT_FIX")
+        .nextAction.includes("<paths>"),
+      false,
     );
     assert.equal(selection.autoApproveSelectedDirect, false);
 
@@ -181,6 +188,49 @@ test("direct fix persists its plan before changes and completes through shared t
     assert.equal(directEntries.filter((entry) => entry.step === "direct-completion").length, 1);
   } finally {
     container.reset();
+    fixture.cleanup();
+  }
+});
+
+test("direct fix derives its scope and verification command from Flow evidence", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-derived-direct-inputs" });
+  try {
+    commitSpecArtifact(fixture, "test-execute-result.json", {
+      summary: [
+        { evidence: { command: "node -e \"process.exit(0)\"" } },
+        { evidence: { command: "node -e \"process.exit(0)\"" } },
+      ],
+    }, "record direct verification command");
+    const sourcePath = path.join(fixture.worktreePath, "src", "derived-direct-inputs.js");
+    fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+    fs.writeFileSync(sourcePath, "export const derivedDirectInputs = true;\n");
+
+    const selected = await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Continue the explicitly requested direct repair.",
+      source: "manual",
+    });
+    assert.equal(selected.code, "DIRECT_FIX");
+    assert.equal(
+      selected.verificationCommand.command,
+      "node -e \"process.exit(0)\"",
+    );
+
+    const plan = DirectResolutionPlan.fromStored(
+      fixture.context().flowState.directResolutionPlan,
+    );
+    assert.equal(plan.scopePaths.includes("src/derived-direct-inputs.js"), true);
+
+    const verified = await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      timeoutMs: 10_000,
+    });
+    assert.equal(verified.code, "DIRECT_VERIFY_PASSED");
+    assert.equal(
+      fixture.context().flowState.directFlowSession.verification.testCommand,
+      "node -e \"process.exit(0)\"",
+    );
+  } finally {
     fixture.cleanup();
   }
 });
@@ -659,6 +709,19 @@ test("direct reconcile accepts exact ancestry and completes without a second mer
     });
     assert.equal(selected.code, "DIRECT_RECONCILE");
 
+    const resolved = new FlowManager({
+      root: fixture.root,
+      mainRoot: fixture.root,
+      inWorktree: false,
+      specId: fixture.specId,
+    }).resolveActiveFlow(null, {
+      selectRunId: fixture.runId,
+      selectIssue: fixture.issue,
+      selectSpecId: fixture.spec,
+    });
+    assert.equal(resolved.state.directFlowSession.phase, "DIRECT_RECONCILE");
+    assert.equal(resolved.worktreePath, null);
+
     const finalized = await runDirectFlowAction(fixture.context({ fromMain: true }), {
       action: "FINALIZE_DIRECT_RECONCILE",
       testCommand: "node -e \"process.exit(0)\"",
@@ -700,6 +763,70 @@ test("direct reconcile accepts exact ancestry and completes without a second mer
     assert.equal(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");
   } finally {
     container.reset();
+    fixture.cleanup();
+  }
+});
+
+test("direct reconcile is not offered while implementation changes remain uncommitted", () => {
+  const fixture = createDirectFlowFixture({ specId: "476-dirty-reconcile" });
+  try {
+    git(fixture.root, [
+      "merge",
+      "--quiet",
+      "--no-ff",
+      fixture.featureBranch,
+      "-m",
+      "integrate committed feature history",
+    ]);
+    const sourcePath = path.join(fixture.worktreePath, "src", "not-integrated.js");
+    fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+    fs.writeFileSync(sourcePath, "export const notIntegrated = true;\n");
+
+    assertReceiptlessReconcileRejected(fixture);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("direct reconcile uses the main plugin snapshot for teardown", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-reconcile-plugin-snapshot" });
+  try {
+    git(fixture.root, [
+      "merge",
+      "--quiet",
+      "--no-ff",
+      fixture.featureBranch,
+      "-m",
+      "integrate feature outside flow",
+    ]);
+    const selected = await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_RECONCILE",
+      reason: "Adopt exact ancestry before testing teardown state selection.",
+      source: "manual",
+    });
+    assert.equal(selected.code, "DIRECT_RECONCILE");
+
+    const main = fixture.context({ fromMain: true });
+    main.flowManager.mutate((state) => {
+      state.plugins = {
+        flowCommandHooks: [{
+          pluginId: "workflow",
+          module: "hooks/finalize-cleanup.js",
+          className: "WorkflowFinalizeCleanupHook",
+          command: "finalize-cleanup",
+          hook: "post",
+          priority: 0,
+          failurePolicy: "advisory",
+        }],
+      };
+    });
+    const resolution = FinalizeCleanupStateResolution.resolve({
+      ...main,
+      flowState: main.flowManager.loadReadOnly(fixture.specId),
+    });
+
+    assert.deepEqual(resolution.state.plugins, main.flowManager.loadReadOnly(fixture.specId).plugins);
+  } finally {
     fixture.cleanup();
   }
 });

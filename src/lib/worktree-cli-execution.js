@@ -33,6 +33,22 @@ class WorktreeCliTarget {
   }
 }
 
+class WorktreeCliInvocation {
+  constructor(argv) {
+    if (!Array.isArray(argv) || argv.some((entry) => typeof entry !== "string")) {
+      throw new Error("worktree CLI argv must contain only strings");
+    }
+    this.argv = Object.freeze([...argv]);
+    Object.freeze(this);
+  }
+
+  get requiresRecoveryAuthority() {
+    return this.argv[0] === "flow"
+      && this.argv[2] === "direct"
+      && ["get", "run"].includes(this.argv[1]);
+  }
+}
+
 function gitWorktreeRoot(cwd) {
   const result = spawnSync("git", ["-C", cwd, "rev-parse", "--show-toplevel"], { encoding: "utf8" });
   if (result.status !== 0) return null;
@@ -95,9 +111,14 @@ function failClosed(target, argv) {
  * from a different checkout. Returns null when normal dispatch should proceed.
  */
 export function executeWorktreeLocalCli({ argv, cwd = process.cwd() } = {}) {
+  const invocation = new WorktreeCliInvocation(argv || []);
   const executionPath = fs.realpathSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "senti.js"));
   const target = resolveWorktreeCli(executionPath, cwd);
-  if (target == null || target.usesLocalSource) return null;
+  if (
+    target == null
+    || target.usesLocalSource
+    || invocation.requiresRecoveryAuthority
+  ) return null;
   if (!isFile(target.localCliPath)) return failClosed(target, argv);
 
   const result = spawnSync(process.execPath, [target.localCliPath, ...argv], {

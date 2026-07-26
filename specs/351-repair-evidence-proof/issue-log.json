@@ -2645,6 +2645,180 @@
       "taskId": null,
       "timestamp": "2026-07-26T03:18:44.045Z",
       "issueLogId": "issue-log-ab8826cf-e3b0-44eb-b40f-dcd911f3dc20"
+    },
+    {
+      "step": "direct-handoff-preflight",
+      "reason": "User explicitly selected direct mode.",
+      "trigger": "SELECT_DIRECT_RECONCILE",
+      "resolution": "Persisted the direct resolution plan before implementation changes.",
+      "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
+      "planId": "direct-plan-94c9e24998b4ef1d28a15de2",
+      "planRevision": 1,
+      "sourceStep": "impl-gate",
+      "skippedSteps": [
+        "impl-gate",
+        "retro",
+        "acceptance-review",
+        "final-regression",
+        "report",
+        "finalize-commit",
+        "finalize-merge",
+        "finalize-sync",
+        "finalize-cleanup"
+      ],
+      "routingFailure": "max_attempts_exceeded",
+      "findings": [
+        {
+          "findingId": "flow-finding:DF-1",
+          "classification": "FIX_REQUIRED",
+          "selectedResolution": "Resolve the deferred finding in direct mode and cover it with deterministic verification.",
+          "changeTargets": [],
+          "rationale": "The finding remains unresolved in the durable Flow finding ledger."
+        },
+        {
+          "findingId": "flow-finding:DF-2",
+          "classification": "FIX_REQUIRED",
+          "selectedResolution": "Resolve the deferred finding in direct mode and cover it with deterministic verification.",
+          "changeTargets": [],
+          "rationale": "The finding remains unresolved in the durable Flow finding ledger."
+        }
+      ],
+      "timestamp": "2026-07-26T12:26:10.426Z",
+      "taskId": null,
+      "issueLogId": "direct-plan:9a7c65b3-2556-4186-aa09-b969103574fe:direct-plan-94c9e24998b4ef1d28a15de2:r1"
+    },
+    {
+      "step": "direct-completion",
+      "reason": "Direct handling completed from impl-gate.",
+      "trigger": "DIRECT_RECONCILE",
+      "resolution": "Direct completion direct-completion-f34c45a3313a7161adffbab940d86421; mode=direct; merge=already-merged; sourceStep=impl-gate; verification=passed; skipped=impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup",
+      "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
+      "planId": "direct-plan-94c9e24998b4ef1d28a15de2",
+      "planRevision": 1,
+      "completionMode": "direct",
+      "mergeDisposition": "already-merged",
+      "gitEvidence": {
+        "kind": "exact-ancestry",
+        "featureHead": "286a21b69c53c218a224afaee410e3cfcb31ed5f",
+        "mainHead": "bdf817d2b584539e861cfa44265ca3443e610c37",
+        "receiptKey": null,
+        "receiptCommit": null,
+        "observedAt": "2026-07-26T12:39:49.916Z"
+      },
+      "skippedSteps": [
+        {
+          "stepId": "impl-gate",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "retro",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "acceptance-review",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "final-regression",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "report",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-commit",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-merge",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-sync",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-cleanup",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        }
+      ],
+      "minimalValidation": {
+        "status": "passed",
+        "testStatus": "passed",
+        "testCommand": "node --test specs/351-repair-evidence-proof/tests/repair-evidence-proof.test.js",
+        "checks": [
+          {
+            "id": "target-identity",
+            "passed": true,
+            "detail": "runId, Issue, spec, and branch identity match the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "origin-flow-revision",
+            "passed": true,
+            "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+            "overrideable": false
+          },
+          {
+            "id": "direct-plan-cas",
+            "passed": true,
+            "detail": "Direct session and plan revisions match.",
+            "overrideable": false
+          },
+          {
+            "id": "worktree-binding",
+            "passed": true,
+            "detail": "Managed worktree binding matches the handoff revision.",
+            "overrideable": false
+          },
+          {
+            "id": "active-registry-cas",
+            "passed": true,
+            "detail": "Active Flow registry revision matches the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "feature-history",
+            "passed": true,
+            "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+            "overrideable": false
+          },
+          {
+            "id": "git-conflicts",
+            "passed": true,
+            "detail": "No unresolved Git conflicts exist.",
+            "overrideable": false
+          },
+          {
+            "id": "change-scope",
+            "passed": true,
+            "detail": "All changed paths are inside the persisted direct scope.",
+            "overrideable": false
+          },
+          {
+            "id": "merge-target-operation",
+            "passed": true,
+            "detail": "No prohibited Git operation is in progress on the merge target.",
+            "overrideable": false
+          },
+          {
+            "id": "deterministic-tests",
+            "passed": true,
+            "detail": "Deterministic test command exited successfully.",
+            "overrideable": true
+          }
+        ],
+        "changedPaths": [],
+        "pathFingerprints": [],
+        "featureHead": "286a21b69c53c218a224afaee410e3cfcb31ed5f",
+        "riskAccepted": false,
+        "riskReason": null,
+        "verifiedAt": "2026-07-26T12:39:50.722Z"
+      },
+      "timestamp": "2026-07-26T12:39:50.827Z",
+      "taskId": null,
+      "issueLogId": "direct-completion:9a7c65b3-2556-4186-aa09-b969103574fe:direct-plan-94c9e24998b4ef1d28a15de2:r1"
     }
   ]
 }

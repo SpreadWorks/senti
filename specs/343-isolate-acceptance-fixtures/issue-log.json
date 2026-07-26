@@ -1,0 +1,587 @@
+{
+  "entries": [
+    {
+      "step": "direct-handoff-preflight",
+      "reason": "User explicitly selected direct mode.",
+      "trigger": "SELECT_DIRECT_RECONCILE",
+      "resolution": "Persisted the direct resolution plan before implementation changes.",
+      "runId": "f1b47dfb-13c4-4f8a-924f-0bbbca70498c",
+      "planId": "direct-plan-93b4d292cac41edaa097e271",
+      "planRevision": 1,
+      "sourceStep": "impl-gate",
+      "skippedSteps": [
+        "impl-gate",
+        "retro",
+        "acceptance-review",
+        "final-regression",
+        "report",
+        "finalize-commit",
+        "finalize-merge",
+        "finalize-sync",
+        "finalize-cleanup"
+      ],
+      "routingFailure": "mechanical",
+      "findings": [],
+      "timestamp": "2026-07-26T12:24:30.059Z",
+      "taskId": null,
+      "issueLogId": "direct-plan:f1b47dfb-13c4-4f8a-924f-0bbbca70498c:direct-plan-93b4d292cac41edaa097e271:r1"
+    },
+    {
+      "step": "direct-completion",
+      "reason": "Direct handling completed from impl-gate.",
+      "trigger": "DIRECT_RECONCILE",
+      "resolution": "Direct completion direct-completion-94d103aa2beba0f523d632b8f708b104; mode=direct; merge=already-merged; sourceStep=impl-gate; verification=passed; skipped=impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup",
+      "runId": "f1b47dfb-13c4-4f8a-924f-0bbbca70498c",
+      "planId": "direct-plan-93b4d292cac41edaa097e271",
+      "planRevision": 1,
+      "completionMode": "direct",
+      "mergeDisposition": "already-merged",
+      "gitEvidence": {
+        "kind": "exact-ancestry",
+        "featureHead": "1b87a1c2634c502ebe17e36b0ab18b64e038e665",
+        "mainHead": "bdf817d2b584539e861cfa44265ca3443e610c37",
+        "receiptKey": null,
+        "receiptCommit": null,
+        "observedAt": "2026-07-26T12:44:28.517Z"
+      },
+      "skippedSteps": [
+        {
+          "stepId": "impl-gate",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "retro",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "acceptance-review",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "final-regression",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "report",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-commit",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-merge",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-sync",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-cleanup",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        }
+      ],
+      "minimalValidation": {
+        "status": "passed",
+        "testStatus": "passed",
+        "testCommand": "npm test",
+        "checks": [
+          {
+            "id": "target-identity",
+            "passed": true,
+            "detail": "runId, Issue, spec, and branch identity match the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "origin-flow-revision",
+            "passed": true,
+            "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+            "overrideable": false
+          },
+          {
+            "id": "direct-plan-cas",
+            "passed": true,
+            "detail": "Direct session and plan revisions match.",
+            "overrideable": false
+          },
+          {
+            "id": "worktree-binding",
+            "passed": true,
+            "detail": "Managed worktree binding matches the handoff revision.",
+            "overrideable": false
+          },
+          {
+            "id": "active-registry-cas",
+            "passed": true,
+            "detail": "Active Flow registry revision matches the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "feature-history",
+            "passed": true,
+            "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+            "overrideable": false
+          },
+          {
+            "id": "git-conflicts",
+            "passed": true,
+            "detail": "No unresolved Git conflicts exist.",
+            "overrideable": false
+          },
+          {
+            "id": "change-scope",
+            "passed": true,
+            "detail": "All changed paths are inside the persisted direct scope.",
+            "overrideable": false
+          },
+          {
+            "id": "merge-target-operation",
+            "passed": true,
+            "detail": "No prohibited Git operation is in progress on the merge target.",
+            "overrideable": false
+          },
+          {
+            "id": "deterministic-tests",
+            "passed": true,
+            "detail": "Deterministic test command exited successfully.",
+            "overrideable": true
+          }
+        ],
+        "changedPaths": [
+          "specs/343-isolate-acceptance-fixtures/draft-coverage-repair.json",
+          "specs/343-isolate-acceptance-fixtures/draft-coverage-triage.json",
+          "specs/343-isolate-acceptance-fixtures/draft-gate-source.json",
+          "specs/343-isolate-acceptance-fixtures/draft-questions-repair.json",
+          "specs/343-isolate-acceptance-fixtures/draft-questions-triage.json",
+          "specs/343-isolate-acceptance-fixtures/draft-review-coverage.json",
+          "specs/343-isolate-acceptance-fixtures/draft-review-questions.json",
+          "specs/343-isolate-acceptance-fixtures/draft.json",
+          "specs/343-isolate-acceptance-fixtures/file-map.json",
+          "specs/343-isolate-acceptance-fixtures/flow.json",
+          "specs/343-isolate-acceptance-fixtures/gate-impl-memory.json",
+          "specs/343-isolate-acceptance-fixtures/impl-gate-result.json",
+          "specs/343-isolate-acceptance-fixtures/impl-repair.json",
+          "specs/343-isolate-acceptance-fixtures/impl-review.json",
+          "specs/343-isolate-acceptance-fixtures/impl-triage.json",
+          "specs/343-isolate-acceptance-fixtures/issue-log.json",
+          "specs/343-isolate-acceptance-fixtures/issue.md",
+          "specs/343-isolate-acceptance-fixtures/plugin-artifacts/workflow/prepare.json",
+          "specs/343-isolate-acceptance-fixtures/repair-deltas/repair-001.json",
+          "specs/343-isolate-acceptance-fixtures/repair-deltas/repair-002.json",
+          "specs/343-isolate-acceptance-fixtures/repair-fingerprint.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/43effd1d8e3129e99f85eb580ca9cef01f3510fad73b60c9e8374549bcf8dd5c.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/4c31e3bd8f4f0fca2a5ef22e9a748119fe4436740af4fc980e35b16237961bf0.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/4fba9f2fc26492cf54da3d2dcdbdabc2628fef19ad4ae58d66df4fdf7449cf07.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/52046378afe13f0773fb441aff987f32c48b027eb7f3343b1c10416e30ffc017.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/6e23c8951716676484545879b124a5886a2c0ef349d2ee67781cd044cad05452.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/70a9a7776e1d8bfcb0362367e2787030ae919fbb4c9e3337c8fd7382a2cb9559.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/955ea381239d9624a0a5e51465c4353e93076eb699839fc98c1d8a8eabf7b9cb.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/9777dd2d8b2afcdfa850adcc6fd7bb0ae43639d4f5c65b893d8d70aeb1b4426c.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/c357dedb337bc04c4380e5fc5c5dfdb5025590993d655f27eaac80a37dad090a.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/d79a60715275a2efe40a2977965951ba601a38caee94d45705360c36e71e1b43.json",
+          "specs/343-isolate-acceptance-fixtures/review-evidence/e9a445a999ada3f72749c96cb1cc2ebc5b4d03e738c2db8d96e0f0f8da52346d.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/draft-coverage-attempt-001.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/draft-questions-attempt-001.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-001.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-001.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-002.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-002.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-003.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-003.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-004.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-004.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/spec-attempt-001.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/spec-attempt-001.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-001.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-001.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-002.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-002.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-003.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-003.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-004.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-004.md",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-005.json",
+          "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-005.md",
+          "specs/343-isolate-acceptance-fixtures/review.md",
+          "specs/343-isolate-acceptance-fixtures/scenario-validity-result.json",
+          "specs/343-isolate-acceptance-fixtures/spec-review.json",
+          "specs/343-isolate-acceptance-fixtures/spec-review.md",
+          "specs/343-isolate-acceptance-fixtures/spec.json",
+          "specs/343-isolate-acceptance-fixtures/spec.md",
+          "specs/343-isolate-acceptance-fixtures/tasks/T-1.md",
+          "specs/343-isolate-acceptance-fixtures/test-coverage.json",
+          "specs/343-isolate-acceptance-fixtures/test-execute-result.json",
+          "specs/343-isolate-acceptance-fixtures/test-result-review.json",
+          "specs/343-isolate-acceptance-fixtures/test-result-review.md",
+          "specs/343-isolate-acceptance-fixtures/test-review.json",
+          "specs/343-isolate-acceptance-fixtures/test-review.md",
+          "specs/343-isolate-acceptance-fixtures/tests/.raw/scenario-validity.log",
+          "specs/343-isolate-acceptance-fixtures/tests/.raw/test-execution.log",
+          "specs/343-isolate-acceptance-fixtures/tests/acceptance-fixture-boundary.test.js",
+          "src/flow/lib/acceptance-review-fixture.js",
+          "src/flow/lib/run-acceptance-review.js"
+        ],
+        "pathFingerprints": [
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/draft-coverage-repair.json",
+            "kind": "file",
+            "digest": "039a0c06be9b305c7f2f93d941c001a3e0a60dbd680832a48352a5c1625e3aa2"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/draft-coverage-triage.json",
+            "kind": "file",
+            "digest": "03ddbf4dfbdaaa038a1a6559bcfd126330d769597d32bc24f7f51fd52d1ace43"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/draft-gate-source.json",
+            "kind": "file",
+            "digest": "a70dbd1c8c520484fcd071e9665d8640d3a5bf96007ac6c4eefd01130a56e4f5"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/draft-questions-repair.json",
+            "kind": "file",
+            "digest": "f14335713c67f1ebff638be48d95448c8346aa1574913db93f1cc61d21faf857"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/draft-questions-triage.json",
+            "kind": "file",
+            "digest": "8d9457cfad44fad688e65a4a97db868e864065434ab45274cebc7f99c1eae96c"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/draft-review-coverage.json",
+            "kind": "file",
+            "digest": "2362155db31a055a80a804cb5e1632ab867c67cc399b527e5d0afdab6628b73f"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/draft-review-questions.json",
+            "kind": "file",
+            "digest": "8404f31dcfba0d65de21c3767dfe42f73bd541fa169c9ecc5bb2cfd43c48e6f0"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/draft.json",
+            "kind": "file",
+            "digest": "4f59035c49a20b7cd71c4359871c6a8ad853ae493a815976c2c6e2eb51ac4eff"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/file-map.json",
+            "kind": "file",
+            "digest": "cc81b6954da92c9b3d9f7e339434916b564424e2a61d77c9fa37e013d8d39419"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/gate-impl-memory.json",
+            "kind": "file",
+            "digest": "5b9481989a2d2bfee536a74e463e9389c749cf82a435c2dfc6c8b4cac69b3693"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/impl-gate-result.json",
+            "kind": "file",
+            "digest": "99890e1ee3216aaabce79efc5fb0c82efbee05e8953b30b5f6cec27e16fdcdc5"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/impl-repair.json",
+            "kind": "file",
+            "digest": "4b863c838d02c8f4b1ab046ffe4f53ee4c9c44c5c405692681bf7d6f1ab63fc9"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/impl-review.json",
+            "kind": "file",
+            "digest": "806f2056d66018059b43357be3ff8e5129c396e2ee34afc1bd7367509723668c"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/impl-triage.json",
+            "kind": "file",
+            "digest": "3211f289ebf347219f970967d764720c6a5d5a6500f0789ad11d07c73cd4c108"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/issue.md",
+            "kind": "file",
+            "digest": "ca5a20a4852fc63a7bd7957c2201908a27eff1117c5a6693d9a0b3a669774bee"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/plugin-artifacts/workflow/prepare.json",
+            "kind": "file",
+            "digest": "c42fdaa7fcbeb1b3b144f2e5fdfe919ccc7aec6fe84dc893c2cfffe86c926a01"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/repair-deltas/repair-001.json",
+            "kind": "file",
+            "digest": "859edb94697c614674c3578e33088dacadf84345ebcdcff1a06050be906ce837"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/repair-deltas/repair-002.json",
+            "kind": "file",
+            "digest": "00665cb3b4fcad4990e945867d78bda16dc63c8b00b3ea2931a4687972946699"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/repair-fingerprint.json",
+            "kind": "file",
+            "digest": "573ca122f3c10e171f08dd40ec7cfc986dcfa27d2883e0f3161da3ea34438bad"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/43effd1d8e3129e99f85eb580ca9cef01f3510fad73b60c9e8374549bcf8dd5c.json",
+            "kind": "file",
+            "digest": "789f372ec68a23b7ebfa64b06861da4cac269b4150f62eeadfe899376789f52a"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/4c31e3bd8f4f0fca2a5ef22e9a748119fe4436740af4fc980e35b16237961bf0.json",
+            "kind": "file",
+            "digest": "cd3f4cf4f75e764933fe441d9bc2aaec0b5e778b12a472bfc66dbea1b8027599"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/4fba9f2fc26492cf54da3d2dcdbdabc2628fef19ad4ae58d66df4fdf7449cf07.json",
+            "kind": "file",
+            "digest": "8f5324acc42aab8ee95b731e174fdeadecd0dfd504c10630eedc33ea635c8019"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/52046378afe13f0773fb441aff987f32c48b027eb7f3343b1c10416e30ffc017.json",
+            "kind": "file",
+            "digest": "6a72a5f157022067641369280b1b5377c0e754416f671589bf6361aecaa1ef64"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/6e23c8951716676484545879b124a5886a2c0ef349d2ee67781cd044cad05452.json",
+            "kind": "file",
+            "digest": "f9abb35056c7d7a1be8b2df540c45a67872a507efcee9e44a78a8e49989c3920"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/70a9a7776e1d8bfcb0362367e2787030ae919fbb4c9e3337c8fd7382a2cb9559.json",
+            "kind": "file",
+            "digest": "2266352ee78bd8be91e9b2464b4617d1fe64e328dfeb848890fc52a10c7be2d0"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/955ea381239d9624a0a5e51465c4353e93076eb699839fc98c1d8a8eabf7b9cb.json",
+            "kind": "file",
+            "digest": "b43724bb0f4722546379a593e5d19309effc2a8f754e7062dc074605e491a093"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/9777dd2d8b2afcdfa850adcc6fd7bb0ae43639d4f5c65b893d8d70aeb1b4426c.json",
+            "kind": "file",
+            "digest": "8ebdf811ef9aa0f581f32250b04aa4c28559ddee294c92a0e100f386b1567e82"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/c357dedb337bc04c4380e5fc5c5dfdb5025590993d655f27eaac80a37dad090a.json",
+            "kind": "file",
+            "digest": "17f33c20d7c19937760c491aea2ab4de09af88bedd273b0d94a768481bd2a4e7"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/d79a60715275a2efe40a2977965951ba601a38caee94d45705360c36e71e1b43.json",
+            "kind": "file",
+            "digest": "a04a3e9ed14bd805368266e6bfe536bcdb069a2820573942a6c8c55e9cc53afe"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-evidence/e9a445a999ada3f72749c96cb1cc2ebc5b4d03e738c2db8d96e0f0f8da52346d.json",
+            "kind": "file",
+            "digest": "5bfad8f8110a3a632e9dc3297393da08006dbd546dee651ad183ccc28dd21409"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/draft-coverage-attempt-001.json",
+            "kind": "file",
+            "digest": "d8c14afae7bf4af59a27f0c01674132e4bc0709fea96f08029452f2827dde83d"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/draft-questions-attempt-001.json",
+            "kind": "file",
+            "digest": "9ce3453bb5ca9883ad0ebadf792f2623dff46d50bfee6c30e5db53d3014b3562"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-001.json",
+            "kind": "file",
+            "digest": "052f5a015fbc9e0317524119f7be9ddce2995f82faa29957c36a4c53939b7382"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-001.md",
+            "kind": "file",
+            "digest": "c8b1e444f37d329693d5cbcffe8927d390d783677734b68d8467cccc209e59bc"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-002.json",
+            "kind": "file",
+            "digest": "aee1f4469488eff16bdabf9aee5609c376eeaef73fdc84e1f044c0e7553b02be"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-002.md",
+            "kind": "file",
+            "digest": "273c29ccc831f7e1bc7ab6b4db82a48f093c2da3d9eb7814d5149f88a2420609"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-003.json",
+            "kind": "file",
+            "digest": "55988121c775c5179e2945dfee99117cafcc05255fde70397401770f899b1726"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-003.md",
+            "kind": "file",
+            "digest": "693a09805e97fb798ff8af82ff95b09a2828b92e858051699ff455964482b8f7"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-004.json",
+            "kind": "file",
+            "digest": "6b1cbd9e11b7e6caf88a298c03579c016f342aa0c02aa439b4ea2d95b84e475d"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/impl-attempt-004.md",
+            "kind": "file",
+            "digest": "dc7ff5daeea74922cc9dd78751f775f3fb23e73dbd58fa8f44fb2dd7b33d286d"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/spec-attempt-001.json",
+            "kind": "file",
+            "digest": "35b97bcec34ce4ae2ba3698ad21e4bb32add0ba0bcc88365c5b4c2aee32be06b"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/spec-attempt-001.md",
+            "kind": "file",
+            "digest": "8c9a6eb501b7d226487a4010e26a07e5c622a20953041d7289fbd812ad9bfe7f"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-001.json",
+            "kind": "file",
+            "digest": "eccf7c24557aad96978195d47c16d26f80127f7e8194de91b64eb5e0803247f9"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-001.md",
+            "kind": "file",
+            "digest": "da065fb5ab1cb1e0a891d642c66ff73a306c6a12e5a8c21033a9343fcffee045"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-002.json",
+            "kind": "file",
+            "digest": "3b193a821a5e5fca39a44b2e5338798702276eafc7438a36c1842f7b301789e3"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-002.md",
+            "kind": "file",
+            "digest": "dfc1a254556602b2bf9375156b05484f6e25936ac725167a07637c8255d9a908"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-003.json",
+            "kind": "file",
+            "digest": "2710bb918589f6be622affeb7a7dc1abe8d6b063e9d22f514da58d84a8167f8d"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-003.md",
+            "kind": "file",
+            "digest": "2e24f23ac2fb96c2695807d1de0c66844ad14c7cd58fc653dfcdff1b98cdf6e7"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-004.json",
+            "kind": "file",
+            "digest": "5840f6e9f3ea260a4ccd73e07010ad65591ce25835ede5908821c7167e676490"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-004.md",
+            "kind": "file",
+            "digest": "0135b99d36d1f1e66cf8ee66053af4deb202ec0e7bb34dc942a81043b849198e"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-005.json",
+            "kind": "file",
+            "digest": "d3c3b5b4e498af5f5e064a8a7f1fd10badceadb06003de3ba5ba67231acebac8"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review-history/test-attempt-005.md",
+            "kind": "file",
+            "digest": "fb3ba46c9564447492fbd1693759667173ec2cbd4bf200db8da4dc0652c0ce6d"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/review.md",
+            "kind": "file",
+            "digest": "8bf8b70b5a8eda97bc3422574a53dd77cdfa00ec5c0cebe54f70e7aa0f02f5f1"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/scenario-validity-result.json",
+            "kind": "file",
+            "digest": "4f032abcb63aa9b95ec13002f389054fb332d3be15694fef5644647c49e3e0a7"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/spec-review.json",
+            "kind": "file",
+            "digest": "b53521c8fe187148348c093a251634547ec76667d13843b2c849021eb6c3624b"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/spec-review.md",
+            "kind": "file",
+            "digest": "c86938c66ee9c0cb73ca51f679bca65eb3a7096bdb2aa7ba827daf1f01fb989c"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/spec.json",
+            "kind": "file",
+            "digest": "37d11c5c5731ea3ef38eaafde983046318286e9d7c5877bc333827305fa0af75"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/spec.md",
+            "kind": "file",
+            "digest": "93b78b7806e2d9a660a15288246039a94b7a9942d88d7dbcb486d6da8d7ee8a8"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/tasks/T-1.md",
+            "kind": "file",
+            "digest": "d5e4c9ecae51e07e194386d61031bd6835465c3406e75d669434fc5287b01c9a"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/test-coverage.json",
+            "kind": "file",
+            "digest": "a6c51eae1dec5f24245c94199db9a1ec756421dde92de117cb69f0b3e0656e66"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/test-execute-result.json",
+            "kind": "file",
+            "digest": "d3f5ed0264bd3187373c34959a1f3599d1f2ef0177b2d636c46f65cd46b7b118"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/test-result-review.json",
+            "kind": "file",
+            "digest": "861dddc5d34ba3a43d21021ca5802037293c654259722e2341eca6c2c5a371b1"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/test-result-review.md",
+            "kind": "file",
+            "digest": "b8ee0149bdaf60827d6e4ff5543c25ffe83f5411d471a0649fb76b540a2b4d2c"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/test-review.json",
+            "kind": "file",
+            "digest": "98cdf7e18f72f5d2a1ac3be8999f42dc213e7cfe557a7937f522318dfc111087"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/test-review.md",
+            "kind": "file",
+            "digest": "372c0770d1c11124c58a2a44bdc88d9a2e491384ce46a7386cf60b7e4731eef9"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/tests/.raw/scenario-validity.log",
+            "kind": "file",
+            "digest": "81b0b2d6a1a55043856caae1c812e0b576b3b706d4b344602a2c2c51e27f3aa3"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/tests/.raw/test-execution.log",
+            "kind": "file",
+            "digest": "d90a5e1d9401f59d274ad6d4000c796b961ab1a48119852d0bcce7a6a44a87e8"
+          },
+          {
+            "path": "specs/343-isolate-acceptance-fixtures/tests/acceptance-fixture-boundary.test.js",
+            "kind": "file",
+            "digest": "4f9535fe10b67f205531ba4b8592a74be70779b3265cd85cbc8fefa4fc04c03f"
+          },
+          {
+            "path": "src/flow/lib/acceptance-review-fixture.js",
+            "kind": "file",
+            "digest": "8a0acda108c83651ec0ecb09c040e7a8ee8c9396e1364a56f2fffcd96d41579d"
+          },
+          {
+            "path": "src/flow/lib/run-acceptance-review.js",
+            "kind": "file",
+            "digest": "c4f289f4208035c236c21be8b28d58ab45ac5a8b9329efb2e12a2591affa9f9d"
+          }
+        ],
+        "featureHead": "1b87a1c2634c502ebe17e36b0ab18b64e038e665",
+        "riskAccepted": false,
+        "riskReason": null,
+        "verifiedAt": "2026-07-26T12:51:16.183Z"
+      },
+      "timestamp": "2026-07-26T12:51:16.262Z",
+      "taskId": null,
+      "issueLogId": "direct-completion:f1b47dfb-13c4-4f8a-924f-0bbbca70498c:direct-plan-93b4d292cac41edaa097e271:r1"
+    }
+  ]
+}

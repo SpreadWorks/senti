@@ -1,11 +1,21 @@
 ---
 name: senti.flow-direct
-description: Inspect and continue an interrupted Spec-Driven Development flow through the CLI-authored direct-fix, direct-reconcile, suspension, abort, verification, and limited-completion actions. Use when the user explicitly invokes direct Flow recovery or when a Flow command yields a typed actionPrompt that offers a direct path.
+description: Inspect and continue an interrupted Spec-Driven Development flow through direct repair, verification, reconciliation, suspension, abort, and limited completion. Use when the user explicitly invokes direct Flow recovery or when a Flow command reports that normal progress cannot continue.
 ---
 
 # Direct Flow Recovery
 
-Use this skill as a thin dispatcher over the CLI's durable direct-resolution state machine. The CLI is the sole source of truth for eligibility, actions, target guards, impacts, verification, and completion.
+Use the CLI as the durable source of Flow state and safety checks. Treat the user's
+explicit invocation of this skill as authorization to continue the current eligible
+Flow through direct repair. It is not authorization to target a different Flow,
+accept failed tests, discard work, or perform cleanup that the user's request did
+not already include.
+
+## Choice Format
+
+<!-- include("@skills/partials/choice-format.md") -->
+
+<!-- include("@skills/partials/ai-question-style.md") -->
 
 ## Inspect the Exact Target
 
@@ -14,53 +24,104 @@ Use this skill as a thin dispatcher over the CLI's durable direct-resolution sta
    - `--expect-issue <issue>` or `--expect-no-issue`
    - `--expect-spec <spec>`
 2. Run `senti flow get direct` with those guards.
-3. If the CLI returns `ACTIVE_FLOW_MISMATCH`, an ambiguous target, or no Flow, stop without mutating Flow or Git state. Report the CLI result.
+3. If the CLI reports a target mismatch, ambiguity, no Flow, or an unavailable
+   managed worktree, stop without changing Flow or Git state. Explain the concrete
+   mismatch in the user's language.
 
-Never infer a target from the current directory, branch name, parked pointer, or an unguarded active-flow lookup.
+Never select a target from the current directory, branch name, parked pointer, or
+an unguarded active-flow lookup.
 
-## Relay CLI Choices Verbatim
+## Enter Direct Repair Without an Entry Menu
 
-When the result has `yieldsControl: true`:
+When the user explicitly invokes this skill and the inspected result offers
+`SELECT_DIRECT_FIX`:
 
-1. Render `actionPrompt.question`, every choice, each choice's `actionId`, label, impact, reason, state transition, and `recommendationReason` exactly as returned.
-2. Do not omit, reword, replace, reorder, merge, or invent choices.
-3. Wait for the user's explicit selection.
-4. Execute only the selected choice's exact `nextAction`.
-5. Substitute a placeholder such as `<resolution>`, `<reason>`, or `<path>` only with the value explicitly supplied by the user. If a required value is missing, ask for that value and do not execute the command.
-6. Re-run guarded `senti flow get direct` after every command, including a failed command. Never reuse a stale prompt.
+1. Do not show the entry choices.
+2. Execute the guarded `SELECT_DIRECT_FIX` action immediately. Do not add
+   `--scope`; the CLI derives the initial repair scope from the current feature
+   changes, worktree changes, and recorded findings.
+3. Re-run the guarded `senti flow get direct`.
+4. Continue only after the CLI has persisted the repair plan and reports the
+   direct-fix phase.
 
-Treat a missing or invalid `actionPrompt` on an incomplete result as a CLI contract failure. Stop instead of generating recovery guidance.
+The explicit skill invocation is the user's direct-repair choice. `autoApprove`
+does not provide this authority, but no second confirmation is required from the
+same user request.
 
-## Preserve Manual Authority
+Never auto-select `SELECT_DIRECT_RECONCILE` merely because ancestry or an
+integration receipt exists. Direct reconciliation changes completion records and
+may delete the managed worktree during finalization. Use it only when the user's
+request explicitly asks to adopt an already-integrated implementation, or when
+direct repair is unavailable and the user selects reconciliation through the
+decision format below.
 
-Never auto-select any of these actions, including when `autoApprove` is enabled:
+## Continue Known Mechanical Actions
 
-- transition into direct mode;
-- adopt or reconcile an already-merged result;
-- accept test risk;
-- delete a worktree, branch, artifact, or receipt;
-- continue through orphan commits;
-- force cleanup or force completion.
+Do not ask the user to supply information already recorded by the Flow or project:
 
-Only an explicit user selection can authorize these actions. A recommendation is advisory and is not permission.
+- Repair scope comes from the persisted direct plan. Ask for paths only when the
+  CLI reports a concrete out-of-scope conflict that cannot be resolved from the
+  changed files and findings.
+- Verification command comes from the previous direct verification,
+  `final-regression-result.json`, a single command in
+  `test-execute-result.json`, or the project test configuration. Execute the
+  CLI-provided verification action without asking the user to repeat it.
+- Exact target guards come from the inspected Flow state. Preserve them on every
+  command.
 
-## Respect Direct Session Boundaries
+Automatically execute safe, deterministic continuation actions when their inputs
+are complete, including repair-plan preflight, recorded project verification, and
+readback. If verification fails, explain the failing check in plain language,
+continue the bounded repair, and re-run verification within the CLI attempt limit.
 
-- Allow direct mode only when the CLI reports the target eligible.
-- Keep direct progress in `DirectFlowSession`; do not mark normal Flow leaves done or skipped.
-- Do not edit source, tests, spec files, or issue-log entries before the CLI has persisted the direct plan and returned the direct-fix phase.
-- During direct fix, stay within the persisted scope and record newly discovered findings through the CLI-provided action.
-- Use only CLI-provided verification actions. Do not replace a failed non-overrideable safety check with a risk-acceptance command.
-- Use only the limited direct finalization or reconcile action returned by the CLI. Do not run normal review, gate, retro, report, final-regression, or documentation synchronization as substitutes.
-- After suspension, resume the saved phase and target. After abort, retain the abort receipt and do not clean up unless a later CLI prompt explicitly offers and the user selects cleanup.
+Only edit source, tests, spec files, or issue-log entries after the CLI has
+persisted the direct plan and entered direct fix. Stay inside the persisted scope.
+Record newly discovered findings through the CLI action before expanding the plan.
 
-## Complete or Stop
+## Ask Only for a Real Decision
 
-Continue the guarded inspect → explicit choice → exact command → guarded re-inspect loop until the CLI reports one of:
+Ask the user only when direct repair cannot proceed safely without new authority,
+for example:
 
-- `COMPLETED_DIRECT`: report the completion receipt and any external-hook warnings;
-- `DIRECT_ABORTED`: report the durable abort receipt and retained resources;
-- an unsupported, mismatched, ambiguous, or corrupt target: stop without mutation;
-- another typed action prompt: relay it verbatim and wait.
+- the target is ambiguous or differs from the requested run/Issue/spec;
+- a recorded product decision has no safe deterministic resolution;
+- integration evidence conflicts with uncommitted implementation changes;
+- passing requires explicit acceptance of test risk;
+- the requested next step would merge, delete, abort, or discard state and the
+  user's request did not already authorize that effect;
+- no unique verification command can be derived from Flow artifacts or project
+  configuration.
 
-Do not run integration-specific issue or board commands from this skill. Completion hooks consume the receipt's idempotency metadata.
+For such a decision:
+
+1. Explain the situation without internal state-machine names. Define any
+   unavoidable technical term in one short sentence.
+2. Explain what each option keeps, changes, or deletes in ordinary language.
+3. Present every viable option in the standard numbered Choice Format, translated
+   into the user's language. Put the recommendation at `[1]`.
+4. Keep CLI action IDs, raw transition names, plan class names, receipt class
+   names, and exact commands internal unless the user asks for diagnostics.
+5. Map the user's number or label to the exact current CLI action, execute it, and
+   immediately perform guarded readback. Never reuse a stale prompt.
+
+Do not ask a free-form question and do not present raw `actionPrompt` JSON as the
+user explanation.
+
+## Completion Boundary
+
+Use only the limited direct finalization or reconciliation action returned by the
+CLI. Do not run normal review, gate, retro, report, final-regression, or
+documentation synchronization as substitutes.
+
+Continue the guarded inspect → mechanical action → guarded readback loop until:
+
+- direct completion succeeds: report the completion result, merge disposition,
+  cleanup result, and external-hook warnings in plain language;
+- direct handling is aborted: report what was retained;
+- a real decision described above is required: present the numbered choice and
+  wait;
+- the target is unsupported, mismatched, ambiguous, or corrupt: stop without
+  mutation and state the exact recovery requirement.
+
+Do not run integration-specific issue or board commands from this skill.
+Completion hooks consume the receipt's idempotency metadata.

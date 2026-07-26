@@ -168,6 +168,9 @@ export class FinalizeCleanupStateResolution {
       ...(activeState.state || {}),
       ...(mainState.state || {}),
     };
+    if (mainState.directFlowSession) {
+      operationalState.plugins = structuredClone(mainState.plugins);
+    }
     for (const key of [
       "directFlowSession",
       "directResolutionPlan",

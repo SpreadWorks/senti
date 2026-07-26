@@ -65,5 +65,28 @@ describe("deploySkills include resolution", () => {
         "flow SKILL.md should explicitly disallow free-form questions without exceptions",
       );
     }
+
+    const directPath = path.join(
+      projectDir,
+      ".agents",
+      "skills",
+      "senti.flow-direct",
+      "SKILL.md",
+    );
+    if (fs.existsSync(directPath)) {
+      const content = fs.readFileSync(directPath, "utf8");
+      assert.ok(
+        content.includes("Present choices in the following format"),
+        "direct flow skill should contain the numbered Choice Format",
+      );
+      assert.ok(
+        content.includes("Do not show the entry choices"),
+        "explicit direct flow invocation should enter direct repair without a second menu",
+      );
+      assert.ok(
+        /translated\s+into the user's language/.test(content),
+        "direct flow decisions should be presented in the user's language",
+      );
+    }
   });
 });

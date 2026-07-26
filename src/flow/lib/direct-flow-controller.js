@@ -22,6 +22,7 @@ import {
   DirectResolutionFinding,
   DirectResolutionPlan,
 } from "./direct-resolution-plan.js";
+import { DirectVerificationCommandResolver } from "./direct-verification-command.js";
 import {
   DirectAbortReceipt,
   DirectGitEvidence,
@@ -136,11 +137,26 @@ function directIdentityExpectation(state) {
 }
 
 function resolveStateFallback(ctx) {
+  const mainRoot = ctx.mainRoot || ctx.flowManager?._mainRoot || ctx.root;
+  const specId = ctx.expectSpec ? specIdFromPath(ctx.expectSpec) : null;
+  if (specId) {
+    const flowManager = ctx.flowManager.forRoot(mainRoot, { specId });
+    const state = flowManager.loadReadOnly(specId);
+    const mismatch = state && new FlowTargetExpectation(ctx).mismatchAgainst(state);
+    if (state?.directFlowSession && !mismatch) {
+      return {
+        ...ctx,
+        root: mainRoot,
+        flowManager,
+        flowState: state,
+        state,
+        specId,
+      };
+    }
+  }
   if (ctx.flowState) return { ...ctx, state: ctx.flowState };
   if (!ctx.expectSpec) return { ...ctx, state: null };
-  const specId = specIdFromPath(ctx.expectSpec);
   if (!specId) return { ...ctx, state: null };
-  const mainRoot = ctx.mainRoot || ctx.flowManager?._mainRoot || ctx.root;
   const flowManager = ctx.flowManager.forRoot(mainRoot, { specId });
   const state = flowManager.loadReadOnly(specId);
   if (!state) return { ...ctx, state: null };
@@ -900,6 +916,17 @@ function mainStateForReconcile(ctx, state) {
 export function inspectDirectReconcileEvidence(ctx, state) {
   if (!state?.worktree || !state.featureBranch || !state.baseBranch) return null;
   const target = managedTargetContext(ctx, state);
+  const ignoredPrefixes = directIgnoredPathPrefixes(ctx, target.worktreePath);
+  const directMetadata = new Set([
+    `specs/${target.specId}/flow.json`,
+    `specs/${target.specId}/issue-log.json`,
+  ]);
+  const uncommittedImplementationPaths = readWorkingTreePaths(target.worktreePath)
+    .filter((relativePath) => !directMetadata.has(relativePath))
+    .filter((relativePath) => !ignoredPrefixes.some((prefix) => (
+      relativePath === prefix || relativePath.startsWith(`${prefix}/`)
+    )));
+  if (uncommittedImplementationPaths.length > 0) return null;
   const mainManager = ctx.flowManager.forRoot(target.mainRoot, { specId: target.specId });
   const mainState = mainManager.loadReadOnly(target.specId);
   const receiptEvidence = mainState
@@ -926,6 +953,16 @@ export function inspectDirectReconcileEvidence(ctx, state) {
   return new DirectGitEvidence({ kind: "exact-ancestry", featureHead, mainHead });
 }
 
+function resolveDirectVerificationCommand(authority, state, explicitCommand = null) {
+  if (typeof authority?.flowManager?.resolveWorktreePaths !== "function") return null;
+  const target = managedTargetContext(authority, state);
+  return new DirectVerificationCommandResolver({
+    root: target.worktreePath,
+    config: authority.config || {},
+    state,
+  }).resolve(explicitCommand);
+}
+
 function activeDirectPrompt(ctx, state) {
   const session = DirectFlowSession.fromStored(state.directFlowSession);
   const plan = state.directResolutionPlan
@@ -935,20 +972,30 @@ function activeDirectPrompt(ctx, state) {
   const run = (action, extra = "") => (
     `senti flow run direct --action ${action}${extra ? ` ${extra}` : ""} ${guards}`.trim()
   );
+  let resolvedVerificationCommand;
+  const verificationCommand = () => {
+    if (resolvedVerificationCommand === undefined) {
+      resolvedVerificationCommand = resolveDirectVerificationCommand(ctx, state) || null;
+    }
+    return resolvedVerificationCommand;
+  };
+  const verificationOption = () => (
+    verificationCommand()?.toCliOption() || '--test-command "<command>"'
+  );
   if (session.phase === "DIRECT_SELECTED") {
     return promptResult({
       code: "DIRECT_SELECTED",
       state,
-      question: "Direct mode is selected, but its durable preflight is incomplete. What should happen next?",
+      question: "Direct repair was requested, but the repair plan has not finished saving.",
       choices: [
         choice({
           actionId: "RESUME_DIRECT_PREFLIGHT",
-          label: "Persist or resume the CAS-guarded direct plan",
+          label: "Finish saving the repair plan",
           nextAction: run("RESUME_DIRECT_PREFLIGHT"),
           stateTransition: "DIRECT_SELECTED -> DIRECT_HANDOFF_PREFLIGHT",
           impact: {
-            retains: ["normal step tree", "worktree", "feature branch", "existing artifacts"],
-            changes: ["DirectResolutionPlan", "DirectFlowSession", "spec issue-log"],
+            retains: ["normal step progress", "worktree", "feature branch", "existing records"],
+            changes: ["saved repair plan", "recovery progress", "issue log"],
           },
         }),
         choice({
@@ -959,7 +1006,7 @@ function activeDirectPrompt(ctx, state) {
         }),
       ],
       recommendedActionId: "RESUME_DIRECT_PREFLIGHT",
-      recommendationReason: "The saved selection must finish its plan preflight before implementation changes.",
+      recommendationReason: "The repair plan must be saved before implementation files can be changed.",
     });
   }
   if (plan?.unresolvedDecisions.length > 0) {
@@ -967,15 +1014,15 @@ function activeDirectPrompt(ctx, state) {
     return promptResult({
       code: "DIRECT_USER_DECISION_REQUIRED",
       state,
-      question: `${finding.summary} Which resolution should be recorded before direct work continues?`,
+      question: `${finding.summary} A product decision is needed before repair can continue.`,
       choices: [
         choice({
           actionId: "ADOPT_RECOMMENDED_RESOLUTION",
-          label: "Adopt the plan's recommended resolution",
+          label: "Use the recorded recommendation",
           nextAction: run("ADOPT_DIRECT_RECOMMENDATION", `--finding-id "${finding.findingId}"`),
           impact: {
-            retains: ["normal step statuses", "Git state", "prior plan revisions"],
-            changes: ["selected finding resolution", "plan revision", "spec issue-log"],
+            retains: ["normal step progress", "Git state", "earlier repair records"],
+            changes: ["recorded decision", "repair plan", "issue log"],
           },
           reason: finding.rationale,
         }),
@@ -987,8 +1034,8 @@ function activeDirectPrompt(ctx, state) {
             `--finding-id "${finding.findingId}" --resolution "<resolution>"`,
           ),
           impact: {
-            retains: ["normal step statuses", "Git state", "prior plan revisions"],
-            changes: ["selected finding resolution", "plan revision", "spec issue-log"],
+            retains: ["normal step progress", "Git state", "earlier repair records"],
+            changes: ["recorded decision", "repair plan", "issue log"],
           },
         }),
         choice({
@@ -1008,16 +1055,16 @@ function activeDirectPrompt(ctx, state) {
     return promptResult({
       code: "DIRECT_HANDOFF_PREFLIGHT",
       state,
-      question: "The direct plan is durable and all required decisions are resolved. What should happen next?",
+      question: "The repair plan is saved and all required decisions are recorded.",
       choices: [
         choice({
           actionId: "RESUME_DIRECT_PREFLIGHT",
-          label: "Complete the durable handoff transition",
+          label: "Continue into repair",
           nextAction: run("RESUME_DIRECT_PREFLIGHT"),
           stateTransition: "DIRECT_HANDOFF_PREFLIGHT -> DIRECT_FIX/DIRECT_RECONCILE",
           impact: {
-            retains: ["normal step statuses", "direct plan", "all Git state"],
-            changes: ["DirectFlowSession phase only"],
+            retains: ["normal step progress", "repair plan", "all Git state"],
+            changes: ["recovery progress"],
           },
         }),
         choice({
@@ -1029,7 +1076,7 @@ function activeDirectPrompt(ctx, state) {
         }),
       ],
       recommendedActionId: "RESUME_DIRECT_PREFLIGHT",
-      recommendationReason: "The existing plan is reused; no resolution proposal is regenerated.",
+      recommendationReason: "The saved plan is ready; continuing does not recreate or replace it.",
     });
   }
   if (
@@ -1042,19 +1089,19 @@ function activeDirectPrompt(ctx, state) {
     const choices = [
       choice({
         actionId: "KEEP_DIRECT_FIX",
-        label: "Keep the bounded direct work for manual correction",
+        label: "Keep the worktree for further correction",
         nextAction: commandFor(state, "get direct"),
         impact: {
-          retains: ["worktree", "feature branch", "direct plan", "verification evidence"],
+          retains: ["worktree", "feature branch", "repair plan", "test results"],
         },
       }),
       ...(riskAvailable ? [choice({
         actionId: "ACCEPT_DIRECT_RISK",
-        label: "Explicitly accept only the remaining overrideable test risk",
+        label: "Accept only the remaining test failure risk",
         nextAction: run("ACCEPT_DIRECT_RISK", '--reason "<reason>"'),
         impact: {
           retains: ["all non-overridable safety checks"],
-          changes: ["direct plan risk finding", "verification risk acceptance"],
+          changes: ["repair risk record", "test-risk acceptance"],
         },
       })] : []),
       choice({
@@ -1078,10 +1125,10 @@ function activeDirectPrompt(ctx, state) {
     return promptResult({
       code: "DIRECT_VERIFICATION_LIMIT",
       state,
-      question: `Direct verification reached its ${MAX_DIRECT_VERIFICATION_ATTEMPTS}-attempt limit. What should happen next?`,
+      question: `The project tests did not pass after ${MAX_DIRECT_VERIFICATION_ATTEMPTS} attempts. Automatic retries are stopped.`,
       choices,
       recommendedActionId: "KEEP_DIRECT_FIX",
-      recommendationReason: "The bounded verifier cannot run again; preserve the target for an explicit next decision.",
+      recommendationReason: "Keep the worktree so the remaining failure can be corrected without losing work.",
       details: {
         attempts: session.verificationAttempts,
         maxAttempts: MAX_DIRECT_VERIFICATION_ATTEMPTS,
@@ -1093,15 +1140,15 @@ function activeDirectPrompt(ctx, state) {
     return promptResult({
       code: "DIRECT_FIX",
       state,
-      question: "Direct handoff is complete. What should happen after the bounded fix is ready?",
+      question: "The repair plan is saved. Run the recorded project tests after the code changes are ready.",
       choices: [
         choice({
           actionId: "VERIFY_DIRECT",
-          label: "Run deterministic direct verification",
-          nextAction: run("VERIFY_DIRECT", '--test-command "<command>"'),
+          label: "Run the recorded project verification",
+          nextAction: run("VERIFY_DIRECT", verificationOption()),
           impact: {
-            retains: ["normal post-impl step statuses", "direct resolution plan"],
-            changes: ["DirectFlowSession verification state", "test evidence"],
+            retains: ["normal Flow step progress", "repair plan"],
+            changes: ["direct verification result", "test evidence"],
           },
         }),
         choice({
@@ -1143,8 +1190,11 @@ function activeDirectPrompt(ctx, state) {
         }),
       ],
       recommendedActionId: "VERIFY_DIRECT",
-      recommendationReason: "Deterministic verification is required before limited finalize.",
-      details: { phase: session.phase },
+      recommendationReason: "The Flow already records the verification command needed before completion.",
+      details: {
+        phase: session.phase,
+        verificationCommand: verificationCommand()?.toJSON() || null,
+      },
     });
   }
   if (session.phase === "DIRECT_VERIFY") {
@@ -1152,7 +1202,7 @@ function activeDirectPrompt(ctx, state) {
       return promptResult({
         code: "DIRECT_VERIFY_PASSED",
         state,
-        question: "Direct verification passed. Should the limited finalize run now?",
+      question: "Project verification passed. The repair can now be committed, integrated, and cleaned up.",
         choices: [
           choice({
             actionId: "FINALIZE_DIRECT",
@@ -1160,7 +1210,7 @@ function activeDirectPrompt(ctx, state) {
             nextAction: run("FINALIZE_DIRECT"),
             stateTransition: "DIRECT_VERIFY -> MERGE_ONLY_FINALIZE -> COMPLETED_DIRECT",
             impact: {
-              retains: ["direct plan", "issue-log evidence", "completion receipt"],
+              retains: ["repair plan", "issue-log evidence", "completion record"],
               changes: ["base branch", "last-finalized pointer", "active registry"],
               deletes: ["managed worktree", "feature branch"],
             },
@@ -1174,7 +1224,7 @@ function activeDirectPrompt(ctx, state) {
           }),
         ],
         recommendedActionId: "FINALIZE_DIRECT",
-        recommendationReason: "All required deterministic and non-overridable checks passed.",
+        recommendationReason: "All project tests and required safety checks passed.",
       });
     }
     const riskAvailable = session.verification != null
@@ -1182,19 +1232,19 @@ function activeDirectPrompt(ctx, state) {
     return promptResult({
       code: "DIRECT_VERIFY_STOPPED",
       state,
-      question: "Direct verification did not pass. What should happen next?",
+      question: "Project verification did not pass. The failed check must be corrected or explicitly accepted when allowed.",
       choices: [
         choice({
           actionId: "RETURN_TO_DIRECT_FIX",
           label: "Continue the bounded direct fix",
           nextAction: run("RETURN_TO_DIRECT_FIX"),
           stateTransition: "DIRECT_VERIFY -> DIRECT_FIX",
-          impact: { retains: ["worktree", "branch", "plan", "failed verification evidence"] },
+          impact: { retains: ["worktree", "branch", "repair plan", "failed test result"] },
         }),
         choice({
           actionId: "VERIFY_DIRECT",
-          label: "Run deterministic verification again",
-          nextAction: run("VERIFY_DIRECT", '--test-command "<command>"'),
+          label: "Run the recorded project verification again",
+          nextAction: run("VERIFY_DIRECT", verificationOption()),
           impact: { retains: ["direct plan"], changes: ["verification evidence"] },
         }),
         ...(riskAvailable ? [choice({
@@ -1225,7 +1275,7 @@ function activeDirectPrompt(ctx, state) {
         }),
       ],
       recommendedActionId: "RETURN_TO_DIRECT_FIX",
-      recommendationReason: "Failed verification must be resolved without returning to normal post-impl steps.",
+      recommendationReason: "Continue in the same worktree so the failed check can be corrected without losing work.",
       details: { verification: session.verification?.toJSON() || null },
     });
   }
@@ -1233,15 +1283,15 @@ function activeDirectPrompt(ctx, state) {
     return promptResult({
       code: "DIRECT_RECONCILE",
       state,
-      question: "Strong integration evidence is recorded. Should stale Flow state be reconciled and cleaned up?",
+      question: "Git confirms that the implementation is already in the base branch. Completion can be recorded without merging again.",
       choices: [
         choice({
           actionId: "FINALIZE_DIRECT_RECONCILE",
-          label: "Record direct reconciliation and clean up without merging",
-          nextAction: run("FINALIZE_DIRECT_RECONCILE", '--test-command "<command>"'),
+          label: "Record completion and clean up without merging again",
+          nextAction: run("FINALIZE_DIRECT_RECONCILE", verificationOption()),
           stateTransition: "DIRECT_RECONCILE -> COMPLETED_DIRECT",
           impact: {
-            retains: ["integrated main history", "direct completion receipt"],
+            retains: ["integrated base-branch history", "completion record"],
             changes: ["last-finalized pointer", "active registry"],
             deletes: ["managed worktree", "feature branch"],
           },
@@ -1255,22 +1305,25 @@ function activeDirectPrompt(ctx, state) {
         }),
       ],
       recommendedActionId: "FINALIZE_DIRECT_RECONCILE",
-      recommendationReason: "Reconciliation uses the persisted receipt or exact ancestry and never re-merges.",
+      recommendationReason: "The implementation is already in the base branch, so this records completion without merging again.",
+      details: {
+        verificationCommand: verificationCommand()?.toJSON() || null,
+      },
     });
   }
   if (session.phase === "MERGE_ONLY_FINALIZE") {
     return promptResult({
       code: "MERGE_ONLY_FINALIZE",
       state,
-      question: "Limited finalize is incomplete. What should happen next?",
+      question: "Completion was interrupted after it started. Only the unfinished completion and cleanup work remains.",
       choices: [
         choice({
           actionId: "FINALIZE_DIRECT",
-          label: "Resume the durable limited finalize transaction",
+          label: "Resume the remaining completion work",
           nextAction: run("FINALIZE_DIRECT"),
           impact: {
-            retains: ["persisted transaction and receipts"],
-            changes: ["only incomplete transaction phases"],
+            retains: ["saved completion progress and records"],
+            changes: ["only unfinished completion work"],
           },
         }),
         choice({
@@ -1281,23 +1334,23 @@ function activeDirectPrompt(ctx, state) {
         }),
       ],
       recommendedActionId: "FINALIZE_DIRECT",
-      recommendationReason: "The shared teardown transaction is idempotent and resumes from its durable phase.",
+      recommendationReason: "The saved progress allows the unfinished work to resume without repeating completed operations.",
     });
   }
   if (session.phase === "SUSPENDED") {
     return promptResult({
       code: "SUSPENDED",
       state,
-      question: "This exact direct Flow is parked. What should happen next?",
+      question: "This repair is paused and its worktree and branch are still available.",
       choices: [
         choice({
           actionId: "RESUME_DIRECT",
-          label: `Resume the parked ${session.suspendedFrom} phase`,
+          label: "Resume the saved repair step",
           nextAction: run("RESUME_DIRECT"),
           stateTransition: `SUSPENDED -> ${session.suspendedFrom}`,
           impact: {
             retains: ["Flow state", "worktree", "feature branch", "artifacts"],
-            changes: ["active Flow registry", "DirectFlowSession phase"],
+            changes: ["active Flow entry", "recovery progress"],
           },
         }),
         choice({
@@ -1318,7 +1371,7 @@ function activeDirectPrompt(ctx, state) {
         }),
       ],
       recommendedActionId: "RESUME_DIRECT",
-      recommendationReason: "Resume restores the exact recorded direct phase without entering normal post-impl steps.",
+      recommendationReason: "Resume continues from the saved repair step without restarting the normal Flow.",
     });
   }
   if (session.phase === "ABORTED") {
@@ -1390,16 +1443,16 @@ export function getDirectFlowAction(ctx) {
   if (!eligible.supported) return unsupportedResult(state, eligible.detail);
   const evidence = inspectDirectReconcileEvidence(authority, state);
   const guards = guardFlagsForState(state);
-  const selectDirect = `senti flow run direct --action SELECT_DIRECT_FIX --scope <paths> ${guards}`;
+  const selectDirect = `senti flow run direct --action SELECT_DIRECT_FIX ${guards}`;
   const choices = [
     choice({
       actionId: "SELECT_DIRECT_FIX",
-      label: "Persist the handoff plan and enter direct fix",
-      nextAction: selectDirect,
+      label: "Continue fixing the current implementation",
+      nextAction: selectDirect.trim(),
       stateTransition: "NORMAL/BLOCKED -> DIRECT_SELECTED -> DIRECT_HANDOFF_PREFLIGHT -> DIRECT_FIX",
       impact: {
-        retains: ["normal step statuses", "managed worktree", "feature branch", "existing artifacts"],
-        changes: ["DirectFlowSession", "DirectResolutionPlan", "spec issue-log"],
+        retains: ["normal step statuses", "current worktree", "feature branch", "existing records"],
+        changes: ["direct recovery progress", "bounded repair plan", "issue log"],
       },
     }),
     choice({
@@ -1412,25 +1465,23 @@ export function getDirectFlowAction(ctx) {
   if (evidence) {
     choices.splice(1, 0, choice({
       actionId: "SELECT_DIRECT_RECONCILE",
-      label: "Adopt strong integration evidence and reconcile without merging",
+      label: "Record an implementation that is already merged",
       nextAction: `senti flow run direct --action SELECT_DIRECT_RECONCILE ${guards}`,
       stateTransition: "EXTERNALLY_MERGED_WITH_STALE_FLOW -> DIRECT_RECONCILE",
       impact: {
-        retains: ["main integration history", "worktree until cleanup is confirmed"],
-        changes: ["DirectFlowSession", "DirectResolutionPlan", "completion evidence"],
+        retains: ["existing base-branch history", "worktree until cleanup is confirmed"],
+        changes: ["direct recovery progress", "completion evidence"],
       },
-      reason: `Evidence: ${evidence.kind}`,
+      reason: "The feature commit is already contained in the base branch.",
     }));
   }
   return promptResult({
     code: "DIRECT_SELECTION_REQUIRED",
     state,
-    question: "This active managed worktree Flow has reached impl. Which path should be used?",
+    question: "Direct repair can continue in the current worktree. The direct skill starts that path without another confirmation.",
     choices,
-    recommendedActionId: evidence ? "SELECT_DIRECT_RECONCILE" : "SELECT_DIRECT_FIX",
-    recommendationReason: evidence
-      ? `Strong ${evidence.kind} evidence can avoid a second merge, but adoption still requires this explicit choice.`
-      : "Direct fix is available only through this explicit selection; autoApprove does not select it.",
+    recommendedActionId: "SELECT_DIRECT_FIX",
+    recommendationReason: "Explicit use of the direct skill already authorizes continuing the current repair.",
     details: {
       evidence: evidence?.toJSON() || null,
       autoApproveSelectedDirect: false,
@@ -1653,7 +1704,16 @@ function runDirectVerification(authority, input) {
     });
   }
   const snapshot = directSafetySnapshot(authority, state, plan);
-  const test = runTestCommand(snapshot.target.worktreePath, input.testCommand, input.timeoutMs);
+  const verificationCommand = resolveDirectVerificationCommand(
+    authority,
+    state,
+    input.testCommand,
+  );
+  const test = runTestCommand(
+    snapshot.target.worktreePath,
+    verificationCommand?.command,
+    input.timeoutMs,
+  );
   const checks = [
     ...snapshot.checks,
     {
@@ -2065,9 +2125,12 @@ async function runDirectFlowActionOwned(ctx, input) {
   }
   if (["FINALIZE_DIRECT", "FINALIZE_DIRECT_RECONCILE"].includes(action)) {
     const { finalizeDirectFlow } = await import("./direct-finalize-adapter.js");
+    const verificationCommand = action === "FINALIZE_DIRECT_RECONCILE"
+      ? resolveDirectVerificationCommand(authority, authority.state, input.testCommand)
+      : null;
     return finalizeDirectFlow(authority, {
       reconcile: action === "FINALIZE_DIRECT_RECONCILE",
-      testCommand: input.testCommand,
+      testCommand: verificationCommand?.command || input.testCommand,
       timeoutMs: input.timeoutMs,
       runTestCommand,
       directSafetySnapshot,

@@ -3747,6 +3747,133 @@
       "reason": "Pre-merge rebase detected conflicts in .senti/output/analysis.json, src/flow/lib/impl-repair-artifacts.js, tests/unit/flow/retry-recovery-convergence.test.js. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.",
       "timestamp": "2026-07-26T03:12:30.944Z",
       "issueLogId": "issue-log-7303498a-9db5-40af-a8b2-6592e574ae75"
+    },
+    {
+      "step": "direct-handoff-preflight",
+      "reason": "User explicitly selected direct mode.",
+      "trigger": "SELECT_DIRECT_RECONCILE",
+      "resolution": "Persisted the direct resolution plan before implementation changes.",
+      "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+      "planId": "direct-plan-e7d26502b1e446e10a56cca5",
+      "planRevision": 1,
+      "sourceStep": "finalize-merge",
+      "skippedSteps": [
+        "finalize-merge"
+      ],
+      "routingFailure": "mechanical",
+      "findings": [
+        {
+          "findingId": "flow-finding:DF-1",
+          "classification": "DISMISSED",
+          "selectedResolution": "Retain the existing final disposition: fixed",
+          "changeTargets": [],
+          "rationale": "The existing final disposition is already non-blocking."
+        }
+      ],
+      "timestamp": "2026-07-26T12:25:14.887Z",
+      "taskId": null,
+      "issueLogId": "direct-plan:4d726ec3-fd9d-4f18-9b2c-d017a925d5fc:direct-plan-e7d26502b1e446e10a56cca5:r1"
+    },
+    {
+      "step": "direct-completion",
+      "reason": "Direct handling completed from finalize-merge.",
+      "trigger": "DIRECT_RECONCILE",
+      "resolution": "Direct completion direct-completion-dc62b71146df2308e6fe9305a3960a72; mode=direct; merge=already-merged; sourceStep=finalize-merge; verification=passed; skipped=finalize-merge",
+      "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+      "planId": "direct-plan-e7d26502b1e446e10a56cca5",
+      "planRevision": 1,
+      "completionMode": "direct",
+      "mergeDisposition": "already-merged",
+      "gitEvidence": {
+        "kind": "exact-ancestry",
+        "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+        "mainHead": "bdf817d2b584539e861cfa44265ca3443e610c37",
+        "receiptKey": null,
+        "receiptCommit": null,
+        "observedAt": "2026-07-26T12:39:57.316Z"
+      },
+      "skippedSteps": [
+        {
+          "stepId": "finalize-merge",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        }
+      ],
+      "minimalValidation": {
+        "status": "passed",
+        "testStatus": "passed",
+        "testCommand": "node --test specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+        "checks": [
+          {
+            "id": "target-identity",
+            "passed": true,
+            "detail": "runId, Issue, spec, and branch identity match the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "origin-flow-revision",
+            "passed": true,
+            "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+            "overrideable": false
+          },
+          {
+            "id": "direct-plan-cas",
+            "passed": true,
+            "detail": "Direct session and plan revisions match.",
+            "overrideable": false
+          },
+          {
+            "id": "worktree-binding",
+            "passed": true,
+            "detail": "Managed worktree binding matches the handoff revision.",
+            "overrideable": false
+          },
+          {
+            "id": "active-registry-cas",
+            "passed": true,
+            "detail": "Active Flow registry revision matches the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "feature-history",
+            "passed": true,
+            "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+            "overrideable": false
+          },
+          {
+            "id": "git-conflicts",
+            "passed": true,
+            "detail": "No unresolved Git conflicts exist.",
+            "overrideable": false
+          },
+          {
+            "id": "change-scope",
+            "passed": true,
+            "detail": "All changed paths are inside the persisted direct scope.",
+            "overrideable": false
+          },
+          {
+            "id": "merge-target-operation",
+            "passed": true,
+            "detail": "No prohibited Git operation is in progress on the merge target.",
+            "overrideable": false
+          },
+          {
+            "id": "deterministic-tests",
+            "passed": true,
+            "detail": "Deterministic test command exited successfully.",
+            "overrideable": true
+          }
+        ],
+        "changedPaths": [],
+        "pathFingerprints": [],
+        "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+        "riskAccepted": false,
+        "riskReason": null,
+        "verifiedAt": "2026-07-26T12:40:02.611Z"
+      },
+      "timestamp": "2026-07-26T12:40:02.750Z",
+      "taskId": null,
+      "issueLogId": "direct-completion:4d726ec3-fd9d-4f18-9b2c-d017a925d5fc:direct-plan-e7d26502b1e446e10a56cca5:r1"
     }
   ]
 }

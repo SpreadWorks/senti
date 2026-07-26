@@ -11448,6 +11448,296 @@
     }
   },
   "state": {
-    "finalizedAt": "2026-07-26T03:12:10.378Z"
+    "finalizedAt": "2026-07-26T03:12:10.378Z",
+    "mergeStrategy": "pr",
+    "featureBranchSquashedSha": null
+  },
+  "directFlowSession": {
+    "phase": "DIRECT_RECONCILE",
+    "revision": 7,
+    "target": {
+      "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+      "issue": 468,
+      "spec": "specs/344-final-regression-evidence/spec.json",
+      "worktreePath": "/home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence",
+      "bindingRevision": "4c1d4917e0b1cb4c8d89e595cf496a90f85584bfedd05629b6b40a4f0d1b207c",
+      "featureBranch": "feature/344-final-regression-evidence",
+      "baseBranch": "main",
+      "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+      "flowStateRevision": "4d3961e10e9d8c59231e977b68c2f8ebc33c00e8cef9bf5fca15910b9e2dde9c",
+      "activeRegistryRevision": "399:WwogIHsKICAgICJzcGVjIjogIjMzOS1maW5pdGUtYWdlbnQtdGVybWluYXRpb24iLAogICAgIm1vZGUiOiAid29ya3RyZWUiCiAgfSwKICB7CiAgICAic3BlYyI6ICIzNDMtaXNvbGF0ZS1hY2NlcHRhbmNlLWZpeHR1cmVzIiwKICAgICJtb2RlIjogIndvcmt0cmVlIgogIH0sCiAgewogICAgInNwZWMiOiAiMzQ0LWZpbmFsLXJlZ3Jlc3Npb24tZXZpZGVuY2UiLAogICAgIm1vZGUiOiAid29ya3RyZWUiCiAgfSwKICB7CiAgICAic3BlYyI6ICIzNTEtcmVwYWlyLWV2aWRlbmNlLXByb29mIiwKICAgICJtb2RlIjogIndvcmt0cmVlIgogIH0sCiAgewogICAgInNwZWMiOiAiMzUyLXJlc29sdmUtcmVwb3NpdG9yeS1sb2NrLXNlbGYtY29udGVudGlvbiIsCiAgICAibW9kZSI6ICJ3b3JrdHJlZSIKICB9Cl0K"
+    },
+    "sourceStep": "finalize-merge",
+    "transitionReason": "User explicitly selected direct mode.",
+    "selectionSource": "manual",
+    "adoptedActionId": "SELECT_DIRECT_RECONCILE",
+    "requestedScopePaths": [],
+    "selectedAt": "2026-07-26T12:25:14.887Z",
+    "updatedAt": "2026-07-26T12:40:02.884Z",
+    "planId": "direct-plan-e7d26502b1e446e10a56cca5",
+    "planRevision": 1,
+    "verification": {
+      "status": "passed",
+      "testStatus": "passed",
+      "testCommand": "node --test specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+      "checks": [
+        {
+          "id": "target-identity",
+          "passed": true,
+          "detail": "runId, Issue, spec, and branch identity match the handoff.",
+          "overrideable": false
+        },
+        {
+          "id": "origin-flow-revision",
+          "passed": true,
+          "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+          "overrideable": false
+        },
+        {
+          "id": "direct-plan-cas",
+          "passed": true,
+          "detail": "Direct session and plan revisions match.",
+          "overrideable": false
+        },
+        {
+          "id": "worktree-binding",
+          "passed": true,
+          "detail": "Managed worktree binding matches the handoff revision.",
+          "overrideable": false
+        },
+        {
+          "id": "active-registry-cas",
+          "passed": true,
+          "detail": "Active Flow registry revision matches the handoff.",
+          "overrideable": false
+        },
+        {
+          "id": "feature-history",
+          "passed": true,
+          "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+          "overrideable": false
+        },
+        {
+          "id": "git-conflicts",
+          "passed": true,
+          "detail": "No unresolved Git conflicts exist.",
+          "overrideable": false
+        },
+        {
+          "id": "change-scope",
+          "passed": true,
+          "detail": "All changed paths are inside the persisted direct scope.",
+          "overrideable": false
+        },
+        {
+          "id": "merge-target-operation",
+          "passed": true,
+          "detail": "No prohibited Git operation is in progress on the merge target.",
+          "overrideable": false
+        },
+        {
+          "id": "deterministic-tests",
+          "passed": true,
+          "detail": "Deterministic test command exited successfully.",
+          "overrideable": true
+        }
+      ],
+      "changedPaths": [],
+      "pathFingerprints": [],
+      "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+      "riskAccepted": false,
+      "riskReason": null,
+      "verifiedAt": "2026-07-26T12:40:02.611Z"
+    },
+    "verificationAttempts": 2,
+    "suspendedFrom": null,
+    "completion": {
+      "status": "prepared",
+      "completionMode": "direct",
+      "success": null,
+      "mergeDisposition": "already-merged",
+      "receiptId": "direct-completion-dc62b71146df2308e6fe9305a3960a72",
+      "integrationReceiptId": null,
+      "reason": null,
+      "recordedAt": null,
+      "completedAt": null
+    }
+  },
+  "directResolutionPlan": {
+    "planId": "direct-plan-e7d26502b1e446e10a56cca5",
+    "revision": 1,
+    "target": {
+      "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+      "issue": 468,
+      "spec": "specs/344-final-regression-evidence/spec.json",
+      "worktreePath": "/home/nakano/workspace/senti/.senti/worktree/feature-344-final-regression-evidence",
+      "bindingRevision": "4c1d4917e0b1cb4c8d89e595cf496a90f85584bfedd05629b6b40a4f0d1b207c",
+      "featureBranch": "feature/344-final-regression-evidence",
+      "baseBranch": "main",
+      "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+      "flowStateRevision": "4d3961e10e9d8c59231e977b68c2f8ebc33c00e8cef9bf5fca15910b9e2dde9c",
+      "activeRegistryRevision": "399:WwogIHsKICAgICJzcGVjIjogIjMzOS1maW5pdGUtYWdlbnQtdGVybWluYXRpb24iLAogICAgIm1vZGUiOiAid29ya3RyZWUiCiAgfSwKICB7CiAgICAic3BlYyI6ICIzNDMtaXNvbGF0ZS1hY2NlcHRhbmNlLWZpeHR1cmVzIiwKICAgICJtb2RlIjogIndvcmt0cmVlIgogIH0sCiAgewogICAgInNwZWMiOiAiMzQ0LWZpbmFsLXJlZ3Jlc3Npb24tZXZpZGVuY2UiLAogICAgIm1vZGUiOiAid29ya3RyZWUiCiAgfSwKICB7CiAgICAic3BlYyI6ICIzNTEtcmVwYWlyLWV2aWRlbmNlLXByb29mIiwKICAgICJtb2RlIjogIndvcmt0cmVlIgogIH0sCiAgewogICAgInNwZWMiOiAiMzUyLXJlc29sdmUtcmVwb3NpdG9yeS1sb2NrLXNlbGYtY29udGVudGlvbiIsCiAgICAibW9kZSI6ICJ3b3JrdHJlZSIKICB9Cl0K"
+    },
+    "sourceStep": "finalize-merge",
+    "transitionReason": "User explicitly selected direct mode.",
+    "transitionAt": "2026-07-26T12:25:14.887Z",
+    "skippedSteps": [
+      "finalize-merge"
+    ],
+    "validationItems": [
+      "target identity and managed worktree binding remain exact",
+      "feature history only advances from the handoff HEAD",
+      "no unresolved Git conflicts exist",
+      "specified deterministic tests or mechanical checks are recorded",
+      "all changed paths stay inside the persisted direct scope",
+      "the merge target has no prohibited in-progress Git operation"
+    ],
+    "findings": [
+      {
+        "findingId": "flow-finding:DF-1",
+        "source": "impl-review.json",
+        "classification": "DISMISSED",
+        "summary": "R3 is the mandatory requirement governing explicit operator proceed evidence. A completed proceed artifact that drops the canonical top-level risk field weakens the required operator evidence contract and can break report consumers, so this is blocking.",
+        "recommendedResolution": "Retain the existing final disposition: fixed",
+        "changeTargets": [],
+        "rationale": "The existing final disposition is already non-blocking.",
+        "selectedResolution": "Retain the existing final disposition: fixed"
+      }
+    ],
+    "routingFailure": "mechanical",
+    "originFlowStateRevision": "4d3961e10e9d8c59231e977b68c2f8ebc33c00e8cef9bf5fca15910b9e2dde9c",
+    "selectionSource": "manual",
+    "adoptedActionId": "SELECT_DIRECT_RECONCILE",
+    "scopePaths": []
+  },
+  "directReconcileEvidence": {
+    "kind": "exact-ancestry",
+    "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+    "mainHead": "bdf817d2b584539e861cfa44265ca3443e610c37",
+    "receiptKey": null,
+    "receiptCommit": null,
+    "observedAt": "2026-07-26T12:30:06.412Z"
+  },
+  "directIntegrationReceipt": {
+    "version": 1,
+    "receiptId": "direct-integration-9a62fb519acc4238cb71b505c38a0f76",
+    "status": "merged",
+    "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+    "issue": 468,
+    "spec": "specs/344-final-regression-evidence/spec.json",
+    "planId": "direct-plan-e7d26502b1e446e10a56cca5",
+    "planRevision": 1,
+    "strategy": "already-merged",
+    "mergeDisposition": "already-merged",
+    "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+    "mainHead": "bdf817d2b584539e861cfa44265ca3443e610c37",
+    "idempotencyKey": "direct-merge-9a62fb519acc4238cb71b505c38a0f76",
+    "createdAt": "2026-07-26T12:40:02.750Z",
+    "integratedAt": "2026-07-26T12:40:02.749Z"
+  },
+  "directCompletionReceipt": {
+    "version": 1,
+    "receiptId": "direct-completion-dc62b71146df2308e6fe9305a3960a72",
+    "status": "prepared",
+    "completionMode": "direct",
+    "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+    "issue": 468,
+    "spec": "specs/344-final-regression-evidence/spec.json",
+    "planId": "direct-plan-e7d26502b1e446e10a56cca5",
+    "planRevision": 1,
+    "mergeDisposition": "already-merged",
+    "sourceStep": "finalize-merge",
+    "gitEvidence": {
+      "kind": "exact-ancestry",
+      "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+      "mainHead": "bdf817d2b584539e861cfa44265ca3443e610c37",
+      "receiptKey": null,
+      "receiptCommit": null,
+      "observedAt": "2026-07-26T12:39:57.316Z"
+    },
+    "skippedSteps": [
+      {
+        "stepId": "finalize-merge",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      }
+    ],
+    "minimalValidation": {
+      "status": "passed",
+      "testStatus": "passed",
+      "testCommand": "node --test specs/344-final-regression-evidence/tests/final-regression-evidence.test.js",
+      "checks": [
+        {
+          "id": "target-identity",
+          "passed": true,
+          "detail": "runId, Issue, spec, and branch identity match the handoff.",
+          "overrideable": false
+        },
+        {
+          "id": "origin-flow-revision",
+          "passed": true,
+          "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+          "overrideable": false
+        },
+        {
+          "id": "direct-plan-cas",
+          "passed": true,
+          "detail": "Direct session and plan revisions match.",
+          "overrideable": false
+        },
+        {
+          "id": "worktree-binding",
+          "passed": true,
+          "detail": "Managed worktree binding matches the handoff revision.",
+          "overrideable": false
+        },
+        {
+          "id": "active-registry-cas",
+          "passed": true,
+          "detail": "Active Flow registry revision matches the handoff.",
+          "overrideable": false
+        },
+        {
+          "id": "feature-history",
+          "passed": true,
+          "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+          "overrideable": false
+        },
+        {
+          "id": "git-conflicts",
+          "passed": true,
+          "detail": "No unresolved Git conflicts exist.",
+          "overrideable": false
+        },
+        {
+          "id": "change-scope",
+          "passed": true,
+          "detail": "All changed paths are inside the persisted direct scope.",
+          "overrideable": false
+        },
+        {
+          "id": "merge-target-operation",
+          "passed": true,
+          "detail": "No prohibited Git operation is in progress on the merge target.",
+          "overrideable": false
+        },
+        {
+          "id": "deterministic-tests",
+          "passed": true,
+          "detail": "Deterministic test command exited successfully.",
+          "overrideable": true
+        }
+      ],
+      "changedPaths": [],
+      "pathFingerprints": [],
+      "featureHead": "677f4be22794e06fd82a12a5f62d9b0e5d1e3508",
+      "riskAccepted": false,
+      "riskReason": null,
+      "verifiedAt": "2026-07-26T12:40:02.611Z"
+    },
+    "preparedAt": "2026-07-26T12:40:02.750Z",
+    "reconciledAt": "2026-07-26T12:40:02.750Z",
+    "completedAt": null,
+    "externalUpdateKey": "direct-external-update-dc62b71146df2308e6fe9305a3960a72",
+    "summary": "Direct completion direct-completion-dc62b71146df2308e6fe9305a3960a72; mode=direct; merge=already-merged; sourceStep=finalize-merge; verification=passed; skipped=finalize-merge"
   }
 }

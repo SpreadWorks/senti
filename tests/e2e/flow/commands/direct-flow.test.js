@@ -193,3 +193,49 @@ test("flow direct CLI preserves prompts and completes a bounded managed-worktree
     fixture.cleanup();
   }
 });
+
+test("flow direct CLI resumes a reconcile session persisted on main", () => {
+  const fixture = createDirectFlowFixture({ specId: "476-direct-reconcile-cli" });
+  try {
+    git(fixture.root, [
+      "merge",
+      "--quiet",
+      "--no-ff",
+      fixture.featureBranch,
+      "-m",
+      "integrate feature outside flow",
+    ]);
+
+    const selected = invoke(fixture, [
+      "run", "direct",
+      "--action", "SELECT_DIRECT_RECONCILE",
+      ...targetGuards(fixture),
+    ]);
+    assert.equal(selected.status, 0, selected.stderr || selected.stdout);
+    assert.equal(selected.envelope.data.code, "DIRECT_RECONCILE");
+
+    const resumed = invoke(fixture, ["get", "direct", ...targetGuards(fixture)]);
+    assert.equal(resumed.status, 0, resumed.stderr || resumed.stdout);
+    assert.equal(resumed.envelope.data.code, "DIRECT_RECONCILE");
+    assert.equal(
+      resumed.envelope.data.actionPrompt.choices.some((entry) => (
+        entry.actionId === "FINALIZE_DIRECT_RECONCILE"
+      )),
+      true,
+    );
+
+    const finalized = invoke(fixture, [
+      "run", "direct",
+      "--action", "FINALIZE_DIRECT_RECONCILE",
+      "--test-command", "node -e \"process.exit(0)\"",
+      ...targetGuards(fixture),
+    ]);
+    assert.equal(finalized.status, 0, finalized.stderr || finalized.stdout);
+    assert.equal(finalized.envelope.data.status, "done");
+    assert.equal(finalized.envelope.data.mergeDisposition, "already-merged");
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+    assert.equal(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");
+  } finally {
+    fixture.cleanup();
+  }
+});
