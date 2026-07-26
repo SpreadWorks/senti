@@ -750,6 +750,32 @@ test("acceptance-review consumes deferred findings and mirrors final disposition
   assert.equal(missingSource.verdict, "blocked");
 });
 
+test("acceptance-review accepts an audited skipped scenario-validity precondition", () => {
+  const fixture = prepareSpecRoot();
+  prepareAcceptanceEvidence(fixture);
+  const state = makeFlowState({
+    spec: fixture.specPath,
+    runId: "run-test",
+    request: "Verify recovered implementation evidence.",
+  });
+  findStepById(state.steps, "scenario-validity").status = "skipped";
+  const scenarioResultPath = path.join(fixture.specDir, "scenario-validity-result.json");
+  const scenarioResult = JSON.parse(fs.readFileSync(scenarioResultPath, "utf8"));
+  scenarioResult.result = "block";
+  fs.writeFileSync(scenarioResultPath, `${JSON.stringify(scenarioResult, null, 2)}\n`);
+
+  const context = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state,
+    diff: "",
+  });
+
+  assert.equal(
+    context.mechanicalBlockers.some((blocker) => blocker.kind === "failed_tests"),
+    false,
+  );
+});
+
 test("acceptance-review resolves still-open findings after mechanical source verification", () => {
   const fixture = prepareSpecRoot();
   writeJson(fixture.specDir, "test-review.json", {

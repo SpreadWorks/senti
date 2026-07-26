@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "a57439c09ff8922d2c2beb07",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-9b2f97b5d5f5a6e5",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/348-report-delivery-fail-closed/spec.json",
+      "specs/348-report-delivery-fail-closed/spec.md",
+      "specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js",
+      "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+      "src/flow/commands/report.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-recover-existing-implementation.js",
+      "src/flow/lib/run-report.js",
+      "src/flow/lib/step-transition-policy.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/finalization-command-resume.test.js",
+      "tests/unit/flow/recover-existing-implementation.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "9b2f97b5d5f5a6e5fed7fa4d3065e78a9fd175577eb9f3df0bcbf34ca925ab16",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "a57439c09ff8922d2c2beb07"
+  },
+  "targetFiles": [
+    "specs/348-report-delivery-fail-closed/spec.json",
+    "specs/348-report-delivery-fail-closed/spec.md",
+    "specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js",
+    "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+    "src/flow/commands/report.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-recover-existing-implementation.js",
+    "src/flow/lib/run-report.js",
+    "src/flow/lib/step-transition-policy.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/finalization-command-resume.test.js",
+    "tests/unit/flow/recover-existing-implementation.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "9b2f97b5d5f5a6e5fed7fa4d3065e78a9fd175577eb9f3df0bcbf34ca925ab16",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T01:24:51.512Z",
+  "finishedAt": "2026-07-26T01:24:51.512Z",
+  "rawResponse": "### 1. Define Delivery State Names Once\n**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** Both `spec.json` and `spec.md` use `unsent` and `pending` for failed delivery states without a shared definition, so implementations and tests may encode different meanings.  \n**Suggestion:** Add one canonical definition for `unsent` vs `pending` in the spec, then mirror that wording in both `spec.md` and `spec.json`.\n\n### 2. Align Report Binding Naming Across Spec And Code\n**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R6  \n**Issue:** The spec refers to `ReportBinding` as a standalone module, while implementation review points to `ReportBinding` inside `src/flow/commands/report.js`. This creates ambiguity about whether `ReportBinding` is a concrete module, class, or behavior area.  \n**Suggestion:** Name the concrete owner consistently, for example `ReportBinding in src/flow/commands/report.js`, or rename the spec concept to match the implementation boundary.\n\n### 3. Centralize Spec Artifact Path Helpers Across Tests\n**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R6  \n**Issue:** Multiple test files independently construct spec-relative artifact paths such as `issue-log.json`, `report.json`, and `specs/${SPEC_ID}` paths. This duplicates path knowledge across spec tests and unit tests.  \n**Suggestion:** Introduce shared or locally consistent helpers like `specDirFor(...)`, `specArtifactPath(...)`, and `issueLogPath(...)`, then use the same naming pattern across the affected test files.\n\n### 4. Avoid Duplicating Recovery Test Execution Through Side-Effect Imports\n**File:** `specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The spec-level recovery test imports `tests/unit/flow/recover-existing-implementation.test.js` for side effects, while that unit test also has its own setup and assertions. This can duplicate test execution and blur ownership between requirement coverage and unit coverage.  \n**Suggestion:** Remove the side-effect import and keep shared setup in explicit helpers if needed, with each test file owning its own assertions.\n\n### 5. Use Consistent Recovery Transition Naming Across Files\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Recovery transition concepts appear across `impl-repair-artifacts.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`, but naming varies between generic `transition`, explicit recovery transitions, and entrypoint-specific transition tables.  \n**Suggestion:** Adopt a consistent name such as `recoveryTransition` for values and `RECOVERY_ENTRYPOINTS` / `RECOVERY_TRANSITION_CHANGES` for policy constants across these files.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Define Delivery State Names Once",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** Both `spec.json` and `spec.md` use `unsent` and `pending` for failed delivery states without a shared definition, so implementations and tests may encode different meanings.  \n**Suggestion:** Add one canonical definition for `unsent` vs `pending` in the spec, then mirror that wording in both `spec.md` and `spec.json`.",
+        "file": "specs/348-report-delivery-fail-closed/spec.md",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Align Report Binding Naming Across Spec And Code",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R6  \n**Issue:** The spec refers to `ReportBinding` as a standalone module, while implementation review points to `ReportBinding` inside `src/flow/commands/report.js`. This creates ambiguity about whether `ReportBinding` is a concrete module, class, or behavior area.  \n**Suggestion:** Name the concrete owner consistently, for example `ReportBinding in src/flow/commands/report.js`, or rename the spec concept to match the implementation boundary.",
+        "file": "specs/348-report-delivery-fail-closed/spec.md",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Centralize Spec Artifact Path Helpers Across Tests",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R6  \n**Issue:** Multiple test files independently construct spec-relative artifact paths such as `issue-log.json`, `report.json`, and `specs/${SPEC_ID}` paths. This duplicates path knowledge across spec tests and unit tests.  \n**Suggestion:** Introduce shared or locally consistent helpers like `specDirFor(...)`, `specArtifactPath(...)`, and `issueLogPath(...)`, then use the same naming pattern across the affected test files.",
+        "file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Avoid Duplicating Recovery Test Execution Through Side-Effect Imports",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The spec-level recovery test imports `tests/unit/flow/recover-existing-implementation.test.js` for side effects, while that unit test also has its own setup and assertions. This can duplicate test execution and blur ownership between requirement coverage and unit coverage.  \n**Suggestion:** Remove the side-effect import and keep shared setup in explicit helpers if needed, with each test file owning its own assertions.",
+        "file": "specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Use Consistent Recovery Transition Naming Across Files",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Recovery transition concepts appear across `impl-repair-artifacts.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`, but naming varies between generic `transition`, explicit recovery transitions, and entrypoint-specific transition tables.  \n**Suggestion:** Adopt a consistent name such as `recoveryTransition` for values and `RECOVERY_ENTRYPOINTS` / `RECOVERY_TRANSITION_CHANGES` for policy constants across these files.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "a6f43e4b-1e98-48ce-8e37-9c9672c6fd20",
+  "planRewindAt": "2026-07-25T15:56:00.497Z",
+  "generatedAt": "2026-07-26T00:19:10.844Z",
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement uses the vague condition \"従来どおり\" for linked Issue delivery success behavior instead of stating the verifiable report/comment fields or exact behavior that must be preserved.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The requirement uses the vague condition \"従来どおり\" for linked Issue delivery success behavior instead of stating the verifiable report/comment fields or exact behavior that must be preserved.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "findingId": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "fingerprint": "1853c7f752b1ee1ea1d8231f1e3df79a16e6ba5a1b0c95f394082dc7faae3da6",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses the vague condition \"従来どおり\" for linked Issue delivery success behavior instead of stating the verifiable report/comment fields or exact behavior that must be preserved.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-26T00:19:10.844Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement says delivery success should generate the report and one Issue comment \"従来どおり\", which is not specific enough for independent reviewers to agree on the exact required behavior without outside context.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The requirement says delivery success should generate the report and one Issue comment \"従来どおり\", which is not specific enough for independent reviewers to agree on the exact required behavior without outside context.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "fingerprint": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "disposition": "must-fix",
+      "rationale": "The requirement says delivery success should generate the report and one Issue comment \"従来どおり\", which is not specific enough for independent reviewers to agree on the exact required behavior without outside context.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-26T00:18:23.748Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "spec.json",
+        "locator": "analysis.validation"
+      },
+      "observed": "The requirement uses the vague condition \"従来どおり\" for linked Issue delivery success behavior instead of stating the verifiable report/comment fields or exact behavior that must be preserved.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ],
+      "result": "fail",
+      "guardrail_id": "unambiguous-requirements",
+      "category": "guardrail",
+      "findingId": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "fingerprint": "1e2ea766d1f0715927eff3cfc9d1d9c1f77ff218c49462c411829d9aced2e71f",
+      "disposition": "must-fix",
+      "rationale": "The requirement uses the vague condition \"従来どおり\" for linked Issue delivery success behavior instead of stating the verifiable report/comment fields or exact behavior that must be preserved.",
+      "requirementId": null,
+      "guardrailId": "unambiguous-requirements",
+      "reportedAt": "2026-07-26T00:19:10.844Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "analysis.validation"
+      },
+      "observed": "The requirement says delivery success should generate the report and one Issue comment \"従来どおり\", which is not specific enough for independent reviewers to agree on the exact required behavior without outside context.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "fingerprint": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "disposition": "must-fix",
+      "rationale": "The requirement says delivery success should generate the report and one Issue comment \"従来どおり\", which is not specific enough for independent reviewers to agree on the exact required behavior without outside context.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-26T00:19:10.844Z",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:36:29.871Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-binding-throws-typeerror",
+      "title": "Missing binding is not reported with REPORT_BINDING_INVALID",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/commands/report.js",
+      "requirementId": "R6",
+      "issue": "`ReportBinding.validate(undefined, ...)` constructs `new ReportBinding(binding)`, but the constructor destructures its parameter immediately. A missing binding therefore throws a generic TypeError before `reportBindingInvalid()` can attach the required `REPORT_BINDING_INVALID` code. This violates R6 for missing report/final-evidence bindings.",
+      "suggestion": "Update `ReportBinding` construction or `ReportBinding.validate()` to first check that `binding` is a non-null object, and throw `reportBindingInvalid(\"binding is required\")` or equivalent before destructuring. Keep `validateFinalEvidence()` on the same path so missing `report.data.binding` also emits `REPORT_BINDING_INVALID`.",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and explicitly requires missing or malformed bindings to be rejected with `REPORT_BINDING_INVALID`; a generic TypeError prevents callers and policy from resolving the required stable failure code.",
+      "findingId": "f569d8a2c248375c8f99467709f19a27d0a22f25ec1f8f836b5e4b1bcfa9240c",
+      "fingerprint": "f569d8a2c248375c8f99467709f19a27d0a22f25ec1f8f836b5e4b1bcfa9240c",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "74aae9849747ea8da4da07315bb7d0e708fa83e288048606f3f0190c0b8857b3",
+  "runId": "a6f43e4b-1e98-48ce-8e37-9c9672c6fd20",
+  "planRewindAt": null,
+  "taskId": "T-3",
+  "target": "specs/348-report-delivery-fail-closed/tasks/T-3.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/348-report-delivery-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "ce2a868aae864af183e37ceacec70b03f078f4680ad6903acdb76bf95550d74d"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "f569d8a2c248375c8f99467709f19a27d0a22f25ec1f8f836b5e4b1bcfa9240c",
+      "findingId": "f569d8a2c248375c8f99467709f19a27d0a22f25ec1f8f836b5e4b1bcfa9240c",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "Missing binding is not reported with REPORT_BINDING_INVALID",
+      "body": "`ReportBinding.validate(undefined, ...)` constructs `new ReportBinding(binding)`, but the constructor destructures its parameter immediately. A missing binding therefore throws a generic TypeError before `reportBindingInvalid()` can attach the required `REPORT_BINDING_INVALID` code. This violates R6 for missing report/final-evidence bindings.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "f569d8a2c248375c8f99467709f19a27d0a22f25ec1f8f836b5e4b1bcfa9240c",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and explicitly requires missing or malformed bindings to be rejected with `REPORT_BINDING_INVALID`; a generic TypeError prevents callers and policy from resolving the required stable failure code.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

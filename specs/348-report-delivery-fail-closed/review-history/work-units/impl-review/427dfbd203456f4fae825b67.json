@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-report.js"
+    ],
+    "inputHash": "baf7081758f15e0aaecacabdec520ce0d87bed8f864e898d37c1a76f6c2c826e",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-report.js"
+  ],
+  "inputHash": "baf7081758f15e0aaecacabdec520ce0d87bed8f864e898d37c1a76f6c2c826e",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T01:03:22.288Z",
+  "finishedAt": "2026-07-26T01:03:22.288Z",
+  "rawResponse": "### 1. Centralize report path resolution\n**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R3  \n**Issue:** Report path construction is duplicated in `loadPersistedReport()` and `execute()` via separate `path.join(path.dirname(path.resolve(root, specPath)), \"report.json\")` expressions.  \n**Suggestion:** Add a small `reportPath(root, specPath)` helper and use it from both places. This reduces drift risk as report persistence/resume logic grows.\n\n### 2. Reuse delivery-completion helper in the initial delivery path\n**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R7  \n**Issue:** `completedIssueComment()` exists for resume delivery, but the initial delivery success path manually builds a similar `issueComment` object. The two shapes already differ: resumed delivery includes `idempotencyKey`, initial delivery does not.  \n**Suggestion:** Use `completedIssueComment(state, ctx.flowOutboxEntry, delivery.posted.resumed)` in both paths so successful linked-Issue delivery artifacts have one consistent shape.\n\n### 3. Simplify pending delivery persistence\n**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R3  \n**Issue:** The linked-Issue path saves a pending report before attempting delivery, then saves another pending report with a failure reason if posting fails. This creates repeated `withDelivery(...deliveryState(\"pending\"...))` construction and makes the control flow noisier.  \n**Suggestion:** Introduce a helper such as `pendingDeliveryReport(report, ctx, reason = null)` or `savePendingDeliveryReport(root, state.spec, report, idempotencyKey, reason)` and use it for both the pre-delivery and failure states.\n\n### 4. Rename `redolog` to match the loaded artifact\n**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R7  \n**Issue:** The variable `redolog` now represents the required `issue-log.json` loaded through `loadRequiredIssueLog()`. The old name is less clear and does not match the report data key `issueLog`.  \n**Suggestion:** Rename `redolog` to `issueLog` and pass `issueLog` into `generateReport()`. This aligns naming with the source artifact and persisted report data.\n\n### 5. Avoid tuple destructuring in `reportSourcePaths()`\n**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R5  \n**Issue:** `const [issueLog, ...optionalArtifacts] = [...]` obscures that `issue-log.json` is required while the remaining artifacts are optional.  \n**Suggestion:** Use explicit constants, for example `const requiredArtifact = \"issue-log.json\"; const optionalArtifacts = [...]`. This makes the binding source list easier to audit against R5.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize report path resolution",
+        "body": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R3  \n**Issue:** Report path construction is duplicated in `loadPersistedReport()` and `execute()` via separate `path.join(path.dirname(path.resolve(root, specPath)), \"report.json\")` expressions.  \n**Suggestion:** Add a small `reportPath(root, specPath)` helper and use it from both places. This reduces drift risk as report persistence/resume logic grows.",
+        "file": "src/flow/lib/run-report.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Reuse delivery-completion helper in the initial delivery path",
+        "body": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R7  \n**Issue:** `completedIssueComment()` exists for resume delivery, but the initial delivery success path manually builds a similar `issueComment` object. The two shapes already differ: resumed delivery includes `idempotencyKey`, initial delivery does not.  \n**Suggestion:** Use `completedIssueComment(state, ctx.flowOutboxEntry, delivery.posted.resumed)` in both paths so successful linked-Issue delivery artifacts have one consistent shape.",
+        "file": "src/flow/lib/run-report.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Simplify pending delivery persistence",
+        "body": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R3  \n**Issue:** The linked-Issue path saves a pending report before attempting delivery, then saves another pending report with a failure reason if posting fails. This creates repeated `withDelivery(...deliveryState(\"pending\"...))` construction and makes the control flow noisier.  \n**Suggestion:** Introduce a helper such as `pendingDeliveryReport(report, ctx, reason = null)` or `savePendingDeliveryReport(root, state.spec, report, idempotencyKey, reason)` and use it for both the pre-delivery and failure states.",
+        "file": "src/flow/lib/run-report.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Rename `redolog` to match the loaded artifact",
+        "body": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R7  \n**Issue:** The variable `redolog` now represents the required `issue-log.json` loaded through `loadRequiredIssueLog()`. The old name is less clear and does not match the report data key `issueLog`.  \n**Suggestion:** Rename `redolog` to `issueLog` and pass `issueLog` into `generateReport()`. This aligns naming with the source artifact and persisted report data.",
+        "file": "src/flow/lib/run-report.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Avoid tuple destructuring in `reportSourcePaths()`",
+        "body": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R5  \n**Issue:** `const [issueLog, ...optionalArtifacts] = [...]` obscures that `issue-log.json` is required while the remaining artifacts are optional.  \n**Suggestion:** Use explicit constants, for example `const requiredArtifact = \"issue-log.json\"; const optionalArtifacts = [...]`. This makes the binding source list easier to audit against R5.",
+        "file": "src/flow/lib/run-report.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

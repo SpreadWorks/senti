@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "runId": "a6f43e4b-1e98-48ce-8e37-9c9672c6fd20",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T14:28:03.907Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "process-evidence-missing",
+      "requirementRef": "process:gate-structure",
+      "where": null,
+      "observed": "schema: spec.json failed schema validation: overview.decisions[3].text: maxLength 500, got 627",
+      "severity": "blocking",
+      "refs": [
+        "process:diff-verifiable"
+      ],
+      "result": "fail",
+      "guardrail_id": "process:gate-structure",
+      "category": "guardrail",
+      "findingId": "89fffdbe34bf0bf52f78baa6ee804e5cd30c46d3ff30009ee7c96758ed98d684",
+      "fingerprint": "89fffdbe34bf0bf52f78baa6ee804e5cd30c46d3ff30009ee7c96758ed98d684",
+      "disposition": "must-fix",
+      "rationale": "schema: spec.json failed schema validation: overview.decisions[3].text: maxLength 500, got 627",
+      "requirementId": null,
+      "guardrailId": "process:gate-structure",
+      "reportedAt": "2026-07-25T14:28:03.907Z",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,1784 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/348-report-delivery-fail-closed/spec.json    | 265 +++++++++++++\n specs/348-report-delivery-fail-closed/spec.md      | 123 ++++++\n .../tests/recover-existing-implementation.test.js  |  12 +\n .../tests/report-delivery-fail-closed.test.js      | 421 +++++++++++++++++++++\n src/flow/commands/report.js                        | 112 ++++++\n src/flow/lib/acceptance-review-artifacts.js        |   3 +-\n src/flow/lib/impl-repair-artifacts.js              |  11 +-\n .../lib/run-recover-existing-implementation.js     | 189 +++++++++\n src/flow/lib/run-report.js                         | 177 ++++++++-\n src/flow/lib/step-transition-policy.js             |  23 +-\n src/flow/registry.js                               |  17 +\n .../unit/flow/finalization-command-resume.test.js  |   1 +\n .../flow/recover-existing-implementation.test.js   |  97 +++++\n tests/unit/flow/retry-exhaustion-defer.test.js     |  26 ++\n 14 files changed, 1460 insertions(+), 17 deletions(-)",
+      "commits": [
+        "test: provide required report source fixture",
+        "docs: clarify recovery command scope",
+        "fix: accept recovered scenario evidence",
+        "feat: recover implemented flow validation",
+        "refactor: share report delivery responses",
+        "fix: validate report binding before delivery",
+        "test: count report delivery attempts",
+        "fix: keep report delivery retries idempotent",
+        "fix: cover report delivery failures",
+        "fix: require report issue log",
+        "test: cover fresh report bindings",
+        "fix: constrain report binding sources",
+        "fix: persist report delivery completion",
+        "fix: bind report freshness",
+        "fix: retain report on delivery retry",
+        "fix: make report delivery fail closed",
+        "test: cover required report evidence failures",
+        "test: cover invalid report artifacts",
+        "fix: reject invalid report inputs",
+        "test: validate final report evidence freshness",
+        "test: assert failed report delivery state",
+        "test: cover report source artifacts",
+        "test: extend report delivery coverage",
+        "test: cover report delivery fail-closed"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`RunReportCommand` shall propagate an unreadable, malformed, or structurally invalid required report source artifact, including issue-log.json, as a report failure; it shall not substitute an empty artifact or continue to report generation.",
+          "status": "done",
+          "note": "R1: missing issue-log rejects report generation"
+        },
+        {
+          "desc": "For a flow without a linked Issue, report generation shall retain the existing successful artifact behavior. For a linked Issue, `gh` unavailability, a failed comment operation, or any other required delivery failure shall return non-success and prevent the report step from reaching done.",
+          "status": "done",
+          "note": "R2: no linked Issue retains successful report artifact generation"
+        },
+        {
+          "desc": "When linked-Issue delivery cannot complete after report generation, report.json shall record delivery as `unsent` or `pending`, never as `done` or `skipped` success. The persisted state shall distinguish the generated report from successful delivery.",
+          "status": "done",
+          "note": "R3: failed delivery persists an explicit unsent or pending report state"
+        },
+        {
+          "desc": "Each resumed report command invocation with the same FlowOutbox idempotency key shall make at most one attempt to perform only the missing Issue delivery, shall not publish a duplicate Issue comment, and shall retain the already generated report artifact when its binding is still fresh.",
+          "status": "done",
+          "note": "R4: resumed outbox delivery reuses the report binding and idempotency key"
+        },
+        {
+          "desc": "report.json `data.binding` shall contain `headOid`, `treeSha`, and `sourceArtifacts`. Every sourceArtifacts entry shall contain the project-relative `path` and SHA-256 `sha256` of bytes actually consumed by report generation. The list shall include issue-log.json and each present artifact among retro.json, test-execute-result.json, test-result-review.json, final-regression-result.json, and upgrade-result.json; absent optional artifacts shall not be listed.",
+          "status": "done",
+          "note": "R5: report records target and consumed-source binding hashes"
+        },
+        {
+          "desc": "Report/final-evidence freshness validation shall reject a missing or malformed binding with `REPORT_BINDING_INVALID`, and shall reject a changed current HEAD OID, tree SHA, or recorded source-artifact SHA-256 with `REPORT_BINDING_STALE`.",
+          "status": "done",
+          "note": "R6: recovery is registered for fresh post-implementation verification"
+        },
+        {
+          "desc": "The implementation shall preserve report text sections `Report`, `Implementation`, `Retro`, `Metrics`, `Tests`, `Tasks`, and `Issue Log Summary`, and preserve the existing data keys implementation, retro, upgrade, issueLog, metrics, tokenMetrics, tests, sync, tasks, taskTotal, and broadModeHistory. It shall add delivery and binding data and preserve successful linked-Issue comment behavior when delivery completes.",
+          "status": "done",
+          "note": "R7: existing report content remains while delivery and binding are additive"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 46,
+      "fullLogPath": "specs/348-report-delivery-fail-closed/issue-log.json",
+      "importantTotal": 22,
+      "importantShown": 10,
+      "importantOmitted": 12,
+      "recentOtherTotal": 24,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 19,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The draft defers the exact JSON field names, full source artifact list, hash helper placement, freshness command, and error code, leaving requirements under-specified for reviewers to determine implementation satisfaction.; The draft def...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "The scope includes an \"idempotent delivery-only retry\" but does not state an explicit retry count or other upper bound.; The overview says a resumed report operation reuses the idempotency key and completes missing Issue delivery, but do...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "schema: spec.json failed schema validation: overview.decisions[3].text: maxLength 500, got 627",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Added malformed retro artifact coverage for the required report input failure path.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Added malformed required test execution evidence coverage for the report input failure path.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4, R5, R6, R7",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: restored spec-local report delivery test environment and binding validation code.",
+          "resolution": "Unavailable-gh fixtures now retain Git on PATH, binding failures use stable codes, and comment output assertion matches actual argv logging."
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4, R5, R6, R7",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4, R5, R6, R7",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The requirement uses `必須入力の厳密読込` without enumerating which inputs are required or the exact verification condition for `厳密`, so independent reviewers could disagree on satisfaction.; The requirement says `必須 source artifact` but does not...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "Persisted bound pending report before linked Issue delivery attempt.",
+          "resolution": "A binding-bearing report artifact now exists before the required external side effect, preserving a durable retry source."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "Validated report binding during every fresh report generation.",
+          "resolution": "Freshly generated final report evidence now passes the same binding validator before it is persisted or delivered."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The added return object repeats the same successful delivery issueComment shape that is also embedded under artifacts.issueComment; a local value could remove the duplicate production object construction.; The added artifacts.issueCommen...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "Extracted shared completed delivery result to remove duplicate response construction.",
+          "resolution": "Both successful retry paths now construct one issueComment value and reuse it for the top-level and artifact response fields."
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "The requirement uses the vague condition \"従来どおり\" for linked Issue delivery success behavior instead of stating the verifiable report/comment fields or exact behavior that must be preserved.; The requirement says delivery success should g...",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 19,
+      "question": 0,
+      "issueLog": 24
+    },
+    "tokenMetrics": {
+      "input": 1142396,
+      "output": 57773,
+      "cacheRead": 1392128,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 71,
+      "durationMs": 1684320,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 14283
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 15778
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 84057
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 204357
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 97339
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 141465
+        },
+        {
+          "phase": "implement",
+          "durationMs": 223895
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 389152
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 161586
+        },
+        {
+          "phase": "acceptance-review",
+          "durationMs": 352408
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/348-report-delivery-fail-closed/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/commands/report.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-recover-existing-implementation.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-report.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/step-transition-policy.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalization-command-resume.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/recover-existing-implementation.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js",
+            "fingerprint": "7b5bb4af48f49d59b0ff41f4dc27c0747ea64ad81ed6c6bbaa79646f37251701"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "fingerprint": "807ef0c5a5330278f1b7f4588455e25ec3f27761fa3127cd555b0fee72886ec8"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "7eb279b38273c1f4c3ad8b47cb6c55c68ca686317f6cee984937c2c6e1a20762"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/run-recover-existing-implementation.js",
+            "fingerprint": "3b16637e1774b1e73fe5b94afd5818668d59c328f90a7748df5822a9f4871612"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js",
+            "fingerprint": "6ffdf8a1856830169af76c813f68aed440993fd6394b82ba8489f5d27f5a96cf"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "3474379eace1ea802cea5d24ff803701b5b99bf6f0a1ca119ba009f77c318d47"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "898493ab5582cf5dc31f0ca1b39cfe741256c883c8aa245f7bc92a7ba7e3fb3b"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-command-resume.test.js",
+            "fingerprint": "0af040569d32d1650c3e3ad42c2ce3409db6caa09b6f9d5a8a756ab13346a32e"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/recover-existing-implementation.test.js",
+            "fingerprint": "4f709a898772a0ce6d6e7e682228c3879ea1cd2d4cb5df98036290367dbde7b8"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "0c1ce0e7d1f0177fc06e36fa50c912b6a0e9b1ebc81377fadc948b382991a37e"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js",
+            "fingerprint": "7b5bb4af48f49d59b0ff41f4dc27c0747ea64ad81ed6c6bbaa79646f37251701"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "fingerprint": "807ef0c5a5330278f1b7f4588455e25ec3f27761fa3127cd555b0fee72886ec8"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "7eb279b38273c1f4c3ad8b47cb6c55c68ca686317f6cee984937c2c6e1a20762"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/run-recover-existing-implementation.js",
+            "fingerprint": "3b16637e1774b1e73fe5b94afd5818668d59c328f90a7748df5822a9f4871612"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js",
+            "fingerprint": "6ffdf8a1856830169af76c813f68aed440993fd6394b82ba8489f5d27f5a96cf"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "3474379eace1ea802cea5d24ff803701b5b99bf6f0a1ca119ba009f77c318d47"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "898493ab5582cf5dc31f0ca1b39cfe741256c883c8aa245f7bc92a7ba7e3fb3b"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-command-resume.test.js",
+            "fingerprint": "0af040569d32d1650c3e3ad42c2ce3409db6caa09b6f9d5a8a756ab13346a32e"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/recover-existing-implementation.test.js",
+            "fingerprint": "4f709a898772a0ce6d6e7e682228c3879ea1cd2d4cb5df98036290367dbde7b8"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "0c1ce0e7d1f0177fc06e36fa50c912b6a0e9b1ebc81377fadc948b382991a37e"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "unattributed_existing_failure",
+        "failureCategory": "existing_failure",
+        "failureNature": "assertion",
+        "skipKind": null,
+        "rawOutputPath": "specs/348-report-delivery-fail-closed/tests/.raw/final-regression-attempt-002.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 1,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 1,
+        "failureSummary": "not ok 3 - recovers a mechanically blocked gate when an applied finding lacks repair evidence\n      ---\n      duration_ms: 24.844529\n      type: 'test'\n      location: '/home/nakano/workspace/senti/.senti/worktree/feature-348-report-delivery-fail-closed/tests/unit/flow/set-step-impl-repair.test.js:166:3'\n      failureType: 'testCodeFailure'\n      error: |-\n        Expected values to be strictly equal:",
+        "currentDiffRelationship": "non-current-diff",
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/acceptance-review.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/draft-coverage-repair.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/draft-coverage-triage.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/draft-gate-source.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/draft-questions-repair.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/draft-questions-triage.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/draft-review-coverage.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/draft-review-questions.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/draft.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/file-map.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/flow-findings.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/impl-gate-result.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/impl-repair.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/impl-review.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/impl-triage.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/issue.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/plugin-artifacts/workflow/prepare.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-002.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-003.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-004.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-005.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-006.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-007.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/repair-fingerprint.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/retro.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/0725355c40c899ebff67875441fa76c6ece84ba029df73b79b49c4b5d97e0000.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/16cf17bd3b3c0e0586cf7de5c78b6f0e9c38a128b8e54bbe17b9e6fbdbcb53ea.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/34151d83a9816beb116b9b81e04249e023790b62ec744bdb4f8263216a268656.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/39e8b5b400a6a25709b8959bcf367dbe19a259f907b97bf633f44275ab18223c.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/3a4ca39dbf41bbd70445a14b13b71465aee312b7c23863fe93d8f0be56e8e716.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/3cf3cc5288a9dd742fbb661f29adc6793c64929189039bdaee675bf59a75e087.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/3d0bf381c5b7111156d45e07bac4e51fb6ca598da4970d849636513edfd3611f.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/50c22b3c05e7da093dd8578aacbfbb4ad7387d3f03ae10697089f34938a8e4ad.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/5255b98338845ccd2710cdae5774d4294384812ead13827f312ae2bbe082bb9a.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/538ab61f725a40e4658262cef641d146ebbff79f5cbd8c7a0fd7f85113c9a1b4.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/57e054f3fe3ad47351ab29293575ed2802131723f2368f14d35f5990fd5f1192.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/5c3158c32328888f3668816347839a22164b1e6bdabee9cc394d5fc11fe563ec.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/63cb51d9e91cd6d6eeedb26612aa32a913e8175c33b69a7592eba253fba1d908.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/68253f8ee88937762b374abda0b826a262657cdae9f1b1b6716773f86b91a8ad.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/71ec57efb6349d7b8fb4b2f097b93feaf2f84159ec410be6a0ba0053d29252ca.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/759b0d5de88fbfe1f803d83515d68be27502b1de73a0d16682e6d4fd0feb4a73.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/7d86b591261b091a0978d1474f427d60c5f7b066c10e536f506e393fb1bdda73.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/8c95ead502f9f81bd5a259f186764a5e580272033ddc89fb2a15c5020e35095e.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/8f5e38e5bae9534354d627a35e4090d641a014f152f678398063d1e28e21c3b0.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/903af02633bad00080ffb99e928702fb44a7bd506c847300c6a6f916a49f6d2b.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/9a30d686bd056b8a1976beae5f1dce4d3f195a41600248600df29175852c19a8.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/9d5c75c93f0fab0bfc39cf78bf0a3187cb1e71c9ea01e75b50392c7ed820d4fe.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/ae8e35a5fc6c1e111afe999589c48cf17d2fe65680ff19738ec4ca8c4789556e.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/b09be805a6c06edfd8a4c665db251dc10a949ac6b346bdbb16c56cf76b3b1263.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/c0fa718d378d7a7553165bb3a67fc525415bbd175db462ad477b19573e30df53.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/d8033377139139f78750e548ec64af827e5efd6926f780826d2dc9dbc63ead68.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/da1f9d25ecdb9c506071b9f06cc3cbefff2911c0243536782e70993d73ba1692.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/dc7acded21cbcad67d62eb8c8d567dfb110c00f452ac11f2e2dbf197adfcef0e.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/dcdd41c743562d2534f72e2a8b50a31cc1736d51bae7c3b3817838e7edfb6a3d.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/draft-coverage-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/draft-coverage-attempt-002.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/draft-questions-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/draft-questions-attempt-002.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-001.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-002.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-002.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-003.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-003.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-004.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-004.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-005.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-005.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-006.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-006.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-007.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-007.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-008.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-008.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-009.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-009.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-010.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-010.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-011.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-011.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-012.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-012.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-013.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-013.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-014.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-014.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-015.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-015.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-016.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-016.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-017.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-017.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/spec-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/spec-attempt-001.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/spec-attempt-002.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/spec-attempt-002.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-001.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-001.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-002.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-002.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-003.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-003.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-004.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-004.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-005.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-005.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-006.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-006.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/1ccae2bde3e1dd7bde0113b4.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/235ce383b4d623462850265e.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/a57439c09ff8922d2c2beb07.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/af07bcc5b4db548c7fc01ab6.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/bd3798396b2128f722503801.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/ebe20f520bda03adebde73b1.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/review.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/scenario-validity-result.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/spec-gate-source.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/spec-review.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/spec-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/348-report-delivery-fail-closed/spec.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/348-report-delivery-fail-closed/spec.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/task-impl-gate-source.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/tasks/T-1.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/tasks/T-2.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/tasks/T-3.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/test-coverage.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/test-execute-result.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/test-result-review.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/test-result-review.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/test-review.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/test-review.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/tests/.raw/scenario-validity.log"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/348-report-delivery-fail-closed/tests/.raw/test-execution.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js"
+          },
+          {
+            "status": "added",
+            "path": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/acceptance-review-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/impl-repair-artifacts.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/run-recover-existing-implementation.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-command-resume.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/recover-existing-implementation.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "37f929282dbf32f3baa2753e3e278c074f7a43b69dfb97d3e668f392fbfadc13"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/acceptance-review.json",
+            "fingerprint": "d90dca54c680eea76bcdf27e777c4d46a2f771bf381d5f75b200c098268230af"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/draft-coverage-repair.json",
+            "fingerprint": "fd1ce57690e77f26fdf97684ffdc891f8a41c64fe8c29af70614febd05e58066"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/draft-coverage-triage.json",
+            "fingerprint": "ef61e1046a7a5dd9e0c48bb7d5a431ed3ee9aa220cec125c05f0b61ce32a7c35"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/draft-gate-source.json",
+            "fingerprint": "4228ece272814b6e268b4775156b57171e6e2b9d77d6195c574c95d2dada914f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/draft-questions-repair.json",
+            "fingerprint": "06bff4eb691ba0458042b65137ba6e84f671d5bb93ef3133e44c7608a4ed55e9"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/draft-questions-triage.json",
+            "fingerprint": "ef48df2a79343bbd0416805a2438c23ab1871508c297dc00dcacc24b0011854a"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/draft-review-coverage.json",
+            "fingerprint": "336454551faeda14d18a06ee36287c6176241f8513d0ef27bbe93d8453dc895f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/draft-review-questions.json",
+            "fingerprint": "e48a6de3be493f0842bbe969e780b9e93f279531663e95403147293723901980"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/draft.json",
+            "fingerprint": "7d116f7ab4c12aab46297b354e9cc0e8ff3e380fc86c4a4773abbbbe20401c78"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/file-map.json",
+            "fingerprint": "24952523b61c066645d843f61d56ecbef1c9597f73395aa579f2d9300874c88a"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/flow-findings.json",
+            "fingerprint": "19d3f66c2161ae1239e8ba2a3ee316d5eb1a2f822dd7278b1b88ef06f97f4123"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/impl-gate-result.json",
+            "fingerprint": "864f0964dafad9d8610dfdeaa04635d6a922376f041adfab37a350cd27a21e02"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/impl-repair.json",
+            "fingerprint": "00d969941edefe4729fefd699311c629e4a1588d092cc6fc9c5d78d4c403b810"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/impl-review.json",
+            "fingerprint": "4411b119b7dceb64f8da5d42919cd629398315e868613535a2c72d6c380459ac"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/impl-triage.json",
+            "fingerprint": "a8474b2cad559e871341f88b77661225ee774707c3cfcafdcb83bff9515c00ec"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/issue.md",
+            "fingerprint": "1488b73c7abd31fbe2e8b2b040ad7625f8af98b501c0010bf7f90e906532642f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "60679184a4b3367d659751163c96bcf5ebd676ff14cbac12fc05718496cc89c7"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-001.json",
+            "fingerprint": "94d7553f809955b5a077095c68fbb51b7b0a2f47a9ebb109fd3cb3fc8305e90f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-002.json",
+            "fingerprint": "87d178655dc26be6040a8d661c3e7ce4782fd79948b217dfa685056fd102aeb9"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-003.json",
+            "fingerprint": "c7a4ffb5302bdfb8e290f594bef5dcc057c207ad5f8abd37d9197e4f5a5a1d9c"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-004.json",
+            "fingerprint": "e2ee9609d7f116d56eba083783bc8003779394eb8210b4321aca9d9d1c2bda13"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-005.json",
+            "fingerprint": "e8f77df74cf7ad705aa73324444c44dd34e0e3d20e9850125b90ab50bb7dd586"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-006.json",
+            "fingerprint": "6c92c9b7db3876865c7c0142226023ab8e37acfd94771729602d9f03c494315d"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/repair-deltas/repair-007.json",
+            "fingerprint": "118a46ccb4392afeaae80a51b43b985f50ee9522bc6a1d382e386ad3480934e3"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/repair-fingerprint.json",
+            "fingerprint": "2543a4f20e781bb6b84ad867e45626fa97b55c1d798e51d7f084b956ba7ad30e"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/retro.json",
+            "fingerprint": "637d63c4c223fd8cbc897c80b54c165b778ab52b4717e1a072671df3cd6706ff"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/0725355c40c899ebff67875441fa76c6ece84ba029df73b79b49c4b5d97e0000.json",
+            "fingerprint": "78a81c2787358cfe063586859dd186ccf76d69d23d312447977d4fc806f86273"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/16cf17bd3b3c0e0586cf7de5c78b6f0e9c38a128b8e54bbe17b9e6fbdbcb53ea.json",
+            "fingerprint": "66cc1698000491ab8047554fe337d8f5740822a544d34f4c9fc357162e86c52e"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/34151d83a9816beb116b9b81e04249e023790b62ec744bdb4f8263216a268656.json",
+            "fingerprint": "ca5e90c69d9b5af728b51b9b6d5dc7c2cdefc202177d7f182deda29903322544"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/39e8b5b400a6a25709b8959bcf367dbe19a259f907b97bf633f44275ab18223c.json",
+            "fingerprint": "a5a471f2fc7a51efcc8b546b38c31e9f3219a2f7670f0c45f2b876197d22d884"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/3a4ca39dbf41bbd70445a14b13b71465aee312b7c23863fe93d8f0be56e8e716.json",
+            "fingerprint": "0109db2cb2fc9d6c94a5ae0ce3007afc1097a674e524092527d0baa7d5f686c9"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/3cf3cc5288a9dd742fbb661f29adc6793c64929189039bdaee675bf59a75e087.json",
+            "fingerprint": "42d2d3c72f422b8a5bea9bec1bbf66e726a350946cbdeeb2379310deda8f1af5"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/3d0bf381c5b7111156d45e07bac4e51fb6ca598da4970d849636513edfd3611f.json",
+            "fingerprint": "300fa4fa08940f0aded744203e0b64498082bbadaece2a01c8af643eabb3d9f3"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/50c22b3c05e7da093dd8578aacbfbb4ad7387d3f03ae10697089f34938a8e4ad.json",
+            "fingerprint": "ed5fc84c27f06112a60d43e437f4af6f56e8495513acfbf1b1c8a0a39f7306af"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/5255b98338845ccd2710cdae5774d4294384812ead13827f312ae2bbe082bb9a.json",
+            "fingerprint": "47ef86792f07c7cc09bf62d4dbe2d9d5fe92ab7e292d4ca1d4d4dd221910fd96"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/538ab61f725a40e4658262cef641d146ebbff79f5cbd8c7a0fd7f85113c9a1b4.json",
+            "fingerprint": "94d5c78299b75fc60d320bbfb462851c106247f95cfb5ee51a69984c3f50524c"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/57e054f3fe3ad47351ab29293575ed2802131723f2368f14d35f5990fd5f1192.json",
+            "fingerprint": "56cee16ebec7840993e7ac2ff7d1f676a28c508fd07b9377cb693eb178af9a30"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/5c3158c32328888f3668816347839a22164b1e6bdabee9cc394d5fc11fe563ec.json",
+            "fingerprint": "279d2e0bdf7871d42de6e77bc5c729180d23cf544711a6f1765b01ee1f6967a2"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/63cb51d9e91cd6d6eeedb26612aa32a913e8175c33b69a7592eba253fba1d908.json",
+            "fingerprint": "83402259ff278662a72e0ff1c76b58c630a1bb3f496e9f8f1ce4c5cc0f36cf87"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/68253f8ee88937762b374abda0b826a262657cdae9f1b1b6716773f86b91a8ad.json",
+            "fingerprint": "95d1bc5cc7435429ae7a51bd72b84100d45bdeaa3b269e35217dbf7d040dfd38"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/71ec57efb6349d7b8fb4b2f097b93feaf2f84159ec410be6a0ba0053d29252ca.json",
+            "fingerprint": "7920457609571c644e7becad26ba7cb6fa4975d03afbd9b7e4e9e2d751188ee8"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/759b0d5de88fbfe1f803d83515d68be27502b1de73a0d16682e6d4fd0feb4a73.json",
+            "fingerprint": "8342dbb01fdbd6b4f8c977233c5294981ca919743e1b23a216e3240ab12f0c4e"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/7d86b591261b091a0978d1474f427d60c5f7b066c10e536f506e393fb1bdda73.json",
+            "fingerprint": "8e341651ede0b9d515f244dd8c314516bc7b1c80cbe4d33657ccf5d2afd80db1"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/8c95ead502f9f81bd5a259f186764a5e580272033ddc89fb2a15c5020e35095e.json",
+            "fingerprint": "d2a630e140090b51cba8d47e2c9a19980e9fea71dbd5724185a286a20f1e5166"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/8f5e38e5bae9534354d627a35e4090d641a014f152f678398063d1e28e21c3b0.json",
+            "fingerprint": "743aca716502ca188d18f46601c88a1ef02e8f20d352bee1d32c1f8215f626e4"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/903af02633bad00080ffb99e928702fb44a7bd506c847300c6a6f916a49f6d2b.json",
+            "fingerprint": "4c9704e8d40da7b1ac4c68b997187d1e0782deb4a53d03c6eee843befcbba73b"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/9a30d686bd056b8a1976beae5f1dce4d3f195a41600248600df29175852c19a8.json",
+            "fingerprint": "4cdf9f941ac7e4274d1df29e52c73683459cfed8340621ce7bf6e74179fa5349"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/9d5c75c93f0fab0bfc39cf78bf0a3187cb1e71c9ea01e75b50392c7ed820d4fe.json",
+            "fingerprint": "cf9be5f752337f926d4684306149c66067939abdabb702e56a544ad7acaa9bce"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/ae8e35a5fc6c1e111afe999589c48cf17d2fe65680ff19738ec4ca8c4789556e.json",
+            "fingerprint": "6312d0f183cba555a0486950c7353cb2ff138ae44b9f32b6a626dc3f0c6f9126"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/b09be805a6c06edfd8a4c665db251dc10a949ac6b346bdbb16c56cf76b3b1263.json",
+            "fingerprint": "ad2352bd5035caf7b18bc9d862c3dfa0d44bdf699d18b95d5233411973e5fc10"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/c0fa718d378d7a7553165bb3a67fc525415bbd175db462ad477b19573e30df53.json",
+            "fingerprint": "6a59b70c7351fe7de69eb6503d5ca7cd5d2097a7493546757606ee66f7a8975e"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/d8033377139139f78750e548ec64af827e5efd6926f780826d2dc9dbc63ead68.json",
+            "fingerprint": "a693006cc025b0dd77d8026495ee41ff7c4be26bd939076b836cb7df7667a359"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/da1f9d25ecdb9c506071b9f06cc3cbefff2911c0243536782e70993d73ba1692.json",
+            "fingerprint": "56ae90c4089bba53922f3b04769290eeac20cdeb38a1ebb04786e725013c8df5"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/dc7acded21cbcad67d62eb8c8d567dfb110c00f452ac11f2e2dbf197adfcef0e.json",
+            "fingerprint": "04c0d79509340920ba55a55f49292e26b401b36dfe56472f8ad5e04b96ce26ce"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-evidence/dcdd41c743562d2534f72e2a8b50a31cc1736d51bae7c3b3817838e7edfb6a3d.json",
+            "fingerprint": "5d637fe54a863ae674b836e183e8ec2545fd2b12922e6b89aa6afba0602131d3"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "73352392a865c5616f8554bec23f5ce633a0e2581c6e309fe9803e42e77a940b"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/draft-coverage-attempt-002.json",
+            "fingerprint": "748e325d62b42986aa7f77e45074c84c688b847958621f23867dcc1479407ed6"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "ad7f1aab9990104877fec4fc88605e48d9343e88add8b0766ad2b733708ea3a5"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/draft-questions-attempt-002.json",
+            "fingerprint": "c3c7103d4e54b68b8c7b9931a13e4a10daf9c39df7e191e7a820478e4e537dd0"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-001.json",
+            "fingerprint": "8b40140982ec7e6ee1ffae8bcf4c44d181669fa1490008c662ea2779f17b3400"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-001.md",
+            "fingerprint": "5896d30f20cf9612cbad305704a518447e8e1a0abad41e905a05d70ecefcd72e"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-002.json",
+            "fingerprint": "e23137c9edd4cdd71f331dbf00d6be09bcd7e94a3fe077f9d14c483ff8cdbce1"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-002.md",
+            "fingerprint": "d2f5263ea1eb975e0c1d533c2649bcc5c9691c2fed4f283d9a68b45d98ca0d99"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-003.json",
+            "fingerprint": "91540127456630fc5f93d0f9e1dd79b2e3418ca0797cab4f536b5149d29d6397"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-004.json",
+            "fingerprint": "91b4921965b9a8568cb68c21b55b4f57b86ea5d66612c4f907cf1fe031254cef"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-004.md",
+            "fingerprint": "72fe9675ff404f21d68557811c3c2806aa3f1c45ab380141d2798112e16c0b4c"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-005.json",
+            "fingerprint": "fde43ce568715c039490a0465e30d1ef99569fdd845a6adfe3ca33790d937fc1"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-005.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-006.json",
+            "fingerprint": "4c40cb1feb988473001bfa53002d1cf87e05c4c056e66a88c7c7f625911d326b"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-006.md",
+            "fingerprint": "e0e86bc2bab9096b76c3919bd56e9cd8f5c446290dbf03af092a2dbe1359cde5"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-007.json",
+            "fingerprint": "3d2708338481ab429f8f2882b95022b42149d774a6d5bef0b51a31f9dc4b348f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-007.md",
+            "fingerprint": "eb21d59a326a5384a56d5a1d5ec6a7e77cf3cc53084f03dc338b40961057be9f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-008.json",
+            "fingerprint": "9a20505692d39ca91ad21fcb5cdf017755b787c076f8ddad9a55b48151e3fc88"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-008.md",
+            "fingerprint": "a42caa70c5f59dd1e8c52c4ffb1e74c3b16425d5f298db214483f9db63635251"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-009.json",
+            "fingerprint": "6a330602572e456cb2cf950e2bdb44b2c3cf10b076c065bcefe1cbfb36619c57"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-009.md",
+            "fingerprint": "d18ca95b37c718f2203ea3267aa01f6ce5934ea1d67afd020ecff840e12cadc0"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-010.json",
+            "fingerprint": "287b0f5cb7e29d1d0dce4480a2e25cf07fcc10b885862652a1efb8dbb8b70d54"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-010.md",
+            "fingerprint": "ba30fc183f495d496acbfb02772e9244c10e6ebe8cc212c3b455f6a4c19c9a30"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-011.json",
+            "fingerprint": "80eaa33816dbfc444825efa28ac403f4ddab18e1cabc35735f3dc0b385f11ac3"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-011.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-012.json",
+            "fingerprint": "175a438050dac3fa040d42c27ce98a0abfddd756c2fc11528b26c4a4c0bb0f9c"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-012.md",
+            "fingerprint": "880a272ccbb47e087b439596f13540cc2cd75bae675184fab327d33b6793c54f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-013.json",
+            "fingerprint": "3bde3a9ff6a8213c4bc38c2c3d8ce3e24ccbe480acc9659a872a2f2d6d47269f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-013.md",
+            "fingerprint": "1f8670d7f5f84b1a140c6e7f0b66686d608751403764480c8972bcb07454c5a7"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-014.json",
+            "fingerprint": "400ad46f7726a5b45984965a679fc39ea55bffdd927728ca0a1d66662b3c447c"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-014.md",
+            "fingerprint": "1f8670d7f5f84b1a140c6e7f0b66686d608751403764480c8972bcb07454c5a7"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-015.json",
+            "fingerprint": "ef9a87c9a2cb9514ded5206a5e0db0965863bb648aabf23acdaafbad23f6bce1"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-015.md",
+            "fingerprint": "3a574d0380a8f5557fd683013bb70f7351bd6a04c053ae25e35c7356162a522a"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-016.json",
+            "fingerprint": "041128b9ab7cfbb2424a2632dba2d9ce4895c09f2f605188a971ad9a1fe44d28"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-016.md",
+            "fingerprint": "29e35c8f851ce50d5a913f193faf3c8219474dcda345bee49d5a0e3e03cd5910"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-017.json",
+            "fingerprint": "b4e69fdac30eab4e7e2ff3572b9bdd6f28d1d1852c056e8d5d0323f0f1da55ff"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/impl-attempt-017.md",
+            "fingerprint": "70afae81b3ff2be139488f53a833641d37fcda3e4530e110b143935b5bcb0131"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/spec-attempt-001.json",
+            "fingerprint": "1b41c7f9159d6f68213a4c2ff9b2dbc5e2e5792065a58ec95737bf659e429f1c"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/spec-attempt-002.json",
+            "fingerprint": "37b8475ab7187ac05c9d6df312f0e0917a385fa1d68b2c10f82f62b21c7135e9"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-001.json",
+            "fingerprint": "8e4d7ec4a1093e3722119fdac3b06de5e3c2092143be06d29747be03b3e65186"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-001.md",
+            "fingerprint": "64f462c81474060b4900d7ab0e60b13397b13fe6d9e46fe49818c763084f8b20"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-002.json",
+            "fingerprint": "be5e3f946f6c7c6dfefba096749ccfa4a60d842f766754f07714d4471173e60f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-002.md",
+            "fingerprint": "7ba0e144c19badd594a6e5cdc23c88c1ad220378525768ed96f2cb00704a507d"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-003.json",
+            "fingerprint": "a23636a4b5f25ff493647a1cb70507bf5964f4da27b76a34b1347302aae7fd27"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-003.md",
+            "fingerprint": "12d8ec77db6863b100d6124d5695ba60fc6d7865e716f11a2ac46ddd16775961"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-004.json",
+            "fingerprint": "afb8f0dadb95ed36b0ddd821e37c4b71c2d5b32ac2b7c3505b34cd5fd879a5a3"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-004.md",
+            "fingerprint": "484b16ccf7a4f211f83565c5cfa8811034189ae169ec6e65ad6a370f4571c4c6"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-005.json",
+            "fingerprint": "f8958fe358e4e65efc9e3b22357e5cb01eaa8172353ddc86f06f6d9a6c07bcf5"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-005.md",
+            "fingerprint": "c1cd250b0ff8d92e54d23dcd9aafb93de8b6733a263787f92f9bc42c055957e7"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-006.json",
+            "fingerprint": "92218474a2f67c1802dc5f26e2e01d79e7edba885c7c92d6edd09e21fbe98a53"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/test-attempt-006.md",
+            "fingerprint": "7310a45c84c35bf8f07b4ed81bc6b83063966e372ce2d1485f24c0a8027a7bf4"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "74dd1b19a8d2d6a61d6538c26c2f98de23b951da0f12dfea4d36af98efe6a231"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "384199874716dd05a1d4354dbbb2b1f039b0634b26a04b095d32adde860375df"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "af6345a193764a75af8f5e710a59183a84cff6f0fe4bbce2536fe61511c78bc5"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/1ccae2bde3e1dd7bde0113b4.json",
+            "fingerprint": "5f55a8f111da621bcb47c9e009a2020e23e44e9376592a0e77de8e69400d8f44"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/235ce383b4d623462850265e.json",
+            "fingerprint": "718f1686766e6d5237cf842019d0091a1c73e87458cb482bddd62af0d0299157"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "471cc0b4f79c9f093a56edff82c089d553ccaa13974b2881fbd68823de0db108"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "2a7b00558ec738d5410909563a30eb2dd37f86d094f81d66f0270793d7bbc66c"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "a0215c009d61b2cef2a30ec3a792bae3b650a8de900e960591d47a91f9a96b62"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "4041de6108f2026b5547b88c496d387ca002f1a8cc99d31be79624c76546a4da"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "c1b134d4202693f845c7e319c70905e2170cb7022c9c4a9539dc6ff7768ffe11"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "5b0ed06fc90298819d1a2fc74aa8b53732d83cf619d014dca46261174de2c417"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "2fd9eb2ff12a94bd740fab680b31e3b3a1bd88b4d841acf5b9323736b00383d2"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/a57439c09ff8922d2c2beb07.json",
+            "fingerprint": "56815b25b4a3ace20c7702aaaf692149a5335523341289cade6bc9ca338194d2"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/af07bcc5b4db548c7fc01ab6.json",
+            "fingerprint": "5cc4862784a60b9547fb79d7033872e7848a3258617537fb05179d94d6b8e357"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "8998940e74f274efe794e2f15fb8f8faa8774abbd9cc62da8c8e0f939672c0f1"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "afb70d8893a73bbb72fdb7868c20a276b614c1afcb6c1fecc2099b32bb3c9842"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "9b5da7c2869e9c42ef8f35d1a57f17dedfedcac8e15fe3bd4079307d7eaa00f5"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "e97e361d9ff3478b95b4fa33d470b7b05edf85a99ceaff6e118a88b73cb2e06d"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review-history/work-units/impl-review/ebe20f520bda03adebde73b1.json",
+            "fingerprint": "6f380cb8ba48cf12bbd7c4e809818b7a8f45be0773cd2f309bcbbb94891b51c9"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/review.md",
+            "fingerprint": "70afae81b3ff2be139488f53a833641d37fcda3e4530e110b143935b5bcb0131"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/scenario-validity-result.json",
+            "fingerprint": "8a2938d7037d8e57d0f8f1faf32e4af3b6a953bc3a63d632ae06e2a276da0310"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/spec-gate-source.json",
+            "fingerprint": "9da3588fd93b3c901e6d19ddb6f1ca4c1119fcf34ced810ef85e152a01bcdfc1"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/spec-review.json",
+            "fingerprint": "9c66df6bb8b944db57063ca66e3a3c629575a7ef613c68fb183b5069d2c0e425"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/spec.json",
+            "fingerprint": "fa652a32b0c080cf84626a8b6625b016d065801c801c580f03e7723897a9ab38"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/spec.md",
+            "fingerprint": "f228d50c33c523148398f11821c84ac4f624ebee8e21130202a46d45971234ae"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/task-impl-gate-source.json",
+            "fingerprint": "91212ec7df0a5efe46369010e9c25d4da76f2c29c83d3183a8530ea4440060f8"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/tasks/T-1.md",
+            "fingerprint": "57d8b7b2e4f1b0e35da30925393884a6f1ff111490d8c80e33093c842f09479f"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/tasks/T-2.md",
+            "fingerprint": "76dd8c53b2bd1c7786b1c9e108b984f307978a3024a6e9a625dcc21885194cf8"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/tasks/T-3.md",
+            "fingerprint": "cfe777ac6c515c6e5fb7ed3c037684a1f734fbe068c6d94e5374caba75180e00"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/test-coverage.json",
+            "fingerprint": "b12d8bc931181cd448d2b63eae2fbca4d1cafa76b33ff7ebd6af7c7c41134d39"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/test-execute-result.json",
+            "fingerprint": "5be064fa4ff5d40a821b44783fa18d746748bf576b1043c107495c49df5044ad"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/test-result-review.json",
+            "fingerprint": "44d11589a341d74e41165c924bcab036c2e8211ed0f0dbe2eb494456d4841be1"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/test-result-review.md",
+            "fingerprint": "a119a65f2f3e0bed8a9568eae7747a01afe95947e55ef452635826caf358f0e3"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/test-review.json",
+            "fingerprint": "26618e3e27be59fdf0ce96b887a42f894aa3f7318e8d06c6ef538671dbe38168"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/test-review.md",
+            "fingerprint": "7310a45c84c35bf8f07b4ed81bc6b83063966e372ce2d1485f24c0a8027a7bf4"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/tests/.raw/scenario-validity.log",
+            "fingerprint": "99e6e4f5446a29b15f30fd37d4b5e3381416a196820dc326c6c290cfbeae0ecd"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/tests/.raw/test-execution.log",
+            "fingerprint": "eb66ae0881c9fbf4a1fa10f6035751d9334af0d525029598339f3fa5771e2095"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js",
+            "fingerprint": "c23a226f80289c7743475af81dd91b12e2b2ea0b729fa48da08ed357ea485ae6"
+          },
+          {
+            "path": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+            "fingerprint": "02bcc62c73e12f8e9606bc4164028eac28784b1102e14218555ddba3f701f012"
+          },
+          {
+            "path": "src/flow/commands/report.js",
+            "fingerprint": "7b5bb4af48f49d59b0ff41f4dc27c0747ea64ad81ed6c6bbaa79646f37251701"
+          },
+          {
+            "path": "src/flow/lib/acceptance-review-artifacts.js",
+            "fingerprint": "807ef0c5a5330278f1b7f4588455e25ec3f27761fa3127cd555b0fee72886ec8"
+          },
+          {
+            "path": "src/flow/lib/impl-repair-artifacts.js",
+            "fingerprint": "7eb279b38273c1f4c3ad8b47cb6c55c68ca686317f6cee984937c2c6e1a20762"
+          },
+          {
+            "path": "src/flow/lib/run-recover-existing-implementation.js",
+            "fingerprint": "3b16637e1774b1e73fe5b94afd5818668d59c328f90a7748df5822a9f4871612"
+          },
+          {
+            "path": "src/flow/lib/run-report.js",
+            "fingerprint": "6ffdf8a1856830169af76c813f68aed440993fd6394b82ba8489f5d27f5a96cf"
+          },
+          {
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "3474379eace1ea802cea5d24ff803701b5b99bf6f0a1ca119ba009f77c318d47"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "fingerprint": "898493ab5582cf5dc31f0ca1b39cfe741256c883c8aa245f7bc92a7ba7e3fb3b"
+          },
+          {
+            "path": "tests/unit/flow/finalization-command-resume.test.js",
+            "fingerprint": "0af040569d32d1650c3e3ad42c2ce3409db6caa09b6f9d5a8a756ab13346a32e"
+          },
+          {
+            "path": "tests/unit/flow/recover-existing-implementation.test.js",
+            "fingerprint": "4f709a898772a0ce6d6e7e682228c3879ea1cd2d4cb5df98036290367dbde7b8"
+          },
+          {
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js",
+            "fingerprint": "0c1ce0e7d1f0177fc06e36fa50c912b6a0e9b1ebc81377fadc948b382991a37e"
+          }
+        ],
+        "fixAttempts": 1,
+        "selectedAction": "record-and-proceed",
+        "remainingRisk": "final-regression remains failed; category=existing_failure",
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": "record-and-proceed",
+        "recordAndProceed": {
+          "eligible": true,
+          "validated": true,
+          "evidence": "record-and-proceed selected for existing_failure"
+        },
+        "humanSummary": "result=fail failureCategory=existing_failure failureKind=unattributed_existing_failure raw_output=specs/348-report-delivery-fail-closed/tests/.raw/final-regression-attempt-002.log fixAttempts=1 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=existing_failure"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-2",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-3",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 3,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0,
+    "binding": {
+      "headOid": "c7af4f828c8762f0ec6337078a674a8aa5daad97",
+      "treeSha": "03d36ab331f60cbb7e3c54d680a303673db13127",
+      "sourceArtifacts": [
+        {
+          "path": "specs/348-report-delivery-fail-closed/issue-log.json",
+          "sha256": "14f6a42dd1e8d6dbb17bc5c39bc723b9813c68704332da42e4e7325da7f428fd"
+        },
+        {
+          "path": "specs/348-report-delivery-fail-closed/retro.json",
+          "sha256": "637d63c4c223fd8cbc897c80b54c165b778ab52b4717e1a072671df3cd6706ff"
+        },
+        {
+          "path": "specs/348-report-delivery-fail-closed/test-execute-result.json",
+          "sha256": "5be064fa4ff5d40a821b44783fa18d746748bf576b1043c107495c49df5044ad"
+        },
+        {
+          "path": "specs/348-report-delivery-fail-closed/test-result-review.json",
+          "sha256": "44d11589a341d74e41165c924bcab036c2e8211ed0f0dbe2eb494456d4841be1"
+        },
+        {
+          "path": "specs/348-report-delivery-fail-closed/final-regression-result.json",
+          "sha256": "7e056992e7ad428fc11137504d0fd49fdf25cc6ed37f266735524c56b7cedc1a"
+        }
+      ]
+    },
+    "delivery": {
+      "status": "done",
+      "idempotencyKey": "flow-outbox-v1:a6f43e4b-1e98-48ce-8e37-9c9672c6fd20:flow:report:report"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    test: provide required report source fixture\n    docs: clarify recovery command scope\n    fix: accept recovered scenario evidence\n    feat: recover implemented flow validation\n    refactor: share report delivery responses\n    fix: validate report binding before delivery\n    test: count report delivery attempts\n    fix: keep report delivery retries idempotent\n    fix: cover report delivery failures\n    fix: require report issue log\n    test: cover fresh report bindings\n    fix: constrain report binding sources\n    fix: persist report delivery completion\n    fix: bind report freshness\n    fix: retain report on delivery retry\n    fix: make report delivery fail closed\n    test: cover required report evidence failures\n    test: cover invalid report artifacts\n    fix: reject invalid report inputs\n    test: validate final report evidence freshness\n    test: assert failed report delivery state\n    test: cover report source artifacts\n    test: extend report delivery coverage\n    test: cover report delivery fail-closed\n    14 files changed, 1460 insertions(+), 17 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 19\n    Q&A ......................... 0\n    issue-log ................... 24\n    agent calls ................. 71\n    input tokens ................ 1,142,396\n    output tokens ............... 57,773\n    cache-read tokens ........... 1,392,128\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1684.3s\n      draft-questions-review .... 14.3s\n      draft-coverage-review ..... 15.8s\n      draft-gate ................ 84.1s\n      spec-review ............... 204.4s\n      spec-gate ................. 97.3s\n      test-review ............... 141.5s\n      implement ................. 223.9s\n      impl-review ............... 389.2s\n      impl-gate ................. 161.6s\n      acceptance-review ......... 352.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/348-report-delivery-fail-closed/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=unattributed_existing_failure failureCategory=existing_failure raw_output=specs/348-report-delivery-fail-closed/tests/.raw/final-regression-attempt-002.log fixAttempts=1 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=existing_failure\n\n  Tasks (3/3)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n    T-3 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (46 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/348-report-delivery-fail-closed/issue-log.json\n\n    Important (10 of 22)\n    - [draft-gate] The draft defers the exact JSON field names, full source artifact list, hash helper placement, freshness command, and error code, leaving requirements under-specified for reviewers to determine implementation satisfaction.; The draft def...\n    - [spec-gate] The scope includes an \"idempotent delivery-only retry\" but does not state an explicit retry count or other upper bound.; The overview says a resumed report operation reuses the idempotency key and completes missing Issue delivery, but do...\n    - [spec-gate] schema: spec.json failed schema validation: overview.decisions[3].text: maxLength 500, got 627\n    - [task-review] Added malformed retro artifact coverage for the required report input failure path.\n    - [task-review] Added malformed required test execution evidence coverage for the report input failure path.\n    - [spec-gate] test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4, R5, R6, R7\n    - [impl-gate] fix: restored spec-local report delivery test environment and binding validation code.\n    - [spec-gate] test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4, R5, R6, R7\n    - [spec-gate] test artifact validation failed: spec-local requirement tests failed: R1, R2, R3, R4, R5, R6, R7\n    - [draft-gate] The requirement uses `必須入力の厳密読込` without enumerating which inputs are required or the exact verification condition for `厳密`, so independent reviewers could disagree on satisfaction.; The requirement says `必須 source artifact` but does not...\n    ... 12 important issue-log entries omitted\n\n    Recent Other (5 of 24)\n    - [impl-gate] Persisted bound pending report before linked Issue delivery attempt.\n    - [impl-gate] Validated report binding during every fresh report generation.\n    - [spec-gate] The added return object repeats the same successful delivery issueComment shape that is also embedded under artifacts.issueComment; a local value could remove the duplicate production object construction.; The added artifacts.issueCommen...\n    - [impl-gate] Extracted shared completed delivery result to remove duplicate response construction.\n    - [draft-gate] The requirement uses the vague condition \"従来どおり\" for linked Issue delivery success behavior instead of stating the verifiable report/comment fields or exact behavior that must be preserved.; The requirement says delivery success should g...\n    ... 19 other issue-log entries omitted"
+}

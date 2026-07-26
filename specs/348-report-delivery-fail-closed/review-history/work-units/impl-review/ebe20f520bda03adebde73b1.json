@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "ebe20f520bda03adebde73b1",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-c630669002b84053",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/348-report-delivery-fail-closed/spec.json",
+      "specs/348-report-delivery-fail-closed/spec.md",
+      "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+      "src/flow/commands/report.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-recover-existing-implementation.js",
+      "src/flow/lib/run-report.js",
+      "src/flow/lib/step-transition-policy.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/recover-existing-implementation.test.js"
+    ],
+    "inputHash": "c630669002b840534134d2946cc1d0c5e47ab5fb0f6830ec1f21986069ab93c4",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "ebe20f520bda03adebde73b1"
+  },
+  "targetFiles": [
+    "specs/348-report-delivery-fail-closed/spec.json",
+    "specs/348-report-delivery-fail-closed/spec.md",
+    "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+    "src/flow/commands/report.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-recover-existing-implementation.js",
+    "src/flow/lib/run-report.js",
+    "src/flow/lib/step-transition-policy.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/recover-existing-implementation.test.js"
+  ],
+  "inputHash": "c630669002b840534134d2946cc1d0c5e47ab5fb0f6830ec1f21986069ab93c4",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T00:50:16.126Z",
+  "finishedAt": "2026-07-26T00:50:16.127Z",
+  "rawResponse": "### 1. Normalize Delivery State Terminology Across Spec And Runtime\n**File:** `specs/348-report-delivery-fail-closed/spec.json`\n**Requirement:** R3\n**Issue:** Both `spec.json` and `spec.md` call out unclear use of `unsent` vs `pending`, while `src/flow/lib/run-report.js` is adding more pending-delivery construction. Without one canonical state definition, implementation and tests can drift.\n**Suggestion:** Define delivery states once in the spec and align `run-report.js` helper names and tests to those exact terms.\n\n### 2. Keep Issue Log Naming Consistent Across Report Code\n**File:** `src/flow/lib/run-report.js`\n**Requirement:** R7\n**Issue:** `run-report.js` still uses `redolog` for data now loaded as `issue-log.json`, while specs and report binding proposals consistently refer to `issueLog` / `issue-log.json`. This cross-file naming mismatch makes the artifact contract harder to follow.\n**Suggestion:** Rename `redolog` to `issueLog` and keep spec, binding, report generation, and tests using the same issue-log terminology.\n\n### 3. Centralize Spec Artifact Path Construction Across Tests And Report Code\n**File:** `src/flow/lib/run-report.js`\n**Requirement:** R5\n**Issue:** Multiple files independently construct spec-relative artifact paths: report persistence in `run-report.js`, source binding paths in `report.js`, and repeated issue-log/report paths in tests. This duplicates the artifact layout contract across files.\n**Suggestion:** Add or reuse a shared path helper for spec-local artifacts such as `issue-log.json`, `report.json`, and binding inputs, then update runtime and tests to use it consistently.\n\n### 4. Align Recovery Transition Naming Across Flow Modules\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R4\n**Issue:** Recovery transition concepts appear in `impl-repair-artifacts.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`, but naming varies between generic `transition`, explicit recovery transition policy, and revalidation transition tables. This makes the interface between recovery modules less clear.\n**Suggestion:** Use a consistent domain name such as `recoveryTransition` or `explicitRecoveryTransition` across parameters, validation helpers, and transition policy constants.\n\n### 5. Share Recovery Entrypoint Constants Between Registry, Runner, And Policy\n**File:** `src/flow/lib/step-transition-policy.js`\n**Requirement:** R2\n**Issue:** Recovery command and entrypoint strings are repeated across `registry.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`. This creates a cross-file typo and rename risk.\n**Suggestion:** Introduce shared constants for recovery command/entrypoint identifiers, or colocate them in the policy module and import them where registry and runner responses need the same values.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Delivery State Terminology Across Spec And Runtime",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/spec.json`\n**Requirement:** R3\n**Issue:** Both `spec.json` and `spec.md` call out unclear use of `unsent` vs `pending`, while `src/flow/lib/run-report.js` is adding more pending-delivery construction. Without one canonical state definition, implementation and tests can drift.\n**Suggestion:** Define delivery states once in the spec and align `run-report.js` helper names and tests to those exact terms.",
+        "file": "specs/348-report-delivery-fail-closed/spec.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Keep Issue Log Naming Consistent Across Report Code",
+        "body": "**File:** `src/flow/lib/run-report.js`\n**Requirement:** R7\n**Issue:** `run-report.js` still uses `redolog` for data now loaded as `issue-log.json`, while specs and report binding proposals consistently refer to `issueLog` / `issue-log.json`. This cross-file naming mismatch makes the artifact contract harder to follow.\n**Suggestion:** Rename `redolog` to `issueLog` and keep spec, binding, report generation, and tests using the same issue-log terminology.",
+        "file": "src/flow/lib/run-report.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Centralize Spec Artifact Path Construction Across Tests And Report Code",
+        "body": "**File:** `src/flow/lib/run-report.js`\n**Requirement:** R5\n**Issue:** Multiple files independently construct spec-relative artifact paths: report persistence in `run-report.js`, source binding paths in `report.js`, and repeated issue-log/report paths in tests. This duplicates the artifact layout contract across files.\n**Suggestion:** Add or reuse a shared path helper for spec-local artifacts such as `issue-log.json`, `report.json`, and binding inputs, then update runtime and tests to use it consistently.",
+        "file": "src/flow/lib/run-report.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Align Recovery Transition Naming Across Flow Modules",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R4\n**Issue:** Recovery transition concepts appear in `impl-repair-artifacts.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`, but naming varies between generic `transition`, explicit recovery transition policy, and revalidation transition tables. This makes the interface between recovery modules less clear.\n**Suggestion:** Use a consistent domain name such as `recoveryTransition` or `explicitRecoveryTransition` across parameters, validation helpers, and transition policy constants.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Share Recovery Entrypoint Constants Between Registry, Runner, And Policy",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`\n**Requirement:** R2\n**Issue:** Recovery command and entrypoint strings are repeated across `registry.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`. This creates a cross-file typo and rename risk.\n**Suggestion:** Introduce shared constants for recovery command/entrypoint identifiers, or colocate them in the policy module and import them where registry and runner responses need the same values.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

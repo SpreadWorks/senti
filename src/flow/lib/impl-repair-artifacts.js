@@ -1206,6 +1206,7 @@ function commitOwnedTestEvidenceRefresh({
   specDir,
   flowManager,
   transaction,
+  transition = null,
   faultInjector = null,
 }) {
   if (!flowManager || typeof flowManager.updateStepStatus !== "function") {
@@ -1238,7 +1239,7 @@ function commitOwnedTestEvidenceRefresh({
       transaction: journal,
     });
     flowManager.updateStepStatus(
-      testEvidenceRefreshTransition(state, journal),
+      transition || testEvidenceRefreshTransition(state, journal),
       {
         taskId: null,
         expectedOriginal: state,
@@ -1278,6 +1279,7 @@ function resumeJournaledTestEvidenceRefresh({
   flowManager,
   expectedPreviousFingerprint,
   expectedCurrentFingerprint,
+  transition,
   faultInjector,
 }) {
   const transaction = new ImplRepairTransaction(
@@ -1312,6 +1314,7 @@ function resumeJournaledTestEvidenceRefresh({
     specDir,
     flowManager,
     transaction,
+    transition,
     faultInjector,
   });
   return {
@@ -1333,8 +1336,12 @@ export function completeTestEvidenceRefresh({
   additionalArtifacts = [],
   expectedPreviousFingerprint = null,
   expectedCurrentFingerprint = null,
+  transition = null,
   faultInjector = null,
 }) {
+  if (transition != null && !(transition instanceof ExplicitRecoveryTransition)) {
+    throw new Error("test evidence refresh transition must be an ExplicitRecoveryTransition");
+  }
   const lock = new RepairRunLock(specDir);
   lock.acquire();
   try {
@@ -1357,6 +1364,7 @@ export function completeTestEvidenceRefresh({
         flowManager,
         expectedPreviousFingerprint,
         expectedCurrentFingerprint,
+        transition,
         faultInjector,
       });
     }
@@ -1451,6 +1459,7 @@ export function completeTestEvidenceRefresh({
       specDir,
       flowManager,
       transaction,
+      transition,
       faultInjector,
     });
     return {

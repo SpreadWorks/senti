@@ -1,0 +1,75 @@
+{
+  "devType": "bugfix",
+  "goal": "report 実行で必須の issue-log.json、または存在する任意入力 retro.json・test-execute-result.json・test-result-review.json・final-regression-result.json・upgrade-result.json の破損、およびリンク済み Issue 配信の失敗を成功扱いせず、生成した report と最終証跡が対象 Git 状態および実際に読んだ入力成果物に一致することを検証可能にする。",
+  "analysis": {
+    "problem": "現状の RunReportCommand は issue-log の読み込み例外を空のログとして無視し、リンク済み Issue で gh が利用不能でも配信を skipped として result=ok を返す。また report.json と返却する証跡には、生成時の HEAD/tree や実際に読み取った source artifact のハッシュがないため、後から同じ入力・Git 状態に基づく報告か判定できない。",
+    "proposedApproach": "必須の issue-log.json は JSON と entries 構造を検証して読込み、存在する任意入力 retro.json・test-execute-result.json・test-result-review.json・final-regression-result.json・upgrade-result.json も読込み・構造検証に失敗した時点で report を失敗させる。リンク済み Issue では投稿成功までを report 完了条件にし、失敗時は生成済み report を unsent/pending として記録する。report と最終証跡には、対象 HEAD/tree と実際に読んだ各 source artifact の SHA-256 を保存し、freshness 検査で現在値と照合する。",
+    "validation": "must: corrupt または unreadable な issue-log が report を失敗させること、gh 不在・投稿失敗が done を阻止して unsent/pending artifact を残すこと、再試行が同じ idempotency key で未完了の delivery だけを実行して Issue comment を重複作成しないことを自動テストで確認する。must: linked Issue がなく delivery を必要としない場合は report command が成功し、linked Issue で delivery 成功時は report.json の delivery.status が done になり、既存の report 本文・data fields を含む report と同じ idempotency key の Issue comment がちょうど一件作成されることを挙動テストで確認する。must: 既存 report の本文・既存 data fields を維持して binding を追加し、保存した binding と現在の HEAD/tree・入力ハッシュの不一致を freshness 検査が拒否することを確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: RunReportCommand は loadIssueLog の例外を捕捉して空 entries を使うため、壊れた issue-log を report 成功へ変換する。",
+      "must: リンク済み Issue で gh が利用不能な場合、RunReportCommand は issueComment.status=skipped を記録して result=ok を返す。",
+      "must: IssueLogStore は issue-log.json の entries 構造を検証し、破損 JSON または不正構造では例外を送出する。",
+      "must: 現在の report.json は implementation、retro、test、issue-log、metrics 等を保存するが、生成対象の HEAD/tree と source artifact hashes は保存しない。",
+      "must: report の outbox は idempotencyKey を issue comment に渡し、同じ report 実行の投稿重複を防ぐ既存経路がある。",
+      "must: gh unavailable または一時的な required delivery failure では report 本文を explicit unsent/pending artifact として保存し、flow は成功完了せず retry が未完了の delivery だけを再開する。",
+      "must: 既存の public surface は senti flow run report、specs/<spec>/report.json、linked Issue への report comment、および flow outbox による report retry/resume である。"
+    ],
+    "decisionPoints": [
+      "must: 必須の issue-log.json、ならびに存在する retro.json・test-execute-result.json・test-result-review.json・final-regression-result.json・upgrade-result.json の読込または構造検証失敗を report の失敗として伝播する。",
+      "must: リンク済み Issue への required delivery が失敗または gh unavailable のとき、report step を done にしない。",
+      "must: retry は durable な report 生成済み状態と未完了 delivery を区別し、同じ idempotency key で不足した delivery だけを再実行する。",
+      "must: report.data.binding は headOid、treeSha、sourceArtifacts を持つ。sourceArtifacts の各要素は path と SHA-256 の sha256 を持ち、report が実際に読んだ issue-log.json、retro.json、test-execute-result.json、test-result-review.json、final-regression-result.json、upgrade-result.json だけを記録する。存在しない任意 artifact は記録しない。",
+      "must: report と final evidence の freshness 検査は、current HEAD OID、current tree SHA、記録された各 source artifact の SHA-256 を binding と比較し、いずれかが一致しない場合は REPORT_BINDING_STALE として拒否する。binding の欠落または不正構造は REPORT_BINDING_INVALID として拒否する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: alpha 版ポリシーに従い、旧来の skipped-success 表現との後方互換層は保持しない。",
+      "must: 値の構造的制約は ReportBinding、ReportBindingError、IssueLogStore と各成果物の既存コンストラクタ検証で表現し、外部依存は追加しない。",
+      "must: source と docs の不一致時は source を正とし、変更対象は src/flow/lib/run-report.js、src/flow/commands/report.js、specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js、およびそれらを直接検証する既存テストに限定する。",
+      "must: senti flow run report は source artifact の厳密読込、delivery state、binding 記録を担う新しい owner とし、linked Issue のない report 成功と delivery 成功時の report 生成は維持する。",
+      "must: specs/<spec>/report.json は既存の report text/data を維持する owner とし、delivery 状態と target/source binding を追加する。",
+      "must: linked Issue comment は required delivery の成功時だけ done の意味を得る。gh unavailable または delivery failure の skipped-success は削除し、unsent/pending がその明示的な置換表現となる。",
+      "must: flow outbox は既存 idempotencyKey による投稿重複防止を維持し、retry では未完了 delivery の再開 owner とする。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": []
+  },
+  "scopeVerification": {
+    "in": [
+      "must: report 実行時に必須の issue-log.json と、存在する retro.json・test-execute-result.json・test-result-review.json・final-regression-result.json・upgrade-result.json の fail-closed 読込。",
+      "must: linked Issue の required delivery と retry/idempotency の完了意味論。",
+      "must: report/final evidence の Git target と source artifact hash binding、および freshness 検査。",
+      "must: report artifact、delivery/retry、freshness/source-binding の自動テスト。"
+    ],
+    "out": [
+      "must: #343 の report summary 品質・文章内容の変更。",
+      "must: GitHub Issue 以外の新規配信先の追加。",
+      "must: report 以外の flow step の一般的な成果物形式変更。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: linked Issue を持つ report は gh unavailable または投稿失敗時に成功完了しなくなる。",
+    "must: report.json と final evidence の consumer は追加される binding/freshness 情報を扱う必要がある。",
+    "must: retry は既存の outbox idempotencyKey を継続利用し、すでに投稿済みの Issue comment を重複作成しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "リンク済み Issue への配信が gh unavailable または一時的な delivery failure で実行できない場合、report 本文を unsent/pending artifact として保存し、flow は失敗のまま retry で配信のみを再開できるようにしますか？ それとも report artifact 自体を保存せず失敗させますか？",
+      "answer": "unsent/pending artifact を保存し、flow は失敗のままとする。retry は保存済み report を再生成せず、同じ outbox idempotency key で未完了 delivery だけを再開する。",
+      "evidence": "Issue #470 は offline draft mode がある場合に unsent/pending を successful delivery と明確に区別することを求める。src/flow/lib/run-report.js は保存後に issue comment を投稿し、tests/unit/flow/finalization-command-resume.test.js は report の outbox idempotency key を投稿に渡す既存経路を検証する。",
+      "why": "報告本文を失わずに再試行可能にする一方、配信未完了を done や successful delivery と誤認させないため。",
+      "considered": "artifact を保存せず失敗させる案は、未配信状態の可視性と delivery-only retry の根拠を失うため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-26T09:17:50+09:00",
+    "notes": "再検証に伴う再承認。R1–R7 の仕様内容は変更なし。"
+  }
+}

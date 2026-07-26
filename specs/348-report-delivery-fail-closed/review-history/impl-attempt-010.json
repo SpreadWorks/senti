@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:39:16.219Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-required-source-artifact-fails-open",
+      "title": "Missing required issue-log is silently synthesized",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-report.js",
+      "requirementId": "R1",
+      "issue": "`execute()` calls `ensureIssueLogArtifact(root, state.spec)` before `loadIssueLog()`, and `ensureIssueLogArtifact()` creates an empty `issue-log.json` when the artifact is absent. This preserves the same fail-open behavior for a missing required report source artifact: report generation can proceed using a synthetic empty issue log instead of failing on the required input boundary.",
+      "suggestion": "Remove the auto-creation path from `ensureIssueLogArtifact()`/`execute()` and require `loadIssueLog(root, state.spec)` to read an existing valid `issue-log.json`; if it is missing, unreadable, malformed, or structurally invalid, propagate the failure before generating or saving `report.json`.",
+      "disposition": "must-fix",
+      "rationale": "R1 is a mandatory requirement that required report source artifacts, including `issue-log.json`, fail closed and are not substituted with empty artifacts. Creating `{ entries: [] }` for a missing issue log directly violates that requirement.",
+      "findingId": "720daa83274903cfd6f539fa3450495eb3c6d92edd8b34c3aaba688880b96eca",
+      "fingerprint": "720daa83274903cfd6f539fa3450495eb3c6d92edd8b34c3aaba688880b96eca",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "74aae9849747ea8da4da07315bb7d0e708fa83e288048606f3f0190c0b8857b3",
+  "runId": "a6f43e4b-1e98-48ce-8e37-9c9672c6fd20",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/348-report-delivery-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "621f42461d075959dd08685498948aff9c2f2a7adc062ab21dc47c31a853bdb8"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 10,
+  "findings": [
+    {
+      "id": "720daa83274903cfd6f539fa3450495eb3c6d92edd8b34c3aaba688880b96eca",
+      "findingId": "720daa83274903cfd6f539fa3450495eb3c6d92edd8b34c3aaba688880b96eca",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 10,
+      "severity": "blocking",
+      "title": "Missing required issue-log is silently synthesized",
+      "body": "`execute()` calls `ensureIssueLogArtifact(root, state.spec)` before `loadIssueLog()`, and `ensureIssueLogArtifact()` creates an empty `issue-log.json` when the artifact is absent. This preserves the same fail-open behavior for a missing required report source artifact: report generation can proceed using a synthetic empty issue log instead of failing on the required input boundary.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "720daa83274903cfd6f539fa3450495eb3c6d92edd8b34c3aaba688880b96eca",
+      "disposition": "must-fix",
+      "rationale": "R1 is a mandatory requirement that required report source artifacts, including `issue-log.json`, fail closed and are not substituted with empty artifacts. Creating `{ entries: [] }` for a missing issue log directly violates that requirement.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

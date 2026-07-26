@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js"
+    ],
+    "inputHash": "af1d51bf13f084e3f9b5b29f7f309c0ff25a836398b605d0169837d98b1b7474",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js"
+  ],
+  "inputHash": "af1d51bf13f084e3f9b5b29f7f309c0ff25a836398b605d0169837d98b1b7474",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T01:03:14.914Z",
+  "finishedAt": "2026-07-26T01:03:14.914Z",
+  "rawResponse": "### 1. Extract Repeated Issue Log Path Helpers\n**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R1  \n**Issue:** `path.join(path.dirname(state.spec), \"issue-log.json\")` is repeated throughout the file, along with similar `reportPath`-style artifact path construction. This makes tests noisier and increases drift risk if spec-relative artifact layout changes.  \n**Suggestion:** Add a small helper such as `artifactPath(state, name)` or `issueLogPath(state)` and use it consistently.\n\n### 2. Use `try/finally` For All Environment Mutations\n**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** Some tests mutate `process.env.PATH` and `process.env.SENTI_TEST_OUTBOX_KEY` but restore them only at the end of the happy path. If an assertion fails after mutation, later tests can inherit polluted environment state.  \n**Suggestion:** Wrap the entire mutation window in `try/finally`, including the resumed delivery assertions in the R4 test and the successful delivery assertions in the R7 test.\n\n### 3. Consolidate Fake `gh` Installer Behavior\n**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `installGh` and `installUnavailableGh` duplicate fake executable setup, chmod handling, and bin path construction. The unavailable case is just another behavior mode of the same fake command.  \n**Suggestion:** Replace both helpers with one `installGh(root, { available = true, failComment = false } = {})` helper, or extract shared executable creation into `writeGhStub(root, scriptLines)`.\n\n### 4. Bound Recursive Step Traversal\n**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `stepStatus` recursively traverses `step.children` without an explicit depth or node-count bound. This violates the bounded-resource-usage guardrail perspective for recursive processing, even in test code.  \n**Suggestion:** Replace it with an iterative traversal that caps inspected nodes, for example `maxSteps = 1000`, and throws a clear test error if exceeded.\n\n### 5. Reduce Large Inline Artifact Fixtures\n**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R5  \n**Issue:** The R5 binding test contains several large inline JSON fixture objects, which obscures the actual assertion: verifying that present consumed artifacts are recorded with hashes.  \n**Suggestion:** Extract fixture builders such as `writeValidTestExecuteArtifact`, `writeValidFinalRegressionArtifact`, and `writeValidUpgradeArtifact`, keeping the test focused on artifact presence and binding expectations.\n\n### 6. Avoid Recreating `RunReportCommand` Repeatedly In Single Tests\n**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** Several tests instantiate `new RunReportCommand()` multiple times within the same logical scenario, especially the resume-delivery test. This adds visual noise and makes it less obvious whether state is expected to live on the command instance.  \n**Suggestion:** Create `const command = new RunReportCommand();` once per test where multiple calls are made, then call `command.execute(...)` and `command.resumeDelivery(...)`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Repeated Issue Log Path Helpers",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R1  \n**Issue:** `path.join(path.dirname(state.spec), \"issue-log.json\")` is repeated throughout the file, along with similar `reportPath`-style artifact path construction. This makes tests noisier and increases drift risk if spec-relative artifact layout changes.  \n**Suggestion:** Add a small helper such as `artifactPath(state, name)` or `issueLogPath(state)` and use it consistently.",
+        "file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Use `try/finally` For All Environment Mutations",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** Some tests mutate `process.env.PATH` and `process.env.SENTI_TEST_OUTBOX_KEY` but restore them only at the end of the happy path. If an assertion fails after mutation, later tests can inherit polluted environment state.  \n**Suggestion:** Wrap the entire mutation window in `try/finally`, including the resumed delivery assertions in the R4 test and the successful delivery assertions in the R7 test.",
+        "file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Consolidate Fake `gh` Installer Behavior",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `installGh` and `installUnavailableGh` duplicate fake executable setup, chmod handling, and bin path construction. The unavailable case is just another behavior mode of the same fake command.  \n**Suggestion:** Replace both helpers with one `installGh(root, { available = true, failComment = false } = {})` helper, or extract shared executable creation into `writeGhStub(root, scriptLines)`.",
+        "file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Bound Recursive Step Traversal",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `stepStatus` recursively traverses `step.children` without an explicit depth or node-count bound. This violates the bounded-resource-usage guardrail perspective for recursive processing, even in test code.  \n**Suggestion:** Replace it with an iterative traversal that caps inspected nodes, for example `maxSteps = 1000`, and throws a clear test error if exceeded.",
+        "file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "5. Reduce Large Inline Artifact Fixtures",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R5  \n**Issue:** The R5 binding test contains several large inline JSON fixture objects, which obscures the actual assertion: verifying that present consumed artifacts are recorded with hashes.  \n**Suggestion:** Extract fixture builders such as `writeValidTestExecuteArtifact`, `writeValidFinalRegressionArtifact`, and `writeValidUpgradeArtifact`, keeping the test focused on artifact presence and binding expectations.",
+        "file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "6. Avoid Recreating `RunReportCommand` Repeatedly In Single Tests",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** Several tests instantiate `new RunReportCommand()` multiple times within the same logical scenario, especially the resume-delivery test. This adds visual noise and makes it less obvious whether state is expected to live on the command instance.  \n**Suggestion:** Create `const command = new RunReportCommand();` once per test where multiple calls are made, then call `command.execute(...)` and `command.resumeDelivery(...)`.",
+        "file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

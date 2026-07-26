@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:31:51.500Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "resume-delivery-does-not-persist-delivered-state",
+      "title": "Delivery retry leaves report.json pending after success",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-report.js",
+      "requirementId": "R3",
+      "issue": "`resumeDelivery()` posts the missing Issue comment successfully but never saves `report.json` with `data.delivery.status: \"done\"`. The persisted artifact therefore continues to describe the report as `pending`/`unsent` even after successful delivery.",
+      "suggestion": "In `resumeDelivery()`, after `postReportToIssue()` succeeds, write the existing report back with `withDelivery(report, deliveryState(\"done\", null, ctx.flowOutboxEntry?.idempotencyKey))`, and return that delivered report artifact.",
+      "disposition": "must-fix",
+      "rationale": "R3 requires persisted state to distinguish generated-but-undelivered reports from successful delivery. Leaving the durable artifact pending after a successful retry makes the persisted evidence false and can also cause future invocations to keep entering the retry path.",
+      "findingId": "5024cd1b3419aa1cb6962a65cac76d46ef4880c0c772996ad1e800a7c4c58e11",
+      "fingerprint": "5024cd1b3419aa1cb6962a65cac76d46ef4880c0c772996ad1e800a7c4c58e11",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "missing-issue-log-binding-when-absent",
+      "title": "Successful reports can omit issue-log.json from binding",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-report.js",
+      "requirementId": "R5",
+      "issue": "`reportSourcePaths()` includes only files that currently exist, so a successful report with no existing `issue-log.json` records no issue-log source artifact. `loadIssueLog()` can still supply the consumed empty issue log, and the implementation then generates a successful report without the required `issue-log.json` binding entry.",
+      "suggestion": "Make report generation materialize or otherwise strictly consume a project-relative `issue-log.json` before binding, then include that path and SHA-256 in `ReportBinding.fromSourcePaths()` for every successful report.",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires `sourceArtifacts` to include `issue-log.json`. Omitting it means the report’s required input is not cryptographically bound, so later freshness checks cannot detect changes from the implicit empty issue log to real issue-log content.",
+      "findingId": "f69ae23cd84e4ad86e8d4308c17470fe32452f9b6f077e00a41e3b2ce395b4f8",
+      "fingerprint": "f69ae23cd84e4ad86e8d4308c17470fe32452f9b6f077e00a41e3b2ce395b4f8",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "982b576d305a7fd22ebc71b126472b5e1ec5a07544979687dcd23413c3682bdb",
+  "runId": "a6f43e4b-1e98-48ce-8e37-9c9672c6fd20",
+  "planRewindAt": null,
+  "taskId": "T-3",
+  "target": "specs/348-report-delivery-fail-closed/tasks/T-3.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/348-report-delivery-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "042dba870ed9e2d76bff029c7264346f06436fb737cdbd2e9e195c0923060071"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "5024cd1b3419aa1cb6962a65cac76d46ef4880c0c772996ad1e800a7c4c58e11",
+      "findingId": "5024cd1b3419aa1cb6962a65cac76d46ef4880c0c772996ad1e800a7c4c58e11",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Delivery retry leaves report.json pending after success",
+      "body": "`resumeDelivery()` posts the missing Issue comment successfully but never saves `report.json` with `data.delivery.status: \"done\"`. The persisted artifact therefore continues to describe the report as `pending`/`unsent` even after successful delivery.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "5024cd1b3419aa1cb6962a65cac76d46ef4880c0c772996ad1e800a7c4c58e11",
+      "disposition": "must-fix",
+      "rationale": "R3 requires persisted state to distinguish generated-but-undelivered reports from successful delivery. Leaving the durable artifact pending after a successful retry makes the persisted evidence false and can also cause future invocations to keep entering the retry path.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    },
+    {
+      "id": "f69ae23cd84e4ad86e8d4308c17470fe32452f9b6f077e00a41e3b2ce395b4f8",
+      "findingId": "f69ae23cd84e4ad86e8d4308c17470fe32452f9b6f077e00a41e3b2ce395b4f8",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Successful reports can omit issue-log.json from binding",
+      "body": "`reportSourcePaths()` includes only files that currently exist, so a successful report with no existing `issue-log.json` records no issue-log source artifact. `loadIssueLog()` can still supply the consumed empty issue log, and the implementation then generates a successful report without the required `issue-log.json` binding entry.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "f69ae23cd84e4ad86e8d4308c17470fe32452f9b6f077e00a41e3b2ce395b4f8",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires `sourceArtifacts` to include `issue-log.json`. Omitting it means the report’s required input is not cryptographically bound, so later freshness checks cannot detect changes from the implicit empty issue log to real issue-log content.",
+      "requirementId": "R5",
+      "repeatCount": 1
+    }
+  ]
+}

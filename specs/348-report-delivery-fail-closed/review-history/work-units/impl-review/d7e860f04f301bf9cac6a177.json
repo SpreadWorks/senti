@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-recover-existing-implementation.js"
+    ],
+    "inputHash": "bbc62270480fb5e34f729e0e2ef274412361d507a6e64c032b763177b5669265",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-recover-existing-implementation.js"
+  ],
+  "inputHash": "bbc62270480fb5e34f729e0e2ef274412361d507a6e64c032b763177b5669265",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T01:03:22.227Z",
+  "finishedAt": "2026-07-26T01:03:22.227Z",
+  "rawResponse": "### 1. Extract Repeated Command Metadata\n**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The command name pair `\"run\", \"recover-existing-implementation\"` is repeated across every `Envelope.ok` and `Envelope.fail` call. This makes future renames or copy/paste changes error-prone.  \n**Suggestion:** Introduce constants such as `COMMAND_DOMAIN = \"run\"` and `COMMAND_NAME = \"recover-existing-implementation\"`, then use them consistently in all envelope responses.\n\n### 2. Reuse Lifecycle Validation Helper\n**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R4  \n**Issue:** Active-step validation is duplicated in `assertEligibility` and after reloading `refreshed`, with repeated checks for `active?.scope !== \"flow\"` and `active.stepId !== ...`.  \n**Suggestion:** Add a small helper like `requireActiveFlowStep(stateOrActive, stepId, message)` or `isActiveFlowStep(active, stepId)` to centralize the flow-step predicate and keep lifecycle checks consistent.\n\n### 3. Rename `reject` to Avoid Ambiguity\n**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The helper name `reject` is very generic and can be confused with Promise rejection semantics, especially in command code that returns structured failure envelopes.  \n**Suggestion:** Rename it to something domain-specific like `throwRecoveryError(code, message)` or `failRecovery(code, message)`.\n\n### 4. Avoid Re-reading Invalid Paths During Pending Recovery\n**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R1  \n**Issue:** `readScenarioValidityResult(specDir)` is always executed, including when `eligibility.pendingRecovery` is true. In that state the transition has already occurred and the evidence may not need to be revalidated just to resume refresh work.  \n**Suggestion:** If pending recovery already records the relevant invalid paths or prior evidence in state, reuse that instead. Otherwise, consider documenting why the evidence file must remain mandatory across resumed recovery.\n\n### 5. Name Transition Table Fields Explicitly\n**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The `expected` transition table uses positional arrays like `[\"scenario-validity\", \"in_progress\", \"skipped\"]`, which makes the mapping less self-documenting.  \n**Suggestion:** Replace the tuple array with objects: `{ stepId: \"scenario-validity\", currentStatus: \"in_progress\", requestedStatus: \"skipped\" }`. This removes the need to destructure positional fields and matches the object shape returned later.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Repeated Command Metadata",
+        "body": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The command name pair `\"run\", \"recover-existing-implementation\"` is repeated across every `Envelope.ok` and `Envelope.fail` call. This makes future renames or copy/paste changes error-prone.  \n**Suggestion:** Introduce constants such as `COMMAND_DOMAIN = \"run\"` and `COMMAND_NAME = \"recover-existing-implementation\"`, then use them consistently in all envelope responses.",
+        "file": "src/flow/lib/run-recover-existing-implementation.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Reuse Lifecycle Validation Helper",
+        "body": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R4  \n**Issue:** Active-step validation is duplicated in `assertEligibility` and after reloading `refreshed`, with repeated checks for `active?.scope !== \"flow\"` and `active.stepId !== ...`.  \n**Suggestion:** Add a small helper like `requireActiveFlowStep(stateOrActive, stepId, message)` or `isActiveFlowStep(active, stepId)` to centralize the flow-step predicate and keep lifecycle checks consistent.",
+        "file": "src/flow/lib/run-recover-existing-implementation.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Rename `reject` to Avoid Ambiguity",
+        "body": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The helper name `reject` is very generic and can be confused with Promise rejection semantics, especially in command code that returns structured failure envelopes.  \n**Suggestion:** Rename it to something domain-specific like `throwRecoveryError(code, message)` or `failRecovery(code, message)`.",
+        "file": "src/flow/lib/run-recover-existing-implementation.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Avoid Re-reading Invalid Paths During Pending Recovery",
+        "body": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R1  \n**Issue:** `readScenarioValidityResult(specDir)` is always executed, including when `eligibility.pendingRecovery` is true. In that state the transition has already occurred and the evidence may not need to be revalidated just to resume refresh work.  \n**Suggestion:** If pending recovery already records the relevant invalid paths or prior evidence in state, reuse that instead. Otherwise, consider documenting why the evidence file must remain mandatory across resumed recovery.",
+        "file": "src/flow/lib/run-recover-existing-implementation.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Name Transition Table Fields Explicitly",
+        "body": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The `expected` transition table uses positional arrays like `[\"scenario-validity\", \"in_progress\", \"skipped\"]`, which makes the mapping less self-documenting.  \n**Suggestion:** Replace the tuple array with objects: `{ stepId: \"scenario-validity\", currentStatus: \"in_progress\", requestedStatus: \"skipped\" }`. This removes the need to destructure positional fields and matches the object shape returned later.",
+        "file": "src/flow/lib/run-recover-existing-implementation.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

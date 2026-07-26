@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "235ce383b4d623462850265e",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-0b0f667d45b9966a",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/348-report-delivery-fail-closed/spec.json",
+      "specs/348-report-delivery-fail-closed/spec.md",
+      "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+      "src/flow/commands/report.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/run-recover-existing-implementation.js",
+      "src/flow/lib/run-report.js",
+      "src/flow/lib/step-transition-policy.js",
+      "src/flow/registry.js",
+      "tests/unit/flow/recover-existing-implementation.test.js"
+    ],
+    "inputHash": "0b0f667d45b9966ae9838151682c3b29b67a284c83ddfbe1899f3364ae33edd3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "235ce383b4d623462850265e"
+  },
+  "targetFiles": [
+    "specs/348-report-delivery-fail-closed/spec.json",
+    "specs/348-report-delivery-fail-closed/spec.md",
+    "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+    "src/flow/commands/report.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/run-recover-existing-implementation.js",
+    "src/flow/lib/run-report.js",
+    "src/flow/lib/step-transition-policy.js",
+    "src/flow/registry.js",
+    "tests/unit/flow/recover-existing-implementation.test.js"
+  ],
+  "inputHash": "0b0f667d45b9966ae9838151682c3b29b67a284c83ddfbe1899f3364ae33edd3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T00:53:54.211Z",
+  "finishedAt": "2026-07-26T00:53:54.211Z",
+  "rawResponse": "I’ll treat this as a synthesis pass over the provided per-file summaries, looking only for issues that emerge across files rather than repeating single-file findings.### 1. Define Delivery Status Vocabulary Once\n**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** Both `spec.md` and `spec.json` use `unsent` and `pending` without a shared definition. This creates a cross-file contract ambiguity for `src/flow/lib/run-report.js` and the report delivery tests.  \n**Suggestion:** Add the same canonical status definitions to both spec representations, or generate one from the other, so implementation and tests can consistently distinguish “not attempted” from “attempted but failed.”\n\n### 2. Align Initial And Resumed Delivery Artifact Shape\n**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R7  \n**Issue:** The initial delivery path and resumed delivery path produce different successful `issueComment` shapes: resumed delivery includes `idempotencyKey`, while initial delivery does not. Tests and report consumers may see inconsistent interfaces for the same completed delivery state.  \n**Suggestion:** Use the same helper, such as `completedIssueComment(...)`, for both initial and resumed successful delivery so the persisted report schema is stable.\n\n### 3. Consolidate Spec Overview Duplication Across Formats\n**File:** `specs/348-report-delivery-fail-closed/spec.json`  \n**Requirement:** R7  \n**Issue:** `spec.json` and `spec.md` both contain duplicated overview/module/data-flow material, but not in exactly the same shape. This increases the chance that one spec format drifts from the other.  \n**Suggestion:** Keep one canonical overview structure and mirror it consistently between `spec.json` and `spec.md`, removing fragment-style repeated bullets from both.\n\n### 4. Standardize Recovery Transition Naming\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Recovery transition concepts appear across `impl-repair-artifacts.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`, but names vary between generic `transition`, explicit recovery transition objects, entrypoint strings, and transition tables. This makes the cross-file interface harder to audit.  \n**Suggestion:** Use a consistent naming scheme such as `recoveryTransition` for values and `*_RECOVERY_ENTRYPOINT` for entrypoint constants across all three files.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Define Delivery Status Vocabulary Once",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** Both `spec.md` and `spec.json` use `unsent` and `pending` without a shared definition. This creates a cross-file contract ambiguity for `src/flow/lib/run-report.js` and the report delivery tests.  \n**Suggestion:** Add the same canonical status definitions to both spec representations, or generate one from the other, so implementation and tests can consistently distinguish “not attempted” from “attempted but failed.”",
+        "file": "specs/348-report-delivery-fail-closed/spec.md",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Align Initial And Resumed Delivery Artifact Shape",
+        "body": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R7  \n**Issue:** The initial delivery path and resumed delivery path produce different successful `issueComment` shapes: resumed delivery includes `idempotencyKey`, while initial delivery does not. Tests and report consumers may see inconsistent interfaces for the same completed delivery state.  \n**Suggestion:** Use the same helper, such as `completedIssueComment(...)`, for both initial and resumed successful delivery so the persisted report schema is stable.",
+        "file": "src/flow/lib/run-report.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Consolidate Spec Overview Duplication Across Formats",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/spec.json`  \n**Requirement:** R7  \n**Issue:** `spec.json` and `spec.md` both contain duplicated overview/module/data-flow material, but not in exactly the same shape. This increases the chance that one spec format drifts from the other.  \n**Suggestion:** Keep one canonical overview structure and mirror it consistently between `spec.json` and `spec.md`, removing fragment-style repeated bullets from both.",
+        "file": "specs/348-report-delivery-fail-closed/spec.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Standardize Recovery Transition Naming",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Recovery transition concepts appear across `impl-repair-artifacts.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`, but names vary between generic `transition`, explicit recovery transition objects, entrypoint strings, and transition tables. This makes the cross-file interface harder to audit.  \n**Suggestion:** Use a consistent naming scheme such as `recoveryTransition` for values and `*_RECOVERY_ENTRYPOINT` for entrypoint constants across all three files.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:35:11.968Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/348-report-delivery-fail-closed/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Unlinked report success path is not covered",
+      "target": "tests/report-delivery-fail-closed.test.js / R2",
+      "findingId": "46d1504612ba25834cafde13a5d5dbbbc1bbf5bb9db909207d28c76ba7fab9ed",
+      "fingerprint": "46d1504612ba25834cafde13a5d5dbbbc1bbf5bb9db909207d28c76ba7fab9ed",
+      "disposition": "must-fix",
+      "rationale": "This is an explicit acceptance requirement with no corresponding executable coverage.",
+      "issue": "R2 requires flows without a linked Issue to retain existing successful artifact behavior, but the R2 tests only cover linked-Issue failure modes for missing gh and failed comments.",
+      "requiredChange": "Add a spec-local R2 test that runs report generation with no linked Issue and asserts successful completion plus the expected report artifact behavior.",
+      "whyBlocking": "This is an explicit acceptance requirement with no corresponding executable coverage.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Optional source artifact inclusion is not covered",
+      "target": "tests/report-delivery-fail-closed.test.js / R5",
+      "findingId": "d470d9b5428420c4123fc031c25bb70394c5288278fa6bfaa8cef28277fcc972",
+      "fingerprint": "d470d9b5428420c4123fc031c25bb70394c5288278fa6bfaa8cef28277fcc972",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires present optional artifacts to be listed, and the current coverage only proves absent optional artifacts are omitted.",
+      "issue": "The R5 test only verifies issue-log.json in sourceArtifacts. It does not cover inclusion of any present optional artifact among retro.json, test-execute-result.json, test-result-review.json, final-regression-result.json, or upgrade-result.json.",
+      "requiredChange": "Add a spec-local R5 case that creates at least one optional report source artifact and asserts its project-relative path and SHA-256 are recorded in data.binding.sourceArtifacts.",
+      "whyBlocking": "R5 explicitly requires present optional artifacts to be listed, and the current coverage only proves absent optional artifacts are omitted.",
+      "origin": "R5",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Source artifact staleness validation is not exercised",
+      "target": "tests/report-delivery-fail-closed.test.js / R6",
+      "findingId": "d2bd1a96d42a98332cddab2e44522546cef68dab36d812332ea6b0fa3a17aed0",
+      "fingerprint": "d2bd1a96d42a98332cddab2e44522546cef68dab36d812332ea6b0fa3a17aed0",
+      "disposition": "must-fix",
+      "rationale": "R6 requires rejection of changed recorded source-artifact SHA-256, but the current test encodes a premise that does not exercise that production behavior.",
+      "issue": "The R6 stale-binding test uses an empty sourceArtifacts array and a synthetic current.sourceArtifacts field, so it can pass without validating that a recorded source artifact SHA-256 is compared against bytes on disk.",
+      "requiredChange": "Add a spec-local R6 test with a recorded sourceArtifacts entry, mutate or mismatch the artifact bytes/hash, and assert REPORT_BINDING_STALE.",
+      "whyBlocking": "R6 requires rejection of changed recorded source-artifact SHA-256, but the current test encodes a premise that does not exercise that production behavior.",
+      "origin": "R6",
+      "failureKind": "static_antipattern"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R1 coverage could be broadened",
+      "target": "tests/report-delivery-fail-closed.test.js / R1",
+      "findingId": "61138c3a7261b4529ca8257a7cd92ceaa3bcb575b541a0a8add043b4864f9fc0",
+      "fingerprint": "61138c3a7261b4529ca8257a7cd92ceaa3bcb575b541a0a8add043b4864f9fc0",
+      "disposition": "informational",
+      "rationale": "The existing malformed JSON test gives executable coverage for the required fail-closed behavior, but a shape-focused case would make the intended validation boundary clearer.",
+      "improvement": "Consider adding a structurally invalid issue-log.json case, such as valid JSON with the wrong shape, alongside the malformed JSON case.",
+      "whyNonBlocking": "The existing malformed JSON test gives executable coverage for the required fail-closed behavior, but a shape-focused case would make the intended validation boundary clearer."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/348-report-delivery-fail-closed/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "fcc7c8d781290fa9db15a1d784c5d7c807e2e3110ccf5d1575461a75af288aa0"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "46d1504612ba25834cafde13a5d5dbbbc1bbf5bb9db909207d28c76ba7fab9ed",
+      "findingId": "46d1504612ba25834cafde13a5d5dbbbc1bbf5bb9db909207d28c76ba7fab9ed",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Unlinked report success path is not covered",
+      "body": "R2 requires flows without a linked Issue to retain existing successful artifact behavior, but the R2 tests only cover linked-Issue failure modes for missing gh and failed comments.",
+      "category": "unknown",
+      "fingerprint": "46d1504612ba25834cafde13a5d5dbbbc1bbf5bb9db909207d28c76ba7fab9ed",
+      "disposition": "must-fix",
+      "rationale": "This is an explicit acceptance requirement with no corresponding executable coverage."
+    },
+    {
+      "id": "d470d9b5428420c4123fc031c25bb70394c5288278fa6bfaa8cef28277fcc972",
+      "findingId": "d470d9b5428420c4123fc031c25bb70394c5288278fa6bfaa8cef28277fcc972",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Optional source artifact inclusion is not covered",
+      "body": "The R5 test only verifies issue-log.json in sourceArtifacts. It does not cover inclusion of any present optional artifact among retro.json, test-execute-result.json, test-result-review.json, final-regression-result.json, or upgrade-result.json.",
+      "category": "unknown",
+      "fingerprint": "d470d9b5428420c4123fc031c25bb70394c5288278fa6bfaa8cef28277fcc972",
+      "disposition": "must-fix",
+      "rationale": "R5 explicitly requires present optional artifacts to be listed, and the current coverage only proves absent optional artifacts are omitted."
+    },
+    {
+      "id": "d2bd1a96d42a98332cddab2e44522546cef68dab36d812332ea6b0fa3a17aed0",
+      "findingId": "d2bd1a96d42a98332cddab2e44522546cef68dab36d812332ea6b0fa3a17aed0",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Source artifact staleness validation is not exercised",
+      "body": "The R6 stale-binding test uses an empty sourceArtifacts array and a synthetic current.sourceArtifacts field, so it can pass without validating that a recorded source artifact SHA-256 is compared against bytes on disk.",
+      "category": "unknown",
+      "fingerprint": "d2bd1a96d42a98332cddab2e44522546cef68dab36d812332ea6b0fa3a17aed0",
+      "disposition": "must-fix",
+      "rationale": "R6 requires rejection of changed recorded source-artifact SHA-256, but the current test encodes a premise that does not exercise that production behavior."
+    },
+    {
+      "id": "61138c3a7261b4529ca8257a7cd92ceaa3bcb575b541a0a8add043b4864f9fc0",
+      "findingId": "61138c3a7261b4529ca8257a7cd92ceaa3bcb575b541a0a8add043b4864f9fc0",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "R1 coverage could be broadened",
+      "body": "The existing malformed JSON test gives executable coverage for the required fail-closed behavior, but a shape-focused case would make the intended validation boundary clearer.",
+      "category": "unknown",
+      "fingerprint": "61138c3a7261b4529ca8257a7cd92ceaa3bcb575b541a0a8add043b4864f9fc0",
+      "disposition": "informational",
+      "rationale": "The existing malformed JSON test gives executable coverage for the required fail-closed behavior, but a shape-focused case would make the intended validation boundary clearer."
+    }
+  ]
+}

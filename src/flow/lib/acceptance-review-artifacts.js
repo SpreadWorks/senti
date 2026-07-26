@@ -1301,7 +1301,8 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
     }
   }
   const testSummary = artifacts["test-execute-result.json"]?.summary || [];
-  const failed = artifacts["scenario-validity-result.json"]?.result !== "pass"
+  const scenarioValiditySkipped = findStepById(flowState.steps || [], "scenario-validity")?.status === "skipped";
+  const failed = (!scenarioValiditySkipped && artifacts["scenario-validity-result.json"]?.result !== "pass")
     || testSummary.some((entry) => entry.result === "fail")
     || artifacts["test-result-review.json"]?.verdict !== "pass"
     || (!rejectedReviewTriage && !["PASS", "ADVISORY"].includes(implReviewVerdict))

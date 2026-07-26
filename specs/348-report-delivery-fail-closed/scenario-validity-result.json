@@ -1,0 +1,145 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/348-report-delivery-fail-closed/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+  "process": {
+    "started": false,
+    "exitCode": null,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "block",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "test_name": "R1: missing issue-log rejects report generation",
+        "command": "node --test specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 11
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "test_name": "R2: no linked Issue retains successful report artifact generation",
+        "command": "node --test specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 11
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "test_name": "R3: failed delivery persists an explicit unsent or pending report state",
+        "command": "node --test specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 11
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "test_name": "R4: resumed outbox delivery reuses the report binding and idempotency key",
+        "command": "node --test specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 11
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "test_name": "R5: report records target and consumed-source binding hashes",
+        "command": "node --test specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 11
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "test_name": "R6: stale or malformed binding is rejected with stable report binding codes",
+        "command": "node --test specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 11
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "test_name": "R7: existing report content remains while delivery and binding are additive",
+        "command": "node --test specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 11
+        }
+      }
+    }
+  ],
+  "preflight": {
+    "invalid_paths": [
+      ".senti/config.json",
+      "src/flow.js",
+      "src/flow/commands/report.js",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/finding-disposition-policy.js",
+      "src/flow/lib/flow-context.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-complete-task.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-report.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/lib/run-start-task.js",
+      "src/flow/lib/set-issue-log.js",
+      "src/flow/lib/set-retry.js",
+      "src/flow/lib/set-review-evidence.js",
+      "src/flow/lib/set-step.js",
+      "src/flow/registry.js",
+      "src/lib/config.js",
+      "src/lib/dispatcher.js",
+      "src/lib/presets.js",
+      "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+      "tests/e2e/flow/gate-impl-integration.test.js",
+      "tests/e2e/flow/worktree-flow-command-identity.test.js",
+      "tests/helpers/stub-agent.js",
+      "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/finding-disposition-policy.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/set-retry.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js",
+      "tests/unit/specs/commands/gate.test.js",
+      "tests/unit/specs/commands/guardrail.test.js"
+    ]
+  }
+}

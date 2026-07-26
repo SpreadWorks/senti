@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`RunReportCommand` shall propagate an unreadable, malformed, or structurally invalid required report source artifact, including issue-log.json, as a report failure; it shall not substitute an empty artifact or continue to report generation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/report-delivery-fail-closed.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "For a flow without a linked Issue, report generation shall retain the existing successful artifact behavior. For a linked Issue, `gh` unavailability, a failed comment operation, or any other required delivery failure shall return non-success and prevent the report step from reaching done.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/report-delivery-fail-closed.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When linked-Issue delivery cannot complete after report generation, report.json shall record delivery as `unsent` or `pending`, never as `done` or `skipped` success. The persisted state shall distinguish the generated report from successful delivery.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/report-delivery-fail-closed.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Each resumed report command invocation with the same FlowOutbox idempotency key shall make at most one attempt to perform only the missing Issue delivery, shall not publish a duplicate Issue comment, and shall retain the already generated report artifact when its binding is still fresh.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/report-delivery-fail-closed.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "report.json `data.binding` shall contain `headOid`, `treeSha`, and `sourceArtifacts`. Every sourceArtifacts entry shall contain the project-relative `path` and SHA-256 `sha256` of bytes actually consumed by report generation. The list shall include issue-log.json and each present artifact among retro.json, test-execute-result.json, test-result-review.json, final-regression-result.json, and upgrade-result.json; absent optional artifacts shall not be listed.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/report-delivery-fail-closed.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Report/final-evidence freshness validation shall reject a missing or malformed binding with `REPORT_BINDING_INVALID`, and shall reject a changed current HEAD OID, tree SHA, or recorded source-artifact SHA-256 with `REPORT_BINDING_STALE`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/report-delivery-fail-closed.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "The implementation shall preserve report text sections `Report`, `Implementation`, `Retro`, `Metrics`, `Tests`, `Tasks`, and `Issue Log Summary`, and preserve the existing data keys implementation, retro, upgrade, issueLog, metrics, tokenMetrics, tests, sync, tasks, taskTotal, and broadModeHistory. It shall add delivery and binding data and preserve successful linked-Issue comment behavior when delivery completes.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/report-delivery-fail-closed.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/report-delivery-fail-closed.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    }
+  ]
+}

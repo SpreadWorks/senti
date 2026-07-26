@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "c43a47f76d207c075c9f3648",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0010",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/registry.js"
+    ],
+    "inputHash": "86219606dc0f2c1eddcd1ea1d98032a2f70bee41b430476f9a21eb93f393caa3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c43a47f76d207c075c9f3648"
+  },
+  "targetFiles": [
+    "src/flow/registry.js"
+  ],
+  "inputHash": "86219606dc0f2c1eddcd1ea1d98032a2f70bee41b430476f9a21eb93f393caa3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T01:03:22.409Z",
+  "finishedAt": "2026-07-26T01:03:22.409Z",
+  "rawResponse": "I’ll inspect the surrounding registry entries so the proposals stay constrained to the touched file and match the project’s local command patterns.The provided path is not present relative to the current working directory, so I’m checking the workspace layout before I decide whether to rely solely on the supplied diff.### 1. Extract repeated target-guard command boilerplate\n**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** The new `recover-existing-implementation` registry entry repeats the same `flags`, `options`, `--agent-work-dir` help line, and `FLOW_TARGET_GUARD_HELP_LINES` structure used by nearby flow-run commands. This increases drift risk when shared CLI help or guard options change.  \n**Suggestion:** Add a small local helper for flow-run commands that require `FLOW_TARGET_GUARD_FLAGS` and `FLOW_RUN_OPTIONS`, then pass only the command-specific usage, summary, and import target.\n\n### 2. Shorten and clarify the help summary\n**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** The help description is a very long sentence with several stacked domain terms: `post-acceptance-rewind scenario-validity preflight block`, `post-implementation test execution`, and `implementation-target changes`. This makes CLI help harder to scan and maintain.  \n**Suggestion:** Split the description into two shorter lines, for example one line stating what transition is recorded and one line listing the required evidence/guards. Keep the terminology, but reduce the single dense sentence.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract repeated target-guard command boilerplate",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** The new `recover-existing-implementation` registry entry repeats the same `flags`, `options`, `--agent-work-dir` help line, and `FLOW_TARGET_GUARD_HELP_LINES` structure used by nearby flow-run commands. This increases drift risk when shared CLI help or guard options change.  \n**Suggestion:** Add a small local helper for flow-run commands that require `FLOW_TARGET_GUARD_FLAGS` and `FLOW_RUN_OPTIONS`, then pass only the command-specific usage, summary, and import target.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Shorten and clarify the help summary",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** The help description is a very long sentence with several stacked domain terms: `post-acceptance-rewind scenario-validity preflight block`, `post-implementation test execution`, and `implementation-target changes`. This makes CLI help harder to scan and maintain.  \n**Suggestion:** Split the description into two shorter lines, for example one line stating what transition is recorded and one line listing the required evidence/guards. Keep the terminology, but reduce the single dense sentence.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

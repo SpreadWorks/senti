@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/step-transition-policy.js"
+    ],
+    "inputHash": "5086bf1319dd93866ccd850a7a7b0e07311981a6359165e1a0ae19b51538d951",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "src/flow/lib/step-transition-policy.js"
+  ],
+  "inputHash": "5086bf1319dd93866ccd850a7a7b0e07311981a6359165e1a0ae19b51538d951",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T01:03:22.347Z",
+  "finishedAt": "2026-07-26T01:03:22.347Z",
+  "rawResponse": "### 1. Extract the Revalidation Transition Spec\n**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R1  \n**Issue:** `expected` is rebuilt inside the validation branch every time `ExplicitRecoveryTransition` is checked, and the transition rules are embedded directly in control flow.  \n**Suggestion:** Move the expected lifecycle transition map to a module-level constant, e.g. `EXISTING_IMPLEMENTATION_REVALIDATION_CHANGES`, alongside the entrypoint constants. This keeps transition policy data colocated and avoids recreating the map per validation.\n\n### 2. Replace Remaining String Literal Entrypoint\n**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R2  \n**Issue:** `\"impl-repair-invalidation\"` is still used as a raw string in `isStepTransition`, while the new entrypoint uses a named constant. This creates inconsistent naming and increases typo risk.  \n**Suggestion:** Introduce `const IMPL_REPAIR_INVALIDATION_ENTRYPOINT = \"impl-repair-invalidation\";` and use it in both validation and `isStepTransition`.\n\n### 3. Share Supported Recovery Entrypoints\n**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R4  \n**Issue:** Supported recovery entrypoints are effectively defined in multiple places: the validation `if/else` chain and the `isStepTransition` allowlist. Adding another entrypoint requires updating both locations manually.  \n**Suggestion:** Add a module-level `SUPPORTED_RECOVERY_ENTRYPOINTS` set and use it in `isStepTransition`. If the validation branches remain explicit, this still centralizes the public allowlist and makes future additions less error-prone.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract the Revalidation Transition Spec",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R1  \n**Issue:** `expected` is rebuilt inside the validation branch every time `ExplicitRecoveryTransition` is checked, and the transition rules are embedded directly in control flow.  \n**Suggestion:** Move the expected lifecycle transition map to a module-level constant, e.g. `EXISTING_IMPLEMENTATION_REVALIDATION_CHANGES`, alongside the entrypoint constants. This keeps transition policy data colocated and avoids recreating the map per validation.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Replace Remaining String Literal Entrypoint",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R2  \n**Issue:** `\"impl-repair-invalidation\"` is still used as a raw string in `isStepTransition`, while the new entrypoint uses a named constant. This creates inconsistent naming and increases typo risk.  \n**Suggestion:** Introduce `const IMPL_REPAIR_INVALIDATION_ENTRYPOINT = \"impl-repair-invalidation\";` and use it in both validation and `isStepTransition`.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Share Supported Recovery Entrypoints",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R4  \n**Issue:** Supported recovery entrypoints are effectively defined in multiple places: the validation `if/else` chain and the `isStepTransition` allowlist. Adding another entrypoint requires updating both locations manually.  \n**Suggestion:** Add a module-level `SUPPORTED_RECOVERY_ENTRYPOINTS` set and use it in `isStepTransition`. If the validation branches remain explicit, this still centralizes the public allowlist and makes future additions less error-prone.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

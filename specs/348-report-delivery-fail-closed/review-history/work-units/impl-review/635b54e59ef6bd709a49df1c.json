@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js"
+    ],
+    "inputHash": "76342fac750a5cd120afc3d89c292b3c6d48739a57260c92712323251d807639",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js"
+  ],
+  "inputHash": "76342fac750a5cd120afc3d89c292b3c6d48739a57260c92712323251d807639",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T01:03:14.849Z",
+  "finishedAt": "2026-07-26T01:03:14.849Z",
+  "rawResponse": "### 1. Remove side-effect test import\n**File:** `specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The spec test imports `../../../tests/unit/flow/recover-existing-implementation.test.js` for side effects, which couples this requirement test to another test file’s execution behavior and can duplicate unrelated assertions.  \n**Suggestion:** Keep this file focused on R6 by removing the side-effect import and adding any necessary R6-specific assertions directly in this spec test.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove side-effect test import",
+        "body": "**File:** `specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The spec test imports `../../../tests/unit/flow/recover-existing-implementation.test.js` for side effects, which couples this requirement test to another test file’s execution behavior and can duplicate unrelated assertions.  \n**Suggestion:** Keep this file focused on R6 by removing the side-effect import and adding any necessary R6-specific assertions directly in this spec test.",
+        "file": "specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

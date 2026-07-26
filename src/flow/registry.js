@@ -1031,6 +1031,23 @@ export const FLOW_COMMANDS = {
     },
   },
   run: {
+    "recover-existing-implementation": {
+      helpKey: "flow.run.recover-existing-implementation",
+      command: () => import("./lib/run-recover-existing-implementation.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: FLOW_RUN_OPTIONS,
+      },
+      help: [
+        `Usage: senti flow run recover-existing-implementation [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Record an audited transition from a post-acceptance-rewind scenario-validity preflight block to post-implementation test execution. The command requires exact target guards, the latest rewind from acceptance-review, and preflight evidence of implementation-target changes.",
+        "",
+        "Options:",
+        "  --agent-work-dir <path>  Set the agent/tmp/log base directory for this invocation.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     "rewind-test-evidence": {
       helpKey: "flow.run.rewind-test-evidence",
       command: () => import("./lib/run-rewind-test-evidence.js"),

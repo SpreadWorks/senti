@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:47:03.507Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/348-report-delivery-fail-closed/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Unreadable required artifact is untested",
+      "target": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js R1",
+      "findingId": "bbc7f942fdeea7bd2c89524ec974dfa7d2c726b0ff20722e4dc9fe9a9f12739c",
+      "fingerprint": "bbc7f942fdeea7bd2c89524ec974dfa7d2c726b0ff20722e4dc9fe9a9f12739c",
+      "disposition": "must-fix",
+      "rationale": "An explicit acceptance requirement has no corresponding spec-local test coverage.",
+      "issue": "R1 requires RunReportCommand to fail closed for unreadable required report source artifacts, including issue-log.json. The R1 tests cover malformed JSON and structurally invalid issue-log.json, but do not cover an unreadable required artifact.",
+      "requiredChange": "Add spec-local R1 coverage that makes a required source artifact unreadable and asserts report generation rejects without writing report.json.",
+      "whyBlocking": "An explicit acceptance requirement has no corresponding spec-local test coverage.",
+      "origin": "R1",
+      "failureKind": "missing-required-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "All present optional source artifacts are not covered",
+      "target": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js R5",
+      "findingId": "141616799b1288b20084c88fbc5bfb9e34a8fc1802d41315ba28c91c7af7f3b2",
+      "fingerprint": "141616799b1288b20084c88fbc5bfb9e34a8fc1802d41315ba28c91c7af7f3b2",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R5 covered, but a material part of the acceptance requirement lacks executable test coverage.",
+      "issue": "R5 requires sourceArtifacts to include issue-log.json and each present artifact among retro.json, test-execute-result.json, test-result-review.json, final-regression-result.json, and upgrade-result.json. The R5 test only covers issue-log.json and retro.json, plus absence of test-execute-result.json; it does not cover inclusion of the other present optional artifacts.",
+      "requiredChange": "Extend R5 coverage so all named optional artifacts are present and asserted in data.binding.sourceArtifacts with their project-relative paths and SHA-256 values, while still checking absent optional artifacts are omitted where relevant.",
+      "whyBlocking": "The coverage artifact marks R5 covered, but a material part of the acceptance requirement lacks executable test coverage.",
+      "origin": "R5",
+      "failureKind": "missing-required-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/348-report-delivery-fail-closed/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c9f39de3421474495fefdb906271eae870e55c240b3ff484dd0da46f84f42bd1"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "bbc7f942fdeea7bd2c89524ec974dfa7d2c726b0ff20722e4dc9fe9a9f12739c",
+      "findingId": "bbc7f942fdeea7bd2c89524ec974dfa7d2c726b0ff20722e4dc9fe9a9f12739c",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Unreadable required artifact is untested",
+      "body": "R1 requires RunReportCommand to fail closed for unreadable required report source artifacts, including issue-log.json. The R1 tests cover malformed JSON and structurally invalid issue-log.json, but do not cover an unreadable required artifact.",
+      "category": "unknown",
+      "fingerprint": "bbc7f942fdeea7bd2c89524ec974dfa7d2c726b0ff20722e4dc9fe9a9f12739c",
+      "disposition": "must-fix",
+      "rationale": "An explicit acceptance requirement has no corresponding spec-local test coverage."
+    },
+    {
+      "id": "141616799b1288b20084c88fbc5bfb9e34a8fc1802d41315ba28c91c7af7f3b2",
+      "findingId": "141616799b1288b20084c88fbc5bfb9e34a8fc1802d41315ba28c91c7af7f3b2",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "All present optional source artifacts are not covered",
+      "body": "R5 requires sourceArtifacts to include issue-log.json and each present artifact among retro.json, test-execute-result.json, test-result-review.json, final-regression-result.json, and upgrade-result.json. The R5 test only covers issue-log.json and retro.json, plus absence of test-execute-result.json; it does not cover inclusion of the other present optional artifacts.",
+      "category": "unknown",
+      "fingerprint": "141616799b1288b20084c88fbc5bfb9e34a8fc1802d41315ba28c91c7af7f3b2",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R5 covered, but a material part of the acceptance requirement lacks executable test coverage."
+    }
+  ]
+}

@@ -40,6 +40,7 @@ function setupFinalizationRepo(root, flowOverrides = {}) {
   });
   const state = setupFlow(root, { repairBaseline: repairBaseline.toJSON(), ...flowOverrides });
   writeFile(root, state.spec, JSON.stringify({ requirements: [] }, null, 2));
+  writeFile(root, path.join(path.dirname(state.spec), "issue-log.json"), "{\n  \"entries\": []\n}\n");
   writeFile(root, "src-change.js", "export const changed = true;\n");
   return { state, flowManager: makeFlowManager(root) };
 }

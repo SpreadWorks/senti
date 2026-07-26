@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/recover-existing-implementation.test.js"
+    ],
+    "inputHash": "40c33bea640424eab0592d4f251042c1525215a57d0efed092970fe0346746db",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "tests/unit/flow/recover-existing-implementation.test.js"
+  ],
+  "inputHash": "40c33bea640424eab0592d4f251042c1525215a57d0efed092970fe0346746db",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T01:24:33.278Z",
+  "finishedAt": "2026-07-26T01:24:33.278Z",
+  "rawResponse": "### 1. Extract Recovery Fixture Setup\n**File:** `tests/unit/flow/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The first test has a long arrange section that mixes spec creation, flow setup, fingerprint setup, stale evidence setup, and implementation mutation. This makes the behavior under test harder to scan.  \n**Suggestion:** Extract a local helper such as `createRecoverableExistingImplementationFixture()` that returns `{ manager, activeState, specDir }`, keeping the test focused on executing the command and asserting outcomes.\n\n### 2. Centralize Spec Artifact Paths\n**File:** `tests/unit/flow/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** Paths under `specs/${SPEC_ID}` are constructed repeatedly with template strings and `path.join`, which creates small duplication and increases the chance of future path drift.  \n**Suggestion:** Add a small local helper like `specArtifactPath(tmp, ...parts)` or reuse `specDir` consistently for all spec artifact writes and assertions.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Recovery Fixture Setup",
+        "body": "**File:** `tests/unit/flow/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The first test has a long arrange section that mixes spec creation, flow setup, fingerprint setup, stale evidence setup, and implementation mutation. This makes the behavior under test harder to scan.  \n**Suggestion:** Extract a local helper such as `createRecoverableExistingImplementationFixture()` that returns `{ manager, activeState, specDir }`, keeping the test focused on executing the command and asserting outcomes.",
+        "file": "tests/unit/flow/recover-existing-implementation.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Centralize Spec Artifact Paths",
+        "body": "**File:** `tests/unit/flow/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** Paths under `specs/${SPEC_ID}` are constructed repeatedly with template strings and `path.join`, which creates small duplication and increases the chance of future path drift.  \n**Suggestion:** Add a small local helper like `specArtifactPath(tmp, ...parts)` or reuse `specDir` consistently for all spec artifact writes and assertions.",
+        "file": "tests/unit/flow/recover-existing-implementation.test.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

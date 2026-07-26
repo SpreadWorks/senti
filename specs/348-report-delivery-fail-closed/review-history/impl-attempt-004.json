@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:22:15.286Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 3,
+    "nonBlocking": 0,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "retry-mutates-report-artifact",
+      "title": "Delivery retry rewrites persisted report",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-report.js",
+      "requirementId": "R4",
+      "issue": "`resumeDelivery()` calls `saveReport(root, state.spec, withDelivery(report, deliveryState(\"done\")))` after a successful retry. That changes `report.json` during a delivery-only retry even though R4 requires retaining the already generated report artifact when it is still fresh, and AC4 requires byte-identical `report.json` before and after that retry.",
+      "suggestion": "In `resumeDelivery()`, perform only the missing Issue delivery and leave the persisted report bytes unchanged on success. Return delivery result separately through `artifacts.issueComment`, or update only a separate delivery/outbox state if one exists.",
+      "disposition": "must-fix",
+      "rationale": "R4 is a mandatory requirement. Rewriting the durable report artifact during retry violates the required delivery-only behavior and makes the AC4 byte-identity assertion impossible to satisfy.",
+      "findingId": "c6d20b924387f1f89749902cbb4589baa3e0232aa565ced6680168ded4836e14",
+      "fingerprint": "c6d20b924387f1f89749902cbb4589baa3e0232aa565ced6680168ded4836e14",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "retry-detection-depends-on-attempt-field",
+      "title": "Retry path is not reliably selected",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-report.js",
+      "requirementId": "R4",
+      "issue": "`execute()` resumes delivery only when `ctx.flowOutboxEntry?.attempt > 1 && fs.existsSync(persistedReportPath)`. The task requirement is keyed to a resumed command invocation with the same FlowOutbox idempotency key, but this implementation depends on an `attempt` field that is not established in the shown contract and is absent from the spec-local retry fixture. If a retry entry carries the same idempotency key without `attempt > 1`, the command falls through to full report generation instead of performing only the missing Issue delivery.",
+      "suggestion": "Select the retry path from durable state: when a linked-Issue report artifact exists with `data.delivery.status` of `pending` or `unsent` for the current outbox identity/key, call `resumeDelivery()` regardless of an optional `attempt` counter.",
+      "disposition": "must-fix",
+      "rationale": "R4 is mandatory and requires each resumed invocation to make at most one attempt to perform only missing delivery while retaining the generated report artifact. A retry gate based on an optional/unproven counter can bypass that behavior.",
+      "findingId": "45135e1121caf076714c9a8064c30e770cd10602b07fd80c81d5effe0dd62579",
+      "fingerprint": "45135e1121caf076714c9a8064c30e770cd10602b07fd80c81d5effe0dd62579",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "returned-report-missing-delivery-state",
+      "title": "Result artifact omits persisted delivery state",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-report.js",
+      "requirementId": "R3",
+      "issue": "On both the no-linked-Issue and successful linked-Issue paths, the code saves `withDelivery(report, ...)` to disk but returns `artifacts: { report, issueComment }`, where `report` is the pre-delivery object. Consumers of the command result therefore see a report artifact without the explicit `data.delivery` state even though the persisted `report.json` has it.",
+      "suggestion": "Assign the delivery-augmented report to a local variable before saving, and return that same object in `artifacts.report` for every delivery outcome.",
+      "disposition": "must-fix",
+      "rationale": "R3 is mandatory: the report state must distinguish generated report from successful delivery and must never preserve ambiguous delivery state. Returning a stale artifact object breaks that contract for command-result consumers even when the file was written correctly.",
+      "findingId": "06e9cc9d4d782e7d40f8635a59ad8e2ad7baaa961fe89f805350953f3c916b2a",
+      "fingerprint": "06e9cc9d4d782e7d40f8635a59ad8e2ad7baaa961fe89f805350953f3c916b2a",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "e8abb67100f8ef2126284b4faf969ab75556e8d27b5286f6826547dfb1c5b90e",
+  "runId": "a6f43e4b-1e98-48ce-8e37-9c9672c6fd20",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/348-report-delivery-fail-closed/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/348-report-delivery-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "2eb9d4a2c205dd284770e4f3d0dbf5c918bee17cb852e224f5697c273bca7085"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "c6d20b924387f1f89749902cbb4589baa3e0232aa565ced6680168ded4836e14",
+      "findingId": "c6d20b924387f1f89749902cbb4589baa3e0232aa565ced6680168ded4836e14",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Delivery retry rewrites persisted report",
+      "body": "`resumeDelivery()` calls `saveReport(root, state.spec, withDelivery(report, deliveryState(\"done\")))` after a successful retry. That changes `report.json` during a delivery-only retry even though R4 requires retaining the already generated report artifact when it is still fresh, and AC4 requires byte-identical `report.json` before and after that retry.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "c6d20b924387f1f89749902cbb4589baa3e0232aa565ced6680168ded4836e14",
+      "disposition": "must-fix",
+      "rationale": "R4 is a mandatory requirement. Rewriting the durable report artifact during retry violates the required delivery-only behavior and makes the AC4 byte-identity assertion impossible to satisfy.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    },
+    {
+      "id": "45135e1121caf076714c9a8064c30e770cd10602b07fd80c81d5effe0dd62579",
+      "findingId": "45135e1121caf076714c9a8064c30e770cd10602b07fd80c81d5effe0dd62579",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Retry path is not reliably selected",
+      "body": "`execute()` resumes delivery only when `ctx.flowOutboxEntry?.attempt > 1 && fs.existsSync(persistedReportPath)`. The task requirement is keyed to a resumed command invocation with the same FlowOutbox idempotency key, but this implementation depends on an `attempt` field that is not established in the shown contract and is absent from the spec-local retry fixture. If a retry entry carries the same idempotency key without `attempt > 1`, the command falls through to full report generation instead of performing only the missing Issue delivery.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "45135e1121caf076714c9a8064c30e770cd10602b07fd80c81d5effe0dd62579",
+      "disposition": "must-fix",
+      "rationale": "R4 is mandatory and requires each resumed invocation to make at most one attempt to perform only missing delivery while retaining the generated report artifact. A retry gate based on an optional/unproven counter can bypass that behavior.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    },
+    {
+      "id": "06e9cc9d4d782e7d40f8635a59ad8e2ad7baaa961fe89f805350953f3c916b2a",
+      "findingId": "06e9cc9d4d782e7d40f8635a59ad8e2ad7baaa961fe89f805350953f3c916b2a",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Result artifact omits persisted delivery state",
+      "body": "On both the no-linked-Issue and successful linked-Issue paths, the code saves `withDelivery(report, ...)` to disk but returns `artifacts: { report, issueComment }`, where `report` is the pre-delivery object. Consumers of the command result therefore see a report artifact without the explicit `data.delivery` state even though the persisted `report.json` has it.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "06e9cc9d4d782e7d40f8635a59ad8e2ad7baaa961fe89f805350953f3c916b2a",
+      "disposition": "must-fix",
+      "rationale": "R3 is mandatory: the report state must distinguish generated report from successful delivery and must never preserve ambiguous delivery state. Returning a stale artifact object breaks that contract for command-result consumers even when the file was written correctly.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,428 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "e54319f7c86c0ea675dfd67e66c804f0f89bff759bfc808acae1c255d8704e2a",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-26T01:24:51.978Z",
+  "items": [
+    {
+      "findingId": "13cc106bbe78d2e46d799daa8b70c417ca381d8b75513029db337722fb9f7e3e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.json`  \n**Requirement:** R7  \n**Issue:** `overview.modules`, `overview.data_flow`, and `overview.decisions` repeat several task-level statements already captured under `tasks`, increasing maintenance cost and making the spec harder to keep consistent.  \n**Suggestion:** Keep the higher-level overview entries and remove the `added_by_task` duplicate entries, or consolidate them into the relevant task descriptions only.",
+      "evidenceRefs": [
+        "impl-review.json#13cc106bbe78d2e46d799daa8b70c417ca381d8b75513029db337722fb9f7e3e"
+      ]
+    },
+    {
+      "findingId": "a8405104af2390fe4045f18646e9bd512cbb62b289fc5875e6a00375ed995b43",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.json`  \n**Requirement:** R7  \n**Issue:** All requirements are marked `\"status\": \"done\"`, but tasks `T-1`, `T-2`, and `T-3` remain `\"status\": \"pending\"`. That creates conflicting lifecycle signals in the same spec.  \n**Suggestion:** Update task statuses to match the completed requirement state, or change requirement statuses if implementation is not actually complete.",
+      "evidenceRefs": [
+        "impl-review.json#a8405104af2390fe4045f18646e9bd512cbb62b289fc5875e6a00375ed995b43"
+      ]
+    },
+    {
+      "findingId": "3d7ea96c78aa4d67366c8dcd1ab33cb22058d6ee3e218c9dc3b72401a2a0cdb0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.json`  \n**Requirement:** R4  \n**Issue:** The one-attempt-per-command retry rule appears in `constraints`, `overview.modules`, `overview.data_flow`, `overview.decisions`, `R4`, `AC4`, and `T-2`. The repeated phrasing increases the chance of subtle divergence.  \n**Suggestion:** Keep the normative rule in `constraints` and `R4`, then shorten the other sections to reference “the R4 delivery retry contract” instead of restating the behavior.",
+      "evidenceRefs": [
+        "impl-review.json#3d7ea96c78aa4d67366c8dcd1ab33cb22058d6ee3e218c9dc3b72401a2a0cdb0"
+      ]
+    },
+    {
+      "findingId": "e63a4f666912f69a7a9130706e111dc9520a1fa3cbd1e8ddb745612940473069",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.json`  \n**Requirement:** R3  \n**Issue:** The spec uses both `unsent` and `pending` for failed delivery states, but their distinction is not clearly defined. This can lead to inconsistent implementation or tests.  \n**Suggestion:** Either define the exact semantic difference between `unsent` and `pending`, or collapse to one failure state if the distinction is not required.",
+      "evidenceRefs": [
+        "impl-review.json#e63a4f666912f69a7a9130706e111dc9520a1fa3cbd1e8ddb745612940473069"
+      ]
+    },
+    {
+      "findingId": "000f7c8a6e9416291d74273c9406d9b974f3fe26a44f9a42008184735d1d8f07",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R7  \n**Issue:** The `Overview > Modules` section repeats `RunReportCommand` concepts in multiple bullets, including fragments like `RunReportCommand in src/flow/lib/run-report.js` and `RunReportCommand delivery state and retry`, which read like task notes rather than spec design.  \n**Suggestion:** Consolidate these into the first `RunReportCommand` bullet and remove the redundant fragment bullets.",
+      "evidenceRefs": [
+        "impl-review.json#000f7c8a6e9416291d74273c9406d9b974f3fe26a44f9a42008184735d1d8f07"
+      ]
+    },
+    {
+      "findingId": "ef63b12c289ba9ed2be3a338a5235a9032f3f73c1db6f2d0a27d798bb694cb33",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R1  \n**Issue:** `Data Flow` mixes complete design bullets with terse implementation-note bullets such as `IssueLogStore read failure -> RunReportCommand failure` and `Report generation -> pending delivery artifact -> outbox retry -> Issue comment`. This creates duplication with the surrounding prose and weakens consistency.  \n**Suggestion:** Either remove these shorthand bullets or rewrite them as explicit data-flow statements matching the rest of the section.",
+      "evidenceRefs": [
+        "impl-review.json#ef63b12c289ba9ed2be3a338a5235a9032f3f73c1db6f2d0a27d798bb694cb33"
+      ]
+    },
+    {
+      "findingId": "d4d8fb79d6d1bc2c667bedcc075e1f5d60fe170c016039eac4b8e1d6a949be6d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R7  \n**Issue:** `Clarifications (Q&A)` contains empty `Q:` / `A:` placeholders, and `Open Questions` contains only an empty checkbox. These are dead spec content and add noise.  \n**Suggestion:** Delete these sections until there is real content, or replace them with a concise `None` if the project template requires the headings.",
+      "evidenceRefs": [
+        "impl-review.json#d4d8fb79d6d1bc2c667bedcc075e1f5d60fe170c016039eac4b8e1d6a949be6d"
+      ]
+    },
+    {
+      "findingId": "01574550670c4658f5648d7fe7697891c717cbf7a97bceba0cf5f2d809733ac9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** The spec uses both `unsent` and `pending` for failed delivery states but does not define when each should be used. This ambiguity can lead to inconsistent implementation and tests.  \n**Suggestion:** Add a short definition, for example: `unsent` means no delivery attempt was possible, while `pending` means an attempted delivery failed and is retryable.",
+      "evidenceRefs": [
+        "impl-review.json#01574550670c4658f5648d7fe7697891c717cbf7a97bceba0cf5f2d809733ac9"
+      ]
+    },
+    {
+      "findingId": "2fad62edb87ad32b255774d209daa51bd4b3fc691698d97eb039c3420bf359c7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R6  \n**Issue:** `ReportBinding validates report Git/source authority...` appears as a standalone module name, but no implementation target or existing module is identified for `ReportBinding`.  \n**Suggestion:** Either name the concrete file/module that will own this behavior, or rephrase as “Report artifact validation validates...” to stay consistent with the listed implementation targets.",
+      "evidenceRefs": [
+        "impl-review.json#2fad62edb87ad32b255774d209daa51bd4b3fc691698d97eb039c3420bf359c7"
+      ]
+    },
+    {
+      "findingId": "31c2cf2cfd30c79ed1321d4c5d3af0a2f08a35fb27c31dd7d038585b540f983d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The spec test imports `../../../tests/unit/flow/recover-existing-implementation.test.js` for side effects, which couples this requirement test to another test file’s execution behavior and can duplicate unrelated assertions.  \n**Suggestion:** Keep this file focused on R6 by removing the side-effect import and adding any necessary R6-specific assertions directly in this spec test.",
+      "evidenceRefs": [
+        "impl-review.json#31c2cf2cfd30c79ed1321d4c5d3af0a2f08a35fb27c31dd7d038585b540f983d"
+      ]
+    },
+    {
+      "findingId": "fe46e2b0bb344a8c57a9199cde30732f62844649c059b08512e7c78b9c22034f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R1  \n**Issue:** `path.join(path.dirname(state.spec), \"issue-log.json\")` is repeated throughout the file, along with similar `reportPath`-style artifact path construction. This makes tests noisier and increases drift risk if spec-relative artifact layout changes.  \n**Suggestion:** Add a small helper such as `artifactPath(state, name)` or `issueLogPath(state)` and use it consistently.",
+      "evidenceRefs": [
+        "impl-review.json#fe46e2b0bb344a8c57a9199cde30732f62844649c059b08512e7c78b9c22034f"
+      ]
+    },
+    {
+      "findingId": "068a0e395b3dcb7308a21831b3ede98a75eadadc8019eae523b6b94fd3e0cb1e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** Some tests mutate `process.env.PATH` and `process.env.SENTI_TEST_OUTBOX_KEY` but restore them only at the end of the happy path. If an assertion fails after mutation, later tests can inherit polluted environment state.  \n**Suggestion:** Wrap the entire mutation window in `try/finally`, including the resumed delivery assertions in the R4 test and the successful delivery assertions in the R7 test.",
+      "evidenceRefs": [
+        "impl-review.json#068a0e395b3dcb7308a21831b3ede98a75eadadc8019eae523b6b94fd3e0cb1e"
+      ]
+    },
+    {
+      "findingId": "ae97f8b9287adcc2e97608fb1c85ca2fef9bf6debf7e37775047be84e61e94c2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `installGh` and `installUnavailableGh` duplicate fake executable setup, chmod handling, and bin path construction. The unavailable case is just another behavior mode of the same fake command.  \n**Suggestion:** Replace both helpers with one `installGh(root, { available = true, failComment = false } = {})` helper, or extract shared executable creation into `writeGhStub(root, scriptLines)`.",
+      "evidenceRefs": [
+        "impl-review.json#ae97f8b9287adcc2e97608fb1c85ca2fef9bf6debf7e37775047be84e61e94c2"
+      ]
+    },
+    {
+      "findingId": "82fc07f55a9a49b9bfc86b67099f3ddda0a93394f065ab67e10aca5293b5cb10",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R2  \n**Issue:** `stepStatus` recursively traverses `step.children` without an explicit depth or node-count bound. This violates the bounded-resource-usage guardrail perspective for recursive processing, even in test code.  \n**Suggestion:** Replace it with an iterative traversal that caps inspected nodes, for example `maxSteps = 1000`, and throws a clear test error if exceeded.",
+      "evidenceRefs": [
+        "impl-review.json#82fc07f55a9a49b9bfc86b67099f3ddda0a93394f065ab67e10aca5293b5cb10"
+      ]
+    },
+    {
+      "findingId": "ef96787d7fa914d3eab5e829f33f4988391ff2e365ae382dcaa27a450153c294",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R5  \n**Issue:** The R5 binding test contains several large inline JSON fixture objects, which obscures the actual assertion: verifying that present consumed artifacts are recorded with hashes.  \n**Suggestion:** Extract fixture builders such as `writeValidTestExecuteArtifact`, `writeValidFinalRegressionArtifact`, and `writeValidUpgradeArtifact`, keeping the test focused on artifact presence and binding expectations.",
+      "evidenceRefs": [
+        "impl-review.json#ef96787d7fa914d3eab5e829f33f4988391ff2e365ae382dcaa27a450153c294"
+      ]
+    },
+    {
+      "findingId": "7cb7813e1feb0331ac4a0068ced9a85ee7018de59cd5a464bf23612159fe668a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R4  \n**Issue:** Several tests instantiate `new RunReportCommand()` multiple times within the same logical scenario, especially the resume-delivery test. This adds visual noise and makes it less obvious whether state is expected to live on the command instance.  \n**Suggestion:** Create `const command = new RunReportCommand();` once per test where multiple calls are made, then call `command.execute(...)` and `command.resumeDelivery(...)`.",
+      "evidenceRefs": [
+        "impl-review.json#7cb7813e1feb0331ac4a0068ced9a85ee7018de59cd5a464bf23612159fe668a"
+      ]
+    },
+    {
+      "findingId": "c8125711ff22a4a91ddd127314548807ac6b2c5e73ea49f189365875712b3806",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/report.js`  \n**Requirement:** R5  \n**Issue:** `ReportBinding.validate()` iterates over every `sourceArtifacts` entry and reads each file without enforcing the expected artifact count. The spec limits this to `issue-log.json` plus a fixed optional set, so accepting an unbounded array weakens the bounded-resource guardrail.  \n**Suggestion:** Reject bindings with more entries than the allowed artifact set, and ideally validate paths against that known set before reading files.",
+      "evidenceRefs": [
+        "impl-review.json#c8125711ff22a4a91ddd127314548807ac6b2c5e73ea49f189365875712b3806"
+      ]
+    },
+    {
+      "findingId": "41d3099e36608427162a5e1c7d5a31d6bdde743b2d2a640f082d18c3e9bd3147",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/report.js`  \n**Requirement:** R5  \n**Issue:** SHA-256 calculation is duplicated in `ReportBinding.fromSourcePaths()` and `ReportBinding.validate()`.  \n**Suggestion:** Add a small helper such as `sha256File(absolutePath)` or `hashFileBytes(filePath)` and use it in both places.",
+      "evidenceRefs": [
+        "impl-review.json#41d3099e36608427162a5e1c7d5a31d6bdde743b2d2a640f082d18c3e9bd3147"
+      ]
+    },
+    {
+      "findingId": "ee83ec89ac3b1ea4e71650975384bc84e42dc5422169a84e6f7247620fd10981",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/report.js`  \n**Requirement:** R5  \n**Issue:** `fromSourcePaths()` normalizes paths but does not apply the same project-relative/path escape validation used by `normalizeSourceArtifact()`.  \n**Suggestion:** Reuse the normalization logic or add a `normalizeProjectRelativePath(root, sourcePath)` helper so binding creation and validation enforce the same path rules.",
+      "evidenceRefs": [
+        "impl-review.json#ee83ec89ac3b1ea4e71650975384bc84e42dc5422169a84e6f7247620fd10981"
+      ]
+    },
+    {
+      "findingId": "0bd3730e620f6c257dc5e9a444b3f26e4af15b1aed018eeaad6b8acd472da1fa",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** The new `transition` parameter is generic, while this code path is specifically about test evidence refresh recovery. This makes call sites harder to distinguish from other transition concepts in the flow layer.  \n**Suggestion:** Rename `transition` to something more specific, such as `recoveryTransition` or `testEvidenceRefreshTransitionOverride`, across `completeTestEvidenceRefresh`, `resumeJournaledTestEvidenceRefresh`, and `commitOwnedTestEvidenceRefresh`.",
+      "evidenceRefs": [
+        "impl-review.json#0bd3730e620f6c257dc5e9a444b3f26e4af15b1aed018eeaad6b8acd472da1fa"
+      ]
+    },
+    {
+      "findingId": "e374931d3e82737b0b1f814cb5c50e34d3c3105111aee098cd84e668c04efe08",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R5  \n**Issue:** `transition || testEvidenceRefreshTransition(state, journal)` uses truthiness even though the API validates `transition` as either `null` or an `ExplicitRecoveryTransition`. This works today, but `||` communicates a broader fallback rule than intended.  \n**Suggestion:** Replace it with `transition ?? testEvidenceRefreshTransition(state, journal)` to express that only `null` or `undefined` should trigger the default transition.",
+      "evidenceRefs": [
+        "impl-review.json#e374931d3e82737b0b1f814cb5c50e34d3c3105111aee098cd84e668c04efe08"
+      ]
+    },
+    {
+      "findingId": "714a06573973410867213b264176a9d93d2e9b1e086c74dfaebf6065df1c2bb5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The command name pair `\"run\", \"recover-existing-implementation\"` is repeated across every `Envelope.ok` and `Envelope.fail` call. This makes future renames or copy/paste changes error-prone.  \n**Suggestion:** Introduce constants such as `COMMAND_DOMAIN = \"run\"` and `COMMAND_NAME = \"recover-existing-implementation\"`, then use them consistently in all envelope responses.",
+      "evidenceRefs": [
+        "impl-review.json#714a06573973410867213b264176a9d93d2e9b1e086c74dfaebf6065df1c2bb5"
+      ]
+    },
+    {
+      "findingId": "2eab9e36aacabd36e91042b0d39041c736a156257d1850a964504feddc3146e1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R4  \n**Issue:** Active-step validation is duplicated in `assertEligibility` and after reloading `refreshed`, with repeated checks for `active?.scope !== \"flow\"` and `active.stepId !== ...`.  \n**Suggestion:** Add a small helper like `requireActiveFlowStep(stateOrActive, stepId, message)` or `isActiveFlowStep(active, stepId)` to centralize the flow-step predicate and keep lifecycle checks consistent.",
+      "evidenceRefs": [
+        "impl-review.json#2eab9e36aacabd36e91042b0d39041c736a156257d1850a964504feddc3146e1"
+      ]
+    },
+    {
+      "findingId": "77077cabe884610d480853ae297fa9d06ec1e0ae90ba62c6a265757b804937f6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The helper name `reject` is very generic and can be confused with Promise rejection semantics, especially in command code that returns structured failure envelopes.  \n**Suggestion:** Rename it to something domain-specific like `throwRecoveryError(code, message)` or `failRecovery(code, message)`.",
+      "evidenceRefs": [
+        "impl-review.json#77077cabe884610d480853ae297fa9d06ec1e0ae90ba62c6a265757b804937f6"
+      ]
+    },
+    {
+      "findingId": "c067cff6f64374edf1acef3eab55ccfed3480de1511bee409f3b397088a4d0d4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R1  \n**Issue:** `readScenarioValidityResult(specDir)` is always executed, including when `eligibility.pendingRecovery` is true. In that state the transition has already occurred and the evidence may not need to be revalidated just to resume refresh work.  \n**Suggestion:** If pending recovery already records the relevant invalid paths or prior evidence in state, reuse that instead. Otherwise, consider documenting why the evidence file must remain mandatory across resumed recovery.",
+      "evidenceRefs": [
+        "impl-review.json#c067cff6f64374edf1acef3eab55ccfed3480de1511bee409f3b397088a4d0d4"
+      ]
+    },
+    {
+      "findingId": "29e63324359c9a9b5a979428666a00050b5565a3f64a1afe435378c48ad07176",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-recover-existing-implementation.js`  \n**Requirement:** R2  \n**Issue:** The `expected` transition table uses positional arrays like `[\"scenario-validity\", \"in_progress\", \"skipped\"]`, which makes the mapping less self-documenting.  \n**Suggestion:** Replace the tuple array with objects: `{ stepId: \"scenario-validity\", currentStatus: \"in_progress\", requestedStatus: \"skipped\" }`. This removes the need to destructure positional fields and matches the object shape returned later.",
+      "evidenceRefs": [
+        "impl-review.json#29e63324359c9a9b5a979428666a00050b5565a3f64a1afe435378c48ad07176"
+      ]
+    },
+    {
+      "findingId": "6eafe3ff0ae4cbe29a4d13eda61c08bca3ff5a10f4c5fe18cdc1f9b4c82cf2b1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R3  \n**Issue:** Report path construction is duplicated in `loadPersistedReport()` and `execute()` via separate `path.join(path.dirname(path.resolve(root, specPath)), \"report.json\")` expressions.  \n**Suggestion:** Add a small `reportPath(root, specPath)` helper and use it from both places. This reduces drift risk as report persistence/resume logic grows.",
+      "evidenceRefs": [
+        "impl-review.json#6eafe3ff0ae4cbe29a4d13eda61c08bca3ff5a10f4c5fe18cdc1f9b4c82cf2b1"
+      ]
+    },
+    {
+      "findingId": "bac3045c93f71e05b8dc4185a8a1bbaa8be86654145682ea5bdfab39af5e6ddb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R7  \n**Issue:** `completedIssueComment()` exists for resume delivery, but the initial delivery success path manually builds a similar `issueComment` object. The two shapes already differ: resumed delivery includes `idempotencyKey`, initial delivery does not.  \n**Suggestion:** Use `completedIssueComment(state, ctx.flowOutboxEntry, delivery.posted.resumed)` in both paths so successful linked-Issue delivery artifacts have one consistent shape.",
+      "evidenceRefs": [
+        "impl-review.json#bac3045c93f71e05b8dc4185a8a1bbaa8be86654145682ea5bdfab39af5e6ddb"
+      ]
+    },
+    {
+      "findingId": "b96489f2728242693db16d69fb996068ad5fa919369ed2928fb88a1caa9556fd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R3  \n**Issue:** The linked-Issue path saves a pending report before attempting delivery, then saves another pending report with a failure reason if posting fails. This creates repeated `withDelivery(...deliveryState(\"pending\"...))` construction and makes the control flow noisier.  \n**Suggestion:** Introduce a helper such as `pendingDeliveryReport(report, ctx, reason = null)` or `savePendingDeliveryReport(root, state.spec, report, idempotencyKey, reason)` and use it for both the pre-delivery and failure states.",
+      "evidenceRefs": [
+        "impl-review.json#b96489f2728242693db16d69fb996068ad5fa919369ed2928fb88a1caa9556fd"
+      ]
+    },
+    {
+      "findingId": "8415ceaa83b88823111d8ca152f175f81144dc130ca5b6c2dcd4d841dd6a922d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R7  \n**Issue:** The variable `redolog` now represents the required `issue-log.json` loaded through `loadRequiredIssueLog()`. The old name is less clear and does not match the report data key `issueLog`.  \n**Suggestion:** Rename `redolog` to `issueLog` and pass `issueLog` into `generateReport()`. This aligns naming with the source artifact and persisted report data.",
+      "evidenceRefs": [
+        "impl-review.json#8415ceaa83b88823111d8ca152f175f81144dc130ca5b6c2dcd4d841dd6a922d"
+      ]
+    },
+    {
+      "findingId": "63cbcd8d63e274ecff3c01040249c2250249d527c29aeb464657bd6aa3bb71e6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-report.js`  \n**Requirement:** R5  \n**Issue:** `const [issueLog, ...optionalArtifacts] = [...]` obscures that `issue-log.json` is required while the remaining artifacts are optional.  \n**Suggestion:** Use explicit constants, for example `const requiredArtifact = \"issue-log.json\"; const optionalArtifacts = [...]`. This makes the binding source list easier to audit against R5.",
+      "evidenceRefs": [
+        "impl-review.json#63cbcd8d63e274ecff3c01040249c2250249d527c29aeb464657bd6aa3bb71e6"
+      ]
+    },
+    {
+      "findingId": "5ba5cfd3ea6549a5f6c767ea932af8e6bb6acfbb37cb20a3f9f21c6e45dc54a3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R1  \n**Issue:** `expected` is rebuilt inside the validation branch every time `ExplicitRecoveryTransition` is checked, and the transition rules are embedded directly in control flow.  \n**Suggestion:** Move the expected lifecycle transition map to a module-level constant, e.g. `EXISTING_IMPLEMENTATION_REVALIDATION_CHANGES`, alongside the entrypoint constants. This keeps transition policy data colocated and avoids recreating the map per validation.",
+      "evidenceRefs": [
+        "impl-review.json#5ba5cfd3ea6549a5f6c767ea932af8e6bb6acfbb37cb20a3f9f21c6e45dc54a3"
+      ]
+    },
+    {
+      "findingId": "c81f81d40ea8e036d6681262cca34dd715ed03d513e85d3f7e012e2583819ad2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R2  \n**Issue:** `\"impl-repair-invalidation\"` is still used as a raw string in `isStepTransition`, while the new entrypoint uses a named constant. This creates inconsistent naming and increases typo risk.  \n**Suggestion:** Introduce `const IMPL_REPAIR_INVALIDATION_ENTRYPOINT = \"impl-repair-invalidation\";` and use it in both validation and `isStepTransition`.",
+      "evidenceRefs": [
+        "impl-review.json#c81f81d40ea8e036d6681262cca34dd715ed03d513e85d3f7e012e2583819ad2"
+      ]
+    },
+    {
+      "findingId": "95dcf84c6a24e783f6e08f75f8de507e811a9ad86ab651a16507b109639c51ba",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R4  \n**Issue:** Supported recovery entrypoints are effectively defined in multiple places: the validation `if/else` chain and the `isStepTransition` allowlist. Adding another entrypoint requires updating both locations manually.  \n**Suggestion:** Add a module-level `SUPPORTED_RECOVERY_ENTRYPOINTS` set and use it in `isStepTransition`. If the validation branches remain explicit, this still centralizes the public allowlist and makes future additions less error-prone.",
+      "evidenceRefs": [
+        "impl-review.json#95dcf84c6a24e783f6e08f75f8de507e811a9ad86ab651a16507b109639c51ba"
+      ]
+    },
+    {
+      "findingId": "cd7b1e6189a30c61ff562b6e9ea38061f0f7e8c3085e51b81fb11fb6e7244649",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** The new `recover-existing-implementation` registry entry repeats the same `flags`, `options`, `--agent-work-dir` help line, and `FLOW_TARGET_GUARD_HELP_LINES` structure used by nearby flow-run commands. This increases drift risk when shared CLI help or guard options change.  \n**Suggestion:** Add a small local helper for flow-run commands that require `FLOW_TARGET_GUARD_FLAGS` and `FLOW_RUN_OPTIONS`, then pass only the command-specific usage, summary, and import target.",
+      "evidenceRefs": [
+        "impl-review.json#cd7b1e6189a30c61ff562b6e9ea38061f0f7e8c3085e51b81fb11fb6e7244649"
+      ]
+    },
+    {
+      "findingId": "f3164071a9fbc6e8ad36048f4b7ab12e4be324fdebf57e9f00e37036ba4b9f5a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** The help description is a very long sentence with several stacked domain terms: `post-acceptance-rewind scenario-validity preflight block`, `post-implementation test execution`, and `implementation-target changes`. This makes CLI help harder to scan and maintain.  \n**Suggestion:** Split the description into two shorter lines, for example one line stating what transition is recorded and one line listing the required evidence/guards. Keep the terminology, but reduce the single dense sentence.",
+      "evidenceRefs": [
+        "impl-review.json#f3164071a9fbc6e8ad36048f4b7ab12e4be324fdebf57e9f00e37036ba4b9f5a"
+      ]
+    },
+    {
+      "findingId": "94b184f058ec52d1fa11bfd38f15ae5e76410257a2784827ca35e064e6918d97",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/finalization-command-resume.test.js`  \n**Requirement:** R7  \n**Issue:** The new fixture writes hand-formatted JSON as a raw string, while the same helper already uses `JSON.stringify(..., null, 2)` for `spec.json`. This creates a small consistency gap and makes future fixture edits easier to mistype.  \n**Suggestion:** Replace the raw string with structured serialization:\n\n```js\nwriteFile(\n  root,\n  path.join(path.dirname(state.spec), \"issue-log.json\"),\n  JSON.stringify({ entries: [] }, null, 2)\n);\n```",
+      "evidenceRefs": [
+        "impl-review.json#94b184f058ec52d1fa11bfd38f15ae5e76410257a2784827ca35e064e6918d97"
+      ]
+    },
+    {
+      "findingId": "8f9640bc72834af16732b5700ea583ac87b4fdf137a2aaab8ebac000d693200a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The first test has a long arrange section that mixes spec creation, flow setup, fingerprint setup, stale evidence setup, and implementation mutation. This makes the behavior under test harder to scan.  \n**Suggestion:** Extract a local helper such as `createRecoverableExistingImplementationFixture()` that returns `{ manager, activeState, specDir }`, keeping the test focused on executing the command and asserting outcomes.",
+      "evidenceRefs": [
+        "impl-review.json#8f9640bc72834af16732b5700ea583ac87b4fdf137a2aaab8ebac000d693200a"
+      ]
+    },
+    {
+      "findingId": "ed4dff6f0690e98bcf8350f05addbe73ef877acf0b722f1e181b67ef21bece7c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** Paths under `specs/${SPEC_ID}` are constructed repeatedly with template strings and `path.join`, which creates small duplication and increases the chance of future path drift.  \n**Suggestion:** Add a small local helper like `specArtifactPath(tmp, ...parts)` or reuse `specDir` consistently for all spec artifact writes and assertions.",
+      "evidenceRefs": [
+        "impl-review.json#ed4dff6f0690e98bcf8350f05addbe73ef877acf0b722f1e181b67ef21bece7c"
+      ]
+    },
+    {
+      "findingId": "9f3c2ebec308932a789547c0a0ac3262366d547e688c7b1c3b4fa7dd95709806",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The new test manually mutates the `scenario-validity` step, reads `scenario-validity-result.json`, changes `result`, and writes it back inline. That setup is specific and likely reusable for other audited skipped precondition cases.  \n**Suggestion:** Extract a small helper in this test file, for example `markScenarioValiditySkippedWithResult(fixture, \"block\")`, to reduce setup noise and make the test’s intent clearer.",
+      "evidenceRefs": [
+        "impl-review.json#9f3c2ebec308932a789547c0a0ac3262366d547e688c7b1c3b4fa7dd95709806"
+      ]
+    },
+    {
+      "findingId": "3885628883f1dae8cbdc32b18ed6f11a205f3b18c30b9746a1d90fc1e8bd9290",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R7  \n**Issue:** The assertion checks `assert.equal(context.mechanicalBlockers.some(...), false)`, which reads indirectly and hides the intended condition.  \n**Suggestion:** Replace it with a clearer negative assertion, such as:\n```js\nassert.ok(\n  !context.mechanicalBlockers.some((blocker) => blocker.kind === \"failed_tests\"),\n);\n```\nor assign the boolean to a named variable like `hasFailedTestBlocker` before asserting.",
+      "evidenceRefs": [
+        "impl-review.json#3885628883f1dae8cbdc32b18ed6f11a205f3b18c30b9746a1d90fc1e8bd9290"
+      ]
+    },
+    {
+      "findingId": "a4d644ca14254ecaa9a7f54080efee7466cc6202b3a5628d797ca349a1d6531f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R3  \n**Issue:** Both `spec.json` and `spec.md` use `unsent` and `pending` for failed delivery states without a shared definition, so implementations and tests may encode different meanings.  \n**Suggestion:** Add one canonical definition for `unsent` vs `pending` in the spec, then mirror that wording in both `spec.md` and `spec.json`.",
+      "evidenceRefs": [
+        "impl-review.json#a4d644ca14254ecaa9a7f54080efee7466cc6202b3a5628d797ca349a1d6531f"
+      ]
+    },
+    {
+      "findingId": "af760e37ce3482734f89a924f017c2ed42e845b54c950b80b1d6a93868f84b66",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/spec.md`  \n**Requirement:** R6  \n**Issue:** The spec refers to `ReportBinding` as a standalone module, while implementation review points to `ReportBinding` inside `src/flow/commands/report.js`. This creates ambiguity about whether `ReportBinding` is a concrete module, class, or behavior area.  \n**Suggestion:** Name the concrete owner consistently, for example `ReportBinding in src/flow/commands/report.js`, or rename the spec concept to match the implementation boundary.",
+      "evidenceRefs": [
+        "impl-review.json#af760e37ce3482734f89a924f017c2ed42e845b54c950b80b1d6a93868f84b66"
+      ]
+    },
+    {
+      "findingId": "46527263a0445ff08d25198ef2a53ac902b30566a07cc29c93550e364ade29a5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js`  \n**Requirement:** R6  \n**Issue:** Multiple test files independently construct spec-relative artifact paths such as `issue-log.json`, `report.json`, and `specs/${SPEC_ID}` paths. This duplicates path knowledge across spec tests and unit tests.  \n**Suggestion:** Introduce shared or locally consistent helpers like `specDirFor(...)`, `specArtifactPath(...)`, and `issueLogPath(...)`, then use the same naming pattern across the affected test files.",
+      "evidenceRefs": [
+        "impl-review.json#46527263a0445ff08d25198ef2a53ac902b30566a07cc29c93550e364ade29a5"
+      ]
+    },
+    {
+      "findingId": "9e1c7b3e0f2c181645685b4c840ede053a379110bf0e50451f810ff718f92cfe",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/348-report-delivery-fail-closed/tests/recover-existing-implementation.test.js`  \n**Requirement:** R6  \n**Issue:** The spec-level recovery test imports `tests/unit/flow/recover-existing-implementation.test.js` for side effects, while that unit test also has its own setup and assertions. This can duplicate test execution and blur ownership between requirement coverage and unit coverage.  \n**Suggestion:** Remove the side-effect import and keep shared setup in explicit helpers if needed, with each test file owning its own assertions.",
+      "evidenceRefs": [
+        "impl-review.json#9e1c7b3e0f2c181645685b4c840ede053a379110bf0e50451f810ff718f92cfe"
+      ]
+    },
+    {
+      "findingId": "a656e6b7a4cf0a9648982ba8d6f930fdce8070acb2b5295849def76b18cbf45b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R4  \n**Issue:** Recovery transition concepts appear across `impl-repair-artifacts.js`, `run-recover-existing-implementation.js`, and `step-transition-policy.js`, but naming varies between generic `transition`, explicit recovery transitions, and entrypoint-specific transition tables.  \n**Suggestion:** Adopt a consistent name such as `recoveryTransition` for values and `RECOVERY_ENTRYPOINTS` / `RECOVERY_TRANSITION_CHANGES` for policy constants across these files.",
+      "evidenceRefs": [
+        "impl-review.json#a656e6b7a4cf0a9648982ba8d6f930fdce8070acb2b5295849def76b18cbf45b"
+      ]
+    }
+  ]
+}

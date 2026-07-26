@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T15:16:07.219Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-other-required-source-artifact-test",
+      "title": "Missing coverage for non-issue-log required source failures",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/348-report-delivery-fail-closed/tests/report-delivery-fail-closed.test.js",
+      "requirementId": "R1",
+      "issue": "The spec-local R1 tests cover corrupt, structurally invalid, and unreadable issue-log.json, and add a malformed present retro.json case, but retro.json is an optional-present artifact under R5 rather than the separate required-source failure named by the T-1 acceptance criteria. There is still no test proving another required report input failure propagates as a report failure.",
+      "suggestion": "Add an R1 test in report-delivery-fail-closed.test.js that makes a non-issue-log required report input unreadable or invalid, invokes RunReportCommand.execute, and asserts the command rejects without writing report.json or otherwise recording success.",
+      "disposition": "must-fix",
+      "rationale": "R1 is mandatory and the T-1 acceptance criteria explicitly require both invalid issue-log failures and other required input failures to propagate. The current added coverage can pass while only the issue-log branch is fail-closed, leaving the broader required-input contract unguarded.",
+      "findingId": "a9144ab02a34b0c9b677911b51c03fc4a54e1b56f63e2344555e966d5bf9b210",
+      "fingerprint": "a9144ab02a34b0c9b677911b51c03fc4a54e1b56f63e2344555e966d5bf9b210",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "c831fbef74afe6bb175023ef611ef567198c25f6e45ede41a798f0f6570a7d8d",
+  "runId": "a6f43e4b-1e98-48ce-8e37-9c9672c6fd20",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/348-report-delivery-fail-closed/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/348-report-delivery-fail-closed/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "317e5af0f0e9858f5687179dd139b66d951aa4805186f216bac417021e2b3d92"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "a9144ab02a34b0c9b677911b51c03fc4a54e1b56f63e2344555e966d5bf9b210",
+      "findingId": "a9144ab02a34b0c9b677911b51c03fc4a54e1b56f63e2344555e966d5bf9b210",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing coverage for non-issue-log required source failures",
+      "body": "The spec-local R1 tests cover corrupt, structurally invalid, and unreadable issue-log.json, and add a malformed present retro.json case, but retro.json is an optional-present artifact under R5 rather than the separate required-source failure named by the T-1 acceptance criteria. There is still no test proving another required report input failure propagates as a report failure.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "a9144ab02a34b0c9b677911b51c03fc4a54e1b56f63e2344555e966d5bf9b210",
+      "disposition": "must-fix",
+      "rationale": "R1 is mandatory and the T-1 acceptance criteria explicitly require both invalid issue-log failures and other required input failures to propagate. The current added coverage can pass while only the issue-log branch is fail-closed, leaving the broader required-input contract unguarded.",
+      "requirementId": "R1",
+      "repeatCount": 2
+    }
+  ]
+}
