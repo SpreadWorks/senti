@@ -436,25 +436,38 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
+              "status": "done",
               "startedAt": "2026-07-26T03:25:41.461Z",
               "runtimeLog": {
                 "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
-                "sequence": 481,
+                "sequence": 489,
                 "attempt": 1,
                 "command": "flow run finalize-merge",
-                "startedAt": "2026-07-26T03:25:52.187Z",
-                "endedAt": "2026-07-26T03:25:58.007Z",
-                "exitCode": 1
-              }
+                "startedAt": "2026-07-26T03:31:35.073Z",
+                "endedAt": "2026-07-26T03:31:39.924Z",
+                "exitCode": 0
+              },
+              "finishedAt": "2026-07-26T03:31:39.656Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-07-26T03:31:39.656Z",
+              "finishedAt": "2026-07-26T03:32:52.947Z",
+              "runtimeLog": {
+                "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-07-26T03:31:51.858Z",
+                "endedAt": "2026-07-26T03:32:53.149Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "in_progress",
+              "startedAt": "2026-07-26T03:32:52.947Z"
             }
           ]
         }
@@ -3268,10 +3281,43 @@
       "taskId": null,
       "stepId": "finalize-merge",
       "operation": "finalize-merge",
-      "status": "pending",
+      "status": "done",
       "attempt": 2,
       "startedAt": "2026-07-26T03:31:35.162Z",
-      "updatedAt": "2026-07-26T03:31:35.162Z"
+      "updatedAt": "2026-07-26T03:31:39.867Z",
+      "result": {
+        "status": "done",
+        "strategy": "squash",
+        "mergedFromSha": "ccecf206ee6d3b9717e3c4426f617aa6bf200c82"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:8a10af8a-1919-41a0-ba6c-d4ccd6fc9739:flow:finalize-sync:finalize-sync",
+      "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+      "taskId": null,
+      "stepId": "finalize-sync",
+      "operation": "finalize-sync",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-26T03:31:51.933Z",
+      "updatedAt": "2026-07-26T03:32:53.110Z",
+      "result": {
+        "status": "done",
+        "diffStat": ".senti/output/analysis.json  | 326 ++++++++++++++++++++++++++-----------------\n docs/ja/project_structure.md |   2 +-\n docs/project_structure.md    |   2 +-\n 3 files changed, 200 insertions(+), 130 deletions(-)",
+        "diffSummary": ".senti/output/analysis.json\ndocs/ja/project_structure.md\ndocs/project_structure.md"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:8a10af8a-1919-41a0-ba6c-d4ccd6fc9739:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "failed",
+      "attempt": 3,
+      "startedAt": "2026-07-26T03:37:22.568Z",
+      "updatedAt": "2026-07-26T03:37:28.526Z",
+      "failure": "git commit failed: fatal: cannot do a partial commit during a merge.\n"
     }
   ],
   "issue": 469,
@@ -7150,6 +7196,27 @@
       "delta": 1,
       "taskId": null,
       "ts": "2026-07-26T03:26:19.005Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-26T03:35:06.821Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-26T03:36:15.992Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-26T03:36:57.120Z"
     }
   ],
   "reviewConvergence": {
@@ -21511,6 +21578,8 @@
     "updatedAt": "2026-07-26T03:14:29.885Z"
   },
   "state": {
-    "finalizedAt": "2026-07-26T03:25:40.095Z"
+    "finalizedAt": "2026-07-26T03:25:40.095Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "ccecf206ee6d3b9717e3c4426f617aa6bf200c82"
   }
 }

@@ -3311,6 +3311,54 @@
       "taskId": null,
       "timestamp": "2026-07-26T03:26:18.684Z",
       "issueLogId": "issue-log-ed36943d-345a-486e-a15b-ea06256f7f6d"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "finalize tree before-image exceeds the byte bound",
+      "timestamp": "2026-07-26T03:33:42.849Z",
+      "issueLogId": "issue-log-e863fd2c-b07b-432b-b563-7a1b5bcf97cc"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Finalize cleanup cannot journal the merged 9.8 MiB spec tree because its 8 MiB before-image cap is too small.",
+      "trigger": "finalize-cleanup stopped before teardown with 'finalize tree before-image exceeds the byte bound'.",
+      "resolution": "Use a temporary 16 MiB transaction journal cap to preserve the full before-image and finish this already-merged flow.",
+      "guardrailCandidate": "Finalize cleanup capacity must cover durable reports and all retained raw regression logs, or fail before merge.",
+      "taskId": null,
+      "timestamp": "2026-07-26T03:35:06.666Z",
+      "issueLogId": "issue-log-79738b06-ee59-4969-bdc5-1ca68b8f72bf"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Plugin finalize-cleanup lifecycle failed: plugin hook workflow/hooks/finalize-cleanup.js failure policy must be required or advisory: missing",
+      "timestamp": "2026-07-26T03:35:25.672Z",
+      "issueLogId": "issue-log-8e3c7771-7f1b-4b1b-bad3-f2dd4136946c"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Finalize cleanup post-hook loads the main repository workflow plugin, whose hook class lacks failurePolicy.",
+      "trigger": "PLUGIN_LIFECYCLE_FAILED: workflow/hooks/finalize-cleanup.js failure policy is missing in the main repository plugin.",
+      "resolution": "Worktree plugin metadata is correct, but cleanup requires synchronizing the main repository plugin before retrying.",
+      "guardrailCandidate": "Finalize cleanup must validate the main-repository plugin snapshot before merge and before teardown.",
+      "taskId": null,
+      "timestamp": "2026-07-26T03:36:15.848Z",
+      "issueLogId": "issue-log-12408f88-e5b7-474d-b0f8-3b2e7ae57fd0"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Use the worktree snapshot for the cleanup post-hook because the merged main plugin installation is stale.",
+      "trigger": "Main repository plugin discovery rejected its missing failurePolicy after squash merge.",
+      "resolution": "Keep the post-hook execution within the active worktree while the cleanup transaction still targets the main repository.",
+      "guardrailCandidate": "Cleanup plugin lifecycle should resolve policy metadata from the active flow snapshot, not mutable main plugin installation.",
+      "taskId": null,
+      "timestamp": "2026-07-26T03:36:56.957Z",
+      "issueLogId": "issue-log-bfdcd797-98c7-4d6b-b57c-10320e0d3359"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "git commit failed: fatal: cannot do a partial commit during a merge.\n",
+      "timestamp": "2026-07-26T03:37:28.571Z",
+      "issueLogId": "issue-log-02b2c6c8-2beb-4589-a71e-4f1b2f05d833"
     }
   ]
 }
