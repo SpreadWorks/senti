@@ -142,9 +142,14 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
       const recorded = await new RunFinalRegressionCommand().execute({
         ...ctx,
         recordAndProceed: true,
-        recordAndProceedCategory: "out_of_scope",
-        recordAndProceedEvidence: "User approved recording this unrelated regression failure.",
-        remainingRisk: "The full regression remains red for the recorded unrelated failure.",
+        recordAndProceedEvidence: {
+          category: "out_of_scope",
+          evidence: "User approved recording this unrelated regression failure.",
+          failureClassification: "out_of_scope",
+          operatorJustification: "The failure is outside the requested change scope.",
+          remainingRisk: "The full regression remains red for the recorded unrelated failure.",
+          executionBinding: failed.executionBinding,
+        },
       });
       const artifact = readArtifact(tmp);
 

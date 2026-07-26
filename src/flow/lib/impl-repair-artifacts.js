@@ -1529,25 +1529,11 @@ export function completeLateAppliedFindingRepair({
     throw new Error("late applied-finding repair changed paths must be non-empty");
   }
   const reason = `Late repair evidence recorded for findings ${appliedFindingIds.join(", ")}.`;
-  const invalidations = planRepairInvalidation({
-    specDir: resolvedSpecDir,
-    currentFingerprint: current,
-    previousFingerprint: previous,
-    reason,
-  });
-  const testExecutionAlreadyInvalidated = findStepById(activeState.steps || [], "test-execute")?.status === "in_progress";
-  if (invalidations.length === 0 && testExecutionAlreadyInvalidated) {
-    // A prior repair already removed downstream evidence; replace its stale
-    // fingerprint manifest as the durable invalidation for this new ledger entry.
-    invalidations.push(new InvalidatedArtifactRecord({
-      path: REPAIR_FINGERPRINT_MANIFEST_FILE,
-      reason: `${reason} (superseded_repair_fingerprint)`,
-      previousFingerprint: previous.hash,
-    }));
-  }
-  if (invalidations.length === 0) {
-    throw new Error("late applied-finding repair must invalidate stale test evidence");
-  }
+  const invalidations = [new InvalidatedArtifactRecord({
+    path: EVIDENCE_FILE_BY_STEP["impl-gate"],
+    reason: `${reason} (late_repair_evidence_recorded)`,
+    previousFingerprint: previous.hash,
+  })];
   const id = `repair-${String(existing.entries.length + 1).padStart(3, "0")}`;
   const delta = ledgerPreviousHash === previous.hash
     ? repairDeltaArtifact({ id, previous, current, changedPaths })

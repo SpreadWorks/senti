@@ -215,11 +215,13 @@ describe("set step impl-repair completion", () => {
     const flowManager = {
       load: () => state,
       loadReadOnly: () => state,
-      updateStepStatus(transition, _options, intent) {
-        transitions.push(transition);
+      updateStepStatuses(nextTransitions, _options, intent) {
+        transitions.push(...nextTransitions);
         intent.assertBeforeTransition(state);
-        for (const change of transition.changes || []) {
-          findStepById(state.steps, change.stepId).status = change.requestedStatus;
+        for (const transition of nextTransitions) {
+          for (const change of transition.changes || []) {
+            findStepById(state.steps, change.stepId).status = change.requestedStatus;
+          }
         }
         intent.applyTo(state);
       },
@@ -327,10 +329,12 @@ describe("set step impl-repair completion", () => {
     })];
     const flowManager = {
       load: () => state,
-      updateStepStatus(transition, _options, intent) {
+      updateStepStatuses(nextTransitions, _options, intent) {
         intent.assertBeforeTransition(state);
-        for (const change of transition.changes || []) {
-          findStepById(state.steps, change.stepId).status = change.requestedStatus;
+        for (const transition of nextTransitions) {
+          for (const change of transition.changes || []) {
+            findStepById(state.steps, change.stepId).status = change.requestedStatus;
+          }
         }
         intent.applyTo(state);
       },
