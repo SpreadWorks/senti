@@ -4,6 +4,7 @@ import { DirectFlowSession } from "../flow/lib/direct-flow-session.js";
 import { DirectResolutionPlan } from "../flow/lib/direct-resolution-plan.js";
 import {
   DirectAbortReceipt,
+  DirectAbortReceiptHistory,
   DirectCompletionReceipt,
   DirectGitEvidence,
   DirectIntegrationReceipt,
@@ -158,6 +159,9 @@ export class FlowState {
     const abortReceipt = value.directAbortReceipt == null
       ? null
       : DirectAbortReceipt.fromStored(value.directAbortReceipt);
+    const abortHistory = value.directAbortHistory == null
+      ? DirectAbortReceiptHistory.fromStored()
+      : DirectAbortReceiptHistory.fromStored(value.directAbortHistory);
     const reconcileEvidence = value.directReconcileEvidence == null
       ? null
       : DirectGitEvidence.fromStored(value.directReconcileEvidence);
@@ -172,6 +176,10 @@ export class FlowState {
     invariant(
       abortReceipt == null || directPlan != null,
       "direct abort receipt requires a direct resolution plan",
+    );
+    invariant(
+      abortHistory.receipts.length === 0 || directPlan != null,
+      "direct abort receipt history requires a direct resolution plan",
     );
     invariant(
       reconcileEvidence == null || directPlan != null,
@@ -206,6 +214,15 @@ export class FlowState {
           && abortReceipt.planRevision === directPlan.revision
         ),
       "direct abort receipt does not match Flow identity",
+    );
+    invariant(
+      abortHistory.receipts.every((receipt) => (
+        receipt.runId === value.runId
+        && receipt.spec === value.spec
+        && receipt.planId === directPlan.planId
+        && receipt.planRevision < directPlan.revision
+      )),
+      "direct abort receipt history does not match prior Flow plan revisions",
     );
     if (revision) {
       const identity = revision.identity;

@@ -1085,7 +1085,7 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --action <id>         Stable action ID from the CLI UserActionPrompt.",
-        "  --reason <text>       Required for risk acceptance or explicit abort rationale.",
+        "  --reason <text>       Required for risk acceptance, abort, or reopening a retained abort.",
         "  --scope <paths>       Optional additional paths; current Flow changes are discovered automatically.",
         "  --source <manual>      Record explicit user-selection provenance.",
         "  --test-command <cmd>  Optional override; recorded Flow or project test command is used by default.",

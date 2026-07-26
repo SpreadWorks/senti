@@ -21,6 +21,8 @@ Use this skill when context has been lost (e.g. after compaction) and you need t
 3. Read `spec.json` from the selected worktree when `worktreePath` is present, otherwise from `mainRepoPath`. Treat `spec.md` as a generated human-readable view only.
 
 4. Tell the user the exact step to resume from, and the skill to invoke:
+   - When `directFlowSession` is present, follow `recommendedSkill` and run `/senti.flow-direct`.
+     Direct state takes precedence over the normal `phase`, including `ABORTED`.
    - Mainline phases (`plan` / `impl` / `finalize`) → run `/senti.flow`.
    - `sync` → run `/senti.flow-sync`.
 

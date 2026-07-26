@@ -497,6 +497,28 @@ export class DirectFlowSession {
     });
   }
 
+  reopenAfterAbort(plan, reason) {
+    if (this.phase !== "ABORTED" || this.completion?.completionMode !== "aborted") {
+      throw new Error("only an aborted direct session can be reopened");
+    }
+    if (!plan?.planId || !plan?.revision) throw new Error("reopened direct session requires a plan");
+    return new DirectFlowSession({
+      ...this.toJSON(),
+      phase: "DIRECT_FIX",
+      revision: this.revision + 1,
+      target: plan.target.toJSON(),
+      transitionReason: requireString(reason, "direct reopen reason"),
+      selectionSource: "manual",
+      adoptedActionId: "REOPEN_ABORTED_DIRECT",
+      updatedAt: new Date().toISOString(),
+      planId: plan.planId,
+      planRevision: plan.revision,
+      verificationAttempts: 0,
+      suspendedFrom: null,
+      completion: null,
+    });
+  }
+
   toJSON() {
     return {
       phase: this.phase,

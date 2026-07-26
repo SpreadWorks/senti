@@ -206,6 +206,26 @@ export class DirectResolutionPlan {
     });
   }
 
+  withRecoveryTarget(target) {
+    const refreshed = DirectFlowTarget.fromStored(target);
+    if (
+      refreshed.runId !== this.target.runId
+      || refreshed.issue !== this.target.issue
+      || refreshed.spec !== this.target.spec
+      || refreshed.worktreePath !== this.target.worktreePath
+      || refreshed.featureBranch !== this.target.featureBranch
+      || refreshed.baseBranch !== this.target.baseBranch
+      || refreshed.flowStateRevision !== this.originFlowStateRevision
+    ) {
+      throw new Error("direct recovery target must preserve the original Flow identity");
+    }
+    return new DirectResolutionPlan({
+      ...this.toJSON(),
+      revision: this.revision + 1,
+      target: refreshed,
+    });
+  }
+
   toJSON() {
     return {
       planId: this.planId,

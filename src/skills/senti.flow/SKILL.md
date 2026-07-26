@@ -60,7 +60,8 @@ Run bare `senti flow get status` first. This is a display and branch-decision ch
 
 - If the user's latest request explicitly invokes Spec-Driven Development flow, explicitly requests starting the flow, or provides an Issue/spec target as part of a flow-start instruction → go to **B. Prelude**.
 - If the user's latest request is to continue the current active flow and `active: true` → go to **C. Dispatcher loop**.
-- If `active: false` and there is no explicit flow-start request → tell the user there is no active flow and stop. Do not start the flow, and do not present a mandatory startup choice for ordinary requests.
+- If `active: false` and `directFlowSession` is present → tell the user normal Flow is not authoritative and invoke `/senti.flow-direct` for the exact target. Do not route by the stale normal phase.
+- If `active: false` and there is no explicit flow-start request or direct session → tell the user there is no active flow and stop. Do not start the flow, and do not present a mandatory startup choice for ordinary requests.
 
 ### B. Prelude (pre-flow setup)
 

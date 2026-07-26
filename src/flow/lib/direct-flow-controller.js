@@ -25,6 +25,7 @@ import {
 import { DirectVerificationCommandResolver } from "./direct-verification-command.js";
 import {
   DirectAbortReceipt,
+  DirectAbortReceiptHistory,
   DirectGitEvidence,
 } from "./direct-completion.js";
 import { inspectPersistedIntegrationReceipt } from "./direct-integration-evidence.js";
@@ -180,6 +181,7 @@ function originatingFlowState(state) {
     "directIntegrationReceipt",
     "directCompletionReceipt",
     "directAbortReceipt",
+    "directAbortHistory",
     "directReconcileEvidence",
   ]) {
     delete source[key];
@@ -412,6 +414,61 @@ function captureDirectTarget(ctx, state) {
   });
 }
 
+function captureDirectRecoveryTarget(ctx, state, session, plan) {
+  const managed = managedTargetContext(ctx, state);
+  const featureHead = gitValue(
+    ["-C", managed.mainRoot, "rev-parse", `refs/heads/${state.featureBranch}`],
+    "direct recovery feature HEAD could not be resolved",
+  );
+  const worktreeHead = gitValue(
+    ["-C", managed.worktreePath, "rev-parse", "HEAD"],
+    "direct recovery worktree HEAD could not be resolved",
+  );
+  const branch = gitValue(
+    ["-C", managed.worktreePath, "branch", "--show-current"],
+    "direct recovery worktree branch could not be resolved",
+  );
+  const ancestry = runGit([
+    "-C",
+    managed.mainRoot,
+    "merge-base",
+    "--is-ancestor",
+    session.target.featureHead,
+    featureHead,
+  ]).ok;
+  const originMatches = flowStateRevisionDigest(originatingFlowState(state))
+    === plan.originFlowStateRevision;
+  if (
+    managed.worktreePath !== session.target.worktreePath
+    || featureHead !== worktreeHead
+    || branch !== state.featureBranch
+    || !ancestry
+    || !originMatches
+  ) {
+    throw Object.assign(new Error(
+      "direct recovery target changed after abort; retained work was not reopened",
+    ), {
+      code: "DIRECT_RECOVERY_TARGET_CHANGED",
+      data: {
+        expectedWorktreePath: session.target.worktreePath,
+        worktreePath: managed.worktreePath,
+        featureHead,
+        worktreeHead,
+        branch,
+        ancestry,
+        originMatches,
+      },
+    });
+  }
+  return new DirectFlowTarget({
+    ...session.target.toJSON(),
+    bindingRevision: managed.binding.revision,
+    activeRegistryRevision: managed.registry.revision,
+    featureHead,
+    flowStateRevision: plan.originFlowStateRevision,
+  });
+}
+
 function implementationReached(state) {
   const implement = findStepById(state.steps || [], "implement");
   return implement != null && ["in_progress", "done", "skipped"].includes(implement.status);
@@ -629,6 +686,35 @@ function appendPlanIssueLog({ root, state, plan, mainRoot, operationOwnerToken =
     timestamp: plan.transitionAt,
     taskId: null,
   }, planIssueLogId(plan));
+}
+
+function appendAbortRecoveryIssueLog({
+  root,
+  state,
+  plan,
+  abortReceipt,
+  reason,
+  mainRoot,
+  operationOwnerToken = null,
+}) {
+  return new IssueLogStore({
+    root,
+    mainRoot,
+    spec: state.spec,
+    operationOwnerToken,
+  }).append({
+    step: "direct-recovery",
+    reason,
+    trigger: "REOPEN_ABORTED_DIRECT",
+    resolution: "Archived the abort receipt and reopened the retained target for bounded verification.",
+    runId: state.runId,
+    planId: plan.planId,
+    planRevision: plan.revision,
+    abortReceiptId: abortReceipt.receiptId,
+    sourceStep: plan.sourceStep,
+    timestamp: new Date().toISOString(),
+    taskId: null,
+  }, `direct-recovery:${state.runId}:${abortReceipt.receiptId}:r${plan.revision}`);
 }
 
 function explicitSelectionSource(input) {
@@ -1341,7 +1427,7 @@ function activeDirectPrompt(ctx, state) {
     return promptResult({
       code: "SUSPENDED",
       state,
-      question: "This repair is paused and its worktree and branch are still available.",
+      question: "This direct handling is paused and its worktree and branch are still available.",
       choices: [
         choice({
           actionId: "RESUME_DIRECT",
@@ -1350,7 +1436,7 @@ function activeDirectPrompt(ctx, state) {
           stateTransition: `SUSPENDED -> ${session.suspendedFrom}`,
           impact: {
             retains: ["Flow state", "worktree", "feature branch", "artifacts"],
-            changes: ["active Flow entry", "recovery progress"],
+            changes: ["recovery progress"],
           },
         }),
         choice({
@@ -1365,7 +1451,7 @@ function activeDirectPrompt(ctx, state) {
         }),
         choice({
           actionId: "KEEP_FLOW_STATE",
-          label: "Keep the Flow parked",
+          label: "Keep the Flow suspended",
           nextAction: commandFor(state, "get status --details"),
           impact: { retains: ["Flow state", "worktree", "feature branch", "artifacts"] },
         }),
@@ -1378,8 +1464,21 @@ function activeDirectPrompt(ctx, state) {
     return promptResult({
       code: "ABORTED",
       state,
-      question: "Direct handling is aborted and no merge or cleanup ran. What should happen to the retained target?",
+      question: "Direct handling is aborted, but its retained target can be reopened for a new bounded verification cycle.",
       choices: [
+        choice({
+          actionId: "REOPEN_ABORTED_DIRECT",
+          label: "Reopen the retained target and continue direct verification",
+          nextAction: commandFor(
+            state,
+            'run direct --action REOPEN_ABORTED_DIRECT --reason "<reason>"',
+          ),
+          stateTransition: "ABORTED -> DIRECT_FIX",
+          impact: {
+            retains: ["worktree", "feature branch", "unapplied changes", "abort receipt history"],
+            changes: ["direct plan revision", "verification attempt budget", "recovery progress"],
+          },
+        }),
         choice({
           actionId: "KEEP_ABORTED_TARGET",
           label: "Keep the worktree and branch for manual disposition",
@@ -1394,9 +1493,12 @@ function activeDirectPrompt(ctx, state) {
           reason: "Deletion is deliberately separate and is never inferred from abort.",
         }),
       ],
-      recommendedActionId: "KEEP_ABORTED_TARGET",
-      recommendationReason: "Abort is a non-success terminal result and must not delete unapplied work.",
-      details: { abortReceipt: state.directAbortReceipt || null },
+      recommendedActionId: "REOPEN_ABORTED_DIRECT",
+      recommendationReason: "The exact worktree, branch, plan, and abort receipt are available for guarded recovery.",
+      details: {
+        abortReceipt: state.directAbortReceipt || null,
+        abortHistory: state.directAbortHistory || null,
+      },
     });
   }
   return {
@@ -1809,6 +1911,79 @@ function returnToDirectFix(authority) {
   return authority.flowManager.load(authority.specId);
 }
 
+function reopenAbortedDirect(authority, input) {
+  const state = authority.flowManager.load(authority.specId);
+  const session = DirectFlowSession.fromStored(state.directFlowSession);
+  if (session.phase !== "ABORTED") {
+    throw Object.assign(new Error(`direct reopen is unavailable from ${session.phase}`), {
+      code: "DIRECT_PHASE_MISMATCH",
+    });
+  }
+  const reason = String(input.reason || "").trim();
+  if (reason.length < 10) {
+    throw Object.assign(new Error("direct reopen requires an explicit reason of at least 10 characters"), {
+      code: "DIRECT_REOPEN_REASON_REQUIRED",
+    });
+  }
+  if (state.directCompletionReceipt || state.directIntegrationReceipt) {
+    throw Object.assign(new Error(
+      "direct reopen is unavailable after completion or integration evidence exists",
+    ), { code: "DIRECT_RECOVERY_INTEGRATION_CONFLICT" });
+  }
+  const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
+  const abortReceipt = DirectAbortReceipt.fromStored(state.directAbortReceipt);
+  if (
+    abortReceipt.runId !== state.runId
+    || abortReceipt.issue !== (state.issue ?? null)
+    || abortReceipt.spec !== state.spec
+    || abortReceipt.planId !== plan.planId
+    || abortReceipt.planRevision !== plan.revision
+    || session.planId !== plan.planId
+    || session.planRevision !== plan.revision
+  ) {
+    throw Object.assign(new Error(
+      "direct abort receipt, session, and plan identities do not match",
+    ), { code: "DIRECT_RECOVERY_IDENTITY_MISMATCH" });
+  }
+  const target = captureDirectRecoveryTarget(authority, state, session, plan);
+  const revisedPlan = plan.withRecoveryTarget(target);
+  const reopened = session.reopenAfterAbort(revisedPlan, reason);
+  const abortHistory = DirectAbortReceiptHistory
+    .fromStored(state.directAbortHistory)
+    .append(abortReceipt);
+  authority.flowManager.mutate((current) => {
+    const durableSession = DirectFlowSession.fromStored(current.directFlowSession);
+    const durablePlan = DirectResolutionPlan.fromStored(current.directResolutionPlan);
+    const durableAbort = DirectAbortReceipt.fromStored(current.directAbortReceipt);
+    if (
+      durableSession.phase !== "ABORTED"
+      || durableSession.revision !== session.revision
+      || durablePlan.planId !== plan.planId
+      || durablePlan.revision !== plan.revision
+      || durableAbort.receiptId !== abortReceipt.receiptId
+    ) {
+      throw Object.assign(new Error("direct recovery state changed before reopen"), {
+        code: "DIRECT_CAS_CONFLICT",
+      });
+    }
+    current.directResolutionPlan = revisedPlan.toJSON();
+    current.directFlowSession = reopened.toJSON();
+    current.directAbortHistory = abortHistory.toJSON();
+    delete current.directAbortReceipt;
+  }, directMutationOptions(authority, { expectedOriginal: state }));
+  const persisted = authority.flowManager.load(authority.specId);
+  appendAbortRecoveryIssueLog({
+    root: target.worktreePath,
+    mainRoot: authority.mainRoot,
+    state: persisted,
+    plan: revisedPlan,
+    abortReceipt,
+    reason,
+    operationOwnerToken: authority.repositoryOperationOwnerToken,
+  });
+  return authority.flowManager.load(authority.specId);
+}
+
 function transitionTerminal(authority, phase, input) {
   const state = authority.flowManager.load(authority.specId);
   const session = DirectFlowSession.fromStored(state.directFlowSession);
@@ -1853,7 +2028,7 @@ function transitionTerminal(authority, phase, input) {
     current.directFlowSession = next.toJSON();
     if (abortReceipt) current.directAbortReceipt = abortReceipt.toJSON();
   }, directMutationOptions(authority, { expectedOriginal: state }));
-  if (phase === "SUSPENDED") {
+  if (phase === "SUSPENDED" && !state.state?.finalizedAt) {
     const identity = directIdentityExpectation(state);
     const { ParkedFlowIdentity } = authority.parkTypes;
     const worktreeManager = authority.flowManager.forRoot(session.target.worktreePath, {
@@ -1874,13 +2049,15 @@ function resumeDirectSession(authority) {
       code: "DIRECT_PHASE_MISMATCH",
     });
   }
-  const worktreeManager = authority.flowManager.forRoot(session.target.worktreePath, {
-    specId: authority.specId,
-  });
-  const identity = new authority.parkTypes.ParkedFlowIdentity(directIdentityExpectation(state));
-  worktreeManager.resumeParkedFlow(identity, {
-    operationOwnerToken: authority.repositoryOperationOwnerToken,
-  });
+  if (!state.state?.finalizedAt) {
+    const worktreeManager = authority.flowManager.forRoot(session.target.worktreePath, {
+      specId: authority.specId,
+    });
+    const identity = new authority.parkTypes.ParkedFlowIdentity(directIdentityExpectation(state));
+    worktreeManager.resumeParkedFlow(identity, {
+      operationOwnerToken: authority.repositoryOperationOwnerToken,
+    });
+  }
   const resumed = session.transition(session.suspendedFrom);
   authority.flowManager.mutate((current) => {
     const durable = DirectFlowSession.fromStored(current.directFlowSession);
@@ -2015,7 +2192,7 @@ async function runDirectFlowActionOwned(ctx, input) {
       "The direct Flow is already complete; no state was changed.",
     );
   }
-  if (currentSession.phase === "ABORTED") {
+  if (currentSession.phase === "ABORTED" && action !== "REOPEN_ABORTED_DIRECT") {
     const prompt = activeDirectPrompt(authority, state);
     return stoppedEnvelope(
       "run",
@@ -2110,6 +2287,10 @@ async function runDirectFlowActionOwned(ctx, input) {
   if (action === "RETURN_TO_DIRECT_FIX") {
     const returned = returnToDirectFix(authority);
     return activeDirectPrompt(authority, returned);
+  }
+  if (action === "REOPEN_ABORTED_DIRECT") {
+    const reopened = reopenAbortedDirect(authority, input);
+    return activeDirectPrompt(authority, reopened);
   }
   if (action === "SUSPEND_DIRECT") {
     const suspended = transitionTerminal(authority, "SUSPENDED", input);

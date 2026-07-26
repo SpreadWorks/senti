@@ -1157,10 +1157,16 @@ function validateHookClass(HookClass, label) {
   return new FlowCommandHookFailurePolicy(HookClass.failurePolicy, `plugin hook ${label} failure policy`);
 }
 
-function validateHookSnapshot(snapshot) {
-  for (const plan of snapshot) {
-    new FlowCommandHookFailurePolicy(plan.failurePolicy, `snapshot hook ${plan.pluginId}/${plan.module} failure policy`);
-  }
+function normalizeHookSnapshot(snapshot) {
+  return snapshot.map((plan) => {
+    const failurePolicy = new FlowCommandHookFailurePolicy(
+      Object.hasOwn(plan, "failurePolicy") ? plan.failurePolicy : "required",
+      `snapshot hook ${plan.pluginId}/${plan.module} failure policy`,
+    );
+    return plan.failurePolicy === failurePolicy.value
+      ? plan
+      : { ...plan, failurePolicy: failurePolicy.value };
+  });
 }
 
 export async function discoverFlowCommandHooks(root = repoRoot()) {
@@ -1360,7 +1366,7 @@ function isEnvelopeLike(value) {
 
 export async function runFlowCommandHooks(root, snapshot, { command, hook, flow = {}, result = {} } = {}) {
   try {
-    validateHookSnapshot(snapshot);
+    snapshot = normalizeHookSnapshot(snapshot);
   } catch (error) {
     throw new FlowCommandHookIntegrityError(error);
   }

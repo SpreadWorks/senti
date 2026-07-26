@@ -44,6 +44,14 @@ function gitValue(args, label) {
   return result.stdout.trim();
 }
 
+function hasOnlyTargetFlowArtifacts(statusOutput, specId) {
+  const artifactRoot = `specs/${specId}/`;
+  const entries = statusOutput.split("\0").filter(Boolean);
+  return entries.length > 0 && entries.every((entry) => (
+    entry.length > 3 && entry.slice(3).startsWith(artifactRoot)
+  ));
+}
+
 function directStop(state, code, messages, { retryAction = "FINALIZE_DIRECT" } = {}) {
   const guards = guardFlagsForState(state);
   const session = state.directFlowSession
@@ -280,6 +288,9 @@ export class DirectFinalizeAdapter {
     });
     const binding = worktreeManager.snapshotWorktreeBinding(expectation);
     const registry = flowManager.snapshotActiveFlows({ operationOwnerToken });
+    const activeEntry = registry.entries.find((entry) => (
+      entry.spec === specIdFromPath(state.spec) && entry.mode === "worktree"
+    ));
     const featureHead = gitValue(
       ["-C", mainRoot, "rev-parse", `refs/heads/${state.featureBranch}`],
       "direct teardown feature ref could not be resolved",
@@ -300,12 +311,20 @@ export class DirectFinalizeAdapter {
     }
     const expectedFeatureHead = this.completionReceipt.gitEvidence.featureHead;
     const expectedMainHead = this.completionReceipt.gitEvidence.mainHead;
+    const mainAncestry = runGit([
+      "-C",
+      mainRoot,
+      "merge-base",
+      "--is-ancestor",
+      expectedMainHead,
+      mainHead,
+    ]);
     const mismatch = (
       binding.revision !== this.plan.target.bindingRevision
-      || registry.revision !== this.plan.target.activeRegistryRevision
+      || !activeEntry
       || featureHead !== expectedFeatureHead
       || worktreeHead !== expectedFeatureHead
-      || mainHead !== expectedMainHead
+      || !mainAncestry.ok
     );
     if (mismatch) {
       throw Object.assign(new Error(
@@ -315,8 +334,7 @@ export class DirectFinalizeAdapter {
         data: {
           expectedBindingRevision: this.plan.target.bindingRevision,
           activeBindingRevision: binding.revision,
-          expectedRegistryRevision: this.plan.target.activeRegistryRevision,
-          activeRegistryRevision: registry.revision,
+          activeTargetEntry: activeEntry?.toJSON?.() || null,
           expectedFeatureHead,
           featureHead,
           worktreeHead,
@@ -325,7 +343,10 @@ export class DirectFinalizeAdapter {
         },
       });
     }
-    if (status.stdout !== "") {
+    if (
+      status.stdout !== ""
+      && !hasOnlyTargetFlowArtifacts(status.stdout, specIdFromPath(state.spec))
+    ) {
       throw Object.assign(new Error(
         "direct teardown requires a clean worktree with no unapplied changes",
       ), { code: "DIRECT_TEARDOWN_DIRTY" });
@@ -444,6 +465,7 @@ async function cleanupPreparedDirect(authority, mainManager, mainState, receipt,
       mainRoot: authority.mainRoot,
       flowManager: mainManager,
       flowState: mainState,
+      force: true,
       directFinalizeAdapter: adapter,
     });
   } catch (error) {

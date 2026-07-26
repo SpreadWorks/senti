@@ -295,6 +295,7 @@ function buildStatusOutput(state, root, options = {}) {
     ...(state.directResolutionPlan && { directResolutionPlan: state.directResolutionPlan }),
     ...(state.directCompletionReceipt && { directCompletionReceipt: state.directCompletionReceipt }),
     ...(state.directAbortReceipt && { directAbortReceipt: state.directAbortReceipt }),
+    ...(state.directAbortHistory && { directAbortHistory: state.directAbortHistory }),
   };
 
   if (!details) return output;

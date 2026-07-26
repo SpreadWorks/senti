@@ -16,6 +16,7 @@ import {
   finalizationOutboxIdentity,
 } from "../../../src/flow/lib/flow-outbox.js";
 import { FinalizeCleanupStateResolution } from "../../../src/flow/lib/finalize-cleanup-state.js";
+import RunResumeCommand from "../../../src/flow/lib/run-resume.js";
 import {
   ExternalBlockedOutcome,
   StepAttempt,
@@ -285,6 +286,131 @@ test("direct suspend resumes the exact phase and abort retains Git state", async
     assert.deepEqual(stepStatuses(abortedState), initialSteps);
     assert.equal(fs.existsSync(fixture.worktreePath), true);
     assert.notEqual(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");
+    const prompt = getDirectFlowAction(fixture.context());
+    assert.equal(prompt.actionPrompt.recommendedActionId, "REOPEN_ABORTED_DIRECT");
+    assert.equal(
+      prompt.actionPrompt.choices[0].actionId,
+      "REOPEN_ABORTED_DIRECT",
+    );
+    const resume = new RunResumeCommand().execute(fixture.context());
+    assert.equal(resume.completion.completionMode, "aborted");
+    assert.equal(resume.directFlowSession.phase, "ABORTED");
+    assert.equal(resume.recommendedSkill, "senti.flow-direct");
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("direct abort can reopen the retained target and complete with archived abort evidence", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-reopen-aborted" });
+  try {
+    container.register("config", { commands: { gh: "disable" } });
+    const initialSteps = stepStatuses(fixture.context().flowState);
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Prepare the bounded target before exercising abort recovery.",
+      scope: ["src/reopened-direct.js"],
+      source: "manual",
+    });
+    const sourcePath = path.join(fixture.worktreePath, "src", "reopened-direct.js");
+    fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+    fs.writeFileSync(sourcePath, "export const reopenedDirect = true;\n");
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const failed = await runDirectFlowAction(fixture.context(), {
+        action: "VERIFY_DIRECT",
+        testCommand: "node -e \"process.exit(1)\"",
+        timeoutMs: 10_000,
+      });
+      assert.equal(
+        ["DIRECT_VERIFY_STOPPED", "DIRECT_VERIFICATION_LIMIT"].includes(failed.code),
+        true,
+      );
+      if (attempt < 2) {
+        const returned = await runDirectFlowAction(fixture.context(), {
+          action: "RETURN_TO_DIRECT_FIX",
+        });
+        assert.equal(returned.code, "DIRECT_FIX");
+      }
+    }
+
+    const aborted = await runDirectFlowAction(fixture.context(), {
+      action: "ABORT_DIRECT",
+      reason: "Retain the failed target until its deterministic fixture is corrected.",
+    });
+    assert.equal(aborted.code, "ABORTED");
+    const abortedState = fixture.context().flowState;
+    const abortReceiptId = abortedState.directAbortReceipt.receiptId;
+    const originalPlanRevision = abortedState.directResolutionPlan.revision;
+
+    const reopened = await runDirectFlowAction(fixture.context(), {
+      action: "REOPEN_ABORTED_DIRECT",
+      reason: "Continue the retained target after correcting its deterministic fixture.",
+    });
+    assert.equal(reopened.code, "DIRECT_FIX");
+    const reopenedState = fixture.context().flowState;
+    assert.equal(reopenedState.directFlowSession.phase, "DIRECT_FIX");
+    assert.equal(reopenedState.directFlowSession.verificationAttempts, 0);
+    assert.equal(reopenedState.directFlowSession.verification.status, "failed");
+    assert.equal(reopenedState.directFlowSession.completion, null);
+    assert.equal(reopenedState.directAbortReceipt, undefined);
+    assert.equal(reopenedState.directAbortHistory.receipts.length, 1);
+    assert.equal(reopenedState.directAbortHistory.receipts[0].receiptId, abortReceiptId);
+    assert.equal(reopenedState.directResolutionPlan.revision, originalPlanRevision + 1);
+    assert.deepEqual(stepStatuses(reopenedState), initialSteps);
+
+    const verified = await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"process.exit(0)\"",
+      timeoutMs: 10_000,
+    });
+    assert.equal(verified.code, "DIRECT_VERIFY_PASSED");
+    assert.equal(fixture.context().flowState.directFlowSession.verificationAttempts, 1);
+
+    const finalized = await runDirectFlowAction(fixture.context(), {
+      action: "FINALIZE_DIRECT",
+    });
+    assert.equal(finalized.ok, true, JSON.stringify(finalized));
+    assert.equal(finalized.data.status, "done");
+    const completed = fixture.context({ fromMain: true }).flowState;
+    assert.equal(completed.directFlowSession.phase, "COMPLETED_DIRECT");
+    assert.equal(completed.directAbortHistory.receipts[0].receiptId, abortReceiptId);
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
+test("direct suspend resumes a finalized normal Flow without parking its active entry", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-finalized-suspend" });
+  try {
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Prepare the direct target before suspending finalized normal state.",
+      scope: ["src/finalized-suspend.js"],
+      source: "manual",
+    });
+    fixture.context().flowManager.mutate((state) => {
+      state.state = { ...(state.state || {}), finalizedAt: new Date().toISOString() };
+    });
+
+    const suspended = await runDirectFlowAction(fixture.context(), {
+      action: "SUSPEND_DIRECT",
+      reason: "Pause the direct target while retaining finalized normal state.",
+    });
+    assert.equal(suspended.code, "SUSPENDED");
+    assert.equal(
+      fixture.context().flowManager.snapshotActiveFlows().entries.some((entry) => (
+        entry.spec === fixture.specId && entry.mode === "worktree"
+      )),
+      true,
+    );
+
+    const resumed = await runDirectFlowAction(fixture.context(), {
+      action: "RESUME_DIRECT",
+    });
+    assert.equal(resumed.code, "DIRECT_FIX");
+    assert.equal(resumed.directFlowSession.phase, "DIRECT_FIX");
   } finally {
     fixture.cleanup();
   }

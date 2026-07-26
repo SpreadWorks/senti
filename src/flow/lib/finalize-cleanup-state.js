@@ -177,6 +177,7 @@ export class FinalizeCleanupStateResolution {
       "directIntegrationReceipt",
       "directCompletionReceipt",
       "directAbortReceipt",
+      "directAbortHistory",
       "directReconcileEvidence",
     ]) {
       if (mainState[key] !== undefined) operationalState[key] = structuredClone(mainState[key]);

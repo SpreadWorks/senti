@@ -109,6 +109,52 @@ export class DirectAbortReceipt {
   }
 }
 
+export class DirectAbortReceiptHistory {
+  constructor({ version = 1, receipts = [] } = {}) {
+    if (version !== 1) throw new Error("direct abort receipt history version is invalid");
+    if (!Array.isArray(receipts)) throw new Error("direct abort receipt history receipts must be an array");
+    this.version = version;
+    this.receipts = Object.freeze(receipts.map((receipt) => DirectAbortReceipt.fromStored(receipt)));
+    const receiptIds = this.receipts.map((receipt) => receipt.receiptId);
+    if (new Set(receiptIds).size !== receiptIds.length) {
+      throw new Error("direct abort receipt history must not contain duplicate receipts");
+    }
+    const [first] = this.receipts;
+    if (first && this.receipts.some((receipt) => (
+      receipt.runId !== first.runId
+      || receipt.issue !== first.issue
+      || receipt.spec !== first.spec
+      || receipt.planId !== first.planId
+    ))) {
+      throw new Error("direct abort receipt history must contain one Flow and plan identity");
+    }
+    Object.freeze(this);
+  }
+
+  append(receipt) {
+    const next = DirectAbortReceipt.fromStored(receipt);
+    if (this.receipts.some((entry) => entry.receiptId === next.receiptId)) {
+      throw new Error(`direct abort receipt is already archived: ${next.receiptId}`);
+    }
+    return new DirectAbortReceiptHistory({
+      receipts: [...this.receipts, next],
+    });
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      receipts: this.receipts.map((receipt) => receipt.toJSON()),
+    };
+  }
+
+  static fromStored(value) {
+    return value instanceof DirectAbortReceiptHistory
+      ? value
+      : new DirectAbortReceiptHistory(value);
+  }
+}
+
 export class DirectGitEvidence {
   constructor({
     kind,

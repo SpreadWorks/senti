@@ -55,6 +55,23 @@ request explicitly asks to adopt an already-integrated implementation, or when
 direct repair is unavailable and the user selects reconciliation through the
 decision format below.
 
+## Reopen a Retained Abort Without an Entry Menu
+
+When the user explicitly invokes this skill and the inspected result offers
+`REOPEN_ABORTED_DIRECT`:
+
+1. Do not present the retain/inspect menu.
+2. Execute the guarded `REOPEN_ABORTED_DIRECT` action with a concise reason that
+   states the user's request to continue the retained target.
+3. Re-run the guarded `senti flow get direct`.
+4. Continue only after the CLI archives the prior abort receipt, refreshes the
+   exact Git safety baseline, resets the bounded verification attempt budget,
+   and reports the direct-fix phase.
+
+The explicit skill invocation authorizes reopening the same retained target. It
+does not authorize changing target identity, accepting failed tests, merging,
+cleanup, or discarding the prior abort receipt.
+
 ## Continue Known Mechanical Actions
 
 Do not ask the user to supply information already recorded by the Flow or project:
