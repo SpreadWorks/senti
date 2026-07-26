@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-25T17:28:35.481Z",
+  "analyzedAt": "2026-07-26T00:23:24.331Z",
   "package": {
     "entries": [
       {
@@ -3682,9 +3682,9 @@
       },
       {
         "file": "src/flow/lib/finding-disposition-policy.js",
-        "hash": "0bced64673ec0434e6b103ea40e19d26",
-        "lines": 701,
-        "mtime": "2026-07-24T23:50:11.051Z",
+        "hash": "9b5d21422e9439ce8d69b3e5a67a9fc5",
+        "lines": 812,
+        "mtime": "2026-07-26T00:23:10.363Z",
         "className": "finding-disposition-policy",
         "methods": [
           "ReviewFindingFingerprint",
@@ -3702,6 +3702,8 @@
           "requireString",
           "optionalString",
           "requirePositiveInteger",
+          "requireSha256",
+          "requireCommit",
           "stableStringify",
           "normalizeIdentityText",
           "normalizeIdentityPath",
@@ -3733,23 +3735,24 @@
           "src/flow/lib/task-gate-recovery-evidence.js"
         ],
         "id": "e3309b28",
-        "summary": "Defines the policy model that turns review findings into must-fix, deferred, or informational dispositions. It also evaluates whether available repair evidence is sufficient for a finding gate decision.",
-        "detail": "The file builds a strongly validated domain model around finding identity, stable fingerprinting, requirement and guardrail authority, review cycles, and evidence scope. Disposition subclasses encode whether a finding requires repair, while gate artifacts and decisions summarize blocking and non-blocking outcomes in a canonical structure. Repair references are validated against commit hashes or repository-relative files, with filesystem checks to confirm that referenced changes exist and materialize after the reported finding. The policy layer then combines finding metadata, authority rules, and repair evidence to produce consistent gate decisions for later stages of the flow.",
+        "summary": "Implements the policy model that classifies review findings, fingerprints them, and decides whether they block progress. It validates artifact structure, normalizes identities, and ties findings to repair evidence and requirement authorities.",
+        "detail": "The module defines a rich set of domain classes for review findings, dispositions, requirement and guardrail authorities, repair references, and gate decisions. It performs strict runtime validation for strings, objects, integers, commit hashes, SHA-256 fingerprints, ISO timestamps, and repository-relative file paths to keep policy artifacts consistent. Fingerprints are derived from stable, canonicalized finding identity data so the same logical finding produces a repeatable digest across runs. Repair evidence is resolved against repository state, issue logs, and validation test results to determine whether a finding can be considered repaired or deferred safely. The final policy layer converts normalized inputs into typed disposition objects and produces gate decisions that summarize blocking findings, allowed states, and supporting evidence.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-24T23:51:34.422Z",
+          "processedAt": "2026-07-26T00:23:41.068Z",
           "attempts": 1
         },
         "keywords": [
-          "finding disposition",
-          "policy engine",
-          "must fix",
-          "deferred disposition",
-          "informational finding",
+          "review finding policy",
+          "disposition engine",
+          "finding fingerprint",
+          "gate decision",
           "repair evidence",
-          "review gate",
-          "fingerprint"
+          "requirement authority",
+          "guardrail severity",
+          "stable identity",
+          "validation logic"
         ]
       },
       {
@@ -14649,9 +14652,9 @@
     ],
     "summary": {
       "total": 257,
-      "totalMethods": 2894
+      "totalMethods": 2896
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-25T17:29:31.956Z"
+  "enrichedAt": "2026-07-26T00:23:41.068Z"
 }
