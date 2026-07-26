@@ -426,26 +426,37 @@
               "finishedAt": "2026-07-26T03:12:11.219Z",
               "runtimeLog": {
                 "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
-                "sequence": 338,
+                "sequence": 342,
                 "attempt": 1,
                 "command": "flow run finalize-commit",
-                "startedAt": "2026-07-26T03:12:10.008Z",
-                "endedAt": "2026-07-26T03:12:11.373Z",
+                "startedAt": "2026-07-26T03:13:08.840Z",
+                "endedAt": "2026-07-26T03:13:09.255Z",
                 "exitCode": 0
               }
             },
             {
               "id": "finalize-merge",
               "status": "in_progress",
-              "startedAt": "2026-07-26T03:12:11.219Z"
+              "startedAt": "2026-07-26T03:12:11.219Z",
+              "runtimeLog": {
+                "runId": "4d726ec3-fd9d-4f18-9b2c-d017a925d5fc",
+                "sequence": 340,
+                "attempt": 1,
+                "command": "flow run finalize-merge",
+                "startedAt": "2026-07-26T03:12:27.292Z",
+                "endedAt": "2026-07-26T03:12:31.179Z",
+                "exitCode": 1
+              }
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "skipped",
+              "finishedAt": "2026-07-26T03:12:31.058Z"
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "skipped",
+              "finishedAt": "2026-07-26T03:12:31.152Z"
             }
           ]
         }
@@ -3075,10 +3086,11 @@
       "taskId": null,
       "stepId": "finalize-merge",
       "operation": "finalize-merge",
-      "status": "pending",
+      "status": "failed",
       "attempt": 1,
       "startedAt": "2026-07-26T03:12:27.337Z",
-      "updatedAt": "2026-07-26T03:12:27.337Z"
+      "updatedAt": "2026-07-26T03:12:30.919Z",
+      "failure": "Pre-merge rebase detected conflicts in .senti/output/analysis.json, src/flow/lib/impl-repair-artifacts.js, tests/unit/flow/retry-recovery-convergence.test.js. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'."
     }
   ],
   "issue": 468,
