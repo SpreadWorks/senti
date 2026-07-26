@@ -2729,6 +2729,12 @@ class FinalizeTeardownTransactionStore {
   }
 }
 
+export function readPersistedFinalizeTeardownTransaction(mainRoot, state) {
+  const transactionPath = FinalizeTeardownTransactionStore.pathFor(mainRoot, state);
+  const stored = new AtomicJsonFile(transactionPath).read(null);
+  return stored == null ? null : FinalizeTeardownTransaction.fromStored(stored);
+}
+
 function buildReportField(mainRoot) {
   // The embedded cleanup report is the same report-show text generated from
   // validated v2 test-execute-result/test-result-review artifacts, including

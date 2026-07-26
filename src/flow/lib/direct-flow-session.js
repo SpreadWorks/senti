@@ -617,6 +617,33 @@ export class DirectFlowSession {
     });
   }
 
+  completePreparedCleanup(completion) {
+    if (![
+      "MERGE_ONLY_FINALIZE",
+      "DIRECT_RECONCILE",
+      "SUSPENDED",
+      "ABORTED",
+    ].includes(this.phase)) {
+      throw new Error(`direct prepared cleanup cannot complete from ${this.phase}`);
+    }
+    const completed = DirectSessionCompletion.fromStored(completion);
+    if (
+      completed.completionMode !== "direct"
+      || completed.status !== "completed"
+      || completed.success !== true
+    ) {
+      throw new Error("direct prepared cleanup requires completed direct evidence");
+    }
+    return new DirectFlowSession({
+      ...this.toJSON(),
+      phase: "COMPLETED_DIRECT",
+      completion: completed.toJSON(),
+      suspendedFrom: null,
+      revision: this.revision + 1,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
   withPlan(plan) {
     if (!plan?.planId || !plan?.revision) throw new Error("direct resolution plan identity is required");
     return new DirectFlowSession({

@@ -6,6 +6,7 @@ import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 import { runGit } from "../../lib/git-helpers.js";
 import {
+  DirectAbortArchive,
   DirectCompletionReceipt,
   DirectGitEvidence,
   DirectIntegrationReceipt,
@@ -18,7 +19,10 @@ import {
 import { revalidatePersistedIntegrationReceipt } from "./direct-integration-evidence.js";
 import { DirectResolutionPlan } from "./direct-resolution-plan.js";
 import { IssueLogStore } from "./issue-log-store.js";
-import { RunFinalizeCleanupCommand } from "./run-finalize-cleanup.js";
+import {
+  readPersistedFinalizeTeardownTransaction,
+  RunFinalizeCleanupCommand,
+} from "./run-finalize-cleanup.js";
 import {
   UserActionChoice,
   UserActionImpact,
@@ -57,12 +61,15 @@ function directStop(state, code, messages, { retryAction = "FINALIZE_DIRECT" } =
   const session = state.directFlowSession
     ? DirectFlowSession.fromStored(state.directFlowSession)
     : null;
-  const canSuspendOrAbort = session != null && [
+  const canSuspend = session != null && [
     "DIRECT_FIX",
     "DIRECT_VERIFY",
     "MERGE_ONLY_FINALIZE",
     "DIRECT_RECONCILE",
   ].includes(session.phase) && fs.existsSync(session.target.worktreePath);
+  const canAbort = canSuspend
+    && state.directIntegrationReceipt == null
+    && state.directCompletionReceipt == null;
   const prompt = new UserActionPrompt({
     question: `Direct finalize stopped with ${code}. What should happen next?`,
     choices: [
@@ -83,7 +90,7 @@ function directStop(state, code, messages, { retryAction = "FINALIZE_DIRECT" } =
           retains: ["Flow state", "worktree", "feature branch", "artifacts"],
         }),
       }),
-      ...(canSuspendOrAbort ? [
+      ...(canSuspend ? [
         new UserActionChoice({
           actionId: "SUSPEND_DIRECT",
           label: "Suspend and park the exact direct target",
@@ -93,6 +100,8 @@ function directStop(state, code, messages, { retryAction = "FINALIZE_DIRECT" } =
             retains: ["Flow state", "worktree", "feature branch", "artifacts", "receipts"],
           }),
         }),
+      ] : []),
+      ...(canAbort ? [
         new UserActionChoice({
           actionId: "ABORT_DIRECT",
           label: "Abort without further merge or cleanup",
@@ -353,16 +362,14 @@ export class DirectFinalizeAdapter {
     }
   }
 
-  #authorizesTeardownRecovery({
+  #matchesTeardownRecoveryIdentity({
     state,
     worktreePath,
     transaction,
-    requiredPhase,
   }) {
     const receipt = state.directCompletionReceipt
       ? DirectCompletionReceipt.fromStored(state.directCompletionReceipt)
       : null;
-    const expectation = transaction?.commitExpectation;
     const identity = transaction?.identity;
     return (
       receipt != null
@@ -370,16 +377,44 @@ export class DirectFinalizeAdapter {
       && receipt.status === "prepared"
       && this.plan.target.sameIdentity(state)
       && worktreePath === this.plan.target.worktreePath
-      && transaction?.phase?.atLeast?.(requiredPhase) === true
       && identity?.runId === this.plan.target.runId
       && identity?.spec === this.plan.target.spec
       && (identity?.issue ?? null) === this.plan.target.issue
       && identity?.featureBranch === this.plan.target.featureBranch
       && identity?.baseBranch === this.plan.target.baseBranch
-      && expectation?.worktreePath === this.plan.target.worktreePath
+    );
+  }
+
+  #matchesCommitExpectation(transaction) {
+    const expectation = transaction?.commitExpectation;
+    return (
+      expectation?.worktreePath === this.plan.target.worktreePath
       && expectation?.worktreeHead === this.completionReceipt.gitEvidence.featureHead
       && expectation?.featureRef === this.completionReceipt.gitEvidence.featureHead
     );
+  }
+
+  #authorizesTeardownRecovery({
+    state,
+    worktreePath,
+    transaction,
+    requiredPhase,
+  }) {
+    return (
+      this.#matchesTeardownRecoveryIdentity({ state, worktreePath, transaction })
+      && transaction?.phase?.atLeast?.(requiredPhase) === true
+      && this.#matchesCommitExpectation(transaction)
+    );
+  }
+
+  authorizePreparedCleanupRecovery({ state, worktreePath, transaction }) {
+    if (!this.#matchesTeardownRecoveryIdentity({ state, worktreePath, transaction })) {
+      return false;
+    }
+    if (transaction.commitExpectation == null) {
+      return !transaction.phase.atLeast("commit-durable");
+    }
+    return this.#matchesCommitExpectation(transaction);
   }
 
   authorizeMissingWorktreeBindingRecovery(input) {
@@ -426,19 +461,69 @@ export class DirectFinalizeAdapter {
         throw new Error("direct completion receipt changed before tombstone publication");
       }
       completedReceipt = receipt.complete();
-      const completedSession = session.transition("COMPLETED_DIRECT", {
-        completion: {
-          success: true,
-          completionMode: "direct",
-          mergeDisposition: completedReceipt.mergeDisposition,
-          receiptId: completedReceipt.receiptId,
-          completedAt: completedReceipt.completedAt,
-        },
+      const completedSession = session.completePreparedCleanup({
+        success: true,
+        completionMode: "direct",
+        mergeDisposition: completedReceipt.mergeDisposition,
+        receiptId: completedReceipt.receiptId,
+        completedAt: completedReceipt.completedAt,
       });
+      if (session.phase === "ABORTED") DirectAbortArchive.fromState(state).apply(state);
       state.directCompletionReceipt = completedReceipt.toJSON();
       state.directFlowSession = completedSession.toJSON();
     }, { specId, operationOwnerToken });
     return completedReceipt;
+  }
+}
+
+export class DirectPreparedCleanupContinuation {
+  constructor({ state, mainRoot }) {
+    const session = DirectFlowSession.fromStored(state?.directFlowSession);
+    if (![
+      "MERGE_ONLY_FINALIZE",
+      "DIRECT_RECONCILE",
+      "SUSPENDED",
+      "ABORTED",
+    ].includes(session.phase)) {
+      throw new Error(`prepared direct cleanup cannot resume from ${session.phase}`);
+    }
+    const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
+    const receipt = DirectCompletionReceipt.fromStored(state.directCompletionReceipt);
+    if (receipt.status !== "prepared") {
+      throw new Error("prepared direct cleanup requires a prepared completion receipt");
+    }
+    const adapter = new DirectFinalizeAdapter({ plan, completionReceipt: receipt });
+    const transaction = readPersistedFinalizeTeardownTransaction(mainRoot, state);
+    if (
+      transaction != null
+      && !adapter.authorizePreparedCleanupRecovery({
+        state,
+        worktreePath: session.target.worktreePath,
+        transaction,
+      })
+    ) {
+      throw new Error("prepared direct cleanup transaction does not match the completion receipt");
+    }
+    this.session = session;
+    this.receipt = receipt;
+    this.transaction = transaction;
+    Object.freeze(this);
+  }
+
+  static inspect({ state, mainRoot }) {
+    if (!state?.directCompletionReceipt) return null;
+    const receipt = DirectCompletionReceipt.fromStored(state.directCompletionReceipt);
+    if (receipt.status !== "prepared") return null;
+    return new DirectPreparedCleanupContinuation({ state, mainRoot });
+  }
+
+  toJSON() {
+    return {
+      receiptId: this.receipt.receiptId,
+      mergeDisposition: this.receipt.mergeDisposition,
+      interruptedPhase: this.session.phase,
+      teardownPhase: this.transaction?.phase?.name ?? null,
+    };
   }
 }
 

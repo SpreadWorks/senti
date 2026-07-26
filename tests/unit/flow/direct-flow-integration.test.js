@@ -9,6 +9,7 @@ import {
   getDirectFlowAction,
   runDirectFlowAction,
 } from "../../../src/flow/lib/direct-flow-controller.js";
+import { DirectAbortReceipt } from "../../../src/flow/lib/direct-completion.js";
 import { FlowCompletion } from "../../../src/flow/lib/flow-completion.js";
 import { DirectFlowSession } from "../../../src/flow/lib/direct-flow-session.js";
 import { DirectResolutionPlan } from "../../../src/flow/lib/direct-resolution-plan.js";
@@ -91,6 +92,32 @@ async function prepareVerifiedDirectChange(fixture, {
     timeoutMs: 10_000,
   });
   assert.equal(verified.code, "DIRECT_VERIFY_PASSED", JSON.stringify(verified));
+}
+
+function persistLegacyAbortAfterPreparedCleanup(fixture, reason) {
+  const main = fixture.context({ fromMain: true });
+  main.flowManager.mutate((state) => {
+    const session = DirectFlowSession.fromStored(state.directFlowSession);
+    const directPlan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
+    const abortReceipt = new DirectAbortReceipt({
+      runId: state.runId,
+      issue: state.issue ?? null,
+      spec: state.spec,
+      planId: directPlan.planId,
+      planRevision: directPlan.revision,
+      reason,
+    });
+    state.directFlowSession = session.transition("ABORTED", {
+      completion: {
+        completionMode: "aborted",
+        success: false,
+        receiptId: abortReceipt.receiptId,
+        reason,
+        recordedAt: abortReceipt.recordedAt,
+      },
+    }).toJSON();
+    state.directAbortReceipt = abortReceipt.toJSON();
+  });
 }
 
 function executableFromPath(name) {
@@ -511,6 +538,81 @@ test("direct cleanup refuses to remove unexpected files recreated after worktree
       )),
       false,
     );
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
+test("prepared direct cleanup resumes mechanically across a retained legacy abort", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-aborted-prepared-cleanup" });
+  try {
+    container.register("config", { commands: { gh: "disable" } });
+    await prepareVerifiedDirectChange(fixture, {
+      relativePath: "src/aborted-prepared-cleanup.js",
+      contents: "export const abortedPreparedCleanup = true;\n",
+      reason: "Exercise cleanup after an aborted direct completion.",
+    });
+    const restoreGit = installWorktreeRemovalResidue(fixture, {
+      relativePath: "src/unexpected.js",
+      contents: "export const unexpected = true;\n",
+    });
+    let stopped;
+    try {
+      stopped = await runDirectFlowAction(fixture.context(), {
+        action: "FINALIZE_DIRECT",
+      });
+    } finally {
+      restoreGit();
+    }
+    assert.equal(stopped.errors[0].code, "WORKTREE_RUNTIME_RESIDUE_RECOVERY_FAILED");
+
+    const main = fixture.context({ fromMain: true });
+    const abortReason = "Retain a legacy abort recorded after completion preparation.";
+    await assert.rejects(
+      runDirectFlowAction(main, {
+        action: "ABORT_DIRECT",
+        reason: abortReason,
+      }),
+      (error) => error?.code === "DIRECT_FINALIZATION_ALREADY_STARTED",
+    );
+    assert.equal(
+      main.flowManager.load(fixture.specId).directFlowSession.phase,
+      "MERGE_ONLY_FINALIZE",
+    );
+    assert.equal(main.flowManager.load(fixture.specId).directCompletionReceipt.status, "prepared");
+    persistLegacyAbortAfterPreparedCleanup(fixture, abortReason);
+    const continuation = getDirectFlowAction(fixture.context({ fromMain: true }));
+    assert.equal(continuation.code, "DIRECT_PREPARED_CLEANUP");
+    assert.equal(continuation.yieldsControl, false);
+    assert.equal(continuation.requiresUserAction, false);
+    assert.equal(continuation.actionPrompt, undefined);
+    assert.equal(continuation.continuation.actionId, "FINALIZE_DIRECT");
+    assert.equal(continuation.preparedCleanup.interruptedPhase, "ABORTED");
+    fs.rmSync(path.join(fixture.worktreePath, "src"), { recursive: true, force: true });
+
+    const resumed = await runDirectFlowAction(fixture.context({ fromMain: true }), {
+      action: "FINALIZE_DIRECT",
+    });
+    assert.equal(resumed.ok, true, JSON.stringify(resumed));
+    assert.equal(resumed.data.status, "done");
+    const completed = fixture.context({ fromMain: true }).flowState;
+    assert.equal(completed.directFlowSession.phase, "COMPLETED_DIRECT");
+    assert.equal(completed.directCompletionReceipt.status, "completed");
+    assert.equal(completed.directAbortReceipt, undefined);
+    assert.equal(completed.directAbortHistory.receipts.length, 1);
+    assert.equal(completed.directAbortHistory.receipts[0].reason, abortReason);
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+    assert.equal(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");
+    assert.equal(fs.readFileSync(path.join(fixture.root, ".senti", "last-finalized-spec"), "utf8").trim(), fixture.spec);
+    assert.equal(fixture.context({ fromMain: true }).flowManager.snapshotActiveFlows().entries.some((entry) => (
+      entry.spec === fixture.specId
+    )), false);
+    const issueLog = JSON.parse(fs.readFileSync(
+      path.join(fixture.root, "specs", fixture.specId, "issue-log.json"),
+      "utf8",
+    ));
+    assert.equal(issueLog.entries.some((entry) => entry.step === "direct-completion"), true);
   } finally {
     container.reset();
     fixture.cleanup();
@@ -1460,7 +1562,7 @@ test("direct cleanup preserves required-hook, dirty, and orphaned-commit failure
           "SUSPEND_DIRECT",
           "ABORT_DIRECT",
         ].includes(actionId)),
-      ["RETRY_DIRECT_FINALIZE", "SUSPEND_DIRECT", "ABORT_DIRECT"],
+      ["RETRY_DIRECT_FINALIZE", "SUSPEND_DIRECT"],
     );
     assert.equal(fs.existsSync(fixture.worktreePath), true);
     assert.notEqual(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");

@@ -155,6 +155,39 @@ export class DirectAbortReceiptHistory {
   }
 }
 
+export class DirectAbortArchive {
+  constructor({ receipt, history }) {
+    this.receipt = DirectAbortReceipt.fromStored(receipt);
+    this.history = DirectAbortReceiptHistory.fromStored(history);
+    if (
+      this.history.receipts.filter(
+        (entry) => entry.receiptId === this.receipt.receiptId,
+      ).length !== 1
+    ) {
+      throw new Error("direct abort archive must contain its active receipt exactly once");
+    }
+    Object.freeze(this);
+  }
+
+  static fromState(state) {
+    if (!state?.directAbortReceipt) {
+      throw new Error("active direct abort receipt is unavailable");
+    }
+    const receipt = DirectAbortReceipt.fromStored(state.directAbortReceipt);
+    return new DirectAbortArchive({
+      receipt,
+      history: DirectAbortReceiptHistory
+        .fromStored(state.directAbortHistory)
+        .append(receipt),
+    });
+  }
+
+  apply(state) {
+    state.directAbortHistory = this.history.toJSON();
+    delete state.directAbortReceipt;
+  }
+}
+
 export class DirectGitEvidence {
   constructor({
     kind,

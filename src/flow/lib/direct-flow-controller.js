@@ -25,10 +25,11 @@ import {
 } from "./direct-resolution-plan.js";
 import { DirectVerificationCommandResolver } from "./direct-verification-command.js";
 import {
+  DirectAbortArchive,
   DirectAbortReceipt,
-  DirectAbortReceiptHistory,
   DirectGitEvidence,
 } from "./direct-completion.js";
+import { DirectPreparedCleanupContinuation } from "./direct-finalize-adapter.js";
 import { inspectPersistedIntegrationReceipt } from "./direct-integration-evidence.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import {
@@ -118,6 +119,30 @@ function promptResult({
     yieldsControl: true,
     requiresUserAction: true,
     actionPrompt: prompt.toJSON(),
+    ...(state?.directFlowSession && {
+      directFlowSession: DirectFlowSession.fromStored(state.directFlowSession).toJSON(),
+    }),
+  };
+}
+
+function mechanicalContinuationResult({
+  code,
+  state,
+  actionId,
+  nextAction,
+  instruction,
+  details = {},
+}) {
+  return {
+    code,
+    ...details,
+    yieldsControl: false,
+    requiresUserAction: false,
+    continuation: {
+      actionId,
+      nextAction,
+      instruction,
+    },
     ...(state?.directFlowSession && {
       directFlowSession: DirectFlowSession.fromStored(state.directFlowSession).toJSON(),
     }),
@@ -1174,6 +1199,20 @@ function activeDirectPrompt(ctx, state) {
   const run = (action, extra = "") => (
     `senti flow run direct --action ${action}${extra ? ` ${extra}` : ""} ${guards}`.trim()
   );
+  const preparedCleanup = DirectPreparedCleanupContinuation.inspect({
+    state,
+    mainRoot: ctx.mainRoot || ctx.flowManager?._mainRoot || ctx.root,
+  });
+  if (preparedCleanup) {
+    return mechanicalContinuationResult({
+      code: "DIRECT_PREPARED_CLEANUP",
+      state,
+      actionId: "FINALIZE_DIRECT",
+      nextAction: run("FINALIZE_DIRECT"),
+      instruction: "Resume the already-authorized completion transaction and finish cleanup.",
+      details: { preparedCleanup: preparedCleanup.toJSON() },
+    });
+  }
   let resolvedVerificationCommand;
   const verificationCommand = () => {
     if (resolvedVerificationCommand === undefined) {
@@ -1612,6 +1651,25 @@ function activeDirectPrompt(ctx, state) {
     });
   }
   if (session.phase === "ABORTED") {
+    if (state.directIntegrationReceipt) {
+      return promptResult({
+        code: "DIRECT_ABORTED_AFTER_INTEGRATION",
+        state,
+        question: "Integration evidence exists, so implementation repair cannot be reopened or repeated.",
+        choices: [
+          choice({
+            actionId: "KEEP_FLOW_STATE",
+            label: "Keep the exact records for finalization diagnosis",
+            nextAction: commandFor(state, "get status --details"),
+            impact: {
+              retains: ["Flow state", "integration receipt", "Git history", "artifacts"],
+            },
+          }),
+        ],
+        recommendedActionId: "KEEP_FLOW_STATE",
+        recommendationReason: "The integration record must be reconciled before any further mutation.",
+      });
+    }
     return promptResult({
       code: "ABORTED",
       state,
@@ -2196,9 +2254,6 @@ function reopenAbortedDirect(authority, input) {
   const target = captureDirectRecoveryTarget(authority, state, session, plan);
   const revisedPlan = plan.withRecoveryTarget(target);
   const reopened = session.reopenAfterAbort(revisedPlan, reason);
-  const abortHistory = DirectAbortReceiptHistory
-    .fromStored(state.directAbortHistory)
-    .append(abortReceipt);
   authority.flowManager.mutate((current) => {
     const durableSession = DirectFlowSession.fromStored(current.directFlowSession);
     const durablePlan = DirectResolutionPlan.fromStored(current.directResolutionPlan);
@@ -2216,8 +2271,7 @@ function reopenAbortedDirect(authority, input) {
     }
     current.directResolutionPlan = revisedPlan.toJSON();
     current.directFlowSession = reopened.toJSON();
-    current.directAbortHistory = abortHistory.toJSON();
-    delete current.directAbortReceipt;
+    DirectAbortArchive.fromState(current).apply(current);
   }, directMutationOptions(authority, { expectedOriginal: state }));
   const persisted = authority.flowManager.load(authority.specId);
   appendAbortRecoveryIssueLog({
@@ -2235,6 +2289,14 @@ function reopenAbortedDirect(authority, input) {
 function transitionTerminal(authority, phase, input) {
   const state = authority.flowManager.load(authority.specId);
   const session = DirectFlowSession.fromStored(state.directFlowSession);
+  if (
+    phase === "ABORTED"
+    && (state.directIntegrationReceipt || state.directCompletionReceipt)
+  ) {
+    throw Object.assign(new Error(
+      "direct abort is unavailable after integration or completion has started",
+    ), { code: "DIRECT_FINALIZATION_ALREADY_STARTED" });
+  }
   const suppliedReason = String(input.reason || "").trim();
   if (phase === "ABORTED" && suppliedReason.length < 10) {
     throw Object.assign(new Error("direct abort requires an explicit reason of at least 10 characters"), {
@@ -2440,7 +2502,16 @@ async function runDirectFlowActionOwned(ctx, input) {
       "The direct Flow is already complete; no state was changed.",
     );
   }
-  if (currentSession.phase === "ABORTED" && action !== "REOPEN_ABORTED_DIRECT") {
+  const preparedCleanup = DirectPreparedCleanupContinuation.inspect({
+    state,
+    mainRoot: authority.mainRoot,
+  });
+  const resumePreparedCleanup = action === "FINALIZE_DIRECT" && preparedCleanup != null;
+  if (
+    currentSession.phase === "ABORTED"
+    && action !== "REOPEN_ABORTED_DIRECT"
+    && !resumePreparedCleanup
+  ) {
     const prompt = activeDirectPrompt(authority, state);
     return stoppedEnvelope(
       "run",

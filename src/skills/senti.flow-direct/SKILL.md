@@ -7,9 +7,10 @@ description: Inspect and continue an interrupted Spec-Driven Development flow th
 
 Use the CLI as the durable source of Flow state and safety checks. Treat the user's
 explicit invocation of this skill as authorization to continue the current eligible
-Flow through direct repair. It is not authorization to target a different Flow,
-accept failed tests, discard work, or perform cleanup that the user's request did
-not already include.
+Flow through direct repair, current implementation completion, verification,
+limited integration, completion recording, and managed cleanup. It is not
+authorization to target a different Flow, accept failed tests, discard
+unintegrated work, or override a target/evidence conflict.
 
 ## Choice Format
 
@@ -48,17 +49,36 @@ The explicit skill invocation is the user's direct-repair choice. `autoApprove`
 does not provide this authority, but no second confirmation is required from the
 same user request.
 
-Never auto-select `SELECT_DIRECT_RECONCILE` merely because ancestry or an
-integration receipt exists. Direct reconciliation changes completion records and
-may delete the managed worktree during finalization. Use it only when the user's
-request explicitly asks to adopt an already-integrated implementation, or when
-direct repair is unavailable and the user selects reconciliation through the
-decision format below.
+Never auto-select `SELECT_DIRECT_RECONCILE` merely because ancestry exists while
+unintegrated implementation changes remain. If the exact implementation is
+already integrated and the CLI reports one unambiguous mechanical reconciliation
+continuation for the bound target, continue it under this skill invocation.
+Conflicting integration and worktree evidence remains a real decision.
+
+## Resume Durable Completion Without a Menu
+
+Prepared completion evidence and its matching teardown transaction take precedence
+over a retained `SUSPENDED` or legacy `ABORTED` phase.
+
+When guarded inspection reports `DIRECT_PREPARED_CLEANUP` or another single
+deterministic `FINALIZE_DIRECT` continuation:
+
+1. Do not present retry, suspend, abort, worktree-restoration, or inspection
+   choices.
+2. Execute the guarded continuation immediately. This resumes the existing
+   idempotent completion transaction; it does not authorize or repeat a merge.
+3. Re-run guarded inspection and continue any remaining mechanical cleanup phase.
+4. Stop only on a concrete identity/evidence conflict, an unsafe unexpected file,
+   or another real decision defined below.
+
+Do not recreate a missing worktree binding merely to finish cleanup. The CLI must
+use the persisted completion receipt and matching teardown transaction as the
+authority for already-completed phases.
 
 ## Reopen a Retained Abort Without an Entry Menu
 
-When the user explicitly invokes this skill and the inspected result offers
-`REOPEN_ABORTED_DIRECT`:
+When the user explicitly invokes this skill, no integration or prepared completion
+evidence exists, and the inspected result offers `REOPEN_ABORTED_DIRECT`:
 
 1. Do not present the retain/inspect menu.
 2. Execute the guarded `REOPEN_ABORTED_DIRECT` action with a concise reason that
@@ -69,8 +89,9 @@ When the user explicitly invokes this skill and the inspected result offers
    and reports the direct-fix phase.
 
 The explicit skill invocation authorizes reopening the same retained target. It
-does not authorize changing target identity, accepting failed tests, merging,
-cleanup, or discarding the prior abort receipt.
+does not authorize changing target identity, accepting failed tests, discarding
+the prior abort receipt, or bypassing the normal verification and limited
+finalization checks.
 
 ## Continue Known Mechanical Actions
 
@@ -87,9 +108,9 @@ Do not ask the user to supply information already recorded by the Flow or projec
   command.
 
 Automatically execute safe, deterministic continuation actions when their inputs
-are complete, including repair-plan preflight and readback. Recorded project
-verification is mechanical only after the CLI reports that implementation
-completion evidence is current for the exact change set.
+are complete, including repair-plan preflight, verification after current
+implementation proof, limited finalization after passed verification, durable
+cleanup continuation, and guarded readback.
 
 Only edit source, tests, spec files, or issue-log entries after the CLI has
 persisted the direct plan and entered direct fix. Stay inside the persisted scope.
@@ -128,8 +149,8 @@ for example:
 - a recorded product decision has no safe deterministic resolution;
 - integration evidence conflicts with uncommitted implementation changes;
 - passing requires explicit acceptance of test risk;
-- the requested next step would merge, delete, abort, or discard state and the
-  user's request did not already authorize that effect;
+- the requested next step would affect a different target, discard unintegrated
+  work, accept failed verification, or resolve conflicting integration evidence;
 - no unique verification command can be derived from Flow artifacts or project
   configuration.
 

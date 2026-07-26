@@ -119,7 +119,10 @@ export class FinalizeCleanupStateResolution {
     const selectedPaths = ctx.flowManager.resolveWorktreePaths(selectedState);
     const worktreePath = selectedPaths.worktreePath;
     let worktreeState = null;
-    if (worktreePath && fs.existsSync(worktreePath)) {
+    const missingDirectWorktreeBinding = ctx.directFinalizeAdapter != null
+      && worktreePath != null
+      && !fs.existsSync(path.join(worktreePath, ".senti", "flow-identity.json"));
+    if (worktreePath && fs.existsSync(worktreePath) && !missingDirectWorktreeBinding) {
       worktreeState = ctx.flowManager
         .forRoot(worktreePath, { specId })
         .loadReadOnly(specId);

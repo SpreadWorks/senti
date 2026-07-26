@@ -498,10 +498,21 @@
       "taskId": null,
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
-      "status": "pending",
+      "status": "done",
       "attempt": 1,
       "startedAt": "2026-07-26T14:39:20.790Z",
-      "updatedAt": "2026-07-26T14:39:20.857Z"
+      "updatedAt": "2026-07-26T23:07:07.380Z",
+      "result": {
+        "status": "done",
+        "completionMode": "direct",
+        "mergeDisposition": "merged",
+        "receiptId": "direct-completion-ffa72e688c160cd752d9e3105eb9ea06",
+        "externalUpdateKey": "direct-external-update-ffa72e688c160cd752d9e3105eb9ea06",
+        "summary": "Direct completion direct-completion-ffa72e688c160cd752d9e3105eb9ea06; mode=direct; merge=merged; sourceStep=implement; verification=passed; skipped=impl-review,impl-triage,impl-repair,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup",
+        "pluginHooks": [],
+        "followUps": [],
+        "retainedCleanupMetadata": null
+      }
     }
   ],
   "issue": 474,
@@ -11344,8 +11355,8 @@
     }
   ],
   "directFlowSession": {
-    "phase": "MERGE_ONLY_FINALIZE",
-    "revision": 21,
+    "phase": "COMPLETED_DIRECT",
+    "revision": 23,
     "target": {
       "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
       "issue": 474,
@@ -11372,9 +11383,10 @@
       "specs/352-resolve-repository-lock-self-contention"
     ],
     "selectedAt": "2026-07-26T12:24:19.578Z",
-    "updatedAt": "2026-07-26T14:39:20.055Z",
+    "updatedAt": "2026-07-26T23:07:07.256Z",
     "planId": "direct-plan-75d7ae2e6cb3fd04d637e7e3",
     "planRevision": 3,
+    "implementationProof": null,
     "verification": {
       "status": "passed",
       "testStatus": "passed",
@@ -11917,15 +11929,15 @@
     "verificationAttempts": 3,
     "suspendedFrom": null,
     "completion": {
-      "status": "prepared",
+      "status": "completed",
       "completionMode": "direct",
-      "success": null,
+      "success": true,
       "mergeDisposition": "merged",
       "receiptId": "direct-completion-ffa72e688c160cd752d9e3105eb9ea06",
       "integrationReceiptId": null,
       "reason": null,
       "recordedAt": null,
-      "completedAt": null
+      "completedAt": "2026-07-26T23:07:07.256Z"
     }
   },
   "directResolutionPlan": {
@@ -12106,6 +12118,19 @@
         "planRevision": 1,
         "reason": "Direct verification attempt limit was exhausted by a test fixture mismatch; the corrected bounded test set now passes and normal Flow will complete verification and finalization.",
         "recordedAt": "2026-07-26T12:41:41.749Z"
+      },
+      {
+        "version": 1,
+        "receiptId": "direct-abort-01e307865255430ab296d5918113ec38",
+        "status": "aborted",
+        "completionMode": "aborted",
+        "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+        "issue": 474,
+        "spec": "specs/352-resolve-repository-lock-self-contention/spec.json",
+        "planId": "direct-plan-75d7ae2e6cb3fd04d637e7e3",
+        "planRevision": 3,
+        "reason": "Managed worktree binding is unavailable after completed integration; retain the merged artifacts and completion records.",
+        "recordedAt": "2026-07-26T22:28:16.310Z"
       }
     ]
   },
@@ -12129,7 +12154,7 @@
   "directCompletionReceipt": {
     "version": 1,
     "receiptId": "direct-completion-ffa72e688c160cd752d9e3105eb9ea06",
-    "status": "prepared",
+    "status": "completed",
     "completionMode": "direct",
     "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
     "issue": 474,
@@ -12737,7 +12762,7 @@
     },
     "preparedAt": "2026-07-26T14:39:19.995Z",
     "reconciledAt": null,
-    "completedAt": null,
+    "completedAt": "2026-07-26T23:07:07.256Z",
     "externalUpdateKey": "direct-external-update-ffa72e688c160cd752d9e3105eb9ea06",
     "summary": "Direct completion direct-completion-ffa72e688c160cd752d9e3105eb9ea06; mode=direct; merge=merged; sourceStep=implement; verification=passed; skipped=impl-review,impl-triage,impl-repair,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup"
   },

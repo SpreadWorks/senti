@@ -220,9 +220,16 @@ export class FlowState {
         receipt.runId === value.runId
         && receipt.spec === value.spec
         && receipt.planId === directPlan.planId
-        && receipt.planRevision < directPlan.revision
+        && (
+          receipt.planRevision < directPlan.revision
+          || (
+            receipt.planRevision === directPlan.revision
+            && completionReceipt?.status === "completed"
+            && directSession?.phase === "COMPLETED_DIRECT"
+          )
+        )
       )),
-      "direct abort receipt history does not match prior Flow plan revisions",
+      "direct abort receipt history does not match completed or prior Flow plan revisions",
     );
     if (revision) {
       const identity = revision.identity;
