@@ -168,6 +168,16 @@ export class FinalizeCleanupStateResolution {
       ...(activeState.state || {}),
       ...(mainState.state || {}),
     };
+    for (const key of [
+      "directFlowSession",
+      "directResolutionPlan",
+      "directIntegrationReceipt",
+      "directCompletionReceipt",
+      "directAbortReceipt",
+      "directReconcileEvidence",
+    ]) {
+      if (mainState[key] !== undefined) operationalState[key] = structuredClone(mainState[key]);
+    }
     return new FinalizeCleanupStateResolution({
       state: operationalState,
       mainFlowManager,

@@ -465,6 +465,23 @@ export class FlowManager {
     return this._worktreeBinding.load();
   }
 
+  snapshotWorktreeBinding(expectation = null) {
+    if (!this._worktreeBinding) {
+      throw new Error("worktree flow binding is available only inside a worktree");
+    }
+    return this._worktreeBinding.withLock(() => {
+      const snapshot = this._worktreeBinding.loadOwned();
+      if (expectation instanceof FlowTargetExpectation && !expectation.empty) {
+        const mismatch = expectation.mismatchAgainst(snapshot.identity.toJSON());
+        if (mismatch) throw new ActiveFlowMismatchError(expectation, snapshot.identity.toJSON());
+      }
+      return Object.freeze({
+        identity: Object.freeze(snapshot.identity.toJSON()),
+        revision: snapshot.revision,
+      });
+    });
+  }
+
   usesWorktreeFlowBinding() {
     return this._usesWorktreeFlowBinding;
   }

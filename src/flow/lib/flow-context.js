@@ -212,6 +212,7 @@ export function resolveFlowContext(container, options = {}) {
     root: authorityRoot || paths.root,
     mainRoot,
     config: container.get("config"),
+    paths,
     flowManager,
     flowState,
     preparingFlowState,

@@ -40,6 +40,7 @@ import {
 import { resolveReviewActionForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
+import { getDirectFlowAction } from "./direct-flow-controller.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -367,6 +368,18 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     result.failurePolicy = derived.failurePolicy;
   }
   attachLatestStepAttempt(result, state, target);
+  if (result.halt === true) {
+    const directAction = getDirectFlowAction({ ...ctx, flowState: state, state });
+    if (directAction?.yieldsControl === true) {
+      result.yieldsControl = true;
+      result.requiresUserAction = true;
+      result.actionPrompt = directAction.actionPrompt;
+      result.directMode = {
+        code: directAction.code,
+        currentStep: target.stepId,
+      };
+    }
+  }
   const reviewPhase = reviewPhaseForStepId(target.stepId);
   if (reviewPhase) {
     assertReviewRecoveryAuthority({
@@ -394,6 +407,18 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     const retryRecovery = buildGateRetryRecovery(ctx, state, gateRecoveryDisplay);
     if (retryRecovery) {
       attachRetryRecovery(result, "gateStop", null, retryRecovery);
+      if (retryRecovery.attempts >= retryRecovery.max) {
+        const directAction = getDirectFlowAction({ ...ctx, flowState: state, state });
+        if (directAction?.yieldsControl === true) {
+          result.yieldsControl = true;
+          result.requiresUserAction = true;
+          result.actionPrompt = directAction.actionPrompt;
+          result.directMode = {
+            code: directAction.code,
+            currentStep: target.stepId,
+          };
+        }
+      }
     }
   }
   return result;
@@ -402,8 +427,19 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
 export class NextActionPlanner {
   build(ctx) {
     const original = ctx.flowState;
+    if (original.directFlowSession) {
+      return new NextActionTerminalPlan(getDirectFlowAction({ ...ctx, state: original }));
+    }
     if (original.acceptanceReview?.status === "aborted") {
-      return new NextActionTerminalPlan(abortedNextAction());
+      const result = abortedNextAction();
+      const directAction = getDirectFlowAction({ ...ctx, state: original });
+      if (directAction?.yieldsControl === true) {
+        result.yieldsControl = true;
+        result.requiresUserAction = true;
+        result.actionPrompt = directAction.actionPrompt;
+        result.directMode = { code: directAction.code };
+      }
+      return new NextActionTerminalPlan(result);
     }
     if (new FlowCompletion(original).complete) {
       return new NextActionTerminalPlan(completedNextAction());
@@ -544,7 +580,7 @@ function injectedPlanResult(plan) {
 
 export default class GetNextActionCommand extends FlowCommand {
   constructor({ planner = new NextActionPlanner(), effects = null } = {}) {
-    super({ requiresFlow: false });
+    super({ requiresFlow: false, explicitTargetResolution: true });
     if (!planner || typeof planner.build !== "function") {
       throw new Error("next-action planner.build is required");
     }

@@ -240,6 +240,11 @@ export class RepositoryFlowOperationLock {
     }
   }
 
+  inspectConflict() {
+    return inspectForeign(this.maintenance, this.maintenanceOwnerToken)
+      || inspectForeign(this.lock, this.operationOwnerToken);
+  }
+
   assertOwned() {
     const owner = this.lock.inspect();
     if (

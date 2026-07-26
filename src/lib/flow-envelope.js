@@ -6,6 +6,8 @@
  * and stdout output + process.exitCode side effects.
  */
 
+import { assertUserActionResultContract } from "../flow/lib/user-action-prompt.js";
+
 export class Envelope {
   constructor({ ok, type, key, data, errors }) {
     this.ok = ok;
@@ -63,6 +65,7 @@ export class Envelope {
   }
 
   toJSON() {
+    assertUserActionResultContract(this.data);
     return {
       ok: this.ok,
       type: this.type,

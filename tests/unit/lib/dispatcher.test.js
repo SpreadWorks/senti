@@ -567,6 +567,44 @@ describe("dispatcher (unified runner)", () => {
       }
     });
 
+    it("allows a strict no-Flow read to suppress the runtime log", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      try {
+        const agentWorkDir = path.join(tmp, ".agent-work");
+        container.register("paths", { root: tmp, agentWorkDir });
+
+        class Cmd extends Command {
+          static outputMode = "envelope";
+          execute() {
+            return { code: "NO_FLOW", yieldsControl: false };
+          }
+        }
+
+        const entry = {
+          command: async () => ({ default: Cmd }),
+          args: { options: [] },
+          requiresFlow: false,
+          runtimeLog: { stepMetadata: false, writeWhenNoFlow: false },
+        };
+        const out = [];
+        await dispatch({
+          container,
+          entry,
+          argv: [],
+          envelopeType: "get",
+          envelopeKey: "direct",
+          runtimeLog: true,
+          stdout: (s) => out.push(s),
+          buildHookCtx: () => ({ flowState: null }),
+        });
+
+        assert.equal(JSON.parse(out.join("")).data.code, "NO_FLOW");
+        assert.equal(fs.existsSync(path.join(tmp, ".tmp")), false);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
     it("runtime log write is best-effort when cleanup removes the log directory", async () => {
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
       try {
